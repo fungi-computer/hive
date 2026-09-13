@@ -67,7 +67,13 @@ function orderPoint(order: { approachX: number; approachY: number; approachZ: nu
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
 }
 
-type TreeCandidate = { readonly worker: EntityId; readonly task: EntityId; readonly tree: EntityId; readonly target: Vec3 & { frame: EntityId | null } };
+type TreeCandidate = {
+  readonly worker: EntityId;
+  readonly task: EntityId;
+  readonly tree: EntityId;
+  readonly target: Vec3 & { frame: EntityId | null };
+  readonly approaches: readonly (Vec3 & { frame: EntityId | null })[];
+};
 const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<TreeCandidate> => {
   const workers = ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id);
   const trees = ctx.query(query(ColonyTree, Position, Container, FiniteResource));
@@ -94,29 +100,37 @@ const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<Entity
     if (!pose || !position) return [];
     const approaches = [{ x: position.x + 1, y: position.y, z: position.z }, { x: position.x - 1, y: position.y, z: position.z }, { x: position.x, y: position.y, z: position.z + 1 }, { x: position.x, y: position.y, z: position.z - 1 }];
     return workers.filter(worker => !suspendedActors.has(worker) && poses.get(worker)?.support === pose.support).flatMap(worker => {
-      const reachable = ctx.routeCosts(approaches.map(target => ({ actor: worker, target: { ...target, frame: pose.support } })));
-      const target = approaches.find((_, index) => reachable[index].status === "reachable");
-      return target ? [{ worker, task: order.id, tree: row.id, target: { ...target, frame: pose.support } }] : [];
+      const targets = approaches.map(target => ({ ...target, frame: pose.support }));
+      return [{ worker, task: order.id, tree: row.id, target: targets[0], approaches: targets }];
     });
   });
   const occupiedActors = orders.flatMap(row => { const state = row.get(ColonyTreeOrder); return state.phase === "working" && state.actor ? [state.actor] : []; });
   const claimed = orders.map(row => ({ task: row.id, actor: row.get(ColonyTreeOrder).actor }));
   const assigned = new Set<EntityId>();
+  const selectedApproaches = new Map<string, TreeCandidate["target"]>();
   return {
     claims: claimed,
     occupiedActors,
     candidates,
     estimate: candidate => {
-      const result = ctx.routeCosts([{ actor: candidate.worker, target: candidate.target }])[0];
-      return result.status === "reachable" ? result.cost : null;
+      const results = ctx.routeCosts(candidate.approaches.map(target => ({ actor: candidate.worker, target })));
+      let best: { target: TreeCandidate["target"]; cost: number } | null = null;
+      for (const [index, result] of results.entries()) {
+        if (result.status !== "reachable" || !Number.isFinite(result.cost)) continue;
+        if (!best || result.cost < best.cost) best = { target: candidate.approaches[index], cost: result.cost };
+      }
+      if (!best) return null;
+      selectedApproaches.set(`${candidate.worker}\0${candidate.task}`, best.target);
+      return best.cost;
     },
     apply: assignments => {
       for (const assignment of assignments) {
         const candidate = candidates.find(item => item.worker === assignment.worker && item.task === assignment.task);
         if (!candidate) continue;
         assigned.add(assignment.task);
-        ctx.write(ColonyTreeOrder, candidate.task, { tree: candidate.tree, actor: candidate.worker, phase: "working", stage: active.get(candidate.tree)!.state.stage, seconds: 0, approachX: candidate.target.x, approachY: candidate.target.y, approachZ: candidate.target.z, reason: "" });
-        ctx.action(move(candidate.worker, candidate.target));
+        const target = selectedApproaches.get(`${candidate.worker}\0${candidate.task}`) ?? candidate.target;
+        ctx.write(ColonyTreeOrder, candidate.task, { tree: candidate.tree, actor: candidate.worker, phase: "working", stage: active.get(candidate.tree)!.state.stage, seconds: 0, approachX: target.x, approachY: target.y, approachZ: target.z, reason: "" });
+        ctx.action(move(candidate.worker, target));
       }
     },
     progress: () => {

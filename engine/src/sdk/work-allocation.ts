@@ -15,6 +15,7 @@ export function allocateWork<Candidate extends { readonly worker: EntityId; read
   candidates: readonly Candidate[],
   estimate: (candidate: Candidate) => number | null,
   match: (candidates: readonly AssignmentCandidate[]) => readonly AssignmentPair[],
+  unavailableActors: ReadonlySet<EntityId> = new Set(),
 ): readonly AssignmentPair[] {
   const tasks = new Set<EntityId>();
   const occupied = new Set<EntityId>();
@@ -29,7 +30,8 @@ export function allocateWork<Candidate extends { readonly worker: EntityId; read
   }
   const eligible = candidates.filter(candidate => {
     if (!tasks.has(candidate.task)) throw new Error("candidate references unknown work task");
-    return !occupied.has(candidate.worker) && !claimedTasks.has(candidate.task);
+    return !occupied.has(candidate.worker) && !claimedTasks.has(candidate.task)
+      && !unavailableActors.has(candidate.worker);
   });
   const costed: AssignmentCandidate[] = [];
   for (const candidate of eligible) {
