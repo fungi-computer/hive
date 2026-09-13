@@ -26,14 +26,16 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } from "../contracts";
 
-export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+export { Worker } from "./colony-components";
+export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,

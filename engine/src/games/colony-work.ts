@@ -11,6 +11,7 @@ import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
+import { Worker } from "./colony-components";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
@@ -48,11 +49,6 @@ import {
   planStockpileDeliveries,
   type StockpileFilterProfile,
 } from "../sdk/stockpile";
-export const Worker = component<{ guest: boolean }>("colony.worker", {
-  version: 1,
-  fields: { guest: "boolean" },
-});
-
 export type ColonyTreePhase = "standing" | "felled" | "chopped";
 export const ColonyTree = component<{ phase: ColonyTreePhase }>("colony.tree", {
   version: 1,

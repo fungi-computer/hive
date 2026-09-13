@@ -2,7 +2,7 @@ import { component, query } from "../sdk/authoring";
 import { Body, Container, Destination, MaterialLot, Position, Support, Surface, exchangeFieldWater, move } from "../sdk/common";
 import type { PreparedWorkProvider } from "../sdk/work-system";
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
-import { Worker } from "./colony-work";
+import { Worker } from "./colony-components";
 
 export type WaterSupplyPhase = "idle" | "queued" | "approaching" | "submitting" | "complete" | "blocked";
 type WaterSupplyState = {

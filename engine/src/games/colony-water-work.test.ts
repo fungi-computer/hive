@@ -5,7 +5,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Body, Container, Destination, MaterialLot, Position } from "../sdk/common";
-import { Worker } from "./colony-work";
+import { Worker } from "./colony-components";
+import { colonyPack } from "./colony";
+
+test("colony pack loads with shared worker component ownership", () => {
+  assert.equal(colonyPack.systems.length, 2);
+});
 
 const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
