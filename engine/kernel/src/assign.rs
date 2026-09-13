@@ -1,228 +1,124 @@
 //! Deterministic maximum-cardinality, minimum-cost bipartite assignment.
 //!
-//! The public contract follows the MIT-licensed libcolony header retained in
-//! `vendor/libcolony/`: impossible edges are omitted, every worker/task is
-//! used at most once, and priority is represented by candidate cost.
+//! The sparse domain is adapted to the dense matrix expected by the maintained
+//! `pathfinding` Kuhn-Munkres implementation. Dummy columns represent an
+//! unmatched worker and a larger whole-input penalty represents a forbidden pair.
 
+use pathfinding::kuhn_munkres::kuhn_munkres_min;
+use pathfinding::matrix::Matrix;
 use std::collections::{BTreeMap, BTreeSet};
 
+const COST_SCALE: f64 = 1_000_000.0;
+
 #[derive(Clone, Debug, PartialEq)]
-pub struct Candidate {
-    pub worker: String,
-    pub task: String,
-    pub cost: f64,
-}
+pub struct Candidate { pub worker: String, pub task: String, pub cost: f64 }
 #[derive(Clone, Debug, PartialEq)]
-pub struct Assignment {
-    pub worker: String,
-    pub task: String,
-    pub cost: f64,
-}
+pub struct Assignment { pub worker: String, pub task: String, pub cost: f64 }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AssignmentError {
-    EdgeLimitExceeded { count: usize, limit: usize },
-}
+pub enum AssignmentError { EdgeLimitExceeded { count: usize, limit: usize }, CostOverflow }
 
 pub fn compute_cost(travel_time: f64, work_time: f64, retry_risk: f64, priority: f64) -> f64 {
-    if !travel_time.is_finite()
-        || !work_time.is_finite()
-        || !retry_risk.is_finite()
-        || !priority.is_finite()
-        || travel_time < 0.0
-        || work_time < 0.0
-        || !(0.0..1.0).contains(&retry_risk)
-        || priority <= 0.0
-    {
-        return f64::INFINITY;
-    }
+    if !travel_time.is_finite() || !work_time.is_finite() || !retry_risk.is_finite()
+        || !priority.is_finite() || travel_time < 0.0 || work_time < 0.0
+        || !(0.0..1.0).contains(&retry_risk) || priority <= 0.0 { return f64::INFINITY; }
     (travel_time + work_time) / (1.0 - retry_risk) / priority
 }
 
-/// Successive shortest augmenting paths. Bellman-Ford is intentional here:
-/// residual reverse edges are negative, and the bounded first kernel favors a
-/// simple auditable implementation over a more delicate potential heap.
-pub fn optimize(
-    candidates: &[Candidate],
-    max_edges: usize,
-) -> Result<Vec<Assignment>, AssignmentError> {
+pub fn optimize(candidates: &[Candidate], max_edges: usize) -> Result<Vec<Assignment>, AssignmentError> {
     let mut best = BTreeMap::<(String, String), f64>::new();
     for candidate in candidates {
-        if candidate.worker.is_empty()
-            || candidate.task.is_empty()
-            || !candidate.cost.is_finite()
-            || candidate.cost < 0.0
-        {
-            continue;
-        }
+        if candidate.worker.is_empty() || candidate.task.is_empty()
+            || !candidate.cost.is_finite() || candidate.cost < 0.0 { continue; }
         let key = (candidate.worker.clone(), candidate.task.clone());
-        best.entry(key)
-            .and_modify(|cost| *cost = cost.min(candidate.cost))
-            .or_insert(candidate.cost);
+        best.entry(key).and_modify(|cost| *cost = cost.min(candidate.cost)).or_insert(candidate.cost);
     }
-    if best.len() > max_edges {
-        return Err(AssignmentError::EdgeLimitExceeded {
-            count: best.len(),
-            limit: max_edges,
-        });
-    }
-    let workers: Vec<_> = best
-        .keys()
-        .map(|(worker, _)| worker.clone())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    let tasks: Vec<_> = best
-        .keys()
-        .map(|(_, task)| task.clone())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    let wi: BTreeMap<_, _> = workers.iter().enumerate().map(|(i, id)| (id, i)).collect();
-    let ti: BTreeMap<_, _> = tasks.iter().enumerate().map(|(i, id)| (id, i)).collect();
-    let source = workers.len() + tasks.len();
-    let sink = source + 1;
-    let mut graph = vec![Vec::new(); sink + 1];
-    for i in 0..workers.len() {
-        add_edge(&mut graph, source, i, 0.0);
-    }
-    for i in 0..tasks.len() {
-        add_edge(&mut graph, workers.len() + i, sink, 0.0);
-    }
-    for ((worker, task), cost) in &best {
-        add_edge(&mut graph, wi[worker], workers.len() + ti[task], *cost);
-    }
-
-    let mut flow = 0;
-    loop {
-        let mut distance = vec![f64::INFINITY; graph.len()];
-        let mut previous = vec![None; graph.len()];
-        distance[source] = 0.0;
-        for _ in 0..graph.len() {
-            let mut changed = false;
-            for node in 0..graph.len() {
-                if !distance[node].is_finite() {
-                    continue;
-                }
-                for (edge_index, edge) in graph[node].iter().enumerate() {
-                    if edge.capacity == 0 {
-                        continue;
-                    }
-                    let candidate = distance[node] + edge.cost;
-                    if candidate < distance[edge.to] {
-                        distance[edge.to] = candidate;
-                        previous[edge.to] = Some((node, edge_index));
-                        changed = true;
-                    }
-                }
-            }
-            if !changed {
-                break;
-            }
+    if best.len() > max_edges { return Err(AssignmentError::EdgeLimitExceeded { count: best.len(), limit: max_edges }); }
+    let workers: Vec<_> = best.keys().map(|(worker, _)| worker.clone()).collect::<BTreeSet<_>>().into_iter().collect();
+    let tasks: Vec<_> = best.keys().map(|(_, task)| task.clone()).collect::<BTreeSet<_>>().into_iter().collect();
+    if workers.is_empty() { return Ok(Vec::new()); }
+    let mut scaled = BTreeMap::new();
+    let mut max_cost = 0_i64;
+    for (key, cost) in &best {
+        if *cost > i64::MAX as f64 / COST_SCALE {
+            return Err(AssignmentError::CostOverflow);
         }
-        let Some(_) = previous[sink] else { break };
-        let mut node = sink;
-        while node != source {
-            let (parent, index) = previous[node].expect("augmenting path");
-            let reverse = graph[parent][index].reverse;
-            graph[parent][index].capacity -= 1;
-            graph[node][reverse].capacity += 1;
-            node = parent;
-        }
-        flow += 1;
+        let value = (*cost * COST_SCALE).ceil() as i64;
+        max_cost = max_cost.max(value); scaled.insert(key.clone(), value);
     }
-    let mut result = Vec::with_capacity(flow);
-    for (i, worker) in workers.iter().enumerate() {
-        for edge in &graph[i] {
-            if edge.to < workers.len() || edge.to >= source || edge.capacity != 0 {
-                continue;
-            }
-            let task = tasks[edge.to - workers.len()].clone();
-            result.push(Assignment {
-                worker: worker.clone(),
-                task: task.clone(),
-                cost: best[&(worker.clone(), task)],
-            });
+    let rows = workers.len();
+    let max_sum = max_cost.checked_mul(rows as i64).ok_or(AssignmentError::CostOverflow)?;
+    let unmatched = max_sum.checked_add(1).ok_or(AssignmentError::CostOverflow)?;
+    let forbidden = unmatched.checked_add(max_sum).and_then(|v| v.checked_add(1)).ok_or(AssignmentError::CostOverflow)?;
+    let columns = tasks.len() + rows;
+    let mut matrix = vec![vec![forbidden; columns]; rows];
+    for (row, worker) in workers.iter().enumerate() {
+        for (column, task) in tasks.iter().enumerate() {
+            if let Some(cost) = scaled.get(&(worker.clone(), task.clone())) { matrix[row][column] = *cost; }
         }
+        for column in tasks.len()..columns { matrix[row][column] = unmatched; }
     }
-    result.sort_by(|a, b| a.worker.cmp(&b.worker).then(a.task.cmp(&b.task)));
-    Ok(result)
-}
-
-#[derive(Clone)]
-struct Edge {
-    to: usize,
-    reverse: usize,
-    capacity: u8,
-    cost: f64,
-}
-fn add_edge(graph: &mut [Vec<Edge>], from: usize, to: usize, cost: f64) {
-    let reverse_to = graph[to].len();
-    let reverse_from = graph[from].len();
-    graph[from].push(Edge {
-        to,
-        reverse: reverse_to,
-        capacity: 1,
-        cost,
-    });
-    graph[to].push(Edge {
-        to: from,
-        reverse: reverse_from,
-        capacity: 0,
-        cost: -cost,
-    });
+    let matrix = Matrix::from_rows(matrix).expect("rectangular assignment matrix");
+    let (_, chosen) = kuhn_munkres_min::<i64, _>(&matrix);
+    let mut result = Vec::new();
+    for (row, &column) in chosen.iter().enumerate() {
+        if column >= tasks.len() { continue; }
+        let key = (workers[row].clone(), tasks[column].clone());
+        if let Some(cost) = best.get(&key) { result.push(Assignment { worker: key.0, task: key.1, cost: *cost }); }
+    }
+    result.sort_by(|a, b| a.worker.cmp(&b.worker).then(a.task.cmp(&b.task))); Ok(result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn c(w: &str, t: &str, cost: f64) -> Candidate {
-        Candidate {
-            worker: w.into(),
-            task: t.into(),
-            cost,
-        }
+    fn c(w: &str, t: &str, cost: f64) -> Candidate { Candidate { worker: w.into(), task: t.into(), cost } }
+    #[test]
+    fn sparse_matching_maximizes_cardinality_before_cost() {
+        let got = optimize(&[c("a", "x", 100.0), c("a", "y", 1.0), c("b", "x", 2.0)], 8).unwrap();
+        assert_eq!(got.len(), 2); assert!(got.iter().any(|x| x.worker == "a" && x.task == "y")); assert!(got.iter().any(|x| x.worker == "b" && x.task == "x"));
     }
     #[test]
     fn augmenting_path_reassigns_existing_match() {
-        let got = optimize(
-            &[c("w1", "t1", 1.0), c("w1", "t2", 2.0), c("w2", "t1", 1.1)],
-            8,
-        )
-        .unwrap();
-        assert_eq!(got.len(), 2);
-        assert!(got.iter().any(|x| x.worker == "w1" && x.task == "t2"));
-        assert!(got.iter().any(|x| x.worker == "w2" && x.task == "t1"));
+        let got = optimize(&[c("w1", "t1", 1.0), c("w1", "t2", 2.0), c("w2", "t1", 1.1)], 8).unwrap();
+        assert_eq!(got.len(), 2); assert!(got.iter().any(|x| x.worker == "w1" && x.task == "t2")); assert!(got.iter().any(|x| x.worker == "w2" && x.task == "t1"));
     }
     #[test]
-    fn zero_cost_edges_terminate_without_cycles() {
-        let got = optimize(
-            &[c("w1", "t1", 0.0), c("w1", "t2", 0.0), c("w2", "t1", 0.0)],
-            8,
-        )
-        .unwrap();
-        assert_eq!(got.len(), 2);
+    fn duplicate_and_equal_cost_replay_are_stable() {
+        let a = optimize(&[c("w", "b", 1.0), c("w", "a", 1.0), c("w", "a", 4.0)], 8).unwrap();
+        let b = optimize(&[c("w", "a", 4.0), c("w", "a", 1.0), c("w", "b", 1.0)], 8).unwrap();
+        assert_eq!(a, b); assert_eq!(a[0].task, "a"); assert_eq!(a[0].cost, 1.0);
     }
     #[test]
-    fn duplicate_edges_keep_cheapest_independent_of_input() {
-        let a = optimize(&[c("w", "t", 4.0), c("w", "t", 2.0)], 8).unwrap();
-        let b = optimize(&[c("w", "t", 2.0), c("w", "t", 4.0)], 8).unwrap();
-        assert_eq!(a, b);
-        assert_eq!(a[0].cost, 2.0);
+    fn impossible_edges_and_bounds_are_rejected_or_ignored() {
+        assert_eq!(optimize(&[c("w", "t", f64::INFINITY), c("w", "u", 1.0)], 1).unwrap().len(), 1);
+        assert!(matches!(optimize(&[c("a", "x", 1.0), c("b", "y", 1.0)], 1), Err(AssignmentError::EdgeLimitExceeded { .. })));
+        assert!(matches!(optimize(&[c("w", "t", f64::MAX)], 1), Err(AssignmentError::CostOverflow)));
     }
-    #[test]
-    fn input_order_and_equal_ties_are_stable() {
-        let a = optimize(&[c("w", "b", 1.0), c("w", "a", 1.0)], 8).unwrap();
-        let b = optimize(&[c("w", "a", 1.0), c("w", "b", 1.0)], 8).unwrap();
-        assert_eq!(a, b);
-        assert_eq!(a[0].task, "a");
+
+    // A deliberately tiny exhaustive oracle: it checks the domain objective,
+    // while Hungarian remains the only production implementation.
+    fn oracle(rows: &[&str], tasks: &[&str], edges: &[Candidate], row: usize,
+              used: &mut BTreeSet<&str>) -> (usize, f64) {
+        if row == rows.len() { return (0, 0.0); }
+        let mut best = oracle(rows, tasks, edges, row + 1, used);
+        for task in tasks {
+            if used.contains(task) { continue; }
+            let Some(edge) = edges.iter().filter(|e| e.worker == rows[row] && e.task == *task)
+                .min_by(|a, b| a.cost.partial_cmp(&b.cost).unwrap()) else { continue; };
+            used.insert(task);
+            let (count, cost) = oracle(rows, tasks, edges, row + 1, used);
+            used.remove(task);
+            let candidate = (count + 1, cost + edge.cost);
+            if candidate.0 > best.0 || (candidate.0 == best.0 && candidate.1 < best.1) { best = candidate; }
+        }
+        best
     }
+
     #[test]
-    fn bound_is_a_failure_and_impossible_edges_are_ignored() {
-        let got = optimize(&[c("w", "t", f64::INFINITY), c("w", "u", 1.0)], 1).unwrap();
-        assert_eq!(got.len(), 1);
-        assert!(matches!(
-            optimize(&[c("a", "x", 1.0), c("b", "y", 1.0)], 1),
-            Err(AssignmentError::EdgeLimitExceeded { .. })
-        ));
+    fn sparse_rectangular_cases_match_exhaustive_objective() {
+        let edges = vec![c("a", "x", 9.0), c("a", "y", 2.0), c("b", "x", 1.0), c("c", "z", 4.0)];
+        let expected = oracle(&["a", "b", "c"], &["x", "y", "z"], &edges, 0, &mut BTreeSet::new());
+        let got = optimize(&edges, 8).unwrap();
+        assert_eq!((got.len(), got.iter().map(|a| a.cost).sum::<f64>()), expected);
     }
 }
