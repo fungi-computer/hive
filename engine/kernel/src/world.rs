@@ -759,7 +759,13 @@ impl Kernel {
                 let mut history = Vec::new();
                 let mut contact_start = 0;
                 let mut origin = start_point.clone();
-                if start_point != centered(start_cell) {
+                // A newly submitted route may begin from an authored pose
+                // between terrain centers (for example a wandering actor's
+                // initial pose). Only reconstruct a retained route when both
+                // halves of its durable witness still exist; otherwise route
+                // from the rounded current cell and settle the actor onto the
+                // next committed waypoint.
+                if start_point != centered(start_cell) && self.terrain_routes.contains_key(&entity) && self.routes.contains_key(&entity) {
                     let previous = self.terrain_routes.get(&entity).ok_or("terrain pose lacks an in-flight route")?;
                     let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
                     let previous_points = crate::terrain_route::waypoints_with_stairs(&previous.path, config, &stairs)?;

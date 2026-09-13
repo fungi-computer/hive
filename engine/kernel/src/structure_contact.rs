@@ -48,7 +48,12 @@ impl Kernel {
                 let raw = [position.x / spacing[0], position.y / spacing[1] - 0.5,
                     position.z / spacing[2]];
                 if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) {
-                    return Ok(Some(format!("construction awaits stable terrain contact for {id}")));
+                    // A free moving actor may be between terrain support
+                    // centers while its route is being committed. It cannot
+                    // occupy the newly prepared structure until it has a
+                    // terrain witness, so it contributes no current-contact
+                    // obstruction to this publication.
+                    continue;
                 }
                 if raw[0].abs() > 9_007_199_254_740_991.0 || raw[2].abs() > 9_007_199_254_740_991.0
                     || raw[1] < f64::from(i32::MIN) || raw[1] > f64::from(i32::MAX) {
