@@ -66,7 +66,7 @@ type DeconstructionApproachState = {
 export const DeconstructionApproach = component<DeconstructionApproachState>(
   "hive.deconstruction-approach",
   {
-    version: 1,
+    version: 2,
     fields: {
       order: "entity",
       site: "entity",
