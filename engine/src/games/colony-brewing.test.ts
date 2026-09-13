@@ -21,7 +21,9 @@ function suppliedPack(): GamePack {
   };
   definition.initial.push(
     { id: "brew.malt", components: { "hive.lot": { kind: "malt", quantity: 2, container: "colony.pantry" } } },
-    { id: "brew.water", components: { "hive.lot": { kind: "water", quantity: 2, container: "colony.pantry" } } },
+    // Water begins inside an actual held pail. Process supply must join its
+    // interior lot to ordinary delivery custody before staging the kettle.
+    { id: "brew.water", components: { "hive.lot": { kind: "water", quantity: 2, container: "colony.pail.1" } } },
     { id: "brew.mugwort", components: { "hive.lot": { kind: "mugwort", quantity: 1, container: "colony.pantry" } } },
     { id: "brew.barm", components: { "hive.lot": { kind: "barm", quantity: 1, container: "colony.pantry" }, "hive.container": { capacity: 1 } } },
     { id: "brew.keg", components: { "hive.lot": { kind: "keg", quantity: 1, container: "colony.pantry" }, "hive.container": { capacity: 4 } } },
