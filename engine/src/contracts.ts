@@ -1,6 +1,8 @@
 import type { z } from "zod";
 import type { terrainSurfaceSchema } from "./runtime/terrain-surface";
 import type { KernelRecordSnapshot } from "./runtime/kernel-records";
+import type { WorkActivity } from "./runtime/work-activity";
+import type { GamePresentation } from "./presentation";
 /** Public boundary between authored TypeScript and the authoritative kernel. */
 export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
@@ -47,12 +49,47 @@ export interface RouteCostRequest {
   readonly excavationTarget?: readonly [number, number, number];
 }
 export type RouteCostResult =
-  | { readonly actor: EntityId; readonly status: "reachable"; readonly cost: number }
-  | { readonly actor: EntityId; readonly status: "unavailable"; readonly reason: string };
+  | {
+      readonly actor: EntityId;
+      readonly status: "reachable";
+      readonly cost: number;
+    }
+  | {
+      readonly actor: EntityId;
+      readonly status: "unavailable";
+      readonly reason: string;
+    };
+export interface RouteToAnyRequest {
+  readonly actor: EntityId;
+  readonly targets: readonly MoveDestination[];
+  /** Native excavation contact must be possible from the selected approach. */
+  readonly excavationTarget?: readonly [number, number, number];
+}
+export type RouteToAnyResult =
+  | {
+      readonly actor: EntityId;
+      readonly status: "reachable";
+      readonly targetIndex: number;
+      readonly cost: number;
+    }
+  | {
+      readonly actor: EntityId;
+      readonly status: "unavailable";
+      readonly reason: string;
+    };
 export interface WorkMaterialFacts {
   readonly version: 1;
-  readonly containers: readonly { readonly id: EntityId; readonly capacity: number; readonly sealed: boolean }[];
-  readonly lots: readonly { readonly id: EntityId; readonly kind: string; readonly quantity: number; readonly container: EntityId }[];
+  readonly containers: readonly {
+    readonly id: EntityId;
+    readonly capacity: number;
+    readonly sealed: boolean;
+  }[];
+  readonly lots: readonly {
+    readonly id: EntityId;
+    readonly kind: string;
+    readonly quantity: number;
+    readonly container: EntityId;
+  }[];
 }
 
 export interface Pose {
@@ -107,22 +144,80 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
-  | { readonly kind: "designate-stockpile"; readonly zone: EntityId; readonly cells: readonly { readonly x: number; readonly y: number; readonly z: number; readonly priority: number; readonly filterProfile: string; readonly capacity: number }[] }
-  | { readonly kind: "set-structure-open"; readonly worker: EntityId; readonly site: EntityId; readonly open: boolean }
-  | { readonly kind: "plan-construction"; readonly catalog: string; readonly site: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly orientation: CardinalOrientation; readonly contact: Vec3 & { readonly frame: null } }
-  | { readonly kind: "attend-construction"; readonly worker: EntityId; readonly site: EntityId }
-  | { readonly kind: "excavate"; readonly entity: EntityId; readonly x: number; readonly y: number; readonly z: number; readonly expected: number; readonly replacement: number }
+  | {
+      readonly kind: "designate-stockpile";
+      readonly zone: EntityId;
+      readonly cells: readonly {
+        readonly x: number;
+        readonly y: number;
+        readonly z: number;
+        readonly priority: number;
+        readonly filterProfile: string;
+        readonly capacity: number;
+      }[];
+    }
+  | {
+      readonly kind: "set-structure-open";
+      readonly worker: EntityId;
+      readonly site: EntityId;
+      readonly open: boolean;
+    }
+  | {
+      readonly kind: "plan-construction";
+      readonly catalog: string;
+      readonly site: EntityId;
+      readonly x: number;
+      readonly y: number;
+      readonly z: number;
+      readonly orientation: CardinalOrientation;
+      readonly contact: Vec3 & { readonly frame: null };
+    }
+  | {
+      readonly kind: "attend-construction";
+      readonly worker: EntityId;
+      readonly site: EntityId;
+    }
+  | {
+      readonly kind: "excavate";
+      readonly entity: EntityId;
+      readonly x: number;
+      readonly y: number;
+      readonly z: number;
+      readonly expected: number;
+      readonly replacement: number;
+    }
   | { readonly kind: "cancel-work"; readonly entity: EntityId }
-  | { readonly kind: "begin-direct"; readonly entity: EntityId; readonly stream: string }
-  | { readonly kind: "begin-emission"; readonly worker: EntityId; readonly station: EntityId }
+  | {
+      readonly kind: "begin-direct";
+      readonly entity: EntityId;
+      readonly stream: string;
+    }
+  | {
+      readonly kind: "begin-emission";
+      readonly worker: EntityId;
+      readonly station: EntityId;
+    }
   | {
       readonly kind: "direct-input";
       readonly entity: EntityId;
       readonly stream: string;
-      readonly inputs: readonly { readonly sequence: number; readonly x: number; readonly z: number }[];
+      readonly inputs: readonly {
+        readonly sequence: number;
+        readonly x: number;
+        readonly z: number;
+      }[];
     }
-  | { readonly kind: "launch"; readonly launcher: EntityId; readonly ammunition: EntityId; readonly velocity: Vec3 }
-  | { readonly kind: "displace"; readonly entity: EntityId; readonly delta: Vec3 }
+  | {
+      readonly kind: "launch";
+      readonly launcher: EntityId;
+      readonly ammunition: EntityId;
+      readonly velocity: Vec3;
+    }
+  | {
+      readonly kind: "displace";
+      readonly entity: EntityId;
+      readonly delta: Vec3;
+    }
   | {
       readonly kind: "move";
       readonly entity: EntityId;
@@ -147,7 +242,11 @@ export type ActionRequest =
       readonly lot: EntityId;
       readonly quantity: number;
     }
-  | { readonly kind: "extract-resource"; readonly worker: EntityId; readonly source: EntityId };
+  | {
+      readonly kind: "extract-resource";
+      readonly worker: EntityId;
+      readonly source: EntityId;
+    };
 export interface ActionResult {
   readonly accepted: boolean;
   readonly reason?: string | null;
@@ -202,12 +301,21 @@ export interface ReadContext {
   workMaterialFacts(): WorkMaterialFacts;
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
-  physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
+  routeToAny(request: RouteToAnyRequest): RouteToAnyResult;
+  physicalContacts(
+    cells: readonly [number, number, number][],
+  ): readonly PhysicalContact[];
   environmentFacts(): unknown;
   /** Returns modeled atmosphere at each cell; null means the receiver is unmodeled, not clean air. */
-  atmosphereSamples(cells: readonly [number, number, number][]): AtmosphereSamples;
-  terrainMaterials(cells: readonly [number, number, number][]): readonly number[];
-  terrainSurfaces(columns: readonly [number, number][]): readonly (TerrainSurface | null)[];
+  atmosphereSamples(
+    cells: readonly [number, number, number][],
+  ): AtmosphereSamples;
+  terrainMaterials(
+    cells: readonly [number, number, number][],
+  ): readonly number[];
+  terrainSurfaces(
+    columns: readonly [number, number][],
+  ): readonly (TerrainSurface | null)[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,
@@ -257,14 +365,27 @@ export interface CollisionFact {
   readonly offsetX: number;
   readonly offsetY: number;
   readonly offsetZ: number;
-  readonly material: { readonly response: "stop" | "pierce" | "ground"; readonly resistance: number; readonly restitution: number; readonly friction: number; readonly embedSpeed: number };
+  readonly material: {
+    readonly response: "stop" | "pierce" | "ground";
+    readonly resistance: number;
+    readonly restitution: number;
+    readonly friction: number;
+    readonly embedSpeed: number;
+  };
 }
 export interface RenderFact {
-  readonly activity?: import("./runtime/work-activity").WorkActivity;
+  readonly activity?: WorkActivity;
   readonly view?: { readonly pickable?: boolean; readonly cutawayTop?: number };
   readonly aim?: ProjectileAim | null;
   readonly collision?: CollisionFact | null;
-  readonly projectile?: { readonly velocity: Vec3; readonly gravity: number; readonly state: "flying" | "rolling" | "resting" | "embedded"; readonly embedDepth: number; readonly rollNormal: Vec3; readonly penetration: number } | null;
+  readonly projectile?: {
+    readonly velocity: Vec3;
+    readonly gravity: number;
+    readonly state: "flying" | "rolling" | "resting" | "embedded";
+    readonly embedDepth: number;
+    readonly rollNormal: Vec3;
+    readonly penetration: number;
+  } | null;
   readonly id: EntityId;
   readonly pose?: Pose;
   readonly local?: Pose;
@@ -274,7 +395,10 @@ export interface RenderFact {
   readonly label?: string | null;
   readonly selected?: boolean;
   readonly inventory?: {
-    readonly items: readonly { readonly kind: string; readonly quantity: number }[];
+    readonly items: readonly {
+      readonly kind: string;
+      readonly quantity: number;
+    }[];
     readonly overflow?: boolean;
   };
   readonly direct?: {
@@ -283,11 +407,20 @@ export interface RenderFact {
     readonly lastProcessed: number;
     readonly speed: number;
     readonly blocked: readonly [number, number, number][];
-    readonly bounds: null | { readonly min_x: number; readonly max_x: number; readonly min_z: number; readonly max_z: number };
+    readonly bounds: null | {
+      readonly min_x: number;
+      readonly max_x: number;
+      readonly min_z: number;
+      readonly max_z: number;
+    };
   } | null;
 }
 export type ActivityKind = "dig" | "build" | "chop";
-export interface ActivityBinding { readonly actor: EntityId; readonly kind: ActivityKind; readonly target: readonly [number, number] }
+export interface ActivityBinding {
+  readonly actor: EntityId;
+  readonly kind: ActivityKind;
+  readonly target: readonly [number, number];
+}
 export type KernelSnapshot = KernelRecordSnapshot;
 export interface AtmosphereSample {
   readonly volumeId: string;
@@ -310,16 +443,31 @@ export type StructureSurface = {
   readonly cell: readonly [number, number, number];
 };
 export type TerrainChangeSet =
-  | { readonly kind: "changed-columns"; readonly revision: number; readonly columns: readonly (readonly [number, number])[] }
-  | { readonly kind: "full-reset"; readonly revision: number; readonly reason: "history" | "restored" | "stale" };
+  | {
+      readonly kind: "changed-columns";
+      readonly revision: number;
+      readonly columns: readonly (readonly [number, number])[];
+    }
+  | {
+      readonly kind: "full-reset";
+      readonly revision: number;
+      readonly reason: "history" | "restored" | "stale";
+    };
 export interface KernelPort {
-  readonly physicalContacts: (cells: readonly [number, number, number][]) => readonly PhysicalContact[];
-  readonly routeCosts: (requests: readonly RouteCostRequest[]) => readonly RouteCostResult[];
+  readonly physicalContacts: (
+    cells: readonly [number, number, number][],
+  ) => readonly PhysicalContact[];
+  readonly routeCosts: (
+    requests: readonly RouteCostRequest[],
+  ) => readonly RouteCostResult[];
+  readonly routeToAny: (request: RouteToAnyRequest) => RouteToAnyResult;
   readonly dispose: () => void;
   readonly load: (definition: Uint8Array) => void;
   readonly loadEnvironment: (definition: Uint8Array) => void;
   readonly environmentFacts: () => unknown;
-  readonly atmosphereSamples: (cells: readonly [number, number, number][]) => AtmosphereSamples;
+  readonly atmosphereSamples: (
+    cells: readonly [number, number, number][],
+  ) => AtmosphereSamples;
   readonly terrainMaterials: (
     cells: readonly [number, number, number][],
   ) => readonly number[];
@@ -340,7 +488,10 @@ export interface KernelPort {
     delta: number,
     writes: readonly WriteIntent[],
     actions: readonly ActionRequest[],
-    options?: { readonly creates?: readonly EntityRecord[]; readonly removes?: readonly EntityId[] },
+    options?: {
+      readonly creates?: readonly EntityRecord[];
+      readonly removes?: readonly EntityId[];
+    },
   ) => AdvanceResult;
   readonly snapshot: () => KernelSnapshot;
   readonly restore: (snapshot: KernelSnapshot) => void;
@@ -356,10 +507,15 @@ export interface GamePack {
   readonly version: number;
   readonly definition: Uint8Array;
   readonly environmentDefinition?: Uint8Array;
-  readonly presentationWindow?: { readonly minX: number; readonly maxX: number; readonly minZ: number; readonly maxZ: number };
+  readonly presentationWindow?: {
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minZ: number;
+    readonly maxZ: number;
+  };
   readonly components: readonly ComponentDefinition<any>[];
   readonly systems: readonly SystemDefinition[];
-  readonly presentation?: import("./presentation").GamePresentation;
+  readonly presentation?: GamePresentation;
   readonly initialActions?: readonly ActionRequest[];
   /** Heterogeneous command inputs are erased at the pack registry boundary. */
   readonly commands?: Readonly<Record<string, GameCommandDefinition>>;

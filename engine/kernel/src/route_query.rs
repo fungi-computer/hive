@@ -21,10 +21,26 @@ struct Request {
     excavation_target: Option<[i32; 3]>,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct AnyRequest {
+    actor: String,
+    targets: Vec<Point>,
+    #[serde(default)]
+    excavation_target: Option<[i32; 3]>,
+}
+
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "camelCase")]
 enum Result {
     Reachable { actor: String, cost: f64 },
+    Unavailable { actor: String, reason: String },
+}
+
+#[derive(Serialize)]
+#[serde(tag = "status", rename_all = "camelCase")]
+enum AnyResult {
+    Reachable { actor: String, #[serde(rename = "targetIndex")] target_index: usize, cost: f64 },
     Unavailable { actor: String, reason: String },
 }
 
@@ -132,7 +148,16 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
     for (entity, entries) in groups {
         let start = entries[0].2;
         let targets: Vec<_> = entries.iter().map(|entry| entry.3.clone()).collect();
-        let routes = kernel.route_for_many(entity, start, &targets)?;
+        let routes = match kernel.route_for_many(entity, start, &targets) {
+            Ok(routes) => routes,
+            Err(error) if unavailable_error(&error) => {
+                for (index, actor, _, _) in entries {
+                    results[index] = Some(Result::Unavailable { actor, reason: error.clone() });
+                }
+                continue;
+            }
+            Err(error) => return Err(error),
+        };
         for ((index, actor, _, _), route) in entries.into_iter().zip(routes) {
             match route {
                 Ok(prepared) => {
@@ -146,6 +171,58 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
     }
     let results: Vec<_> = results.into_iter().map(|result| result.ok_or("route-cost result missing".into())).collect::<crate::components::Result<_>>()?;
     serde_json::to_string(&results).map_err(|error| error.to_string())
+}
+
+pub(super) fn execute_any(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
+    if input.len() > MAX_BYTES { return Err("route-to-any request exceeds input budget".into()); }
+    let request: AnyRequest = serde_json::from_str(input).map_err(|error| error.to_string())?;
+    if !valid_id(&request.actor) { return Err("route-to-any actor ID is invalid".into()); }
+    if request.targets.is_empty() || request.targets.len() > MAX_REQUESTS {
+        return Err("route-to-any request must contain 1..32 targets".into());
+    }
+    for target in &request.targets {
+        if !finite_point(target) { return Err("route-to-any target must be finite and bounded".into()); }
+        if target.frame.as_deref().is_some_and(|frame| !valid_id(frame)) {
+            return Err("route-to-any target frame is invalid".into());
+        }
+    }
+    let entity = match kernel.entity(&request.actor) {
+        Ok(entity) => entity,
+        Err(_) => return serde_json::to_string(&AnyResult::Unavailable { actor:request.actor, reason:"unknown actor".into() }).map_err(|error| error.to_string()),
+    };
+    let Some(start) = kernel.ecs.get::<Position>(entity).copied() else {
+        return serde_json::to_string(&AnyResult::Unavailable { actor:request.actor, reason:"actor has no position".into() }).map_err(|error| error.to_string());
+    };
+    if kernel.ecs.get::<crate::components::Body>(entity).is_none() {
+        return serde_json::to_string(&AnyResult::Unavailable { actor:request.actor, reason:"actor has no movement capability".into() }).map_err(|error| error.to_string());
+    }
+    let support = kernel.support_id(entity);
+    let has_matching_frame = request.targets.iter().any(|target| target.frame.as_ref() == support.as_ref());
+    let indexed: Vec<_> = request.targets.into_iter().enumerate().filter(|(_,target)| {
+        if target.frame.as_ref() != support.as_ref() { return false; }
+        let Some([x,y,z]) = request.excavation_target else { return true };
+        target.frame.is_none() && kernel.environment.as_ref().is_some_and(|environment| {
+            super::excavation_work::within_reach(
+                [target.x,target.y,target.z], crate::generation::Cell { x:i64::from(x),y,z:i64::from(z) },
+                environment.world.cell_spacing_m(),
+            )
+        })
+    }).collect();
+    if indexed.is_empty() {
+        let reason = if has_matching_frame { "approach is outside excavation reach" } else { "destination frame does not match actor support" };
+        return serde_json::to_string(&AnyResult::Unavailable { actor:request.actor, reason:reason.into() }).map_err(|error| error.to_string());
+    }
+    let targets: Vec<_> = indexed.iter().map(|(_,target)| target.clone()).collect();
+    let result = match kernel.route_for_any(entity,start,&targets) {
+        Ok((local_index,prepared)) => AnyResult::Reachable {
+            actor:request.actor,
+            target_index:indexed.get(local_index).ok_or("route-to-any selected an unknown target")?.0,
+            cost:route_cost(start,prepared.points)?,
+        },
+        Err(error) if unavailable_error(&error) => AnyResult::Unavailable { actor:request.actor, reason:error },
+        Err(error) => return Err(error),
+    };
+    serde_json::to_string(&result).map_err(|error| error.to_string())
 }
 
 #[cfg(test)]
@@ -180,6 +257,10 @@ mod tests {
 
     fn query(kernel: &mut Kernel, requests: Value) -> Value {
         serde_json::from_str(&kernel.route_costs_json(&requests.to_string()).unwrap()).unwrap()
+    }
+
+    fn query_any(kernel: &mut Kernel, request: Value) -> Value {
+        serde_json::from_str(&kernel.route_to_any_json(&request.to_string()).unwrap()).unwrap()
     }
 
     fn climbing_world() -> (Kernel, Point) {
@@ -242,6 +323,46 @@ mod tests {
         assert_eq!(response[0]["status"], "unavailable");
         assert_eq!(response[0]["reason"], "destination is occupied");
         assert!(kernel.route_costs_json(r#"[{"actor":"mover","target":{"x":0,"y":0,"z":0,"frame":null,"extra":true}}]"#).is_err());
+    }
+
+    #[test]
+    fn route_to_any_selects_the_cheapest_reachable_input_and_is_read_only() {
+        let mut kernel = Kernel::new();
+        kernel.load(&scene(true)).unwrap();
+        let before = kernel.snapshot_json().unwrap();
+        let response = query_any(&mut kernel,json!({
+            "actor":"mover",
+            "targets":[
+                { "x":4.0,"y":0.0,"z":0.0,"frame":null },
+                { "x":0.0,"y":0.0,"z":1.0,"frame":null }
+            ]
+        }));
+        assert_eq!(response["status"],"reachable");
+        assert_eq!(response["targetIndex"],1);
+        assert_eq!(response["cost"],1.0);
+        assert_eq!(kernel.snapshot_json().unwrap(),before);
+    }
+
+    #[test]
+    fn route_to_any_validates_the_whole_request_before_search() {
+        let mut kernel = Kernel::new();
+        kernel.load(&scene(false)).unwrap();
+        assert!(kernel.route_to_any_json(r#"{"actor":"mover","targets":[{"x":0,"y":0,"z":0,"frame":null},{"x":1,"y":0,"z":0,"frame":null,"extra":true}]}"#).is_err());
+    }
+
+    #[test]
+    fn route_to_any_preserves_input_index_when_another_frame_is_filtered() {
+        let mut kernel = Kernel::new();
+        kernel.load(&scene(true)).unwrap();
+        let response = query_any(&mut kernel,json!({
+            "actor":"mover",
+            "targets":[
+                { "x":0.0,"y":0.0,"z":0.0,"frame":"another-frame" },
+                { "x":0.0,"y":0.0,"z":1.0,"frame":null }
+            ]
+        }));
+        assert_eq!(response["status"],"reachable");
+        assert_eq!(response["targetIndex"],1);
     }
 
     #[test]

@@ -18,16 +18,25 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
     session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
     session.step(0);
     const orders = session.query(query(ColonyDigOrder));
-    assert.deepEqual(orders.map((row) => row.id), [
-      "colony.dig.1.13.0",
-      "colony.dig.2.13.0",
-    ]);
+    assert.deepEqual(
+      orders.map((row) => row.id),
+      ["colony.dig.1.13.0", "colony.dig.2.13.0"],
+    );
     assert.equal(orders.length, 2);
-    assert.ok(orders.every((row) => ["queued", "approaching", "excavating", "blocked"].includes(row.get(ColonyDigOrder).phase)));
+    assert.ok(
+      orders.every((row) =>
+        ["queued", "approaching", "excavating", "blocked"].includes(
+          row.get(ColonyDigOrder).phase,
+        ),
+      ),
+    );
     const saved = session.save();
     const restoredPort = wasmKernelPort(new WasmKernel());
     try {
-      const restored = new GameSession({ port: restoredPort, pack: colonyPack });
+      const restored = new GameSession({
+        port: restoredPort,
+        pack: colonyPack,
+      });
       restored.restore(saved);
       assert.deepEqual(restored.save(), saved);
     } finally {
@@ -44,7 +53,10 @@ test("actual WASM rejects an area above the bounded designation size", () => {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     assert.throws(
-      () => session.command("dig", { area: { start: [0, 13, 0], end: [16, 13, 15] } }),
+      () =>
+        session.command("dig", {
+          area: { start: [0, 13, 0], end: [16, 13, 15] },
+        }),
       /256 cells/,
     );
     assert.equal(session.query(query(ColonyDigOrder)).length, 0);
@@ -53,45 +65,91 @@ test("actual WASM rejects an area above the bounded designation size", () => {
   }
 });
 
-
 test("area workers excavate and return finite spoil without manual movement", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("dig", { area: { start: [1,13,0], end: [2,13,0] } });
+    session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
     let finished = false;
     for (let tick = 0; tick < 120; tick++) {
-      session.step(.25);
+      session.step(0.25);
       if (tick === 12) session.restore(session.save());
-      if (session.query(query(ColonyDigOrder)).length === 0) { finished = true; break; }
+      const spoil = session
+        .query(query(MaterialLot))
+        .map((row) => row.get(MaterialLot))
+        .filter((lot) => lot.kind === "soil-spoil");
+      if (
+        session.query(query(ColonyDigOrder)).length === 0 &&
+        spoil.length > 0 &&
+        spoil.every((lot) => lot.container === "colony.pantry")
+      ) {
+        finished = true;
+        break;
+      }
     }
-    const orders = session.query(query(ColonyDigOrder)).map(row => row.get(ColonyDigOrder));
+    const orders = session
+      .query(query(ColonyDigOrder))
+      .map((row) => row.get(ColonyDigOrder));
     assert.equal(finished, true, JSON.stringify(orders));
-    const spoil = session.query(query(MaterialLot)).map(row => row.get(MaterialLot)).filter(lot => lot.kind === "soil-spoil");
-    assert.equal(spoil.reduce((sum,lot)=>sum+lot.quantity,0),6);
-    assert.ok(spoil.every(lot=>lot.container === "colony.pantry"));
-  } finally { port.dispose(); }
+    const spoil = session
+      .query(query(MaterialLot))
+      .map((row) => row.get(MaterialLot))
+      .filter((lot) => lot.kind === "soil-spoil");
+    assert.equal(
+      spoil.reduce((sum, lot) => sum + lot.quantity, 0),
+      6,
+    );
+    assert.ok(spoil.every((lot) => lot.container === "colony.pantry"));
+  } finally {
+    port.dispose();
+  }
 });
-
 
 test("area excavation preserves hauling across changed terrain at browser-sized steps", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
-    const session = new GameSession({port,pack:colonyPack});
+    const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    for(let tick=0;tick<60;tick++) session.step(.016);
-    session.command("dig",{area:{start:[1,13,0],end:[2,13,0]}});
-    let finished=false;
-    for(let tick=0;tick<2500;tick++) {
-      session.step(.016);
-      if(tick % 200 === 199) session.restore(session.save());
-      if(session.query(query(ColonyDigOrder)).length===0) {finished=true;break;}
+    for (let tick = 0; tick < 60; tick++) session.step(0.016);
+    session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
+    let finished = false;
+    for (let tick = 0; tick < 2500; tick++) {
+      session.step(0.016);
+      if (tick % 200 === 199) session.restore(session.save());
+      const spoil = session
+        .query(query(MaterialLot))
+        .map((row) => row.get(MaterialLot))
+        .filter((lot) => lot.kind === "soil-spoil");
+      if (
+        session.query(query(ColonyDigOrder)).length === 0 &&
+        spoil.length > 0 &&
+        spoil.every((lot) => lot.container === "colony.pantry")
+      ) {
+        finished = true;
+        break;
+      }
     }
-    if(!finished) writeFileSync(".botanical/area-lifecycle/stuck.json",JSON.stringify(session.save()));
-    assert.equal(finished,true,"both excavations unload after nearby terrain changes");
-    const spoil = session.query(query(MaterialLot)).map(row=>row.get(MaterialLot)).filter(lot=>lot.kind === "soil-spoil");
-    assert.equal(spoil.reduce((sum,lot)=>sum+lot.quantity,0),6);
-    assert.ok(spoil.every(lot=>lot.container === "colony.pantry"));
-  } finally {port.dispose();}
+    if (!finished)
+      writeFileSync(
+        ".botanical/area-lifecycle/stuck.json",
+        JSON.stringify(session.save()),
+      );
+    assert.equal(
+      finished,
+      true,
+      "both excavations unload after nearby terrain changes",
+    );
+    const spoil = session
+      .query(query(MaterialLot))
+      .map((row) => row.get(MaterialLot))
+      .filter((lot) => lot.kind === "soil-spoil");
+    assert.equal(
+      spoil.reduce((sum, lot) => sum + lot.quantity, 0),
+      6,
+    );
+    assert.ok(spoil.every((lot) => lot.container === "colony.pantry"));
+  } finally {
+    port.dispose();
+  }
 });

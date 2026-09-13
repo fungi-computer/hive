@@ -27,6 +27,16 @@ impl Kernel {
         Ok(false)
     }
 
+    fn terrain_support_reserved(&self, target: Cell) -> bool {
+        // A moving actor owns its admitted contact path until it arrives or
+        // cancels. Excavation may be admitted while that path is in use, but
+        // it earns no work and cannot publish a terrain mutation until the
+        // route releases the support.
+        self.terrain_routes
+            .values()
+            .any(|route| !route.suspended && route.path.contains(&target))
+    }
+
     pub(super) fn request_excavation(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
         let actor = self.entity(id)?;
         if self.ecs.get::<Body>(actor).is_none() {
@@ -83,7 +93,7 @@ impl Kernel {
             // Routing retains saved work but earns no effort while travelling.
             if self.direct.contains_key(&actor) || self.ecs.get::<Destination>(actor).is_some() { continue; }
             let pose = self.world_pose_entity(actor, 0)?;
-            if self.terrain_support_occupied(cell(work))? { continue; }
+            if self.terrain_support_occupied(cell(work))? || self.terrain_support_reserved(cell(work)) { continue; }
             let environment = self.environment.as_mut().ok_or("saved work needs environment")?;
             if environment.world.material(cell(work))? != work.expected {
                 self.ecs.entity_mut(actor).remove::<ExcavationWork>();
@@ -189,6 +199,29 @@ mod tests {
         assert_eq!(kernel.quantity("worker"), 0);
         assert_eq!(kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap(), work.expected);
         assert!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).is_none());
+    }
+
+    #[test]
+    fn admitted_excavation_waits_for_an_active_terrain_route_to_release_its_support() {
+        let (mut kernel, work) = fixture();
+        let actor = kernel.entity("worker").unwrap();
+        let position = *kernel.ecs.get::<Position>(actor).unwrap();
+        kernel.terrain_routes.insert(actor, TerrainRouteState {
+            path: vec![cell(work)],
+            revision: None,
+            waiting: false,
+            suspended: false,
+            origin: navigation::point(position),
+            target: None,
+        });
+
+        kernel.request_excavation("worker", work).unwrap();
+        kernel.advance_excavation(1.0).unwrap();
+        assert_eq!(kernel.ecs.get::<ExcavationWork>(actor).unwrap().seconds, 0.0);
+
+        kernel.terrain_routes.remove(&actor);
+        kernel.advance_excavation(1.0).unwrap();
+        assert_eq!(kernel.ecs.get::<ExcavationWork>(actor).unwrap().seconds, 1.0);
     }
 
 }

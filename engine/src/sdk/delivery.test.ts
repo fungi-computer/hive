@@ -15,101 +15,187 @@ import {
 import { DeliveryControl, DeliveryTask, deliverySystem } from "./delivery";
 
 for (const occupation of ["excavation", "construction"] as const) {
-test(`native ${occupation} reserves a worker without dropping its delivery state`, () => {
-  const worker = entity("worker.digging");
-  const source = entity("stock.source");
-  const destination = entity("stock.destination");
-  const lot = entity("lot.food");
-  const active = entity("delivery.active");
-  const waiting = entity("delivery.waiting");
-  const taskValues = (actor: typeof worker | null, phase: string) => ({
-    actor,
-    sourceLot: lot,
-    source,
-    destination,
-    material: "food",
-    quantity: 1,
-    phase,
+  test(`native ${occupation} reserves a worker without dropping its delivery state`, () => {
+    const worker = entity("worker.digging");
+    const source = entity("stock.source");
+    const destination = entity("stock.destination");
+    const lot = entity("lot.food");
+    const active = entity("delivery.active");
+    const waiting = entity("delivery.waiting");
+    const taskValues = (actor: typeof worker | null, phase: string) => ({
+      actor,
+      sourceLot: lot,
+      source,
+      destination,
+      material: "food",
+      quantity: 1,
+      phase,
+    });
+    const taskRows = [
+      row(active, DeliveryTask, taskValues(worker, "to-source")),
+      row(waiting, DeliveryTask, taskValues(null, "idle")),
+    ];
+    const values = new Map<string, readonly unknown[]>([
+      [DeliveryTask.id, taskRows],
+      [
+        DeliveryControl.id,
+        [row(worker, DeliveryControl, { enabled: true, quantity: 1 })],
+      ],
+      [
+        ExcavationWork.id,
+        occupation === "excavation"
+          ? [
+              row(worker, ExcavationWork, {
+                x: 0,
+                y: 0,
+                z: 0,
+                expected: 1,
+                replacement: 0,
+                seconds: 0,
+              }),
+            ]
+          : [],
+      ],
+      [
+        ConstructionSite.id,
+        occupation === "construction"
+          ? [
+              row(entity("site.building"), ConstructionSite, {
+                catalog: "floor",
+                x: 0,
+                y: 0,
+                z: 0,
+                orientation: "north",
+                contactX: 0,
+                contactY: 0,
+                contactZ: 0,
+                worker,
+                seconds: 0.5,
+                phase: "working",
+              }),
+            ]
+          : [],
+      ],
+      [Body.id, [row(worker, Body, { speed: 1 })]],
+      [
+        Container.id,
+        [
+          row(worker, Container, { capacity: 4 }),
+          row(source, Container, { capacity: 4 }),
+          row(destination, Container, { capacity: 4 }),
+        ],
+      ],
+      [
+        Position.id,
+        [worker, source, destination].map((id) =>
+          row(id, Position, {
+            x: 0,
+            y: 0,
+            z: 0,
+            facing: 0,
+          }),
+        ),
+      ],
+      [
+        MaterialLot.id,
+        [
+          row(lot, MaterialLot, {
+            quantity: 2,
+            kind: "food",
+            container: source,
+          }),
+        ],
+      ],
+      [Support.id, []],
+      [Surface.id, []],
+    ]);
+    const writes: unknown[] = [];
+    const actions: unknown[] = [];
+    let assignments = 0;
+    deliverySystem.run({
+      clock: { now: 0, delta: 0.1, tick: 1 },
+      outcomes: [],
+      impacts: [],
+      random: { next: () => 0 },
+      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
+      workMaterialFacts: () => materialFacts(values),
+      routeCosts: () => {
+        throw new Error("unexpected route query");
+      },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
+      environmentFacts: () => {
+        throw new Error("unexpected environment query in this fixture");
+      },
+      atmosphereSamples: () => {
+        throw new Error("unexpected atmosphere query in this fixture");
+      },
+      physicalContacts: () => {
+        throw new Error("unexpected physical contact query in this fixture");
+      },
+      terrainMaterials: () => [],
+      terrainSurfaces: () => [],
+      worldPoses: (ids) =>
+        ids.map((id) => ({
+          id,
+          local: { x: 0, y: 0, z: 0, facing: 0 },
+          world: { x: 0, y: 0, z: 0, facing: 0 },
+          support: null,
+          surface: null,
+        })),
+      assign: () => {
+        assignments++;
+        return [];
+      },
+      write: (...args) => writes.push(args),
+      createAuthoredEntity: () => {
+        throw new Error("unexpected authored creation");
+      },
+      removeAuthoredEntity: () => {
+        throw new Error("unexpected authored removal");
+      },
+      action: (request) => actions.push(request),
+    });
+    assert.equal(assignments, 0);
+    assert.equal(writes.length, 0);
+    assert.equal(actions.length, 0);
+    assert.deepEqual(
+      taskRows[0].get(DeliveryTask),
+      taskValues(worker, "to-source"),
+    );
   });
-  const taskRows = [
-    row(active, DeliveryTask, taskValues(worker, "to-source")),
-    row(waiting, DeliveryTask, taskValues(null, "idle")),
-  ];
-  const values = new Map<string, readonly unknown[]>([
-    [DeliveryTask.id, taskRows],
-    [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 1 })]],
-    [ExcavationWork.id, occupation === "excavation" ? [row(worker, ExcavationWork, {
-      x: 0, y: 0, z: 0, expected: 1, replacement: 0, seconds: 0,
-    })] : []],
-    [ConstructionSite.id, occupation === "construction" ? [row(entity("site.building"), ConstructionSite, {
-      catalog: "floor", x: 0, y: 0, z: 0, orientation: "north",
-      contactX: 0, contactY: 0, contactZ: 0, worker, seconds: 0.5, phase: "working",
-    })] : []],
-    [Body.id, [row(worker, Body, { speed: 1 })]],
-    [Container.id, [
-      row(worker, Container, { capacity: 4 }),
-      row(source, Container, { capacity: 4 }),
-      row(destination, Container, { capacity: 4 }),
-    ]],
-    [Position.id, [worker, source, destination].map((id) => row(id, Position, {
-      x: 0, y: 0, z: 0, facing: 0,
-    }))],
-    [MaterialLot.id, [row(lot, MaterialLot, {
-      quantity: 2, kind: "food", container: source,
-    })]],
-    [Support.id, []],
-    [Surface.id, []],
-  ]);
-  const writes: unknown[] = [];
-  const actions: unknown[] = [];
-  let assignments = 0;
-  deliverySystem.run({
-    clock: { now: 0, delta: 0.1, tick: 1 },
-    outcomes: [],
-    impacts: [],
-    random: { next: () => 0 },
-    query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
-    workMaterialFacts: () => materialFacts(values),
-    routeCosts: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
-    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
-    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
-    terrainSurfaces: () => [],
-    worldPoses: (ids) => ids.map((id) => ({
-      id,
-      local: { x: 0, y: 0, z: 0, facing: 0 },
-      world: { x: 0, y: 0, z: 0, facing: 0 },
-      support: null,
-      surface: null,
-    })),
-    assign: () => {
-      assignments++;
-      return [];
-    },
-    write: (...args) => writes.push(args),
-    createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
-    removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
-    action: (request) => actions.push(request),
-  });
-  assert.equal(assignments, 0);
-  assert.equal(writes.length, 0);
-  assert.equal(actions.length, 0);
-  assert.deepEqual(taskRows[0].get(DeliveryTask), taskValues(worker, "to-source"));
-});
-
 }
 
 test("delivery rejects impossible pairs before matcher cost", () => {
   const cases = [
-    { name: "sealed source", sealed: "source", lots: [{ quantity: 2, kind: "food", container: "source" }] },
-    { name: "sealed destination", sealed: "destination", lots: [{ quantity: 2, kind: "food", container: "source" }] },
-    { name: "sealed worker", sealed: "worker", lots: [{ quantity: 2, kind: "food", container: "source" }] },
+    {
+      name: "sealed source",
+      sealed: "source",
+      lots: [{ quantity: 2, kind: "food", container: "source" }],
+    },
+    {
+      name: "sealed destination",
+      sealed: "destination",
+      lots: [{ quantity: 2, kind: "food", container: "source" }],
+    },
+    {
+      name: "sealed worker",
+      sealed: "worker",
+      lots: [{ quantity: 2, kind: "food", container: "source" }],
+    },
     { name: "missing lot", lots: [] },
-    { name: "insufficient source", lots: [{ quantity: 1, kind: "food", container: "source" }] },
-    { name: "full destination", lots: [
-      { quantity: 2, kind: "food", container: "source" },
-      { quantity: 4, kind: "food", container: "destination" },
-    ] },
+    {
+      name: "insufficient source",
+      lots: [{ quantity: 1, kind: "food", container: "source" }],
+    },
+    {
+      name: "full destination",
+      lots: [
+        { quantity: 2, kind: "food", container: "source" },
+        { quantity: 4, kind: "food", container: "destination" },
+      ],
+    },
   ] as const;
   for (const candidate of cases) {
     const slug = candidate.name.replaceAll(" ", ".");
@@ -117,11 +203,12 @@ test("delivery rejects impossible pairs before matcher cost", () => {
     const source = entity(`eligibility.source.${slug}`);
     const destination = entity(`eligibility.destination.${slug}`);
     const task = entity(`eligibility.task.${slug}`);
-    const lotRows = candidate.lots.map((lot, index) => row(
-      entity(`eligibility.lot.${slug}.${index}`),
-      MaterialLot,
-      { ...lot, container: lot.container === "source" ? source : destination },
-    ));
+    const lotRows = candidate.lots.map((lot, index) =>
+      row(entity(`eligibility.lot.${slug}.${index}`), MaterialLot, {
+        ...lot,
+        container: lot.container === "source" ? source : destination,
+      }),
+    );
     const taskValue = {
       actor: null,
       sourceLot: lotRows[0]?.id ?? entity(`eligibility.missing.${slug}`),
@@ -133,57 +220,132 @@ test("delivery rejects impossible pairs before matcher cost", () => {
     };
     const values = new Map<string, readonly unknown[]>([
       [DeliveryTask.id, [row(task, DeliveryTask, taskValue)]],
-      [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 2 })]],
+      [
+        DeliveryControl.id,
+        [row(worker, DeliveryControl, { enabled: true, quantity: 2 })],
+      ],
       [Body.id, [row(worker, Body, { speed: 1 })]],
-      [Container.id, [
-        row(worker, Container, { capacity: 4 }),
-        row(source, Container, { capacity: 8 }),
-        row(destination, Container, { capacity: 4 }),
-      ]],
-      [Position.id, [worker, source, destination].map((id) => row(id, Position, {
-        x: 0, y: 0, z: 0, facing: 0,
-      }))],
+      [
+        Container.id,
+        [
+          row(worker, Container, { capacity: 4 }),
+          row(source, Container, { capacity: 8 }),
+          row(destination, Container, { capacity: 4 }),
+        ],
+      ],
+      [
+        Position.id,
+        [worker, source, destination].map((id) =>
+          row(id, Position, {
+            x: 0,
+            y: 0,
+            z: 0,
+            facing: 0,
+          }),
+        ),
+      ],
       [MaterialLot.id, lotRows],
-      [SealedContainer.id, "sealed" in candidate ? [row(
-        candidate.sealed === "source" ? source : candidate.sealed === "destination" ? destination : worker,
-        SealedContainer, {},
-      )] : []],
+      [
+        SealedContainer.id,
+        "sealed" in candidate
+          ? [
+              row(
+                candidate.sealed === "source"
+                  ? source
+                  : candidate.sealed === "destination"
+                    ? destination
+                    : worker,
+                SealedContainer,
+                {},
+              ),
+            ]
+          : [],
+      ],
       [ExcavationWork.id, []],
       [Support.id, []],
       [Surface.id, []],
     ]);
     let assignments = 0;
     let coordinateReads = 0;
-    const point = Object.defineProperties({} as { x: number; y: number; z: number; facing: number }, {
-      x: { get: () => { coordinateReads++; return 0; } },
-      y: { get: () => { coordinateReads++; return 0; } },
-      z: { get: () => { coordinateReads++; return 0; } },
-      facing: { value: 0 },
-    });
+    const point = Object.defineProperties(
+      {} as { x: number; y: number; z: number; facing: number },
+      {
+        x: {
+          get: () => {
+            coordinateReads++;
+            return 0;
+          },
+        },
+        y: {
+          get: () => {
+            coordinateReads++;
+            return 0;
+          },
+        },
+        z: {
+          get: () => {
+            coordinateReads++;
+            return 0;
+          },
+        },
+        facing: { value: 0 },
+      },
+    );
     deliverySystem.run({
       clock: { now: 0, delta: 0.1, tick: 1 },
-      outcomes: [], impacts: [], random: { next: () => 0 },
+      outcomes: [],
+      impacts: [],
+      random: { next: () => 0 },
       query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
       workMaterialFacts: () => materialFacts(values),
-      routeCosts: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
-    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
-    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
-    terrainSurfaces: () => [],
-    worldPoses: (ids) => ids.map((id) => ({
-        id, local: point, world: point, support: null, surface: null,
-      })),
-      assign: () => { assignments++; return []; },
-      createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
-      removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
-      write: () => {}, action: () => {},
+      routeCosts: () => {
+        throw new Error("unexpected route query");
+      },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
+      environmentFacts: () => {
+        throw new Error("unexpected environment query in this fixture");
+      },
+      atmosphereSamples: () => {
+        throw new Error("unexpected atmosphere query in this fixture");
+      },
+      physicalContacts: () => {
+        throw new Error("unexpected physical contact query in this fixture");
+      },
+      terrainMaterials: () => [],
+      terrainSurfaces: () => [],
+      worldPoses: (ids) =>
+        ids.map((id) => ({
+          id,
+          local: point,
+          world: point,
+          support: null,
+          surface: null,
+        })),
+      assign: () => {
+        assignments++;
+        return [];
+      },
+      createAuthoredEntity: () => {
+        throw new Error("unexpected authored creation");
+      },
+      removeAuthoredEntity: () => {
+        throw new Error("unexpected authored removal");
+      },
+      write: () => {},
+      action: () => {},
     });
     assert.equal(assignments, 0, `${candidate.name} reached native matcher`);
     assert.equal(coordinateReads, 0, `${candidate.name} reached distance cost`);
   }
 });
 
-function row<T extends object>(id: ReturnType<typeof entity>, definition: { id: string }, value: T) {
+function row<T extends object>(
+  id: ReturnType<typeof entity>,
+  definition: { id: string },
+  value: T,
+) {
   return {
     id,
     get(requested: { id: string }) {
@@ -193,11 +355,22 @@ function row<T extends object>(id: ReturnType<typeof entity>, definition: { id: 
   };
 }
 function materialFacts(values: Map<string, readonly unknown[]>) {
-  const rows = (id: string) => (values.get(id) ?? []) as readonly { id: ReturnType<typeof entity>; get: (definition: { id: string }) => any }[];
+  const rows = (id: string) =>
+    (values.get(id) ?? []) as readonly {
+      id: ReturnType<typeof entity>;
+      get: (definition: { id: string }) => any;
+    }[];
   return {
     version: 1 as const,
-    containers: rows(Container.id).map(row => ({ id: row.id, capacity: row.get(Container).capacity, sealed: rows(SealedContainer.id).some(sealed => sealed.id === row.id) })),
-    lots: rows(MaterialLot.id).map(row => ({ id: row.id, ...row.get(MaterialLot) })),
+    containers: rows(Container.id).map((row) => ({
+      id: row.id,
+      capacity: row.get(Container).capacity,
+      sealed: rows(SealedContainer.id).some((sealed) => sealed.id === row.id),
+    })),
+    lots: rows(MaterialLot.id).map((row) => ({
+      id: row.id,
+      ...row.get(MaterialLot),
+    })),
   };
 }
 
@@ -208,109 +381,344 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
   const lot = entity("lot");
   const task = entity("delivery");
   for (const scenario of ["blocked", "deposited", "departed-source"] as const) {
-    const state = { actor: worker, sourceLot: lot, source, destination,
-      material: "wood", quantity: 1, phase: "to-destination" };
+    const state = {
+      actor: worker,
+      sourceLot: lot,
+      source,
+      destination,
+      material: "wood",
+      quantity: 1,
+      phase: "to-destination",
+    };
     const values = new Map<string, readonly unknown[]>([
       [DeliveryTask.id, [row(task, DeliveryTask, state)]],
-      [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 1 })]],
+      [
+        DeliveryControl.id,
+        [row(worker, DeliveryControl, { enabled: true, quantity: 1 })],
+      ],
       [Body.id, [row(worker, Body, { speed: 1 })]],
-      [Container.id, [worker, source, destination].map(id => row(id, Container, { capacity: 4 }))],
-      [Position.id, [worker, source, destination].map(id => row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }))],
-      [MaterialLot.id, [row(lot, MaterialLot, { kind: "wood", quantity: 1,
-        container: scenario === "deposited" ? destination : worker })]],
-      [SealedContainer.id, [row(scenario === "departed-source" ? source : destination, SealedContainer, {})]],
+      [
+        Container.id,
+        [worker, source, destination].map((id) =>
+          row(id, Container, { capacity: 4 }),
+        ),
+      ],
+      [
+        Position.id,
+        [worker, source, destination].map((id) =>
+          row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }),
+        ),
+      ],
+      [
+        MaterialLot.id,
+        [
+          row(lot, MaterialLot, {
+            kind: "wood",
+            quantity: 1,
+            container: scenario === "deposited" ? destination : worker,
+          }),
+        ],
+      ],
+      [
+        SealedContainer.id,
+        [
+          row(
+            scenario === "departed-source" ? source : destination,
+            SealedContainer,
+            {},
+          ),
+        ],
+      ],
     ]);
     const writes: unknown[][] = [];
     const actions: unknown[] = [];
     deliverySystem.run({
-      clock: { now: 1, delta: 0.1, tick: 10 }, outcomes: [], impacts: [], random: { next: () => 0 },
-      query: spec => (values.get(spec.components[0].id) ?? []) as never,
+      clock: { now: 1, delta: 0.1, tick: 10 },
+      outcomes: [],
+      impacts: [],
+      random: { next: () => 0 },
+      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
       workMaterialFacts: () => materialFacts(values),
-      worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 },
-        world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
-      routeCosts: () => { throw new Error("claimed delivery must not search a new route"); },
-      assign: () => { throw new Error("claimed delivery must not be reassigned"); },
-      environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
-    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
-    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
-      createAuthoredEntity: () => { throw new Error("no new task"); },
-      removeAuthoredEntity: () => { throw new Error("no task removal"); },
-      write: (...args) => writes.push(args), action: request => actions.push(request),
+      worldPoses: (ids) =>
+        ids.map((id) => ({
+          id,
+          local: { x: 0, y: 0, z: 0, facing: 0 },
+          world: { x: 0, y: 0, z: 0, facing: 0 },
+          support: null,
+          surface: null,
+        })),
+      routeCosts: () => {
+        throw new Error("claimed delivery must not search a new route");
+      },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
+      assign: () => {
+        throw new Error("claimed delivery must not be reassigned");
+      },
+      environmentFacts: () => {
+        throw new Error("unexpected environment query in this fixture");
+      },
+      atmosphereSamples: () => {
+        throw new Error("unexpected atmosphere query in this fixture");
+      },
+      physicalContacts: () => {
+        throw new Error("unexpected physical contact query in this fixture");
+      },
+      terrainMaterials: () => [],
+      terrainSurfaces: () => [],
+      createAuthoredEntity: () => {
+        throw new Error("no new task");
+      },
+      removeAuthoredEntity: () => {
+        throw new Error("no task removal");
+      },
+      write: (...args) => writes.push(args),
+      action: (request) => actions.push(request),
     });
-    assert.deepEqual(writes, scenario === "deposited"
-      ? [[DeliveryTask, task, { ...state, actor: null, phase: "complete" }]] : []);
-    assert.deepEqual(actions, scenario === "departed-source"
-      ? [{ kind: "transfer", lot, from: worker, to: destination, quantity: 1 }] : []);
-    assert.equal(state.actor, worker, "queried committed data was not mutated in place");
+    assert.deepEqual(
+      writes,
+      scenario === "deposited"
+        ? [[DeliveryTask, task, { ...state, actor: null, phase: "complete" }]]
+        : [],
+    );
+    assert.deepEqual(
+      actions,
+      scenario === "departed-source"
+        ? [
+            {
+              kind: "transfer",
+              lot,
+              from: worker,
+              to: destination,
+              quantity: 1,
+            },
+          ]
+        : [],
+    );
+    assert.equal(
+      state.actor,
+      worker,
+      "queried committed data was not mutated in place",
+    );
   }
 });
 
 test("worker batch preference cannot exceed a delivery's requested quantity", () => {
-  const worker = entity("worker"), source = entity("source"), destination = entity("destination");
-  const task = entity("task"), lot = entity("lot");
-  const state = { actor: null, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" };
+  const worker = entity("worker"),
+    source = entity("source"),
+    destination = entity("destination");
+  const task = entity("task"),
+    lot = entity("lot");
+  const state = {
+    actor: null,
+    sourceLot: lot,
+    source,
+    destination,
+    material: "wood",
+    quantity: 1,
+    phase: "idle",
+  };
   const values = new Map<string, readonly unknown[]>([
     [DeliveryTask.id, [row(task, DeliveryTask, state)]],
-    [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 2 })]],
+    [
+      DeliveryControl.id,
+      [row(worker, DeliveryControl, { enabled: true, quantity: 2 })],
+    ],
     [Body.id, [row(worker, Body, { speed: 1 })]],
-    [Container.id, [row(worker, Container, { capacity: 2 }), row(source, Container, { capacity: 2 }), row(destination, Container, { capacity: 1 })]],
-    [Position.id, [worker, source, destination].map(id => row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }))],
-    [MaterialLot.id, [row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source })]],
+    [
+      Container.id,
+      [
+        row(worker, Container, { capacity: 2 }),
+        row(source, Container, { capacity: 2 }),
+        row(destination, Container, { capacity: 1 }),
+      ],
+    ],
+    [
+      Position.id,
+      [worker, source, destination].map((id) =>
+        row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }),
+      ),
+    ],
+    [
+      MaterialLot.id,
+      [row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source })],
+    ],
   ]);
   const writes: unknown[][] = [];
   deliverySystem.run({
-    clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: [], impacts: [], random: { next: () => 0 },
-    query: spec => (values.get(spec.components[0].id) ?? []) as never,
+    clock: { now: 0, delta: 0.1, tick: 1 },
+    outcomes: [],
+    impacts: [],
+    random: { next: () => 0 },
+    query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
     workMaterialFacts: () => materialFacts(values),
-    worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
-    routeCosts: requests => requests.map(request => ({ actor: request.actor, status: "reachable", cost: 1 })),
-    assign: candidates => { assert.equal(candidates.length, 1); return [{ worker, task, cost: 1 }]; },
-    environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
-    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
-    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
-    createAuthoredEntity: () => { throw new Error("no new task"); }, removeAuthoredEntity: () => { throw new Error("no removal"); },
-    write: (...args) => writes.push(args), action: () => { throw new Error("assignment earns no transfer"); },
+    worldPoses: (ids) =>
+      ids.map((id) => ({
+        id,
+        local: { x: 0, y: 0, z: 0, facing: 0 },
+        world: { x: 0, y: 0, z: 0, facing: 0 },
+        support: null,
+        surface: null,
+      })),
+    routeCosts: (requests) =>
+      requests.map((request) => ({
+        actor: request.actor,
+        status: "reachable",
+        cost: 1,
+      })),
+    routeToAny: () => {
+      throw new Error("unexpected route query");
+    },
+    assign: (candidates) => {
+      assert.equal(candidates.length, 1);
+      return [{ worker, task, cost: 1 }];
+    },
+    environmentFacts: () => {
+      throw new Error("unexpected environment query in this fixture");
+    },
+    atmosphereSamples: () => {
+      throw new Error("unexpected atmosphere query in this fixture");
+    },
+    physicalContacts: () => {
+      throw new Error("unexpected physical contact query in this fixture");
+    },
+    terrainMaterials: () => [],
+    terrainSurfaces: () => [],
+    createAuthoredEntity: () => {
+      throw new Error("no new task");
+    },
+    removeAuthoredEntity: () => {
+      throw new Error("no removal");
+    },
+    write: (...args) => writes.push(args),
+    action: () => {
+      throw new Error("assignment earns no transfer");
+    },
   });
-  assert.deepEqual(writes, [[DeliveryTask, task, { ...state, actor: worker, quantity: 1, phase: "to-source" }]]);
+  assert.deepEqual(writes, [
+    [
+      DeliveryTask,
+      task,
+      { ...state, actor: worker, quantity: 1, phase: "to-source" },
+    ],
+  ]);
 });
 
 test("full destination puts held goods down before releasing the worker", () => {
-  const worker = entity("worker"), source = entity("source"), destination = entity("destination"), ground = entity("ground");
-  const task = entity("task"), lot = entity("lot");
-  let state = { actor: worker as typeof worker | null, sourceLot: lot, source, destination, material: "soil", quantity: 3, phase: "to-destination" };
+  const worker = entity("worker"),
+    source = entity("source"),
+    destination = entity("destination"),
+    ground = entity("ground");
+  const task = entity("task"),
+    lot = entity("lot");
+  let state = {
+    actor: worker as typeof worker | null,
+    sourceLot: lot,
+    source,
+    destination,
+    material: "soil",
+    quantity: 3,
+    phase: "to-destination",
+  };
   let holder = worker;
   const actions: unknown[] = [];
   const step = () => {
     const values = new Map<string, readonly unknown[]>([
       [DeliveryTask.id, [row(task, DeliveryTask, state)]],
       [GroundStock.id, [row(ground, GroundStock, {})]],
-      [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: 3 })]],
+      [
+        DeliveryControl.id,
+        [row(worker, DeliveryControl, { enabled: true, quantity: 3 })],
+      ],
       [Body.id, [row(worker, Body, { speed: 1 })]],
-      [Container.id, [worker, source, destination, ground].map(id => row(id, Container, { capacity: id === destination ? 0 : 3 }))],
-      [Position.id, [worker, source, destination, ground].map(id => row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }))],
-      [MaterialLot.id, [row(lot, MaterialLot, { kind: "soil", quantity: 3, container: holder })]],
+      [
+        Container.id,
+        [worker, source, destination, ground].map((id) =>
+          row(id, Container, { capacity: id === destination ? 0 : 3 }),
+        ),
+      ],
+      [
+        Position.id,
+        [worker, source, destination, ground].map((id) =>
+          row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }),
+        ),
+      ],
+      [
+        MaterialLot.id,
+        [
+          row(lot, MaterialLot, {
+            kind: "soil",
+            quantity: 3,
+            container: holder,
+          }),
+        ],
+      ],
     ]);
     deliverySystem.run({
-      clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: [], impacts: [], random: { next: () => 0 },
-      query: spec => (values.get(spec.components[0].id) ?? []) as never,
+      clock: { now: 0, delta: 0.1, tick: 1 },
+      outcomes: [],
+      impacts: [],
+      random: { next: () => 0 },
+      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
       workMaterialFacts: () => materialFacts(values),
-      worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
-      routeCosts: () => { throw new Error("full storage cannot request a path"); },
-      assign: () => { throw new Error("full storage cannot claim a worker"); },
-      environmentFacts: () => { throw new Error("no environment query"); },
-      atmosphereSamples: () => { throw new Error("no air query"); }, physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
-      createAuthoredEntity: () => { throw new Error("native drop owns physical creation"); }, removeAuthoredEntity: () => { throw new Error("no deletion"); },
-      write: (component, id, value) => { assert.equal(component, DeliveryTask); assert.equal(id, task); state = value as typeof state; },
-      action: action => actions.push(action),
+      worldPoses: (ids) =>
+        ids.map((id) => ({
+          id,
+          local: { x: 0, y: 0, z: 0, facing: 0 },
+          world: { x: 0, y: 0, z: 0, facing: 0 },
+          support: null,
+          surface: null,
+        })),
+      routeCosts: () => {
+        throw new Error("full storage cannot request a path");
+      },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
+      assign: () => {
+        throw new Error("full storage cannot claim a worker");
+      },
+      environmentFacts: () => {
+        throw new Error("no environment query");
+      },
+      atmosphereSamples: () => {
+        throw new Error("no air query");
+      },
+      physicalContacts: () => [],
+      terrainMaterials: () => [],
+      terrainSurfaces: () => [],
+      createAuthoredEntity: () => {
+        throw new Error("native drop owns physical creation");
+      },
+      removeAuthoredEntity: () => {
+        throw new Error("no deletion");
+      },
+      write: (component, id, value) => {
+        assert.equal(component, DeliveryTask);
+        assert.equal(id, task);
+        state = value as typeof state;
+      },
+      action: (action) => actions.push(action),
     });
   };
   step();
-  assert.equal(state.actor, worker, "claim remains until the physical drop commits");
+  assert.equal(
+    state.actor,
+    worker,
+    "claim remains until the physical drop commits",
+  );
   assert.equal(state.phase, "putting-down");
-  assert(actions.some(action => (action as { kind: string }).kind === "drop-lot"));
+  assert(
+    actions.some((action) => (action as { kind: string }).kind === "drop-lot"),
+  );
   actions.length = 0;
   step();
-  assert.equal(state.actor, worker, "failed or uncommitted drop cannot lose custody");
+  assert.equal(
+    state.actor,
+    worker,
+    "failed or uncommitted drop cannot lose custody",
+  );
   holder = ground;
   step();
   assert.equal(state.actor, null);
@@ -318,5 +726,9 @@ test("full destination puts held goods down before releasing the worker", () => 
   assert.equal(state.phase, "idle");
   actions.length = 0;
   step();
-  assert.equal(actions.length, 0, "waiting ground goods do not repeatedly move a worker");
+  assert.equal(
+    actions.length,
+    0,
+    "waiting ground goods do not repeatedly move a worker",
+  );
 });

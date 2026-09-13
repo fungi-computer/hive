@@ -225,6 +225,9 @@ impl WasmKernel {
     pub fn route_costs(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.route_costs_json(input).map_err(js_error)
     }
+    pub fn route_to_any(&mut self, input: &str) -> Result<String, JsValue> {
+        self.0.route_to_any_json(input).map_err(js_error)
+    }
     pub fn atmosphere_samples(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.atmosphere_samples_json(input).map_err(js_error)
     }

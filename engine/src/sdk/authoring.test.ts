@@ -38,15 +38,31 @@ export function authoringContractProof(): void {
     query: () => [],
     workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
     assign: () => [],
-    routeCosts: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
-    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
-    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
+    routeCosts: () => {
+      throw new Error("unexpected route query");
+    },
+    routeToAny: () => {
+      throw new Error("unexpected route query");
+    },
+    environmentFacts: () => {
+      throw new Error("unexpected environment query in this fixture");
+    },
+    atmosphereSamples: () => {
+      throw new Error("unexpected atmosphere query in this fixture");
+    },
+    physicalContacts: () => {
+      throw new Error("unexpected physical contact query in this fixture");
+    },
+    terrainMaterials: () => [],
     terrainSurfaces: () => [],
     worldPoses: () => [],
     write: (...args) => writes.push(args),
-    createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
-    removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
+    createAuthoredEntity: () => {
+      throw new Error("unexpected authored creation");
+    },
+    removeAuthoredEntity: () => {
+      throw new Error("unexpected authored removal");
+    },
     action: () => {},
   });
   if (writes.length !== 1) throw new Error("declared write was not recorded");
