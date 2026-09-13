@@ -40,7 +40,7 @@ function fixture(options: {
   records.push(row(primaryOrder, { [DeconstructionOrder.id]: state }));
   if (options.secondOrder) records.push(row(entity("order.deconstruct.second"), { [DeconstructionOrder.id]: { ...state } }));
   if (options.approach) records.push(row(entity(`deconstruction-approach.${order.length}:${order}`), {
-    [DeconstructionApproach.id]: { order: primaryOrder, site, worker, contactX: 1, contactY: 0.5, contactZ: 1 },
+    [DeconstructionApproach.id]: { order: primaryOrder, worker, contactX: 1, contactY: 0.5, contactZ: 1 },
   }));
   records.push(row(worker, {
     [Body.id]: { speed: 1 }, [Container.id]: { capacity: options.capacity ?? 8 },

@@ -58,7 +58,6 @@ export const DeconstructionOrder = component<DeconstructionOrderState>(
 
 type DeconstructionApproachState = {
   order: EntityId;
-  site: EntityId;
   worker: EntityId;
   contactX: number;
   contactY: number;
@@ -519,7 +518,6 @@ function beginDeconstructionAssignment(
           components: {
             [DeconstructionApproach.id]: {
               order: candidate.order,
-              site: candidate.site,
               worker: candidate.worker,
               contactX: chosen.contact.x,
               contactY: chosen.contact.y,
@@ -566,8 +564,8 @@ function releaseDeconstructionApproach(
       phase === "blocked"
         ? deconstructionRetryKey(
             facts,
-            approach.state.site,
-            facts.access.get(approach.state.site),
+            state.site,
+            facts.access.get(state.site),
           )
         : "",
   });
@@ -592,11 +590,12 @@ function matchingRejectedMove(
 
 function validApproachAccess(
   facts: DeconstructionFacts,
+  siteId: EntityId,
   approach: ApproachRow,
   target: ApproachTarget,
 ): DeconstructionAccess | undefined {
-  const site = facts.sites.get(approach.state.site);
-  const access = facts.access.get(approach.state.site);
+  const site = facts.sites.get(siteId);
+  const access = facts.access.get(siteId);
   if (
     !site ||
     site.phase !== "finished" ||
@@ -631,7 +630,8 @@ function progressApproach(
     frame: null,
   };
   const pose = facts.positions.get(approach.state.worker);
-  const access = validApproachAccess(facts, approach, target);
+  const state = row.get(DeconstructionOrder);
+  const access = validApproachAccess(facts, state.site, approach, target);
   if (!pose || !access) {
     releaseDeconstructionApproach(
       ctx,
@@ -656,7 +656,6 @@ function progressApproach(
     ctx.action(move(approach.state.worker, target));
     return;
   }
-  const state = row.get(DeconstructionOrder);
   const seconds = Math.min(state.seconds + ctx.clock.delta, access.workSeconds);
   const phase = seconds >= access.workSeconds ? "submitting" : "working";
   ctx.write(DeconstructionOrder, row.id, {
@@ -668,7 +667,7 @@ function progressApproach(
     retryKey: "",
   });
   if (phase === "submitting")
-    ctx.action(deconstruct(approach.state.worker, approach.state.site));
+    ctx.action(deconstruct(approach.state.worker, state.site));
 }
 
 function progressDeconstruction(
