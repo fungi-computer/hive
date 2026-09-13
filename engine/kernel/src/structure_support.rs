@@ -58,6 +58,13 @@ fn wall_support(base: Cell) -> Result<Cell, String> {
     Ok(Cell { y: base.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..base })
 }
 
+/// The load-bearing face immediately above a wall's highest occupied cell.
+/// `column_tops` intentionally retains the occupied-cell datum for column
+/// stacking; floors and spans consume this face as their support coordinate.
+fn wall_load_contact(base: Cell, height: u8) -> Result<Cell, String> {
+    Ok(Cell { y: base.y.checked_add(i32::from(height)).ok_or("structure support coordinate overflow")?, ..base })
+}
+
 fn charge(work: &mut usize, policy: SupportPolicy) -> Result<(), String> {
     *work = work.checked_add(1).ok_or("structure support work overflow")?;
     if *work > policy.max_work {
@@ -212,6 +219,7 @@ pub fn resolve(
     let mut rooted_stairs = BTreeSet::<String>::new();
     let mut rooted_floors = BTreeSet::<String>::new();
     let mut column_tops = BTreeSet::new();
+    let mut wall_load_contacts = BTreeSet::new();
     let mut stair_landings = BTreeSet::new();
     let mut floor_surfaces = BTreeSet::new();
 
@@ -223,6 +231,7 @@ pub fn resolve(
         // distance-zero anchors.
         let mut span_anchors = terrain_anchors.clone();
         span_anchors.extend(column_tops.iter().copied());
+        span_anchors.extend(wall_load_contacts.iter().copied());
         span_anchors.extend(stair_landings.iter().copied());
         let mut changed = false;
         let floor_cells = floor_by_cell.keys().copied().collect();
@@ -262,6 +271,7 @@ pub fn resolve(
                     rooted_walls.insert(id.clone());
                     rooted.insert(id.clone());
                     column_tops.insert(wall_top(*base, *height)?);
+                    wall_load_contacts.insert(wall_load_contact(*base, *height)?);
                     changed = true;
                 }
                 StaticInstance::Stair { id, origin, orientation, run, rise } if !rooted_stairs.contains(id) && load_contacts.contains(origin) => {
@@ -293,10 +303,12 @@ pub fn resolve(
     }).collect();
     let mut structural_anchors = terrain_anchors;
     let mut load_contacts = structural_anchors.clone();
+    load_contacts.extend(wall_load_contacts.iter().copied());
     load_contacts.extend(column_tops.iter().copied());
     load_contacts.extend(stair_landings.iter().copied());
     load_contacts.extend(floor_surfaces.iter().copied());
     structural_anchors.extend(column_tops.iter().copied());
+    structural_anchors.extend(wall_load_contacts.iter().copied());
     structural_anchors.extend(stair_landings.iter().copied());
     Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces, load_contacts, structural_anchors, floor_distances: final_floor_distances, cover_distances: final_cover_distances })
 }
@@ -549,6 +561,52 @@ mod tests {
         let after_wall = resolve(&wall_geometry, policy(6), &mut ground).unwrap();
         let mut no_terrain = terrain(&[]);
         assert!(candidate_supported(&after_wall, &floor, 6, &mut no_terrain).unwrap());
+    }
+
+    #[test]
+    fn floor_is_supported_by_the_face_above_a_wall() {
+        let wall = StaticInstance::Wall {
+            id: "wall".into(),
+            base: Cell { x: 2, y: 4, z: -1 },
+            height: 3,
+        };
+        let floor = StaticInstance::Floor {
+            id: "floor".into(),
+            support: Cell { x: 2, y: 7, z: -1 },
+        };
+        let geometry = StaticGeometry::new(bounds(), vec![wall, floor]).unwrap();
+        let mut ground = terrain(&[Cell { x: 2, y: 3, z: -1 }]);
+        let result = resolve(&geometry, policy(1), &mut ground).unwrap();
+        assert!(result.unsupported.is_empty());
+        assert!(result.load_contacts.contains(&Cell { x: 2, y: 7, z: -1 }));
+    }
+
+    #[test]
+    fn wall_then_floor_resolution_is_order_independent() {
+        let wall = StaticInstance::Wall {
+            id: "wall".into(),
+            base: Cell { x: 2, y: 4, z: -1 },
+            height: 3,
+        };
+        let floor = StaticInstance::Floor {
+            id: "floor".into(),
+            support: Cell { x: 2, y: 7, z: -1 },
+        };
+        let mut first = terrain(&[Cell { x: 2, y: 3, z: -1 }]);
+        let forward = resolve(
+            &StaticGeometry::new(bounds(), vec![wall.clone(), floor.clone()]).unwrap(),
+            policy(1),
+            &mut first,
+        ).unwrap();
+        let mut second = terrain(&[Cell { x: 2, y: 3, z: -1 }]);
+        let reverse = resolve(
+            &StaticGeometry::new(bounds(), vec![floor, wall]).unwrap(),
+            policy(1),
+            &mut second,
+        ).unwrap();
+        assert_eq!(forward.unsupported, reverse.unsupported);
+        assert_eq!(forward.supported, reverse.supported);
+        assert_eq!(forward.load_contacts, reverse.load_contacts);
     }
 
     #[test]
