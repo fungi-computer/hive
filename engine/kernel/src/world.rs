@@ -177,6 +177,24 @@ mod process_request_tests {
         kernel.ecs.get_mut::<ConstructionSite>(station).unwrap().phase = ConstructionPhase::Planned;
         assert!(kernel.validate_process_records().is_err());
     }
+
+    #[test]
+    fn admission_waits_for_all_port_lots_and_is_retry_idempotent() {
+        let mut kernel = kernel_with_slot();
+        let process = kernel.request_process("process-v1", "station").unwrap();
+        assert!(kernel.admit_process(&process, "process-v1", "station").is_err());
+        let lot = kernel.ecs.spawn((ExternalId("grain.1".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
+        kernel.ids.insert("grain.1".into(), lot);
+        kernel.known.insert("grain.1".into());
+        kernel.refresh_state_weight();
+        kernel.admit_process(&process, "process-v1", "station").unwrap();
+        assert_eq!(kernel.ecs.query::<&crate::staged_process::ProcessBinding>().iter(&kernel.ecs).count(), 1);
+        let before = kernel.query_json(r#"[\"hive.lot\",\"hive.process-binding\",\"hive.staged-process\"]"#).unwrap();
+        kernel.admit_process(&process, "process-v1", "station").unwrap();
+        assert_eq!(kernel.query_json(r#"[\"hive.lot\",\"hive.process-binding\",\"hive.staged-process\"]"#).unwrap(), before);
+        assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().phase, ProcessPhase::Waiting);
+        kernel.validate_process_records().unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -1051,6 +1069,12 @@ impl Kernel {
     }
     fn validate_process_records(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
+        let mut bindings_by_process: BTreeMap<String, Vec<(String, crate::staged_process::ProcessBinding)>> = BTreeMap::new();
+        for (id, entity) in &self.ids {
+            if let Some(binding) = self.ecs.get::<crate::staged_process::ProcessBinding>(*entity) {
+                bindings_by_process.entry(binding.process.clone()).or_default().push((id.clone(), binding.clone()));
+            }
+        }
         for (id, entity) in &self.ids {
             let Some(process) = self.ecs.get::<StagedProcess>(*entity) else { continue; };
             let definition = environment.processes.get(&process.definition).ok_or("saved process definition is unknown")?.definition();
@@ -1067,7 +1091,15 @@ impl Kernel {
             let site = self.ecs.get::<ConstructionSite>(station).ok_or("saved process station is missing")?;
             if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
             if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
+            let bindings = bindings_by_process.remove(id).unwrap_or_default();
+            if !bindings.is_empty() {
+                crate::staged_process::validate_bindings(
+                    definition, id, &process.station, &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
+                    &|lot_id| self.ids.get(lot_id).and_then(|entity| self.ecs.get::<Lot>(*entity).cloned()),
+                )?;
+            }
         }
+        if !bindings_by_process.is_empty() { return Err("saved process binding references an unknown process".into()); }
         Ok(())
     }
     pub fn new() -> Self {
@@ -2349,7 +2381,7 @@ impl Kernel {
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
-                    | Action::RequestProcess { .. } | Action::ExchangeFieldWater { .. })
+                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -2741,6 +2773,46 @@ impl Kernel {
         Ok(process_id)
     }
 
+    fn admit_process(&mut self, process_id: &str, definition_id: &str, station_id: &str) -> Result<String> {
+        if !crate::components::valid_id(process_id) || !crate::components::valid_id(definition_id) || !crate::components::valid_id(station_id) {
+            return Err("invalid process admission identity".into());
+        }
+        let process_entity = self.entity(process_id)?;
+        let process = self.ecs.get::<StagedProcess>(process_entity).ok_or("process is missing staged state")?.clone();
+        if process.definition != definition_id || process.station != station_id { return Err("process admission identity mismatch".into()); }
+        if process.phase != ProcessPhase::Waiting { return Err("process is not waiting for material admission".into()); }
+        let environment = self.environment.as_ref().ok_or("process admission needs environment")?;
+        let definition = environment.processes.get(definition_id).ok_or("unknown process definition")?.definition().clone();
+        let station = self.entity(station_id)?;
+        let site = self.ecs.get::<ConstructionSite>(station).ok_or("process station is not a construction site")?;
+        if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() {
+            return Err("process station is not a completed sealed matching catalog".into());
+        }
+        let existing: Vec<_> = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).filter(|binding| binding.process == process_id).cloned()).collect();
+        if !existing.is_empty() {
+            crate::staged_process::validate_bindings(&definition, process_id, station_id, &existing, &|lot_id| self.ids.get(lot_id).and_then(|entity| self.ecs.get::<Lot>(*entity).cloned()))?;
+            return Ok(process_id.into());
+        }
+        let occupied: BTreeSet<String> = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|binding| binding.lot.clone())).collect();
+        let mut lots = BTreeMap::new();
+        for (id, entity) in &self.ids {
+            let Some(lot) = self.ecs.get::<Lot>(*entity) else { continue; };
+            if !occupied.contains(id) { lots.insert(id.clone(), lot.clone()); }
+        }
+        let bindings = crate::staged_process::resolve_bindings(&definition, process_id, station_id, &lots)?;
+        let added_weight: usize = bindings.iter().map(|binding| crate::staged_process::binding_id(binding).len().saturating_add(128).saturating_add(self.registry.weight("hive.process-binding", &record(binding)))).sum();
+        if self.ids.len().saturating_add(bindings.len()) > 16_384 || self.state_weight.saturating_add(added_weight) > STATE_BYTES { return Err("process binding state capacity".into()); }
+        for binding in bindings {
+            let id = crate::staged_process::binding_id(&binding);
+            if self.ids.contains_key(&id) { return Err("process binding identity collision".into()); }
+            let entity = self.ecs.spawn((ExternalId(id.clone()), binding)).id();
+            self.ids.insert(id.clone(), entity);
+            self.known.insert(id);
+        }
+        self.refresh_state_weight();
+        Ok(process_id.into())
+    }
+
     pub fn process_requirements_json(&self, input: &str) -> Result<String> {
         if input.len() > 16 * 1024 { return Err("process requirements query exceeds input budget".into()); }
         #[derive(serde::Deserialize)]
@@ -2766,6 +2838,7 @@ impl Kernel {
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station).map(ActionEffect::Entity),
+            Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
             Action::Excavate { entity, x, y, z, expected, replacement } => {
                 self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
                 Ok(ActionEffect::None)
