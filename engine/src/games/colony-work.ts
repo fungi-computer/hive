@@ -46,9 +46,9 @@ import { colonyEnvironment } from "./colony-environment";
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
 export const ColonyResourceOrder = component<{
   definition: string; cellX: number; cellY: number; cellZ: number; site: EntityId;
-  actor: EntityId | null; vessel: EntityId | null; phase: ColonyResourcePhase; workSeconds: number; reason: string; approachX: number; approachY: number; approachZ: number; attempt: number;
+  actor: EntityId | null; vessel: EntityId | null; phase: ColonyResourcePhase; workSeconds: number; reason: string; approachX: number; approachY: number; approachZ: number; attempt: number; operation: string;
 }>("colony.resource-order", { version: 1, fields: {
-  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", actor: "nullable-entity", vessel: "nullable-entity", phase: "string", workSeconds: "number", reason: "string", approachX: "number", approachY: "number", approachZ: "number", attempt: "number",
+  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", actor: "nullable-entity", vessel: "nullable-entity", phase: "string", workSeconds: "number", reason: "string", approachX: "number", approachY: "number", approachZ: "number", attempt: "number", operation: "string",
 } });
 
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
@@ -66,7 +66,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   for (const row of orders) {
     const state = row.get(ColonyResourceOrder);
     if (!state.phase.startsWith("submitting-")) continue;
-    const outcome = ctx.outcomes.find(candidate => candidate.action.kind === (state.phase === "submitting-sow" ? "establish-resource-site" : state.phase === "submitting-tend" ? "tend-resource-site" : "extract-resource") && ((candidate.action.kind === "extract-resource" && candidate.action.source === state.site) || (candidate.action.kind !== "extract-resource" && candidate.action.site === state.site)));
+    const outcome = ctx.outcomes.find(candidate => candidate.action.kind === (state.phase === "submitting-sow" ? "establish-resource-site" : state.phase === "submitting-tend" ? "tend-resource-site" : "extract-resource") && ((candidate.action.kind === "extract-resource" && candidate.action.source === state.site) || (candidate.action.kind !== "extract-resource" && candidate.action.site === state.site && candidate.action.operation === state.operation)));
     if (!outcome) continue;
     if (!outcome.result.accepted) ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, phase: state.phase === "submitting-sow" ? "sow" : state.phase === "submitting-tend" ? "tend" : "harvest", reason: outcome.result.reason ?? "physical action rejected", workSeconds: 0 });
     else if (state.phase === "submitting-sow" || state.phase === "submitting-tend") ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, vessel: state.phase === "submitting-tend" ? state.vessel : null, phase: "waiting", reason: "", workSeconds: 0 });
@@ -108,8 +108,8 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       if (!arrived) { ctx.action(move(assignment.worker, approach)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: assignment.worker, approachX: approach.x, approachY: approach.y, approachZ: approach.z, attempt: state.attempt + 1 }); continue; }
       const site = sites.get(state.site); const worker = assignment.worker;
       const work = state.workSeconds + ctx.clock.delta;
-      if (state.phase === "sow" && work >= definition.sowSeconds) { ctx.action(establishResourceSite(worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "submitting-sow", workSeconds: work, reason: "" }); }
-      else if (state.phase === "tend" && work >= definition.tendSeconds && (state.vessel ?? candidates.find(candidate => candidate.worker === worker && candidate.task === row.id)?.vessel)) { const vessel = state.vessel ?? candidates.find(candidate => candidate.worker === worker && candidate.task === row.id)?.vessel!; ctx.action(tendResourceSite(worker, state.site, vessel)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, vessel, phase: "submitting-tend", workSeconds: work, reason: "" }); }
+      if (state.phase === "sow" && work >= definition.sowSeconds) { const operation = `${row.id}:sow:${state.attempt + 1}`; ctx.action(establishResourceSite(operation, worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, phase: "submitting-sow", workSeconds: work, reason: "", attempt: state.attempt + 1 }); }
+      else if (state.phase === "tend" && work >= definition.tendSeconds && (state.vessel ?? candidates.find(candidate => candidate.worker === worker && candidate.task === row.id)?.vessel)) { const vessel = state.vessel ?? candidates.find(candidate => candidate.worker === worker && candidate.task === row.id)?.vessel!; const operation = `${row.id}:tend:${state.attempt + 1}`; ctx.action(tendResourceSite(operation, worker, state.site, vessel)); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, vessel, phase: "submitting-tend", workSeconds: work, reason: "", attempt: state.attempt + 1 }); }
       else if (state.phase === "harvest" && work >= definition.harvestSeconds) { ctx.action(extractResource(worker, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, phase: "submitting-harvest", workSeconds: work, reason: "" }); }
       else ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, workSeconds: work });
       void site;

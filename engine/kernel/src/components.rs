@@ -375,8 +375,8 @@ pub enum Action {
         quantity: u32,
     },
     ExtractResource { worker: String, source: String },
-    EstablishResourceSite { worker: String, site: String, definition: String, x: i32, y: i32, z: i32 },
-    TendResourceSite { worker: String, site: String, vessel: String },
+    EstablishResourceSite { operation: String, worker: String, site: String, definition: String, x: i32, y: i32, z: i32 },
+    TendResourceSite { operation: String, worker: String, site: String, vessel: String },
     Launch {
         launcher: String,
         ammunition: String,

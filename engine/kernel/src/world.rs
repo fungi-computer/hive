@@ -2821,7 +2821,7 @@ impl Kernel {
         Ok(self.publish_material_output(prepared))
     }
 
-    fn establish_resource_site(&mut self, worker_id: &str, site_id: &str, definition_id: &str, x: i32, y: i32, z: i32) -> Result<String> {
+    fn establish_resource_site(&mut self, _operation: &str, worker_id: &str, site_id: &str, definition_id: &str, x: i32, y: i32, z: i32) -> Result<String> {
         let worker = self.entity(worker_id)?;
         if self.ecs.get::<Body>(worker).is_none() { return Err("resource sowing requires a worker body".into()); }
         if !valid_id(site_id) || !valid_id(definition_id) || self.known.contains(site_id) { return Err("resource site identity is unavailable".into()); }
@@ -2839,7 +2839,7 @@ impl Kernel {
         Ok(site_id.to_owned())
     }
 
-    fn tend_resource_site(&mut self, worker_id: &str, site_id: &str, vessel_id: &str) -> Result<()> {
+    fn tend_resource_site(&mut self, _operation: &str, worker_id: &str, site_id: &str, vessel_id: &str) -> Result<()> {
         let worker = self.entity(worker_id)?; let site = self.entity(site_id)?; let vessel = self.entity(vessel_id)?;
         self.ecs.get::<Body>(worker).ok_or("resource tending requires a worker body")?;
         let state = self.ecs.get::<ResourceSite>(site).cloned().ok_or("not a resource site")?;
@@ -3282,8 +3282,8 @@ impl Kernel {
                 Ok(ActionEffect::None)
             }
             Action::ExtractResource { worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
-            Action::EstablishResourceSite { worker, site, definition, x, y, z } => self.establish_resource_site(&worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
-            Action::TendResourceSite { worker, site, vessel } => self.tend_resource_site(&worker, &site, &vessel).map(|()| ActionEffect::None),
+            Action::EstablishResourceSite { operation, worker, site, definition, x, y, z } => self.establish_resource_site(&operation, &worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
+            Action::TendResourceSite { operation, worker, site, vessel } => self.tend_resource_site(&operation, &worker, &site, &vessel).map(|()| ActionEffect::None),
             Action::Launch {
                 launcher,
                 ammunition,

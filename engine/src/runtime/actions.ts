@@ -37,12 +37,12 @@ export function checkedAction(value: unknown): ActionRequest {
   let valid = false;
   switch (action.kind) {
     case "establish-resource-site":
-      keys = ["kind", "worker", "site", "definition", "x", "y", "z"];
-      valid = id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
+      keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
+      valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
       break;
     case "tend-resource-site":
-      keys = ["kind", "worker", "site", "vessel"];
-      valid = id(action.worker) && id(action.site) && id(action.vessel);
+      keys = ["kind", "operation", "worker", "site", "vessel"];
+      valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.vessel);
       break;
     case "request-process":
       keys = ["kind", "definition", "station"];

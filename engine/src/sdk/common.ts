@@ -137,8 +137,8 @@ export const consume = (
 export const extractResource = (worker: EntityId, source: EntityId): ActionRequest => ({
   kind: "extract-resource", worker, source,
 });
-export const establishResourceSite = (worker: EntityId, site: EntityId, definition: string, cell: { x: number; y: number; z: number }): ActionRequest => ({ kind: "establish-resource-site", worker, site, definition, ...cell });
-export const tendResourceSite = (worker: EntityId, site: EntityId, vessel: EntityId): ActionRequest => ({ kind: "tend-resource-site", worker, site, vessel });
+export const establishResourceSite = (operation: string, worker: EntityId, site: EntityId, definition: string, cell: { x: number; y: number; z: number }): ActionRequest => ({ kind: "establish-resource-site", operation, worker, site, definition, ...cell });
+export const tendResourceSite = (operation: string, worker: EntityId, site: EntityId, vessel: EntityId): ActionRequest => ({ kind: "tend-resource-site", operation, worker, site, vessel });
 
 export interface SceneEntity {
   readonly id: EntityId;
