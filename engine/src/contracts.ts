@@ -156,6 +156,7 @@ export type ActionRequest =
         readonly capacity: number;
       }[];
     }
+  | { readonly kind: "update-stockpile"; readonly zone: EntityId; readonly filterProfile: string; readonly priority: number }
   | {
       readonly kind: "set-structure-open";
       readonly worker: EntityId;

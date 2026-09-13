@@ -343,7 +343,10 @@ export function createHiveClient({
       controls: state.presentationControls,
       selectedIds: state.selectedIds,
       latestFacts,
-      currentIds: latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, state.view).pickable).map((fact) => fact.id),
+      currentIds: [
+        ...latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, state.view).pickable).map((fact) => fact.id),
+        ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
+      ],
     });
     const renderPresentationGroup = (heading, group) => group.facts.length || group.controls.length
       ? React.createElement("section", { className: "hive-presentation", "aria-label": heading },
@@ -907,6 +910,13 @@ export function createHiveClient({
       state.aim.point = at;
       try { state.aim.target = aimGroundPoint(at, camera); updateAimPreview(); } catch { state.aim.target = null; }
       fireAim(); return;
+    }
+    const displayed = displayedTerrainFrame();
+    const terrainHit = displayed && displayedTerrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
+    const mark = terrainHit?.surface && state.terrainMarks.find((item) => item.kind === "stockpile" && item.cell.join(",") === terrainHit.surface.cell.join(","));
+    if (mark?.subjects?.length) {
+      selectEntities(event.shiftKey ? [...new Set([...state.selectedIds, ...mark.subjects])] : [...mark.subjects]);
+      return;
     }
     gesture.send({ type: "BEGIN", point: at, additive: event.shiftKey });
     app.canvas.setPointerCapture?.(event.pointerId);

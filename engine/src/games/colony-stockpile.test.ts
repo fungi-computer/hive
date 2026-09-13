@@ -49,7 +49,8 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
 });
 
 test("stockpile control submits the same bounded rectangle command", () => {
-  const control = colonyPack.presentation?.controls.find(item => item.id === "designate-stockpile");
+  const controls = colonyPack.presentation?.controls ?? [];
+  const control = controls.find(item => item.id === "designate-stockpile");
   assert.ok(control);
   const submitted = terrainAreaPresentationCommand(control, [], { start: [2, 13, 2], end: [3, 13, 2] });
   assert.equal(submitted.name, "designateStockpile");
@@ -57,6 +58,13 @@ test("stockpile control submits the same bounded rectangle command", () => {
   assert.equal(control.target, "terrain-area");
   assert.deepEqual(control.designation, ["rectangle"]);
 });
+
+test("stockpile policy commands require a stable zone identity", () => {
+  const controls = colonyPack.presentation?.controls ?? [];
+  assert.equal(controls.some(item => item.id === "update-stockpile"), false, "policy controls are not redraw controls");
+  assert.throws(() => colonyPack.commands?.updateStockpile.invoke({ query: () => [], physicalContacts: () => [] }, { area: { start: [1, 1, 1], end: [1, 1, 1] }, filterProfile: "wood", priority: 50 }), /Invalid input/);
+});
+
 
 test("Colony command leaves a conflicting native zone untouched", () => {
   const port = wasmKernelPort(new WasmKernel());
@@ -68,7 +76,7 @@ test("Colony command leaves a conflicting native zone untouched", () => {
     const [x, y, z] = surface.cell;
     session.request({ kind: "designate-stockpile", zone: entity("foreign.zone"), cells: [{ x, y, z, priority: 1, filterProfile: "wood", capacity: 6 }] });
     session.step(0);
-    session.command("designateStockpile", { area: { start: [x, y, z], end: [x, y, z] }, filterProfile: "wood", priority: 9 });
+    session.command("designateStockpile", { area: { start: [x, y, z], end: [x + 1, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
     const cells = session.query(query(StockpileCell));
     assert.equal(cells.length, 1);
@@ -88,12 +96,15 @@ test("stockpile policy is player configurable and survives reload", () => {
     const [x, y, z] = surface.cell;
     session.command("designateStockpile", { area: { start: [x, y, z], end: [x, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
-    session.command("designateStockpile", { area: { start: [x, y, z], end: [x, y, z] }, filterProfile: "food", priority: 3 });
+    const designated = session.query(query(StockpileCell))[0].get(StockpileCell);
+    session.command("updateStockpile", { zone: designated.zone, filterProfile: "food", priority: 3 });
     session.step(0);
     const cell = session.query(query(StockpileCell))[0].get(StockpileCell);
     assert.match(cell.zone, /^colony\.stockpile\.2\.-?\d+\.2\.2\.2$/);
-    assert.deepEqual({ priority: cell.priority, filterProfile: cell.filterProfile }, { priority: 3, filterProfile: "food" });
-    session.command("designateStockpile", { area: { start: [x + 1, y, z], end: [x + 1, y, z] }, filterProfile: "wood", priority: 9 });
+    assert.ok(session.query(query(StockpileCell)).every(row => row.get(StockpileCell).priority === 3 && row.get(StockpileCell).filterProfile === "food"), "policy updates every cell in the zone");
+    assert.throws(() => session.command("updateStockpile", { zone: cell.zone, filterProfile: "wood", priority: 101 }), /Invalid input/);
+    assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell, "invalid policy is rejected atomically");
+    session.command("designateStockpile", { area: { start: [x + 2, y, z], end: [x + 2, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
     const zones = session.query(query(StockpileCell)).map(row => row.get(StockpileCell));
     assert.equal(new Set(zones.map(value => value.zone)).size, 2, "separate rectangles retain independent native identities");

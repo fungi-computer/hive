@@ -264,9 +264,7 @@ export function createSessionRegionRuntime(options: SessionResidentOptions) {
     environmentDefinition: options.pack.environmentDefinition?.slice(),
     presentation: options.pack.presentation ? Object.freeze({
       ...options.pack.presentation,
-      controls: Object.freeze(options.pack.presentation.controls.map(control => Object.freeze({
-        ...control, input: structuredClone(control.input),
-      }))),
+      controls: Object.freeze(options.pack.presentation.controls.map(control => Object.freeze({ ...control, input: structuredClone(control.input) }))),
     }) : undefined,
     components: Object.freeze([...options.pack.components]),
     systems: Object.freeze(options.pack.systems.map(system => Object.freeze({ ...system, reads: Object.freeze([...system.reads]), writes: Object.freeze([...system.writes]) }))),

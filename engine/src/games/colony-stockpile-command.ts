@@ -1,5 +1,5 @@
 import { command, entity } from "../sdk/authoring";
-import { designateStockpile } from "../sdk/stockpile";
+import { designateStockpile, updateStockpile } from "../sdk/stockpile";
 import { z } from "zod";
 
 const cell = z.tuple([
@@ -13,6 +13,7 @@ export const colonyStockpileInputSchema = z.object({
   filterProfile: z.enum(["wood", "food"]),
   priority: z.number().int().min(1).max(100),
 }).strict();
+export const colonyStockpilePolicyInputSchema = z.object({ zone: z.string().min(1).max(128), filterProfile: z.enum(["wood", "food"]), priority: z.number().int().min(1).max(100) }).strict();
 
 const STOCKPILE_CAPACITY = 6;
 
@@ -49,4 +50,10 @@ export const colonyStockpileCommand = command({
       capacity: STOCKPILE_CAPACITY,
     })))],
   }),
+});
+
+export const colonyStockpilePolicyCommand = command({
+  input: colonyStockpilePolicyInputSchema,
+  reads: [], writes: [],
+  run: (_context, value) => ({ writes: [], actions: [updateStockpile(entity(value.zone), value.filterProfile, value.priority)] }),
 });

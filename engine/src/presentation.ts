@@ -146,6 +146,7 @@ export type TerrainMark = {
   readonly status: "queued" | "working" | "blocked";
   /** Omitted means the existing work mark style. */
   readonly kind?: "work" | "stockpile";
+  readonly subjects?: readonly string[];
 };
 export interface GamePresentation {
   readonly activities?: (context: Pick<ReadContext, "query">) => readonly import("./contracts").ActivityBinding[];
@@ -220,8 +221,9 @@ export function projectPresentation(
         !["queued", "working", "blocked"].includes(mark.status) ||
         (mark.kind !== undefined && mark.kind !== "work" && mark.kind !== "stockpile"))
       throw new Error("invalid terrain presentation mark");
+    if (mark.subjects !== undefined) presentationSubjectsSchema.parse(mark.subjects);
     markIds.add(mark.id);
-    return Object.freeze({ id: mark.id, cell: [mark.cell[0], mark.cell[1], mark.cell[2]] as [number, number, number], status: mark.status, ...(mark.kind === undefined ? {} : { kind: mark.kind }) });
+    return Object.freeze({ id: mark.id, cell: [mark.cell[0], mark.cell[1], mark.cell[2]] as [number, number, number], status: mark.status, ...(mark.kind === undefined ? {} : { kind: mark.kind }), ...(mark.subjects === undefined ? {} : { subjects: mark.subjects }) });
   });
   if (terrainMarks.length > 256) throw new Error("terrain presentation mark limit exceeded");
   const environmentVisuals = (presentation.environmentVisuals?.(context) ?? []).map((visual) => {
