@@ -1,5 +1,5 @@
 import { toJSONSchema } from "zod";
-import { WhistleActionError } from "@fungi.computer/whistle";
+import { WhistleActionError, createWhistle } from "@fungi.computer/whistle";
 import { colonyPack } from "./colony";
 
 const command = colonyPack.commands?.dig;
@@ -24,6 +24,9 @@ export function colonyDigWhistleContribution(submit: (command: unknown) => Promi
 }
 
 export function colonyDigWhistleDescriptor() {
-  return { commandId: "colony:dig", sourceId: "hive.colony", title: "Dig area", category: "Colony", order: 20,
-    action: { inputSchema: toJSONSchema(digCommand.input) }, availability: { status: "available" as const } };
+  const runtime = createWhistle();
+  runtime.contribute(colonyDigWhistleContribution(async () => undefined));
+  const row = runtime.snapshot().agent.find(item => item.commandId === "colony:dig");
+  if (!row) throw new Error("Colony Dig Whistle action unavailable");
+  return row;
 }

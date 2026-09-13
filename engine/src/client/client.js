@@ -343,7 +343,8 @@ export function createHiveClient({
     exitAim();
   }
   function renderHud() {
-    const semanticDig = whistle?.snapshot().menu.find(action => action.commandId === "colony:dig");
+    const semanticDig = state.whistleActions.find(action => action.commandId === "colony:dig")
+      ?? whistle?.snapshot().menu.find(action => action.commandId === "colony:dig");
     const semanticControls = semanticDig ? [{ id: "dig", label: semanticDig.title, command: "dig", target: "terrain-area", designation: ["rectangle"] }] : [];
     const contextualPresentation = projectContextualPresentation({
       facts: state.presentationFacts,

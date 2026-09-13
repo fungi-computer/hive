@@ -39,7 +39,10 @@ export function connectBrowserRuntime(
       const waiter = pending.get(event.data.invocationId);
       if (waiter) { pending.delete(event.data.invocationId); waiter.resolve({ status: "applied", result: { results: event.data.results } }); }
     }
-    if (event.data.type === "error") for (const [id, waiter] of pending) { pending.delete(id); waiter.reject(new Error(event.data.message)); }
+    if (event.data.type === "error" && event.data.invocationId) {
+      const waiter = pending.get(event.data.invocationId);
+      if (waiter) { pending.delete(event.data.invocationId); waiter.reject(new Error(event.data.message)); }
+    }
     if (event.data.type === "state") {
       if (cadence !== undefined) clearInterval(cadence);
       cadence = undefined;
