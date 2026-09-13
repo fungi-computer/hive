@@ -38,6 +38,7 @@ use serde::Serialize;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
+use crate::terrain_water::WaterExchangeDirection;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +54,7 @@ struct ImpactEvent {
     velocity: Vector3,
 }
 enum ActionEffect { None, Entity(String), Projectile(String, Vector3) }
+enum PreparedWaterMaterial { Output(PreparedMaterialOutput), Consumption(PreparedConsumption) }
 
 #[cfg(test)]
 mod ground_stock_cleanup_tests {
@@ -2199,7 +2201,8 @@ impl Kernel {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
-                    | Action::UpdateStockpile { .. } | Action::Deconstruct { .. })
+                    | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
+                    | Action::ExchangeFieldWater { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -2405,6 +2408,75 @@ impl Kernel {
         }
         Ok(())
     }
+
+    fn exchange_field_water(&mut self, worker_id: &str, vessel_id: &str, at: crate::generation::Cell,
+        direction: WaterExchangeDirection, portions: u8) -> Result<()> {
+        let worker = self.entity(worker_id)?;
+        let vessel = self.entity(vessel_id)?;
+        let worker_pose = self.world_pose_entity(worker, 0)?;
+        self.ecs.get::<Body>(worker).ok_or("water exchange requires worker body")?;
+        self.ecs.get::<Container>(worker).ok_or("water exchange requires worker container")?;
+        if self.ecs.get::<SealedContainer>(worker).is_some() {
+            return Err("water exchange requires unsealed worker container".into());
+        }
+        let vessel_lot = self.ecs.get::<Lot>(vessel).cloned().ok_or("water vessel is not a lot")?;
+        if vessel_lot.kind != "pail" || vessel_lot.quantity == 0 || vessel_lot.container != worker_id {
+            return Err("water exchange requires a held pail lot".into());
+        }
+        self.ecs.get::<Container>(vessel).ok_or("water vessel is not a container")?;
+        if self.ecs.get::<SealedContainer>(vessel).is_some() {
+            return Err("sealed water vessel".into());
+        }
+        let environment = self.environment.as_ref().ok_or("water exchange requires terrain")?;
+        let spacing = environment.world.cell_spacing_m();
+        let target = Position { x: at.x as f64 * spacing[0], y: (f64::from(at.y) + 0.5) * spacing[1], z: at.z as f64 * spacing[2], facing: 0.0 };
+        if navigation::distance(navigation::point(worker_pose), navigation::point(target)) > 1.5 {
+            return Err("water exchange requires adjacent dry contact".into());
+        }
+        let (field_token, material_token) = match direction {
+            WaterExchangeDirection::Withdraw => {
+                let field = {
+                    let environment = self.environment.as_mut().ok_or("water exchange requires terrain")?;
+                    environment.world.prepare_water_exchange(at, crate::terrain_water::WaterExchangeDirection::Withdraw, portions)?
+                };
+                // Bind the exact physical mass only after the field admission has succeeded.
+                let mass = field.receipt().mass_kg;
+                let material = self.prepare_material_output(MaterialOutputSpec { container: vessel_id.into(), kind: "water".into(), quantity: u32::from(portions), water_kg: Some(mass) })?;
+                (field, PreparedWaterMaterial::Output(material))
+            }
+            WaterExchangeDirection::Deposit => {
+                let mut selected = Vec::new();
+                let mut remaining = u32::from(portions);
+                let entities = self.contents.get(vessel_id).cloned().unwrap_or_default();
+                for entity in entities {
+                    if remaining == 0 { break; }
+                    let Some(lot) = self.ecs.get::<Lot>(entity) else { continue; };
+                    if lot.kind != "water" || lot.quantity == 0 { continue; }
+                    let take = remaining.min(lot.quantity);
+                    let lot_id = self.ecs.get::<ExternalId>(entity).ok_or("water lot identity is missing")?.0.clone();
+                    selected.push(MaterialPortion { lot: lot_id, quantity: take });
+                    remaining -= take;
+                }
+                if remaining != 0 { return Err("water vessel lacks requested water portions".into()); }
+                let material = self.prepare_material_consumption(&selected)?;
+                let field = {
+                    let environment = self.environment.as_mut().ok_or("water exchange requires terrain")?;
+                    environment.world.prepare_water_exchange(at, crate::terrain_water::WaterExchangeDirection::Deposit, portions)?
+                };
+                if (material.water_kg - field.receipt().mass_kg).abs() > 1e-9 * field.receipt().mass_kg.max(1.0) {
+                    return Err("water lot mass does not match field portion mass".into());
+                }
+                (field, PreparedWaterMaterial::Consumption(material))
+            }
+        };
+        let environment = self.environment.as_mut().ok_or("water exchange requires terrain")?;
+        environment.world.apply_water_exchange(field_token)?;
+        match material_token {
+            PreparedWaterMaterial::Output(material) => { self.publish_material_output(material); }
+            PreparedWaterMaterial::Consumption(material) => { self.publish_material_consumption(material)?; }
+        }
+        Ok(())
+    }
     fn extract_resource(&mut self, worker_id: &str, source_id: &str) -> Result<String> {
         let worker = self.entity(worker_id)?;
         let source = self.entity(source_id)?;
@@ -2468,6 +2540,10 @@ impl Kernel {
 
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
+            Action::ExchangeFieldWater { worker, vessel, x, y, z, direction, portions } => {
+                self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
+                Ok(ActionEffect::None)
+            }
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::Excavate { entity, x, y, z, expected, replacement } => {

@@ -166,6 +166,9 @@ pub struct PreparedWaterExchange {
     owner: Arc<()>,
     epoch: u64,
 }
+impl PreparedWaterExchange {
+    pub(crate) fn receipt(&self) -> &WaterExchangeReceipt { &self.receipt }
+}
 
 pub struct PreparedExcavation {
     terrain: crate::terrain::PreparedChange,
