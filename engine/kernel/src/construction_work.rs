@@ -64,7 +64,6 @@ fn construction_status(
 impl Kernel {
     pub(super) fn construction_access(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
-        if input.len() > 16 * 1024 { return Err("construction access query exceeds input budget".into()); }
         let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid construction access request")?;
         if ids.is_empty() || ids.len() > 256 || ids.iter().any(|id| !crate::components::valid_id(id)) {
             return Err("construction access needs 1..256 valid site ids".into());
@@ -127,7 +126,13 @@ impl Kernel {
         self.contact_candidate_rows(site, definition, spacing).into_iter().map(|(point, _)| point).collect()
     }
     fn contact_candidate_rows(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Vec<([f64; 3], &'static str)> {
-        let mut endpoints = vec![(site.x, site.y, site.z, "origin")];
+        let walking_y = match definition.shape {
+            crate::environment_definition::StructureShape::Wall { .. }
+            | crate::environment_definition::StructureShape::Aperture { .. } => site.y.checked_sub(1),
+            _ => Some(site.y),
+        };
+        let Some(walking_y) = walking_y else { return Vec::new(); };
+        let mut endpoints = vec![(site.x, walking_y, site.z, "origin")];
         if let crate::environment_definition::StructureShape::Stair { run, rise } = &definition.shape {
             let (dx, dz) = match site.orientation {
                 crate::structure_geometry::Cardinal::North => (0, -1),
@@ -136,7 +141,7 @@ impl Kernel {
                 crate::structure_geometry::Cardinal::West => (-1, 0),
             };
             let Some(x) = i64::from(dx).checked_mul(i64::from(*run)).and_then(|offset| site.x.checked_add(offset)) else { return Vec::new(); };
-            let Some(y) = site.y.checked_add(i32::from(*rise)) else { return Vec::new(); };
+            let Some(y) = walking_y.checked_add(i32::from(*rise)) else { return Vec::new(); };
             let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| site.z.checked_add(offset)) else { return Vec::new(); };
             endpoints.push((x, y, z, "landing"));
         }

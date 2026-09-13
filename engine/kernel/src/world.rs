@@ -144,7 +144,7 @@ mod construction_tests {
         kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
         let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap().into_iter().next().flatten().unwrap().cell;
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
-        let contact = Point { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], frame: None };
+        let contact = Point { x: (surface.x as f64 + 1.0) * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], frame: None };
         for id in ["worker-1", "worker-2", "source"] {
             let entity = kernel.entity(id).unwrap();
             kernel.ecs.entity_mut(entity).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
@@ -258,7 +258,7 @@ mod construction_tests {
             {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact},
             {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
-        assert_eq!(response["results"].as_array().unwrap().len(), 3);
+        assert_eq!(response["results"].as_array().unwrap().len(), 4);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let state = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
@@ -275,7 +275,7 @@ mod construction_tests {
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1},
             {"kind":"attend-construction","worker":"worker-1","site":"site-wall","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
-        assert_eq!(response["results"].as_array().unwrap().len(), 3);
+        assert_eq!(response["results"].as_array().unwrap().len(), 4);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
 
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
