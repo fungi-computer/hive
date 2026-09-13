@@ -110,9 +110,11 @@ function checkedImpact(value: unknown): Impact {
   return structuredClone(value) as Impact;
 }
 export class GameSession {
+  private planningGeneration = 0;
   private routeRequestsLastStep = 0;
-  get lastStepMetrics(): Readonly<{ routeRequests: number; assignmentCost: number | null }> {
-    return { routeRequests: this.routeRequestsLastStep, assignmentCost: null };
+  private assignmentCallsLastStep = 0;
+  get lastStepMetrics(): Readonly<{ routeRequests: number; assignmentCalls: number; assignmentCost: number | null }> {
+    return { routeRequests: this.routeRequestsLastStep, assignmentCalls: this.assignmentCallsLastStep, assignmentCost: null };
   }
   readonly pack: GamePack;
   private readonly port: KernelPort;
@@ -163,6 +165,7 @@ export class GameSession {
     }
   }
   start(): void {
+    this.planningGeneration++;
     this.terrainPresentation = undefined;
     this.poisoned = true;
     this.random.restore(this.seed);
@@ -230,6 +233,7 @@ export class GameSession {
     maxEdges = ASSIGNMENT_MAX_EDGES,
   ) {
     this.ensureLive();
+    this.assignmentCallsLastStep++;
     return this.port.assign(candidates, maxEdges);
   }
   private worldPoses(
@@ -542,6 +546,7 @@ export class GameSession {
     if (this.paused) return [];
     try {
       this.routeRequestsLastStep = 0;
+      this.assignmentCallsLastStep = 0;
       this.compactImpacts();
       const clock: SimulationClock = Object.freeze({
         now: this.now,
@@ -563,6 +568,7 @@ export class GameSession {
       let activeReads: readonly ComponentDefinition<any>[] =
         [];
       const context: WriteContext = {
+        planningGeneration: this.planningGeneration,
         clock,
         random: this.random,
         impacts: [],
@@ -845,6 +851,7 @@ export class GameSession {
     if (expected !== actual)
       throw new Error("snapshot game system versions do not match");
     this.port.restore(snapshot.kernel);
+    this.planningGeneration++;
     this.now = snapshot.now;
     this.tick = snapshot.tick;
     this.random.restore(snapshot.random);

@@ -193,6 +193,8 @@ export interface RandomSource {
   next(): number;
 }
 export interface ReadContext {
+  /** Runtime-only lifecycle generation; changes on start/restore and is never saved. */
+  readonly planningGeneration?: number;
   readonly clock: SimulationClock;
   readonly outcomes: readonly ActionOutcome[];
   readonly random: RandomSource;

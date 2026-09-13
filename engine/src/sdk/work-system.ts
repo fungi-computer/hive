@@ -29,6 +29,9 @@ export type WorkSystemOptions = Omit<SystemOptions, "run"> & {
   readonly providers: readonly WorkProvider<any>[];
   /** Deterministic authored planning phases owned by this work composition. */
   readonly phases?: readonly ((context: WriteContext) => void)[];
+  /** Return true when authoritative facts require rebuilding candidates. The
+   * key is owned by the game composition and is never saved. */
+  readonly planningKey?: (context: WriteContext) => string;
 };
 
 /**
@@ -37,6 +40,8 @@ export type WorkSystemOptions = Omit<SystemOptions, "run"> & {
  * Provider functions are trusted composition code and never enter saved state.
  */
 export function createWorkSystem(options: WorkSystemOptions) {
+  let previousPlanningKey: string | undefined;
+  let previousPlanningGeneration: number | undefined;
   return system({
     id: options.id,
     version: options.version,
@@ -45,6 +50,11 @@ export function createWorkSystem(options: WorkSystemOptions) {
     every: options.every,
     consumesImpacts: options.consumesImpacts,
     run(context) {
+      const planningKey = options.planningKey?.(context);
+      if (planningKey !== undefined && planningKey === previousPlanningKey &&
+          context.planningGeneration === previousPlanningGeneration) return;
+      previousPlanningKey = planningKey;
+      previousPlanningGeneration = context.planningGeneration;
       for (const phase of options.phases ?? []) phase(context);
       const suspendedActors = new Set(
         context.query({ components: [WorkParticipation] }).flatMap((row) =>

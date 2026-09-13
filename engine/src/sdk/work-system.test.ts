@@ -82,3 +82,32 @@ test("planning phases run before providers and expose their overlay writes", () 
   });
   phaseSystem.run({ ...base, assign: () => [], query: (spec) => (spec.components[0]?.id === "test.marker" ? [{ id: marker, get: (() => ({ value })) as never }] : []) as never, write: (_definition, _entity, next) => { value = (next as { value: number }).value; } });
 });
+
+test("settled planning key skips candidate, matcher, and route work", () => {
+  let providerCalls = 0;
+  let progressCalls = 0;
+  let matcherCalls = 0;
+  let key = "settled";
+  const system = createWorkSystem({
+    id: "test.settled-work", version: 1, reads: [], writes: [],
+    planningKey: () => key,
+    providers: [() => {
+      providerCalls++;
+      return {
+        claims: [], candidates: [{ worker: entity("worker"), task: entity("task") }],
+        lowerBound: () => 1, estimate: () => 1,
+        apply: () => {}, progress: () => { progressCalls++; },
+      };
+    }],
+  });
+  const context = { ...base, assign: () => { matcherCalls++; return []; } };
+  system.run(context);
+  system.run(context);
+  assert.equal(providerCalls, 1);
+  assert.equal(progressCalls, 1);
+  assert.equal(matcherCalls, 1);
+  key = "changed";
+  system.run(context);
+  assert.equal(providerCalls, 2);
+  assert.equal(progressCalls, 2);
+});

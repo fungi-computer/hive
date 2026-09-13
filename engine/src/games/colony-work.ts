@@ -426,11 +426,37 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
 
 const emissionRequirements = new Map((colonyEnvironment.emissions ?? []).map(definition => [definition.id, definition]));
 
+/**
+ * Planning invalidation is derived from the authoritative projections already
+ * exposed to this composition. It is intentionally kept in the work-system
+ * closure, so it disappears on restart and is rebuilt from the first live
+ * context rather than becoming save data.
+ */
+function colonyPlanningKey(ctx: WriteContext): string {
+  const rows = (components: readonly any[]) =>
+    ctx.query(query(...components)).map(row => [
+      row.id,
+      ...components.map(component => row.get(component)),
+    ]);
+  return JSON.stringify({
+    actors: rows([Worker, Body, Traversal]),
+    trees: rows([ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Position, FiniteResource]),
+    construction: rows([ConstructionSite, ConstructionApproach, Position, MaterialLot]),
+    delivery: rows([DeliveryTask, DeliveryControl, Position, Destination]),
+    dig: rows([ColonyDigOrder, Position, ExcavationWork]),
+    emissions: rows([EmissionOrder, EmissionWork, Emitter]),
+    materials: ctx.workMaterialFacts(),
+    topology: ctx.environmentFacts(),
+    outcomes: ctx.outcomes,
+  });
+}
+
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
   reads: [EmissionOrder, EmissionWork, Emitter, GroundStock, StockpileCell, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, FiniteResource, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [EmissionWork, ColonyDigOrder, ColonyTree, ColonyTreeOrder, MaterialLot, DeliveryTask, ConstructionApproach],
+  planningKey: colonyPlanningKey,
   phases: [colonySiteSuppliesPhase, colonyGroundStockPhase, ctx => planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles })],
   providers: [deliveryProvider, digProvider, (ctx, suspendedActors) => treeWorkProvider(ctx, suspendedActors), (ctx, suspendedActors) => constructionWorkProvider(ctx, {
     workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
