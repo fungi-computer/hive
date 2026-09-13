@@ -40,6 +40,8 @@ test("cat submits bounded native movement near its authored home", () => {
   assert.equal(ctx.actions[0].kind, "move");
   assert.equal(ctx.actions[0].entity, cat);
   assert.ok(Math.hypot(ctx.actions[0].destination.x - 2, ctx.actions[0].destination.z + 1) <= 4);
+  assert.equal(Number.isInteger(ctx.actions[0].destination.x), true);
+  assert.equal(Number.isInteger(ctx.actions[0].destination.z), true);
   assert.equal(ctx.writes.length, 1);
 });
 

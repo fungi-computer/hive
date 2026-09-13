@@ -187,3 +187,6 @@ nav a {
 .colony-performance-panel dt { color: var(--color-base-content); }
 .colony-performance-panel dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
 .perf-boundary { font-size: .76rem; opacity: .8; }
+.hive-hud-rail { min-height: 0; overflow: auto; padding: 16px; border-radius: 10px; }
+.hive-hud-rail > .hive-hud { overflow: visible; padding: 0; }
+.hive-hud-rail > .colony-performance-panel { border-top: 0; margin: 0 0 16px; padding: 0 0 12px; }

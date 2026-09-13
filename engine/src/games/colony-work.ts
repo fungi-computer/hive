@@ -84,6 +84,7 @@ const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<Entity
     if (state.phase !== "blocked" || state.reason !== "Not designated") ctx.write(ColonyTreeOrder, orderRow.id, { ...state, actor: null, phase: "blocked", reason: "Not designated" });
   }
   const positions = new Map(ctx.query(query(Position)).map(row => [row.id, row.get(Position)]));
+  const destinations = new Set(ctx.query(query(Destination)).map(row => row.id));
   const active = new Map(orders.map(row => [row.get(ColonyTreeOrder).tree, { id: row.id, state: row.get(ColonyTreeOrder) }]));
   const poses = new Map(ctx.worldPoses([...new Set([...workers, ...trees.map(row => row.id)])]).map(p => [p.id, p]));
   const candidates = trees.flatMap(row => {
@@ -143,9 +144,13 @@ const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<Entity
           continue;
         }
         const position = positions.get(order.tree), pose = poses.get(order.tree), actorPose = poses.get(order.actor);
-        if (!position || !pose || !actorPose || ctx.query(query(Destination)).some(item => item.id === order.actor) || Math.hypot(actorPose.world.x - position.x, actorPose.world.z - position.z) > 1.5) {
-          if (position && actorPose && pose) ctx.action(move(order.actor, { x: order.approachX, y: order.approachY, z: order.approachZ, frame: pose.support }));
-          else ctx.write(ColonyTreeOrder, row.id, { ...order, actor: null, phase: "blocked", reason: "Tree contact unavailable" });
+        if (!position || !pose || !actorPose) {
+          ctx.write(ColonyTreeOrder, row.id, { ...order, actor: null, phase: "blocked", reason: "Tree contact unavailable" });
+          continue;
+        }
+        if (destinations.has(order.actor)) continue;
+        if (Math.hypot(actorPose.world.x - position.x, actorPose.world.z - position.z) > 1.5) {
+          ctx.action(move(order.actor, { x: order.approachX, y: order.approachY, z: order.approachZ, frame: pose.support }));
           continue;
         }
         const total = order.stage === "fell" ? 3 : 2;

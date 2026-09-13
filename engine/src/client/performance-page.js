@@ -54,10 +54,18 @@ function update(wrap) {
   wrap.querySelector("#perf-wire").textContent = `${metrics.wireBytes.toLocaleString()} B`;
 }
 function mount() {
-  runtime = connectBrowserRuntime({ worker: new Worker(`${new URL("../runtime/performance-worker-entry.ts", import.meta.url)}?size=${size}&workers=${workers}`, { type: "module" }) });
+  runtime = connectBrowserRuntime({ worker: new Worker(new URL("../runtime/performance-worker-entry.ts", import.meta.url), {
+    type: "module", name: `colony-performance:${size}:${workers}`,
+  }) });
   const persistence = { online: false, statusLabel: "Local performance run", save() {}, continue() {}, newWorld(callback) { callback(false); } };
+  root.className = "hive-shell";
   createHiveClient({ root, mode: `colony-performance-${size}-${workers}`, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
-  const hud = root.querySelector(".hive-hud"), wrap = panel(hud);
+  const hud = root.querySelector(".hive-hud");
+  const rail = document.createElement("div");
+  rail.className = "hive-hud-rail";
+  hud.replaceWith(rail);
+  rail.append(hud);
+  const wrap = panel(rail);
   runtime.subscribe(event => {
     metrics.wireBytes += new TextEncoder().encode(JSON.stringify(event)).byteLength;
     if (event.type === "results" && event.metrics) metrics = { ...metrics, ...event.metrics };

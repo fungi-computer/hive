@@ -10,8 +10,8 @@ self.onmessage = event => {
   if (early.length < 64) early.push(event);
   else self.postMessage({ type: "error", message: "performance worker startup queue full" });
 };
-const query = new URLSearchParams(self.location.search);
-const size = Number(query.get("size")), workers = Number(query.get("workers"));
+const preset = /^colony-performance:(64|128|256):(4|8|16|32|50)$/.exec(self.name);
+const size = Number(preset?.[1]), workers = Number(preset?.[2]);
 if (![64, 128, 256].includes(size) || ![4, 8, 16, 32, 50].includes(workers))
   throw new Error("invalid performance preset");
 const performanceId = `colony-performance-${size}-${workers}`;

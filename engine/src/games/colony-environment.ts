@@ -110,6 +110,7 @@ const colonyInitialPlacements = [
   { entity: "colony.brew-station", column: [1, -1] },
   { entity: "colony.worker.1", column: [0, 0] },
   { entity: "colony.worker.2", column: [0, 2] },
+  { entity: "colony.cat.1", column: [1, 1] },
   { entity: "colony.guest.1", column: [3, 1] },
   { entity: "colony.pantry", column: [-2, 0] },
   { entity: "colony.lumber", column: [-3, 1] },

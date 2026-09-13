@@ -98,7 +98,7 @@ export const colonyCatSystem = system({
         continue;
       }
       const delta = offset(seed);
-      const target = { x: home.x + delta.x, y: home.y, z: home.z + delta.z, frame: null };
+      const target = { x: Math.round(home.x + delta.x), y: home.y, z: Math.round(home.z + delta.z), frame: null };
       const facing = Math.round((Math.atan2(target.x - position.x, target.z - position.z) / (Math.PI / 2))) || 0;
       context.action(move(row.id, target, ((facing % 4) + 4) % 4));
       context.write(Cat, row.id, { ...cat, seed, nextAt: now + WANDER_INTERVAL, blockedUntil: 0 });

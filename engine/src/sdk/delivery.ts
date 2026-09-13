@@ -6,6 +6,7 @@ import {
   MaterialLot,
   Body,
   Container,
+  Destination,
   ExcavationWork,
   Position,
   Support,
@@ -65,6 +66,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
     const controls = ctx.query(query(DeliveryControl));
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
+    const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
     const requestMove = (actor: EntityId, target: MoveDestination) => {
       ctx.action(move(actor, target));
     };
@@ -281,13 +283,14 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       }
 
       if (!control?.enabled) {
-        if (state.phase !== "idle" && state.phase !== "complete")
+        if (state.phase !== "idle" && state.phase !== "complete" && !moving.has(state.actor))
           requestMove(state.actor, {
               ...actor.get(Position),
               frame: actorPose.support,
             });
         continue;
       }
+      if (moving.has(state.actor)) continue;
       if (state.phase === "idle") {
         ctx.write(DeliveryTask, task.id, {
           ...state,
@@ -369,6 +372,7 @@ export const deliverySystem = createWorkSystem({
     DeliveryTask,
     GroundStock,
     Position,
+    Destination,
     Body,
     Container,
     SealedContainer,
