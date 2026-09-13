@@ -25,7 +25,7 @@ export function colonyDigWhistleContribution(submit: (command: unknown) => Promi
 
 export function colonyDigWhistleDescriptor() {
   const runtime = createWhistle();
-  runtime.contribute(colonyDigWhistleContribution(async () => undefined));
+  runtime.contribute(colonyDigWhistleContribution(async () => undefined) as any);
   const row = runtime.snapshot().agent.find(item => item.commandId === "colony:dig");
   if (!row) throw new Error("Colony Dig Whistle action unavailable");
   return row;
