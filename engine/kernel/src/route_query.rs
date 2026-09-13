@@ -51,21 +51,10 @@ fn unavailable_error(error: &str) -> bool {
 }
 
 fn route_cost(start: Position, points: impl IntoIterator<Item = Point>) -> crate::components::Result<f64> {
-    let mut previous = crate::navigation::point(start);
-    let mut cost = 0.0;
-    for point in points {
-        let segment = crate::navigation::distance(previous.clone(), point.clone());
-        if !segment.is_finite() {
-            return Err("route metric cost is not finite".into());
-        }
-        let next = cost + segment;
-        if !next.is_finite() || next > MAX_COST_METRES {
-            return Err("route metric cost exceeds bound".into());
-        }
-        cost = next;
-        previous = point;
-    }
-    Ok(cost)
+    let mut route = vec![crate::navigation::point(start)];
+    route.extend(points);
+    let cost = crate::terrain_route::waypoint_cost(route)?;
+    (cost <= MAX_COST_METRES).then_some(cost).ok_or("route metric cost exceeds bound".into())
 }
 
 pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {

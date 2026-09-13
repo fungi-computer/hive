@@ -5,17 +5,97 @@ use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
 use crate::structure_geometry::StairEdge;
 use pathfinding::prelude::astar;
 
-fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<u64, String> {
-    let dx = (i128::from(b.x) - i128::from(a.x)).unsigned_abs() as f64 * spacing[0];
-    let dz = (i128::from(b.z) - i128::from(a.z)).unsigned_abs() as f64 * spacing[2];
-    let dy = (i64::from(b.y) - i64::from(a.y)).unsigned_abs() as f64 * spacing[1];
-    let cost = ((dx + dz + dy) * 1_000_000.0).round();
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AdmittedEdge {
+    Flat { from: Cell, to: Cell },
+    Hop { from: Cell, to: Cell },
+    Stair { from: Cell, to: Cell, run: u8, rise: u8 },
+}
+
+impl AdmittedEdge {
+    fn endpoints(self) -> (Cell, Cell) {
+        match self {
+            Self::Flat { from, to } | Self::Hop { from, to } | Self::Stair { from, to, .. } => (from, to),
+        }
+    }
+
+    pub fn waypoint_count(self) -> usize {
+        match self { Self::Flat { .. } | Self::Stair { .. } => 1, Self::Hop { .. } => 2 }
+    }
+
+    /// Points traversed by the integrator, including both support endpoints.
+    pub fn segments(self, spacing: [f64; 3]) -> Result<Vec<crate::components::Point>, String> {
+        let (from, to) = self.endpoints();
+        let pose = |cell: Cell| crate::components::Point {
+            x: cell.x as f64 * spacing[0], y: (f64::from(cell.y) + 0.5) * spacing[1],
+            z: cell.z as f64 * spacing[2], frame: None,
+        };
+        let a = pose(from);
+        let b = pose(to);
+        let points = match self {
+            Self::Flat { .. } | Self::Stair { .. } => vec![a, b],
+            Self::Hop { .. } if to.y > from.y => vec![a.clone(), crate::components::Point { y: b.y, ..a }, b],
+            Self::Hop { .. } => vec![a.clone(), crate::components::Point { y: a.y, ..b.clone() }, b],
+        };
+        if points.iter().flat_map(|p| [p.x, p.y, p.z]).all(|v| v.is_finite()) {
+            Ok(points)
+        } else {
+            Err("terrain route metric position is not finite".into())
+        }
+    }
+
+    /// Geometric length of the segments the movement integrator follows,
+    /// rounded upward once to deterministic integer micrometres.
+    pub fn planning_cost(self, spacing: [f64; 3]) -> Result<u64, String> {
+        let points = self.segments(spacing)?;
+        let length: f64 = points.windows(2)
+            .map(|pair| crate::navigation::distance(pair[0].clone(), pair[1].clone()))
+            .sum();
+        let cost = (length * 1_000_000.0).ceil();
     // At most 4096 expanded nodes: this bound keeps path addition below 2^53
     // and identical on 32-bit WASM and native hosts. Never saturate a cost.
     if !cost.is_finite() || cost < 1.0 || cost > (1u64 << 40) as f64 {
         return Err("terrain metric exceeds route cost bounds".into());
     }
     Ok(cost as u64)
+    }
+}
+
+pub fn admitted_edge(a: Cell, b: Cell, _spacing: [f64; 3], stairs: &[StairEdge]) -> Result<AdmittedEdge, String> {
+    if let Some(stair) = stairs.iter().find(|stair| (stair.entrance == a && stair.landing == b) || (stair.entrance == b && stair.landing == a)) {
+        return Ok(AdmittedEdge::Stair { from: a, to: b, run: stair.run, rise: stair.rise });
+    }
+    let dx = (i128::from(b.x) - i128::from(a.x)).abs();
+    let dz = (i128::from(b.z) - i128::from(a.z)).abs();
+    let dy = (i64::from(b.y) - i64::from(a.y)).abs();
+    if dx + dz != 1 || dy > 1 { return Err("invalid terrain route edge".into()); }
+    Ok(if dy == 0 { AdmittedEdge::Flat { from: a, to: b } } else { AdmittedEdge::Hop { from: a, to: b } })
+}
+
+pub fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3], stairs: &[StairEdge]) -> Result<u64, String> {
+    admitted_edge(a, b, spacing, stairs)?.planning_cost(spacing)
+}
+
+pub fn path_waypoint_count(path: &[Cell], spacing: [f64; 3], stairs: &[StairEdge]) -> Result<usize, String> {
+    if path.is_empty() { return Err("invalid terrain route geometry".into()); }
+    let mut count = 1usize;
+    for pair in path.windows(2) { count = count.checked_add(admitted_edge(pair[0], pair[1], spacing, stairs)?.waypoint_count()).ok_or("terrain route progress overflow")?; }
+    Ok(count)
+}
+
+pub fn waypoint_cost(points: impl IntoIterator<Item = crate::components::Point>) -> Result<f64, String> {
+    let mut previous = None;
+    let mut total = 0.0;
+    for point in points {
+        if let Some(from) = previous.take() {
+            let length = crate::navigation::distance(from, point.clone());
+            if !length.is_finite() { return Err("route metric cost is not finite".into()); }
+            total += length;
+            if !total.is_finite() { return Err("route metric cost exceeds bound".into()); }
+        }
+        previous = Some(point);
+    }
+    total.is_finite().then_some(total).ok_or("route metric cost exceeds bound".into())
 }
 
 pub fn search(
@@ -72,7 +152,7 @@ pub fn search_with_blocked_and_stairs(
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) if !blocked(next.support) => match edge_cost(cell(*current), next.support, config.spacing) {
+                        Ok(Some(next)) if !blocked(next.support) => match edge_cost(cell(*current), next.support, config.spacing, stairs) {
                             Ok(cost) => neighbors.push((key(next.support), cost)),
                             Err(error) => { failure = Some(error); return Vec::new(); }
                         },
@@ -88,7 +168,7 @@ pub fn search_with_blocked_and_stairs(
                     else { continue };
                 if blocked(target) { continue; }
                 if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
-                    match edge_cost(cell(*current), next.support, config.spacing) {
+                    match edge_cost(cell(*current), next.support, config.spacing, stairs) {
                         Ok(cost) => neighbors.push((key(next.support), cost)),
                         Err(error) => { failure = Some(error); return Vec::new(); }
                     }
@@ -132,25 +212,10 @@ pub fn waypoints_with_stairs(path: &[Cell], config: TraversalConfig, stairs: &[S
     for pair in path.windows(2) {
         let a = pair[0];
         let b = pair[1];
-        let dx = i128::from(b.x) - i128::from(a.x);
-        let dz = i128::from(b.z) - i128::from(a.z);
-        let dy = i64::from(b.y) - i64::from(a.y);
-        let stair_edge = stairs.iter().any(|stair| stair.entrance == a && stair.landing == b || stair.entrance == b && stair.landing == a);
-        if (!stair_edge && (dx.abs() + dz.abs() != 1 || !(-1..=1).contains(&dy))) || (stair_edge && (dx.abs() + dz.abs() == 0 || dy == 0)) {
-            return Err("invalid terrain route edge".into());
-        }
-        let from = pose(a)?;
-        let to = pose(b)?;
-        if stair_edge {
-            // A stair is a single authored ramp edge. The movement integrator
-            // interpolates between supports; do not synthesize a teleport-like
-            // vertical waypoint that cuts through the stair body.
-            points.push(to);
-            continue;
-        }
-        if dy > 0 { points.push(Point { y: to.y, ..from }); }
-        if dy < 0 { points.push(Point { y: from.y, ..to.clone() }); }
-        points.push(to);
+        let edge = admitted_edge(a, b, config.spacing, stairs)?;
+        let emitted = edge.segments(config.spacing)?;
+        // The first point is already present as the preceding edge endpoint.
+        points.extend(emitted.into_iter().skip(1));
     }
     Ok(points)
 }
@@ -165,8 +230,8 @@ pub fn active_support_index_with_stairs(path: &[Cell], next_waypoint: usize, sta
     if next_waypoint == 0 { return Err("invalid terrain waypoint progress".into()); }
     let mut end = 0usize;
     for (index, pair) in path.windows(2).enumerate() {
-        let stair_edge = stairs.iter().any(|stair| stair.entrance == pair[0] && stair.landing == pair[1] || stair.entrance == pair[1] && stair.landing == pair[0]);
-        end += if stair_edge || pair[0].y == pair[1].y { 1 } else { 2 };
+        let edge = admitted_edge(pair[0], pair[1], [1.0, 1.0, 1.0], stairs)?;
+        end += edge.waypoint_count();
         if next_waypoint <= end { return Ok(index); }
     }
     Err("terrain waypoint progress exceeds route".into())
@@ -246,11 +311,29 @@ mod tests {
     #[test]
     fn weighted_cost_charges_rise_and_cross_geometry() {
         let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
-        let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing).unwrap();
-        let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing).unwrap();
+        let flat = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:0,z:0}, config.spacing, &[]).unwrap();
+        let climb = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:1,y:1,z:0}, config.spacing, &[]).unwrap();
         assert!(climb > flat);
-        let stair = edge_cost(Cell{x:0,y:0,z:0}, Cell{x:2,y:4,z:0}, config.spacing).unwrap();
-        assert_eq!(stair, 4_160_000);
+        let stair = StairEdge { id: "metric".into(), entrance: Cell{x:0,y:0,z:0}, landing: Cell{x:2,y:4,z:0}, orientation: crate::structure_geometry::Cardinal::East, run: 2, rise: 4 };
+        let stair_cost = edge_cost(stair.entrance, stair.landing, config.spacing, std::slice::from_ref(&stair)).unwrap();
+        assert_eq!(stair_cost, (2.0f64.hypot(4.0 * 0.54) * 1_000_000.0).ceil() as u64);
+    }
+
+    #[test]
+    fn admitted_edge_cost_and_emitted_geometry_are_the_same_rule() {
+        let config = TraversalConfig { spacing:[1.0,0.54,1.0],clearance_cells:1,max_step_cells:1 };
+        let edges = [
+            AdmittedEdge::Flat { from: Cell{x:0,y:0,z:0}, to: Cell{x:1,y:0,z:0} },
+            AdmittedEdge::Hop { from: Cell{x:0,y:0,z:0}, to: Cell{x:1,y:1,z:0} },
+            AdmittedEdge::Hop { from: Cell{x:1,y:1,z:0}, to: Cell{x:0,y:0,z:0} },
+            AdmittedEdge::Stair { from: Cell{x:0,y:0,z:0}, to: Cell{x:2,y:4,z:0}, run:2, rise:4 },
+        ];
+        for edge in edges {
+            let points = edge.segments(config.spacing).unwrap();
+            let length: f64 = points.windows(2).map(|pair| crate::navigation::distance(pair[0].clone(), pair[1].clone())).sum();
+            assert_eq!(edge.planning_cost(config.spacing).unwrap(), (length * 1_000_000.0).ceil() as u64);
+        }
+        assert_eq!(path_waypoint_count(&[edges[0].endpoints().0, edges[0].endpoints().1], config.spacing, &[]).unwrap(), 2);
     }
 
     #[test]
