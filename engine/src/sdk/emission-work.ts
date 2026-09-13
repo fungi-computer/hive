@@ -2,6 +2,7 @@ import { z } from "zod";
 import { component, entity, query } from "./authoring";
 import { Body, Destination, Emitter, ExcavationWork, LotWater, MaterialLot, Position, Support, beginEmission, move } from "./common";
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
+import { ASSIGNMENT_MAX_EDGES } from "./assignment";
 import type { PreparedWorkProvider } from "./work-system";
 
 const stateSchema = z.object({
@@ -101,13 +102,14 @@ function progressAttendance(ctx: WriteContext, attendance: Attendance, suspended
 export function emissionWorkProvider(ctx: WriteContext, workers: readonly EntityId[],
   requirements: ReadonlyMap<string, Requirement>, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
   const allRows = ctx.query(query(EmissionWork, EmissionOrder, Emitter));
-  if (allRows.length > 64 || workers.length > 128) throw new Error("Emission work bounds exceeded");
+  if (allRows.length > 64) throw new Error("Emission work bounds exceeded");
   const rows = allRows.filter(row => {
     const state = row.get(EmissionWork);
     return row.get(EmissionOrder).revision !== state.request || state.phase === "queued"
       || state.phase === "approaching" || state.phase === "submitting";
   });
   if (!rows.length) return { claims: [], candidates: [], lowerBound: () => 0, estimate: () => null, apply() {}, progress() {} };
+  if (rows.length * workers.length > ASSIGNMENT_MAX_EDGES) throw new Error("Emission work assignment bounds exceeded");
   const supplied = suppliedStations(ctx, requirements);
   const supports = new Set(ctx.query(query(Support)).map(row => row.id));
   const positions = new Map<EntityId, MoveDestination>(ctx.query(query(Position)).filter(row => !supports.has(row.id)).map(row => {

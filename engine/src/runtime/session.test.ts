@@ -968,6 +968,26 @@ test("world pose access is limited to declared physical reads", () => {
   assert.equal(requested, 1);
 });
 
+test("world pose access hides the native batch limit from systems", () => {
+  const batches: number[] = [];
+  const port = new TestPort();
+  port.worldPoses = (entities) => {
+    batches.push(entities.length);
+    return [];
+  };
+  const system: SystemDefinition = {
+    id: "test.pose-batches",
+    version: 1,
+    reads: [Position, Support, Surface],
+    writes: [],
+    run: (context) => {
+      context.worldPoses(Array.from({ length: 200 }, (_, index) => `actor.${index}` as import("../contracts").EntityId));
+    },
+  };
+  session(port, system, 5).value.step(0.1);
+  assert.deepEqual(batches, [128, 72]);
+});
+
 test("authored orders are visible to paused commands and survive pending reload", () => {
   const port = new TestPort();
   const authoredPack: GamePack = {

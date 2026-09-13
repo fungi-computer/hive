@@ -13,7 +13,7 @@ use std::collections::{BTreeMap, BTreeSet};
 const MAX_JSON_BYTES: usize = 128 * 1024;
 const MAX_MATERIALS: usize = 64;
 const MAX_CELLS: usize = 2048;
-const MAX_INITIAL_PLACEMENTS: usize = 128;
+const MAX_INITIAL_PLACEMENTS: usize = 512;
 // Stair dimensions are voxel counts, while slope is checked in world metres.
 // One horizontal cell is one metre in the generated world contract.
 const MAX_STAIR_GRADE: f64 = 1.5;
@@ -233,7 +233,7 @@ fn prepare_definition_mode(
         structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds });
     }
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
-        return Err("initial placement count exceeds 128".into());
+        return Err("initial placement count exceeds 512".into());
     }
     let mut placement_entities = BTreeSet::new();
     let mut placement_columns = BTreeSet::new();

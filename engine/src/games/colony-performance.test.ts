@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
+import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
+import { GameSession } from "../runtime/session";
+import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { createColonyPerformancePack } from "./colony-performance";
+
+initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 const decode = (bytes: Uint8Array) => JSON.parse(new TextDecoder().decode(bytes)) as { initial: { id: string; components: Record<string, unknown> }[]; game: string };
 
@@ -31,4 +37,16 @@ test("performance actors and trees occupy distinct generated columns", () => {
     initialPlacements: Array<{ entity: string; column: [number, number] }>;
   };
   assert.equal(new Set(environment.initialPlacements.map(row => row.column.join(","))).size, environment.initialPlacements.length);
+});
+
+test("largest sparse-world preset starts and advances the real Colony systems", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({ port, pack: createColonyPerformancePack(512, 200) });
+  try {
+    session.start();
+    session.step(0.1);
+    assert.equal(session.renderFacts().filter(fact => fact.visual === "colony.rowan" || fact.visual === "colony.sedge").length, 200);
+  } finally {
+    port.dispose();
+  }
 });

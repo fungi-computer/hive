@@ -300,7 +300,11 @@ export class GameSession {
       throw new Error(
         "world poses require hive.position, hive.support, and hive.surface reads",
       );
-    return this.port.worldPoses(entities);
+    if (entities.length === 0) throw new Error("world pose query requires an entity");
+    const poses: WorldPose[] = [];
+    for (let offset = 0; offset < entities.length; offset += 128)
+      poses.push(...this.port.worldPoses(entities.slice(offset, offset + 128)));
+    return poses;
   }
   request(action: ActionRequest): void {
     this.ensureLive();
