@@ -100,8 +100,9 @@ function parseConstructionReadiness(value: unknown, sites: readonly EntityId[]):
       throw new Error("invalid construction readiness reason");
     if (statusValue === "waitingForSupport" && reason !== "missingStructuralSupport")
       throw new Error("construction readiness is missing its waiting reason");
-    if (reason === undefined) return { site, status: statusValue };
-    return { site, status: statusValue, reason };
+    const requestedSite = sites[index];
+    if (reason === undefined) return { site: requestedSite, status: statusValue };
+    return { site: requestedSite, status: statusValue, reason };
   });
 }
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
