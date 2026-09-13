@@ -15,7 +15,6 @@ pub mod environment_definition;
 pub mod finite_release;
 pub mod emission_definition;
 pub mod staged_process;
-pub(crate) mod process_transition;
 pub mod water;
 mod quantity;
 mod combat;

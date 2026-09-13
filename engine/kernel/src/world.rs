@@ -26,6 +26,8 @@ mod aperture_tests;
 mod construction_work;
 #[path = "route_query.rs"]
 mod route_query;
+#[path = "process_transition.rs"]
+mod process_transition;
 #[cfg(test)]
 #[path = "terrain_movement_tests.rs"]
 mod terrain_movement_tests;
@@ -2909,7 +2911,7 @@ impl Kernel {
         let stage = definition.stages.get(state.stage_index as usize).ok_or("process stage is missing")?;
         if state.progress_seconds < stage.duration_seconds { self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(()); }
         let transition = &stage.transition;
-        if let Err(reason) = self.execute_process_transition(process_id, transition) {
+        if let Err(reason) = process_transition::publish(self, process_id, transition) {
             state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = crate::staged_process::transition_block_reason(&reason).into();
             self.ecs.entity_mut(self.entity(process_id)?).insert(state); self.refresh_state_weight(); return Ok(());
         }
@@ -2919,7 +2921,7 @@ impl Kernel {
         Ok(())
     }
 
-    fn execute_process_transition(&mut self, process_id: &str, transition: &crate::staged_process::ProcessTransition) -> Result<()> {
+    pub(super) fn execute_process_transition(&mut self, process_id: &str, transition: &crate::staged_process::ProcessTransition) -> Result<()> {
         let bindings = self.process_bindings(process_id);
         let mut portions = Vec::new();
         let mut roles = BTreeSet::new();
@@ -2945,7 +2947,8 @@ impl Kernel {
             planned_next_lot = prepared.next_lot; planned_weight = prepared.state_weight; *planned_destinations.entry(container).or_default() += u64::from(output.quantity); prepared_outputs.push(prepared);
         }
         let planned_batch: Vec<_> = prepared_outputs.iter().map(|output| (output.container.clone(), output.lot.quantity, self.quantity(&output.container).saturating_sub(*released_by_container.get(&output.container).unwrap_or(&0)), self.ecs.get::<Container>(self.entity(&output.container).unwrap()).unwrap().capacity)).collect();
-        let _transition_token = crate::process_transition::prepare_output_id_plan(self.next_lot, |id| self.known.contains(id), &planned_batch)?;
+        let transition_token = process_transition::prepare_output_id_plan(self.next_lot, |id| self.known.contains(id), &planned_batch)?;
+        for (prepared, id) in prepared_outputs.iter_mut().zip(transition_token.output_ids) { prepared.lot_id = id; }
         let emission_source = if let Some(emission) = &transition.emission {
             let source_rows: Vec<_> = bindings.iter().filter(|b| b.role == emission.role).collect();
             let source_quantity: u32 = source_rows.iter().try_fold(0u32, |sum, b| sum.checked_add(b.quantity)).ok_or("transition-emission-quantity-overflow")?;

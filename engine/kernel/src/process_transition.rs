@@ -26,3 +26,9 @@ pub(super) fn prepare_output_id_plan(
     }
     Ok(PreparedTransition { output_ids: ids, destination_quantities: destinations })
 }
+
+/// The Kernel owns the physical publishers; this child module is the narrow
+/// transition boundary used by the staged-process owner.
+pub(super) fn publish(kernel: &mut super::Kernel, process: &str, transition: &crate::staged_process::ProcessTransition) -> Result<(), String> {
+    kernel.execute_process_transition(process, transition)
+}
