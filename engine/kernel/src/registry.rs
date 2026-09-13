@@ -61,7 +61,7 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
-            ("hive.staged-process", vec![("definition", FieldType::String), ("definitionVersion", FieldType::Number), ("binding", FieldType::String), ("station", FieldType::Entity), ("stage", FieldType::Number), ("progress", FieldType::Number), ("enteredTick", FieldType::Number), ("status", FieldType::String)]),
+            ("hive.staged-process", vec![("definition", FieldType::String), ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number), ("enteredTick", FieldType::Number), ("phase", FieldType::String)]),
             ("hive.process-binding", vec![("process", FieldType::Entity), ("role", FieldType::String), ("lot", FieldType::Entity), ("quantity", FieldType::Number)]),
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
@@ -339,8 +339,8 @@ impl Registry {
                     return Err("invalid carried water mass".into());
                 }
             }
-            "hive.staged-process" => { let process: crate::staged_process::StagedProcess = decode(value)?; crate::staged_process::validate_definition(&crate::staged_process::ProcessDefinition { id: process.definition.clone(), version: process.definition_version, stages: vec![] }).err(); }
-            "hive.process-binding" => { let binding: crate::staged_process::ProcessBinding = decode(value)?; if binding.id.is_empty() || binding.station.is_empty() { return Err("invalid process binding record".into()); } }
+            "hive.staged-process" => { let process: crate::staged_process::StagedProcess = decode(value)?; if !valid_id(&process.definition) || !valid_id(&process.station) || !process.progress_seconds.is_finite() { return Err("invalid staged process record".into()); } }
+            "hive.process-binding" => { let binding: crate::staged_process::ProcessBinding = decode(value)?; if !valid_id(&binding.process) || !valid_id(&binding.role) || !valid_id(&binding.lot) || binding.quantity == 0 { return Err("invalid process binding record".into()); } }
             "hive.stockpile-cell" => {
                 let cell: StockpileCell = decode(value)?;
                 if !valid_id(&cell.zone) || !valid_id(&cell.filter_profile) { return Err("invalid stockpile cell".into()); }

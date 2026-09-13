@@ -40,9 +40,24 @@ export const colonyEnvironment: EnvironmentDefinition = {
     heatCapacityJPerM3K: 1200,
   },
   emissions: [{
-    id: "wood-hearth", materialKind: "wood", quantity: 2,
+    id: "wood-hearth", materialKind: "wood", quantity: 1,
     durationS: 30, smokeKg: 0.03, heatJ: 30000,
   }],
+  processes: [{ id: "herbal-ale-v1", stationCatalog: "brew-station", inputs: [
+    { role: "malt", port: "kettle", material: "malt", quantity: 2, policy: "portion", disposition: "consume" },
+    { role: "water", port: "kettle", material: "water", quantity: 2, policy: "portion", disposition: "consume" },
+    { role: "mugwort", port: "kettle", material: "mugwort", quantity: 1, policy: "whole-lot", disposition: "consume" },
+    { role: "wood", port: "hearth", material: "wood", quantity: 1, policy: "portion", disposition: "emission-source" },
+    { role: "barm", port: "barm", material: "barm", quantity: 1, policy: "whole-lot", disposition: "retain" },
+    { role: "keg", port: "keg", material: "keg", quantity: 1, policy: "whole-lot", disposition: "retain" },
+  ], stages: [
+    { id: "prepare", mode: "attended", durationSeconds: 40, transition: { consumeRoles: ["malt", "water", "mugwort"], emission: { role: "wood", catalog: "wood-hearth" } } },
+    { id: "ferment", mode: "elapsed", durationSeconds: 240, transition: {} },
+    { id: "keg", mode: "attended", durationSeconds: 20, transition: { outputs: [
+      { role: "ale", material: "ale", quantity: 4, destination: { kind: "retained-container", role: "keg" } },
+      { role: "spent-grain", material: "spent-grain", quantity: 1, destination: { kind: "station-port", port: "tray" } },
+    ] } },
+  ] }],
   structures: {
     maxSpanSteps: 6,
     catalog: [

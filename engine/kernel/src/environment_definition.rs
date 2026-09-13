@@ -36,6 +36,8 @@ struct DefinitionInput {
     #[serde(default)]
     emissions: Vec<crate::emission_definition::EmissionDefinition>,
     #[serde(default)]
+    processes: Vec<crate::staged_process::ProcessDefinition>,
+    #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
 }
 #[derive(Debug, Deserialize)]
@@ -213,6 +215,7 @@ pub struct PreparedDefinition {
     pub structures: BTreeMap<String, StructureDefinition>,
     pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     pub emissions: crate::emission_definition::EmissionCatalog,
+    pub processes: crate::staged_process::ProcessCatalog,
 }
 
 pub struct BuiltEnvironment {
@@ -222,11 +225,12 @@ pub struct BuiltEnvironment {
     pub structures: BTreeMap<String, StructureDefinition>,
     pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     pub emissions: crate::emission_definition::EmissionCatalog,
+    pub processes: crate::staged_process::ProcessCatalog,
 }
 pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
     let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
-    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere, emissions: prepared.emissions })
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere, emissions: prepared.emissions, processes: prepared.processes })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -485,6 +489,8 @@ fn prepare_definition_mode(
         limits,
         definition.structures.max_span_steps,
     )?.with_generated_groundwater();
+    let emissions = crate::emission_definition::EmissionCatalog::from_definitions(definition.emissions)?;
+    let processes = compile_processes(definition.processes, &structures, &emissions)?;
     Ok(PreparedDefinition {
         terrain,
         geometry,
@@ -493,8 +499,39 @@ fn prepare_definition_mode(
         initial_placements,
         structures,
         atmosphere: definition.atmosphere,
-        emissions: crate::emission_definition::EmissionCatalog::from_definitions(definition.emissions)?,
+        emissions,
+        processes,
     })
+}
+
+fn compile_processes(
+    definitions: Vec<crate::staged_process::ProcessDefinition>,
+    structures: &BTreeMap<String, StructureDefinition>,
+    emissions: &crate::emission_definition::EmissionCatalog,
+) -> Result<crate::staged_process::ProcessCatalog, String> {
+    for definition in &definitions {
+        let station = structures.get(&definition.station_catalog).ok_or("process station catalog is unknown")?;
+        let ports: BTreeSet<&str> = station.on_complete.ports.iter().map(|port| port.key.as_str()).collect();
+        for input in &definition.inputs {
+            if !ports.contains(input.port.as_str()) { return Err("process input port is not a station port".into()); }
+        }
+        let roles: BTreeMap<&str, &crate::staged_process::ProcessInput> = definition.inputs.iter().map(|i| (i.role.as_str(), i)).collect();
+        for stage in &definition.stages {
+            if let Some(emission) = &stage.transition.emission {
+                let input = roles.get(emission.role.as_str()).ok_or("process emission role is unknown")?;
+                let compiled = emissions.get(&emission.catalog).ok_or("process emission catalog is unknown")?;
+                if compiled.definition().material_kind != input.material || compiled.definition().quantity != input.quantity { return Err("process emission does not match source input".into()); }
+            }
+            for output in &stage.transition.outputs {
+                match &output.destination {
+                    crate::staged_process::OutputDestination::StationPort { port } if !ports.contains(port.as_str()) => return Err("process output port is not a station port".into()),
+                    crate::staged_process::OutputDestination::RetainedContainer { role } => { let input = roles.get(role.as_str()).ok_or("process retained container role is unknown")?; if input.disposition != crate::staged_process::InputDisposition::Retain { return Err("process output destination is not retained".into()); } }
+                    _ => {}
+                }
+            }
+        }
+    }
+    crate::staged_process::ProcessCatalog::from_definitions(definitions)
 }
 
 #[cfg(test)]

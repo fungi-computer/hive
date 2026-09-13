@@ -143,11 +143,17 @@ export interface EnvironmentEmission {
   readonly smokeKg: number;
   readonly heatJ: number;
 }
+export type ProcessInputDisposition = "consume" | "retain" | "emission-source";
+export interface EnvironmentProcessInput { readonly role:string; readonly port:string; readonly material:string; readonly quantity:number; readonly policy:"portion"|"whole-lot"; readonly disposition:ProcessInputDisposition; }
+export interface EnvironmentProcessOutput { readonly role:string; readonly material:string; readonly quantity:number; readonly destination:{readonly kind:"station-port";readonly port:string}|{readonly kind:"retained-container";readonly role:string}; }
+export interface EnvironmentProcessStage { readonly id:string; readonly mode:"attended"|"elapsed"; readonly durationSeconds:number; readonly transition:{readonly consumeRoles?:readonly string[];readonly emission?:{readonly role:string;readonly catalog:string};readonly outputs?:readonly EnvironmentProcessOutput[]}; }
+export interface EnvironmentProcessDefinition { readonly id:string; readonly stationCatalog:string; readonly inputs:readonly EnvironmentProcessInput[]; readonly stages:readonly EnvironmentProcessStage[]; }
 
 export interface EnvironmentDefinition {
   readonly world: EnvironmentWorld;
   readonly atmosphere?: EnvironmentAtmosphere;
   readonly emissions?: readonly EnvironmentEmission[];
+  readonly processes?: readonly EnvironmentProcessDefinition[];
   readonly materials: readonly EnvironmentMaterial[];
   readonly water: EnvironmentWater;
   readonly structures: EnvironmentStructures;
