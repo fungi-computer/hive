@@ -44,6 +44,7 @@ type ObservationWire = {
       readonly value: string | number | boolean;
     }[];
     readonly presentationControls: readonly PresentationControl[];
+    readonly whistleActions?: readonly unknown[];
     readonly terrainMarks: readonly TerrainMark[];
     readonly environmentVisuals: readonly EnvironmentVisual[];
   };
@@ -359,7 +360,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     lastPaused = candidate.observation.paused;
     if (pauseChanged) emit({ type: "state", paused: lastPaused });
     emit({ type: "frame", time: candidate.observation.time, epoch: candidate.observation.epoch, sequence: candidate.observation.sequence, facts: candidate.observation.facts, ...(candidate.observation.terrain === undefined ? {} : { terrain: candidate.observation.terrain }), cues: candidate.observation.cues });
-    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls, terrainMarks: candidate.observation.terrainMarks, environmentVisuals: candidate.observation.environmentVisuals });
+    emit({ type: "presentation", facts: candidate.observation.presentationFacts, controls: candidate.observation.presentationControls, terrainMarks: candidate.observation.terrainMarks, environmentVisuals: candidate.observation.environmentVisuals, ...(candidate.observation.whistleActions === undefined ? {} : { whistleActions: candidate.observation.whistleActions }) });
     return true;
   };
   const openSocket = async () => {

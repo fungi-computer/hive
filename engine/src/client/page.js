@@ -6,7 +6,7 @@ import { createHiveClient } from "./client.js";
 import { createConnectionChoice } from "./connection-choice.js";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { connectRemoteRuntime } from "../runtime/remote-client.ts";
-import { colonyDigWhistleContribution } from "../../../src/whistle/colony-dig.js";
+import { colonyDigWhistleContribution } from "../games/colony-whistle.ts";
 
 const mode = document.body.dataset.mode || "hub";
 const configs = {

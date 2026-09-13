@@ -33,6 +33,8 @@ type WorkerEventBase =
       readonly controls: readonly PresentationControl[];
       readonly terrainMarks: readonly TerrainMark[];
       readonly environmentVisuals: readonly EnvironmentVisual[];
+      /** Bounded semantic capabilities; local presentation is intentionally omitted. */
+      readonly whistleActions?: readonly unknown[];
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[]; readonly invocationId?: string; readonly metrics?: RuntimeMetrics }
