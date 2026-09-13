@@ -242,6 +242,17 @@ versioned data and receives compact facts or committed results; it does not
 coordinate the native rule by repeatedly reading whole component sets. Water and
 gas remain sparse native fields rather than entities per voxel.
 
+First-class human and AI control does not make raw component queries the public
+world-reading API. The engine projects stable, scoped observations from committed
+ECS state: visible entities and terrain, current work and inventories, relevant
+needs, recent durable events and currently available semantic commands. Human UI,
+Shiitake and other controllers consume that same observation owner. Goblin may
+attach content labels and policies, while the host decides visibility and grant
+scope. Private ECS indexes, hidden terrain and transient scheduler state never
+leak merely because a controller can invoke a command. Observation is read-only;
+Whistle discovery is not admission; command dispatch rechecks current authority
+and world state before committing an effect.
+
 The first correction is the shared work/material path used by excavation,
 construction, trees and stockpiles. Establish native, rebuildable indexes for
 container contents, current claims, capable workers and spatial work locality;
