@@ -13,6 +13,7 @@ import { formationsPack, FormationMember } from "../games/formations";
 import { MaterialLot, Position, encodeDefinition } from "../sdk/common";
 import { command, component, entity, query, system } from "../sdk/authoring";
 import { z } from "zod";
+import { buildObservation } from "./observation";
 const emptyInput = z.object({}).strict();
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -143,8 +144,17 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
     session.start();
     session.command("deliver", { quantity: 1, entities: ["colony.worker.1"] });
     let interrupted = false;
+    const seenPhases = new Set<string>();
+    let puttingDownSave: ReturnType<GameSession["save"]> | undefined;
     for (let i = 0; i < 100; i++) {
       session.step(0.1);
+      const activity = buildObservation(session, { epoch: 0, sequence: i }).facts
+        .find((fact) => fact.id === "colony.worker.1")?.activity;
+      if (activity?.kind === "delivery") {
+        seenPhases.add(activity.phase);
+        if (activity.phase === "putting-down" && !puttingDownSave)
+          puttingDownSave = session.save();
+      }
       const lot = session
         .query(query(MaterialLot))
         .find((row) => row.get(MaterialLot).container === "colony.worker.1");
@@ -179,6 +189,19 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
       interrupted,
       true,
       "delivery must reach carried custody before pause",
+    );
+    assert(seenPhases.has("pickup"), "committed source attendance must publish pickup pose");
+    assert(seenPhases.has("carrying"), "committed actor custody must publish carrying pose");
+    assert(seenPhases.has("putting-down"), "committed destination transfer must publish drop pose");
+    if (!puttingDownSave) throw new Error("retain the committed hand-off frontier for reload");
+    session.restore(puttingDownSave);
+    session.restore(puttingDownSave);
+    session.step(0.1);
+    assert.equal(
+      session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === "colony.guest.1")
+        .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0),
+      1,
+      "replaying the committed hand-off cannot duplicate destination custody",
     );
     for (let i = 0; i < 100; i++) session.step(0.1);
     const lots = session
