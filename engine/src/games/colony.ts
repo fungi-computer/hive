@@ -22,6 +22,7 @@ import {
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { StagedProcess, requestProcess } from "../sdk/process-supply";
+import { ProcessAttendanceWork } from "../sdk/process-attendance";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
@@ -92,7 +93,7 @@ const colonyInitial = [
     components: {
       "hive.position": { x: 0, y: 0, z: index * 2, facing: 0 },
       "hive.body": { speed: 2 },
-      "hive.container": { capacity: 3 },
+      "hive.container": { capacity: 4 },
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": workerVisuals[index],
       "colony.worker": { guest: false },
@@ -325,6 +326,7 @@ const colonyComponents = [
   Traversal,
   MaterialLot,
   StagedProcess,
+  ProcessAttendanceWork,
   ExcavationWork,
   Destination,
   Worker,
@@ -409,6 +411,9 @@ export const colonyPack: GamePack = {
     requestBrew: command({
       title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",
       localPresentation: { bindings: [{ id: "brew-process", label: "Brew herbal ale", selection: { field: "station", cardinality: "one" } }] },
+      availability: context => availableBrewStations(context).length > 0
+        ? { status: "available" }
+        : { status: "unavailable", reason: "Build a free brew station before requesting ale." },
       subjects: context => availableBrewStations(context).map(row => row.id),
       input: stationInput,
       reads: [ConstructionSite, StagedProcess], writes: [],

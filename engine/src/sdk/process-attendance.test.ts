@@ -27,7 +27,7 @@ function context(process: object, requirements: ProcessRequirements, lots: reado
     workMaterialFacts: () => ({ version: 1, containers: [{ id: "station:kettle", capacity: 8, sealed: false }], lots: lots as never }),
     processRequirements: () => requirements, worldPoses: () => [], routeCosts: requests => requests.map(request => ({ actor: request.actor, status: "reachable" as const, cost: 0 })), routeToAny: () => ({ actor: "worker", status: "unavailable" as const, reason: "test" }), physicalContacts: () => [], environmentFacts: () => null, atmosphereSamples: () => ({ revision: 0, geometryRevision: 0, samples: [] }), constructionReadiness: () => [], constructionAccess: sites => sites.map(site => ({ site, support: "ready" as const, materialsReady: true, contacts: [{ x: 0, y: 0, z: 0, frame: null, kind: "origin" as const }] })), deconstructionAccess: () => [], terrainMaterials: () => [], terrainSurfaces: () => [], waterContacts: () => [], assign: candidates => candidates.map(({ worker, task, cost }) => ({ worker, task, cost })), write: () => {}, action: action => actions.push(action), createAuthoredEntity: record => attendance.push({ id: record.id, value: record.components[ProcessAttendanceWork.id] }), removeAuthoredEntity: id => { const index = attendance.findIndex(item => item.id === id); if (index >= 0) attendance.splice(index, 1); },
   };
-  return { ctx, actions };
+  return { ctx, actions, attendance };
 }
 const processState = (stageIndex = 0, phase: "waiting" | "working" | "blocked" = "waiting") => ({ version: 2, definition: "ale", definitionVersion: 1, station: "station", worker: phase === "working" ? "worker" : null, stageIndex, progressSeconds: 0, enteredTick: 0, phase, blockedReason: phase === "blocked" ? "blocked" : "" });
 
@@ -56,14 +56,21 @@ test("ready attended stage submits exactly one native attendance action", () => 
 });
 
 test("saved approach is retained as one attendance record", () => {
-  const { ctx, actions } = context(processState(), req("attended"), [{ container: "station:kettle", kind: "grain", quantity: 2 }]);
+  const { ctx, actions, attendance } = context(processState(), req("attended"), [{ container: "station:kettle", kind: "grain", quantity: 2 }]);
   const provider = processAttendanceProvider(ctx, ["worker"], new Set());
   provider.apply([{ worker: "worker", task: "process", cost: 0 }]);
+  assert.deepEqual(attendance, [{ id: "process-attendance.process", value: {
+    process: "process", actor: "worker", contactX: 0, contactY: 0, contactZ: 0,
+  } }]);
   assert.equal(actions.filter(action => (action as { kind: string }).kind === "attend-process").length, 1);
 });
 
 test("later attended stage does not require consumed original inputs", () => {
-  const { ctx } = context(processState(1), { ...req("attended"), inputs: [] }, []);
+  const requirements = req("elapsed");
+  const { ctx } = context(processState(1), {
+    ...requirements,
+    stages: [...requirements.stages, { id: "keg", mode: "attended", durationSeconds: 2 }],
+  }, []);
   const provider = processAttendanceProvider(ctx, ["worker"], new Set());
   assert.equal(provider.candidates.length, 1);
 });

@@ -32,12 +32,10 @@ export function processAttendanceProvider(
   const supports = new Set(ctx.query(query(Support)).map(row => row.id));
   const destinations = new Set(ctx.query(query(Destination)).map(row => row.id));
   const excavating = new Set(ctx.query(query(ExcavationWork)).map(row => row.id));
-  const stationIds = [...new Set(processes.map(process => process.state.station))];
-  const access = new Map((stationIds.length ? ctx.constructionAccess(stationIds) : []).map(row => [row.site, row]));
   const targets = new Map<EntityId, MoveDestination>();
   for (const process of processes) {
-    const contact = access.get(process.state.station)?.contacts[0];
-    if (contact) targets.set(process.id, { x: contact.x, y: contact.y, z: contact.z, frame: null });
+    const contact = positions.get(process.state.station);
+    if (contact) targets.set(process.id, contact);
   }
   const attendanceRows = ctx.query(query(ProcessAttendanceWork));
   const attendance = new Map(attendanceRows.map(row => [row.get(ProcessAttendanceWork).process, { id: row.id, state: row.get(ProcessAttendanceWork) }]));

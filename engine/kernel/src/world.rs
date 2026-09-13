@@ -1779,11 +1779,14 @@ impl Kernel {
                     return Err("invalid position".into());
                 }
             }
-            if (self.ecs.get::<Body>(*entity).is_some()
-                || self.ecs.get::<Container>(*entity).is_some())
+            if self.ecs.get::<Body>(*entity).is_some() && position.is_none() {
+                return Err("body needs position".into());
+            }
+            if self.ecs.get::<Container>(*entity).is_some()
                 && position.is_none()
+                && self.ecs.get::<Lot>(*entity).is_none()
             {
-                return Err("body/container needs position".into());
+                return Err("container needs position or lot custody".into());
             }
             if self
                 .ecs
