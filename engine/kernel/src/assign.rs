@@ -11,16 +11,37 @@ use std::collections::{BTreeMap, BTreeSet};
 const COST_SCALE: f64 = 1_000_000.0;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Candidate { pub worker: String, pub task: String, pub cost: f64 }
+pub struct Candidate {
+    pub worker: String,
+    pub task: String,
+    pub cost: f64,
+}
+
 #[derive(Clone, Debug, PartialEq)]
-pub struct Assignment { pub worker: String, pub task: String, pub cost: f64 }
+pub struct Assignment {
+    pub worker: String,
+    pub task: String,
+    pub cost: f64,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AssignmentError { EdgeLimitExceeded { count: usize, limit: usize }, CostOverflow }
+pub enum AssignmentError {
+    EdgeLimitExceeded { count: usize, limit: usize },
+    CostOverflow,
+}
 
 pub fn compute_cost(travel_time: f64, work_time: f64, retry_risk: f64, priority: f64) -> f64 {
-    if !travel_time.is_finite() || !work_time.is_finite() || !retry_risk.is_finite()
-        || !priority.is_finite() || travel_time < 0.0 || work_time < 0.0
-        || !(0.0..1.0).contains(&retry_risk) || priority <= 0.0 { return f64::INFINITY; }
+    if !travel_time.is_finite()
+        || !work_time.is_finite()
+        || !retry_risk.is_finite()
+        || !priority.is_finite()
+        || travel_time < 0.0
+        || work_time < 0.0
+        || !(0.0..1.0).contains(&retry_risk)
+        || priority <= 0.0
+    {
+        return f64::INFINITY;
+    }
     (travel_time + work_time) / (1.0 - retry_risk) / priority
 }
 
@@ -32,10 +53,17 @@ pub fn optimize(candidates: &[Candidate], max_edges: usize) -> Result<Vec<Assign
         let key = (candidate.worker.clone(), candidate.task.clone());
         best.entry(key).and_modify(|cost| *cost = cost.min(candidate.cost)).or_insert(candidate.cost);
     }
-    if best.len() > max_edges { return Err(AssignmentError::EdgeLimitExceeded { count: best.len(), limit: max_edges }); }
+    if best.len() > max_edges {
+        return Err(AssignmentError::EdgeLimitExceeded {
+            count: best.len(),
+            limit: max_edges,
+        });
+    }
     let workers: Vec<_> = best.keys().map(|(worker, _)| worker.clone()).collect::<BTreeSet<_>>().into_iter().collect();
     let tasks: Vec<_> = best.keys().map(|(_, task)| task.clone()).collect::<BTreeSet<_>>().into_iter().collect();
-    if workers.is_empty() { return Ok(Vec::new()); }
+    if workers.is_empty() {
+        return Ok(Vec::new());
+    }
     let mut scaled = BTreeMap::new();
     let mut max_cost = 0_i64;
     for (key, cost) in &best {
@@ -43,7 +71,8 @@ pub fn optimize(candidates: &[Candidate], max_edges: usize) -> Result<Vec<Assign
             return Err(AssignmentError::CostOverflow);
         }
         let value = (*cost * COST_SCALE).ceil() as i64;
-        max_cost = max_cost.max(value); scaled.insert(key.clone(), value);
+        max_cost = max_cost.max(value);
+        scaled.insert(key.clone(), value);
     }
     let rows = workers.len();
     let max_sum = max_cost.checked_mul(rows as i64).ok_or(AssignmentError::CostOverflow)?;
@@ -53,25 +82,46 @@ pub fn optimize(candidates: &[Candidate], max_edges: usize) -> Result<Vec<Assign
     let mut matrix = vec![vec![forbidden; columns]; rows];
     for (row, worker) in workers.iter().enumerate() {
         for (column, task) in tasks.iter().enumerate() {
-            if let Some(cost) = scaled.get(&(worker.clone(), task.clone())) { matrix[row][column] = *cost; }
+            if let Some(cost) = scaled.get(&(worker.clone(), task.clone())) {
+                matrix[row][column] = *cost;
+            }
         }
-        for column in tasks.len()..columns { matrix[row][column] = unmatched; }
+        for column in tasks.len()..columns {
+            matrix[row][column] = unmatched;
+        }
     }
     let matrix = Matrix::from_rows(matrix).expect("rectangular assignment matrix");
     let (_, chosen) = kuhn_munkres_min::<i64, _>(&matrix);
     let mut result = Vec::new();
     for (row, &column) in chosen.iter().enumerate() {
-        if column >= tasks.len() { continue; }
+        if column >= tasks.len() {
+            continue;
+        }
         let key = (workers[row].clone(), tasks[column].clone());
-        if let Some(cost) = best.get(&key) { result.push(Assignment { worker: key.0, task: key.1, cost: *cost }); }
+        if let Some(cost) = best.get(&key) {
+            result.push(Assignment {
+                worker: key.0,
+                task: key.1,
+                cost: *cost,
+            });
+        }
     }
-    result.sort_by(|a, b| a.worker.cmp(&b.worker).then(a.task.cmp(&b.task))); Ok(result)
+    result.sort_by(|a, b| a.worker.cmp(&b.worker).then(a.task.cmp(&b.task)));
+    Ok(result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn c(w: &str, t: &str, cost: f64) -> Candidate { Candidate { worker: w.into(), task: t.into(), cost } }
+
+    fn c(w: &str, t: &str, cost: f64) -> Candidate {
+        Candidate {
+            worker: w.into(),
+            task: t.into(),
+            cost,
+        }
+    }
+
     #[test]
     fn sparse_matching_maximizes_cardinality_before_cost() {
         let got = optimize(&[c("a", "x", 100.0), c("a", "y", 1.0), c("b", "x", 2.0)], 8).unwrap();
@@ -97,19 +147,32 @@ mod tests {
 
     // A deliberately tiny exhaustive oracle: it checks the domain objective,
     // while Hungarian remains the only production implementation.
-    fn oracle(rows: &[&str], tasks: &[&str], edges: &[Candidate], row: usize,
-              used: &mut BTreeSet<&str>) -> (usize, f64) {
-        if row == rows.len() { return (0, 0.0); }
+    fn oracle<'a>(
+        rows: &[&str],
+        tasks: &[&'a str],
+        edges: &[Candidate],
+        row: usize,
+        used: &mut BTreeSet<&'a str>,
+    ) -> (usize, f64) {
+        if row == rows.len() {
+            return (0, 0.0);
+        }
         let mut best = oracle(rows, tasks, edges, row + 1, used);
         for task in tasks {
-            if used.contains(task) { continue; }
+            if used.contains(task) {
+                continue;
+            }
             let Some(edge) = edges.iter().filter(|e| e.worker == rows[row] && e.task == *task)
-                .min_by(|a, b| a.cost.partial_cmp(&b.cost).unwrap()) else { continue; };
+                .min_by(|a, b| a.cost.partial_cmp(&b.cost).unwrap()) else {
+                    continue;
+                };
             used.insert(task);
             let (count, cost) = oracle(rows, tasks, edges, row + 1, used);
             used.remove(task);
             let candidate = (count + 1, cost + edge.cost);
-            if candidate.0 > best.0 || (candidate.0 == best.0 && candidate.1 < best.1) { best = candidate; }
+            if candidate.0 > best.0 || (candidate.0 == best.0 && candidate.1 < best.1) {
+                best = candidate;
+            }
         }
         best
     }
@@ -120,5 +183,27 @@ mod tests {
         let expected = oracle(&["a", "b", "c"], &["x", "y", "z"], &edges, 0, &mut BTreeSet::new());
         let got = optimize(&edges, 8).unwrap();
         assert_eq!((got.len(), got.iter().map(|a| a.cost).sum::<f64>()), expected);
+    }
+
+    #[test]
+    fn every_three_by_three_sparse_shape_matches_exhaustive_objective() {
+        let workers = ["a", "b", "c"];
+        let tasks = ["x", "y", "z"];
+        for mask in 0_u16..(1 << 9) {
+            let mut edges = Vec::new();
+            for (worker_index, worker) in workers.iter().enumerate() {
+                for (task_index, task) in tasks.iter().enumerate() {
+                    let edge_index = worker_index * tasks.len() + task_index;
+                    if mask & (1 << edge_index) != 0 {
+                        let cost = ((worker_index * 5 + task_index * 3) % 7 + 1) as f64;
+                        edges.push(c(worker, task, cost));
+                    }
+                }
+            }
+            let expected = oracle(&workers, &tasks, &edges, 0, &mut BTreeSet::new());
+            let got = optimize(&edges, 9).unwrap();
+            let actual = (got.len(), got.iter().map(|assignment| assignment.cost).sum::<f64>());
+            assert_eq!(actual, expected, "sparse mask {mask:#011b}");
+        }
     }
 }
