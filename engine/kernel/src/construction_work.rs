@@ -27,11 +27,8 @@ fn construction_status(
         }
         let definition = kernel.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let instance = kernel.construction_instance(site, &definition, state.x, state.y, state.z, state.orientation);
-        let status = match kernel.environment.as_mut().ok_or("construction needs environment")?.world.construction_support(std::slice::from_ref(&instance)) {
-            Ok(unsupported) if unsupported.iter().any(|id| id == site) => "waitingForSupport",
-            Ok(_) => "ready",
-            Err(_) => "invalid",
-        };
+        let unsupported = kernel.environment.as_mut().ok_or("construction needs environment")?.world.construction_support(std::slice::from_ref(&instance))?;
+        let status = if unsupported.iter().any(|id| id == site) { "waitingForSupport" } else { "ready" };
         result.insert(site.clone(), status);
     }
     Ok(result)

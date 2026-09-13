@@ -23,6 +23,9 @@ pub struct SupportResult {
     pub column_tops: BTreeSet<Cell>,
     pub stair_landings: BTreeSet<Cell>,
     pub floor_surfaces: BTreeSet<Cell>,
+    /// Cells that can directly receive a load from a new structure. This is a
+    /// derived query fact, never canonical geometry.
+    pub load_contacts: BTreeSet<Cell>,
 }
 
 fn instance_id(instance: &StaticInstance) -> &str {
@@ -237,7 +240,42 @@ pub fn resolve(
         let id = instance_id(instance);
         (!rooted.contains(id)).then_some(id.to_string())
     }).collect();
-    Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces })
+    let mut load_contacts = terrain_anchors;
+    load_contacts.extend(column_tops.iter().copied());
+    load_contacts.extend(stair_landings.iter().copied());
+    load_contacts.extend(floor_surfaces.iter().copied());
+    Ok(SupportResult { supported: rooted, unsupported, column_tops, stair_landings, floor_surfaces, load_contacts })
+}
+
+/// Assess one new instance against an already-resolved committed geometry.
+/// Pending instances are deliberately excluded, so a cycle of blueprints
+/// cannot manufacture support. The terrain callback is only used for the
+/// candidate's own support cells; all broader facts come from `base`.
+pub fn candidate_supported(
+    base: &SupportResult,
+    instance: &StaticInstance,
+    max_span_steps: u32,
+    terrain_support: &mut TerrainSupportQuery<'_>,
+) -> Result<bool, String> {
+    if max_span_steps == 0 { return Err("invalid structure support policy".into()); }
+    let support = match instance {
+        StaticInstance::Floor { support, .. } => *support,
+        StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
+        StaticInstance::Stair { origin, .. } => *origin,
+    };
+    if terrain_support(support)? { return Ok(true); }
+    if matches!(instance, StaticInstance::Floor { .. }) {
+        for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            if terrain_support(cardinal_neighbor(support, dx, dz)?)? { return Ok(true); }
+        }
+        let span = u64::from(max_span_steps);
+        if base.load_contacts.iter().any(|anchor| anchor.x.abs_diff(support.x).saturating_add(anchor.z.abs_diff(support.z)) <= span && anchor.y == support.y) {
+            return Ok(true);
+        }
+    } else if base.load_contacts.contains(&support) {
+        return Ok(true);
+    }
+    Ok(false)
 }
 
 #[cfg(test)]
@@ -307,6 +345,17 @@ mod tests {
         let mut query = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
         let policy = SupportPolicy { max_span_steps: 1, max_instances: 8, max_work: 2 };
         assert!(resolve(&geometry, policy, &mut query).is_err());
+    }
+
+    #[test]
+    fn candidate_support_uses_committed_contacts_only() {
+        let base = SupportResult {
+            supported: BTreeSet::new(), unsupported: Vec::new(), column_tops: BTreeSet::new(),
+            stair_landings: BTreeSet::new(), floor_surfaces: BTreeSet::new(), load_contacts: BTreeSet::new(),
+        };
+        let pending = StaticInstance::Floor { id: "pending".into(), support: Cell { x: 2, y: 0, z: 0 } };
+        let mut no_terrain = terrain(&[]);
+        assert!(!candidate_supported(&base, &pending, 4, &mut no_terrain).unwrap());
     }
 
     #[test]

@@ -218,7 +218,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
           throw new Error("invalid construction readiness row");
         const row = entry as Record<string, unknown>;
         if (typeof row.site !== "string" || !sites.includes(row.site as EntityId) || seen.has(row.site)
-          || !["ready", "waitingForSupport", "invalid", "unknown"].includes(row.status as string))
+          || !["ready", "waitingForSupport", "unknown"].includes(row.status as string))
           throw new Error("invalid construction readiness row");
         seen.add(row.site);
         return { site: row.site, status: row.status as ConstructionReadiness["status"] };

@@ -445,7 +445,7 @@ export interface AtmosphereSamples {
   readonly geometryRevision: number;
   readonly samples: readonly (AtmosphereSample | null)[];
 }
-export type ConstructionReadinessStatus = "ready" | "waitingForSupport" | "invalid" | "unknown";
+export type ConstructionReadinessStatus = "ready" | "waitingForSupport" | "unknown";
 export interface ConstructionReadiness {
   readonly site: EntityId;
   readonly status: ConstructionReadinessStatus;

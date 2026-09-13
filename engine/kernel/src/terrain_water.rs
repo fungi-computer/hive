@@ -471,10 +471,37 @@ impl TerrainWater {
     /// in one pass. This is a read-only projection: it does not rebind water
     /// or publish a physical change for each candidate.
     pub(crate) fn construction_support(&mut self, pending: &[StaticInstance]) -> Result<Vec<String>, String> {
-        let mut instances = self.structures.instances().to_vec();
-        instances.extend_from_slice(pending);
-        let structures = StaticGeometry::new(self.terrain.bounds(), instances)?;
-        unsupported_structures(&mut self.terrain, &structures, self.geometry.max_span_steps, None)
+        let policy = crate::structure_support::SupportPolicy {
+            max_span_steps: self.geometry.max_span_steps, max_instances: 4096, max_work: 1_000_000,
+        };
+        let base = {
+            let mut query = |cell: Cell| {
+                match self.terrain.query(cell) {
+                    Ok(slot) => Ok(!self.terrain.is_open_material(slot)),
+                    Err("cell outside world bounds") => Ok(false),
+                    Err(error) => Err(error.into()),
+                }
+            };
+            crate::structure_support::resolve(&self.structures, policy, &mut query)?
+        };
+        let mut unsupported = Vec::new();
+        for instance in pending {
+            let id = match instance {
+                StaticInstance::Floor { id, .. } | StaticInstance::Wall { id, .. }
+                | StaticInstance::ApertureWall { id, .. } | StaticInstance::Stair { id, .. } => id,
+            };
+            let mut query = |cell: Cell| {
+                match self.terrain.query(cell) {
+                    Ok(slot) => Ok(!self.terrain.is_open_material(slot)),
+                    Err("cell outside world bounds") => Ok(false),
+                    Err(error) => Err(error.into()),
+                }
+            };
+            if !crate::structure_support::candidate_supported(&base, instance, policy.max_span_steps, &mut query)? {
+                unsupported.push(id.clone());
+            }
+        }
+        Ok(unsupported)
     }
 
     pub(crate) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<(), String> {
