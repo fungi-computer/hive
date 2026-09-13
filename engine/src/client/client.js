@@ -597,7 +597,8 @@ export function createHiveClient({
   let lastTerrainInterest;
   function updateTerrainInterest() {
     if (!runtime) return;
-    const center = [Math.floor((320 - camera.x / camera.zoom) / 16), Math.floor((200 - camera.y / camera.zoom) / 16)];
+    const world = groundPoint((320 - camera.x) / camera.zoom, (200 - camera.y) / camera.zoom);
+    const center = [world.x, world.z];
     if (center[0] === lastTerrainInterest?.[0] && center[1] === lastTerrainInterest?.[1]) return;
     lastTerrainInterest = center;
     runtime.send({ type: "terrain-interest", center });

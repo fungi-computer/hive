@@ -1,5 +1,6 @@
 import { appendVisualProjections } from "./visual-projection";
 import { TerrainPresentationOwner } from "./terrain-presentation";
+import { chunkCoordinate } from "./terrain-residency";
 import type { EnvironmentDefinition } from "../sdk/environment";
 import {
   appendPresentationCues,
@@ -182,6 +183,7 @@ export class GameSession {
   private poisoned = true;
   private terrainPresentation: TerrainPresentationOwner | undefined;
   private terrainPresentationInterest?: readonly [number, number];
+  private terrainPresentationChunk?: readonly [number, number];
   constructor(options: SessionOptions) {
     this.pack = options.pack;
     this.port = options.port;
@@ -219,6 +221,7 @@ export class GameSession {
   start(): void {
     this.terrainPresentation = undefined;
     this.terrainPresentationInterest = undefined;
+    this.terrainPresentationChunk = undefined;
     this.poisoned = true;
     this.random.restore(this.seed);
     this.paused = false;
@@ -1106,12 +1109,14 @@ export class GameSession {
     this.paused = snapshot.paused;
     this.terrainPresentation = undefined;
     this.terrainPresentationInterest = undefined;
+    this.terrainPresentationChunk = undefined;
     this.poisoned = false;
   }
   terrainView(interest?: readonly [number, number]) {
     this.ensureLive();
     if (!this.pack.environmentDefinition) return undefined;
-    const changedInterest = interest !== undefined && (this.terrainPresentationInterest?.[0] !== interest[0] || this.terrainPresentationInterest?.[1] !== interest[1]);
+    const chunk = interest === undefined ? undefined : [Math.floor(chunkCoordinate(interest[0], 16) / 4) * 4, Math.floor(chunkCoordinate(interest[1], 16) / 4) * 4] as const;
+    const changedInterest = chunk !== undefined && (this.terrainPresentationChunk?.[0] !== chunk[0] || this.terrainPresentationChunk?.[1] !== chunk[1]);
     if (changedInterest) this.terrainPresentation = undefined;
     if (!this.terrainPresentation) {
       const definition = JSON.parse(
@@ -1123,6 +1128,7 @@ export class GameSession {
         interest === undefined ? this.pack.presentationWindow : { minX: Math.max(definition.world.bounds.minX, interest[0] - 32), maxX: Math.min(definition.world.bounds.maxX, interest[0] + 32), minZ: Math.max(definition.world.bounds.minZ, interest[1] - 32), maxZ: Math.min(definition.world.bounds.maxZ, interest[1] + 32) },
       );
       this.terrainPresentationInterest = interest === undefined ? undefined : [interest[0], interest[1]];
+      this.terrainPresentationChunk = chunk;
     }
     return this.terrainPresentation.read();
   }

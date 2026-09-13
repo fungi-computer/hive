@@ -23,7 +23,7 @@ export function residentChunks(
   options: ChunkResidencyOptions = {},
 ): readonly ChunkAddress[] {
   const size = options.chunkSize ?? 16,
-    radius = options.radius ?? 1;
+    radius = options.radius ?? 2;
   if (
     !Number.isSafeInteger(size) ||
     size < 1 ||
@@ -36,8 +36,9 @@ export function residentChunks(
   const cx = chunkCoordinate(center[0], size),
     cz = chunkCoordinate(center[1], size),
     result: ChunkAddress[] = [];
-  for (let x = cx - radius; x <= cx + radius; x++)
-    for (let z = cz - radius; z <= cz + radius; z++)
+  const anchorX = Math.floor(cx / 4) * 4, anchorZ = Math.floor(cz / 4) * 4;
+  for (let x = anchorX; x < anchorX + 4; x++)
+    for (let z = anchorZ; z < anchorZ + 4; z++)
       result.push(Object.freeze({ x, z }));
   return Object.freeze(result);
 }
