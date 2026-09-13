@@ -10,6 +10,7 @@ import { EmissionWork } from "../sdk/emission-work";
 import { ConstructionSite } from "../sdk/construction";
 import { WorkParticipation } from "../sdk/work-control";
 import { colonyPack } from "../games/colony";
+import { colonyEnvironment } from "../games/colony-environment";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 const workers = [entity("colony.worker.1"), entity("colony.worker.2")];
@@ -41,8 +42,12 @@ function fixture(run: (session: GameSession, port: ReturnType<typeof wasmKernelP
 
 test("station request shares supply and assignment, commits one burn, and restores its pending result", () => fixture((session, port) => {
   const selected = buildStation(session);
-  const surface = port.terrainSurfaces([[1, -1]])[0]!;
-  const airCell: [number, number, number] = [1, surface.cell[1] + 1, -1];
+  const hearthPosition = session.query(query(Position)).find(row => row.id === selected.hearth)!.get(Position);
+  const airCell: [number, number, number] = [
+    Math.floor(hearthPosition.x + 0.5),
+    Math.floor(hearthPosition.y / colonyEnvironment.world.verticalMetres + 0.5),
+    Math.floor(hearthPosition.z + 0.5),
+  ];
   const before = port.atmosphereSamples([airCell]).samples[0]!;
   const initialWood = wood(session);
   session.command("lightHearth", { station: selected.station });
