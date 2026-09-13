@@ -95,6 +95,7 @@ fn neighbors(c: Cell) -> [Cell; 6] {
 fn page(c: Cell) -> [i64; 3] { [c.x.div_euclid(8), i64::from(c.y).div_euclid(8), c.z.div_euclid(8)] }
 impl Field {
     fn get(&self, c: Cell) -> Option<Stock> { self.pages.get(&page(c)).and_then(|p| p.get(&c)).copied() }
+    pub(super) fn has(&self, c: Cell) -> bool { self.get(c).is_some() }
     fn put(&mut self, c: Cell, stock: Stock) {
         let p = Arc::make_mut(self.pages.entry(page(c)).or_default());
         if p.insert(c, stock).is_none() { self.count += 1; }
@@ -122,7 +123,7 @@ impl Field {
             if at.x >= bounds.min_x && at.x < bounds.max_x && at.y >= bounds.min_y && at.y < bounds.max_y && at.z >= bounds.min_z && at.z < bounds.max_z { self.wake(at); }
         }
     }
-    fn realize(&mut self, c: Cell, view: &mut View<'_>) -> Result<Option<Stock>, String> {
+    pub(super) fn realize(&mut self, c: Cell, view: &mut View<'_>) -> Result<Option<Stock>, String> {
         if let Some(stock) = self.get(c) { return Ok(Some(stock)); }
         let Some(shape) = view.shape(c)? else { return Ok(None); };
         if self.count >= MAX_STOCKS { return Err("local water stock record capacity reached".into()); }
@@ -132,6 +133,9 @@ impl Field {
         self.put(c, stock);
         self.initial += mass;
         Ok(Some(stock))
+    }
+    pub(super) fn realize_for_exchange(&mut self, c: Cell, view: &mut View<'_>) -> Result<bool, String> {
+        Ok(self.realize(c, view)?.is_some())
     }
     pub(super) fn fresh(view: &mut View<'_>, stocks: &[WaterStock]) -> Result<Self, String> {
         let mut field = Self { voxel_kg: view.geometry.spacing.iter().product::<f64>() * 1000.0, ..Self::default() };
@@ -182,31 +186,45 @@ impl Field {
 
     pub(super) fn prepare_exchange(&self, at: Cell, direction: WaterExchangeDirection, portions: u8,
         bounds: crate::generation::Bounds)
-        -> Result<(Self, u8, u8, f64), String> {
+        -> Result<(Self, Option<u8>, Option<u8>, f64, f64, f64), String> {
         if !(1..=7).contains(&portions) { return Err("water exchange portions must be from 1 through 7".into()); }
         let stock = self.get(at).ok_or("water exchange requires a realized cell")?;
-        if stock.shape.kind != WaterCellKind::Void || stock.shape.capacity <= 0.0 {
-            return Err("water exchange requires an open water cell".into());
-        }
-        let capacity_delta = (stock.shape.capacity - self.voxel_kg).abs();
-        if capacity_delta > 1e-9 * self.voxel_kg.max(1.0) {
-            return Err("water exchange cell capacity does not match voxel mass".into());
-        }
-        let before = stock.level();
-        let after = match direction {
-            WaterExchangeDirection::Withdraw => before.checked_sub(portions).ok_or("water exchange exceeds current level")?,
-            WaterExchangeDirection::Deposit => before.checked_add(portions).filter(|level| *level <= 7)
-                .ok_or("water exchange exceeds cell capacity")?,
-        };
-        let mass_kg = stock.shape.capacity / 7.0 * f64::from(portions);
+        let mass_kg = self.voxel_kg / 7.0 * f64::from(portions);
         let mut next = self.clone();
-        next.put(at, Stock { amount: Amount::Open(after), ..stock });
+        let (before, after) = match (stock.shape.kind, direction) {
+            (WaterCellKind::Void, WaterExchangeDirection::Withdraw) => {
+                let capacity_delta = (stock.shape.capacity - self.voxel_kg).abs();
+                if capacity_delta > 1e-9 * self.voxel_kg.max(1.0) { return Err("water exchange cell capacity does not match voxel mass".into()); }
+                let before = stock.level();
+                let after = before.checked_sub(portions).ok_or("water exchange exceeds current level")?;
+                next.put(at, Stock { amount: Amount::Open(after), ..stock });
+                (Some(before), Some(after))
+            }
+            (WaterCellKind::Void, WaterExchangeDirection::Deposit) => {
+                let capacity_delta = (stock.shape.capacity - self.voxel_kg).abs();
+                if capacity_delta > 1e-9 * self.voxel_kg.max(1.0) { return Err("water exchange cell capacity does not match voxel mass".into()); }
+                let before = stock.level();
+                let after = before.checked_add(portions).filter(|level| *level <= 7).ok_or("water exchange exceeds cell capacity")?;
+                next.put(at, Stock { amount: Amount::Open(after), ..stock });
+                (Some(before), Some(after))
+            }
+            (WaterCellKind::Soil, WaterExchangeDirection::Deposit) => {
+                let before = stock.mass();
+                let after = before + mass_kg;
+                if after > stock.shape.capacity + 1e-9 * stock.shape.capacity.max(1.0) { return Err("water exchange exceeds porous capacity".into()); }
+                next.put(at, Stock { amount: Amount::Porous(after), ..stock });
+                (None, None)
+            }
+            (WaterCellKind::Soil, WaterExchangeDirection::Withdraw) => return Err("water withdrawal requires an open water cell".into()),
+        };
         next.boundary += match direction {
             WaterExchangeDirection::Withdraw => -mass_kg,
             WaterExchangeDirection::Deposit => mass_kg,
         };
         next.wake_neighborhood(at, bounds);
-        Ok((next, before, after, mass_kg))
+        let before_mass = stock.mass();
+        let after_mass = next.get(at).map_or(before_mass, Stock::mass);
+        Ok((next, before, after, mass_kg, before_mass, after_mass))
     }
     pub(super) fn admission_block(&self, c: Cell) -> Option<WaterRebindBlock> {
         (self.get(c).is_none() && self.count >= MAX_STOCKS).then_some(WaterRebindBlock::RecordCapacity { limit: MAX_STOCKS })

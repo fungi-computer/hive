@@ -113,8 +113,10 @@ pub struct WaterExchangeReceipt {
     pub direction: WaterExchangeDirection,
     pub portions: u8,
     pub mass_kg: f64,
-    pub before_level: u8,
-    pub after_level: u8,
+    pub before_level: Option<u8>,
+    pub after_level: Option<u8>,
+    pub before_mass_kg: f64,
+    pub after_mass_kg: f64,
 }
 
 /// Content selects material behavior; the current terrain owner selects location.
@@ -426,11 +428,16 @@ impl TerrainWater {
     pub fn prepare_water_exchange(&mut self, at: Cell, direction: WaterExchangeDirection,
         portions: u8) -> Result<PreparedWaterExchange, String> {
         self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
-        let (field, before_level, after_level, mass_kg) = self.field.prepare_exchange(at, direction, portions, self.terrain.bounds())?;
+        let mut candidate = self.field.clone();
+        if !candidate.has(at) {
+            let mut view = field::View { terrain: &mut self.terrain, structures: &self.structure_projection, geometry: &self.geometry, replacement: None };
+            if !candidate.realize_for_exchange(at, &mut view)? { return Err("water exchange requires a supported terrain cell".into()); }
+        }
+        let (field, before_level, after_level, mass_kg, before_mass_kg, after_mass_kg) = candidate.prepare_exchange(at, direction, portions, self.terrain.bounds())?;
         Ok(PreparedWaterExchange {
             field,
             receipt: WaterExchangeReceipt { at: coordinates(at)?, direction, portions, mass_kg,
-                before_level, after_level },
+                before_level, after_level, before_mass_kg, after_mass_kg },
             owner: self.owner.clone(),
             epoch: self.epoch,
         })
