@@ -67,8 +67,8 @@ function orderPoint(order: { approachX: number; approachY: number; approachZ: nu
   return { x: order.approachX, y: order.approachY, z: order.approachZ, frame: null as null };
 }
 
-type TreeCandidate = { readonly worker: EntityId; readonly task: EntityId; readonly tree: EntityId; readonly target: Vec3 & { frame: EntityId | null } };
-const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<TreeCandidate> => {
+type TreeCandidate = { readonly worker: EntityId; readonly task: EntityId; readonly tree: EntityId; readonly target: Vec3 & { frame: EntityId | null }; readonly cost: number };
+const treeWorkProviderPrepare = (ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>, unavailableActors: ReadonlySet<EntityId> = new Set()): PreparedWorkProvider<TreeCandidate> => {
   const workers = ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id);
   const trees = ctx.query(query(ColonyTree, Position, Container, FiniteResource));
   const orders = ctx.query(query(ColonyTreeOrder));
@@ -87,28 +87,39 @@ const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<Entity
   const destinations = new Set(ctx.query(query(Destination)).map(row => row.id));
   const active = new Map(orders.map(row => [row.get(ColonyTreeOrder).tree, { id: row.id, state: row.get(ColonyTreeOrder) }]));
   const poses = new Map(ctx.worldPoses([...new Set([...workers, ...trees.map(row => row.id)])]).map(p => [p.id, p]));
-  const candidates = trees.flatMap(row => {
+  const routeCandidates: { readonly worker: EntityId; readonly task: EntityId; readonly tree: EntityId; readonly target: Vec3 & { frame: EntityId | null } }[] = [];
+  trees.forEach(row => {
     const tree = row.get(ColonyTree), order = active.get(row.id);
-    if (!order || !policies.get(row.id)?.designated || order.state.phase !== "queued" || (order.state.stage === "fell" && tree.phase !== "standing") || (order.state.stage === "chop" && tree.phase !== "felled")) return [];
+    if (!order || !policies.get(row.id)?.designated || order.state.phase !== "queued" || (order.state.stage === "fell" && tree.phase !== "standing") || (order.state.stage === "chop" && tree.phase !== "felled")) return;
     const pose = poses.get(row.id), position = positions.get(row.id);
-    if (!pose || !position) return [];
+    if (!pose || !position) return;
     const approaches = [{ x: position.x + 1, y: position.y, z: position.z }, { x: position.x - 1, y: position.y, z: position.z }, { x: position.x, y: position.y, z: position.z + 1 }, { x: position.x, y: position.y, z: position.z - 1 }];
-    return workers.filter(worker => !suspendedActors.has(worker) && poses.get(worker)?.support === pose.support).flatMap(worker => {
-      const reachable = ctx.routeCosts(approaches.map(target => ({ actor: worker, target: { ...target, frame: pose.support } })));
-      const target = approaches.find((_, index) => reachable[index].status === "reachable");
-      return target ? [{ worker, task: order.id, tree: row.id, target: { ...target, frame: pose.support } }] : [];
+    workers.filter(worker => !suspendedActors.has(worker) && !unavailableActors.has(worker) && poses.get(worker)?.support === pose.support).forEach(worker => {
+      approaches.forEach(target => routeCandidates.push({ worker, task: order.id, tree: row.id, target: { ...target, frame: pose.support } }));
     });
   });
-  const occupiedActors = orders.flatMap(row => { const state = row.get(ColonyTreeOrder); return state.phase === "working" && state.actor ? [state.actor] : []; });
+  const candidates: TreeCandidate[] = [];
+  const seen = new Set<string>();
+  for (let offset = 0; offset < routeCandidates.length; offset += 32) {
+    const batch = routeCandidates.slice(offset, offset + 32);
+    const reachable = ctx.routeCosts(batch.map(candidate => ({ actor: candidate.worker, target: candidate.target })));
+    batch.forEach((candidate, index) => {
+      const key = `${candidate.worker}\0${candidate.task}`;
+      if (seen.has(key)) return;
+      const result = reachable[index];
+      if (result?.status === "reachable" && Number.isFinite(result.cost)) {
+        seen.add(key);
+        candidates.push({ ...candidate, cost: result.cost });
+      }
+    });
+  }
   const claimed = orders.map(row => ({ task: row.id, actor: row.get(ColonyTreeOrder).actor }));
   const assigned = new Set<EntityId>();
   return {
     claims: claimed,
-    occupiedActors,
     candidates,
     estimate: candidate => {
-      const result = ctx.routeCosts([{ actor: candidate.worker, target: candidate.target }])[0];
-      return result.status === "reachable" ? result.cost : null;
+      return Number.isFinite(candidate.cost) ? candidate.cost : null;
     },
     apply: assignments => {
       for (const assignment of assignments) {
@@ -169,6 +180,13 @@ const treeWorkProvider = (ctx: WriteContext, suspendedActors: ReadonlySet<Entity
       }
     },
   };
+};
+const treeWorkProvider = {
+  inspect(ctx: WriteContext) {
+    const claims = ctx.query(query(ColonyTreeOrder)).map(row => ({ task: row.id, actor: row.get(ColonyTreeOrder).actor }));
+    return { claims, occupiedActors: claims.flatMap(claim => claim.actor === null ? [] : [claim.actor]) };
+  },
+  prepare: treeWorkProviderPrepare,
 };
 
 /** Reconcile one claimed order with native movement/work; never settle cargo. */
@@ -410,7 +428,7 @@ export const colonyWorkSystem = createWorkSystem({
   reads: [EmissionOrder, EmissionWork, Emitter, GroundStock, StockpileCell, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, FiniteResource, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [EmissionWork, ColonyDigOrder, ColonyTree, ColonyTreeOrder, MaterialLot, DeliveryTask, ConstructionApproach],
   phases: [colonySiteSuppliesPhase, colonyGroundStockPhase, ctx => planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles })],
-  providers: [deliveryProvider, digProvider, (ctx, suspendedActors) => treeWorkProvider(ctx, suspendedActors), (ctx, suspendedActors) => constructionWorkProvider(ctx, {
+  providers: [deliveryProvider, digProvider, treeWorkProvider, (ctx, suspendedActors) => constructionWorkProvider(ctx, {
     workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
     catalogMaterials: Object.fromEntries(colonyEnvironment.structures.catalog.map(definition => [
       definition.id, definition.materials.map(({ kind: material, quantity }) => ({ material, quantity })),

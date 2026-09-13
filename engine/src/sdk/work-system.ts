@@ -17,13 +17,23 @@ export type PreparedWorkProvider<Candidate extends WorkCandidate = WorkCandidate
   readonly progress: () => void;
 };
 
+export type InspectedWorkProvider = {
+  readonly claims: readonly WorkClaim[];
+  readonly occupiedActors?: readonly EntityId[];
+};
+
+export type PhasedWorkProvider<Candidate extends WorkCandidate = WorkCandidate> = {
+  readonly inspect: (context: WriteContext) => InspectedWorkProvider;
+  readonly prepare: (context: WriteContext, suspendedActors: ReadonlySet<EntityId>, unavailableActors: ReadonlySet<EntityId>) => PreparedWorkProvider<Candidate>;
+};
+
 export type WorkProvider<Candidate extends WorkCandidate = WorkCandidate> =
   (context: WriteContext, suspendedActors: ReadonlySet<EntityId>) => PreparedWorkProvider<Candidate>;
 
 export type WorkSystemOptions = Omit<SystemOptions, "run"> & {
   /** Providers have distinct private candidate payloads; the shared owner only
    * relies on the common worker/task/cost shape. */
-  readonly providers: readonly WorkProvider<any>[];
+  readonly providers: readonly (WorkProvider<any> | PhasedWorkProvider<any>)[];
   /** Deterministic authored planning phases owned by this work composition. */
   readonly phases?: readonly ((context: WriteContext) => void)[];
 };
@@ -48,9 +58,14 @@ export function createWorkSystem(options: WorkSystemOptions) {
           row.get(WorkParticipation).automatic ? [] : [row.id],
         ),
       );
-      const prepared = options.providers.map((provider) => provider(context, suspendedActors));
-      const claims = prepared.flatMap((provider) => provider.claims);
-      const occupiedActors = new Set(prepared.flatMap((provider) => provider.occupiedActors ?? []));
+      const inspected = options.providers.map((provider) =>
+        "inspect" in provider ? provider.inspect(context) : provider(context, suspendedActors));
+      const claims = inspected.flatMap((provider) => provider.claims);
+      const occupiedActors = new Set(inspected.flatMap((provider) => provider.occupiedActors ?? []));
+      for (const claim of claims) if (claim.actor !== null) occupiedActors.add(claim.actor);
+      const unavailableActors = new Set([...occupiedActors, ...suspendedActors]);
+      const prepared = options.providers.map((provider) =>
+        "prepare" in provider ? provider.prepare(context, suspendedActors, unavailableActors) : provider(context, suspendedActors));
       const candidates: TaggedCandidate[] = prepared.flatMap((provider, providerIndex) =>
         provider.candidates.map((candidate) => ({
           providerIndex,
