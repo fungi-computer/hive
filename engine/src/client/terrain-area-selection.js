@@ -1,5 +1,5 @@
 const integer = (value) => Number.isSafeInteger(value);
-import { rectangleDesignation } from "./spatial-designation.js";
+import { designation, rectangleDesignation } from "./spatial-designation.js";
 export const MAX_TERRAIN_SELECTION_AREA = 4096;
 
 function cell(value) {
@@ -22,6 +22,18 @@ export function visibleTerrainAreaPreview(frame, start, end, maxArea = 256) {
   return rectangleCells(start, end, maxArea)
     .map((at) => byCell.get(at.join(",")))
     .filter(Boolean);
+}
+
+export function visibleTerrainDesignationPreview(frame, start, end, mode, maxArea = 256) {
+  if (!frame || !Array.isArray(frame.surfaces)) return [];
+  const byCell = new Map(frame.surfaces.map((surface) => [surface.cell.join(","), surface]));
+  return designation(mode, start, end, maxArea).cells.map((at) => byCell.get(at.join(","))).filter(Boolean);
+}
+
+export function designationEndpoints(start, end, mode, maxArea = 256) {
+  const result = designation(mode, start, end, maxArea);
+  if (!result.cells.length) throw new Error("spatial designation has no cells");
+  return { start: result.cells[0], end: result.cells[result.cells.length - 1], cells: result.cells };
 }
 
 export function beginTerrainArea(cellValue) { return { start: cell(cellValue), current: cell(cellValue) }; }
