@@ -6,7 +6,7 @@ export const GAME_BINDINGS = Object.freeze({
     { commandId: "colony:resumeWork", id: "resume-work", label: "Resume work", selection: "entities" },
     ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf"].map(catalog => ({
       commandId: "colony:build", id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: "world-surface",
-      designation: catalog === "timber-wall" ? ["point", "line", "rectangle"] : catalog === "timber-bed" || catalog === "timber-shelf" ? ["point"] : ["point", "rectangle"],
+      designation: catalog === "timber-wall" ? ["point", "line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : catalog === "timber-bed" || catalog === "timber-shelf" ? ["point"] : ["point"],
       preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" ? { orientation: "north" } : {}) },
     })),
     ...["north", "east", "south", "west"].map(orientation => ({ commandId: "colony:build", id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface", designation: ["point"], preset: { catalog: "timber-stair", orientation } })),
