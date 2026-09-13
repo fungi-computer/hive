@@ -676,7 +676,7 @@ export function createHiveClient({
           const projected = project(a, (y + 0.5) * displayedTerrain.verticalMetres, b);
           return [projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y];
         });
-        const color = mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : 0xe8c779;
+        const color = mark.kind === "stockpile" ? 0x8aaf72 : mark.status === "working" ? 0xd99a4a : mark.status === "blocked" ? 0xb85757 : 0xe8c779;
         terrainMarksGraphic.poly(corners).stroke({ color, width: 2, alpha: 0.85 });
       }
     }

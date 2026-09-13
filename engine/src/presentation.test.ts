@@ -110,6 +110,14 @@ test("projects bounded committed terrain marks", () => {
   ]);
   assert.throws(() => projectPresentation(pack({ controls: [], inspect: () => [], terrainMarks: () => Array.from({ length: 257 }, (_, index) => ({ id: `mark-${index}`, cell: [0, 0, 0], status: "queued" })) }), context));
 });
+test("projects a stockpile terrain mark style without changing cell picking", () => {
+  const result = projectPresentation(pack({
+    controls: [{ id: "stockpile", label: "Stockpile", command: "greet", target: "terrain-area", designation: ["rectangle"] }],
+    inspect: () => [],
+    terrainMarks: () => [{ id: "stockpile-cell", cell: [2, 13, -1], status: "queued", kind: "stockpile" }],
+  }), context);
+  assert.deepEqual(result.terrainMarks, [{ id: "stockpile-cell", cell: [2, 13, -1], status: "queued", kind: "stockpile" }]);
+});
 test("rejects unknown commands, duplicate IDs, and nonfinite values", () => {
   assert.throws(() =>
     projectPresentation(

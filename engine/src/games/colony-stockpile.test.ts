@@ -53,7 +53,7 @@ test("stockpile control submits the same bounded rectangle command", () => {
   assert.ok(control);
   const submitted = terrainAreaPresentationCommand(control, [], { start: [2, 13, 2], end: [3, 13, 2] });
   assert.equal(submitted.name, "designateStockpile");
-  assert.deepEqual(submitted.input, { area: { start: [2, 13, 2], end: [3, 13, 2] } });
+  assert.deepEqual(submitted.input, { filterProfile: "wood", priority: 50, area: { start: [2, 13, 2], end: [3, 13, 2] } });
   assert.equal(control.target, "terrain-area");
   assert.deepEqual(control.designation, ["rectangle"]);
 });
@@ -98,8 +98,14 @@ test("stockpile policy is player configurable and survives reload", () => {
     const zones = session.query(query(StockpileCell)).map(row => row.get(StockpileCell));
     assert.equal(new Set(zones.map(value => value.zone)).size, 2, "separate rectangles retain independent native identities");
     const saved = session.save();
+    const marks = session.pack.presentation?.terrainMarks?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }) ?? [];
+    assert.equal(marks.length, 2);
+    assert.ok(marks.every(mark => mark.kind === "stockpile"));
+    const inspection = session.pack.presentation?.inspect?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }) ?? [];
+    assert.ok(inspection.some(fact => fact.label === "Stockpile" && fact.value === "food · priority 3 · 0/6"));
     session.restore(saved);
     assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell);
+    assert.equal(session.pack.presentation?.terrainMarks?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }).filter(mark => mark.kind === "stockpile").length, 2);
   } finally {
     port.dispose();
   }
