@@ -424,6 +424,23 @@ Wall and door adjacency consume it first. This projection may later serve paths
 or fences, but it never creates collision, support or construction state. Native
 geometry remains authoritative; preview and art masks are rebuildable views.
 
+Structural support is one engine query over prospective committed geometry. A
+game supplies the bounded span policy; Goblin currently uses six cells. Generated
+terrain, rooted completed wall tops and completed stair landings are anchors.
+Floors carry standing load across that bounded span, but do not turn every floor
+cell into a new unlimited anchor. Covers seal rooms without carrying standing
+load. Fixtures require valid load support under every rotated footprint cell and
+do not become anchors themselves. Planned structures never provide support.
+
+Placement preview, batch admission, completion, restore validation, AI
+observation and deconstruction must ask that same query. A batch is evaluated in
+its deterministic completion order, so an upper floor may wait for its supporting
+wall without becoming invalid merely because no worker is currently available.
+Deconstruction evaluates the prospective world with the candidate removed and
+rejects removal while a committed dependent would become unsupported. Collapse,
+material-specific strength and damage propagation can extend this owner later;
+they must not be implemented as separate wall, floor or roof validators.
+
 Furniture and stations use the same construction lifecycle without pretending
 they are floors. The native structure catalog needs a bounded fixture footprint
 whose completed geometry owns occupied cells and work contacts but supplies no
