@@ -14,7 +14,7 @@ export const colonyStockpileInputSchema = z.object({
   filterProfile: z.enum(["wood", "food", "spoil"]),
   priority: z.number().int().min(1).max(100),
 }).strict();
-export const colonyStockpilePolicyInputSchema = z.object({ cell: z.string().min(1).max(128), filterProfile: z.enum(["wood", "food", "spoil"]).optional(), priority: z.number().int().min(1).max(100) }).strict();
+export const colonyStockpilePolicyInputSchema = z.object({ cell: z.string().min(1).max(128), filterProfile: z.enum(["wood", "food", "spoil"]).optional(), priority: z.number().int().min(1).max(100).optional() }).strict().refine(value => value.filterProfile !== undefined || value.priority !== undefined, { message: "Choose a stockpile profile or priority" });
 
 const STOCKPILE_CAPACITY = 6;
 
@@ -58,9 +58,9 @@ export const colonyStockpileCommand = command({
 export const colonyStockpilePolicyCommand = command({
   title: "Update stockpile", category: "Storage", description: "Change a stockpile's material profile and priority.",
   localPresentation: { bindings: [
-    { id: "stockpile-profile-wood", label: "Store building materials", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "wood", priority: 50 } },
-    { id: "stockpile-profile-food", label: "Store food and brewing inputs", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "food", priority: 50 } },
-    { id: "stockpile-profile-spoil", label: "Store spoil and raw materials", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "spoil", priority: 50 } },
+    { id: "stockpile-profile-wood", label: "Store building materials", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "wood" } },
+    { id: "stockpile-profile-food", label: "Store food and brewing inputs", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "food" } },
+    { id: "stockpile-profile-spoil", label: "Store spoil and raw materials", selection: { field: "cell", cardinality: "one" }, preset: { filterProfile: "spoil" } },
     { id: "stockpile-priority-low", label: "Low priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 25 } },
     { id: "stockpile-priority-normal", label: "Normal priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 50 } },
     { id: "stockpile-priority-preferred", label: "Preferred priority", selection: { field: "cell", cardinality: "one" }, preset: { priority: 75 } },
@@ -71,6 +71,6 @@ export const colonyStockpilePolicyCommand = command({
     const cell = context.query(query(StockpileCell)).find(row => row.id === value.cell);
     if (!cell) throw new Error("Choose a stockpile cell");
     const current = cell.get(StockpileCell);
-    return { writes: [], actions: [updateStockpile(entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority)] };
+    return { writes: [], actions: [updateStockpile(entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority ?? current.priority)] };
   },
 });
