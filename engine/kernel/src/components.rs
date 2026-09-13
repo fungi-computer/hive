@@ -327,6 +327,7 @@ where
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
     RequestProcess { definition: String, station: String },
+    AdmitProcess { process: String, definition: String, station: String },
     ExchangeFieldWater { worker: String, vessel: String, x: i32, y: i32, z: i32, direction: crate::terrain_water::WaterExchangeDirection, portions: u8 },
     DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
     UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },

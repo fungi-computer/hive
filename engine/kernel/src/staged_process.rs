@@ -361,6 +361,67 @@ pub struct ProcessBinding {
     pub quantity: u32,
 }
 
+pub fn binding_id(binding: &ProcessBinding) -> String {
+    format!("binding:{}:{}:{}", binding.process, binding.role, binding.lot)
+}
+
+pub fn resolve_bindings(
+    definition: &ProcessDefinition,
+    process: &str,
+    station: &str,
+    lots: &BTreeMap<String, crate::components::Lot>,
+) -> Result<Vec<ProcessBinding>, String> {
+    let mut used = BTreeSet::new();
+    let mut result = Vec::new();
+    for input in &definition.inputs {
+        let port = format!("{station}:{}", input.port);
+        let mut candidates: Vec<_> = lots.iter().filter(|(id, lot)| {
+            !used.contains(*id) && lot.container == port && lot.kind == input.material && lot.quantity > 0
+                && (input.policy == InputPolicy::Portion || lot.quantity == input.quantity)
+        }).collect();
+        candidates.sort_by(|(left, _), (right, _)| left.cmp(right));
+        let mut remaining = input.quantity;
+        for (id, lot) in candidates {
+            let quantity = if input.policy == InputPolicy::WholeLot { lot.quantity } else { lot.quantity.min(remaining) };
+            if quantity == 0 { continue; }
+            result.push(ProcessBinding { process: process.into(), role: input.role.clone(), lot: id.clone(), quantity });
+            used.insert(id.clone());
+            remaining -= quantity;
+            if remaining == 0 { break; }
+        }
+        if remaining != 0 { return Err(format!("process input is missing material: {}", input.role)); }
+    }
+    Ok(result)
+}
+
+pub fn validate_bindings(
+    definition: &ProcessDefinition,
+    process: &str,
+    station: &str,
+    bindings: &[ProcessBinding],
+    lot: &impl Fn(&str) -> Option<crate::components::Lot>,
+) -> Result<(), String> {
+    let inputs: BTreeMap<&str, &ProcessInput> = definition.inputs.iter().map(|input| (input.role.as_str(), input)).collect();
+    let mut roles: BTreeMap<&str, u32> = BTreeMap::new();
+    let mut lots = BTreeSet::new();
+    for binding in bindings {
+        if binding.process != process || !lots.insert(binding.lot.clone()) { return Err("process bindings do not uniquely own lots".into()); }
+        let input = inputs.get(binding.role.as_str()).ok_or("process binding role is unknown")?;
+        let source = lot(&binding.lot).ok_or("process binding lot is missing")?;
+        if source.kind != input.material || source.container != format!("{station}:{}", input.port) || binding.quantity == 0 || binding.quantity > source.quantity {
+            return Err("process binding lot does not satisfy its input role".into());
+        }
+        if input.policy == InputPolicy::WholeLot && binding.quantity != source.quantity { return Err("whole-lot process binding is partial".into()); }
+        let total = roles.entry(binding.role.as_str()).or_default().checked_add(binding.quantity).ok_or("process binding quantity overflow")?;
+        if input.policy == InputPolicy::WholeLot && *total > input.quantity { return Err("whole-lot process binding is duplicated".into()); }
+    }
+    for input in &definition.inputs {
+        if roles.get(input.role.as_str()).copied().unwrap_or(0) != input.quantity { return Err("process bindings do not satisfy every input role".into()); }
+        if input.policy == InputPolicy::WholeLot && roles.get(input.role.as_str()).copied().unwrap_or(0) != input.quantity { return Err("whole-lot process input is not exact".into()); }
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ProcessPhase {
@@ -595,6 +656,31 @@ mod tests {
             ProcessCatalog::from_definitions(vec![herbal_ale()], &structures, &emission(1))
                 .is_err()
         );
+    }
+
+    #[test]
+    fn admission_binds_portion_across_lots_and_preserves_quantities() {
+        let mut definition = herbal_ale();
+        definition.inputs.retain(|input| input.role == "malt");
+        let lots = BTreeMap::from([
+            ("malt-a".into(), crate::components::Lot { kind: "malt".into(), quantity: 1, container: "station:kettle".into() }),
+            ("malt-b".into(), crate::components::Lot { kind: "malt".into(), quantity: 3, container: "station:kettle".into() }),
+        ]);
+        let bindings = resolve_bindings(&definition, "process:station:ale", "station", &lots).unwrap();
+        assert_eq!(bindings.iter().map(|binding| binding.quantity).sum::<u32>(), 2);
+        assert_eq!(bindings.iter().map(|binding| binding.lot.as_str()).collect::<Vec<_>>(), vec!["malt-a", "malt-b"]);
+        validate_bindings(&definition, "process:station:ale", "station", &bindings, &|id| lots.get(id).cloned()).unwrap();
+    }
+
+    #[test]
+    fn admission_rejects_partial_or_duplicate_whole_lots() {
+        let mut definition = herbal_ale();
+        definition.inputs.retain(|input| input.role == "mugwort");
+        let lots = BTreeMap::from([("herb".into(), crate::components::Lot { kind: "mugwort".into(), quantity: 2, container: "station:kettle".into() })]);
+        assert!(resolve_bindings(&definition, "process:station:ale", "station", &lots).is_err());
+        let exact = BTreeMap::from([("herb".into(), crate::components::Lot { kind: "mugwort".into(), quantity: 1, container: "station:kettle".into() })]);
+        let binding = ProcessBinding { process: "process:station:ale".into(), role: "mugwort".into(), lot: "herb".into(), quantity: 1 };
+        validate_bindings(&definition, "process:station:ale", "station", &[binding.clone(), binding], &|id| exact.get(id).cloned()).unwrap_err();
     }
 
     #[test]
