@@ -114,6 +114,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     if (free <= 0) continue;
     for (const source of sourceLots) {
       if (free <= 0) break;
+      if (claimedLots.has(source.id)) continue;
       if (!accepts(source.lot.kind) || sealed.has(source.lot.container) || source.lot.container === row.id || (quantities.get(source.lot.container) ?? 0) > MAX_QUANTITY) continue;
       const prior = sourceCell.get(source.lot.container);
       if (prior && policy.priority <= prior.priority) continue;

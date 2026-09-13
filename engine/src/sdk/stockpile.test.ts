@@ -163,3 +163,32 @@ test("one stockpile demand expands into independent legs and counts incoming cap
   assert.deepEqual(created.map((id) => (rows.find((candidate) => candidate.id === id)!.values.get(DeliveryTask.id) as { sourceLot: EntityId }).sourceLot), [first, second, third]);
   assert.equal(planStockpileDeliveries(state.context, profile).length, 0);
 });
+
+test("parallel stockpile demands never double-claim a source lot across destinations", () => {
+  const zone = entity("zone.injective");
+  const cells = plannerCellFixtures([
+    { zone, cell: [0, 3, 0], priority: 2, filterProfile: "materials", capacity: 1, verticalMetres: 0.54 },
+    { zone, cell: [1, 3, 0], priority: 1, filterProfile: "materials", capacity: 1, verticalMetres: 0.54 },
+  ]);
+  const source = entity("ground.injective");
+  const first = entity("lot.injective.a");
+  const second = entity("lot.injective.b");
+  const rows = [
+    ...cells.flatMap((cell) => [
+      row(cell.id, StockpileCell, cell.components[StockpileCell.id]),
+      row(cell.id, Container, { capacity: 1 }),
+      row(cell.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    ]),
+    row(source, GroundStock, {}), row(source, Container, { capacity: 4 }),
+    row(first, MaterialLot, { kind: "wood", quantity: 1, container: source }),
+    row(second, MaterialLot, { kind: "wood", quantity: 1, container: source }),
+  ];
+  const state = fake(rows);
+  const profile = { filterProfiles: { materials: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } };
+  const created = planStockpileDeliveries(state.context, profile);
+  assert.equal(created.length, 2);
+  const tasks = created.map((id) => rows.find((candidate) => candidate.id === id)!.values.get(DeliveryTask.id) as { sourceLot: EntityId; destination: EntityId });
+  assert.deepEqual(tasks.map((task) => task.sourceLot), [first, second]);
+  assert.notEqual(tasks[0].destination, tasks[1].destination);
+  assert.equal(new Set(tasks.map((task) => task.sourceLot)).size, 2);
+});
