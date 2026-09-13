@@ -315,6 +315,10 @@ export interface ReadContext {
   constructionReadiness(
     sites: readonly EntityId[],
   ): readonly ConstructionReadiness[];
+  /** Ordered structural, material, and work-contact facts for construction allocation. */
+  constructionAccess(
+    sites: readonly EntityId[],
+  ): readonly ConstructionAccess[];
   terrainMaterials(
     cells: readonly [number, number, number][],
   ): readonly number[];

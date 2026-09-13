@@ -77,8 +77,8 @@ function context(options: {
       return requests.map(() => ({ status: "reachable", cost: 6 }));
     },
     routeToAny: (request: { actor: typeof worker; targets: readonly unknown[] }) => { routes.push(request); return { actor: request.actor, status: "reachable" as const, targetIndex: 0, cost: 6 }; },
-    constructionReadiness: (sites: readonly string[]) => sites.map((site) => ({ site, status: options.constructionStatus ?? "ready" })),
-    constructionAccess: (sites: readonly string[]) => sites.map((site) => ({ site, support: options.constructionStatus ?? "ready", materialsReady: options.includeMaterial, contacts: [{ x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const }] })),
+    constructionReadiness: (sites: readonly ReturnType<typeof entity>[]) => sites.map((site) => ({ site, status: options.constructionStatus ?? "ready" })),
+    constructionAccess: (sites: readonly ReturnType<typeof entity>[]) => sites.map((site) => ({ site, support: options.constructionStatus ?? "ready", materialsReady: options.includeMaterial, contacts: [{ x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const }] })),
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,
     write: () => {},
@@ -208,7 +208,7 @@ test("disappearing selected contact releases the stale approach", () => {
   const originalAccess = fake.base.constructionAccess;
   (fake.base as any).query = ((spec: QuerySpec<any>) =>
     spec.components.some((definition) => definition.id === ConstructionApproach.id) ? [approach] : originalQuery(spec)) as WriteContext["query"];
-  (fake.base as any).constructionAccess = ((sites: readonly string[]) => originalAccess(sites).map((entry) => ({ ...entry, contacts: [] }))) as WriteContext["constructionAccess"];
+  (fake.base as any).constructionAccess = ((sites: readonly ReturnType<typeof entity>[]) => originalAccess(sites).map((entry) => ({ ...entry, contacts: [] }))) as WriteContext["constructionAccess"];
   constructionWorkProvider(fake.base, options, new Set()).progress();
   assert.deepEqual(fake.removed, [approach.id]);
 });
