@@ -46,3 +46,19 @@ export function placementMode(control, modifiers = {}) {
   if (modifiers.shiftKey && allowed.includes("rectangle")) return "rectangle";
   return control?.command === "build" ? defaultBuildMode(control) : "point";
 }
+
+/** Human-readable state for the armed retained-style placement tool. */
+export function placementHint(control, { area, hover, cells = 0 } = {}) {
+  if (!control) return null;
+  if (control.availability?.status === "unavailable")
+    return `Waiting: ${control.availability.reason ?? "the world cannot admit this yet"}`;
+  if (area?.rejection)
+    return `Rejected: ${area.rejection}`;
+  if (area?.value === "dragging")
+    return `Preview: ${cells} ${cells === 1 ? "cell" : "cells"} · release to place`;
+  if (hover)
+    return "Preview: 1 cell · click to place";
+  return control.target === "world-surface"
+    ? "Choose a visible ground or structure surface"
+    : "Choose a visible terrain top";
+}
