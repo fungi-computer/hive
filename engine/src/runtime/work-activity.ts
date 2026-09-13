@@ -62,9 +62,12 @@ export function decorateWorkActivity(
     activity.set(task.actor, { kind: "delivery", phase, material: task.material, target: [target.x, target.z] });
   }
   for (const binding of extra) {
-    if (activity.has(binding.actor)) throw new Error("actor has competing work attendance");
     const progress = boundedProgress(binding.progress);
-    activity.set(binding.actor, { kind: binding.kind, target: [...binding.target], ...(progress === undefined ? {} : { progress }) });
+    const current = activity.get(binding.actor);
+    if (current) {
+      if (current.kind !== binding.kind) throw new Error("actor has competing work attendance");
+      activity.set(binding.actor, { ...current, ...(progress === undefined ? {} : { progress }) });
+    } else activity.set(binding.actor, { kind: binding.kind, target: [...binding.target], ...(progress === undefined ? {} : { progress }) });
   }
   return facts.map(fact => {
     const work = activity.get(fact.id);

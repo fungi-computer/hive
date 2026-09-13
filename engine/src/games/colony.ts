@@ -477,13 +477,25 @@ export const colonyPack: GamePack = {
   presentation: {
     activities: context => {
       const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
-      return context.query(query(ColonyTreeOrder)).flatMap(row => {
+      const trees = context.query(query(ColonyTreeOrder)).flatMap(row => {
         const order = row.get(ColonyTreeOrder), position = positions.get(order.tree);
         const actorPosition = order.actor === null ? undefined : positions.get(order.actor);
         return order.phase === "working" && order.actor !== null && position && actorPosition && treeWorkerAtApproach(actorPosition, order)
           ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const, progress: treeWorkProgress(order) }]
           : [];
       });
+      const excavation = context.query(query(ExcavationWork)).flatMap(row => {
+        const work = row.get(ExcavationWork);
+        const definition = colonyEnvironment.terrain.slots.find(slot => slot.slot === work.expected)?.excavation;
+        return definition ? [{ actor: row.id, kind: "dig" as const, target: [work.x, work.z] as const, progress: Math.max(0, Math.min(1, work.seconds / definition.workSeconds)) }] : [];
+      });
+      const construction = context.query(query(ConstructionSite)).flatMap(row => {
+        const site = row.get(ConstructionSite);
+        if (site.phase !== "working" || site.worker === null) return [];
+        const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
+        return definition ? [{ actor: site.worker, kind: "build" as const, target: [site.x, site.z] as const, progress: Math.max(0, Math.min(1, site.seconds / definition.workSeconds)) }] : [];
+      });
+      return [...trees, ...excavation, ...construction];
     },
     visuals: context => [
       ...context.query(query(ColonyTree, Position)).map(row => {
