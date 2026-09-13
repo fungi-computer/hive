@@ -220,10 +220,17 @@ mod construction_tests {
     }
 
     fn wall_catalog(kernel: &mut Kernel) {
-        kernel.environment.as_mut().unwrap().structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
+        let environment = kernel.environment.as_mut().unwrap();
+        environment.structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
             materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0,
         });
+        let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
+        definition["structures"]["catalog"].as_array_mut().unwrap().push(json!({
+            "id":"wall", "shape":{"kind":"wall","height":1},
+            "materials":[{"kind":"stone-spoil","quantity":1}], "workSeconds":1
+        }));
+        environment.definition = serde_json::to_string(&definition).unwrap();
     }
 
     #[test]
@@ -396,18 +403,35 @@ mod construction_tests {
     fn construction_access_wall_is_ordered_and_binding_is_stable() {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
+        let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"wall","site":"access-wall","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"north"}
-        ]}).to_string()).unwrap();
+        ]}).to_string()).unwrap()).unwrap();
+        assert_eq!(planned["results"][0]["accepted"], true);
+        let site_entity = kernel.entity("access-wall").unwrap();
+        assert!(kernel.ecs.get::<Position>(site_entity).is_none());
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-wall\"]").unwrap()).unwrap();
         assert_eq!(rows[0]["support"], "ready");
-        assert_eq!(rows[0]["contacts"].as_array().unwrap().len(), 4);
-        assert!(rows[0]["contacts"].as_array().unwrap().iter().all(|row| row["kind"] == "origin" && row["y"] == contact.y));
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        assert_eq!(rows[0]["contacts"], json!([
+            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":(surface.z as f64 - 1.0) * spacing[2], "frame":null, "kind":"origin"},
+            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"},
+            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":(surface.z as f64 + 1.0) * spacing[2], "frame":null, "kind":"origin"},
+            {"x":(surface.x as f64 - 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}
+        ]));
         let bad = Point { x: contact.x + 0.25, ..contact.clone() };
-        assert!(kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":bad}]}).to_string()).unwrap().contains("accepted\":false"));
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":contact}]}).to_string()).unwrap();
-        assert!(kernel.ecs.get::<Position>(kernel.entity("access-wall").unwrap()).is_some());
-        assert!(kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":contact}]}).to_string()).unwrap().contains("accepted\":false"));
+        let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":bad}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(rejected["results"][0]["accepted"], false);
+        assert!(kernel.ecs.get::<Position>(site_entity).is_none());
+        let bound: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":contact}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(bound["results"][0]["accepted"], true);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+        let before_duplicate = restored.query_json(r#"["hive.position","hive.construction-site"]"#).unwrap();
+        let duplicate: serde_json::Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":contact}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(duplicate["results"][0]["accepted"], false);
+        assert_eq!(restored.query_json(r#"["hive.position","hive.construction-site"]"#).unwrap(), before_duplicate);
     }
 
     #[test]
@@ -422,7 +446,11 @@ mod construction_tests {
         let worker = kernel.entity("worker-1").unwrap();
         kernel.ecs.entity_mut(worker).insert(Position { x:selected.x, y:selected.y, z:selected.z, facing:0.0 });
         kernel.rebuild_physical_indexes(true).unwrap();
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-1","site":"access-floor","contact":selected}]}).to_string()).unwrap();
+        let attended: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-1","site":"access-floor","contact":selected}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(attended["results"][0]["accepted"], true);
+        let state = kernel.ecs.get::<ConstructionSite>(kernel.entity("access-floor").unwrap()).unwrap();
+        assert_eq!(state.phase, ConstructionPhase::Working);
+        assert_eq!(state.worker.as_deref(), Some("worker-1"));
         assert_eq!(kernel.ecs.get::<Position>(kernel.entity("access-floor").unwrap()).unwrap().x, contact.x);
     }
 
