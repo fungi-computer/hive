@@ -56,6 +56,13 @@ const trees = [
   { id: entity("colony.tree.pine"), x: -5, z: 4 },
   { id: entity("colony.tree.willow"), x: 4, z: -5 },
 ] as const;
+const TREE_CONTACT_TOLERANCE = 0.05;
+export function treeWorkerAtApproach(
+  actor: { readonly x: number; readonly y: number; readonly z: number },
+  order: { readonly approachX: number; readonly approachY: number; readonly approachZ: number },
+): boolean {
+  return Math.hypot(actor.x - order.approachX, actor.y - order.approachY, actor.z - order.approachZ) <= TREE_CONTACT_TOLERANCE;
+}
 
 const brewStationId = entity("colony.brew-station");
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
@@ -469,7 +476,10 @@ export const colonyPack: GamePack = {
       const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
       return context.query(query(ColonyTreeOrder)).flatMap(row => {
         const order = row.get(ColonyTreeOrder), position = positions.get(order.tree);
-        return order.phase === "working" && order.actor !== null && position ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const }] : [];
+        const actorPosition = order.actor === null ? undefined : positions.get(order.actor);
+        return order.phase === "working" && order.actor !== null && position && actorPosition && treeWorkerAtApproach(actorPosition, order)
+          ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const }]
+          : [];
       });
     },
     visuals: context => [
