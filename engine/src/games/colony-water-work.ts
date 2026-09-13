@@ -24,6 +24,14 @@ const distance = (a: { x: number; y: number; z: number }, b: { x: number; y: num
 
 export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
   const rows = [...ctx.query(query(WaterSupplyWork, WaterSupplyOrder))].sort((left, right) => left.id.localeCompare(right.id));
+  const queued = rows.filter(row => row.get(WaterSupplyWork).phase === "queued");
+  if (queued.length === 0) {
+    const active = rows.filter(row => ["approaching", "submitting"].includes(row.get(WaterSupplyWork).phase));
+    const actors = active.flatMap(row => row.get(WaterSupplyWork).actor ? [row.get(WaterSupplyWork).actor!] : []);
+    const poses = actors.length ? new Map(ctx.worldPoses(actors).map(pose => [pose.id, pose.world])) : new Map();
+    const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
+    return { claims: active.map(row => ({ task: row.id, actor: row.get(WaterSupplyWork).actor })), candidates: [], lowerBound: () => 0, estimate: () => null, apply: () => {}, progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); if (state.phase === "complete") { ctx.removeAuthoredEntity(row.id); continue; } if (state.phase !== "approaching" || !state.actor || !state.vessel) continue; const pose = poses.get(state.actor); const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`; if (!pose || moving.has(state.actor) || distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } } };
+  }
   const workers = ctx.query(query(Worker, Body, Position, Container)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
   const materialFacts = ctx.workMaterialFacts();
   const lots = materialFacts.lots;
