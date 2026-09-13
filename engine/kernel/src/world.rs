@@ -2835,6 +2835,7 @@ impl Kernel {
         let expected = Point { x: f64::from(x) * spacing[0], y: (f64::from(y) + 0.5) * spacing[1], z: f64::from(z) * spacing[2], frame: None };
         let pose = self.world_pose_entity(worker, 0)?;
         if (pose.x - expected.x).hypot(pose.z - expected.z) > 2.0 * spacing[0] || (pose.y - expected.y).abs() > spacing[1] { return Err("worker is not in resource site contact".into()); }
+        if self.ids.iter().any(|(id, existing)| id != site_id && self.ecs.get::<ResourceSite>(*existing).is_some_and(|_| self.ecs.get::<Position>(*existing).is_some_and(|position| (position.x - expected.x).abs() < spacing[0] * 0.5 && (position.y - expected.y).abs() < spacing[1] * 0.5 && (position.z - expected.z).abs() < spacing[2] * 0.5))) { return Err("resource site cell is already occupied".into()); }
         let entity = if let Some(entity) = self.ids.get(site_id).copied() {
             if self.ecs.get::<ResourceSite>(entity).is_some() { return Err("resource site identity is already established".into()); }
             entity

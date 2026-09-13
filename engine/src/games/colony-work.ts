@@ -86,9 +86,6 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
         if (!ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) {
           ctx.createAuthoredEntity({ id: supplyId, components: { [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
         }
-      } else {
-        const supplyId = entity(`colony.resource-water.${row.id}`);
-        if (ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) ctx.removeAuthoredEntity(supplyId);
       }
       ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
     }
@@ -118,7 +115,20 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       else ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, workSeconds: work });
       void site;
     }
-  }, progress: () => undefined };
+  }, progress: () => {
+    for (const row of orders) {
+      const state = row.get(ColonyResourceOrder);
+      if (!state.actor || !["sow", "tend", "harvest"].includes(state.phase)) continue;
+      const definition = definitions.get(state.definition); if (!definition) continue;
+      const pose = ctx.worldPoses([state.actor])[0]?.local;
+      if (!pose || Math.hypot(pose.x - state.approachX, pose.z - state.approachZ) > 0.1 || Math.abs(pose.y - state.approachY) > 0.2) continue;
+      const work = state.workSeconds + ctx.clock.delta;
+      if (state.phase === "sow" && work >= definition.sowSeconds) { const operation = `${row.id}:sow:${state.attempt + 1}`; ctx.action(establishResourceSite(operation, state.actor, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, phase: "submitting-sow", workSeconds: work, attempt: state.attempt + 1 }); }
+      else if (state.phase === "tend" && work >= definition.tendSeconds && state.vessel) { const operation = `${row.id}:tend:${state.attempt + 1}`; ctx.action(tendResourceSite(operation, state.actor, state.site, state.vessel)); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, phase: "submitting-tend", workSeconds: work, attempt: state.attempt + 1 }); }
+      else if (state.phase === "harvest" && work >= definition.harvestSeconds) { ctx.action(extractResource(state.actor, state.site)); ctx.write(ColonyResourceOrder, row.id, { ...state, phase: "submitting-harvest", workSeconds: work, attempt: state.attempt + 1 }); }
+      else ctx.write(ColonyResourceOrder, row.id, { ...state, workSeconds: work });
+    }
+  } };
 }
 import {
   StockpileCell,
