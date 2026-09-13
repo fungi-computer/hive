@@ -167,6 +167,7 @@ mod construction_tests {
     fn install_floor_storage_recipe(kernel: &mut Kernel) {
         use crate::environment_definition::{CompletionRecipe, PortDefinition};
         let environment = kernel.environment.as_mut().unwrap();
+        environment.structures.get_mut("floor").unwrap().on_remove = crate::environment_definition::RemovalRecipe { salvage: [("stone-spoil".into(), 1)].into_iter().collect(), empty_ports: ["storage".into()].into_iter().collect() };
         environment.structures.get_mut("floor").unwrap().on_complete = CompletionRecipe {
             components: vec![],
             ports: vec![PortDefinition {
@@ -188,6 +189,82 @@ mod construction_tests {
             ]}]
         });
         environment.definition = definition.to_string();
+    }
+
+    #[test]
+    fn deconstruction_removes_storage_and_publishes_one_salvage_lot() {
+        let (mut kernel, surface, contact) = world();
+        install_floor_storage_recipe(&mut kernel);
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
+
+        let stored = kernel.complete_material_output(MaterialOutputSpec {
+            container: "site-1:storage".into(), kind: "stone-spoil".into(), quantity: 1, water_kg: None,
+        }).unwrap();
+        let occupied = kernel.save_records().unwrap();
+        let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
+            "delta":0.0,"writes":[],"actions":[{"kind":"deconstruct","site":"site-1","container":"source"}]
+        }).to_string()).unwrap()).unwrap();
+        assert_eq!(rejected["results"][0]["accepted"], false);
+        let after_rejection = kernel.save_records().unwrap();
+        let mut before_entities: serde_json::Value = serde_json::from_str(&occupied.entities).unwrap();
+        let mut after_entities: serde_json::Value = serde_json::from_str(&after_rejection.entities).unwrap();
+        before_entities.as_object_mut().unwrap().remove("revision");
+        after_entities.as_object_mut().unwrap().remove("revision");
+        assert_eq!(after_entities, before_entities);
+        assert_eq!(after_rejection.environment.as_ref().unwrap().1.terrain, occupied.environment.as_ref().unwrap().1.terrain);
+        let consumed = kernel.prepare_material_consumption(&[MaterialPortion { lot: stored.clone(), quantity: 1 }]).unwrap();
+        kernel.publish_material_consumption(consumed).unwrap();
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity(&stored).unwrap()).unwrap().quantity, 0);
+
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"deconstruct","site":"site-1","container":"source"}]}).to_string()).unwrap();
+        assert!(!kernel.known.contains("site-1"));
+        assert!(!kernel.known.contains("site-1:storage"));
+        assert!(!kernel.known.contains(&stored));
+        assert_eq!(kernel.quantity("source"), 5);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+    }
+
+    #[test]
+    fn deconstruction_rejects_removing_a_supporting_wall_without_mutation() {
+        use crate::environment_definition::{RemovalRecipe, StructureDefinition, StructureShape};
+        use crate::structure_geometry::{Cardinal, StaticInstance};
+        let (mut kernel, surface, contact) = world();
+        kernel.environment.as_mut().unwrap().structures.insert("wall".into(), StructureDefinition {
+            id: "wall".into(), shape: StructureShape::Wall { height: 4 },
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(),
+            work_seconds: 1.0, work_reach_below_cells: 0,
+            on_complete: Default::default(), on_remove: RemovalRecipe::default(),
+        });
+        let wall = StaticInstance::Wall {
+            id: "support-wall".into(),
+            base: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z },
+            height: 4,
+        };
+        let upper = StaticInstance::Floor {
+            id: "dependent-floor".into(),
+            support: crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z },
+        };
+        let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+        let state = ConstructionSite {
+            catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z,
+            orientation: Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished,
+        };
+        let entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state,
+            Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
+        kernel.ids.insert("support-wall".into(), entity);
+        kernel.known.insert("support-wall".into());
+        kernel.contents.insert("support-wall".into(), BTreeSet::new());
+        kernel.refresh_state_weight();
+        let before = kernel.save_records().unwrap();
+
+        assert!(kernel.deconstruct_construction("support-wall", "source").unwrap_err().contains("geometry"));
+        let after = kernel.save_records().unwrap();
+        assert_eq!(after.entities, before.entities);
+        assert_eq!(after.environment.unwrap().1.terrain, before.environment.unwrap().1.terrain);
     }
 
     #[test]
@@ -287,7 +364,7 @@ mod construction_tests {
         let environment = kernel.environment.as_mut().unwrap();
         environment.structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
-            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
         let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
         definition["structures"]["catalog"].as_array_mut().unwrap().push(json!({
@@ -588,7 +665,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("stair".into(), crate::environment_definition::StructureDefinition {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
-            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
@@ -602,7 +679,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("bed".into(), crate::environment_definition::StructureDefinition {
             id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
-            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
@@ -2058,7 +2135,7 @@ impl Kernel {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
-                    | Action::UpdateStockpile { .. })
+                    | Action::UpdateStockpile { .. } | Action::Deconstruct { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -2353,6 +2430,10 @@ impl Kernel {
             Action::PlanConstruction { catalog, site, x, y, z, orientation } => {
                 self.plan_construction(catalog, site, x, y, z, orientation)?;
                 Ok(ActionEffect::None)
+            }
+            Action::Deconstruct { site, container } => {
+                self.deconstruct_construction(&site, &container)?;
+                Ok(ActionEffect::Entity(site))
             }
             Action::BindConstructionStage { site, contact } => {
                 self.bind_construction_stage(&site, contact)?;

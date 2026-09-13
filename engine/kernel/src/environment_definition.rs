@@ -53,8 +53,13 @@ struct StructureInput {
     work_seconds: f64,
     work_reach_below_cells: u32,
     #[serde(default)]
+    on_remove: Option<RemovalInput>,
+    #[serde(default)]
     on_complete: Option<CompletionInput>,
 }
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct RemovalInput { #[serde(default)] salvage: Vec<StructureMaterialInput>, #[serde(default)] empty_ports: Vec<String> }
 #[derive(Debug, Deserialize, Clone)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct CompletionInput {
@@ -81,6 +86,7 @@ enum StructureShapeInput {
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
+#[derive(Clone)]
 struct StructureMaterialInput {
     kind: String,
     quantity: u32,
@@ -106,7 +112,10 @@ pub struct StructureDefinition {
     pub work_seconds: f64,
     pub work_reach_below_cells: u32,
     pub on_complete: CompletionRecipe,
+    pub on_remove: RemovalRecipe,
 }
+#[derive(Clone, Debug, Default)]
+pub struct RemovalRecipe { pub salvage: BTreeMap<String, u32>, pub empty_ports: BTreeSet<String> }
 #[derive(Clone, Debug, Default)]
 pub struct CompletionRecipe {
     pub components: Vec<(String, crate::components::Record)>,
@@ -295,7 +304,21 @@ fn prepare_definition_mode(
             }).collect::<Result<Vec<_>, String>>()?;
             Ok(CompletionRecipe { components, ports })
         }).transpose()?.unwrap_or_default();
-        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds, work_reach_below_cells: entry.work_reach_below_cells, on_complete });
+        let on_remove = entry.on_remove.map(|recipe| -> Result<RemovalRecipe, String> {
+            if recipe.salvage.len() > 1 { return Err("removal salvage is limited to one output lot".into()); }
+            let mut salvage = BTreeMap::new();
+            let mut empty_ports = BTreeSet::new();
+            for material in recipe.salvage {
+                if !crate::components::valid_id(&material.kind) || material.quantity == 0 || salvage.insert(material.kind, material.quantity).is_some() { return Err("invalid removal salvage".to_owned()); }
+            }
+            for key in recipe.empty_ports { if !crate::components::valid_id(&key) || !empty_ports.insert(key) { return Err("invalid removal empty port".into()); } }
+            Ok(RemovalRecipe { salvage, empty_ports })
+        }).transpose()?.unwrap_or_default();
+        for (kind, quantity) in &on_remove.salvage {
+            if !materials.get(kind).is_some_and(|available| quantity <= available) { return Err("removal salvage exceeds embedded construction input".into()); }
+        }
+        if on_remove.empty_ports.iter().any(|key| !on_complete.ports.iter().any(|port| port.key == *key)) { return Err("removal empty port is not completion port".into()); }
+        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds, work_reach_below_cells: entry.work_reach_below_cells, on_complete, on_remove });
     }
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
         return Err("initial placement count exceeds 512".into());

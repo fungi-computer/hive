@@ -98,6 +98,12 @@ export interface EnvironmentStructureCompletion {
   readonly components?: readonly EnvironmentCompletionComponent[];
   readonly ports?: readonly EnvironmentCompletionPort[];
 }
+export interface EnvironmentStructureRemoval {
+  /** This checkpoint permits exactly one finite salvage lot. */
+  readonly salvage?: readonly EnvironmentStructureMaterial[];
+  /** Ports named here must be empty before the low level native teardown. */
+  readonly emptyPorts?: readonly string[];
+}
 
 export interface EnvironmentStructureDefinition {
   readonly id: string;
@@ -106,6 +112,7 @@ export interface EnvironmentStructureDefinition {
   readonly workSeconds: number;
   readonly workReachBelowCells: number;
   readonly onComplete?: EnvironmentStructureCompletion;
+  readonly onRemove?: EnvironmentStructureRemoval;
 }
 
 export interface InitialSurfacePlacement {
@@ -202,6 +209,22 @@ export function validateEnvironmentDefinition(
       for (const port of completion.ports ?? []) {
         if (!port || typeof port.key !== "string" || !/^[A-Za-z0-9._:-]+$/.test(port.key) || keys.has(port.key) || !Array.isArray(port.components) || port.components.length > 32 || port.at !== undefined && port.at !== "site-contact") throw new Error("invalid completion port");
         keys.add(port.key); validateComponents(port.components);
+      }
+    }
+    const removal = entry.onRemove;
+    if (removal !== undefined) {
+      if ((removal.salvage !== undefined && (!Array.isArray(removal.salvage) || removal.salvage.length > 1)) || (removal.emptyPorts !== undefined && (!Array.isArray(removal.emptyPorts) || removal.emptyPorts.length > 16))) throw new Error("invalid structure removal recipe");
+      const inputKinds = new Map(entry.materials.map(material => [material.kind, material.quantity]));
+      const seenSalvage = new Set<string>();
+      for (const salvage of removal.salvage ?? []) {
+        if (!salvage || typeof salvage.kind !== "string" || !/^[A-Za-z0-9._:-]+$/.test(salvage.kind) || seenSalvage.has(salvage.kind) || !Number.isSafeInteger(salvage.quantity) || salvage.quantity <= 0 || salvage.quantity > (inputKinds.get(salvage.kind) ?? 0)) throw new Error("invalid structure removal salvage");
+        seenSalvage.add(salvage.kind);
+      }
+      const portKeys = new Set((completion?.ports ?? []).map(port => port.key));
+      const emptyPorts = new Set<string>();
+      for (const key of removal.emptyPorts ?? []) {
+        if (typeof key !== "string" || !/^[A-Za-z0-9._:-]+$/.test(key) || emptyPorts.has(key) || !portKeys.has(key)) throw new Error("invalid structure removal empty port");
+        emptyPorts.add(key);
       }
     }
     const endpointCount = shape.kind === "stair" ? 2 : 1;

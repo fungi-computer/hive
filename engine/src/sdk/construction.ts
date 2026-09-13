@@ -45,3 +45,7 @@ export const attendConstruction = (worker: EntityId, site: EntityId, contact: Ve
 export const setStructureOpen = (worker: EntityId, site: EntityId, open: boolean): ActionRequest => ({
   kind: "set-structure-open", worker, site, open,
 });
+
+export const deconstruct = (site: EntityId, container: EntityId): ActionRequest => ({
+  kind: "deconstruct", site, container,
+});

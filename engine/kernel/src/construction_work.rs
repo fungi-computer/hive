@@ -63,6 +63,51 @@ fn construction_status(
 }
 
 impl Kernel {
+    /// Low-level completion primitive. A shared work owner must approach the
+    /// site, spend its teardown work, then invoke this synchronously; Colony
+    /// controls do not call it directly.
+    pub(super) fn deconstruct_construction(&mut self, site_id: &str, target_id: &str) -> Result<()> {
+        let site_entity = self.entity(site_id)?;
+        let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
+        if state.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(site_entity).is_none() { return Err("deconstruction requires a finished site".into()); }
+        let definition = self.environment.as_ref().ok_or("deconstruction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
+        let port_ids: Vec<String> = definition.on_complete.ports.iter().map(|port| format!("{site_id}:{}", port.key)).collect();
+        for port_id in &port_ids {
+            self.entity(port_id)?;
+            let key = port_id.strip_prefix(site_id).and_then(|value| value.strip_prefix(':')).ok_or("invalid created port identity")?;
+            if definition.on_remove.empty_ports.contains(key) && self.quantity(port_id) != 0 { return Err("required empty port contains live contents".into()); }
+        }
+        if port_ids.iter().any(|id| id == target_id) || target_id == site_id { return Err("salvage target cannot be removed structure".into()); }
+        let target = self.entity(target_id)?;
+        if self.ecs.get::<Container>(target).is_none() || self.ecs.get::<SealedContainer>(target).is_some() { return Err("salvage target is not an open container".into()); }
+        if self.ids.values().any(|entity| self.ecs.get::<Support>(*entity).is_some_and(|support| support.entity == site_id)) { return Err("supported dependent prevents deconstruction".into()); }
+        let salvage_total: u32 = definition.on_remove.salvage.values().try_fold(0u32, |sum, q| sum.checked_add(*q)).ok_or("salvage quantity overflow")?;
+        if self.quantity(target_id).saturating_add(u64::from(salvage_total)) > u64::from(self.ecs.get::<Container>(target).unwrap().capacity) { return Err("salvage target lacks capacity".into()); }
+        let instances: Vec<_> = self.environment.as_ref().unwrap().world.structure_instances().into_iter().filter(|instance| match instance { crate::structure_geometry::StaticInstance::Floor { id, .. } | crate::structure_geometry::StaticInstance::Cover { id, .. } | crate::structure_geometry::StaticInstance::Fixture { id, .. } | crate::structure_geometry::StaticInstance::Wall { id, .. } | crate::structure_geometry::StaticInstance::ApertureWall { id, .. } | crate::structure_geometry::StaticInstance::Stair { id, .. } => id != site_id }).collect();
+        let prepared = { let environment = self.environment.as_mut().unwrap(); match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("deconstruction geometry is invalid".into()) } };
+        let salvage: Vec<_> = definition.on_remove.salvage.iter().map(|(kind, quantity)| self.prepare_material_output(MaterialOutputSpec { container: target_id.to_owned(), kind: kind.clone(), quantity: *quantity, water_kg: None })).collect::<Result<Vec<_>>>()?;
+        self.environment.as_mut().unwrap().apply_structures(prepared)?;
+        for output in salvage { self.publish_material_output(output); }
+        for port_id in port_ids {
+            let entity = self.ids.remove(&port_id).ok_or("created port disappeared")?;
+            let port_lots = self.contents.remove(&port_id).unwrap_or_default();
+            for lot_entity in port_lots {
+                let lot_id = self.ecs.get::<ExternalId>(lot_entity).map(|id| id.0.clone()).ok_or("port lot identity missing")?;
+                if self.ecs.get::<Lot>(lot_entity).is_some_and(|lot| lot.quantity > 0) { return Err("port contains live contents".into()); }
+                self.ids.remove(&lot_id); self.known.remove(&lot_id); self.ecs.despawn(lot_entity);
+            }
+            self.known.remove(&port_id); self.ecs.despawn(entity);
+        }
+        for (name, _) in &definition.on_complete.components { if let Some(component_id) = self.registry.ids.get(name).copied() { self.ecs.entity_mut(site_entity).remove_by_id(component_id); } }
+        let site_lots = self.contents.remove(site_id).unwrap_or_default();
+        for lot_entity in site_lots {
+            let lot_id = self.ecs.get::<ExternalId>(lot_entity).map(|id| id.0.clone()).ok_or("construction lot identity missing")?;
+            self.ids.remove(&lot_id); self.known.remove(&lot_id); self.ecs.despawn(lot_entity);
+        }
+        self.ids.remove(site_id); self.known.remove(site_id); self.contents.remove(site_id); self.ecs.despawn(site_entity);
+        self.refresh_state_weight();
+        Ok(())
+    }
     pub(super) fn construction_access(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid construction access request")?;
