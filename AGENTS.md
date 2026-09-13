@@ -19,6 +19,12 @@ owner until the new implementation is accepted. Do not start older repair queues
 as competing fresh-engine work. Current-format durability and quantity/custody
 laws remain mandatory.
 
+**September 13 explicit correction:** native implementation does not authorize an
+algorithm substitution. Levi requires Hungarian assignment. The current Rust
+Bellman-Ford matcher and separate stair cost formulas are defects to replace through
+[the pathfinding repair plan](engine/PATHFINDING-AND-ASSIGNMENT-PLAN.md), preserving
+one native owner and the current work/material/durability laws.
+
 ## Composability is a core product requirement
 
 Build a small set of well-owned mechanisms that combine into many kinds of play. New content should normally be definitions, assets and configuration over existing behavior. Read the implementation and its immediate callers before designing an extension.

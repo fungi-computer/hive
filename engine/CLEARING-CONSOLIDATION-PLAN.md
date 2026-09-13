@@ -2,6 +2,12 @@
 
 King Bolete · September 12, 2026 · **active Colony delivery plan**
 
+September 13: [Pathfinding and assignment repair](PATHFINDING-AND-ASSIGNMENT-PLAN.md)
+owns the current navigation repair sequence, shared geometry/cost boundary, required
+Hungarian correction, bounded durable planning and later TSWAP assessment. The
+[broad performance audit](CLEARING-PERFORMANCE-AUDIT.md) records the baseline and
+corrected byte accounting. Both are plans/evidence, not a delivered runtime fix.
+
 ## The outcome
 
 **Levi and a friend play together in a beautiful little goblin clearing. They
@@ -331,7 +337,7 @@ geometry and presentation seams.
 | --- | --- | --- | --- |
 | People and party | `actors.ts`, `clearing.ts`, `orders.ts` | authored entities, `Body`, `Traversal`, `WorkParticipation`, command admission | Rowan and Sedge exist with original visuals and manual takeover. Party membership, recruitment and the cat are missing. |
 | Selection and tools | `ui-actions.ts`, `main.js`, `view.js` | shared client controls, contextual presentation, area selection, layer/cutaway view | Selection, Go, rectangle Dig and layers exist. Restore the retained contextual site/tree/herb/lot actions through the shared catalog rather than adding Colony-only pointer branches. |
-| Movement and assignment | `movement.ts`, `matching.ts`, `jobs.ts` | Rust A*, traversal costs and libcolony assignment through the shared work system | Keep the native owners. Finish route invalidation/retry and useful waiting reasons; never port retained pathfinding or assignment as a second truth. |
+| Movement and assignment | `movement.ts`, `matching.ts`, `jobs.ts` | Rust route search and shared work exist; current native matching is Bellman-Ford, not the required Hungarian, and stair search/report costs diverge | Follow the September 13 pathfinding repair. Restore Hungarian and one movement metric; replace superseded native internals without adding a second runtime owner. |
 | Physical goods | `materials.ts`, `item-containers.ts` | Rust `Lot`/`Container`, transfer, carried water, output preparation and indexes | Native custody is stronger. Add missing Goblin material/endpoint definitions; do not port the retained material store. |
 | Trees and wood | `world.js`, `orders.ts`, `jobs.ts`, `activity.ts` | generated/content entities, generic finite work, native material output and delivery | Missing. Restore fell/chop/output/haul as the first scenery-backed resource loop, including retained poses and finite wood. |
 | Storage | retained lot/container and storage jobs | native containers, delivery tasks and future data-defined stockpile filters | Crates work; floor stock is only a fallback. Restore ordinary stockpile designation/filtering before adding automation. |
