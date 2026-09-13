@@ -78,11 +78,28 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
     const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
+    const positionIds = new Set(positions.map((row) => row.id));
     const requestMove = (actor: EntityId, target: MoveDestination) => {
       ctx.action(move(actor, target));
     };
     const lots = materialFacts.lots;
     const lotsById = new Map(lots.map(lot => [lot.id, lot]));
+    // A portable container is a real container carried by its holder, so its
+    // interior source has no independent position. Resolve that source's
+    // contact through the authoritative pail lot custody.
+    const sourcePositionId = (source: EntityId): EntityId | null => {
+      let current = source;
+      const seen = new Set<EntityId>();
+      for (let depth = 0; depth <= 16; depth++) {
+        if (positionIds.has(current)) return current;
+        if (seen.has(current)) return null;
+        seen.add(current);
+        const lot = lots.find(candidate => candidate.id === current);
+        if (!lot || !materialFacts.containers.some(container => container.id === current)) return null;
+        current = lot.container;
+      }
+      return null;
+    };
     const bodies = new Map(ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]));
     const containers = new Map(materialFacts.containers.map(container => [container.id, container]));
     const quantityByContainer = new Map<EntityId, number>();
@@ -111,7 +128,6 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         quantity + additional <= capacity
       );
     };
-    const positionIds = new Set(positions.map((row) => row.id));
     const occupiedActors = new Set([
       ...excavations.map((row) => row.id),
       ...ctx.query(query(ConstructionSite)).flatMap((row) => {
@@ -124,7 +140,8 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         ...controls.map((row) => row.id),
         ...tasks.flatMap((row) => {
           const task = row.get(DeliveryTask);
-          return [task.actor, task.source, task.destination];
+          const source = sourcePositionId(task.source);
+          return [task.actor, source, task.destination];
         }),
       ]),
     ].filter((id): id is EntityId => id !== null && positionIds.has(id));
@@ -186,12 +203,14 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
           !hasCapacity(task.destination, quantity)
         )
           return [];
-        const sourcePosition = poses.get(task.source);
+        const sourceId = sourcePositionId(task.source);
+        const sourcePosition = sourceId ? poses.get(sourceId) : undefined;
         const destinationPosition = poses.get(task.destination);
         if (
           !sourcePosition ||
           !destinationPosition ||
-          !sameFrame(controlRow.id, task.source) ||
+          !sourceId ||
+          !sameFrame(controlRow.id, sourceId) ||
           !sameFrame(controlRow.id, task.destination)
         )
           return [];
@@ -257,10 +276,11 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         .find((row) => row.id === state.actor)
         ?.get(DeliveryControl);
       const actor = positions.find((row) => row.id === state.actor);
-      const source = positions.find((row) => row.id === state.source);
+      const sourceId = sourcePositionId(state.source);
+      const source = sourceId && positions.find((row) => row.id === sourceId);
       const destination = positions.find((row) => row.id === state.destination);
       const actorPose = poses.get(state.actor);
-      const sourcePose = poses.get(state.source);
+      const sourcePose = sourceId ? poses.get(sourceId) : undefined;
       const destinationPose = poses.get(state.destination);
       if (
         !actor ||

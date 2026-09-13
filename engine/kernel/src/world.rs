@@ -2684,12 +2684,34 @@ impl Kernel {
         self.refresh_state_weight();
     }
     fn contact(&self, a: Entity, b: Entity) -> Result<()> {
-        let a = self.world_pose_entity(a, 0)?;
+        let a = self.contact_pose(a)?;
         let b = self.world_pose_entity(b, 0)?;
         if navigation::distance(navigation::point(a), navigation::point(b)) > 1.5 {
             return Err("out of reach".into());
         }
         Ok(())
+    }
+    /// Portable containers have no independent pose. Their lot's container is
+    /// the authoritative holder and therefore the contact point for interior
+    /// transfers (for example, water from a held pail to a worker).
+    fn contact_pose(&self, entity: Entity) -> Result<Position> {
+        let mut current = entity;
+        let mut seen = Vec::new();
+        for _ in 0..=16 {
+            match self.world_pose_entity(current, 0) {
+                Ok(position) => return Ok(position),
+                Err(reason) if reason == "no position" => {
+                    if seen.contains(&current) {
+                        return Err("container custody cycle".into());
+                    }
+                    seen.push(current);
+                    let lot = self.ecs.get::<Lot>(current).ok_or("no position")?;
+                    current = self.entity(&lot.container)?;
+                }
+                Err(reason) => return Err(reason),
+            }
+        }
+        Err("container custody chain exceeds depth 16".into())
     }
 
     fn exchange_field_water(&mut self, worker_id: &str, vessel_id: &str, at: crate::generation::Cell,
@@ -3916,6 +3938,18 @@ mod lot_water_tests {
         value.to_string()
     }
 
+    fn portable_scene(holder: &str, vessel_container: &str) -> String {
+        serde_json::to_string(&json!({
+            "format":"hive-game", "version":1, "game":"portable-contact",
+            "components":[], "initial":[
+                {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
+                {"id":"dest","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
+                {"id":"vessel","components":{"hive.container":{"capacity":4},"hive.lot":{"kind":"jug","quantity":1,"container":holder}}},
+                {"id":"water","components":{"hive.lot":{"kind":"water","quantity":2,"container":vessel_container}}}
+            ]
+        })).unwrap()
+    }
+
     #[test]
     fn partial_and_whole_transfer_conserve_carried_water() {
         let mut kernel = Kernel::new();
@@ -3930,6 +3964,25 @@ mod lot_water_tests {
         assert_eq!(transfer(&mut whole, 4)["results"][0]["accepted"], true);
         assert_eq!(rows(&mut whole, "hive.lot-water").as_array().unwrap().len(), 1);
         assert_eq!(rows(&mut whole, "hive.lot-water")[0]["components"]["hive.lot-water"]["waterKg"], 10.3);
+    }
+
+    #[test]
+    fn differently_named_portable_container_uses_holder_contact() {
+        let mut kernel = Kernel::new();
+        kernel.load(&portable_scene("worker", "vessel")).unwrap();
+        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({
+            "delta":0.0,"writes":[],"actions":[{"kind":"transfer","lot":"water","from":"vessel","to":"dest","quantity":2}]
+        }).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true);
+        assert_eq!(rows(&mut kernel, "hive.lot").as_array().unwrap().iter().map(|row| row["components"]["hive.lot"]["quantity"].as_u64().unwrap()).sum::<u64>(), 3);
+    }
+
+    #[test]
+    fn portable_custody_cycle_rejects_without_unbounded_contact_walk() {
+        let mut kernel = Kernel::new();
+        kernel.load(&portable_scene("vessel", "vessel")).unwrap();
+        let vessel = kernel.entity("vessel").unwrap();
+        assert_eq!(kernel.contact_pose(vessel).unwrap_err(), "container custody cycle");
     }
 
     #[test]
