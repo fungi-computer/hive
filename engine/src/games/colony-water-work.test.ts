@@ -75,3 +75,13 @@ test("water provider sends at most sixteen authoritative centers", () => {
   assert.equal(poseCount, 16);
   assert.equal(centerCount, 16);
 });
+
+test("completed demand is cleaned on the next phase without contact or material queries", () => {
+  const demand = row("done", new Map([[WaterSupplyOrder, { revision: 1 }], [WaterSupplyWork, { request: 1, attempt: 1, phase: "complete", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" }]]));
+  let removed = "", facts = 0, contacts = 0;
+  const context: any = { query: (spec: any) => spec.components.includes(Destination) ? [] : [demand], workMaterialFacts: () => { facts++; return { version: 1, containers: [], lots: [] }; }, worldPoses: () => { throw new Error("should not query poses"); }, waterContacts: () => { contacts++; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, removeAuthoredEntity: (id: string) => { removed = id; }, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], };
+  waterSupplyProvider(context, new Set()).progress();
+  assert.equal(removed, "done");
+  assert.equal(facts, 0);
+  assert.equal(contacts, 0);
+});
