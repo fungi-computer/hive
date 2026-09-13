@@ -449,6 +449,7 @@ export type ConstructionReadinessStatus = "ready" | "waitingForSupport" | "unkno
 export interface ConstructionReadiness {
   readonly site: EntityId;
   readonly status: ConstructionReadinessStatus;
+  readonly reason?: "missingStructuralSupport";
 }
 export type PhysicalContact = {
   readonly solid: boolean;
