@@ -4537,6 +4537,15 @@ mod finite_resource_tests {
         assert!(restored.entity(&lot).is_ok());
     }
 
+    #[test]
+    fn establish_resource_site_reuses_existing_intent_entity() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"finite","components":[{"id":"colony.resource-order","version":1,"fields":{"definition":"string","cellX":"number","cellY":"number","cellZ":"number","site":"entity","actor":"nullable-entity","vessel":"nullable-entity","phase":"string","workSeconds":"number","reason":"string","approachX":"number","approachY":"number","approachZ":"number","attempt":"number","operation":"string"}}],"initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"colony.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"site":"site","actor":null,"vessel":null,"phase":"submitting-sow","workSeconds":1,"reason":"","approachX":1,"approachY":0,"approachZ":0,"attempt":1,"operation":"site:sow:1"}}}]}).to_string()).unwrap();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("resource")).unwrap();
+        let result = kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"establish-resource-site","operation":"site:sow:1","worker":"worker","site":"site","definition":"mugwort","x":0,"y":0,"z":0}]}).to_string()).unwrap();
+        assert!(result.contains("accepted"));
+    }
+
     fn action(kernel: &mut Kernel) -> serde_json::Value {
         serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"extract-resource","operation":"tree:extract:capacity","worker":"worker","source":"tree"}]}).to_string()).unwrap()).unwrap()
     }
