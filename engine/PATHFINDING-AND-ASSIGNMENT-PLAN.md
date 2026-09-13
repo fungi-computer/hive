@@ -49,19 +49,19 @@ full delivery itinerary pricing remain open improvements.
 Accepted source inspected: `ca18c66d7f359a8a5e9df84cb7469e94ca82a7fa`, in
 `/mnt/fungi-data/botanical-work/native-atmosphere`.
 
-| Finding | Actual owner/caller | Consequence |
-| --- | --- | --- |
-| Provider preparation precedes shared occupancy filtering | `src/sdk/work-system.ts`, `work-allocation.ts`, `games/colony-work.ts` | Expensive tree/dig questions can be asked for workers who cannot take new work. |
-| Tree approaches are searched eagerly and the chosen approach is searched again | `games/colony-work.ts:95-111` | Repeated terrain exploration before the matcher even runs. |
-| A* uses zero heuristic and queries terrain during each expansion | `kernel/src/terrain_route.rs` | Individual target searches explore without directional guidance and repeatedly resolve geometry. |
-| Each route clones obstacle/stair collections; each expansion scans all stairs | `kernel/src/world.rs`, `terrain_route.rs` | A node-count budget alone does not bound per-query or per-node work. |
-| Cost batches loop individual `route_for` calls | `kernel/src/route_query.rs`, `world.rs` | Crossing WASM once does not share search work. |
-| Search charges Manhattan length; query reports emitted waypoint length | `terrain_route.rs`, `route_query.rs` | Diagonal stair ramps have inconsistent search and reported costs. Existing costs are not certified shortest travel costs. |
-| Native matching uses Bellman-Ford augmenting paths | `kernel/src/assign.rs`, `lib.rs:249-278` | Explicit Hungarian requirement was missed. |
-| Assignment permits 128 pairs/4096 JSON bytes; route calls have separate 32/128 limits | `src/sdk/assignment.ts`, `runtime/session.ts`, `runtime/wasm-kernel.ts`, native endpoints | Eight workers × fifty jobs is already 400 pairs. First-128 processing is not full-set matching. |
-| Route-budget exhaustion is returned as `unavailable` | `runtime/session.ts:575-582`, `route_query.rs` | Work not yet searched is confused with work that cannot be reached. |
-| Delivery checks actor→source and actor→destination, but scores the first leg | `src/sdk/delivery.ts:205-209` | It does not certify the actual source→destination carrying leg. |
-| Work providers mostly submit route distance directly | Current tree/dig/delivery/construction/emission estimates | Speed, work duration and priority semantics need explicit inputs, not assumptions based on an unused helper. |
+| Finding                                                                               | Actual owner/caller                                                                       | Consequence                                                                                                               |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Provider preparation precedes shared occupancy filtering                              | `src/sdk/work-system.ts`, `work-allocation.ts`, `games/colony-work.ts`                    | Expensive tree/dig questions can be asked for workers who cannot take new work.                                           |
+| Tree approaches are searched eagerly and the chosen approach is searched again        | `games/colony-work.ts:95-111`                                                             | Repeated terrain exploration before the matcher even runs.                                                                |
+| A* uses zero heuristic and queries terrain during each expansion                      | `kernel/src/terrain_route.rs`                                                             | Individual target searches explore without directional guidance and repeatedly resolve geometry.                          |
+| Each route clones obstacle/stair collections; each expansion scans all stairs         | `kernel/src/world.rs`, `terrain_route.rs`                                                 | A node-count budget alone does not bound per-query or per-node work.                                                      |
+| Cost batches loop individual `route_for` calls                                        | `kernel/src/route_query.rs`, `world.rs`                                                   | Crossing WASM once does not share search work.                                                                            |
+| Search charges Manhattan length; query reports emitted waypoint length                | `terrain_route.rs`, `route_query.rs`                                                      | Diagonal stair ramps have inconsistent search and reported costs. Existing costs are not certified shortest travel costs. |
+| Native matching uses Bellman-Ford augmenting paths                                    | `kernel/src/assign.rs`, `lib.rs:249-278`                                                  | Explicit Hungarian requirement was missed.                                                                                |
+| Assignment permits 128 pairs/4096 JSON bytes; route calls have separate 32/128 limits | `src/sdk/assignment.ts`, `runtime/session.ts`, `runtime/wasm-kernel.ts`, native endpoints | Eight workers × fifty jobs is already 400 pairs. First-128 processing is not full-set matching.                           |
+| Route-budget exhaustion is returned as `unavailable`                                  | `runtime/session.ts:575-582`, `route_query.rs`                                            | Work not yet searched is confused with work that cannot be reached.                                                       |
+| Delivery checks actor→source and actor→destination, but scores the first leg          | `src/sdk/delivery.ts:205-209`                                                             | It does not certify the actual source→destination carrying leg.                                                           |
+| Work providers mostly submit route distance directly                                  | Current tree/dig/delivery/construction/emission estimates                                 | Speed, work duration and priority semantics need explicit inputs, not assumptions based on an unused helper.              |
 
 The short eight-worker/50-tree fixture measured median step 891 ms, with about 99%
 of step time inside route costing. The matching algorithm is a separate requirement
@@ -92,15 +92,15 @@ not competing definitions of where a person can walk.
 
 ### Ownership
 
-| Responsibility | Owner | Other code may do |
-| --- | --- | --- |
-| Terrain, stairs, fixed obstacles, traversal profile | Existing native physical owners | Query; submit existing physical edits. |
-| Walkable edges, metric, route search and cost certificates | Native navigation beneath `Kernel` | Request an endpoint or approach-set result. |
-| Jobs, capabilities, priorities, supplies, cancellation and interrupt policy | TS-authored game definitions through shared work composition | Inspect and submit typed work operations. |
-| Hungarian and lazy cost refinement | Native assignment/planning implementation | Supply validated candidates and cost factors; consume typed proposed results. |
-| Quantity, cargo, claims and work completion | Existing shared material/work and compound native commit | No cache or matcher can move goods or settle work. |
-| Durable input/progress/results and wake | Existing Region transaction/clock owner | No browser or new service takes over planning authority. |
-| Waiting reasons, previews, command discovery | Existing observations, Whistle and shared client | Render facts; never run a second online planner. |
+| Responsibility                                                              | Owner                                                        | Other code may do                                                             |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Terrain, stairs, fixed obstacles, traversal profile                         | Existing native physical owners                              | Query; submit existing physical edits.                                        |
+| Walkable edges, metric, route search and cost certificates                  | Native navigation beneath `Kernel`                           | Request an endpoint or approach-set result.                                   |
+| Jobs, capabilities, priorities, supplies, cancellation and interrupt policy | TS-authored game definitions through shared work composition | Inspect and submit typed work operations.                                     |
+| Hungarian and lazy cost refinement                                          | Native assignment/planning implementation                    | Supply validated candidates and cost factors; consume typed proposed results. |
+| Quantity, cargo, claims and work completion                                 | Existing shared material/work and compound native commit     | No cache or matcher can move goods or settle work.                            |
+| Durable input/progress/results and wake                                     | Existing Region transaction/clock owner                      | No browser or new service takes over planning authority.                      |
+| Waiting reasons, previews, command discovery                                | Existing observations, Whistle and shared client             | Render facts; never run a second online planner.                              |
 
 The existing work provider contract changes coherently for delivery, dig, tree,
 construction and emission. The unaccepted `0d785d3` tree-only inspect/prepare union
@@ -396,16 +396,16 @@ that existing work continues. No decomposition framework is required to hide thi
 
 Initial qualification policy, not measured capacity:
 
-| Dimension | Starting contract |
-| --- | --- |
-| Product fixture | Full actual 64×64 Clearing and existing vertical extent; preserve caves, stairs, water and original art. |
-| Admitted assignment set | Up to 64 available workers and 256 ready jobs, including the 8×50 and 50×50 fixtures. |
-| Pair matrix | Up to 16,384 pair entries plus explicit unmatched columns; private integer-indexed IDs instead of repeating long IDs in every edge. |
-| Crossing limits | Replace the 128-pair/4 KiB contract coherently with bounds derived from that matrix, ID tables and actual encoding. Root pins exact byte limits from the first produced packet; do not just remove limits. |
-| Per-step work | Count heap pops including stale entries, edge relaxations, topology materialization, bounded-matrix Hungarian passes and record bytes; calibrate fixed counts against the baseline host before acceptance. |
-| Cache/continuation memory | Separate explicit ceilings for geometry cache, live frontiers, settled nodes and total planning records; measure actual encoded and resident bytes before choosing the release values. |
-| Local sustained target | For 8 workers/50 trees, complete workload with simulation+save+observation p95 below 25 ms and no recurrent 100 ms overrun; a target to prove, not current evidence. |
-| Hosted target | Existing 10 Hz authority keeps up while two clients dig/build/cancel and workers complete jobs; report transaction, queue age and command latency separately. |
+| Dimension                 | Starting contract                                                                                                                                                                                          |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product fixture           | Full actual 64×64 Clearing and existing vertical extent; preserve caves, stairs, water and original art.                                                                                                   |
+| Admitted assignment set   | Up to 64 available workers and 256 ready jobs, including the 8×50 and 50×50 fixtures.                                                                                                                      |
+| Pair matrix               | Up to 16,384 pair entries plus explicit unmatched columns; private integer-indexed IDs instead of repeating long IDs in every edge.                                                                        |
+| Crossing limits           | Replace the 128-pair/4 KiB contract coherently with bounds derived from that matrix, ID tables and actual encoding. Root pins exact byte limits from the first produced packet; do not just remove limits. |
+| Per-step work             | Count heap pops including stale entries, edge relaxations, topology materialization, bounded-matrix Hungarian passes and record bytes; calibrate fixed counts against the baseline host before acceptance. |
+| Cache/continuation memory | Separate explicit ceilings for geometry cache, live frontiers, settled nodes and total planning records; measure actual encoded and resident bytes before choosing the release values.                     |
+| Local sustained target    | For 8 workers/50 trees, complete workload with simulation+save+observation p95 below 25 ms and no recurrent 100 ms overrun; a target to prove, not current evidence.                                       |
+| Hosted target             | Existing 10 Hz authority keeps up while two clients dig/build/cancel and workers complete jobs; report transaction, queue age and command latency separately.                                              |
 
 The matrix envelope is a bounded implementation target, not a new maximum number of
 world jobs. Additional designations stay saved and pending. When selection windows
@@ -422,13 +422,13 @@ time or acknowledged input as a navigation shortcut.
 
 ## 10. Implementation chunks and deletion requirements
 
-| Chunk | Complete outcome and owner | Evidence before expansion |
-| --- | --- | --- |
-| A. Correct foundations | King settles metric and Hungarian wrapper; Luna implements agreed native matching/metric callers in one coupled root. | Retained Hungarian comparison, tiny sparse oracle, stairs/hops/prefix route-cost laws; one current caller. |
-| B. Shared eligibility and honest outcomes | One Luna writer converts all five work providers and TS/native result callers under King's contract. | No routing for globally occupied workers; pending distinct from impossible; pause/cancel/cargo preserved; all callers on one contract. |
-| C. Navigation projection and guided search | King owns representation/invalidation; bounded implementer fills approved cache and caller code. | Same graph legality, safe heuristic, retained route admission, local edits and cold rebuild. |
-| D. Lazy matching and bounded continuation | King owns numerical proof, fixed objective, fair persisted progression and Region join; mechanical serialization/callers can be delegated. | Eager-vs-lazy objective and legality, insufficient-budget progress, restart/failed commit, actual 8×50 source measurement. |
-| E. Coherent playable qualification | King integrates reviewed commits serially, runs one changed-workload proof and publishes accepted existing-preview bytes under current release authority. | Real tree completion, digging/building interruption and two-client responsiveness; user-visible status. |
+| Chunk                                      | Complete outcome and owner                                                                                                                                | Evidence before expansion                                                                                                              |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| A. Correct foundations                     | King settles metric and Hungarian wrapper; Luna implements agreed native matching/metric callers in one coupled root.                                     | Retained Hungarian comparison, tiny sparse oracle, stairs/hops/prefix route-cost laws; one current caller.                             |
+| B. Shared eligibility and honest outcomes  | One Luna writer converts all five work providers and TS/native result callers under King's contract.                                                      | No routing for globally occupied workers; pending distinct from impossible; pause/cancel/cargo preserved; all callers on one contract. |
+| C. Navigation projection and guided search | King owns representation/invalidation; bounded implementer fills approved cache and caller code.                                                          | Same graph legality, safe heuristic, retained route admission, local edits and cold rebuild.                                           |
+| D. Lazy matching and bounded continuation  | King owns numerical proof, fixed objective, fair persisted progression and Region join; mechanical serialization/callers can be delegated.                | Eager-vs-lazy objective and legality, insufficient-budget progress, restart/failed commit, actual 8×50 source measurement.             |
+| E. Coherent playable qualification         | King integrates reviewed commits serially, runs one changed-workload proof and publishes accepted existing-preview bytes under current release authority. | Real tree completion, digging/building interruption and two-client responsiveness; user-visible status.                                |
 
 A and B can be prepared independently with exact file boundaries; shared contract
 changes join together. C and D depend on A's metric. Do not start a third writer in
@@ -530,13 +530,13 @@ Colony jobs and Survival direct control retain their owners.
 
 ### Other possible uses, each requiring a real consumer
 
-| Consumer | Potential value | Required restriction |
-| --- | --- | --- |
-| Equivalent infantry filling a formation | Exchange positions to reduce blocking. | Compatible movement and slot roles; no archer/cavalry/front-line-role swaps by assumption. |
-| Empty-handed workers reaching equivalent staging positions | Spread a group across available positions. | Work owner declares equivalence; it still owns jobs and claims. |
-| Warehouse-style pickup/delivery | Learn coordination/reassignment techniques from the related MAPD literature. | Loaded destinations and material reservations are not freely swappable; not covered by the base TSWAP guarantee. |
-| Busy common depot or tower-defense entrance | A reverse distance/flow field can amortize routes. | Separate technique from TSWAP; qualify rebuild cost, directionality and local collision policy. |
-| Travel across a much larger world | Chunk/portal hierarchy can narrow route domains. | Stored/generated extent, resident navigation and inter-Region authority remain distinct. |
+| Consumer                                                   | Potential value                                                              | Required restriction                                                                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Equivalent infantry filling a formation                    | Exchange positions to reduce blocking.                                       | Compatible movement and slot roles; no archer/cavalry/front-line-role swaps by assumption.                       |
+| Empty-handed workers reaching equivalent staging positions | Spread a group across available positions.                                   | Work owner declares equivalence; it still owns jobs and claims.                                                  |
+| Warehouse-style pickup/delivery                            | Learn coordination/reassignment techniques from the related MAPD literature. | Loaded destinations and material reservations are not freely swappable; not covered by the base TSWAP guarantee. |
+| Busy common depot or tower-defense entrance                | A reverse distance/flow field can amortize routes.                           | Separate technique from TSWAP; qualify rebuild cost, directionality and local collision policy.                  |
+| Travel across a much larger world                          | Chunk/portal hierarchy can narrow route domains.                             | Stored/generated extent, resident navigation and inter-Region authority remain distinct.                         |
 
 Flow fields are not a default cache for every target. Build one only for observed
 repeated compatible destinations, with bounded extent, dependency tracking and an

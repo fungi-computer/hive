@@ -1,4 +1,8 @@
-import type { AssignmentCandidate, AssignmentPair, EntityId } from "../contracts";
+import type {
+  AssignmentCandidate,
+  AssignmentPair,
+  EntityId,
+} from "../contracts";
 
 /** Saved task ownership is the input; this projection is rebuilt each tick. */
 export interface WorkClaim {
@@ -25,15 +29,21 @@ function eligibleCandidates<Candidate extends WorkPair>(
     if (tasks.has(claim.task)) throw new Error("duplicate work task");
     tasks.add(claim.task);
     if (claim.actor === null) continue;
-    if (occupied.has(claim.actor)) throw new Error("worker has competing work claims");
+    if (occupied.has(claim.actor))
+      throw new Error("worker has competing work claims");
     occupied.add(claim.actor);
     claimedTasks.add(claim.task);
   }
   const pairs = new Set<string>();
-  return candidates.filter(candidate => {
-    if (!tasks.has(candidate.task)) throw new Error("candidate references unknown work task");
-    if (occupied.has(candidate.worker) || claimedTasks.has(candidate.task)
-      || unavailableActors.has(candidate.worker)) return false;
+  return candidates.filter((candidate) => {
+    if (!tasks.has(candidate.task))
+      throw new Error("candidate references unknown work task");
+    if (
+      occupied.has(candidate.worker) ||
+      claimedTasks.has(candidate.task) ||
+      unavailableActors.has(candidate.worker)
+    )
+      return false;
     const key = `${candidate.worker}\0${candidate.task}`;
     if (pairs.has(key)) throw new Error("duplicate work candidate pair");
     pairs.add(key);
@@ -45,7 +55,7 @@ function costStates<Candidate extends WorkPair>(
   candidates: readonly Candidate[],
   lowerBound: (candidate: Candidate) => number,
 ): CostState<Candidate>[] {
-  return candidates.map(candidate => {
+  return candidates.map((candidate) => {
     const bound = lowerBound(candidate);
     if (!Number.isFinite(bound) || bound < 0)
       throw new Error("invalid work candidate lower bound");
@@ -56,19 +66,27 @@ function costStates<Candidate extends WorkPair>(
 function proposedCosts<Candidate extends WorkPair>(
   states: readonly CostState<Candidate>[],
 ): AssignmentCandidate[] {
-  return states.flatMap(({ candidate, bound, exact }) => exact === null ? [] : [{
-    worker: candidate.worker,
-    task: candidate.task,
-    cost: exact ?? bound,
-  }]);
+  return states.flatMap(({ candidate, bound, exact }) =>
+    exact === null
+      ? []
+      : [
+          {
+            worker: candidate.worker,
+            task: candidate.task,
+            cost: exact ?? bound,
+          },
+        ],
+  );
 }
 
 function selectedState<Candidate extends WorkPair>(
   states: readonly CostState<Candidate>[],
   assignment: AssignmentPair,
 ): CostState<Candidate> {
-  const state = states.find(({ candidate }) =>
-    candidate.worker === assignment.worker && candidate.task === assignment.task,
+  const state = states.find(
+    ({ candidate }) =>
+      candidate.worker === assignment.worker &&
+      candidate.task === assignment.task,
   );
   if (!state) throw new Error("matcher returned unknown work candidate");
   return state;
@@ -83,10 +101,15 @@ export function allocateWork<Candidate extends WorkPair>(
   candidates: readonly Candidate[],
   lowerBound: (candidate: Candidate) => number,
   estimate: (candidate: Candidate) => number | null,
-  match: (candidates: readonly AssignmentCandidate[]) => readonly AssignmentPair[],
+  match: (
+    candidates: readonly AssignmentCandidate[],
+  ) => readonly AssignmentPair[],
   unavailableActors: ReadonlySet<EntityId> = new Set(),
 ): readonly AssignmentPair[] {
-  const states = costStates(eligibleCandidates(claims, candidates, unavailableActors), lowerBound);
+  const states = costStates(
+    eligibleCandidates(claims, candidates, unavailableActors),
+    lowerBound,
+  );
   for (let round = 0; round <= states.length; round++) {
     const costed = proposedCosts(states);
     if (!costed.length) return [];

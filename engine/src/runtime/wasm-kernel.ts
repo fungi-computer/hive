@@ -55,13 +55,28 @@ const surfaceResultsSchema = z.array(terrainSurfaceSchema.nullable()).max(64);
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
     routeCosts(requests) {
-      if (!Array.isArray(requests) || requests.length < 1 || requests.length > 32)
+      if (
+        !Array.isArray(requests) ||
+        requests.length < 1 ||
+        requests.length > 32
+      )
         throw new Error("route costs need 1..32 requests");
-      const result: unknown = JSON.parse(binding.route_costs(JSON.stringify(requests)));
-      if (!Array.isArray(result) || result.length !== requests.length || result.some((entry,index) =>
-        !entry || entry.actor !== requests[index].actor ||
-        (entry.status === "reachable" ? !Number.isFinite(entry.cost) || entry.cost < 0 :
-          entry.status !== "unavailable" || typeof entry.reason !== "string")))
+      const result: unknown = JSON.parse(
+        binding.route_costs(JSON.stringify(requests)),
+      );
+      if (
+        !Array.isArray(result) ||
+        result.length !== requests.length ||
+        result.some(
+          (entry, index) =>
+            !entry ||
+            entry.actor !== requests[index].actor ||
+            (entry.status === "reachable"
+              ? !Number.isFinite(entry.cost) || entry.cost < 0
+              : entry.status !== "unavailable" ||
+                typeof entry.reason !== "string"),
+        )
+      )
         throw new Error("invalid route cost result");
       return result as RouteCostResult[];
     },
@@ -93,7 +108,9 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
             ),
         )
       )
-        throw new Error("atmosphere query must contain between 1 and 64 signed integer cells");
+        throw new Error(
+          "atmosphere query must contain between 1 and 64 signed integer cells",
+        );
       const value: unknown = JSON.parse(
         binding.atmosphere_samples(JSON.stringify(cells)),
       );
@@ -113,26 +130,28 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         result.samples.length !== cells.length
       )
         throw new Error("invalid atmosphere sample result");
-      const samples = result.samples.map((sample): AtmosphereSamples["samples"][number] => {
-        if (sample === null) return null;
-        if (!sample || typeof sample !== "object" || Array.isArray(sample))
-          throw new Error("invalid atmosphere sample");
-        const entry = sample as Record<string, unknown>;
-        if (
-          typeof entry.volumeId !== "string" ||
-          entry.volumeId.length === 0 ||
-          entry.volumeId.length > 128 ||
-          !Number.isFinite(entry.temperatureC) ||
-          !Number.isFinite(entry.smokeKgM3) ||
-          (entry.smokeKgM3 as number) < 0
-        )
-          throw new Error("invalid atmosphere sample");
-        return {
-          volumeId: entry.volumeId,
-          temperatureC: entry.temperatureC as number,
-          smokeKgM3: entry.smokeKgM3 as number,
-        };
-      });
+      const samples = result.samples.map(
+        (sample): AtmosphereSamples["samples"][number] => {
+          if (sample === null) return null;
+          if (!sample || typeof sample !== "object" || Array.isArray(sample))
+            throw new Error("invalid atmosphere sample");
+          const entry = sample as Record<string, unknown>;
+          if (
+            typeof entry.volumeId !== "string" ||
+            entry.volumeId.length === 0 ||
+            entry.volumeId.length > 128 ||
+            !Number.isFinite(entry.temperatureC) ||
+            !Number.isFinite(entry.smokeKgM3) ||
+            (entry.smokeKgM3 as number) < 0
+          )
+            throw new Error("invalid atmosphere sample");
+          return {
+            volumeId: entry.volumeId,
+            temperatureC: entry.temperatureC as number,
+            smokeKgM3: entry.smokeKgM3 as number,
+          };
+        },
+      );
       return {
         revision: result.revision as number,
         geometryRevision: result.geometryRevision as number,
@@ -140,7 +159,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       };
     },
     physicalContacts(cells) {
-      return physicalContactQuery(json => binding.physical_contacts(json), cells);
+      return physicalContactQuery(
+        (json) => binding.physical_contacts(json),
+        cells,
+      );
     },
     terrainMaterials(cells) {
       if (
@@ -197,51 +219,129 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       const result = surfaceResultsSchema.parse(
         JSON.parse(binding.terrain_surfaces(JSON.stringify(columns))),
       );
-      if (result.length !== columns.length || result.some((surface, index) => surface !== null &&
-        (surface.cell[0] !== columns[index][0] || surface.cell[2] !== columns[index][1])))
-        throw new Error("terrain surface result does not match requested columns");
+      if (
+        result.length !== columns.length ||
+        result.some(
+          (surface, index) =>
+            surface !== null &&
+            (surface.cell[0] !== columns[index][0] ||
+              surface.cell[2] !== columns[index][1]),
+        )
+      )
+        throw new Error(
+          "terrain surface result does not match requested columns",
+        );
       return result;
     },
     structureSurfaces(columns) {
-      if (columns.length === 0 || columns.length > 64 || columns.some(column =>
-        !Array.isArray(column) || column.length !== 2 || column.some(coordinate =>
-          !Number.isInteger(coordinate) || coordinate < -2147483648 || coordinate > 2147483647)))
-        throw new Error("structure surface query must contain between 1 and 64 signed integer columns");
-      const result = JSON.parse(binding.structure_surfaces(JSON.stringify(columns))) as unknown;
-      if (!Array.isArray(result) || result.length !== columns.length || result.some((entry, index) => {
-        if (!Array.isArray(entry)) return true;
-        const seen = new Set<string>();
-        return entry.some(surface => {
-          if (!surface || typeof surface !== "object" || Array.isArray(surface)) return true;
-          const cell = (surface as { readonly cell?: unknown }).cell;
-          if (!Array.isArray(cell) || cell.length !== 3 || !cell.every(coordinate =>
-            Number.isInteger(coordinate) && coordinate >= -2147483648 && coordinate <= 2147483647) ||
-            cell[0] !== columns[index][0] || cell[2] !== columns[index][1]) return true;
-          const key = `${cell[0]},${cell[1]},${cell[2]}`;
-          if (seen.has(key)) return true;
-          seen.add(key);
-          return false;
-        });
-      })) throw new Error("invalid structure surface query result");
+      if (
+        columns.length === 0 ||
+        columns.length > 64 ||
+        columns.some(
+          (column) =>
+            !Array.isArray(column) ||
+            column.length !== 2 ||
+            column.some(
+              (coordinate) =>
+                !Number.isInteger(coordinate) ||
+                coordinate < -2147483648 ||
+                coordinate > 2147483647,
+            ),
+        )
+      )
+        throw new Error(
+          "structure surface query must contain between 1 and 64 signed integer columns",
+        );
+      const result = JSON.parse(
+        binding.structure_surfaces(JSON.stringify(columns)),
+      ) as unknown;
+      if (
+        !Array.isArray(result) ||
+        result.length !== columns.length ||
+        result.some((entry, index) => {
+          if (!Array.isArray(entry)) return true;
+          const seen = new Set<string>();
+          return entry.some((surface) => {
+            if (
+              !surface ||
+              typeof surface !== "object" ||
+              Array.isArray(surface)
+            )
+              return true;
+            const cell = (surface as { readonly cell?: unknown }).cell;
+            if (
+              !Array.isArray(cell) ||
+              cell.length !== 3 ||
+              !cell.every(
+                (coordinate) =>
+                  Number.isInteger(coordinate) &&
+                  coordinate >= -2147483648 &&
+                  coordinate <= 2147483647,
+              ) ||
+              cell[0] !== columns[index][0] ||
+              cell[2] !== columns[index][1]
+            )
+              return true;
+            const key = `${cell[0]},${cell[1]},${cell[2]}`;
+            if (seen.has(key)) return true;
+            seen.add(key);
+            return false;
+          });
+        })
+      )
+        throw new Error("invalid structure surface query result");
       return result as readonly (readonly StructureSurface[])[];
     },
     terrainChanges(sinceRevision): TerrainChangeSet {
       if (!Number.isSafeInteger(sinceRevision) || sinceRevision < 0)
-        throw new Error("terrain change revision must be a nonnegative safe integer");
-      const result: unknown = JSON.parse(binding.terrain_changes(JSON.stringify(sinceRevision)));
+        throw new Error(
+          "terrain change revision must be a nonnegative safe integer",
+        );
+      const result: unknown = JSON.parse(
+        binding.terrain_changes(JSON.stringify(sinceRevision)),
+      );
       if (!result || typeof result !== "object" || Array.isArray(result))
         throw new Error("invalid terrain change result");
-      const value = result as { readonly kind?: unknown; readonly revision?: unknown; readonly reason?: unknown; readonly columns?: unknown };
-      if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 0)
+      const value = result as {
+        readonly kind?: unknown;
+        readonly revision?: unknown;
+        readonly reason?: unknown;
+        readonly columns?: unknown;
+      };
+      if (
+        !Number.isSafeInteger(value.revision) ||
+        (value.revision as number) < 0
+      )
         throw new Error("invalid terrain change result");
-      if (value.kind === "full-reset" && (value.reason === "history" || value.reason === "restored" || value.reason === "stale"))
-        return { kind: "full-reset", revision: value.revision as number, reason: value.reason };
-      if (value.kind !== "changed-columns" || !Array.isArray(value.columns) || value.columns.length > 4096)
+      if (
+        value.kind === "full-reset" &&
+        (value.reason === "history" ||
+          value.reason === "restored" ||
+          value.reason === "stale")
+      )
+        return {
+          kind: "full-reset",
+          revision: value.revision as number,
+          reason: value.reason,
+        };
+      if (
+        value.kind !== "changed-columns" ||
+        !Array.isArray(value.columns) ||
+        value.columns.length > 4096
+      )
         throw new Error("invalid terrain change result");
       const seen = new Set<string>();
       const columns = value.columns.map((column): readonly [number, number] => {
-        if (!Array.isArray(column) || column.length !== 2 || !column.every(coordinate =>
-          Number.isInteger(coordinate) && coordinate >= -2147483648 && coordinate <= 2147483647))
+        if (
+          !Array.isArray(column) ||
+          column.length !== 2 ||
+          !column.every(
+            (coordinate) =>
+              Number.isInteger(coordinate) &&
+              coordinate >= -2147483648 &&
+              coordinate <= 2147483647,
+          )
+        )
           throw new Error("invalid terrain changed column");
         const parsed = [column[0] as number, column[1] as number] as const;
         const key = `${parsed[0]},${parsed[1]}`;
@@ -249,7 +349,11 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         seen.add(key);
         return parsed;
       });
-      return { kind: "changed-columns", revision: value.revision as number, columns };
+      return {
+        kind: "changed-columns",
+        revision: value.revision as number,
+        columns,
+      };
     },
     query(spec: QuerySpec): readonly QueryRow[] {
       const ids = spec.components.map((component) => component.id);
@@ -270,48 +374,109 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       if (!value || typeof value !== "object" || Array.isArray(value))
         throw new Error("invalid work material facts");
       const result = value as Record<string, unknown>;
-      if (result.version !== 1 || !Array.isArray(result.containers) || !Array.isArray(result.lots) ||
-          result.containers.length > 4096 || result.lots.length > 4096)
+      if (
+        result.version !== 1 ||
+        !Array.isArray(result.containers) ||
+        !Array.isArray(result.lots) ||
+        result.containers.length > 4096 ||
+        result.lots.length > 4096
+      )
         throw new Error("invalid work material facts");
       const id = (entry: unknown): EntityId => {
-        if (typeof entry !== "string" || entry.length === 0 || entry.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(entry))
+        if (
+          typeof entry !== "string" ||
+          entry.length === 0 ||
+          entry.length > 128 ||
+          !/^[A-Za-z0-9._:-]+$/.test(entry)
+        )
           throw new Error("invalid work material entity");
         return entry as EntityId;
       };
-      const containers = result.containers.map((entry): WorkMaterialFacts["containers"][number] => {
-        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid work material container");
-        const row = entry as Record<string, unknown>;
-        if (!Number.isSafeInteger(row.capacity) || (row.capacity as number) < 0 || (row.capacity as number) > 0xffffffff || typeof row.sealed !== "boolean") throw new Error("invalid work material container");
-        return { id: id(row.id), capacity: row.capacity as number, sealed: row.sealed as boolean };
-      });
-      const lots = result.lots.map((entry): WorkMaterialFacts["lots"][number] => {
-        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid work material lot");
-        const row = entry as Record<string, unknown>;
-        if (typeof row.kind !== "string" || row.kind.length === 0 || row.kind.length > 128 || !Number.isSafeInteger(row.quantity) || (row.quantity as number) < 0 || (row.quantity as number) > 0xffffffff) throw new Error("invalid work material lot");
-        return { id: id(row.id), kind: row.kind as string, quantity: row.quantity as number, container: id(row.container) };
-      });
+      const containers = result.containers.map(
+        (entry): WorkMaterialFacts["containers"][number] => {
+          if (!entry || typeof entry !== "object" || Array.isArray(entry))
+            throw new Error("invalid work material container");
+          const row = entry as Record<string, unknown>;
+          if (
+            !Number.isSafeInteger(row.capacity) ||
+            (row.capacity as number) < 0 ||
+            (row.capacity as number) > 0xffffffff ||
+            typeof row.sealed !== "boolean"
+          )
+            throw new Error("invalid work material container");
+          return {
+            id: id(row.id),
+            capacity: row.capacity as number,
+            sealed: row.sealed as boolean,
+          };
+        },
+      );
+      const lots = result.lots.map(
+        (entry): WorkMaterialFacts["lots"][number] => {
+          if (!entry || typeof entry !== "object" || Array.isArray(entry))
+            throw new Error("invalid work material lot");
+          const row = entry as Record<string, unknown>;
+          if (
+            typeof row.kind !== "string" ||
+            row.kind.length === 0 ||
+            row.kind.length > 128 ||
+            !Number.isSafeInteger(row.quantity) ||
+            (row.quantity as number) < 0 ||
+            (row.quantity as number) > 0xffffffff
+          )
+            throw new Error("invalid work material lot");
+          return {
+            id: id(row.id),
+            kind: row.kind as string,
+            quantity: row.quantity as number,
+            container: id(row.container),
+          };
+        },
+      );
       return { version: 1, containers, lots };
     },
     entityMembership(ids) {
       if (ids.length === 0 || ids.length > 128)
-        throw new Error("entity membership query must contain between 1 and 128 entities");
-      const result = JSON.parse(binding.entity_membership(JSON.stringify(ids))) as unknown;
-      if (!Array.isArray(result) || result.length !== ids.length ||
-          !result.every((value) => typeof value === "boolean"))
+        throw new Error(
+          "entity membership query must contain between 1 and 128 entities",
+        );
+      const result = JSON.parse(
+        binding.entity_membership(JSON.stringify(ids)),
+      ) as unknown;
+      if (
+        !Array.isArray(result) ||
+        result.length !== ids.length ||
+        !result.every((value) => typeof value === "boolean")
+      )
         throw new Error("invalid entity membership result");
       return result;
     },
     advance(
       delta: number,
       writes: readonly WriteIntent[],
-    actions: readonly ActionRequest[],
-    options?: { readonly creates?: readonly EntityRecord[]; readonly removes?: readonly EntityId[] },
+      actions: readonly ActionRequest[],
+      options?: {
+        readonly creates?: readonly EntityRecord[];
+        readonly removes?: readonly EntityId[];
+      },
     ): AdvanceResult {
       const result = JSON.parse(
-        binding.advance(JSON.stringify({ delta, writes, actions, creates: options?.creates ?? [], removes: options?.removes ?? [] })),
+        binding.advance(
+          JSON.stringify({
+            delta,
+            writes,
+            actions,
+            creates: options?.creates ?? [],
+            removes: options?.removes ?? [],
+          }),
+        ),
       ) as AdvanceResult;
-      if (!Number.isSafeInteger(result.revision) || result.revision < 0 ||
-          !Array.isArray(result.results) || !Array.isArray(result.impacts))
+      if (
+        !Number.isSafeInteger(result.revision) ||
+        result.revision < 0 ||
+        !Array.isArray(result.results) ||
+        !Array.isArray(result.impacts)
+      )
         throw new Error("invalid kernel advance result");
       return result;
     },
