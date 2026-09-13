@@ -127,6 +127,42 @@ mod ground_stock_cleanup_tests {
 }
 
 #[cfg(test)]
+mod water_exchange_action_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn kernel() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"water-action-laws","components":[],"initial":[
+            {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.container":{"capacity":8}}},
+            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
+        ]}).to_string()).unwrap();
+        kernel
+    }
+
+    #[test]
+    fn rejected_field_water_action_keeps_snapshot_and_rejects_wrong_custody() {
+        let mut kernel = kernel();
+        let before = kernel.snapshot_json().unwrap();
+        let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[
+            {"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":0,"y":0,"z":0,"direction":"withdraw","portions":1}
+        ]}).to_string()).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
+
+        let mut wrong = kernel;
+        let before = wrong.snapshot_json().unwrap();
+        let result = wrong.advance_json(&json!({"delta":0,"writes":[],"actions":[
+            {"kind":"exchange-field-water","worker":"pail","vessel":"pail","x":0,"y":0,"z":0,"direction":"deposit","portions":1}
+        ]}).to_string()).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(wrong.snapshot_json().unwrap(), before);
+    }
+}
+
+#[cfg(test)]
 mod construction_tests {
     use super::*;
     use serde_json::json;
@@ -2430,7 +2466,8 @@ impl Kernel {
         let environment = self.environment.as_ref().ok_or("water exchange requires terrain")?;
         let spacing = environment.world.cell_spacing_m();
         let target = Position { x: at.x as f64 * spacing[0], y: (f64::from(at.y) + 0.5) * spacing[1], z: at.z as f64 * spacing[2], facing: 0.0 };
-        if navigation::distance(navigation::point(worker_pose), navigation::point(target)) > 1.5 {
+        let contact_distance = navigation::distance(navigation::point(worker_pose), navigation::point(target));
+        if contact_distance < 1e-9 || contact_distance > 1.5 {
             return Err("water exchange requires adjacent dry contact".into());
         }
         let (field_token, material_token) = match direction {
