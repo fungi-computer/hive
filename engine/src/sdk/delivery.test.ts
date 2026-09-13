@@ -128,6 +128,7 @@ for (const occupation of ["excavation", "construction"] as const) {
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
       },
+      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       atmosphereSamples: () => {
         throw new Error("unexpected atmosphere query in this fixture");
       },
@@ -307,6 +308,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
       },
+      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       atmosphereSamples: () => {
         throw new Error("unexpected atmosphere query in this fixture");
       },
@@ -459,6 +461,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
       },
+      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       atmosphereSamples: () => {
         throw new Error("unexpected atmosphere query in this fixture");
       },
@@ -577,6 +580,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     environmentFacts: () => {
       throw new Error("unexpected environment query in this fixture");
     },
+    constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
     atmosphereSamples: () => {
       throw new Error("unexpected atmosphere query in this fixture");
     },
@@ -682,6 +686,7 @@ test("full destination puts held goods down before releasing the worker", () => 
       environmentFacts: () => {
         throw new Error("no environment query");
       },
+      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
       atmosphereSamples: () => {
         throw new Error("no air query");
       },
