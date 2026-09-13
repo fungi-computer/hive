@@ -2910,7 +2910,7 @@ impl Kernel {
         if state.progress_seconds < stage.duration_seconds { self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(()); }
         let transition = &stage.transition;
         if let Err(reason) = self.execute_process_transition(process_id, transition) {
-            state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = if valid_id(&reason) { reason } else { "transition-blocked".into() };
+            state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = crate::staged_process::transition_block_reason(&reason).into();
             self.ecs.entity_mut(self.entity(process_id)?).insert(state); self.refresh_state_weight(); return Ok(());
         }
         if usize::from(state.stage_index + 1) >= definition.stages.len() { self.remove_process_bindings(process_id)?; state.phase = ProcessPhase::Complete; state.worker = None; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; state.worker = None; }
@@ -2926,6 +2926,8 @@ impl Kernel {
         for role in &transition.consume_roles { let rows: Vec<_> = bindings.iter().filter(|b| b.role == *role).collect(); if rows.is_empty() { return Err("transition-missing-binding".into()); } for binding in rows { portions.push(MaterialPortion { lot: binding.lot.clone(), quantity: binding.quantity }); } roles.insert(role.clone()); }
         if let Some(emission) = &transition.emission { let rows: Vec<_> = bindings.iter().filter(|b| b.role == emission.role).collect(); if rows.is_empty() { return Err("transition-missing-emission-binding".into()); } for binding in rows { portions.push(MaterialPortion { lot: binding.lot.clone(), quantity: binding.quantity }); } roles.insert(emission.role.clone()); }
         let prepared_consumption = if portions.is_empty() { None } else { Some(material_consumption::prepare(&self.material_consumption_owner, self.revision, &self.ecs, &self.ids, &self.registry, self.state_weight, &portions)?) };
+        let mut released_by_container: BTreeMap<String, u64> = BTreeMap::new();
+        for portion in &portions { if let Some(lot) = self.ecs.get::<Lot>(self.entity(&portion.lot)?) { *released_by_container.entry(lot.container.clone()).or_default() += u64::from(portion.quantity); } }
         let mut prepared_outputs = Vec::new();
         let mut planned_next_lot = self.next_lot;
         let mut planned_weight = self.state_weight;
@@ -2935,7 +2937,7 @@ impl Kernel {
                 crate::staged_process::OutputDestination::StationPort { port } => format!("{}:{}", self.ecs.get::<StagedProcess>(self.entity(process_id)?) .ok_or("process-missing")?.station, port),
                 crate::staged_process::OutputDestination::RetainedContainer { role } => bindings.iter().find(|b| b.role == *role).ok_or("output-retained-binding-missing")?.lot.clone(),
             };
-            let destination_quantity = self.quantity(&container).saturating_add(*planned_destinations.get(&container).unwrap_or(&0));
+            let destination_quantity = self.quantity(&container).saturating_sub(*released_by_container.get(&container).unwrap_or(&0)).saturating_add(*planned_destinations.get(&container).unwrap_or(&0));
             let capacity = self.ecs.get::<Container>(self.entity(&container)?) .ok_or("output-destination-not-container")?.capacity;
             let lot = Lot { kind: output.material.clone(), quantity: output.quantity, container: container.clone() };
             let added_weight = 128 + self.registry.weight("hive.lot", &record(&lot));

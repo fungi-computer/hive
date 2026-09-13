@@ -433,6 +433,19 @@ pub enum ProcessPhase {
     Complete,
 }
 
+/// Stable UI-facing reasons for a refused physical transition.
+pub fn transition_block_reason(error: &str) -> &'static str {
+    match error {
+        "transition-missing-binding" | "transition-missing-emission-binding" | "transition-retained-binding-missing" => "process-binding-missing",
+        "transition-air-unavailable" => "process-air-unavailable",
+        "transition-emission-capacity" | "transition-emission-already-paid" => "process-emission-blocked",
+        "transition-emitter-missing" | "transition-emitter-catalog-mismatch" | "transition-emission-definition-missing" | "transition-emission-material-mismatch" => "process-emission-invalid",
+        "output-destination-not-container" | "material output exceeds container capacity" => "process-output-full",
+        "region canonical state capacity" => "process-state-capacity",
+        _ => "process-transition-blocked",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
