@@ -414,12 +414,6 @@ export const colonyPack: GamePack = {
       reads: [ColonyResourceOrder], writes: [], lifecycle: [ColonyResourceOrder],
       run: (_context, input) => { const [x, y, z] = input.target.cell; const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`); return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0 } } }] }; },
     }),
-    tendMugwort: command({
-      title: "Tend mugwort", category: "Colony", description: "Water the next due stage of a tended mugwort site.",
-      input: z.object({ site: z.string().min(1).max(128), vessel: z.string().min(1).max(128) }).strict(),
-      reads: [ResourceSite, ColonyResourceOrder], writes: [ColonyResourceOrder],
-      run: (context, input) => ({ actions: [], writes: context.query(query(ColonyResourceOrder)).filter(row => row.get(ColonyResourceOrder).site === input.site).map(row => ({ component: ColonyResourceOrder.id, entity: row.id, value: { ...row.get(ColonyResourceOrder), vessel: entity(input.vessel), phase: "tend", actor: null, reason: "" } })) }),
-    }),
     requestBrew: command({
       title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",
       localPresentation: { bindings: [{ id: "brew-process", label: "Brew herbal ale", selection: { field: "station", cardinality: "one" } }] },
