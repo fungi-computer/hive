@@ -6,6 +6,7 @@ import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
+import { ConstructionApproach } from "../sdk/construction-work";
 import { MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { EmissionOrder } from "../sdk/emission-work";
@@ -100,6 +101,59 @@ test("actual Colony workers supply and finish a player floor with finite lumber"
     session.restore(session.save());
     assert.deepEqual(port.structureSurfaces([[1, 0]]), [[{ cell: [1, 13, 0] }]]);
     assert.equal(session.query(query(ConstructionSite))[0].get(ConstructionSite).phase, "finished");
+  } finally { port.dispose(); }
+});
+
+test("actual Colony queues an upper floor before its timber wall and waits for support", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    session.command("build", { catalog: "timber-wall", target: { cell: [1, 13, 0] } });
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 17, 0] } });
+    session.step(0.01);
+    const sites = session.query(query(ConstructionSite));
+    assert.equal(sites.length, 2);
+    const wall = sites.find(row => row.get(ConstructionSite).catalog === "timber-wall");
+    const floor = sites.find(row => row.get(ConstructionSite).catalog === "timber-floor");
+    assert(wall && floor);
+    const initialFloor = floor.get(ConstructionSite);
+    assert.equal(initialFloor.worker, null);
+    assert.equal(session.query(query(ConstructionApproach)).some(row => row.get(ConstructionApproach).site === floor.id), false);
+    assert.equal(port.constructionAccess([floor.id])[0].support, "waitingForSupport");
+    const current = (id: typeof wall.id) => session.query(query(ConstructionSite)).find(row => row.id === id)!.get(ConstructionSite);
+
+    let wallFinished = false;
+    let wallCompletionTick = -1;
+    let floorCompletionTick = -1;
+    for (let tick = 0; tick < 800; tick++) {
+      session.step(0.25);
+      wallFinished = current(wall.id).phase === "finished";
+      if (wallFinished && wallCompletionTick < 0) wallCompletionTick = tick;
+      if (current(floor.id).phase === "finished" && floorCompletionTick < 0) floorCompletionTick = tick;
+      if (wallFinished) break;
+    }
+    assert.equal(wallFinished, true, JSON.stringify(session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite))));
+    assert(floorCompletionTick < 0 || wallCompletionTick <= floorCompletionTick, `upper floor completed before wall: ${JSON.stringify({ wallCompletionTick, floorCompletionTick })}`);
+    assert.equal(port.constructionAccess([floor.id])[0].support, "ready");
+
+    let bothFinished = current(floor.id).phase === "finished" && current(wall.id).phase === "finished";
+    for (let tick = 0; tick < 800; tick++) {
+      session.step(0.25);
+      bothFinished = current(floor.id).phase === "finished" && current(wall.id).phase === "finished";
+      if (bothFinished) break;
+    }
+    assert.equal(bothFinished, true, JSON.stringify(session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite))));
+    const wood = session.query(query(MaterialLot)).map(row => row.get(MaterialLot)).filter(lot => lot.kind === "wood");
+    assert.equal(wood.reduce((sum, lot) => sum + lot.quantity, 0), 48);
+    const surfaces = port.structureSurfaces([[1, 0]]);
+    assert(surfaces[0].some(surface => surface.cell[1] === 17), JSON.stringify(surfaces));
+    const saved = session.save();
+    session.restore(saved);
+    assert.equal(session.query(query(ConstructionSite)).length, 2);
+    assert(session.query(query(ConstructionSite)).every(row => row.get(ConstructionSite).phase === "finished"));
+    assert.equal(port.constructionAccess([floor.id])[0].support, "ready");
+    assert.deepEqual(port.structureSurfaces([[1, 0]]), surfaces);
   } finally { port.dispose(); }
 });
 
