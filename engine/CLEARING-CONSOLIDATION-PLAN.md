@@ -212,15 +212,30 @@ two-person playtest was run for this release. Because the authoritative program
 identity changed under the clean-break policy, an older world requires explicit
 **New world**; its stored bytes are not silently migrated or deleted.
 
-## Retained brew station clean break — September 12
+## Buildable retained brew station — September 13
 
-The temporary standalone `colony.hearth` entity and its procedural rectangle/
-ellipse fire and smoke presentation are retired. The initial Colony station is
-now `colony.brew-station`, bound to the retained original brew-station asset and
-therefore remains the physical, selectable station. The native finite
-`wood-hearth` emission definition, worker assignment, fuel transfer, paid debit,
-and atmosphere owner remain in place; this change does not claim that the full
-retained brewing recipe loop has been migrated.
+The temporary standalone hearth and magic initial station are gone. The ordinary
+building catalog now offers one 2×2 brew-station fixture costing six wood and
+twelve seconds. The shared construction owner creates its kettle, hearth, barm,
+keg and tray ports at completion; the existing finite emission, assignment,
+delivery and atmosphere owners then light its retained original hearth art. Any
+number of finished stations use the same definition, compact inspection facts and
+selection-bound Whistle actions. Teardown waits for empty ports and returns three
+wood through the ordinary salvage owner.
+
+The integration checkpoint is `001bb59`, with the accepted Whistle wire tar
+`e767b3ae589183b89b74f13706c7b1a4954a5c1391a7f0ef304c35541a7ff36d`.
+Focused Rust contact evidence passes 1/1; the rebuilt generated WASM is
+`94c77857f86db9f6c9f264e34028be56432c47fd1595cbab0da0f3522eb77aa4`.
+Thirty joined station, port, smoke, terrain, supply and teardown laws plus strict
+engine types pass in `run-u6917.scope`. That run exposed and closed three general
+lifecycle defects: fixture contacts now stay inside the public contact contract;
+mutable installed capabilities are validated by schema rather than reset to their
+recipe seed; and supplied-material plus teardown receipts no longer retain live
+references to physical targets after those targets are consumed or removed.
+The full retained brewing recipe loop is still the next product slice. This source
+checkpoint is not a hosted release until the ordinary build and publication below
+produce a receipt.
 
 ## Retained-system restoration order — September 12
 
