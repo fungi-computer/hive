@@ -489,6 +489,8 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
       writes,
       scenario === "deposited"
         ? [[DeliveryTask, task, { ...state, actor: null, phase: "complete" }]]
+        : scenario === "departed-source"
+          ? [[DeliveryTask, task, { ...state, phase: "putting-down" }]]
         : [],
     );
     assert.deepEqual(
