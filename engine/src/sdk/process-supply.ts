@@ -21,7 +21,10 @@ export function processSupplyPhase(ctx: WriteContext): void {
   const lots = facts.lots;
   const admitted = new Set(ctx.outcomes.flatMap(({ action, result }) => action.kind === "admit-process" && result.accepted ? [action.process] : []));
   const waiting: { row: ProcessRow; process: { definition: string; station: EntityId }; requirements: ProcessRequirements }[] = [];
-  for (const row of ctx.query(query(StagedProcess))) {
+  const rows = ctx.query(query(StagedProcess)).slice().sort((a, b) => a.id.localeCompare(b.id));
+  const start = rows.length ? (ctx.clock.tick * 4) % rows.length : 0;
+  const window = Array.from({ length: Math.min(4, rows.length) }, (_, offset) => rows[(start + offset) % rows.length]!);
+  for (const row of window) {
     const process = row.get(StagedProcess);
     if (process.phase !== "waiting" || admitted.has(row.id)) continue;
     const requirements: ProcessRequirements = ctx.processRequirements(process.definition, process.station);
@@ -30,7 +33,7 @@ export function processSupplyPhase(ctx: WriteContext): void {
     waiting.push({ row, process, requirements });
   }
   const destinations = new Set(waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => entity(`${process.station}:${input.port}`))));
-  const sourceIds = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).slice(0, 64);
+  const sourceIds = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).sort((a, b) => a.localeCompare(b)).slice(0, 64);
   const supply: SiteSupplyRequirement[] = waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity })));
   if (supply.length) planSiteSupplies(ctx, { sourceContainers: sourceIds, batchQuantity: 1, requirements: supply });
   for (const { row, process, requirements } of waiting) {

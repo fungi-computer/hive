@@ -96,7 +96,7 @@ const processRequirementsSchema = z.object({
     policy: z.enum(["portion", "whole-lot"]),
     disposition: z.enum(["consume", "retain", "emission-source"]),
   }).strict()).min(1).max(32),
-  stages: z.array(z.object({ id: entityIdWireSchema, mode: z.enum(["attended", "elapsed"]), durationSeconds: z.number().finite().positive() }).strict()).min(1).max(32),
+  stages: z.array(z.object({ id: entityIdWireSchema, mode: z.enum(["attended", "elapsed"]), durationSeconds: z.number().finite().positive() }).strict()).min(1).max(16),
   phase: z.enum(["waiting", "working", "complete", "blocked"]),
 }).strict();
 const constructionAccessSchema = z.array(z.object({
