@@ -355,6 +355,9 @@ export const colonyPack: GamePack = {
   commands: {
     build: colonyBuildCommand,
     deconstruct: command({
+      title: "Deconstruct",
+      category: "Construction",
+      description: "Queue teardown of a finished construction site and recover its salvage.",
       input: z.object({ site: z.string().min(1).max(128) }).strict(),
       reads: [ConstructionSite, DeconstructionOrder], writes: [], lifecycle: [DeconstructionOrder],
       run(context, input) {
@@ -571,6 +574,7 @@ export const colonyPack: GamePack = {
       { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
       { id: "cancel-trees", label: "Cancel tree work", command: "cancelTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
       { id: "designate-stockpile", label: "Designate stockpile", command: "designateStockpile", input: { filterProfile: "wood", priority: 50 }, target: "terrain-area", designation: ["rectangle"] as const },
+      { id: "deconstruct", label: "Deconstruct", command: "deconstruct", selection: "entities", designation: ["entities"] as const },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));

@@ -20,7 +20,13 @@ export function projectContextualPresentation({
   const worldFacts = facts.filter((fact) => fact.subjects === undefined);
   const worldControls = controls.filter((control) => control.subjects === undefined);
   const selectionFacts = facts.filter((fact) => fact.subjects !== undefined && matchesSelection(fact, selected));
-  const selectionControls = controls.filter((control) => control.subjects !== undefined && matchesSelection(control, selected));
+  const selectionControls = controls.filter((control) => {
+    if (control.subjects !== undefined && !matchesSelection(control, selected)) return false;
+    // Deconstruction subjects are an authorized world projection; admission
+    // still rechecks the lifecycle at the durable command boundary.
+    if (control.command === "deconstruct") return matchesSelection(control, selected);
+    return control.subjects !== undefined;
+  });
   const labels = latestFacts
     .filter((fact) => selected.has(fact.id) && typeof fact.label === "string" && fact.label.length > 0)
     .map((fact) => fact.label);

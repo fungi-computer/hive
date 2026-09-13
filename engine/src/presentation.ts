@@ -1,5 +1,7 @@
 import type { GamePack, ReadContext } from "./contracts";
 import { z } from "zod";
+import { ConstructionSite } from "./sdk/construction";
+import { query } from "./sdk/authoring";
 
 const presentationSubjectsSchema = z.array(z.string().min(1).max(128))
   .min(1).max(128)
@@ -205,7 +207,11 @@ export function projectPresentation(
     if (control.selection) presentationCommand(control, []);
     if (control.target === "terrain-cell" || control.target === "world-surface") terrainPresentationCommand(control, [], { cell: [0, 0, 0], material: 0 });
     if (control.target === "terrain-area") terrainAreaPresentationCommand(control, [], { start: [0, 0, 0], end: [0, 0, 0] });
+    const contextualSubjects = control.command === "deconstruct"
+      ? context.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase === "finished").map(row => row.id)
+      : undefined;
     return Object.freeze({ ...control,
+      ...(contextualSubjects === undefined ? {} : { subjects: contextualSubjects }),
       ...(control.input === undefined ? {} : { input: controlInput(control.input) }),
     });
   });

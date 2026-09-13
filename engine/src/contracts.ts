@@ -574,6 +574,10 @@ export interface GameCommandResult {
 export interface GameCommandDefinition {
   /** The sole parser for input entering this command. */
   readonly input: z.ZodType;
+  /** Semantic metadata shared by human and agent projections. */
+  readonly title: string;
+  readonly category: string;
+  readonly description: string;
   /** Authored record creation/removal only; does not grant progress writes. */
   readonly lifecycle?: readonly ComponentDefinition<any>[];
   readonly reads?: readonly ComponentDefinition<any>[];

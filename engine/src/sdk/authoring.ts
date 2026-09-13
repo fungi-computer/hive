@@ -113,7 +113,10 @@ export function system(options: SystemOptions): SystemDefinition {
 }
 
 export function command<TInput>(
-  options: Omit<GameCommandDefinition, "input" | "invoke"> & {
+  options: Omit<GameCommandDefinition, "input" | "invoke" | "title" | "category" | "description"> & {
+    title?: string;
+    category?: string;
+    description?: string;
     input: z.ZodType<TInput>;
     run: (
       context: Pick<ReadContext, "query" | "physicalContacts">,
@@ -123,6 +126,9 @@ export function command<TInput>(
 ): GameCommandDefinition {
   return Object.freeze({
     input: options.input,
+    title: options.title ?? "Command",
+    category: options.category ?? "Game",
+    description: options.description ?? "Execute this game command.",
     lifecycle: Object.freeze([...(options.lifecycle ?? [])]),
     reads: Object.freeze([...(options.reads ?? [])]),
     writes: Object.freeze([...options.writes]),
