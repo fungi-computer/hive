@@ -24,6 +24,7 @@ struct ConstructionAccessContact {
 struct ConstructionAccessRow {
     site: String,
     support: &'static str,
+    materials_ready: bool,
     contacts: Vec<ConstructionAccessContact>,
 }
 
@@ -74,6 +75,11 @@ impl Kernel {
         let spacing = self.environment.as_ref().ok_or("construction needs environment")?.world.cell_spacing_m();
         let mut rows = Vec::with_capacity(ids.len());
         for site in ids {
+            let materials_ready = self.ids.get(&site).and_then(|entity| {
+                let state = self.ecs.get::<ConstructionSite>(*entity)?;
+                let definition = self.environment.as_ref()?.structures.get(&state.catalog)?;
+                Some(self.construction_materials_ready(&site, definition))
+            }).unwrap_or(false);
             let contacts = if let Some(entity) = self.ids.get(&site).copied() {
                 if let Some(state) = self.ecs.get::<ConstructionSite>(entity).cloned() {
                     if let Some(definition) = self.environment.as_ref().and_then(|environment| environment.structures.get(&state.catalog)).cloned() {
@@ -84,7 +90,7 @@ impl Kernel {
                 } else { Vec::new() }
             } else { Vec::new() };
             let support = statuses.get(&site).copied().unwrap_or("unknown");
-            rows.push(ConstructionAccessRow { site, support, contacts });
+            rows.push(ConstructionAccessRow { site, support, materials_ready, contacts });
         }
         serde_json::to_string(&rows).map_err(|_| "construction access encoding failed".into())
     }

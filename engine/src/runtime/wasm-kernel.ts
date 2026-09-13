@@ -85,6 +85,7 @@ const routeToAnyResultSchema = z.discriminatedUnion("status", [
 const constructionAccessSchema = z.array(z.object({
   site: entityIdWireSchema,
   support: z.enum(["ready", "waitingForSupport", "unknown"]),
+  materialsReady: z.boolean(),
   contacts: z.array(z.object({
     x: z.number().finite(), y: z.number().finite(), z: z.number().finite(),
     frame: z.null(), kind: z.enum(["origin", "landing"]),

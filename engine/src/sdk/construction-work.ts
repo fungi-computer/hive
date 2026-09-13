@@ -6,8 +6,6 @@ import {
   Container,
   Destination,
   ExcavationWork,
-  MaterialLot,
-  LotWater,
   Position,
   Support,
   Traversal,
@@ -21,31 +19,18 @@ export const ConstructionApproach = component<{ site: EntityId; worker: EntityId
   { version: 2, fields: { site: "entity", worker: "entity", contactX: "number", contactY: "number", contactZ: "number" } },
 );
 
-export type ConstructionMaterialRequirement = {
-  readonly material: string;
-  readonly quantity: number;
-};
-
 export type ConstructionWorkOptions = {
   readonly workers: readonly EntityId[];
-  readonly catalogMaterials: Readonly<Record<string, readonly ConstructionMaterialRequirement[]>>;
 };
 
 export type ConstructionCandidate = {
   readonly worker: EntityId;
   readonly task: EntityId;
   readonly contacts: readonly ConstructionAccessContact[];
+  readonly mode: "bind" | "work";
 };
 
 const MAX_WORKERS = 256;
-const MAX_CATALOGS = 128;
-const MAX_REQUIREMENTS = 64;
-const MAX_QUANTITY = 0xffffffff;
-
-function validQuantity(value: number): boolean {
-  return Number.isSafeInteger(value) && value > 0 && value <= MAX_QUANTITY;
-}
-
 function distance(
   left: { readonly x: number; readonly y: number; readonly z: number },
   right: { readonly x: number; readonly y: number; readonly z: number },
@@ -56,24 +41,8 @@ function distance(
 function validateOptions(options: ConstructionWorkOptions): void {
   if (!Array.isArray(options.workers) || options.workers.length > MAX_WORKERS)
     throw new Error("construction worker bound exceeded");
-  if (!options.catalogMaterials || Object.keys(options.catalogMaterials).length > MAX_CATALOGS)
-    throw new Error("construction catalog bound exceeded");
   for (const worker of options.workers) {
     entity(worker);
-  }
-  for (const [catalog, requirements] of Object.entries(options.catalogMaterials)) {
-    entity(catalog);
-    if (!Array.isArray(requirements) || requirements.length > MAX_REQUIREMENTS)
-      throw new Error("invalid construction catalog materials");
-    const kinds = new Set<string>();
-    let total = 0;
-    for (const requirement of requirements) {
-      if (!requirement || typeof requirement.material !== "string" || !requirement.material || kinds.has(requirement.material) || !validQuantity(requirement.quantity))
-        throw new Error("invalid construction material requirement");
-      kinds.add(requirement.material);
-      total += requirement.quantity;
-      if (!validQuantity(total)) throw new Error("construction material requirement overflow");
-    }
   }
 }
 
@@ -102,7 +71,6 @@ export function constructionWorkProvider(
     approaches.set(state.site, { id: row.id, state });
   }
   const siteIds = new Set(sites.map((row) => row.id));
-  const readiness = new Map((siteIds.size === 0 ? [] : ctx.constructionReadiness([...siteIds])).map((row) => [row.site, row.status]));
   const access = new Map((siteIds.size === 0 ? [] : ctx.constructionAccess([...siteIds])).map((row) => [row.site, row]));
   for (const row of approachRows) {
     if (!siteIds.has(row.get(ConstructionApproach).site)) ctx.removeAuthoredEntity(row.id);
@@ -115,57 +83,12 @@ export function constructionWorkProvider(
   const supports = new Set(ctx.query(query(Support)).map((row) => row.id));
   const excavations = new Set(ctx.query(query(ExcavationWork)).map((row) => row.id));
   const positions = new Map(ctx.query(query(Position)).map((row) => [row.id, row.get(Position)]));
-  const waterByLot = new Map(ctx.query(query(LotWater)).map((row) => [row.id, row.get(LotWater)]));
-  const lots = ctx.query(query(MaterialLot)).map((row) => ({
-    id: row.id,
-    lot: row.get(MaterialLot),
-    water: waterByLot.get(row.id),
-  }));
-  const quantities = new Map<EntityId, Map<string, number>>();
-  for (const { lot, water } of lots) {
-    if (!Number.isSafeInteger(lot.quantity) || lot.quantity < 0 || lot.quantity > MAX_QUANTITY) continue;
-    if (water && (!Number.isFinite(water.waterKg) || water.waterKg < 0)) continue;
-    if (water?.waterKg && water.waterKg > 0) continue;
-    const byKind = quantities.get(lot.container) ?? new Map<string, number>();
-    const total = (byKind.get(lot.kind) ?? 0) + lot.quantity;
-    if (Number.isSafeInteger(total) && total <= MAX_QUANTITY) byKind.set(lot.kind, total);
-    quantities.set(lot.container, byKind);
-  }
-  const ready = (site: EntityId, catalog: string): boolean => {
-    const requirements = options.catalogMaterials[catalog];
-    if (!requirements) return false;
-    const byKind = quantities.get(site) ?? new Map<string, number>();
-    return requirements.every((requirement) =>
-      (byKind.get(requirement.material) ?? 0) >= requirement.quantity,
-    );
-  };
   const relevant = [...new Set([...workers, ...sites.map((row) => row.id)])];
   const poses = new Map<EntityId, WorldPose>();
   for (let offset = 0; offset < relevant.length; offset += 128) {
     for (const pose of ctx.worldPoses(relevant.slice(offset, offset + 128))) poses.set(pose.id, pose);
   }
   const targetFor = (site: EntityId, contact: { x: number; y: number; z: number }): MoveDestination => ({ x: contact.x, y: contact.y, z: contact.z, frame: null });
-  // Bind the stable delivery stage before material delivery can select a site.
-  // This is a staging query only: it never claims or moves the worker.
-  for (const row of sites) {
-    const state = row.get(ConstructionSite);
-    if (state.phase !== "planned" || positions.has(row.id)) continue;
-    const accessRow = access.get(row.id);
-    if (!accessRow || accessRow.support !== "ready") continue;
-    const contacts = accessRow.contacts;
-    for (const worker of workers) {
-      const body = bodies.get(worker);
-      const pose = poses.get(worker);
-      if (!body || !Number.isFinite(body.speed) || body.speed <= 0 || !containers.has(worker) || !traversals.has(worker)
-        || supports.has(worker) || destinations.has(worker) || excavations.has(worker) || !pose) continue;
-      const routed = contacts.length === 0 ? null : ctx.routeToAny({ actor: worker, targets: contacts.map((contact) => targetFor(row.id, contact)) });
-      if (routed?.status === "reachable") {
-        const contact = contacts[routed.targetIndex];
-        if (contact) ctx.action(bindConstructionStage(row.id, contact));
-        if (contact) break;
-      }
-    }
-  }
   const activeClaims = sites.flatMap((row) => {
     const approach = approaches.get(row.id);
     const state = row.get(ConstructionSite);
@@ -173,25 +96,29 @@ export function constructionWorkProvider(
       return [];
     return [{ task: row.id, actor: state.worker ?? approach?.state.worker ?? null }];
   });
-  const occupiedActors = sites.flatMap((row) => {
+  const occupiedActors = [...new Set(sites.flatMap((row) => {
     const worker = row.get(ConstructionSite).worker;
     return worker === null ? [] : [worker];
-  });
+  }).concat([...approaches.values()].map(({ state }) => state.worker)))];
   const candidates = sites.flatMap((row) => {
     const state = row.get(ConstructionSite);
-    if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || approaches.has(row.id) || !positions.has(row.id) || readiness.get(row.id) !== "ready" || !ready(row.id, state.catalog)) return [];
-    const contacts = access.get(row.id)?.contacts ?? [];
+    if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || !access.has(row.id)) return [];
+    const accessRow = access.get(row.id)!;
+    if (accessRow.support !== "ready" || accessRow.contacts.length === 0) return [];
+    const mode: ConstructionCandidate["mode"] = positions.has(row.id) ? "work" : "bind";
+    if (mode === "work" && (!accessRow.materialsReady || approaches.has(row.id))) return [];
+    const contacts = accessRow.contacts;
     if (contacts.length === 0) return [];
     return workers.flatMap((worker) => {
       const body = bodies.get(worker);
       const pose = poses.get(worker);
       if (!body || !Number.isFinite(body.speed) || body.speed <= 0 || !containers.has(worker) || !traversals.has(worker)
         || supports.has(worker) || destinations.has(worker) || excavations.has(worker) || !pose) return [];
-      return [{ worker, task: row.id, contacts }];
+      return [{ worker, task: row.id, contacts, mode }];
     });
   });
   const assigned = new Set<EntityId>();
-  const routed = new Map<EntityId, Map<EntityId, { readonly contact: ConstructionAccessContact; readonly target: MoveDestination; readonly cost: number }>>();
+  const routed = new Map<string, { readonly contact: ConstructionAccessContact; readonly target: MoveDestination; readonly cost: number }>();
   const requestMove = (worker: EntityId, target: MoveDestination) => {
     ctx.action(move(worker, target));
   };
@@ -208,16 +135,19 @@ export function constructionWorkProvider(
       if (result.status !== "reachable") return null;
       const contact = candidate.contacts[result.targetIndex];
       if (!contact) return null;
-      const byTask = routed.get(candidate.worker) ?? new Map<EntityId, { readonly contact: ConstructionAccessContact; readonly target: MoveDestination; readonly cost: number }>();
-      byTask.set(candidate.task, { contact, target: targetFor(candidate.task, contact), cost: result.cost });
-      routed.set(candidate.worker, byTask);
+      routed.set(`${candidate.worker}\0${candidate.task}\0${candidate.mode}`, { contact, target: targetFor(candidate.task, contact), cost: result.cost });
       return result.cost;
     },
     apply: (assignments) => {
       for (const assignment of assignments) {
         const target = candidates.find((candidate) => candidate.worker === assignment.worker && candidate.task === assignment.task);
-        const chosen = routed.get(assignment.worker)?.get(assignment.task);
+        const mode = target?.mode;
+        const chosen = mode ? routed.get(`${assignment.worker}\0${assignment.task}\0${mode}`) : undefined;
         if (!target || !chosen) continue;
+        if (mode === "bind") {
+          ctx.action(bindConstructionStage(assignment.task, chosen.contact));
+          continue;
+        }
         ctx.createAuthoredEntity({
           id: approachIdFor(assignment.task),
           components: { [ConstructionApproach.id]: { site: assignment.task, worker: assignment.worker, contactX: chosen.contact.x, contactY: chosen.contact.y, contactZ: chosen.contact.z } },
@@ -232,7 +162,7 @@ export function constructionWorkProvider(
         const approach = approaches.get(row.id);
         if (!approach) continue;
         if (suspendedActors.has(approach.state.worker)) continue;
-        if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || readiness.get(row.id) !== "ready" || !ready(row.id, state.catalog)) {
+        if (sealed.has(row.id) || state.phase === "finished" || state.worker !== null || access.get(row.id)?.support !== "ready" || !access.get(row.id)?.materialsReady) {
           ctx.removeAuthoredEntity(approach.id);
           continue;
         }
@@ -272,7 +202,7 @@ export function constructionWorkSystem(options: ConstructionWorkOptions) {
     version: 1,
     reads: [
       ConstructionSite, ConstructionApproach, SealedContainer, Body, Container,
-      Traversal, Position, Destination, Support, ExcavationWork, MaterialLot, LotWater,
+      Traversal, Position, Destination, Support, ExcavationWork,
     ],
     writes: [ConstructionApproach],
     providers: [(ctx, suspendedActors) => constructionWorkProvider(ctx, options, suspendedActors)],

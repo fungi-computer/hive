@@ -459,6 +459,7 @@ export type ConstructionAccessContact = Vec3 & { readonly frame: null; readonly 
 export interface ConstructionAccess {
   readonly site: EntityId;
   readonly support: ConstructionReadinessStatus;
+  readonly materialsReady: boolean;
   readonly contacts: readonly ConstructionAccessContact[];
 }
 export type PhysicalContact = {

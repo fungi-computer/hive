@@ -72,7 +72,7 @@ function context(options: {
     },
     routeToAny: (request: { actor: typeof worker; targets: readonly unknown[] }) => ({ actor: request.actor, status: "reachable" as const, targetIndex: 0, cost: 6 }),
     constructionReadiness: (sites: readonly string[]) => sites.map((site) => ({ site, status: options.constructionStatus ?? "ready" })),
-    constructionAccess: (sites: readonly string[]) => sites.map((site) => ({ site, support: options.constructionStatus ?? "ready", contacts: [{ x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const }] })),
+    constructionAccess: (sites: readonly string[]) => sites.map((site) => ({ site, support: options.constructionStatus ?? "ready", materialsReady: options.includeMaterial, contacts: [{ x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const }] })),
     physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: (candidates: readonly { readonly worker: typeof worker; readonly task: typeof site; readonly cost: number }[]) => candidates,
     write: () => {},
@@ -85,7 +85,6 @@ function context(options: {
 
 const options = {
   workers: [worker],
-  catalogMaterials: { floor: [{ material: "stone", quantity: 1 }] },
 };
 
 test("construction eligibility filters missing material before route costs", () => {
