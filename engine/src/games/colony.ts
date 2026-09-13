@@ -25,6 +25,7 @@ import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
 import { colonyStockpileCommand } from "./colony-stockpile-command";
+import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
 
@@ -294,6 +295,7 @@ const colonyComponents = [
   Cat,
   ConstructionApproach,
   WorkParticipation,
+  StockpileCell,
 ] as const;
 
 function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
@@ -505,11 +507,17 @@ export const colonyPack: GamePack = {
         });
       })(),
     ],
-    terrainMarks: context => context.query(query(ColonyDigOrder)).map(row => {
+    terrainMarks: context => [
+      ...context.query(query(ColonyDigOrder)).map(row => {
       const order = row.get(ColonyDigOrder);
       return { id: row.id, cell: [order.cellX, order.cellY, order.cellZ] as const,
         status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
-    }),
+      }),
+      ...context.query(query(StockpileCell, Position)).map(row => ({
+        id: `stockpile-mark-${row.id}`, cell: [Math.round(row.get(Position).x), Math.floor(row.get(Position).y / colonyEnvironment.world.verticalMetres), Math.round(row.get(Position).z)] as const,
+        status: "queued" as const, kind: "stockpile" as const,
+      })),
+    ],
     controls: [
       { id: "light-hearth", label: "Light fire", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
@@ -521,7 +529,7 @@ export const colonyPack: GamePack = {
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
       { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
       { id: "cancel-trees", label: "Cancel tree work", command: "cancelTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
-      { id: "designate-stockpile", label: "Designate stockpile", command: "designateStockpile", target: "terrain-area", designation: ["rectangle"] as const },
+      { id: "designate-stockpile", label: "Designate stockpile", command: "designateStockpile", input: { filterProfile: "wood", priority: 50 }, target: "terrain-area", designation: ["rectangle"] as const },
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
@@ -535,6 +543,19 @@ export const colonyPack: GamePack = {
         Math.floor(station.z + 0.5),
       ]]).samples[0] : null;
       return [
+        ...(() => {
+          const grouped = new Map<string, { profile: string; priority: number; contents: number; capacity: number }>();
+          for (const row of context.query(query(StockpileCell, Container, Position))) {
+            const cell = row.get(StockpileCell), container = row.get(Container);
+            const current = grouped.get(cell.zone) ?? { profile: cell.filterProfile, priority: cell.priority, contents: 0, capacity: 0 };
+            current.contents += lots.filter(lot => lot.container === row.id).reduce((sum, lot) => sum + lot.quantity, 0);
+            current.capacity += container.capacity;
+            grouped.set(cell.zone, current);
+          }
+          return [...grouped.entries()].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0).slice(0, 32).map(([zone, value], index) => ({
+            id: `stockpile-zone-${index}`, label: "Stockpile", value: `${value.profile} · priority ${value.priority} · ${value.contents}/${value.capacity}`,
+          }));
+        })(),
         ...(() => {
           const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
           return context.query(query(ColonyTreeOrder)).flatMap(row => {
