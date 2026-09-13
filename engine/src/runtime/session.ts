@@ -354,7 +354,7 @@ export class GameSession {
       if (!known.delete(id)) throw new Error("unknown authored removal");
     }
     for (const id of requested)
-      if (!created.has(id) && !removed.has(id) && !known.has(id)) throw new Error(`unknown authored reference ${id}`);
+      if (!created.has(id) && !removed.has(id) && !known.has(id)) throw new Error(`unknown entity reference ${id}`);
     const checkReferences = (name: string, value: unknown) => {
       const definition = definitions.get(name as ComponentId)!;
       for (const [field,kind] of Object.entries(definition.fields)) {

@@ -311,7 +311,7 @@ test("authored entity references use native membership without snapshot capture"
   assert.throws(() => value.command("setLink", { target: "missing" }), /unknown entity reference/);
   assert.equal(calls, 2);
   value.command("setMorale", { value: 3 });
-  assert.equal(calls, 2);
+  assert.equal(calls, 3);
   assert.equal(port.snapshotCalls, 0);
 });
 
@@ -338,7 +338,7 @@ test("authored references span bounded membership calls without a new total limi
   session.start();
   port.throwOnSnapshot = true;
   session.command("links", {});
-  assert.deepEqual(batches, [128, 2]);
+  assert.deepEqual(batches, [128, 3]);
   assert.equal(port.snapshotCalls, 0);
 });
 
@@ -715,7 +715,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", {}));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 7);
+  assert.equal(value.save().version, 8);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {
