@@ -42,6 +42,47 @@ body {
   height: 100%;
   image-rendering: pixelated;
 }
+.hive-action-dock {
+  position: absolute;
+  z-index: 4;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  gap: 6px;
+  pointer-events: none;
+}
+.hive-action-dock > * { pointer-events: auto; }
+.hive-action-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 1px solid var(--color-base-300);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-base-content) 18%, transparent);
+}
+.hive-action-palette, .hive-active-tool {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  max-height: min(42vh, 260px);
+  overflow: auto;
+  padding: 7px;
+  border: 1px solid var(--color-base-300);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-base-100) 96%, transparent);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--color-base-content) 16%, transparent);
+}
+.hive-action-palette .hive-build-entry { min-width: min(220px, 100%); flex: 1 1 180px; }
+.hive-action-palette .hive-build-entry > button:first-child { flex: 1; }
+.hive-action-facts { display: flex; flex-wrap: wrap; gap: 4px 10px; width: 100%; font-size: .74rem; }
+.hive-active-tool { justify-content: flex-start; }
+.hive-active-tool > strong { margin-right: 4px; }
+.hive-active-tool > small { margin-right: auto; }
 .hive-hud {
   min-height: 0;
   overflow: auto;
@@ -194,3 +235,8 @@ nav a {
 .hive-hud-rail { min-height: 0; overflow: auto; padding: 16px; border-radius: 10px; }
 .hive-hud-rail > .hive-hud { overflow: visible; padding: 0; }
 .hive-hud-rail > .colony-performance-panel { border-top: 0; margin: 0 0 16px; padding: 0 0 12px; }
+@media (max-width: 560px) {
+  .hive-action-dock { left: 6px; right: 6px; bottom: 6px; }
+  .hive-action-palette { max-height: 36vh; }
+  .hive-action-palette .hive-build-entry { flex-basis: 140px; }
+}

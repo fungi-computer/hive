@@ -40,7 +40,7 @@ import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js
 
 import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
-import { omitControlsById, projectContextualPresentation } from "./contextual-presentation.js";
+import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
@@ -50,7 +50,9 @@ import { formationsPack } from "../games/formations.ts";
 import { piratesPack } from "../games/pirates.ts";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
-import { colonyControl, selectedBrewStation } from "./colony-presentation.js";
+import { selectedBrewStation } from "./colony-presentation.js";
+import { actionBarGroups } from "./action-bar.js";
+import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -114,6 +116,7 @@ export function createHiveClient({
       return (presentation.data.bindings ?? []).map(binding => ({
         ...binding,
         commandId: row.commandId,
+        category: row.category,
         command: row.commandId.slice(row.commandId.indexOf(":") + 1),
         label: binding.label || row.title,
         availability: row.availability,
@@ -194,6 +197,7 @@ export function createHiveClient({
     return executeWhistleCommand(control.commandId, input, control.label);
   }
   function changeViewLevel(level) {
+    closeActionBar();
     terrainArea.send({ type: "CANCEL" });
     clearPlacement();
     const next = setWorldViewLevel(state.view, level);
@@ -208,6 +212,7 @@ export function createHiveClient({
     renderHud();
   }
   function setCutaway(value) {
+    closeActionBar();
     terrainArea.send({ type: "CANCEL" });
     clearPlacement();
     state.view = toggleWorldCutaway(state.view, value);
@@ -224,6 +229,11 @@ export function createHiveClient({
   const hud = document.createElement("aside");
   hud.className = "hive-hud";
   const hudRoot = createRoot(hud);
+  const actionBarHost = document.createElement("div");
+  actionBarHost.className = "hive-action-dock";
+  const actionBarRoot = createRoot(actionBarHost);
+  const actionBarState = createActionBarState();
+  canvasHost.append(actionBarHost);
   root.replaceChildren(canvasHost, hud);
   const app = new Application();
   const overlay = new Container();
@@ -276,11 +286,13 @@ export function createHiveClient({
   function displayedTerrainHit(x, y, displayed) { return terrainPicker.hit(x, y, displayed, frameEpoch); }
   function displayedTerrainPoint(x, y, displayed) { return terrainPicker.point(x, y, displayed, frameEpoch); }
   function clearPlacement() { terrainTarget.send({ type: "CLEAR_PLACEMENT" }); }
+  function closeActionBar() { actionBarState.set(null); }
   function updateTerrainDisplay() {
     terrainLayer.update(displayedTerrainFrame(), frameEpoch, state.view.cutaway ? `cut:${state.view.level}` : "full");
   }
 
   function prepareNewWorld(remote) {
+    closeActionBar();
     if (remote) state.ready = false;
     state.pendingSave = false;
     state.pendingRestore = false;
@@ -402,6 +414,7 @@ export function createHiveClient({
       gesture.send({ type: "CANCEL" });
       terrainArea.send({ type: "CANCEL" });
       terrainTarget.send({ type: "ARM", control });
+      actionBarState.set(null);
       state.message = control.target === "terrain-area"
         ? `${control.label}: drag a rectangle; Escape exits`
         : `${control.label}: choose a visible terrain top; Escape exits`;
@@ -413,25 +426,17 @@ export function createHiveClient({
       if (!control || control.availability?.status === "unavailable") return;
       exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" });
       terrainTarget.send({ type: selectedGroup?.catalog === group.catalog ? "ROTATE" : "ARM", control });
+      actionBarState.set(null);
       state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
       renderHud();
     };
-    const plantControl = mode === "colony" ? colonyControl(controls, "sow-mugwort") : null;
-    const plantTool = plantControl ? React.createElement("section", { className: "hive-tool-strip", "aria-label": "Colony tools" },
-      React.createElement(Button, {
-        size: "sm",
-        variant: terrainTarget.getSnapshot().context.control?.id === "sow-mugwort" ? "secondary" : "outline",
-        "aria-pressed": terrainTarget.getSnapshot().context.control?.id === "sow-mugwort",
-        disabled: !state.ready || plantControl.availability?.status === "unavailable",
-        title: plantControl.availability?.status === "unavailable" ? plantControl.availability.reason : "Choose a clear soil tile to plant mugwort",
-        onClick: () => armTerrainControl(plantControl),
-      }, "Plant mugwort"),
-      terrainTarget.getSnapshot().context.control?.id === "sow-mugwort"
-        ? React.createElement("small", null, "Click a clear soil tile · Escape or right-click cancels")
-        : null,
-    ) : null;
-    const buildCatalog = buildGroups.length ? React.createElement("section", { className: "hive-build-catalog", "aria-label": "Build catalog" },
-      React.createElement("strong", null, "Build"),
+    const activeControl = terrainTarget.getSnapshot().context.control;
+    const activeBuildGroup = selectedGroup;
+    const cancelPlacement = () => {
+      terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
+      state.message = "Selection"; actionBarState.set(null); renderHud(); draw();
+    };
+    const renderBuildPalette = () => buildGroups.length && actionBarState.get() === "build" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Build palette" },
       buildGroups.map((group) => {
         const active = selectedGroup?.catalog === group.catalog;
         const orientation = active ? selectedBuild?.input?.orientation : group.orientations[0];
@@ -444,8 +449,6 @@ export function createHiveClient({
           active && group.orientations.length > 1 ? React.createElement("small", null, orientation) : null,
         );
       }),
-      selectedGroup ? React.createElement(Button, { size: "sm", variant: "primary", onClick: () => { terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" }); state.message = "Selection"; renderHud(); } }, "Done") : null,
-      selectedBuild?.command === "build" ? React.createElement("small", { className: "hive-placement-status", "aria-live": "polite" }, placementStatus) : null,
     ) : null;
     const contextualPresentation = projectContextualPresentation({
       facts: state.presentationFacts,
@@ -458,6 +461,9 @@ export function createHiveClient({
         ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
       ],
     });
+    // Only world-scoped commands belong in the global dock. Selection-scoped
+    // work remains on the selected person/object card.
+    const actionGroups = actionBarGroups(contextualPresentation.world.controls, buildIds);
     const selectedStation = mode === "colony" ? selectedBrewStation(latestFacts, state.selectedIds) : null;
     const stationSelection = selectedStation
       ? { ...contextualPresentation.selection, label: "Brew station" }
@@ -487,6 +493,36 @@ export function createHiveClient({
             },
           }, control.label)),
         ) : null;
+    const renderWorldControl = (control) => React.createElement(Button, {
+      key: control.id, size: "sm", variant: "outline",
+      disabled: !state.ready || control.availability?.status === "unavailable",
+      title: control.availability?.status === "unavailable" ? control.availability.reason : control.detail,
+      onClick: () => {
+        if (control.availability?.status === "unavailable") return;
+        if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
+          armTerrainControl(control); actionBarState.set(null); return;
+        }
+        if (aiming) audio.unlock();
+        executeWhistle(control, bindingCommand(control, state.selectedIds).input);
+      },
+    }, control.label);
+    const renderOrdersPalette = () => actionBarState.get() === "orders" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Orders and work palette" },
+      ...actionGroups.work.map(renderWorldControl),
+    ) : null;
+    const renderActiveTool = activeControl ? React.createElement("section", { className: "hive-active-tool", "aria-label": "Active tool" },
+      React.createElement("strong", null, activeControl.label),
+      activeControl.detail ? React.createElement("small", null, activeControl.detail) : null,
+      React.createElement("small", { className: "hive-placement-status", "aria-live": "polite" }, placementStatus),
+      activeBuildGroup?.orientations.length > 1 ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => chooseBuild(activeBuildGroup, nextOrientation(activeBuildGroup, activeBuildGroup.orientations.includes(activeControl.input?.orientation) ? activeControl.input.orientation : activeBuildGroup.orientations[0])) }, "Rotate ↻") : null,
+      React.createElement(Button, { size: "sm", variant: "primary", onClick: cancelPlacement }, "Done / cancel"),
+    ) : null;
+    const renderActionDock = () => React.createElement(React.Fragment, null,
+      renderBuildPalette(), renderOrdersPalette(), renderActiveTool(),
+      React.createElement("div", { className: "hive-action-bar", role: "toolbar", "aria-label": "World actions" },
+        buildGroups.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "build" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "build", onClick: () => { actionBarState.toggle("build"); renderHud(); } }, "Build") : null,
+        actionGroups.work.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "orders" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "orders", onClick: () => { actionBarState.toggle("orders"); renderHud(); } }, "Orders / Work") : null,
+      ),
+    );
     const act = (kind) => {
       if (kind === "reset") {
         state.selectedIds = [];
@@ -503,8 +539,6 @@ export function createHiveClient({
         React.createElement(
           CardContent,
           { className: "hive-card-content" },
-          plantTool,
-          buildCatalog,
           React.createElement(
             "div",
             { className: "hive-kicker" },
@@ -648,10 +682,6 @@ export function createHiveClient({
               ? "Select survivor · WASD / arrows move · E take bread · F eat"
               : "Click selects · Shift adds · drag selects a group · right click orders"),
           ),
-          renderPresentationGroup("World actions", {
-            ...contextualPresentation.world,
-            controls: omitControlsById(contextualPresentation.world.controls.filter((control) => control.id !== "sow-mugwort"), buildIds),
-          }),
           React.createElement(
             "a",
             { className: "hive-source", href: source },
@@ -673,6 +703,7 @@ export function createHiveClient({
         ),
       ),
     );
+    actionBarRoot.render(renderActionDock());
   }
 
   const camera = {
@@ -1176,7 +1207,7 @@ export function createHiveClient({
     event.preventDefault();
     if (terrainTarget.getSnapshot().value === "armed") {
       terrainArea.send({ type: "CANCEL" });
-      terrainTarget.send({ type: "CANCEL" }); state.message = "Selection"; renderHud(); return;
+      terrainTarget.send({ type: "CANCEL" }); closeActionBar(); state.message = "Selection"; renderHud(); return;
     }
     if (isAiming()) return;
     if (!state.ready) {
@@ -1236,7 +1267,7 @@ export function createHiveClient({
     }
     if (key === "escape" && terrainTarget.getSnapshot().value === "armed") {
       event.preventDefault(); terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
-      state.message = "Selection"; renderHud(); return;
+      state.message = "Selection"; closeActionBar(); renderHud(); return;
     }
     if (key === "escape" && isAiming()) { event.preventDefault(); toggleAim(); return; }
     if (directControl && directControl.key(key, true)) { event.preventDefault(); return; }
@@ -1577,6 +1608,8 @@ export function createHiveClient({
       unsubscribeRuntime?.();
       runtime?.dispose();
       hudRoot.unmount();
+      actionBarRoot.unmount();
+      actionBarHost.remove();
       gesture.stop();
       terrainTarget.stop();
       terrainArea.stop();
