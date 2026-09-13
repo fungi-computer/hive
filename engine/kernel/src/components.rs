@@ -11,7 +11,7 @@ pub const MAX_CARRIED_WATER_KG: f64 = 1.0e12;
 
 #[derive(Component, Clone)]
 pub struct ExternalId(pub String);
-#[derive(Component, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Position {
     pub x: f64,

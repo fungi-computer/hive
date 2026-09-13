@@ -164,6 +164,70 @@ mod construction_tests {
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
     }
 
+    fn install_floor_storage_recipe(kernel: &mut Kernel) {
+        use crate::environment_definition::{CompletionRecipe, PortDefinition};
+        let environment = kernel.environment.as_mut().unwrap();
+        environment.structures.get_mut("floor").unwrap().on_complete = CompletionRecipe {
+            components: vec![],
+            ports: vec![PortDefinition {
+                key: "storage".into(),
+                at_site_contact: true,
+                components: vec![
+                    ("hive.container".into(), record(&Container { capacity: 6 })),
+                    ("hive.stockpile-cell".into(), record(&StockpileCell {
+                        zone: "shelves".into(), priority: 4, filter_profile: "materials".into(),
+                    })),
+                ],
+            }],
+        };
+        let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
+        definition["structures"]["catalog"][0]["onComplete"] = json!({
+            "ports":[{"key":"storage","at":"site-contact","components":[
+                {"name":"hive.container","value":{"capacity":6}},
+                {"name":"hive.stockpile-cell","value":{"zone":"shelves","priority":4,"filterProfile":"materials"}}
+            ]}]
+        });
+        environment.definition = definition.to_string();
+    }
+
+    #[test]
+    fn construction_completion_consumes_inputs_and_installs_one_reloadable_storage_port() {
+        let (mut kernel, surface, contact) = world();
+        install_floor_storage_recipe(&mut kernel);
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
+
+        let site = kernel.entity("site-1").unwrap();
+        let port = kernel.entity("site-1:storage").unwrap();
+        assert_eq!(kernel.ecs.get::<ConstructionSite>(site).unwrap().phase, ConstructionPhase::Finished);
+        assert_eq!(kernel.ecs.get::<Container>(port).unwrap().capacity, 6);
+        assert_eq!(kernel.ecs.get::<Position>(port), kernel.ecs.get::<Position>(site));
+        assert_eq!(kernel.ecs.get::<StockpileCell>(port).unwrap().zone, "shelves");
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot.1").unwrap()).unwrap().quantity, 0);
+
+        kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
+        assert_eq!(kernel.ids.keys().filter(|id| id.as_str() == "site-1:storage").count(), 1);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+        assert_eq!(restored.ecs.get::<Position>(restored.entity("site-1:storage").unwrap()), restored.ecs.get::<Position>(restored.entity("site-1").unwrap()));
+    }
+
+    #[test]
+    fn environment_rejects_completion_recipes_that_seize_physical_ownership() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"construction-recipe",
+            "components":[], "initial":[]
+        }).to_string()).unwrap();
+        let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("construction-recipe")).unwrap();
+        definition["structures"]["catalog"][0]["onComplete"] = json!({
+            "components":[{"name":"hive.lot","value":{"kind":"wood","quantity":1,"container":"anything"}}]
+        });
+        assert!(kernel.load_environment(&definition.to_string()).unwrap_err().contains("cannot be installed"));
+    }
+
     #[test]
     fn native_stockpile_designation_creates_surface_cell_and_rejects_mixed_batch() {
         let (mut kernel, surface, _) = world();
@@ -223,7 +287,7 @@ mod construction_tests {
         let environment = kernel.environment.as_mut().unwrap();
         environment.structures.insert("wall".into(), crate::environment_definition::StructureDefinition {
             id: "wall".into(), shape: crate::environment_definition::StructureShape::Wall { height: 1 },
-            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0,
+            materials: [("stone-spoil".into(), 1)].into_iter().collect(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
         });
         let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
         definition["structures"]["catalog"].as_array_mut().unwrap().push(json!({
@@ -524,7 +588,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("stair".into(), crate::environment_definition::StructureDefinition {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
-            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
@@ -538,7 +602,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("bed".into(), crate::environment_definition::StructureDefinition {
             id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
-            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(),
         });
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
@@ -695,6 +759,32 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    fn validate_structure_recipes(&self) -> Result<()> {
+        let Some(environment) = &self.environment else { return Ok(()); };
+        let mut known = self.known.clone();
+        for (site, entity) in &self.ids {
+            let Some(state) = self.ecs.get::<ConstructionSite>(*entity) else { continue; };
+            let Some(definition) = environment.structures.get(&state.catalog) else { return Err("construction site catalog binding is missing".into()); };
+            for port in &definition.on_complete.ports { known.insert(format!("{site}:{}", port.key)); }
+        }
+        for definition in environment.structures.values() {
+            for (name, value) in &definition.on_complete.components {
+                if crate::registry::Registry::is_physical(name) && !matches!(name.as_str(), "hive.emitter" | "hive.visual") {
+                    return Err(format!("physical component {name} cannot be installed on a completed structure"));
+                }
+                self.registry.validate(name, value, &known)?;
+            }
+            for port in &definition.on_complete.ports {
+                for (name, value) in &port.components {
+                    if crate::registry::Registry::is_physical(name) && !matches!(name.as_str(), "hive.container" | "hive.stockpile-cell" | "hive.emitter" | "hive.visual") {
+                        return Err(format!("physical component {name} cannot be installed on a completed structure port"));
+                    }
+                    self.registry.validate(name, value, &known)?;
+                }
+            }
+        }
+        Ok(())
+    }
     pub fn new() -> Self {
         let mut ecs = World::new();
         let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
@@ -1546,6 +1636,7 @@ impl Kernel {
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
         candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.validate_structure_recipes()?;
         candidate.validate_construction_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
@@ -1682,6 +1773,7 @@ impl Kernel {
             let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
+            candidate.validate_structure_recipes()?;
             candidate.validate_construction_sites()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {

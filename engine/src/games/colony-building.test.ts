@@ -26,7 +26,7 @@ test("structures use one shape-owned support-to-origin convention", () => {
   const context = { query: () => [], physicalContacts: () => [] };
   for (const [catalog, expectedY] of [
     ["timber-floor", 17], ["timber-roof", 17], ["timber-stair", 17],
-    ["timber-wall", 18], ["timber-bed", 18],
+    ["timber-wall", 18], ["timber-bed", 18], ["timber-shelf", 18],
   ] as const) {
     const result = colonyBuildCommand.invoke(context, { catalog, orientation: "east", target: { cell: [2, 17, 3] } });
     const action = result.actions[0];

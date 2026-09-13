@@ -85,6 +85,19 @@ export interface EnvironmentStructureMaterial {
   readonly kind: string;
   readonly quantity: number;
 }
+export interface EnvironmentCompletionComponent {
+  readonly name: string;
+  readonly value: Readonly<Record<string, unknown>>;
+}
+export interface EnvironmentCompletionPort {
+  readonly key: string;
+  readonly components: readonly EnvironmentCompletionComponent[];
+  readonly at?: "site-contact";
+}
+export interface EnvironmentStructureCompletion {
+  readonly components?: readonly EnvironmentCompletionComponent[];
+  readonly ports?: readonly EnvironmentCompletionPort[];
+}
 
 export interface EnvironmentStructureDefinition {
   readonly id: string;
@@ -92,6 +105,7 @@ export interface EnvironmentStructureDefinition {
   readonly materials: readonly EnvironmentStructureMaterial[];
   readonly workSeconds: number;
   readonly workReachBelowCells: number;
+  readonly onComplete?: EnvironmentStructureCompletion;
 }
 
 export interface InitialSurfacePlacement {
@@ -151,7 +165,7 @@ export function validateEnvironmentDefinition(
     throw new Error("structures.catalog must contain at most 64 entries");
   }
   const ids = new Set<string>();
-  for (const entry of catalog) {
+  for (const entry of catalog as readonly EnvironmentStructureDefinition[]) {
     if (!entry || typeof entry.id !== "string" || entry.id.length === 0 || entry.id.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(entry.id) || ids.has(entry.id)
       || !Number.isFinite(entry.workSeconds) || entry.workSeconds <= 0 || entry.workSeconds > 86_400
       || !Number.isSafeInteger(entry.workReachBelowCells) || entry.workReachBelowCells < 0
@@ -172,6 +186,24 @@ export function validateEnvironmentDefinition(
     }
     if (shape.kind === "fixture" && new Set(shape.footprint.map(([x, z]) => `${x},${z}`)).size !== shape.footprint.length)
       throw new Error("invalid structure fixture footprint");
+    const completion = entry.onComplete;
+    if (completion !== undefined) {
+      if (!completion || (completion.components !== undefined && (!Array.isArray(completion.components) || completion.components.length > 32)) || (completion.ports !== undefined && (!Array.isArray(completion.ports) || completion.ports.length > 16)))
+        throw new Error("invalid structure completion recipe");
+      const validateComponents = (components: readonly EnvironmentCompletionComponent[]) => {
+        const names = new Set<string>();
+        for (const component of components) {
+          if (!component || typeof component.name !== "string" || !/^[A-Za-z0-9._:-]+$/.test(component.name) || names.has(component.name) || !component.value || typeof component.value !== "object" || Array.isArray(component.value)) throw new Error("invalid completion component");
+          names.add(component.name);
+        }
+      };
+      validateComponents(completion.components ?? []);
+      const keys = new Set<string>();
+      for (const port of completion.ports ?? []) {
+        if (!port || typeof port.key !== "string" || !/^[A-Za-z0-9._:-]+$/.test(port.key) || keys.has(port.key) || !Array.isArray(port.components) || port.components.length > 32 || port.at !== undefined && port.at !== "site-contact") throw new Error("invalid completion port");
+        keys.add(port.key); validateComponents(port.components);
+      }
+    }
     const endpointCount = shape.kind === "stair" ? 2 : 1;
     if (endpointCount * (4 + entry.workReachBelowCells * 5) > 32) {
       throw new Error("structure catalog entry exceeds 32 construction access contacts");

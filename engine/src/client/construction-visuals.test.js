@@ -36,3 +36,15 @@ test('Colony joins original wall art using actual site neighbors and checked ban
   for(const stage of ['stakes','frame','finished'])for(let mask=0;mask<16;mask++)
     assert(paths.has(JSON.stringify(DEFAULT_VISUAL_BINDINGS[`colony.wall.${stage}.joint-${mask}`].path)));
 });
+
+test('constructed shelves use the retained two-facing shelf artwork', () => {
+  const [visual] = colonyConstructionVisuals({query:()=>[{id:'shelf',get:()=>({
+    catalog:'timber-shelf',x:2,y:14,z:3,orientation:'east',phase:'finished',seconds:4,
+  })}]});
+  assert.equal(visual.visual, 'colony.shelf.finished');
+  const binding=DEFAULT_VISUAL_BINDINGS[visual.visual];
+  assert.equal(binding.facing,true);
+  const bank=JSON.parse(readFileSync('public/generated-art/goblin-static-art-v2/manifest.json','utf8'));
+  const paths=new Set(bank.entries.map(e=>JSON.stringify(e.path)));
+  assert(paths.has(JSON.stringify([...binding.path,1])));
+});

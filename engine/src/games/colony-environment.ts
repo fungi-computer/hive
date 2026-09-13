@@ -51,6 +51,8 @@ export const colonyEnvironment: EnvironmentDefinition = {
       { id: "timber-stair", shape: { kind: "stair", run: 2, rise: 4 }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 6 },
       { id: "timber-roof", shape: { kind: "cover" }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 3 },
       { id: "timber-bed", shape: { kind: "fixture", footprint: [[0, 0], [0, 1]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 3 },
+      { id: "timber-shelf", shape: { kind: "fixture", footprint: [[0, 0], [1, 0]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 3 }], workSeconds: 4,
+        onComplete: { ports: [{ key: "storage", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 12 } }, { name: "hive.stockpile-cell", value: { zone: "shelves", priority: 4, filterProfile: "materials" } }] }] } },
     ],
   },
   materials: [

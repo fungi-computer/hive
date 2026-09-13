@@ -52,7 +52,23 @@ struct StructureInput {
     materials: Vec<StructureMaterialInput>,
     work_seconds: f64,
     work_reach_below_cells: u32,
+    #[serde(default)]
+    on_complete: Option<CompletionInput>,
 }
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct CompletionInput {
+    #[serde(default)]
+    components: Vec<ComponentInput>,
+    #[serde(default)]
+    ports: Vec<PortInput>,
+}
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct ComponentInput { name: String, value: serde_json::Value }
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct PortInput { key: String, components: Vec<ComponentInput>, #[serde(default)] at: Option<String> }
 #[derive(Debug, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
 enum StructureShapeInput {
@@ -89,6 +105,18 @@ pub struct StructureDefinition {
     pub materials: BTreeMap<String, u32>,
     pub work_seconds: f64,
     pub work_reach_below_cells: u32,
+    pub on_complete: CompletionRecipe,
+}
+#[derive(Clone, Debug, Default)]
+pub struct CompletionRecipe {
+    pub components: Vec<(String, crate::components::Record)>,
+    pub ports: Vec<PortDefinition>,
+}
+#[derive(Clone, Debug)]
+pub struct PortDefinition { pub key: String, pub components: Vec<(String, crate::components::Record)>, pub at_site_contact: bool }
+
+fn component_record(value: serde_json::Value) -> Result<crate::components::Record, String> {
+    match value { serde_json::Value::Object(map) => Ok(map.into_iter().collect()), _ => Err("component value must be an object".into()) }
 }
 #[derive(Debug, Clone)]
 pub struct InitialSurfacePlacement {
@@ -247,7 +275,27 @@ fn prepare_definition_mode(
                 return Err("invalid structure required material".into());
             }
         }
-        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds, work_reach_below_cells: entry.work_reach_below_cells });
+        let on_complete = entry.on_complete.map(|recipe| -> Result<CompletionRecipe, String> {
+            if recipe.components.len() > 32 || recipe.ports.len() > 16 { return Err("structure completion recipe exceeds bounds".to_owned()); }
+            let mut names = BTreeSet::new();
+            let components = recipe.components.into_iter().map(|component| {
+                if !crate::components::valid_id(&component.name) || !names.insert(component.name.clone()) { return Err("invalid completion component".into()); }
+                Ok((component.name, component_record(component.value)?))
+            }).collect::<Result<Vec<_>, String>>()?;
+            let mut keys = BTreeSet::new();
+            let ports = recipe.ports.into_iter().map(|port| {
+                if !crate::components::valid_id(&port.key) || !keys.insert(port.key.clone()) || port.components.len() > 32 { return Err("invalid completion port".into()); }
+                let at_site_contact = match port.at.as_deref() { None => false, Some("site-contact") => true, Some(_) => return Err("invalid completion port placement".into()) };
+                let mut port_names = BTreeSet::new();
+                let components = port.components.into_iter().map(|component| {
+                    if !crate::components::valid_id(&component.name) || !port_names.insert(component.name.clone()) { return Err("invalid completion port component".into()); }
+                    Ok((component.name, component_record(component.value)?))
+                }).collect::<Result<Vec<_>, String>>()?;
+                Ok(PortDefinition { key: port.key, components, at_site_contact })
+            }).collect::<Result<Vec<_>, String>>()?;
+            Ok(CompletionRecipe { components, ports })
+        }).transpose()?.unwrap_or_default();
+        structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds, work_reach_below_cells: entry.work_reach_below_cells, on_complete });
     }
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
         return Err("initial placement count exceeds 512".into());

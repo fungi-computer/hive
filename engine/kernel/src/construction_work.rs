@@ -240,6 +240,19 @@ impl Kernel {
                             (crate::structure_geometry::StaticInstance::ApertureWall { id, base, height, opening_bottom, opening_height, .. }, crate::structure_geometry::StaticInstance::ApertureWall { id: other, base: other_base, height: other_height, opening_bottom: other_bottom, opening_height: other_opening, .. }) => id == other && base == other_base && height == other_height && opening_bottom == other_bottom && opening_height == other_opening,
                             _ => instance == &expected,
                         }) { return Err("finished construction linkage is invalid".into()); }
+                    for (name, value) in &definition.on_complete.components {
+                        if self.registry.read(&self.ecs, *entity, name).as_ref() != Some(value) { return Err(format!("finished construction site {id} is missing completion component {name}")); }
+                    }
+                    for port in &definition.on_complete.ports {
+                        let port_id = format!("{id}:{}", port.key);
+                        let port_entity = self.ids.get(&port_id).copied().ok_or_else(|| format!("finished construction site {id} is missing port {port_id}"))?;
+                        for (name, value) in &port.components {
+                            if self.registry.read(&self.ecs, port_entity, name).as_ref() != Some(value) { return Err(format!("finished construction port {port_id} is missing component {name}")); }
+                        }
+                        if port.at_site_contact && self.ecs.get::<Position>(port_entity) != self.ecs.get::<Position>(*entity) {
+                            return Err(format!("finished construction port {port_id} has invalid contact position"));
+                        }
+                    }
                 }
                 ConstructionPhase::Planned => if site.worker.is_some() || geometry_ids.contains(id) { return Err("planned construction progress is invalid".into()); },
                 ConstructionPhase::Working => {
@@ -254,9 +267,6 @@ impl Kernel {
             let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
             if self.ecs.get::<Container>(*entity).is_some_and(|container| container.capacity != capacity) {
                 return Err("construction site capacity mismatch".into());
-            }
-            if site.phase == ConstructionPhase::Finished && !self.construction_materials_ready(id, definition) {
-                return Err("finished construction materials are incomplete".into());
             }
         }
         Ok(())
@@ -353,14 +363,47 @@ impl Kernel {
         if self.structure_contact_problem(&prepared)?.is_some() { return Ok(false); }
         let site_entity = self.entity(site_id)?;
         if self.ecs.get::<SealedContainer>(site_entity).is_some() { return Ok(false); }
+        let mut portions = Vec::new();
+        for (kind, required) in &definition.materials {
+            let mut remaining = *required;
+            let lots: Vec<(String, u32)> = self.ids.iter().filter_map(|(id, entity)| {
+                let lot = self.ecs.get::<Lot>(*entity)?;
+                if lot.container == site_id && lot.kind == *kind && self.ecs.get::<LotWater>(*entity).map_or(true, |water| water.water_kg == 0.0) { Some((id.clone(), lot.quantity)) } else { None }
+            }).collect();
+            for (lot, quantity) in lots {
+                if remaining == 0 { break; }
+                let take = remaining.min(quantity);
+                if take > 0 { portions.push(MaterialPortion { lot, quantity: take }); remaining -= take; }
+            }
+            if remaining != 0 { return Ok(false); }
+        }
+        let prepared_consumption = self.prepare_material_consumption(&portions)?;
         let marker_weight = self.registry.weight("hive.sealed-container", &record(&SealedContainer {}));
-        if self.state_weight.saturating_add(marker_weight) > STATE_BYTES { return Ok(false); }
+        let recipe_weight: usize = definition.on_complete.components.iter().map(|(name, value)| self.registry.weight(name, value)).sum();
+        let site_position = self.ecs.get::<Position>(site_entity).copied();
+        if definition.on_complete.ports.iter().any(|port| port.at_site_contact && site_position.is_none()) { return Ok(false); }
+        let port_weight: usize = definition.on_complete.ports.iter().map(|port| port.key.len() + 128 + port.components.iter().map(|(name, value)| self.registry.weight(name, value)).sum::<usize>() + if port.at_site_contact { self.registry.weight("hive.position", &record(&site_position.unwrap())) } else { 0 }).sum();
+        if self.state_weight.saturating_add(marker_weight).saturating_add(recipe_weight).saturating_add(port_weight) > STATE_BYTES || self.ids.len().saturating_add(definition.on_complete.ports.len()) > 16384 { return Ok(false); }
+        for port in &definition.on_complete.ports {
+            let id = format!("{site_id}:{}", port.key);
+            if !crate::components::valid_id(&id) || self.known.contains(&id) { return Ok(false); }
+        }
         self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
+        self.publish_material_consumption(prepared_consumption)?;
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
         finished.worker = None;
         self.ecs.entity_mut(site_entity).insert((finished, SealedContainer {}));
-        self.state_weight += marker_weight;
+        for (name, value) in &definition.on_complete.components { self.registry.insert(&mut self.ecs, site_entity, name, value).expect("validated completion component"); }
+        for port in &definition.on_complete.ports {
+            let id = format!("{site_id}:{}", port.key);
+            let entity = self.ecs.spawn(ExternalId(id.clone())).id();
+            self.ids.insert(id.clone(), entity); self.known.insert(id.clone());
+            for (name, value) in &port.components { self.registry.insert(&mut self.ecs, entity, name, value).expect("validated completion port component"); }
+            if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
+            if self.ecs.get::<Container>(entity).is_some() { self.contents.insert(id, BTreeSet::new()); }
+        }
+        self.refresh_state_weight();
         Ok(true)
     }
     pub(super) fn set_structure_open(&mut self, worker: &str, site: &str, open: bool) -> Result<()> {
