@@ -2037,10 +2037,18 @@ impl Kernel {
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         let facts = environment.world.facts()?;
         let spacing = environment.world.cell_spacing_m();
-        let contacts: Vec<_> = facts.cells.into_iter().filter(|cell| cell.level > 0 && centers.iter().any(|center| {
+        let mut cells: Vec<_> = facts.cells.into_iter().filter(|cell| cell.level > 0 && centers.iter().any(|center| {
             let at = [cell.at[0] as f64 * spacing[0], (cell.at[1] as f64 + 0.5) * spacing[1], cell.at[2] as f64 * spacing[2]];
             (at[0]-center[0]).hypot(at[2]-center[2]) <= 8.0
-        })).take(128).map(|cell| {
+        })).collect();
+        cells.sort_by(|a, b| {
+            let nearest = |cell: &crate::water::WaterCellFact| centers.iter().map(|center| {
+                let at = [cell.at[0] as f64 * spacing[0], (cell.at[1] as f64 + 0.5) * spacing[1], cell.at[2] as f64 * spacing[2]];
+                (at[0]-center[0]).powi(2) + (at[1]-center[1]).powi(2) + (at[2]-center[2]).powi(2)
+            }).fold(f64::INFINITY, f64::min);
+            nearest(a).total_cmp(&nearest(b)).then_with(|| a.at.cmp(&b.at))
+        });
+        let contacts: Vec<_> = cells.into_iter().take(128).map(|cell| {
             let [x, y, z] = cell.at;
             let center = [(x as f64) * spacing[0], (y as f64 + 0.5) * spacing[1], (z as f64) * spacing[2]];
             json!({ "at": cell.at, "approaches": [
@@ -2983,7 +2991,7 @@ impl Kernel {
 
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
-            Action::ExchangeFieldWater { worker, vessel, x, y, z, direction, portions } => {
+            Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
             }

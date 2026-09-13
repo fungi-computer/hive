@@ -101,8 +101,8 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.worker) && id(action.station);
       break;
     case "exchange-field-water":
-      keys = ["kind", "worker", "vessel", "x", "y", "z", "direction", "portions"];
-      valid = id(action.worker) && id(action.vessel) &&
+      keys = ["kind", "operation", "worker", "vessel", "x", "y", "z", "direction", "portions"];
+      valid = id(action.operation) && id(action.worker) && id(action.vessel) &&
         [action.x, action.y, action.z].every(value => typeof value === "number" && Number.isSafeInteger(value)) &&
         (action.direction === "withdraw" || action.direction === "deposit") &&
         typeof action.portions === "number" && Number.isInteger(action.portions) && action.portions >= 1 && action.portions <= 7;

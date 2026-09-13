@@ -204,6 +204,7 @@ export type ActionRequest =
     }
   | {
       readonly kind: "exchange-field-water";
+      readonly operation: string;
       readonly worker: EntityId;
       readonly vessel: EntityId;
       readonly x: number;
