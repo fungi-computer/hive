@@ -10,15 +10,31 @@ const base = {
   random: { next: () => 0 },
   query: () => [],
   workMaterialFacts: () => ({ version: 1 as const, containers: [], lots: [] }),
-  routeCosts: () => { throw new Error("unexpected route query"); },
-  environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
-    atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
-    physicalContacts: () => { throw new Error("unexpected physical contact query in this fixture"); }, terrainMaterials: () => [],
+  routeCosts: () => {
+    throw new Error("unexpected route query");
+  },
+  routeToAny: () => {
+    throw new Error("unexpected route query");
+  },
+  environmentFacts: () => {
+    throw new Error("unexpected environment query in this fixture");
+  },
+  atmosphereSamples: () => {
+    throw new Error("unexpected atmosphere query in this fixture");
+  },
+  physicalContacts: () => {
+    throw new Error("unexpected physical contact query in this fixture");
+  },
+  terrainMaterials: () => [],
   terrainSurfaces: () => [],
   worldPoses: () => [],
   write: () => {},
-  createAuthoredEntity: () => { throw new Error("unexpected authored creation"); },
-  removeAuthoredEntity: () => { throw new Error("unexpected authored removal"); },
+  createAuthoredEntity: () => {
+    throw new Error("unexpected authored creation");
+  },
+  removeAuthoredEntity: () => {
+    throw new Error("unexpected authored removal");
+  },
   action: () => {},
 };
 
@@ -38,7 +54,10 @@ test("shared work system calls one matcher and preserves claims across providers
     writes: [],
     providers: [
       () => ({
-        claims: [{ task: heldTask, actor: heldWorker }, { task: delivery, actor: null }],
+        claims: [
+          { task: heldTask, actor: heldWorker },
+          { task: delivery, actor: null },
+        ],
         candidates: [{ worker, task: delivery }],
         lowerBound: () => 11,
         estimate: () => 11,
@@ -70,15 +89,43 @@ test("shared work system calls one matcher and preserves claims across providers
 
 test("planning phases run before providers and expose their overlay writes", () => {
   const marker = entity("phase.marker");
-  const Marker = component<{ value: number }>("test.marker", { version: 1, fields: { value: "number" } });
+  const Marker = component<{ value: number }>("test.marker", {
+    version: 1,
+    fields: { value: "number" },
+  });
   let value = 0;
   const phaseSystem = createWorkSystem({
-    id: "test.phase-order", version: 1, reads: [Marker], writes: [Marker],
-    phases: [ctx => ctx.write(Marker, marker, { value: 7 })],
-    providers: [ctx => {
-      assert.equal(ctx.query({ components: [Marker] })[0]?.get(Marker).value, 7);
-      return { claims: [], candidates: [], lowerBound: () => 0, estimate: () => null, apply: () => {}, progress: () => {} };
-    }],
+    id: "test.phase-order",
+    version: 1,
+    reads: [Marker],
+    writes: [Marker],
+    phases: [(ctx) => ctx.write(Marker, marker, { value: 7 })],
+    providers: [
+      (ctx) => {
+        assert.equal(
+          ctx.query({ components: [Marker] })[0]?.get(Marker).value,
+          7,
+        );
+        return {
+          claims: [],
+          candidates: [],
+          lowerBound: () => 0,
+          estimate: () => null,
+          apply: () => {},
+          progress: () => {},
+        };
+      },
+    ],
   });
-  phaseSystem.run({ ...base, assign: () => [], query: (spec) => (spec.components[0]?.id === "test.marker" ? [{ id: marker, get: (() => ({ value })) as never }] : []) as never, write: (_definition, _entity, next) => { value = (next as { value: number }).value; } });
+  phaseSystem.run({
+    ...base,
+    assign: () => [],
+    query: (spec) =>
+      (spec.components[0]?.id === "test.marker"
+        ? [{ id: marker, get: (() => ({ value })) as never }]
+        : []) as never,
+    write: (_definition, _entity, next) => {
+      value = (next as { value: number }).value;
+    },
+  });
 });

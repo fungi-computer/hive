@@ -50,6 +50,9 @@ class TestPort implements KernelPort {
   routeCosts(): readonly import("../contracts").RouteCostResult[] {
     throw new Error("unexpected route query");
   }
+  routeToAny(): import("../contracts").RouteToAnyResult {
+    throw new Error("unexpected route query");
+  }
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",

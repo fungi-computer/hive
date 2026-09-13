@@ -38,12 +38,7 @@ import {
   move,
   cancelWork,
 } from "../sdk/common";
-import type {
-  EntityId,
-  TerrainSurface,
-  Vec3,
-  WriteContext,
-} from "../contracts";
+import type { EntityId, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
 import {
   StockpileCell,
@@ -290,25 +285,16 @@ const treeWorkProvider = (
         : 0;
     },
     estimate: (candidate) => {
-      const results = ctx.routeCosts(
-        candidate.approaches.map((target) => ({
-          actor: candidate.worker,
-          target,
-        })),
-      );
-      let best: { target: TreeCandidate["target"]; cost: number } | null = null;
-      for (const [index, result] of results.entries()) {
-        if (result.status !== "reachable" || !Number.isFinite(result.cost))
-          continue;
-        if (!best || result.cost < best.cost)
-          best = { target: candidate.approaches[index], cost: result.cost };
-      }
-      if (!best) return null;
+      const result = ctx.routeToAny({
+        actor: candidate.worker,
+        targets: candidate.approaches,
+      });
+      if (result.status !== "reachable") return null;
       selectedApproaches.set(
         `${candidate.worker}\0${candidate.task}`,
-        best.target,
+        candidate.approaches[result.targetIndex],
       );
-      return best.cost;
+      return result.cost;
     },
     apply: (assignments) => {
       for (const assignment of assignments) {
@@ -502,6 +488,24 @@ function progressClaimedDig(
         ),
       );
     } else {
+      const supportY = Math.round(state.approachY / verticalMetres - 0.5);
+      const [support, clearance] = ctx.terrainMaterials([
+        [Math.round(state.approachX), supportY, Math.round(state.approachZ)],
+        [
+          Math.round(state.approachX),
+          supportY + 1,
+          Math.round(state.approachZ),
+        ],
+      ]);
+      if (support === air || clearance !== air) {
+        ctx.write(ColonyDigOrder, id, {
+          ...state,
+          actor: null,
+          phase: "queued",
+          reason: "Approach changed",
+        });
+        return;
+      }
       // Move owns route repair.  Reissuing the same destination is idempotent
       // while its route is healthy, and asks the native owner to rebuild when
       // topology invalidation left the retained terrain route waiting.
@@ -538,6 +542,74 @@ function progressClaimedDig(
   }
 }
 
+function digApproaches(
+  state: Pick<DigOrder, "cellX" | "cellY" | "cellZ">,
+  designatedCells: ReadonlySet<string>,
+): readonly (Vec3 & { readonly frame: null })[] {
+  const horizontal = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ] as const;
+  const vertical = [-2, -1, 0, 1] as const;
+  return horizontal.flatMap(([dx, dz]) =>
+    vertical.flatMap((dy) => {
+      const x = state.cellX + dx;
+      const y = state.cellY + dy;
+      const z = state.cellZ + dz;
+      return designatedCells.has(`${x},${y},${z}`)
+        ? []
+        : [{ x, y: (y + 0.5) * verticalMetres, z, frame: null }];
+    }),
+  );
+}
+
+type DigCandidateFacts = {
+  readonly workers: ReadonlySet<EntityId>;
+  readonly bodies: ReadonlySet<EntityId>;
+  readonly positions: ReadonlyMap<EntityId, WorldPose>;
+  readonly occupied: ReadonlySet<EntityId>;
+  readonly designatedCells: ReadonlySet<string>;
+  readonly standingCells: ReadonlySet<string>;
+};
+
+function candidatesForDigOrder(
+  order: EntityId,
+  state: DigOrder,
+  material: number | undefined,
+  facts: DigCandidateFacts,
+): readonly DigCandidate[] {
+  const cellKey = `${state.cellX},${state.cellY},${state.cellZ}`;
+  if (
+    state.actor !== null ||
+    facts.standingCells.has(cellKey) ||
+    material === undefined ||
+    material === air
+  )
+    return [];
+  const expected = state.expected >= 0 ? state.expected : material;
+  if (material !== expected) return [];
+  const approaches = digApproaches(state, facts.designatedCells);
+  if (!approaches.length) return [];
+  return [...facts.workers]
+    .filter(
+      (worker) =>
+        !facts.occupied.has(worker) &&
+        facts.positions.has(worker) &&
+        facts.bodies.has(worker),
+    )
+    .map((worker) => ({
+      worker,
+      task: order,
+      order,
+      cell: { x: state.cellX, y: state.cellY, z: state.cellZ },
+      expected,
+      approaches,
+      cost: Number.POSITIVE_INFINITY,
+    }));
+}
+
 function digProvider(
   ctx: WriteContext,
   suspendedActors: ReadonlySet<EntityId>,
@@ -549,9 +621,7 @@ function digProvider(
       .filter((row) => !row.get(Worker).guest)
       .map((row) => row.id),
   );
-  const bodies = new Map(
-    ctx.query(query(Body)).map((row) => [row.id, row.get(Body)]),
-  );
+  const bodies = new Set(ctx.query(query(Body)).map((row) => row.id));
   const positions = new Map(
     ctx.worldPoses([...bodies.keys()]).map((pose) => [pose.id, pose]),
   );
@@ -560,7 +630,10 @@ function digProvider(
   // occupied support at admission and completion, including movement races.
   const standingCells = new Set(
     [...positions.values()]
-      .filter((pose) => !supported.has(pose.id))
+      // Idle workers standing on a designation are eligible to take that job:
+      // assignment first moves them to a legal approach. Non-workers remain a
+      // physical obstruction until they leave.
+      .filter((pose) => !supported.has(pose.id) && !workers.has(pose.id))
       .map(
         (pose) =>
           `${Math.round(pose.world.x)},${Math.round(pose.world.y / verticalMetres - 0.5)},${Math.round(pose.world.z)}`,
@@ -606,108 +679,37 @@ function digProvider(
   const currentMaterial = new Map(
     activeOrders.map((row, index) => [row.id, materials[index]]),
   );
-  const columns = activeOrders.flatMap((row) => {
-    const { cellX: x, cellZ: z } = row.get(ColonyDigOrder);
-    return [
-      [x, z],
-      [x - 1, z],
-      [x + 1, z],
-      [x, z - 1],
-      [x, z + 1],
-    ] as [number, number][];
-  });
-  const uniqueColumns = [
-    ...new Map(columns.map((column) => [column.join(","), column])).values(),
-  ];
-  const surfaceByColumn = new Map<string, TerrainSurface | null>();
-  for (let offset = 0; offset < uniqueColumns.length; offset += 64) {
-    const batch = uniqueColumns.slice(offset, offset + 64);
-    const surfaces = ctx.terrainSurfaces(batch);
-    batch.forEach((column, index) =>
-      surfaceByColumn.set(column.join(","), surfaces[index] ?? null),
-    );
-  }
-  const requests: {
-    actor: EntityId;
-    target: Vec3 & { frame: null };
-    candidate: DigCandidate;
-  }[] = [];
-  for (const row of activeOrders) {
-    const state = row.get(ColonyDigOrder);
-    if (state.actor !== null || obstructed(state)) continue;
-    const materialSlot = currentMaterial.get(row.id);
-    if (materialSlot === undefined || materialSlot === air) continue;
-    const expected = state.expected >= 0 ? state.expected : materialSlot;
-    if (materialSlot !== expected) continue;
-    const targetSurface = surfaceByColumn.get(`${state.cellX},${state.cellZ}`);
-    if (
-      !targetSurface ||
-      targetSurface.cell[0] !== state.cellX ||
-      targetSurface.cell[1] !== state.cellY ||
-      targetSurface.cell[2] !== state.cellZ
-    )
-      continue;
-    for (const worker of workers) {
-      if (occupied.has(worker) || !positions.has(worker) || !bodies.has(worker))
-        continue;
-      const adjacent: [number, number][] = [
-        [state.cellX - 1, state.cellZ],
-        [state.cellX + 1, state.cellZ],
-        [state.cellX, state.cellZ - 1],
-        [state.cellX, state.cellZ + 1],
-      ];
-      for (const [x, z] of adjacent) {
-        const surface = surfaceByColumn.get(`${x},${z}`);
-        if (
-          !surface ||
-          (surface.cell[0] === state.cellX && surface.cell[2] === state.cellZ)
-        )
-          continue;
-        const approach = {
-          x,
-          y: (surface.cell[1] + 0.5) * verticalMetres,
-          z,
-          frame: null as null,
-        };
-        requests.push({
-          actor: worker,
-          target: approach,
-          candidate: {
-            worker,
-            task: row.id,
-            order: row.id,
-            cell: { x: state.cellX, y: state.cellY, z: state.cellZ },
-            expected,
-            approaches: [approach],
-            cost: Number.POSITIVE_INFINITY,
-          },
-        });
-      }
-    }
-  }
-  const rotated = requests
-    .slice((ctx.clock.tick * 32) % Math.max(1, requests.length))
-    .concat(
-      requests.slice(0, (ctx.clock.tick * 32) % Math.max(1, requests.length)),
-    )
-    .slice(0, 128);
-  const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
-  const routable = rotated.filter(
-    ({ actor, candidate }) =>
-      !occupied.has(actor) && claimByTask.get(candidate.task) === null,
+  const designatedCells = new Set(
+    activeOrders.map((row) => {
+      const state = row.get(ColonyDigOrder);
+      return `${state.cellX},${state.cellY},${state.cellZ}`;
+    }),
   );
-  const grouped = new Map<string, DigCandidate>();
-  for (const { candidate } of routable) {
-    const key = `${candidate.worker}\0${candidate.task}`;
-    const prior = grouped.get(key);
-    if (prior)
-      grouped.set(key, {
-        ...prior,
-        approaches: [...prior.approaches, ...candidate.approaches],
-      });
-    else grouped.set(key, candidate);
-  }
-  const prepared = [...grouped.values()];
+  // Candidate discovery is three-dimensional. Native navigation filters
+  // nearby supports by actual material, clearance, obstacles and excavation
+  // reach; a top-surface-per-column projection would hide caves.
+  const candidateFacts: DigCandidateFacts = {
+    workers,
+    bodies,
+    positions,
+    occupied,
+    designatedCells,
+    standingCells,
+  };
+  const candidates = activeOrders.flatMap((row) =>
+    candidatesForDigOrder(
+      row.id,
+      row.get(ColonyDigOrder),
+      currentMaterial.get(row.id),
+      candidateFacts,
+    ),
+  );
+  const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
+  const prepared = candidates.filter(
+    (candidate) =>
+      !occupied.has(candidate.worker) &&
+      claimByTask.get(candidate.task) === null,
+  );
   const best = new Map<
     string,
     { approach: Vec3 & { readonly frame: null }; cost: number }
@@ -717,28 +719,16 @@ function digProvider(
     const key = `${candidate.worker}\0${candidate.task}`;
     if (evaluated.has(key)) return;
     evaluated.add(key);
-    for (let offset = 0; offset < candidate.approaches.length; offset += 32) {
-      const batch = candidate.approaches
-        .slice(offset, offset + 32)
-        .map((target) => ({
-          actor: candidate.worker,
-          target,
-          excavationTarget: [
-            candidate.cell.x,
-            candidate.cell.y,
-            candidate.cell.z,
-          ] as const,
-        }));
-      const results = ctx.routeCosts(batch);
-      for (let index = 0; index < batch.length; index++) {
-        const result = results[index];
-        if (result?.status !== "reachable" || !Number.isFinite(result.cost))
-          continue;
-        const prior = best.get(key);
-        if (!prior || result.cost < prior.cost)
-          best.set(key, { approach: batch[index].target, cost: result.cost });
-      }
-    }
+    const result = ctx.routeToAny({
+      actor: candidate.worker,
+      targets: candidate.approaches,
+      excavationTarget: [candidate.cell.x, candidate.cell.y, candidate.cell.z],
+    });
+    if (result.status === "reachable")
+      best.set(key, {
+        approach: candidate.approaches[result.targetIndex],
+        cost: result.cost,
+      });
   };
   let assigned = new Set<EntityId>();
   return {

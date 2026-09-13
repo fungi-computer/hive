@@ -1,6 +1,7 @@
 import { component, query, system } from "../sdk/authoring.js";
 import { Body, Destination, Position, Traversal, move } from "../sdk/common.js";
 import type { EntityId, WriteContext } from "../contracts.js";
+import { colonyEnvironment } from "./colony-environment.js";
 
 /** Authored cat intent. Movement and reachability remain native-owned. */
 export const Cat = component<{
@@ -70,20 +71,22 @@ export const colonyCatSystem = system({
   writes: [Cat],
   run(context) {
     const now = context.clock.now;
-    const destinations = new Set(context.query(query(Destination)).map((row: any) => row.id));
+    const destinations = new Set(
+      context.query(query(Destination)).map((row) => row.id),
+    );
     for (const row of catRows(context)) {
-      const cat = row.get(Cat) as {
-        home: EntityId;
-        nextAt: number;
-        seed: number;
-        blockedUntil: number;
-      };
+      const cat = row.get(Cat);
       if (now < cat.nextAt || now < cat.blockedUntil) continue;
 
-      const position = row.get(Position) as { x: number; y: number; z: number; facing: number };
-      const home = context.query(query(Position)).find((candidate: any) => candidate.id === cat.home)?.get(Position) as { x: number; y: number; z: number; facing: number } | undefined;
+      const position = row.get(Position);
+      const home = context
+        .query(query(Position))
+        .find((candidate) => candidate.id === cat.home)
+        ?.get(Position);
       const seed = nextSeed(cat.seed);
-      const previous = context.outcomes.find(({ action }: any) => action.kind === "move" && action.entity === row.id);
+      const previous = context.outcomes.find(
+        ({ action }) => action.kind === "move" && action.entity === row.id,
+      );
       if (previous && !previous.result.accepted) {
         context.write(Cat, row.id, {
           ...cat,
@@ -94,14 +97,44 @@ export const colonyCatSystem = system({
         continue;
       }
       if (!home || destinations.has(row.id)) {
-        context.write(Cat, row.id, { ...cat, seed, nextAt: now + RETRY_INTERVAL });
+        context.write(Cat, row.id, {
+          ...cat,
+          seed,
+          nextAt: now + RETRY_INTERVAL,
+        });
         continue;
       }
       const delta = offset(seed);
-      const target = { x: Math.round(home.x + delta.x), y: home.y, z: Math.round(home.z + delta.z), frame: null };
-      const facing = Math.round((Math.atan2(target.x - position.x, target.z - position.z) / (Math.PI / 2))) || 0;
+      const x = Math.round(home.x + delta.x),
+        z = Math.round(home.z + delta.z);
+      const surface = context.terrainSurfaces([[x, z]])[0];
+      if (!surface) {
+        context.write(Cat, row.id, {
+          ...cat,
+          seed,
+          nextAt: now + RETRY_INTERVAL,
+          blockedUntil: now + RETRY_INTERVAL,
+        });
+        continue;
+      }
+      const target = {
+        x,
+        y: (surface.cell[1] + 0.5) * colonyEnvironment.world.verticalMetres,
+        z,
+        frame: null,
+      };
+      const facing =
+        Math.round(
+          Math.atan2(target.x - position.x, target.z - position.z) /
+            (Math.PI / 2),
+        ) || 0;
       context.action(move(row.id, target, ((facing % 4) + 4) % 4));
-      context.write(Cat, row.id, { ...cat, seed, nextAt: now + WANDER_INTERVAL, blockedUntil: 0 });
+      context.write(Cat, row.id, {
+        ...cat,
+        seed,
+        nextAt: now + WANDER_INTERVAL,
+        blockedUntil: 0,
+      });
     }
   },
 });

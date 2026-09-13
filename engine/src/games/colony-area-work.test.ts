@@ -75,7 +75,15 @@ test("area workers excavate and return finite spoil without manual movement", ()
     for (let tick = 0; tick < 120; tick++) {
       session.step(0.25);
       if (tick === 12) session.restore(session.save());
-      if (session.query(query(ColonyDigOrder)).length === 0) {
+      const spoil = session
+        .query(query(MaterialLot))
+        .map((row) => row.get(MaterialLot))
+        .filter((lot) => lot.kind === "soil-spoil");
+      if (
+        session.query(query(ColonyDigOrder)).length === 0 &&
+        spoil.length > 0 &&
+        spoil.every((lot) => lot.container === "colony.pantry")
+      ) {
         finished = true;
         break;
       }
@@ -109,7 +117,15 @@ test("area excavation preserves hauling across changed terrain at browser-sized 
     for (let tick = 0; tick < 2500; tick++) {
       session.step(0.016);
       if (tick % 200 === 199) session.restore(session.save());
-      if (session.query(query(ColonyDigOrder)).length === 0) {
+      const spoil = session
+        .query(query(MaterialLot))
+        .map((row) => row.get(MaterialLot))
+        .filter((lot) => lot.kind === "soil-spoil");
+      if (
+        session.query(query(ColonyDigOrder)).length === 0 &&
+        spoil.length > 0 &&
+        spoil.every((lot) => lot.container === "colony.pantry")
+      ) {
         finished = true;
         break;
       }

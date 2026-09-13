@@ -862,7 +862,7 @@ impl Kernel {
     /// Price a batch of terrain destinations from one actor with one shared
     /// frontier. In-flight routes retain their existing per-route prefix
     /// semantics and use the authoritative single-destination preparation.
-    pub(super) fn route_for_many(
+    fn route_for_many(
         &mut self, entity: Entity, start: Position, destinations: &[Point],
     ) -> Result<Vec<Result<PreparedRoute>>> {
         if destinations.is_empty() { return Ok(Vec::new()); }
@@ -871,7 +871,7 @@ impl Kernel {
             return Ok(destinations.iter().map(|target| self.route_for(entity, start, target)).collect());
         }
         let capability = *self.ecs.get::<Traversal>(entity).ok_or("terrain traversal needs capability")?;
-        let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+        let environment = self.environment.as_ref().ok_or("terrain traversal needs environment")?;
         let spacing = environment.world.cell_spacing_m();
         let stairs = environment.world.stair_edges().to_vec();
         let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
@@ -883,6 +883,10 @@ impl Kernel {
         };
         let start_point = navigation::point(start);
         let start_cell = to_cell(&start_point)?;
+        let centered = Point { x:start_cell.x as f64*spacing[0], y:(f64::from(start_cell.y)+0.5)*spacing[1], z:start_cell.z as f64*spacing[2], frame:None };
+        if start_point != centered {
+            return Ok(destinations.iter().map(|target| self.route_for(entity, start, target)).collect());
+        }
         let targets: Vec<_> = destinations.iter().map(to_cell).collect::<Result<_>>()?;
         let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells };
         let blocked = self.blocked_by_frame.get(&frame).cloned().ok_or("missing obstacle frame index")?;
@@ -892,10 +896,11 @@ impl Kernel {
                 blocked.contains(&(x, y, z))
             })
         };
+        let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
         let mut query = |cell| environment.world.traversal_material(cell);
         let paths = crate::terrain_route::search_many_with_blocked_and_stairs(start_cell, &targets, config, &mut query, &obstacle, &stairs)?;
         let revision = environment.world.terrain_revision();
-        paths.into_iter().map(|path| {
+        let routes: Vec<Result<PreparedRoute>> = paths.into_iter().map(|path| {
             match path {
             Ok(path) => {
                 let mut points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
@@ -907,7 +912,75 @@ impl Kernel {
             }
             Err(error) => Err(error),
             }
-        }).collect()
+        }).collect();
+        Ok(routes)
+    }
+    /// Prepare the cheapest route to one interchangeable destination. Normal
+    /// terrain actors use one goal-directed frontier; unusual frame and
+    /// in-flight cases preserve the authoritative single-route semantics.
+    fn route_for_any(
+        &mut self, entity: Entity, start: Position, destinations: &[Point],
+    ) -> Result<(usize,PreparedRoute)> {
+        if destinations.is_empty() { return Err("route-to-any needs a destination".into()); }
+        let frame = self.support_id(entity);
+        let capability = self.ecs.get::<Traversal>(entity).copied();
+        let terrain_candidate = frame.is_none() && capability.is_some() && !self.terrain_routes.contains_key(&entity);
+        if !terrain_candidate {
+            return self.route_for_any_fallback(entity,start,destinations);
+        }
+        let capability = capability.ok_or("terrain traversal needs capability")?;
+        let environment = self.environment.as_ref().ok_or("terrain traversal needs environment")?;
+        let spacing = environment.world.cell_spacing_m();
+        let stairs = environment.world.stair_edges().to_vec();
+        let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
+            let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
+            if !values.iter().all(|value| value.is_finite() && *value >= f64::from(i32::MIN) && *value <= f64::from(i32::MAX)) {
+                return Err("terrain route metric position is not finite".into());
+            }
+            Ok(crate::generation::Cell { x:values[0].round() as i64, y:values[1].round() as i32, z:values[2].round() as i64 })
+        };
+        let start_point = navigation::point(start);
+        let start_cell = to_cell(&start_point)?;
+        let centered = Point { x:start_cell.x as f64*spacing[0], y:(f64::from(start_cell.y)+0.5)*spacing[1], z:start_cell.z as f64*spacing[2], frame:None };
+        if start_point != centered {
+            return self.route_for_any_fallback(entity,start,destinations);
+        }
+        let targets: Vec<_> = destinations.iter().map(to_cell).collect::<Result<_>>()?;
+        let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells:capability.clearance_cells, max_step_cells:capability.max_step_cells };
+        let blocked = self.blocked_by_frame.get(&frame).cloned().ok_or("missing obstacle frame index")?;
+        let obstacle = |cell: crate::generation::Cell| {
+            i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x,z)| {
+                let y = ((f64::from(cell.y)+0.5)*spacing[1]).round() as i32;
+                blocked.contains(&(x,y,z))
+            })
+        };
+        let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+        let mut query = |cell| environment.world.traversal_material(cell);
+        let (index,path) = crate::terrain_route::search_any_with_blocked_and_stairs(start_cell,&targets,config,&mut query,&obstacle,&stairs)?;
+        let mut points = crate::terrain_route::waypoints_with_stairs(&path,config,&stairs)?;
+        if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
+        if points.len() > 1 { points.remove(0); }
+        let target = points.first().cloned();
+        let terrain = TerrainRouteState { path, revision:Some(environment.world.terrain_revision()), waiting:false, suspended:false, origin:start_point, target };
+        Ok((index,PreparedRoute { points:points.into_iter().collect(), terrain:Some(terrain) }))
+    }
+    fn route_for_any_fallback(
+        &mut self, entity: Entity, start: Position, destinations: &[Point],
+    ) -> Result<(usize,PreparedRoute)> {
+        let mut best: Option<(usize,PreparedRoute,u64)> = None;
+        let mut unavailable = None;
+        for (index,target) in destinations.iter().enumerate() {
+            match self.route_for(entity,start,target) {
+                Ok(route) => {
+                    let mut points = vec![navigation::point(start)];
+                    points.extend(route.points.iter().cloned());
+                    let cost = crate::terrain_route::waypoint_cost_micrometres(points)?;
+                    if best.as_ref().is_none_or(|(_,_,prior)| cost < *prior) { best=Some((index,route,cost)); }
+                }
+                Err(error) => { unavailable.get_or_insert(error); }
+            }
+        }
+        best.map(|(index,route,_)| (index,route)).ok_or_else(|| unavailable.unwrap_or_else(|| "no supported terrain route".into()))
     }
     fn install_route(&mut self, entity: Entity, prepared: PreparedRoute) {
         self.routes.insert(entity, prepared.points);
@@ -1374,6 +1447,11 @@ impl Kernel {
     /// movement but never installs a destination or mutates canonical state.
     pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
         route_query::execute(self, input)
+    }
+    /// Cheapest route to one interchangeable target, using the same native
+    /// movement graph without installing a destination.
+    pub fn route_to_any_json(&mut self, input: &str) -> Result<String> {
+        route_query::execute_any(self,input)
     }
     /// Bounded local observation. May warm disposable physical contacts; never advances smoke.
     pub fn atmosphere_samples_json(&mut self, input: &str) -> Result<String> {

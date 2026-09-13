@@ -699,6 +699,15 @@ export class GameSession {
       let routeRequests = 0;
       let committedWorkMaterialFacts: WorkMaterialFacts | undefined;
       let activeReads: readonly ComponentDefinition<any>[] = [];
+      const requireRouteReads = () => {
+        if (
+          !activeReads.some((definition) => definition.id === Position.id) ||
+          !activeReads.some((definition) => definition.id === Body.id)
+        )
+          throw new Error(
+            "route query requires declared position and body reads",
+          );
+      };
       const context: WriteContext = {
         clock,
         random: this.random,
@@ -711,13 +720,7 @@ export class GameSession {
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         routeCosts: (requests) => {
-          if (
-            !activeReads.some((definition) => definition.id === Position.id) ||
-            !activeReads.some((definition) => definition.id === Body.id)
-          )
-            throw new Error(
-              "route query requires declared position and body reads",
-            );
+          requireRouteReads();
           if (routeRequests + requests.length > 128)
             return requests.map((request) => ({
               actor: request.actor,
@@ -726,6 +729,17 @@ export class GameSession {
             }));
           routeRequests += requests.length;
           return this.port.routeCosts(requests);
+        },
+        routeToAny: (request) => {
+          requireRouteReads();
+          if (routeRequests + 1 > 128)
+            return {
+              actor: request.actor,
+              status: "unavailable" as const,
+              reason: "Route planning deferred",
+            };
+          routeRequests++;
+          return this.port.routeToAny(request);
         },
         outcomes: structuredClone(this.outcomes),
         query: (spec) =>

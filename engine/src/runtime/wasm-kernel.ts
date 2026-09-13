@@ -16,6 +16,8 @@ import type {
   StructureSurface,
   TerrainChangeSet,
   RouteCostResult,
+  RouteToAnyRequest,
+  RouteToAnyResult,
   WorldPose,
   WorkMaterialFacts,
   WriteIntent,
@@ -47,10 +49,35 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   render_facts(): string;
   world_pose(json: string): string;
   route_costs(json: string): string;
+  route_to_any(json: string): string;
   assign(json: string): string;
 }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
 const surfaceResultsSchema = z.array(terrainSurfaceSchema.nullable()).max(64);
+const entityIdWireSchema = z.custom<EntityId>(
+  (value) =>
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 128 &&
+    /^[A-Za-z0-9._:-]+$/.test(value),
+);
+const routeToAnyResultSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      actor: entityIdWireSchema,
+      status: z.literal("reachable"),
+      targetIndex: z.number().int().nonnegative(),
+      cost: z.number().finite().nonnegative(),
+    })
+    .strict(),
+  z
+    .object({
+      actor: entityIdWireSchema,
+      status: z.literal("unavailable"),
+      reason: z.string(),
+    })
+    .strict(),
+]);
 /** Adapts the generated wasm-bindgen class without exposing it to authored games. */
 export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
   return {
@@ -79,6 +106,25 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       )
         throw new Error("invalid route cost result");
       return result as RouteCostResult[];
+    },
+    routeToAny(request: RouteToAnyRequest): RouteToAnyResult {
+      if (
+        !request ||
+        !Array.isArray(request.targets) ||
+        request.targets.length < 1 ||
+        request.targets.length > 32
+      )
+        throw new Error("route-to-any needs 1..32 targets");
+      const result = routeToAnyResultSchema.parse(
+        JSON.parse(binding.route_to_any(JSON.stringify(request))),
+      );
+      if (
+        result.actor !== request.actor ||
+        (result.status === "reachable" &&
+          result.targetIndex >= request.targets.length)
+      )
+        throw new Error("invalid route-to-any result");
+      return result;
     },
     dispose() {
       binding.free();

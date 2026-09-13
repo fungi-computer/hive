@@ -125,13 +125,33 @@ pub fn search_with_blocked_and_stairs(
     blocked: &dyn Fn(Cell) -> bool,
     stairs: &[StairEdge],
 ) -> Result<Vec<Cell>, String> {
-    if terrain_traversal::node(start, config, query)?.is_none()
-        || terrain_traversal::node(destination, config, query)?.is_none()
-    {
+    search_any_with_blocked_and_stairs(start, &[destination], config, query, blocked, stairs)
+        .map(|(_, path)| path)
+}
+
+/// Find the cheapest route to one interchangeable destination. The goal-directed
+/// search stops after settling a usable alternative instead of pricing every
+/// alternative that the caller will discard.
+pub fn search_any_with_blocked_and_stairs(
+    start: Cell,
+    destinations: &[Cell],
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+    stairs: &[StairEdge],
+) -> Result<(usize, Vec<Cell>), String> {
+    if destinations.is_empty() || terrain_traversal::node(start, config, query)?.is_none() {
         return Err("route endpoint lacks support or clearance".into());
     }
     let key = |cell: Cell| (cell.x, cell.y, cell.z);
     let cell = |(x, y, z)| Cell { x, y, z };
+    let mut goals = BTreeMap::new();
+    for (index, destination) in destinations.iter().copied().enumerate() {
+        if !blocked(destination) && terrain_traversal::node(destination, config, query)?.is_some() {
+            goals.entry(key(destination)).or_insert(index);
+        }
+    }
+    if goals.is_empty() { return Err("route endpoint lacks support or clearance".into()); }
     let mut expanded = 0usize;
     let mut failure = None;
     let path = astar(
@@ -176,11 +196,19 @@ pub fn search_with_blocked_and_stairs(
             }
             neighbors
         },
-        |_| 0u64,
-        |current| *current == key(destination),
+        |current| goals.keys().map(|goal| {
+            let dx = (goal.0 as f64 - current.0 as f64) * config.spacing[0];
+            let dy = (f64::from(goal.1) - f64::from(current.1)) * config.spacing[1];
+            let dz = (goal.2 as f64 - current.2 as f64) * config.spacing[2];
+            (dx.hypot(dy).hypot(dz) * 1_000_000.0).floor() as u64
+        }).min().unwrap_or(0),
+        |current| goals.contains_key(current),
     );
     if let Some(error) = failure { return Err(error); }
-    path.map(|(path, _cost)| path.into_iter().map(cell).collect())
+    path.map(|(path, _cost)| {
+        let index = *goals.get(path.last().expect("A* route contains its goal")).expect("A* stopped at a known goal");
+        (index, path.into_iter().map(cell).collect())
+    })
         .ok_or_else(|| "no supported terrain route".into())
 }
 
@@ -201,13 +229,14 @@ pub fn search_many_with_blocked_and_stairs(
     }
     let key = |cell: Cell| (cell.x, cell.y, cell.z);
     let cell = |(x, y, z): (i64, i32, i64)| Cell { x, y, z };
-    let targets: BTreeSet<_> = destinations.iter().copied().map(key).collect();
+    let mut targets: BTreeSet<_> = destinations.iter().copied().map(key).collect();
+    let mut invalid_targets = BTreeSet::new();
     for destination in destinations {
         if terrain_traversal::node(*destination, config, query)?.is_none() {
-            // Preserve per-request endpoint errors while allowing other
-            // destinations to be priced by the shared search.
+            invalid_targets.insert(key(*destination));
         }
     }
+    targets.retain(|target| !invalid_targets.contains(target));
     let mut frontier = BinaryHeap::new();
     frontier.push(Reverse((0_u64, key(start))));
     let mut distance = BTreeMap::new();
@@ -273,10 +302,12 @@ pub fn search_many_with_blocked_and_stairs(
     let mut results = Vec::with_capacity(destinations.len());
     for destination in destinations {
         let destination = key(*destination);
-        if let Some(error) = failure.clone() {
-            if !distance.contains_key(&destination) { results.push(Err(error)); continue; }
+        if invalid_targets.contains(&destination) {
+            results.push(Err("route endpoint lacks support or clearance".into()));
+            continue;
         }
-        if !distance.contains_key(&destination) {
+        if !reached.contains(&destination) {
+            if let Some(error) = failure.clone() { results.push(Err(error)); continue; }
             results.push(Err("no supported terrain route".into()));
             continue;
         }
@@ -464,5 +495,33 @@ mod tests {
         assert_eq!(paths[0].as_ref().unwrap().last(), Some(&destinations[0]));
         assert_eq!(paths[1].as_ref().unwrap().last(), Some(&destinations[1]));
         assert_eq!(paths[0].as_ref().unwrap().first(), Some(&start));
+    }
+
+    #[test]
+    fn shared_search_keeps_invalid_endpoint_failure_at_its_input_position() {
+        let config = TraversalConfig { spacing:[1.0,1.0,1.0], clearance_cells:1, max_step_cells:1 };
+        let solid: BTreeSet<_> = (0..=2).map(|x| (x, 0, 0)).collect();
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x as i32, at.y, at.z as i32)), outside:false, sealed_top:false });
+        let start = Cell { x:0, y:0, z:0 };
+        let destinations = [Cell { x:9, y:0, z:0 }, Cell { x:2, y:0, z:0 }];
+        let paths = search_many_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[]).unwrap();
+        assert_eq!(paths[0].as_ref().unwrap_err(), "route endpoint lacks support or clearance");
+        assert_eq!(paths[1].as_ref().unwrap().last(), Some(&destinations[1]));
+    }
+
+    #[test]
+    fn route_to_any_returns_the_nearest_valid_input_without_pricing_every_goal() {
+        let config = TraversalConfig { spacing:[1.0,1.0,1.0], clearance_cells:1, max_step_cells:1 };
+        let mut queries = 0usize;
+        let mut query = |at: Cell| {
+            queries += 1;
+            Ok(TraversalMaterial { solid:at.y == 0, outside:false, sealed_top:false })
+        };
+        let start = Cell { x:0, y:0, z:0 };
+        let destinations = [Cell { x:30, y:0, z:0 }, Cell { x:1, y:0, z:0 }];
+        let (index,path) = search_any_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[]).unwrap();
+        assert_eq!(index,1);
+        assert_eq!(path.last(),Some(&destinations[1]));
+        assert!(queries < 100,"nearest goal should settle without exploring the distant goal; queried {queries} cells");
     }
 }

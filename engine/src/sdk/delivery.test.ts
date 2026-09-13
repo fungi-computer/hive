@@ -122,6 +122,9 @@ for (const occupation of ["excavation", "construction"] as const) {
       routeCosts: () => {
         throw new Error("unexpected route query");
       },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
       },
@@ -298,6 +301,9 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       routeCosts: () => {
         throw new Error("unexpected route query");
       },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
       },
@@ -444,6 +450,9 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
       routeCosts: () => {
         throw new Error("claimed delivery must not search a new route");
       },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
+      },
       assign: () => {
         throw new Error("claimed delivery must not be reassigned");
       },
@@ -558,6 +567,9 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
         status: "reachable",
         cost: 1,
       })),
+    routeToAny: () => {
+      throw new Error("unexpected route query");
+    },
     assign: (candidates) => {
       assert.equal(candidates.length, 1);
       return [{ worker, task, cost: 1 }];
@@ -660,6 +672,9 @@ test("full destination puts held goods down before releasing the worker", () => 
         })),
       routeCosts: () => {
         throw new Error("full storage cannot request a path");
+      },
+      routeToAny: () => {
+        throw new Error("unexpected route query");
       },
       assign: () => {
         throw new Error("full storage cannot claim a worker");

@@ -27,22 +27,43 @@ bounded mechanical outcomes in isolated worktrees after their contracts are sett
 
 The native owner now uses `pathfinding`'s Hungarian implementation with a sparse
 wrapper qualified against exhaustive small assignments. Search and execution use
-one admitted movement-edge metric. The shared work allocator now proposes over
-cheap optimistic costs, resolves routes only for selected worker/job pairs, removes
-unreachable selections, and repeats until the chosen assignment is exact. Tree,
-dig, construction, delivery and emission all consume that one refinement owner.
+one admitted movement-edge metric. The integrated allocator proposes over cheap
+optimistic costs and resolves only selected worker/job pairs. The current repair
+candidate adds one native goal-directed `routeToAny` operation for interchangeable
+approaches; tree and dig are its demonstrated consumers. Dig approach discovery no
+longer collapses a voxel column to its top surface: it offers bounded adjacent
+supports across actual `y` levels and native navigation validates support, clearance,
+excavation reach and the 3D route. Excavation also waits before mutating support used
+by another admitted route, instead of stranding that actor or rejecting an otherwise
+valid queued job. Five native excavation laws, fifteen native route laws, strict
+engine types and seventeen joined game laws pass on the rebuilt WASM candidate.
 
 The assignment wire now admits the declared resident-region workload of 64 workers
 against 256 pending jobs (16,384 candidate edges). This is a bounded planning set,
 not permission to run 16,384 route searches.
 
-Local Node/WASM measurement on a 64×64 world with eight workers and fifty designated
-trees reduced the former roughly 891 ms median pathological tick to a 75.62 ms
-assignment tick. That tick performed 40 route requests; following movement ticks
-were 5.11–9.64 ms. The first measured tick was 48.81 ms with ten route requests.
-This proves a large causal reduction in the retained fixture, not browser/DO capacity
-or final performance. Multi-destination native search, a guided A* heuristic and
-full delivery itinerary pricing remain open improvements.
+The fresh 64×64-world, 50-worker, 50-tree local Node/WASM profile reduced mean step
+time from 25.06 ms to 11.17 ms, median from 18.32 ms to 7.74 ms and p95 from 53.98 ms
+to 23.09 ms. Native route work across 64 steps fell from 252.19 ms to 28.11 ms;
+route requests occurred in seven planning steps instead of twenty-five. Initial
+assignment spikes still reached 70.65 ms, so this is a large causal reduction in the
+named fixture rather than a 30 Hz worst-case, browser, DO or population-capacity
+claim. The exact report is retained at
+`.botanical/pathfinding-assignment-v8/REPORT.md`. A compact navigation projection,
+persisted bounded-planning continuation and full delivery itinerary pricing remain
+open improvements.
+
+A frozen 50-worker/50-tree comparison is retained under
+`.botanical/batch-assignment-quality-20260913/`. On that one initial layout, global
+Hungarian over exact native route costs totalled 433.08 m. Global Hungarian over
+cheap straight-line costs, scored afterward with the exact route matrix, totalled
+447.08 m: 3.23% more. Independently matching consecutive groups of eight with the
+same cheap costs totalled 504 m in stable order; fifty shuffled worker orders had a
+551.08 m median, 23.26% above the global cheap assignment. The cheap global matcher
+itself measured 7.09 ms median and 8.60 ms p95 locally, excluding routing and the
+rest of simulation. These figures justify keeping all workers/jobs in one cheap
+matching while bounding expensive validation. They are not a population, DO or
+completed-workload capacity claim.
 
 ## 2. What is actually wrong
 
@@ -304,8 +325,21 @@ possible tie-breaking algorithms. It also does not imply continuous optimality w
 the world changes. Fresh authority is checked before commitment.
 
 Worst case remains all pairs plus repeated Hungarian passes. Bound both and compare
-against eager evaluation. Do not promise eight searches for eight workers. Eight
-workers × fifty jobs still has 400 cheap pair entries, not necessarily 400 searches.
+against eager evaluation. The first playable policy admits at most eight newly
+validated assignments per simulation step, but all eligible workers and jobs enter
+the same global cheap matching. Eight is a route-validation/claim-publication slice,
+not eight independent matching pools. A bounded number of rejected selections may
+be replaced in the same step. If that allowance cannot reach stable work, the
+persisted continuation in section 8 must advance the next deterministic slice; it
+must not restart at the same first candidate forever. Eight workers × fifty jobs
+still has 400 cheap pair entries, not necessarily 400 searches.
+
+Tree and excavation approach cells are alternatives, not four independent answers.
+They use one A* whose goal is membership in the approach set and whose heuristic is
+the minimum conservative Euclidean distance to any goal. It stops when the cheapest
+usable goal is settled and returns the original approach index plus exact route cost.
+The older `routeCosts` operation remains for callers that truly require every answer;
+it must not be used to price and discard three sides of one tree or excavation.
 
 Use guided A* for a small number of isolated target requests. Share a Dijkstra search
 when one start/profile is repeatedly evaluated against several destinations. Keep

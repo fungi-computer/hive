@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
 import { allocateWork } from "./work-allocation";
+import type { EntityId } from "../contracts";
 
 test("all work kinds retain saved claims before joint assignment", () => {
   const carrier = entity("worker.carrier");
@@ -167,6 +168,100 @@ test("joint assignment refines only candidates that can still win", () => {
   );
   assert.deepEqual(resolved, [first, winner]);
   assert.deepEqual(result, [{ worker, task: winner, cost: 2 }]);
+});
+
+test("a modest route detour does not churn an otherwise useful assignment", () => {
+  const worker = entity("worker.detour");
+  const task = entity("job.detour");
+  let matchCalls = 0;
+  const result = allocateWork(
+    [{ task, actor: null }],
+    [{ worker, task }],
+    () => 10,
+    () => 14,
+    (candidates) => {
+      matchCalls++;
+      return candidates;
+    },
+  );
+  assert.equal(matchCalls, 1);
+  assert.deepEqual(result, [{ worker, task, cost: 14 }]);
+});
+
+test("unreachable alternatives have a bounded refinement allowance", () => {
+  const worker = entity("worker.blocked");
+  const tasks = [entity("job.a"), entity("job.b"), entity("job.c")];
+  let estimates = 0;
+  const result = allocateWork(
+    tasks.map((task) => ({ task, actor: null })),
+    tasks.map((task, bound) => ({ worker, task, bound })),
+    (candidate) => candidate.bound,
+    () => {
+      estimates++;
+      return null;
+    },
+    (candidates) => (candidates.length ? [candidates[0]] : []),
+  );
+  assert.equal(estimates, 3);
+  assert.deepEqual(result, []);
+});
+
+test("bounded refinement reaches a good ninth choice instead of repeating eight bad ones", () => {
+  const worker = entity("worker.patient");
+  const tasks = Array.from({ length: 9 }, (_, index) => entity(`job.${index}`));
+  const result = allocateWork(
+    tasks.map((task) => ({ task, actor: null })),
+    tasks.map((task, index) => ({ worker, task, bound: index + 1 })),
+    (candidate) => candidate.bound,
+    (candidate) => (candidate.task === tasks[8] ? candidate.bound : 100),
+    (candidates) =>
+      candidates.length
+        ? [
+            candidates.reduce((best, candidate) =>
+              candidate.cost < best.cost ? candidate : best,
+            ),
+          ]
+        : [],
+  );
+  assert.deepEqual(result, [{ worker, task: tasks[8], cost: 9 }]);
+});
+
+test("global matching sees every worker and job before route validation is sliced", () => {
+  const workers = Array.from({ length: 12 }, (_, index) =>
+    entity(`worker.${index}`),
+  );
+  const tasks = Array.from({ length: 12 }, (_, index) =>
+    entity(`task.${index}`),
+  );
+  const matcherSizes: number[] = [];
+  const estimated: string[] = [];
+  const result = allocateWork(
+    tasks.map((task) => ({ task, actor: null })),
+    workers.flatMap((worker, workerIndex) =>
+      tasks.map((task, taskIndex) => ({
+        worker,
+        task,
+        cost: Math.abs(workerIndex - taskIndex),
+      })),
+    ),
+    (candidate) => candidate.cost,
+    (candidate) => {
+      estimated.push(candidate.worker);
+      return candidate.cost;
+    },
+    (candidates) => {
+      matcherSizes.push(candidates.length);
+      return workers.map((worker, index) => ({
+        worker,
+        task: tasks[index],
+        cost: 0,
+      }));
+    },
+  );
+  assert.deepEqual(matcherSizes, [144]);
+  assert.equal(estimated.length, 8);
+  assert.equal(new Set(estimated).size, 8);
+  assert.equal(result.length, 8);
 });
 
 test("globally unavailable actors never reach route costing", () => {

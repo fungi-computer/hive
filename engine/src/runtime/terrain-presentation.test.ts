@@ -210,6 +210,9 @@ function fakePort(
     routeCosts: () => {
       throw new Error("unexpected route query");
     },
+    routeToAny: () => {
+      throw new Error("unexpected route query");
+    },
     dispose() {},
     load() {},
     loadEnvironment() {},
