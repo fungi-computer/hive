@@ -146,6 +146,10 @@ const colonyInitial = [
       "hive.lot": { quantity: 3, kind: "bread", container: pantryId },
     },
   })),
+  { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
+  { id: entity("colony.brew.mugwort"), components: { "hive.lot": { quantity: 1, kind: "mugwort", container: pantryId } } },
+  { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId } } },
+  { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId } } },
   ...([taskOne, taskTwo] as const).map((id, index) => ({
     id,
     components: {
@@ -404,7 +408,7 @@ export const colonyPack: GamePack = {
         const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
         const id = entity(`colony.water-demand.${revision}`);
         return { actions: [], writes: [], creates: [{ id, components: {
-          [WaterSupplyOrder.id]: { revision },
+          [WaterSupplyOrder.id]: { revision, process: null },
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };
       },

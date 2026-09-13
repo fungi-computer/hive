@@ -12,6 +12,7 @@ import { ProcessAttendanceWork } from "../sdk/process-attendance";
 import { StagedProcess } from "../sdk/process-supply";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
+import { WaterSupplyOrder } from "./colony-water-work";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -20,10 +21,7 @@ function suppliedPack(): GamePack {
     initial: { id: string; components: Record<string, unknown> }[];
   };
   definition.initial.push(
-    { id: "brew.malt", components: { "hive.lot": { kind: "malt", quantity: 2, container: "colony.pantry" } } },
-    // Water begins inside an actual held pail. Process supply must join its
-    // interior lot to ordinary delivery custody before staging the kettle.
-    { id: "brew.water", components: { "hive.lot": { kind: "water", quantity: 2, container: "colony.pail.1" } } },
+    { id: "brew.malt", components: { "hive.lot": { kind: "malt", quantity: 4, container: "colony.pantry" } } },
     { id: "brew.mugwort", components: { "hive.lot": { kind: "mugwort", quantity: 1, container: "colony.pantry" } } },
     { id: "brew.barm", components: { "hive.lot": { kind: "barm", quantity: 1, container: "colony.pantry" }, "hive.container": { capacity: 1 } } },
     { id: "brew.keg", components: { "hive.lot": { kind: "keg", quantity: 1, container: "colony.pantry" }, "hive.container": { capacity: 4 } } },
@@ -62,6 +60,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     assert.throws(() => session.command("requestBrew", { station: station.id }), /active brew process/);
 
     let sawAttendance = false;
+    let sawProcessWaterDemand = false;
     let sawElapsedWithoutAttendance = false;
     let sawLaterAttendance = false;
     const stationVisuals = new Set<string>();
@@ -70,6 +69,9 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       const stationVisual = session.renderFacts().find(fact => fact.id === station.id)?.visual;
       if (stationVisual) stationVisuals.add(stationVisual);
       const state = session.query(query(StagedProcess))[0]?.get(StagedProcess);
+      const processWaterDemands = session.query(query(WaterSupplyOrder)).filter(row => row.get(WaterSupplyOrder).process === process.id);
+      assert(processWaterDemands.length <= 1, "one active process must have at most one water demand");
+      if (processWaterDemands.length) sawProcessWaterDemand = true;
       const attendance = session.query(query(ProcessAttendanceWork));
       if (attendance.length) sawAttendance = true;
       if (state?.stageIndex === 1 && state.phase === "waiting" && attendance.length === 0)
@@ -88,6 +90,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       outcomes: session.save().outcomes.slice(-12),
     }));
     assert(sawAttendance, "an attended stage must acquire saved work");
+    assert(sawProcessWaterDemand, "a short kettle must create one process water demand");
     assert(sawElapsedWithoutAttendance, "fermentation must release attendance");
     assert(sawLaterAttendance, "kegging must acquire attendance after consumed inputs are gone");
     session.step(0);
