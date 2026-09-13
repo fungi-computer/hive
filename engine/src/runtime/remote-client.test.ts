@@ -184,7 +184,7 @@ test("remote inventory rejects mismatched portable identity and over-capacity co
         observation: { ...next.observation, facts: [{ id: "worker", inventory: { items: [item] } }] } }) });
     }
     assert.equal(events.filter(event => event.type === "frame").length, 1);
-    assert.equal(events.filter(event => event.type === "error").length, 3);
+    assert.equal(events.filter(event => event.type === "error" && event.message === "invalid remote observation").length, 3);
   } finally { runtime.dispose(); }
 });
 
