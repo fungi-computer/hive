@@ -112,7 +112,11 @@ test("stockpile policy is player configurable and survives reload", () => {
     const marks = session.pack.presentation?.terrainMarks?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }) ?? [];
     assert.equal(marks.length, 2);
     assert.ok(marks.every(mark => mark.kind === "stockpile"));
-    const inspection = session.pack.presentation?.inspect?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }) ?? [];
+    const inspection = session.pack.presentation?.inspect?.({
+      query: spec => session.query(spec),
+      atmosphereSamples: cells => session.atmosphereSamples(cells),
+      constructionReadiness: sites => session.constructionReadiness(sites),
+    }) ?? [];
     assert.ok(inspection.some(fact => fact.label === "Stockpile" && fact.value === "food · priority 3 · 0/6"));
     session.restore(saved);
     assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell);

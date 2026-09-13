@@ -25,6 +25,7 @@ test("observation matches the session and does not mutate committed state", () =
       query: (spec) => session.query(spec),
       atmosphereSamples: cells => session.atmosphereSamples(cells),
       environmentFacts: () => session.environmentFacts(),
+      constructionReadiness: sites => session.constructionReadiness(sites),
     });
 
     assert.equal(observation.time, session.simulationTime);

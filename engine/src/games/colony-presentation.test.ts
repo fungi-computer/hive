@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { colonyPack, treeWorkerAtApproach, treeWorkProgress } from "./colony.ts";
+import { colonyPack, constructionStatusLabel, treeWorkerAtApproach, treeWorkProgress } from "./colony.ts";
 import { ExcavationWork, Position } from "../sdk/common";
 import { ConstructionSite } from "../sdk/construction";
 
@@ -11,6 +11,13 @@ test("tree chopping presentation waits for the committed approach point", () => 
   assert.equal(treeWorkerAtApproach({ x: 2, y: 0.051, z: 3 }, order), false, "vertical separation is not contact");
   assert.equal(treeWorkProgress({ seconds: 1, stage: "chop" }), 0.5);
   assert.equal(treeWorkProgress({ seconds: 20, stage: "chop" }), 1, "progress is bounded at completion");
+});
+
+test("construction presentation distinguishes support waiting from ordinary work waiting", () => {
+  assert.equal(constructionStatusLabel("planned", "waitingForSupport"), "Waiting for structural support");
+  assert.equal(constructionStatusLabel("planned", "ready"), "Waiting for materials or a free worker");
+  assert.equal(constructionStatusLabel("working", "waitingForSupport"), "Building");
+  assert.equal(constructionStatusLabel("finished", "unknown"), "Finished");
 });
 
 test("committed dig and build seconds project bounded progress and disappear when attendance clears", () => {

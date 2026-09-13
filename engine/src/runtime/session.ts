@@ -268,6 +268,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.atmosphereSamples(cells);
   }
+  constructionReadiness(sites: readonly EntityId[]) {
+    this.ensureLive();
+    return this.port.constructionReadiness(sites);
+  }
   environmentFacts() {
     this.ensureLive();
     return this.port.environmentFacts();

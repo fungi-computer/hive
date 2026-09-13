@@ -159,7 +159,7 @@ export interface GamePresentation {
   readonly feedback?: boolean;
   readonly controls: readonly PresentationControl[];
   readonly inspect: (
-    context: Pick<ReadContext, "query" | "atmosphereSamples">,
+    context: Pick<ReadContext, "query" | "atmosphereSamples" | "constructionReadiness">,
   ) => readonly PresentationFact[];
   readonly terrainMarks?: (
     context: Pick<ReadContext, "query" | "atmosphereSamples">,
@@ -183,7 +183,7 @@ function controlInput(value: unknown): unknown {
 /** Pure, bounded projection used by the client. No presentation value is physical state. */
 export function projectPresentation(
   pack: GamePack,
-  context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts">,
+  context: Pick<ReadContext, "query" | "atmosphereSamples" | "environmentFacts" | "constructionReadiness">,
 ): {
   readonly facts: readonly PresentationFact[];
   readonly controls: readonly PresentationControl[];

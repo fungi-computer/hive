@@ -26,7 +26,12 @@ const pack = (presentation?: GamePresentation): GamePack =>
     },
     ...(presentation ? { presentation } : {}),
   });
-const context = { query: () => [], environmentFacts: () => ({}), atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); } };
+const context = {
+  query: () => [],
+  environmentFacts: () => ({}),
+  atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
+  constructionReadiness: () => [],
+};
 test("selection controls capture current IDs without granting game authority", () => {
   const control = {
     id: "order",

@@ -28,7 +28,7 @@ import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, 
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
-import type { EntityId, GamePack, ReadContext } from "../contracts";
+import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } from "../contracts";
 
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
@@ -66,6 +66,16 @@ export function treeWorkerAtApproach(
 }
 export function treeWorkProgress(order: { readonly seconds: number; readonly stage: "fell" | "chop" }): number {
   return Math.max(0, Math.min(1, order.seconds / (order.stage === "fell" ? 3 : 2)));
+}
+export function constructionStatusLabel(
+  phase: "planned" | "working" | "finished",
+  readiness: ConstructionReadinessStatus,
+): string {
+  if (phase === "finished") return "Finished";
+  if (phase === "working") return "Building";
+  if (readiness === "waitingForSupport") return "Waiting for structural support";
+  if (readiness === "unknown") return "Construction state unavailable";
+  return "Waiting for materials or a free worker";
 }
 
 const brewStationId = entity("colony.brew-station");
@@ -553,6 +563,23 @@ export const colonyPack: GamePack = {
     ],
     inspect: (context) => {
       const lots = context.query(query(MaterialLot)).map((row) => row.get(MaterialLot));
+      const constructionSites = context.query(query(ConstructionSite));
+      const unfinishedConstruction = constructionSites
+        .filter((row) => row.get(ConstructionSite).phase !== "finished")
+        .map((row) => row.id);
+      const constructionReadiness = new Map(
+        unfinishedConstruction.length === 0
+          ? []
+          : context.constructionReadiness(unfinishedConstruction).map((row) => [row.site, row.status] as const),
+      );
+      const constructionSubjects = new Map<string, EntityId[]>();
+      for (const row of constructionSites) {
+        const site = row.get(ConstructionSite);
+        const label = constructionStatusLabel(site.phase, constructionReadiness.get(row.id) ?? "unknown");
+        const subjects = constructionSubjects.get(label) ?? [];
+        subjects.push(row.id);
+        constructionSubjects.set(label, subjects);
+      }
       const lotTotals = new Map<EntityId, number>();
       for (const lot of lots) lotTotals.set(lot.container, (lotTotals.get(lot.container) ?? 0) + lot.quantity);
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
@@ -565,6 +592,14 @@ export const colonyPack: GamePack = {
         Math.floor(station.z + 0.5),
       ]]).samples[0] : null;
       return [
+        ...[...constructionSubjects.entries()]
+          .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+          .map(([status, subjects], index) => ({
+          id: `construction-status-${index + 1}`,
+          subjects,
+          label: "Construction",
+          value: status,
+          })),
         ...(() => {
           const grouped = new Map<string, { profile: string; priority: number; contents: number; capacity: number; cells: string[] }>();
           for (const row of context.query(query(StockpileCell, Container, Position))) {

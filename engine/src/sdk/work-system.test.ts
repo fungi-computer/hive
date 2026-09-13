@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { createWorkSystem } from "./work-system";
 import { component, entity } from "./authoring";
+import type { EntityId } from "../contracts";
 
 const base = {
   clock: { now: 0, delta: 0.1, tick: 1 },
@@ -19,7 +20,8 @@ const base = {
   environmentFacts: () => {
     throw new Error("unexpected environment query in this fixture");
   },
-  constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
+  constructionReadiness: (sites: readonly EntityId[]) =>
+    sites.map((site) => ({ site, status: "ready" as const })),
   atmosphereSamples: () => {
     throw new Error("unexpected atmosphere query in this fixture");
   },
