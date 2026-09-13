@@ -30,8 +30,12 @@ test("actual Colony attendance projects work poses only while native work exists
         const before = session.save();
         const view = observe();
         assert.deepEqual(session.save(), before, "animation projection must not mutate work or custody");
-        for (const row of work) assert.deepEqual(view.facts.find(fact => fact.id === row.id)?.activity,
-          { kind: "dig", target: [row.get(ExcavationWork).x, row.get(ExcavationWork).z] });
+        for (const row of work) {
+          const activity = view.facts.find(fact => fact.id === row.id)?.activity;
+          assert.equal(activity?.kind, "dig");
+          assert.equal(typeof activity?.progress, "number");
+          assert(activity.progress >= 0 && activity.progress <= 1);
+        }
         sawWork = true;
       }
       if (sawWork && !session.query(query(ColonyDigOrder)).length) break;
@@ -50,17 +54,25 @@ test("actual Colony tree attendance projects chop only while its order is workin
     session.command("designateTrees", { entities: ["colony.tree.oak"] });
     const observe = () => buildObservation(session, { epoch: 0, sequence: 0 });
     assert(!observe().facts.some(f => f.activity?.kind === "chop"));
-    let working = false;
+    let working = false, sawApproach = false;
     for (let i = 0; i < 80; i++) {
       session.step(0.25);
       const order = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === "colony.tree.oak")?.get(ColonyTreeOrder);
       if (order?.phase === "working" && order.actor) {
-        const before = session.save(), view = observe();
+        const view = observe(), activity = view.facts.find(f => f.id === order.actor)?.activity;
+        if (activity?.kind !== "chop") {
+          sawApproach = true;
+          continue;
+        }
+        const before = session.save();
         assert.deepEqual(session.save(), before);
-        assert.deepEqual(view.facts.find(f => f.id === order.actor)?.activity, { kind: "chop", target: [2, 2] });
+        const progress = order.seconds / (order.stage === "fell" ? 3 : 2);
+        assert.deepEqual(activity, { kind: "chop", target: [2, 2], progress });
+        assert(progress >= 0 && progress <= 1);
         working = true; break;
       }
     }
+    assert.equal(sawApproach, true, "approach travel has no chop activity or progress bar");
     assert.equal(working, true);
     const saved = session.save();
     const beforeRestore = observe().facts;
