@@ -123,8 +123,7 @@ export const formationsPack: GamePack = {
   ],
   systems: [cannonDamage, formations],
   commands: {
-    fire: command({ reads: [Launcher, MaterialLot], writes: [], run(context, raw) {
-      const { velocity } = z.object({ velocity: z.object({ x: z.number().finite(), y: z.number().finite(), z: z.number().finite() }).strict() }).strict().parse(raw);
+    fire: command({ input: z.object({ velocity: z.object({ x: z.number().finite().min(-1000000).max(1000000), y: z.number().finite().min(-1000000).max(1000000), z: z.number().finite().min(-1000000).max(1000000) }).strict() }).strict(), reads: [Launcher, MaterialLot], writes: [], run(context, { velocity }) {
       if (velocity.y < 0 || velocity.y > 8 || Math.hypot(velocity.x, velocity.y, velocity.z) > 12)
         throw new Error("Aim within the cannon elevation and speed limits");
       const cannon = context.query(query(Launcher)).find(row => row.id === cannonId);
@@ -133,24 +132,14 @@ export const formationsPack: GamePack = {
       return { actions: [launch(cannonId, ammunitionId, velocity)], writes: [] };
     } }),
     march: command({
+      input: z.object({
+        entities: z.array(z.string().min(1).max(128)).min(1).max(128),
+        destination: z.object({ x: z.number().finite().min(-1_000_000).max(1_000_000), y: z.number().finite().min(-1_000_000).max(1_000_000), z: z.number().finite().min(-1_000_000).max(1_000_000), frame: z.null() }).strict(),
+        facing: z.number().int().min(0).max(3).optional(),
+      }).strict(),
       reads: [FormationMember, FormationSettings],
       writes: [],
-      run(context, raw) {
-        const order = z
-          .object({
-            entities: z.array(z.string()).min(1).max(128),
-            destination: z
-              .object({
-                x: z.number().finite(),
-                y: z.number().finite(),
-                z: z.number().finite(),
-                frame: z.null(),
-              })
-              .strict(),
-            facing: z.number().int().min(0).max(3).optional(),
-          })
-          .strict()
-          .parse(raw);
+      run(context, order) {
         const requested = new Set(order.entities);
         const facing =
           order.facing ??
@@ -198,17 +187,10 @@ export const formationsPack: GamePack = {
       },
     }),
     setFacing: command({
+      input: z.object({ facing: z.number().int().min(0).max(3) }).strict(),
       reads: [FormationSettings],
       writes: [FormationSettings],
-      run: (context, input) => {
-        const facing = (input as { facing?: unknown } | null)?.facing;
-        if (
-          typeof facing !== "number" ||
-          !Number.isInteger(facing) ||
-          facing < 0 ||
-          facing > 3
-        )
-          throw new Error("facing must be 0..3");
+      run: (context, { facing }) => {
         const current = context
           .query(query(FormationSettings))[0]
           ?.get(FormationSettings);
@@ -225,16 +207,10 @@ export const formationsPack: GamePack = {
       },
     }),
     setRetreatThreshold: command({
+      input: z.object({ retreatBelow: z.union([z.literal(25), z.literal(90)]) }).strict(),
       reads: [FormationSettings],
       writes: [FormationSettings],
-      run: (context, input) => {
-        const retreatBelow = (input as { retreatBelow?: unknown } | null)
-          ?.retreatBelow;
-        if (
-          typeof retreatBelow !== "number" ||
-          (retreatBelow !== 25 && retreatBelow !== 90)
-        )
-          throw new Error("retreat threshold must be 25 or 90");
+      run: (context, { retreatBelow }) => {
         const current = context
           .query(query(FormationSettings))[0]
           ?.get(FormationSettings);

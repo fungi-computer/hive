@@ -151,26 +151,40 @@ const colonyInitial = [
 type CommandContext = Pick<import("../contracts").ReadContext, "query">;
 
 const goInput = z.object({
-  entities: z.array(z.string()).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
   destination: z.object({
-    x: z.number().finite(), y: z.number().finite(), z: z.number().finite(),
+    x: z.number().finite().min(-1_000_000).max(1_000_000), y: z.number().finite().min(-1_000_000).max(1_000_000), z: z.number().finite().min(-1_000_000).max(1_000_000),
     frame: z.string().transform(entity).nullable(),
   }).strict(),
 }).strict();
 const stationInput = z.object({ station: z.string().min(1).max(128).transform(entity) }).strict();
 const workerSelectionInput = z.object({
-  entities: z.array(z.string()).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
 }).strict();
 const deliveryInput = z.object({
-  entities: z.array(z.string()).min(1).max(workers.length),
-  quantity: z.number().optional(),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  quantity: z.union([z.literal(1), z.literal(2)]).optional(),
 }).strict();
+const pointInput = z.tuple([
+  z.number().int().min(-1_000_000).max(1_000_000),
+  z.number().int().min(-1_000_000).max(1_000_000),
+  z.number().int().min(-1_000_000).max(1_000_000),
+]);
+const areaInput = z.object({ start: pointInput, end: pointInput }).strict();
+const emptyInput = z.object({}).strict();
+const digInput = z.object({ area: areaInput }).strict();
+const treeSelectionInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(32) }).strict();
+const cancelDigInput = z.object({
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length).optional(),
+  area: areaInput.optional(),
+}).strict().refine(value => value.entities !== undefined || value.area !== undefined, "cancel dig requires workers or an area");
+const depositInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).length(1) }).strict();
 
-function selectedWorkers(context: CommandContext, raw: readonly string[]): readonly EntityId[] {
+function selectedWorkers(context: CommandContext, raw: readonly EntityId[]): readonly EntityId[] {
   const selected = [...new Set(raw)];
   if (
     selected.length !== raw.length ||
-    selected.some((id) => !(workers as readonly EntityId[]).includes(id as EntityId))
+    selected.some((id) => !workers.includes(id))
   )
     throw new Error("selection must contain distinct colony workers");
   const rows = context.query(query(Worker));
@@ -178,7 +192,7 @@ function selectedWorkers(context: CommandContext, raw: readonly string[]): reado
     const worker = rows.find((row) => row.id === id)?.get(Worker);
     if (!worker || worker.guest) throw new Error("guests cannot deliver");
   }
-  return selected as EntityId[];
+  return selected;
 }
 
 function activeTaskFor(context: CommandContext, actor: EntityId) {
@@ -190,13 +204,12 @@ function activeTaskFor(context: CommandContext, actor: EntityId) {
 
 function deliveryWrites(
   context: CommandContext,
-  input: unknown,
+  input: z.infer<typeof deliveryInput>,
   enabled: boolean,
   preserveCurrentQuantity = false,
 ) {
-  const parsed = deliveryInput.parse(input);
-  const selected = selectedWorkers(context, parsed.entities);
-  const quantity = parsed.quantity;
+  const selected = selectedWorkers(context, input.entities);
+  const quantity = input.quantity;
   if (enabled && !preserveCurrentQuantity && quantity !== 1 && quantity !== 2)
     throw new Error("delivery quantity must be one or two");
   return selected.map((worker) => {
@@ -222,18 +235,15 @@ function deliveryWrites(
   });
 }
 
-function selectedDigWorker(context: CommandContext, input: unknown): EntityId {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("command requires one selected worker");
-  const entities = (input as { entities?: unknown }).entities;
-  if (!Array.isArray(entities) || entities.length !== 1 || typeof entities[0] !== "string") throw new Error("command requires one selected worker");
-  const worker = entities[0] as EntityId;
-  if (!(workers as readonly EntityId[]).includes(worker)) throw new Error("selection must contain a colony worker");
+function selectedDigWorker(context: CommandContext, input: z.infer<typeof depositInput>): EntityId {
+  const worker = input.entities[0];
+  if (!workers.includes(worker)) throw new Error("selection must contain a colony worker");
   const workerState = context.query(query(Worker)).find((row) => row.id === worker)?.get(Worker);
   if (!workerState || workerState.guest) throw new Error("guests cannot act");
   return worker;
 }
 
-function depositActions(context: CommandContext, input: unknown) {
+function depositActions(context: CommandContext, input: z.infer<typeof depositInput>) {
   const worker = selectedDigWorker(context, input);
   const lots = context.query(query(MaterialLot)).map((row) => ({
     id: row.id,
@@ -289,15 +299,9 @@ const colonyComponents = [
   WorkParticipation,
 ] as const;
 
-function areaPoint(value: unknown): [number, number, number] {
-  if (Array.isArray(value) && value.length === 3 && value.every((v) => typeof v === "number" && Number.isSafeInteger(v) && Math.abs(v) <= 1_000_000)) return [value[0] as number, value[1] as number, value[2] as number];
-  throw new Error("dig area point is invalid");
-}
-function digArea(context: CommandContext, input: unknown) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("dig command requires an area");
-  const area = (input as { area?: { start?: unknown; end?: unknown } }).area;
-  if (!area) throw new Error("dig command requires an area");
-  const [startX, y, startZ] = areaPoint(area.start), [endX, endY, endZ] = areaPoint(area.end);
+function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
+  const area = input.area;
+  const [startX, y, startZ] = area.start, [endX, endY, endZ] = area.end;
   if (y !== endY) throw new Error("dig area must stay on one level");
   const minX = Math.min(startX, endX), maxX = Math.max(startX, endX), minZ = Math.min(startZ, endZ), maxZ = Math.max(startZ, endZ);
   const count = (maxX - minX + 1) * (maxZ - minZ + 1);
@@ -325,9 +329,10 @@ export const colonyPack: GamePack = {
   commands: {
     build: colonyBuildCommand,
     lightHearth: command({
+      input: stationInput,
       reads: [Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
-        const { station } = stationInput.parse(input);
+        const { station } = input;
         const row = context.query(query(Emitter, EmissionOrder, EmissionWork)).find(row => row.id === station);
         if (!row) throw new Error("This station cannot be lit");
         const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), true);
@@ -335,9 +340,10 @@ export const colonyPack: GamePack = {
       },
     }),
     cancelIgnition: command({
+      input: stationInput,
       reads: [EmissionOrder, EmissionWork], writes: [EmissionOrder],
       run(context, input) {
-        const { station } = stationInput.parse(input);
+        const { station } = input;
         const row = context.query(query(EmissionOrder, EmissionWork)).find(row => row.id === station);
         if (!row) throw new Error("Station work unavailable");
         const value = nextEmissionOrder(row.get(EmissionOrder), row.get(EmissionWork), false);
@@ -345,25 +351,29 @@ export const colonyPack: GamePack = {
       },
     }),
     deliver: command({
+      input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
     }),
     pauseDelivery: command({
+      input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, false) }),
     }),
     resumeDelivery: command({
+      input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
     go: command({
+      input: goInput,
       reads: [Worker, Position, WorkParticipation, ExcavationWork, ConstructionSite],
       writes: [WorkParticipation],
       run: (context, input) => {
-        const parsed = goInput.parse(input);
+        const parsed = input;
         const selected = selectedWorkers(context, parsed.entities);
         const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
         const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
@@ -383,25 +393,26 @@ export const colonyPack: GamePack = {
       },
     }),
     resumeWork: command({
+      input: workerSelectionInput,
       reads: [Worker, WorkParticipation],
       writes: [WorkParticipation],
       run: (context, input) => {
-        const selected = selectedWorkers(context, workerSelectionInput.parse(input).entities);
+        const selected = selectedWorkers(context, input.entities);
         return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
       },
     }),
     dig: command({
+      input: digInput,
       reads: [ColonyDigOrder],
       writes: [],
       lifecycle: [ColonyDigOrder],
       run: (context, input) => ({ actions: [], writes: [], creates: digArea(context, input) }),
     }),
     designateTrees: command({
+      input: treeSelectionInput,
       reads: [ColonyTree], writes: [ColonyTreePolicy],
       run(context, input) {
-        const raw = input && typeof input === "object" && !Array.isArray(input) ? input as { entities?: unknown } : {};
-        if (!Array.isArray(raw.entities) || raw.entities.length < 1 || raw.entities.length > 32 || raw.entities.some(id => typeof id !== "string")) throw new Error("tree designation requires one to 32 trees");
-        const selected = new Set(raw.entities as string[]);
+        const selected = new Set(input.entities);
         const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
         const writes = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing").map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }));
         if (!writes.length) throw new Error("no standing trees selected");
@@ -409,29 +420,26 @@ export const colonyPack: GamePack = {
       },
     }),
     cancelTrees: command({
+      input: treeSelectionInput,
       reads: [ColonyTree], writes: [ColonyTreePolicy],
       run(context, input) {
-        const raw = input && typeof input === "object" && !Array.isArray(input) ? input as { entities?: unknown } : {};
-        if (!Array.isArray(raw.entities) || raw.entities.length < 1 || raw.entities.length > 32 || raw.entities.some(id => typeof id !== "string")) throw new Error("tree cancellation requires one to 32 tree ids");
-        const selected = new Set(raw.entities as string[]);
+        const selected = new Set(input.entities);
         const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
         if (!rows.length) throw new Error("no matching tree");
         return { actions: [], writes: rows.map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: false } })) };
       },
     }),
     cancelDig: command({
+      input: cancelDigInput,
       reads: [ColonyDigOrder, ExcavationWork],
       writes: [],
       lifecycle: [ColonyDigOrder],
       run: (context, input) => {
-        const record = input && typeof input === "object" && !Array.isArray(input)
-          ? input as { entities?: unknown; area?: { start?: unknown; end?: unknown } }
-          : {};
-        const selected = Array.isArray(record.entities) ? new Set(record.entities) : null;
+        const selected = input.entities ? new Set(input.entities) : null;
         let area: { minX: number; maxX: number; minZ: number; maxZ: number; y: number } | null = null;
-        if (record.area) {
-          const [startX, y, startZ] = areaPoint(record.area.start);
-          const [endX, endY, endZ] = areaPoint(record.area.end);
+        if (input.area) {
+          const [startX, y, startZ] = input.area.start;
+          const [endX, endY, endZ] = input.area.end;
           if (y !== endY) throw new Error("cancel dig area must stay on one level");
           area = { minX: Math.min(startX, endX), maxX: Math.max(startX, endX), minZ: Math.min(startZ, endZ), maxZ: Math.max(startZ, endZ), y };
         }
@@ -450,6 +458,7 @@ export const colonyPack: GamePack = {
       },
     }),
     deposit: command({
+      input: depositInput,
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
       writes: [],
       run: (context, input) => ({ actions: depositActions(context, input), writes: [] }),

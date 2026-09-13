@@ -7,6 +7,7 @@ import {
   type GamePresentation,
 } from "./presentation";
 import type { GamePack } from "./contracts";
+import { z } from "zod";
 const pack = (presentation?: GamePresentation): GamePack =>
   ({
     id: "colony",
@@ -16,6 +17,7 @@ const pack = (presentation?: GamePresentation): GamePack =>
     systems: [],
     commands: {
       greet: {
+        input: z.object({}).strict(),
         reads: [],
         writes: [],
         run: () => ({ actions: [], writes: [] }),

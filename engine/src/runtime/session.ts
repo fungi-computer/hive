@@ -245,7 +245,7 @@ export class GameSession {
     const reads = new Set(
       (handler.reads ?? []).map((component) => component.id),
     );
-    const result: GameCommandResult = handler.run(
+    const result: GameCommandResult = handler.execute(
       {
         physicalContacts: cells => this.port.physicalContacts(cells),
         query: (spec) => {

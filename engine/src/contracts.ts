@@ -351,6 +351,7 @@ export interface GamePack {
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: import("./presentation").GamePresentation;
   readonly initialActions?: readonly ActionRequest[];
+  /** Heterogeneous command inputs are erased at the pack registry boundary. */
   readonly commands?: Readonly<Record<string, GameCommandDefinition>>;
 }
 export interface GameCommandResult {
@@ -360,13 +361,16 @@ export interface GameCommandResult {
   readonly removes?: readonly EntityId[];
 }
 export interface GameCommandDefinition {
+  /** The sole parser for input entering this command. */
+  readonly input: z.ZodType;
   /** Authored record creation/removal only; does not grant progress writes. */
   readonly lifecycle?: readonly ComponentDefinition<any>[];
   readonly reads?: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
-  readonly run: (
+  /** Erased invocation closes over the parsed handler input in the authoring factory. */
+  readonly execute: (
     context: Pick<ReadContext, "query" | "physicalContacts">,
-    input: unknown,
+    raw: unknown,
   ) => GameCommandResult;
 }
 export interface GamePackTransport {
