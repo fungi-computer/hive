@@ -1,10 +1,11 @@
-import { designation } from "./spatial-designation.js";
-
 const FACING = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
 
 /** Build the exact cells a placement gesture owns. No admission is inferred. */
-export function placementCells({ area, target, anchor, upperCandidates = [] }) {
-  if (area?.start && area.current) return designation(area.mode, area.start, area.current, 256).cells;
+export function placementCells({ area, target, anchor, upperCandidates = [], designate }) {
+  if (area?.start && area.current) {
+    try { return designate(area.mode, area.start, area.current, 256).cells; }
+    catch { return []; }
+  }
   if (anchor) return upperCandidates;
   return target ? [target] : [];
 }
@@ -22,7 +23,7 @@ export function syncPlacementGhosts(pool, specs, { art, bindings, resolve, proje
   const resolved = binding && art ? resolve(art, binding, facing) : undefined;
   for (const entry of pool.entries) entry.sprite.visible = false;
   if (!resolved?.texture) return;
-  while (pool.entries.length < cells.length) pool.entries.push({ sprite: new pool.factory(), owned: true });
+  while (pool.entries.length < cells.length) pool.entries.push({ sprite: pool.factory(), owned: true });
   cells.forEach((cell, index) => {
     const entry = pool.entries[index];
     const point = project(cell[0], (cell[1] + 0.5) * verticalMetres, cell[2]);

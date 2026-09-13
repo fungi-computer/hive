@@ -45,6 +45,7 @@ import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
+import { designation } from "./spatial-designation.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -845,7 +846,10 @@ export function createHiveClient({
     const area = terrainArea.getSnapshot();
     const displayed = displayedTerrainFrame();
     if (area.value === "dragging" && displayed) {
-      for (const surface of visibleTerrainDesignationPreview(displayed, area.context.start, area.context.current, area.context.mode)) {
+      let preview = [];
+      try { preview = visibleTerrainDesignationPreview(displayed, area.context.start, area.context.current, area.context.mode); }
+      catch { preview = []; }
+      for (const surface of preview) {
         const [x,y,z] = surface.cell;
         const points = [[x-.5,z-.5],[x+.5,z-.5],[x+.5,z+.5],[x-.5,z+.5]].flatMap(([a,b]) => {
           const p = project(a,(y+.5)*displayed.verticalMetres,b);
@@ -868,6 +872,7 @@ export function createHiveClient({
         target: targetSnapshot.context.hover,
         anchor: anchored,
         upperCandidates,
+        designate: designation,
       });
       syncPlacementGhosts(placementGhosts, placementVisualSpec(buildControl, cells, placementVisuals), {
         art, bindings, resolve: resolveStaticVisual, project,
