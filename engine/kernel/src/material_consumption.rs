@@ -62,6 +62,10 @@ impl PreparedConsumption {
     pub(super) fn water_kg(&self) -> f64 {
         self.result.water_kg
     }
+
+    pub(super) fn state_weight(&self) -> usize {
+        self.state_weight
+    }
 }
 
 fn same_lot(left: &Lot, right: &Lot) -> bool {
