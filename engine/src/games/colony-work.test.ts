@@ -1,5 +1,4 @@
 // Focused laws for the shared tended-resource work owner.
-// @ts-nocheck
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";

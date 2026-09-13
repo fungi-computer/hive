@@ -335,6 +335,7 @@ const colonyComponents = [
   DeliveryTask,
   DeliveryControl,
   ColonyDigOrder,
+  ColonyResourceOrder,
   ColonyTree, ColonyTreeOrder,
   ColonyTreePolicy,
   FiniteResource,
