@@ -17,6 +17,16 @@ import {
 } from "./common";
 import type { EntityId, Vec3, WorldPose, WriteContext, MoveDestination } from "../contracts";
 
+type DeliveryLot = { readonly id: EntityId; readonly container: EntityId; readonly kind: string; readonly quantity: number };
+function replacementLot(lots: readonly DeliveryLot[], source: EntityId, material: string, quantity: number, held: ReadonlySet<EntityId>): DeliveryLot | undefined {
+  let selected: DeliveryLot | undefined;
+  for (const lot of lots) {
+    if (lot.container !== source || lot.kind !== material || lot.quantity < quantity || held.has(lot.id)) continue;
+    if (!selected || lot.id < selected.id) selected = lot;
+  }
+  return selected;
+}
+
 export type DeliveryPhase =
   "idle" | "to-source" | "carrying" | "to-destination" | "putting-down" | "complete";
 export const DeliveryControl = component<{
@@ -28,6 +38,7 @@ export const DeliveryControl = component<{
 });
 export const DeliveryTask = component<{
   actor: EntityId | null;
+  /** Currently selected physical portion; source/material/quantity remain the obligation. */
   sourceLot: EntityId;
   source: EntityId;
   destination: EntityId;
@@ -235,7 +246,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       const state = task.get(DeliveryTask);
       const selectedLot = lotsById.get(state.sourceLot);
       if (state.actor === null && (state.phase === "idle" || state.phase === "to-source") && selectedLot?.container !== state.source) {
-        const replacement = lots.filter((lot) => lot.container === state.source && lot.kind === state.material && lot.quantity >= state.quantity && !heldLots.has(lot.id)).sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)[0];
+        const replacement = replacementLot(lots, state.source, state.material, state.quantity, heldLots);
         if (replacement) ctx.write(DeliveryTask, task.id, { ...state, sourceLot: replacement.id });
         continue;
       }
@@ -267,9 +278,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         continue;
       const lotState = lotsById.get(state.sourceLot);
       if ((state.phase === "idle" || state.phase === "to-source") && lotState?.container !== state.source && lotState?.container !== state.actor) {
-        const replacement = lots
-          .filter((lot) => lot.container === state.source && lot.kind === state.material && lot.quantity >= state.quantity && !heldLots.has(lot.id))
-          .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)[0];
+        const replacement = replacementLot(lots, state.source, state.material, state.quantity, heldLots);
         if (replacement) {
           ctx.write(DeliveryTask, task.id, { ...state, sourceLot: replacement.id, actor: null, phase: "idle" });
         } else if (state.actor !== null) {
