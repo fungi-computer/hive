@@ -337,3 +337,30 @@ test("unsupported saved world is reported without retry or replacement", async (
     assert.equal(events.some((event) => event.type === "ready"), false);
   } finally { runtime.dispose(); }
 });
+
+test("definite command refusals release later orders without reconnecting", async () => {
+  let reconnects = 0;
+  const socket = new FakeSocket(observation(0), () => { reconnects++; });
+  const calls: string[] = [];
+  const runtime = setup(async (input, init) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    const body = JSON.parse(String(init?.body));
+    calls.push(body.id);
+    if (calls.length === 1) return Response.json({ error: "bad-request" }, { status: 400 });
+    return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+  }, socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    runtime.send({ type: "command", name: "build", input: { invalid: true } });
+    runtime.send({ type: "pause" });
+    await wait(30);
+    assert.equal(calls.length, 2);
+    assert.equal(new Set(calls).size, 2);
+    assert.equal(reconnects, 0);
+    assert(events.some(event => event.type === "error" && event.message.includes("Order refused")));
+    assert(events.some(event => event.type === "connection" && event.status === "online" && event.pending === 0));
+  } finally { runtime.dispose(); }
+});

@@ -7,6 +7,9 @@ import { presentationControlSchema, presentationFactSchema, type EnvironmentVisu
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { activitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
+import { z } from "zod";
+
+const rejectionReasonSchema = z.object({ reason: z.string().min(1) });
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type SocketLike = {
@@ -490,12 +493,22 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
             emit({ type: "error", message: "remote command conflict" });
             return;
           }
+          // These are definitive admission refusals from the public host.
+          // Keep timeouts/rate limiting/server errors on the same-ID retry path.
+          if ([400, 401, 403, 404, 405, 413, 422].includes(response.status)) {
+            pending.shift();
+            emitConnection("online");
+            emit({ type: "error", message: `Order refused (HTTP ${response.status})` });
+            return;
+          }
           if (!response.ok) throw new Error(`remote command failed (${response.status})`);
           const receipt = responseData.value as Record<string, unknown>;
           if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
             pending.shift();
-            emit({ type: "error", message: "remote command rejected" });
+            const reason = rejectionReasonSchema.safeParse(receipt.result);
+            emitConnection("online");
+            emit({ type: "error", message: reason.success ? `Order refused: ${reason.data.reason}` : "Order refused" });
             return;
           }
           if (receipt.status !== "applied" || !safeNonnegativeInteger(receipt.revision))

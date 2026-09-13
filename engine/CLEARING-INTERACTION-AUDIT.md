@@ -74,3 +74,12 @@ Client repairs published as preview c9a94c56-079e-4064-b9fd-aa002c2b44f8 from
 6cbbb4f. Build u6751, preview u6752 and44-file exact HTTP readback u6753 passed.
 Existing DO unchanged; no new-world requirement from this static release.
 Hosted gameplay is still awaiting observation; HTTP parity is not a playtest.
+
+Further client reliability correction: definitive public-host refusal statuses
+400/401/403/404/405/413/422 now retire that command from the FIFO rather than
+trigger reconnect/retry. Transport uncertainty retains same-ID retries; 408,
+rate limiting and server failures are not reclassified as final refusal.
+Rejected Region receipts preserve their reason when present. u6754 proves a
+400 followed by a successful independent order without reconnect, plus the
+existing lost-receipt identical-body retry law; strict types/diff pass. This
+correction is source-only pending the next coherent client release.
