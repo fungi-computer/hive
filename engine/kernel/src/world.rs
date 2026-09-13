@@ -195,6 +195,20 @@ mod process_request_tests {
         assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().phase, ProcessPhase::Waiting);
         kernel.validate_process_records().unwrap();
     }
+
+    #[test]
+    fn admitted_binding_reserves_lot_from_ordinary_transfer() {
+        let mut kernel = kernel_with_slot();
+        let process = kernel.request_process("process-v1", "station").unwrap();
+        let lot = kernel.ecs.spawn((ExternalId("grain.1".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
+        kernel.ids.insert("grain.1".into(), lot); kernel.known.insert("grain.1".into());
+        let destination = kernel.ecs.spawn((ExternalId("destination".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 4 })).id();
+        kernel.ids.insert("destination".into(), destination); kernel.known.insert("destination".into()); kernel.contents.insert("destination".into(), BTreeSet::new());
+        kernel.refresh_state_weight();
+        kernel.admit_process(&process, "process-v1", "station").unwrap();
+        assert!(kernel.transfer("grain.1", "station:input", "destination", 1).is_err());
+        assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().container, "station:input");
+    }
 }
 
 #[cfg(test)]
@@ -2867,7 +2881,9 @@ impl Kernel {
             self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(());
         }
         if usize::from(state.stage_index + 1) >= definition.stages.len() { self.remove_process_bindings(process_id)?; state.phase = ProcessPhase::Complete; state.worker = None; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; state.worker = None; }
-        self.ecs.entity_mut(self.entity(process_id)?).insert(state); Ok(())
+        self.ecs.entity_mut(self.entity(process_id)?).insert(state);
+        self.refresh_state_weight();
+        Ok(())
     }
 
     fn advance_staged_processes(&mut self, delta: f64) -> Result<()> {
