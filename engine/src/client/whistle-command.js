@@ -50,10 +50,12 @@ export function terrainAreaCommand(control, selected, area) {
 
 /** Bind a completed shared placement to the one build command. */
 export function buildPlacementCommand(control, selected, designation) {
-  if (control?.command !== "build" || control.target !== "world-surface")
+  if ((control?.command !== "build" && control?.commandId !== "colony:build") || control.target !== "world-surface")
     throw new Error("binding is not a world-surface build");
   if (!designation || !Array.isArray(designation.cells) || designation.cells.length === 0)
     throw new Error("build designation has no cells");
+  if (designation.mode && !control.designation?.includes(designation.mode))
+    throw new Error("build designation mode is not supported by this binding");
   if (designation.cells.length === 1)
     return terrainCellCommand(control, selected, { cell: designation.cells[0] });
   return terrainAreaCommand(control, selected, {
