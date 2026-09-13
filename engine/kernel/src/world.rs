@@ -195,6 +195,20 @@ mod process_request_tests {
         assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().phase, ProcessPhase::Waiting);
         kernel.validate_process_records().unwrap();
     }
+
+    #[test]
+    fn process_station_rejects_different_active_definition() {
+        let mut kernel = kernel_with_slot();
+        let first = kernel.request_process("process-v1", "station").unwrap();
+        let mut second = kernel.environment.as_ref().unwrap().processes.get("process-v1").unwrap().definition().clone();
+        second.id = "process-v2".into();
+        let first_definition = kernel.environment.as_ref().unwrap().processes.get("process-v1").unwrap().definition().clone();
+        let structures = kernel.environment.as_ref().unwrap().structures.clone();
+        let emissions = kernel.environment.as_ref().unwrap().emissions.clone();
+        kernel.environment.as_mut().unwrap().processes = ProcessCatalog::from_definitions(vec![first_definition, second], &structures, &emissions).unwrap();
+        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), first);
+        assert!(kernel.request_process("process-v2", "station").is_err());
+    }
 }
 
 #[cfg(test)]
