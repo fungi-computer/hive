@@ -16,6 +16,15 @@ function commandName(control) {
 
 export function bindingCommand(control, selected = []) {
   const preset = control.preset;
+  if (control.selection && typeof control.selection === "object") {
+    const { field, cardinality } = control.selection;
+    if (typeof field !== "string" || !field || cardinality !== "one") throw new Error("invalid entity selection binding");
+    if (!Array.isArray(selected) || selected.length > 128 || selected.some(id => typeof id !== "string" || !id || id.length > 128)) throw new Error("invalid command selection");
+    if (preset !== undefined && (preset === null || typeof preset !== "object" || Array.isArray(preset) || Object.hasOwn(preset, field))) throw new Error("entity selection binding preset collision");
+    const scoped = control.subjects === undefined ? [...new Set(selected)] : [...new Set(selected.filter(id => control.subjects.includes(id)))];
+    if (scoped.length !== 1 || selected.length !== 1) throw new Error("entity selection binding requires exactly one selected subject");
+    return { type: "command", name: commandName(control), input: jsonInput({ ...(preset ?? {}), [field]: scoped[0] }) };
+  }
   if (control.selection !== "entities") return { type: "command", name: commandName(control), input: preset };
   if (selected.length > 128 || selected.some(id => typeof id !== "string" || !id || id.length > 128)) throw new Error("invalid command selection");
   const scoped = control.subjects === undefined ? selected : selected.filter(id => control.subjects.includes(id));

@@ -1,13 +1,13 @@
 /** Client-owned acquisition bindings. Semantic command identity and schemas arrive from Whistle. */
 export const GAME_BINDINGS = Object.freeze({
   colony: Object.freeze([
-    { commandId: "colony:lightHearth", id: "light-brew-station", label: "Light brew station fire", preset: { station: "colony.brew-station" } },
-    { commandId: "colony:cancelIgnition", id: "cancel-ignition", label: "Cancel lighting", preset: { station: "colony.brew-station" } },
+    { commandId: "colony:lightHearth", id: "light-brew-station", label: "Light brew station fire", selection: { field: "station", cardinality: "one" } },
+    { commandId: "colony:cancelIgnition", id: "cancel-ignition", label: "Cancel lighting", selection: { field: "station", cardinality: "one" } },
     { commandId: "colony:resumeWork", id: "resume-work", label: "Resume work", selection: "entities" },
-    ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf"].map(catalog => ({
+    ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
       commandId: "colony:build", id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: "world-surface",
-      designation: catalog === "timber-wall" ? ["point", "line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : catalog === "timber-bed" || catalog === "timber-shelf" ? ["point"] : ["point"],
-      preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" ? { orientation: "north" } : {}) },
+      designation: catalog === "timber-wall" ? ["point", "line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"],
+      preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? { orientation: "north" } : {}) },
     })),
     ...["north", "east", "south", "west"].map(orientation => ({ commandId: "colony:build", id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface", designation: ["point"], preset: { catalog: "timber-stair", orientation } })),
     { commandId: "colony:dig", id: "dig", label: "Dig area", target: "terrain-area", designation: ["rectangle"] },
@@ -16,7 +16,7 @@ export const GAME_BINDINGS = Object.freeze({
     { commandId: "colony:designateTrees", id: "designate-trees", label: "Fell selected trees", selection: "entities" },
     { commandId: "colony:cancelTrees", id: "cancel-trees", label: "Cancel tree work", selection: "entities" },
     { commandId: "colony:designateStockpile", id: "designate-stockpile", label: "Designate stockpile", target: "terrain-area", designation: ["rectangle"], preset: { filterProfile: "wood", priority: 50 } },
-    { commandId: "colony:deconstruct", id: "deconstruct", label: "Deconstruct", selection: "entities", designation: ["entities"] },
+    { commandId: "colony:deconstruct", id: "deconstruct", label: "Deconstruct", selection: { field: "site", cardinality: "one" }, designation: ["entities"] },
   ]),
   survival: Object.freeze([
     { commandId: "survival:takeFood", id: "take", label: "Take bread", preset: null },

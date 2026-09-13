@@ -20,7 +20,9 @@ export function projectContextualPresentation({ facts, controls, targets, select
       continue;
     }
     const scoped = subjects.filter(id => current.has(id));
-    if (scoped.some(id => selected.has(id))) selectionControls.push({ ...control, subjects: scoped });
+    if (control.selection && typeof control.selection === "object" && control.selection.cardinality === "one"
+      ? scoped.filter(id => selected.has(id)).length === 1
+      : scoped.some(id => selected.has(id))) selectionControls.push({ ...control, subjects: scoped });
   }
   const selectedLabels = selectedIds.map(id => latestFacts.find(fact => fact.id === id)?.label || id).filter(Boolean);
   const selectionLabel = selectedLabels.length ? selectedLabels.join(", ") : "Selection";

@@ -32,6 +32,20 @@ test("localized fact labels never choose a contextual command target", () => {
   assert.deepEqual(result.selection.controls, []);
 });
 
+test("single entity controls require one selected projected subject", () => {
+  const control = { commandId: "colony:deconstruct", label: "Deconstruct", selection: { field: "site", cardinality: "one" } };
+  const one = projectContextualPresentation({
+    facts: [], controls: [control], targets: [{ commandId: control.commandId, subjects: ["site-1", "site-2"] }],
+    selectedIds: ["site-1"], currentIds: ["site-1", "site-2"],
+  });
+  assert.equal(one.selection.controls.length, 1);
+  const many = projectContextualPresentation({
+    facts: [], controls: [control], targets: [{ commandId: control.commandId, subjects: ["site-1", "site-2"] }],
+    selectedIds: ["site-1", "site-2"], currentIds: ["site-1", "site-2"],
+  });
+  assert.deepEqual(many.selection.controls, []);
+});
+
 test("an unavailable selection command stays scoped and explains why", () => {
   const result = projectContextualPresentation({
     facts: [{ id: "unfinished", label: "Construction", subjects: ["unfinished"] }],

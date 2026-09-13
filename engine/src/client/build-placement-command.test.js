@@ -50,6 +50,26 @@ test("surface bindings preserve point source validation and selected entities", 
   assert.deepEqual(selection.input, { entities: ["worker"] });
 });
 
+test("single entity bindings bind a scoped selected subject to their declared field", () => {
+  const control = { commandId: "colony:deconstruct", selection: { field: "site", cardinality: "one" }, subjects: ["site-1", "other"] };
+  assert.deepEqual(bindingCommand(control, ["site-1"]).input, { site: "site-1" });
+  assert.throws(() => bindingCommand(control, []), /exactly one/);
+  assert.throws(() => bindingCommand(control, ["site-1", "other"]), /exactly one/);
+  assert.throws(() => bindingCommand(control, ["worker"]), /exactly one/);
+  assert.throws(() => bindingCommand({ ...control, preset: { site: "preset-site" } }, ["site-1"]), /collision/);
+});
+
+test("affected game bindings use one entity fields and brew station point placement", () => {
+  for (const id of ["deconstruct", "light-brew-station", "cancel-ignition"]) {
+    const control = GAME_BINDINGS.colony.find((entry) => entry.id === id);
+    assert.deepEqual(control.selection, { field: id === "deconstruct" ? "site" : "station", cardinality: "one" });
+  }
+  const brew = buildControl("brew-station");
+  assert.deepEqual(brew.designation, ["point"]);
+  assert.deepEqual(buildPlacementCommand(brew, [], { mode: "point", cells: [[2, 13, 3]], start: [2, 13, 3], end: [2, 13, 3] }).input,
+    { catalog: "brew-station", orientation: "north", target: { cell: [2, 13, 3] } });
+});
+
 test("area bindings reject mixed levels and oversized designations", () => {
   const control = { commandId: "colony:dig", target: "terrain-area", designation: ["rectangle"] };
   assert.throws(() => terrainAreaCommand(control, [], { start: [0, 1, 0], end: [0, 2, 0] }), /exceeds 256/);
