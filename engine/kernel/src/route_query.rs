@@ -53,7 +53,7 @@ fn unavailable_error(error: &str) -> bool {
 fn route_cost(start: Position, points: impl IntoIterator<Item = Point>) -> crate::components::Result<f64> {
     let mut route = vec![crate::navigation::point(start)];
     route.extend(points);
-    let cost = crate::terrain_route::waypoint_cost(route)?;
+    let cost = crate::terrain_route::waypoint_cost_micrometres(route)? as f64 / 1_000_000.0;
     (cost <= MAX_COST_METRES).then_some(cost).ok_or("route metric cost exceeds bound".into())
 }
 

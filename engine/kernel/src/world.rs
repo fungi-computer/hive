@@ -796,7 +796,7 @@ impl Kernel {
                     let mut waypoint_end = 0usize;
                     let mut join = None;
                     for (index, pair) in previous.path.windows(2).enumerate() {
-                        let emitted = crate::terrain_route::admitted_edge(pair[0], pair[1], spacing, &stairs)?.waypoint_count();
+                        let emitted = crate::terrain_route::admitted_edge(pair[0], pair[1], &stairs)?.waypoint_count();
                         waypoint_end = waypoint_end.checked_add(emitted).ok_or("terrain route progress overflow")?;
                         if next <= waypoint_end {
                             let point_index = waypoint_end.checked_sub(next).ok_or("invalid terrain route progress")?;
@@ -835,7 +835,7 @@ impl Kernel {
                     prefix.extend(points);
                     points = prefix;
                 }
-                if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&path, spacing, &stairs)? > 4096 {
+                if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&path, &stairs)? > 4096 {
                     return Err("terrain route waypoint budget exceeded".into());
                 }
                 let terrain_revision = environment.world.terrain_revision();
@@ -2579,7 +2579,7 @@ impl Kernel {
         let points = crate::terrain_route::waypoints_with_stairs(&state.path, crate::terrain_traversal::TraversalConfig {
             spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells,
         }, &stairs)?;
-        if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&state.path, spacing, &stairs)? > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
+        if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&state.path, &stairs)? > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
         let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
             .ok_or("invalid terrain route progress")?;
         if !route.iter().eq(points[offset..].iter()) || state.origin != points[offset - 1]
