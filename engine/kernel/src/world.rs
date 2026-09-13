@@ -260,7 +260,7 @@ mod water_exchange_action_tests {
         let mut kernel = kernel();
         let before = kernel.query_json(r#"["hive.lot","hive.lot-water"]"#).unwrap();
         let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[
-            {"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":0,"y":0,"z":0,"direction":"withdraw","portions":1}
+            {"kind":"exchange-field-water","operation":"test-withdraw","worker":"worker","vessel":"pail","x":0,"y":0,"z":0,"direction":"withdraw","portions":1}
         ]}).to_string()).unwrap();
         let result: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
@@ -269,7 +269,7 @@ mod water_exchange_action_tests {
         let mut wrong = kernel;
         let before = wrong.query_json(r#"["hive.lot","hive.lot-water"]"#).unwrap();
         let result = wrong.advance_json(&json!({"delta":0,"writes":[],"actions":[
-            {"kind":"exchange-field-water","worker":"pail","vessel":"pail","x":0,"y":0,"z":0,"direction":"deposit","portions":1}
+            {"kind":"exchange-field-water","operation":"test-invalid-deposit","worker":"pail","vessel":"pail","x":0,"y":0,"z":0,"direction":"deposit","portions":1}
         ]}).to_string()).unwrap();
         let result: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
@@ -294,7 +294,7 @@ mod water_exchange_action_tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         let portions = 1;
         let before = kernel.environment_facts_json().unwrap();
-        let draw = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":at.0,"y":at.1,"z":at.2,"direction":"withdraw","portions":portions}]}).to_string()).unwrap();
+        let draw = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"exchange-field-water","operation":"roundtrip-withdraw","worker":"worker","vessel":"pail","x":at.0,"y":at.1,"z":at.2,"direction":"withdraw","portions":portions}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&draw).unwrap()["results"][0]["accepted"], true);
         let water_lot = kernel.ids.values().copied().find(|entity| kernel.ecs.get::<Lot>(*entity).is_some_and(|lot| lot.kind == "water" && lot.container == "pail")).unwrap();
         assert_eq!(kernel.ecs.get::<Lot>(water_lot).unwrap().quantity, portions);
@@ -305,7 +305,7 @@ mod water_exchange_action_tests {
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
-        let pour = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":at.0,"y":at.1,"z":at.2,"direction":"deposit","portions":portions}]}).to_string()).unwrap();
+        let pour = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"exchange-field-water","operation":"roundtrip-deposit","worker":"worker","vessel":"pail","x":at.0,"y":at.1,"z":at.2,"direction":"deposit","portions":portions}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&pour).unwrap()["results"][0]["accepted"], true);
         assert_eq!(restored.environment_facts_json().unwrap().parse::<serde_json::Value>().unwrap()["totalKg"], before.parse::<serde_json::Value>().unwrap()["totalKg"]);
     }
