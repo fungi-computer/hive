@@ -424,6 +424,18 @@ Wall and door adjacency consume it first. This projection may later serve paths
 or fences, but it never creates collision, support or construction state. Native
 geometry remains authoritative; preview and art masks are rebuildable views.
 
+Furniture and stations use the same construction lifecycle without pretending
+they are floors. The native structure catalog needs a bounded fixture footprint
+whose completed geometry owns occupied cells and work contacts but supplies no
+walkable surface, wall height or structural span. Goblin then composes the finished
+site with game capabilities through one idempotent completion operation: a bed adds
+rest/comfort use, a shelf adds container policy, and a brew station adds process
+ports. Catalog data names that composition; Rust never branches on `bed`, `shelf`
+or `brew-station`, and art never grants the capability. Completion, cancellation,
+salvage and save/reload must conserve the same site materials and remove all
+composed capabilities atomically. This is the intended next catalog boundary, not
+a claim that the current three-entry native catalog already implements it.
+
 The retained behavior at `src/construction-view.js:46-90,280-329` and
 `src/main.js:675-742` is the behavioral baseline: continuous row preview, valid
 and invalid cells, release-to-order, persistent armed tool and automatic neighbor
