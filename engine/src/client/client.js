@@ -735,9 +735,10 @@ export function createHiveClient({
               fill: 0xf7edcf,
             },
           }),
+          progress: new Graphics(),
         };
         entry.container.eventMode = "none";
-        entry.container.addChild(entry.marker, entry.pawn, entry.label);
+        entry.container.addChild(entry.marker, entry.pawn, entry.label, entry.progress);
         actorLayer.addChild(entry.container);
         actorCache.set(subject.id, entry);
       }
@@ -775,6 +776,15 @@ export function createHiveClient({
       entry.label.anchor.set(0.5, 1);
       entry.label.position.set(0, -12);
       entry.label.visible = state.selectedIds.includes(subject.id);
+      entry.progress.clear();
+      const progress = subject.activity?.progress;
+      if (Number.isFinite(progress)) {
+        const bounded = Math.max(0, Math.min(1, progress));
+        entry.progress
+          .rect(-10, -25, 20, 2).fill({ color: 0x253a2d, alpha: 0.9 })
+          .rect(-9, -24.5, 18 * bounded, 1).fill(0xefcb7b);
+      }
+      entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
       entry.container.zIndex = renderRank;
     }

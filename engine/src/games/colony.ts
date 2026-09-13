@@ -63,6 +63,9 @@ export function treeWorkerAtApproach(
 ): boolean {
   return Math.hypot(actor.x - order.approachX, actor.y - order.approachY, actor.z - order.approachZ) <= TREE_CONTACT_TOLERANCE;
 }
+export function treeWorkProgress(order: { readonly seconds: number; readonly stage: "fell" | "chop" }): number {
+  return Math.max(0, Math.min(1, order.seconds / (order.stage === "fell" ? 3 : 2)));
+}
 
 const brewStationId = entity("colony.brew-station");
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
@@ -478,7 +481,7 @@ export const colonyPack: GamePack = {
         const order = row.get(ColonyTreeOrder), position = positions.get(order.tree);
         const actorPosition = order.actor === null ? undefined : positions.get(order.actor);
         return order.phase === "working" && order.actor !== null && position && actorPosition && treeWorkerAtApproach(actorPosition, order)
-          ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const }]
+          ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const, progress: treeWorkProgress(order) }]
           : [];
       });
     },

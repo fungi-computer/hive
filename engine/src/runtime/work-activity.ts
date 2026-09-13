@@ -9,14 +9,17 @@ import { DeliveryTask } from "../sdk/delivery";
 export const workActivitySchema = z.object({
   kind: z.enum(["dig", "build", "chop"]),
   target: z.tuple([z.number().finite(), z.number().finite()]),
+  progress: z.number().min(0).max(1).optional(),
 }).strict();
 const deliveryActivitySchema = z.object({
   kind: z.literal("delivery"),
   phase: z.enum(["pickup", "carrying", "to-destination", "putting-down"]),
   material: z.string().min(1).max(128),
   target: z.tuple([z.number().finite(), z.number().finite()]),
+  progress: z.number().min(0).max(1).optional(),
 }).strict();
 export type WorkActivity = z.infer<typeof workActivitySchema> | z.infer<typeof deliveryActivitySchema>;
+const boundedProgress = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : undefined;
 
 const deliveryPhase = (phase: string, atSource: boolean): DeliveryActivityPhase | null => {
   if (phase === "to-source") return atSource ? "pickup" : null;
@@ -60,7 +63,8 @@ export function decorateWorkActivity(
   }
   for (const binding of extra) {
     if (activity.has(binding.actor)) throw new Error("actor has competing work attendance");
-    activity.set(binding.actor, { kind: binding.kind, target: [...binding.target] });
+    const progress = boundedProgress(binding.progress);
+    activity.set(binding.actor, { kind: binding.kind, target: [...binding.target], ...(progress === undefined ? {} : { progress }) });
   }
   return facts.map(fact => {
     const work = activity.get(fact.id);

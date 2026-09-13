@@ -431,6 +431,7 @@ export interface ActivityBinding {
   readonly actor: EntityId;
   readonly kind: Exclude<ActivityKind, "delivery">;
   readonly target: readonly [number, number];
+  readonly progress?: number;
 }
 export type KernelSnapshot = KernelRecordSnapshot;
 export interface AtmosphereSample {
