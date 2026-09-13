@@ -84,13 +84,20 @@ test("stockpile policy is player configurable and survives reload", () => {
     session.step(0);
     const designatedRow = session.query(query(StockpileCell))[0];
     const designated = designatedRow.get(StockpileCell);
-    session.command("updateStockpile", { cell: designatedRow.id, filterProfile: "food", priority: 3 });
+    session.command("updateStockpile", { cell: designatedRow.id, filterProfile: "food" });
     session.step(0);
     const cell = session.query(query(StockpileCell))[0].get(StockpileCell);
+    assert.equal(cell.filterProfile, "food", "profile-only update changes profile");
+    assert.equal(cell.priority, 9, "profile-only update preserves priority");
+    session.command("updateStockpile", { cell: designatedRow.id, priority: 3 });
+    session.step(0);
+    const reprioritized = session.query(query(StockpileCell))[0].get(StockpileCell);
+    assert.equal(reprioritized.priority, 3, "priority-only update changes priority");
+    assert.equal(reprioritized.filterProfile, "food", "priority-only update preserves profile");
     assert.match(cell.zone, /^colony\.stockpile\.2\.-?\d+\.2\.2\.2$/);
     assert.ok(session.query(query(StockpileCell)).every(row => row.get(StockpileCell).priority === 3 && row.get(StockpileCell).filterProfile === "food"), "policy updates every cell in the zone");
     assert.throws(() => session.command("updateStockpile", { cell: designatedRow.id, filterProfile: "wood", priority: 101 }), /expected number to be <=100/);
-    assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell, "invalid policy is rejected atomically");
+    assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), reprioritized, "invalid policy is rejected atomically");
     session.command("designateStockpile", { area: { start: [x + 2, y, z], end: [x + 2, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
     const zones = session.query(query(StockpileCell)).map(row => row.get(StockpileCell));
@@ -106,7 +113,7 @@ test("stockpile policy is player configurable and survives reload", () => {
     }) ?? [];
     assert.ok(inspection.some(fact => fact.label === "Stockpile" && fact.value === "food · priority 3 · 0/6"));
     session.restore(saved);
-    assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), cell);
+    assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), reprioritized);
     assert.equal(session.pack.presentation?.terrainMarks?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }).filter(mark => mark.kind === "stockpile").length, 2);
   } finally {
     port.dispose();
