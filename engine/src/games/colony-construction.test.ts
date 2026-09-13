@@ -8,7 +8,7 @@ import { query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
-import { MaterialLot } from "../sdk/common";
+import { Container, MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { EmissionOrder } from "../sdk/emission-work";
 import { colonyPack } from "./colony";
@@ -19,15 +19,37 @@ test("disabled ignition does not reserve workers or lumber ahead of construction
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 13, 0] } });
-    session.step(0.25);
-    const station = session.query(query(EmissionOrder))[0].id;
+    session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
+    for (let tick = 0; tick < 240 && !session.query(query(EmissionOrder)).length; tick++) session.step(0.25);
+    const station = session.query(query(EmissionOrder))[0].id.replace(/:hearth$/, "");
     const tasks = session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask));
     assert.equal(session.query(query(EmissionOrder))[0].get(EmissionOrder).enabled, false);
-    assert(tasks.every(task => task.destination !== station), "disabled ignition has no fuel delivery");
+    const hearth = session.query(query(EmissionOrder))[0].id;
+    assert(tasks.every(task => task.destination !== hearth), "disabled ignition has no fuel delivery");
     session.command("lightHearth", { station });
     session.step(0.25);
-    assert(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).destination === station), "requested ignition uses shared delivery");
+    assert(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).destination === hearth), "requested ignition uses shared delivery");
+  } finally { port.dispose(); }
+});
+
+test("brew station is absent initially and completion creates stable retained ports", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    assert.equal(session.query(query(ConstructionSite)).length, 0);
+    assert.equal(session.query(query(EmissionOrder)).length, 0);
+    session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
+    for (let tick = 0; tick < 240 && !session.query(query(EmissionOrder)).length; tick++) session.step(0.25);
+    const site = session.query(query(ConstructionSite)).find(row => row.get(ConstructionSite).catalog === "brew-station");
+    assert(site && site.get(ConstructionSite).phase === "finished");
+    const containers = session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort();
+    assert.deepEqual(containers, ["barm", "hearth", "keg", "kettle", "tray"].map(key => `${site.id}:${key}`));
+    assert.equal(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
+    const saved = session.save();
+    session.restore(saved);
+    assert.deepEqual(session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort(), containers);
+    assert.equal(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
   } finally { port.dispose(); }
 });
 
