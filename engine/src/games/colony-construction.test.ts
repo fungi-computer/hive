@@ -10,7 +10,7 @@ import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
 import { Container, MaterialLot, transfer } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
-import { EmissionOrder } from "../sdk/emission-work";
+import { EmissionOrder, EmissionWork } from "../sdk/emission-work";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -46,6 +46,7 @@ test("brew station is absent initially and completion creates stable retained po
     const containers = session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort();
     assert.deepEqual(containers, ["barm", "hearth", "keg", "kettle", "tray"].map(key => `${site.id}:${key}`));
     assert.deepEqual(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
+    assert.deepEqual(session.query(query(EmissionWork)).map(row => row.id), [`${site.id}:hearth`], "mutable fixture capability must survive generic completion");
     const saved = session.save();
     session.restore(saved);
     assert.deepEqual(session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort(), containers);

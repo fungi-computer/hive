@@ -362,13 +362,13 @@ impl Kernel {
                             _ => instance == &expected,
                         }) { return Err("finished construction linkage is invalid".into()); }
                     for (name, value) in &definition.on_complete.components {
-                        if self.registry.read(&self.ecs, *entity, name).as_ref() != Some(value) { return Err(format!("finished construction site {id} is missing completion component {name}")); }
+                        self.validate_completion_component(*entity, id, name, value)?;
                     }
                     for port in &definition.on_complete.ports {
                         let port_id = format!("{id}:{}", port.key);
                         let port_entity = self.ids.get(&port_id).copied().ok_or_else(|| format!("finished construction site {id} is missing port {port_id}"))?;
                         for (name, value) in &port.components {
-                            if self.registry.read(&self.ecs, port_entity, name).as_ref() != Some(value) { return Err(format!("finished construction port {port_id} is missing component {name}")); }
+                            self.validate_completion_component(port_entity, &port_id, name, value)?;
                         }
                         if port.at_site_contact && self.ecs.get::<Position>(port_entity) != self.ecs.get::<Position>(*entity) {
                             return Err(format!("finished construction port {port_id} has invalid contact position"));
@@ -391,6 +391,19 @@ impl Kernel {
             }
         }
         Ok(())
+    }
+
+    /// Completion recipes install capabilities; they do not own the later
+    /// mutable state of those capabilities. Validate that each declared
+    /// component remains present and well formed after work systems advance it.
+    fn validate_completion_component(&self, entity: Entity, owner: &str, name: &str, installed: &Record) -> Result<()> {
+        let value = self.registry.read(&self.ecs, entity, name)
+            .ok_or_else(|| format!("finished construction {owner} is missing component {name}"))?;
+        if Registry::is_physical(name) && &value != installed {
+            return Err(format!("finished construction {owner} has changed physical component {name}"));
+        }
+        self.registry.validate(name, &value, &self.known)
+            .map_err(|reason| format!("finished construction {owner} has invalid component {name}: {reason}"))
     }
     pub(super) fn plan_construction(&mut self, catalog: String, site: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal) -> Result<()> {
         if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
