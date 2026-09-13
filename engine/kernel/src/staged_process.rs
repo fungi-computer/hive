@@ -21,15 +21,25 @@ const MAX_DURATION_SECONDS: f64 = 86_400.0;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum StageMode { Attended, Elapsed }
+pub enum StageMode {
+    Attended,
+    Elapsed,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub enum InputPolicy { Portion, WholeLot }
+pub enum InputPolicy {
+    Portion,
+    WholeLot,
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-pub enum InputDisposition { Consume, Retain, EmissionSource }
+pub enum InputDisposition {
+    Consume,
+    Retain,
+    EmissionSource,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -51,7 +61,10 @@ pub struct ProcessEmission {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
-pub enum OutputDestination { StationPort { port: String }, RetainedContainer { role: String } }
+pub enum OutputDestination {
+    StationPort { port: String },
+    RetainedContainer { role: String },
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -93,33 +106,75 @@ pub struct ProcessDefinition {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct CompiledProcessDefinition { definition: ProcessDefinition }
-impl CompiledProcessDefinition { pub fn definition(&self) -> &ProcessDefinition { &self.definition } }
+pub struct CompiledProcessDefinition {
+    definition: ProcessDefinition,
+}
+impl CompiledProcessDefinition {
+    pub fn definition(&self) -> &ProcessDefinition {
+        &self.definition
+    }
+}
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ProcessCatalog { definitions: BTreeMap<String, CompiledProcessDefinition> }
+pub struct ProcessCatalog {
+    definitions: BTreeMap<String, CompiledProcessDefinition>,
+}
 impl ProcessCatalog {
-    pub fn from_definitions(definitions: Vec<ProcessDefinition>, structures: &BTreeMap<String, StructureDefinition>, emissions: &EmissionCatalog) -> Result<Self, String> {
-        if definitions.len() > MAX_DEFINITIONS { return Err("process catalog exceeds 64 entries".into()); }
+    pub fn from_definitions(
+        definitions: Vec<ProcessDefinition>,
+        structures: &BTreeMap<String, StructureDefinition>,
+        emissions: &EmissionCatalog,
+    ) -> Result<Self, String> {
+        if definitions.len() > MAX_DEFINITIONS {
+            return Err("process catalog exceeds 64 entries".into());
+        }
         let mut compiled = BTreeMap::new();
         for definition in definitions {
             let process = compile(definition, structures, emissions)?;
-            if compiled.insert(process.definition.id.clone(), process).is_some() { return Err("duplicate process definition id".into()); }
+            if compiled
+                .insert(process.definition.id.clone(), process)
+                .is_some()
+            {
+                return Err("duplicate process definition id".into());
+            }
         }
-        Ok(Self { definitions: compiled })
+        Ok(Self {
+            definitions: compiled,
+        })
     }
-    pub fn get(&self, id: &str) -> Option<&CompiledProcessDefinition> { self.definitions.get(id) }
-    pub fn len(&self) -> usize { self.definitions.len() }
+    pub fn get(&self, id: &str) -> Option<&CompiledProcessDefinition> {
+        self.definitions.get(id)
+    }
+    pub fn len(&self) -> usize {
+        self.definitions.len()
+    }
 }
 
-fn valid_name(value: &str) -> bool { valid_id(value) }
+fn valid_name(value: &str) -> bool {
+    valid_id(value)
+}
 fn container_port(structure: &StructureDefinition, key: &str) -> bool {
-    structure.on_complete.ports.iter().find(|port| port.key == key).is_some_and(|port| {
-        port.components.iter().any(|(name, value)| name == "hive.container" && value.get("capacity").and_then(serde_json::Value::as_f64).is_some_and(|capacity| capacity.is_finite() && capacity > 0.0))
-    })
+    structure
+        .on_complete
+        .ports
+        .iter()
+        .find(|port| port.key == key)
+        .is_some_and(|port| {
+            port.components.iter().any(|(name, value)| {
+                name == "hive.container"
+                    && value
+                        .get("capacity")
+                        .and_then(serde_json::Value::as_f64)
+                        .is_some_and(|capacity| capacity.is_finite() && capacity > 0.0)
+            })
+        })
 }
 
-pub fn compile(definition: ProcessDefinition, structures: &BTreeMap<String, StructureDefinition>, emissions: &EmissionCatalog) -> Result<CompiledProcessDefinition, String> {
+pub fn compile(
+    definition: ProcessDefinition,
+    structures: &BTreeMap<String, StructureDefinition>,
+    emissions: &EmissionCatalog,
+) -> Result<CompiledProcessDefinition, String> {
     if !valid_name(&definition.id)
         || definition.version == 0
         || !valid_name(&definition.station_catalog)
@@ -130,8 +185,15 @@ pub fn compile(definition: ProcessDefinition, structures: &BTreeMap<String, Stru
     {
         return Err("invalid process definition bounds or identity".into());
     }
-    let station = structures.get(&definition.station_catalog).ok_or("process station catalog is unknown")?;
-    let ports: BTreeSet<&str> = station.on_complete.ports.iter().map(|port| port.key.as_str()).collect();
+    let station = structures
+        .get(&definition.station_catalog)
+        .ok_or("process station catalog is unknown")?;
+    let ports: BTreeSet<&str> = station
+        .on_complete
+        .ports
+        .iter()
+        .map(|port| port.key.as_str())
+        .collect();
     let mut roles = BTreeMap::new();
     for input in &definition.inputs {
         if !valid_name(&input.role)
@@ -148,7 +210,9 @@ pub fn compile(definition: ProcessDefinition, structures: &BTreeMap<String, Stru
         if input.disposition == InputDisposition::Retain && input.policy != InputPolicy::WholeLot {
             return Err("retained input must be whole-lot".into());
         }
-        if input.disposition == InputDisposition::EmissionSource && input.policy != InputPolicy::Portion {
+        if input.disposition == InputDisposition::EmissionSource
+            && input.policy != InputPolicy::Portion
+        {
             return Err("emission source must be portion input".into());
         }
     }
@@ -169,28 +233,64 @@ pub fn compile(definition: ProcessDefinition, structures: &BTreeMap<String, Stru
         }
         for role in &stage.transition.consume_roles {
             let input = roles.get(role.as_str()).ok_or("unknown consumed role")?;
-            if input.disposition != InputDisposition::Consume || !consumed.insert(role.as_str()) { return Err("consumed role must be referenced exactly once".into()); }
+            if input.disposition != InputDisposition::Consume || !consumed.insert(role.as_str()) {
+                return Err("consumed role must be referenced exactly once".into());
+            }
         }
         if let Some(emission) = &stage.transition.emission {
-            let input = roles.get(emission.role.as_str()).ok_or("unknown emission role")?;
-            let catalog = emissions.get(&emission.catalog).ok_or("process emission catalog is unknown")?;
-            if input.disposition != InputDisposition::EmissionSource || !emissions_seen.insert(emission.role.as_str()) || catalog.definition().material_kind != input.material || catalog.definition().quantity != input.quantity { return Err("process emission does not match source input".into()); }
+            let input = roles
+                .get(emission.role.as_str())
+                .ok_or("unknown emission role")?;
+            let catalog = emissions
+                .get(&emission.catalog)
+                .ok_or("process emission catalog is unknown")?;
+            if input.disposition != InputDisposition::EmissionSource
+                || !emissions_seen.insert(emission.role.as_str())
+                || catalog.definition().material_kind != input.material
+                || catalog.definition().quantity != input.quantity
+            {
+                return Err("process emission does not match source input".into());
+            }
         }
         for output in &stage.transition.outputs {
-            if !valid_name(&output.role) || !valid_name(&output.material) || output.quantity == 0 || !output_roles.insert(output.role.as_str()) { return Err("invalid or duplicate process output".into()); }
+            if !valid_name(&output.role)
+                || !valid_name(&output.material)
+                || output.quantity == 0
+                || !output_roles.insert(output.role.as_str())
+            {
+                return Err("invalid or duplicate process output".into());
+            }
             match &output.destination {
-                OutputDestination::StationPort { port } => if !ports.contains(port.as_str()) || !container_port(station, port) { return Err("process output port lacks container capability".into()); },
+                OutputDestination::StationPort { port } => {
+                    if !ports.contains(port.as_str()) || !container_port(station, port) {
+                        return Err("process output port lacks container capability".into());
+                    }
+                }
                 OutputDestination::RetainedContainer { role } => {
-                    let input = roles.get(role.as_str()).ok_or("process retained container role is unknown")?;
-                    if input.disposition != InputDisposition::Retain || input.policy != InputPolicy::WholeLot || !container_port(station, &input.port) { return Err("process retained destination requires retained whole-lot container".into()); }
+                    let input = roles
+                        .get(role.as_str())
+                        .ok_or("process retained container role is unknown")?;
+                    if input.disposition != InputDisposition::Retain
+                        || input.policy != InputPolicy::WholeLot
+                        || !container_port(station, &input.port)
+                    {
+                        return Err(
+                            "process retained destination requires retained whole-lot container"
+                                .into(),
+                        );
+                    }
                 }
             }
         }
     }
     for input in &definition.inputs {
         match input.disposition {
-            InputDisposition::Consume if !consumed.contains(input.role.as_str()) => return Err("consumed role must be referenced exactly once".into()),
-            InputDisposition::EmissionSource if !emissions_seen.contains(input.role.as_str()) => return Err("emission source role must be referenced exactly once".into()),
+            InputDisposition::Consume if !consumed.contains(input.role.as_str()) => {
+                return Err("consumed role must be referenced exactly once".into())
+            }
+            InputDisposition::EmissionSource if !emissions_seen.contains(input.role.as_str()) => {
+                return Err("emission source role must be referenced exactly once".into())
+            }
             _ => {}
         }
     }
@@ -222,41 +322,201 @@ pub struct ProcessBinding {
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum ProcessPhase { Waiting, Working, Blocked, Complete }
+pub enum ProcessPhase {
+    Waiting,
+    Working,
+    Blocked,
+    Complete,
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::environment_definition::{CompletionRecipe, PortDefinition, RemovalRecipe, StructureShape};
+    use crate::environment_definition::{
+        CompletionRecipe, PortDefinition, RemovalRecipe, StructureShape,
+    };
     use serde_json::json;
 
     fn station() -> BTreeMap<String, StructureDefinition> {
-        let ports = ["kettle", "hearth", "barm", "keg", "tray"].into_iter().map(|key| {
-            let components = vec![("hive.container".into(), [("capacity".into(), json!(8))].into_iter().collect())];
-            PortDefinition { key: key.into(), components, at_site_contact: true }
-        }).collect();
-        BTreeMap::from([("brew-station".into(), StructureDefinition { id: "brew-station".into(), shape: StructureShape::Floor, materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: CompletionRecipe { components: vec![], ports }, on_remove: RemovalRecipe::default() })])
+        let ports = ["kettle", "hearth", "barm", "keg", "tray"]
+            .into_iter()
+            .map(|key| {
+                let components = vec![(
+                    "hive.container".into(),
+                    [("capacity".into(), json!(8))].into_iter().collect(),
+                )];
+                PortDefinition {
+                    key: key.into(),
+                    components,
+                    at_site_contact: true,
+                }
+            })
+            .collect();
+        BTreeMap::from([(
+            "brew-station".into(),
+            StructureDefinition {
+                id: "brew-station".into(),
+                shape: StructureShape::Floor,
+                materials: BTreeMap::new(),
+                work_seconds: 1.0,
+                work_reach_below_cells: 0,
+                on_complete: CompletionRecipe {
+                    components: vec![],
+                    ports,
+                },
+                on_remove: RemovalRecipe::default(),
+            },
+        )])
     }
 
     fn herbal_ale() -> ProcessDefinition {
-        let input = |role, port, material, quantity, policy, disposition| ProcessInput { role: role.into(), port: port.into(), material: material.into(), quantity, policy, disposition };
-        ProcessDefinition { id: "herbal-ale-v1".into(), version: 1, station_catalog: "brew-station".into(), inputs: vec![input("malt", "kettle", "malt", 2, InputPolicy::Portion, InputDisposition::Consume), input("water", "kettle", "water", 2, InputPolicy::Portion, InputDisposition::Consume), input("mugwort", "kettle", "mugwort", 1, InputPolicy::WholeLot, InputDisposition::Consume), input("wood", "hearth", "wood", 1, InputPolicy::Portion, InputDisposition::EmissionSource), input("barm", "barm", "barm", 1, InputPolicy::WholeLot, InputDisposition::Retain), input("keg", "keg", "keg", 1, InputPolicy::WholeLot, InputDisposition::Retain)], stages: vec![ProcessStage { id: "prepare".into(), mode: StageMode::Attended, duration_seconds: 40.0, transition: ProcessTransition { consume_roles: vec!["malt".into(), "water".into(), "mugwort".into()], emission: Some(ProcessEmission { role: "wood".into(), catalog: "wood-hearth".into() }), outputs: vec![] } }, ProcessStage { id: "ferment".into(), mode: StageMode::Elapsed, duration_seconds: 240.0, transition: ProcessTransition::default() }, ProcessStage { id: "keg".into(), mode: StageMode::Attended, duration_seconds: 20.0, transition: ProcessTransition { consume_roles: vec![], emission: None, outputs: vec![ProcessOutput { role: "ale".into(), material: "ale".into(), quantity: 4, destination: OutputDestination::RetainedContainer { role: "keg".into() } }, ProcessOutput { role: "spent-grain".into(), material: "spent-grain".into(), quantity: 1, destination: OutputDestination::StationPort { port: "tray".into() } }] } }] }
+        let input = |role: &str,
+                     port: &str,
+                     material: &str,
+                     quantity: u32,
+                     policy: InputPolicy,
+                     disposition: InputDisposition| ProcessInput {
+            role: role.into(),
+            port: port.into(),
+            material: material.into(),
+            quantity,
+            policy,
+            disposition,
+        };
+        ProcessDefinition {
+            id: "herbal-ale-v1".into(),
+            version: 1,
+            station_catalog: "brew-station".into(),
+            inputs: vec![
+                input(
+                    "malt",
+                    "kettle",
+                    "malt",
+                    2,
+                    InputPolicy::Portion,
+                    InputDisposition::Consume,
+                ),
+                input(
+                    "water",
+                    "kettle",
+                    "water",
+                    2,
+                    InputPolicy::Portion,
+                    InputDisposition::Consume,
+                ),
+                input(
+                    "mugwort",
+                    "kettle",
+                    "mugwort",
+                    1,
+                    InputPolicy::WholeLot,
+                    InputDisposition::Consume,
+                ),
+                input(
+                    "wood",
+                    "hearth",
+                    "wood",
+                    1,
+                    InputPolicy::Portion,
+                    InputDisposition::EmissionSource,
+                ),
+                input(
+                    "barm",
+                    "barm",
+                    "barm",
+                    1,
+                    InputPolicy::WholeLot,
+                    InputDisposition::Retain,
+                ),
+                input(
+                    "keg",
+                    "keg",
+                    "keg",
+                    1,
+                    InputPolicy::WholeLot,
+                    InputDisposition::Retain,
+                ),
+            ],
+            stages: vec![
+                ProcessStage {
+                    id: "prepare".into(),
+                    mode: StageMode::Attended,
+                    duration_seconds: 40.0,
+                    transition: ProcessTransition {
+                        consume_roles: vec!["malt".into(), "water".into(), "mugwort".into()],
+                        emission: Some(ProcessEmission {
+                            role: "wood".into(),
+                            catalog: "wood-hearth".into(),
+                        }),
+                        outputs: vec![],
+                    },
+                },
+                ProcessStage {
+                    id: "ferment".into(),
+                    mode: StageMode::Elapsed,
+                    duration_seconds: 240.0,
+                    transition: ProcessTransition::default(),
+                },
+                ProcessStage {
+                    id: "keg".into(),
+                    mode: StageMode::Attended,
+                    duration_seconds: 20.0,
+                    transition: ProcessTransition {
+                        consume_roles: vec![],
+                        emission: None,
+                        outputs: vec![
+                            ProcessOutput {
+                                role: "ale".into(),
+                                material: "ale".into(),
+                                quantity: 4,
+                                destination: OutputDestination::RetainedContainer {
+                                    role: "keg".into(),
+                                },
+                            },
+                            ProcessOutput {
+                                role: "spent-grain".into(),
+                                material: "spent-grain".into(),
+                                quantity: 1,
+                                destination: OutputDestination::StationPort {
+                                    port: "tray".into(),
+                                },
+                            },
+                        ],
+                    },
+                },
+            ],
+        }
     }
 
     fn emission(quantity: u32) -> EmissionCatalog {
-        EmissionCatalog::from_definitions(vec![crate::emission_definition::EmissionDefinition { id: "wood-hearth".into(), material_kind: "wood".into(), quantity, duration_s: 30.0, smoke_kg: 0.03, heat_j: 30_000.0 }]).unwrap()
+        EmissionCatalog::from_definitions(vec![crate::emission_definition::EmissionDefinition {
+            id: "wood-hearth".into(),
+            material_kind: "wood".into(),
+            quantity,
+            duration_s: 30.0,
+            smoke_kg: 0.03,
+            heat_j: 30_000.0,
+        }])
+        .unwrap()
     }
 
     #[test]
     fn full_herbal_ale_fixture_compiles() {
-        let catalog = ProcessCatalog::from_definitions(vec![herbal_ale()], &station(), &emission(1)).unwrap();
-        assert_eq!(catalog.get("herbal-ale-v1").unwrap().definition().stages[1].duration_seconds, 240.0);
+        let catalog =
+            ProcessCatalog::from_definitions(vec![herbal_ale()], &station(), &emission(1)).unwrap();
+        assert_eq!(
+            catalog.get("herbal-ale-v1").unwrap().definition().stages[1].duration_seconds,
+            240.0
+        );
     }
 
     #[test]
     fn compiler_rejects_missing_coverage_and_emission_mismatch() {
-        assert!(ProcessCatalog::from_definitions(vec![herbal_ale()], &station(), &emission(2)).is_err());
-        let mut missing = herbal_ale(); missing.stages[0].transition.consume_roles.pop();
+        assert!(
+            ProcessCatalog::from_definitions(vec![herbal_ale()], &station(), &emission(2)).is_err()
+        );
+        let mut missing = herbal_ale();
+        missing.stages[0].transition.consume_roles.pop();
         assert!(ProcessCatalog::from_definitions(vec![missing], &station(), &emission(1)).is_err());
     }
 
@@ -268,24 +528,40 @@ mod tests {
 
         let mut retained = herbal_ale();
         retained.inputs[4].policy = InputPolicy::Portion;
-        assert!(ProcessCatalog::from_definitions(vec![retained], &station(), &emission(1)).is_err());
+        assert!(
+            ProcessCatalog::from_definitions(vec![retained], &station(), &emission(1)).is_err()
+        );
 
         let mut duplicate = herbal_ale();
         let output = duplicate.stages[2].transition.outputs[0].clone();
         duplicate.stages[1].transition.outputs.push(output);
-        assert!(ProcessCatalog::from_definitions(vec![duplicate], &station(), &emission(1)).is_err());
+        assert!(
+            ProcessCatalog::from_definitions(vec![duplicate], &station(), &emission(1)).is_err()
+        );
     }
 
     #[test]
     fn compiler_rejects_input_without_container_capability() {
         let mut structures = station();
-        structures.get_mut("brew-station").unwrap().on_complete.ports[0].components.clear();
-        assert!(ProcessCatalog::from_definitions(vec![herbal_ale()], &structures, &emission(1)).is_err());
+        structures
+            .get_mut("brew-station")
+            .unwrap()
+            .on_complete
+            .ports[0]
+            .components
+            .clear();
+        assert!(
+            ProcessCatalog::from_definitions(vec![herbal_ale()], &structures, &emission(1))
+                .is_err()
+        );
     }
 
     #[test]
     fn process_definition_decoder_rejects_unknown_fields() {
-        let mut environment: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("unknown-process-field")).unwrap();
+        let mut environment: serde_json::Value = serde_json::from_str(
+            &crate::environment_definition::tests::fixture("unknown-process-field"),
+        )
+        .unwrap();
         environment["processes"] = serde_json::json!([{"id":"p","version":1,"stationCatalog":"floor","inputs":[],"stages":[],"unexpected":true}]);
         assert!(crate::environment_definition::build_from_json(&environment.to_string()).is_err());
     }

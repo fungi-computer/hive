@@ -800,7 +800,10 @@ mod tests {
     #[test]
     fn prepared_discrete_field_exchange_is_atomic_conserving_and_reloadable() {
         let at = Cell { x: 0, y: 30, z: 0 };
-        let geometry = super::field_tests::geometry();
+        let mut geometry = super::field_tests::geometry();
+        // This law authors an exact exposed-water stock. Generated-groundwater
+        // identity is covered separately and must not reinterpret that fixture.
+        geometry.generated_groundwater = false;
         let stock = WaterStock { id: "cell:0,30,0".into(), mass_kg: 540.0 * 5.0 / 7.0 };
         let mut world = TerrainWater::fresh(geometry.clone(), super::field_tests::terrain(), &[stock]).unwrap();
         let initial_facts = world.facts().unwrap();
@@ -826,7 +829,7 @@ mod tests {
         let deposited = world.facts().unwrap();
         assert!((deposited.boundary_kg - 2.0 * 540.0 / 7.0).abs() < 1e-10);
         let deposited_records = world.save_records().unwrap();
-        let deposited_reload = TerrainWater::restore_records(super::field_tests::geometry(), super::field_tests::terrain(), &deposited_records).unwrap();
+        let deposited_reload = TerrainWater::restore_records(geometry.clone(), super::field_tests::terrain(), &deposited_records).unwrap();
         assert_eq!(deposited_reload.facts().unwrap(), deposited);
 
         for (direction, portions) in [(WaterExchangeDirection::Withdraw, 0),
@@ -847,7 +850,7 @@ mod tests {
         assert!(world.apply_water_exchange(stale).is_err());
         assert_eq!(world.save_records().unwrap().water, saved);
 
-        let mut foreign = TerrainWater::fresh(geometry, super::field_tests::terrain(), &[WaterStock {
+        let mut foreign = TerrainWater::fresh(geometry.clone(), super::field_tests::terrain(), &[WaterStock {
             id: "cell:0,30,0".into(), mass_kg: 540.0,
         }]).unwrap();
         let foreign_token = world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 1).unwrap();
@@ -856,7 +859,7 @@ mod tests {
         assert_eq!(foreign.save_records().unwrap().water, saved);
 
         let records = world.save_records().unwrap();
-        let restored = TerrainWater::restore_records(super::field_tests::geometry(), super::field_tests::terrain(), &records).unwrap();
+        let restored = TerrainWater::restore_records(geometry, super::field_tests::terrain(), &records).unwrap();
         assert_eq!(restored.facts().unwrap(), world.facts().unwrap());
         assert_eq!(restored.save_records().unwrap().water, records.water);
     }
