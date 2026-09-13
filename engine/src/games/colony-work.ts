@@ -8,6 +8,7 @@ import {
   constructionWorkProvider,
 } from "../sdk/construction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
+import { HERBAL_ALE_V1 } from "./colony-brewing";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
@@ -37,6 +38,8 @@ import {
   extractResource,
   move,
   cancelWork,
+  StagedProcess,
+  advanceStagedProcess,
 } from "../sdk/common";
 import type { EntityId, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
@@ -868,7 +871,11 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
     (_, offset) => sites[(start + offset) % sites.length],
   );
   planSiteSupplies(ctx, {
-    sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
+    sourceContainers: [
+      entity("colony.lumber"),
+      entity("colony.pantry"),
+      ...ctx.workMaterialFacts().containers.map((container) => container.id),
+    ],
     batchQuantity: 3,
     requirements: [
       ...active.flatMap((row) => {
@@ -902,6 +909,13 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
               ]
             : [];
         }),
+      ...HERBAL_ALE_V1.consumed
+        .concat(HERBAL_ALE_V1.retained)
+        .map(({ material, quantity }) => ({
+          destination: HERBAL_ALE_V1.station,
+          material,
+          quantity,
+        })),
     ],
   });
 }
@@ -955,6 +969,12 @@ export const colonyWorkSystem = createWorkSystem({
   ],
   phases: [
     colonySiteSuppliesPhase,
+    (ctx) => {
+      for (const row of ctx.query(query(StagedProcess))) {
+        const process = row.get(StagedProcess);
+        if (process.status === "active" && process.stage === 1) ctx.action(advanceStagedProcess(row.id));
+      }
+    },
     colonyGroundStockPhase,
     (ctx) =>
       planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles }),

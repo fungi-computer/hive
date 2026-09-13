@@ -433,6 +433,36 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
     true
 }
 
+#[cfg(test)]
+mod staged_process_world_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn colony_process_is_ecs_owned_and_survives_attend_ferment_keg_reload() {
+        let mut kernel = Kernel::new();
+        let initial = [
+            ("station", json!({"hive.container":{"capacity":10}})),
+            ("lot.malt", json!({"hive.lot":{"kind":"malt","quantity":1,"container":"station"}})),
+            ("lot.keg", json!({"hive.lot":{"kind":"keg","quantity":1,"container":"station"}})),
+        ];
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"colony-brew","components":[],"initial":initial.iter().map(|(id, components)| json!({"id":id,"components":components})).collect::<Vec<_>>()} ).to_string()).unwrap();
+        let batch = |actions| json!({"delta":0,"writes":[],"actions":actions});
+        let definition = json!({"id":"herbal-ale-v1","version":1,"stages":[{"mode":"attended","ticks":1,"operation":"prepare"},{"mode":"unattended","ticks":1,"operation":"ferment"},{"mode":"attended","ticks":1,"operation":"keg"}]});
+        let binding = json!({"version":1,"id":"binding.1","station":"station","consumed":[{"lot":"lot.malt","container":"station","kind":"malt","quantity":1}],"retained":[{"lot":"lot.keg","container":"station","kind":"keg","quantity":1}],"outputs":[{"container":"station","kind":"ale","quantity":1}]});
+        kernel.advance_json(&batch(json!([{"kind":"begin-staged-process","process":"process.1","definition":definition,"binding":binding}])).to_string()).unwrap();
+        kernel.advance_json(&batch(json!([{"kind":"attend-staged-process","process":"process.1","ticks":1}])).to_string()).unwrap();
+        assert!(kernel.query_json("[\"hive.staged-process\"]").unwrap().contains("\"stage\":1"));
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        restored.advance_json(&batch(json!([{"kind":"advance-staged-process","process":"process.1"}])).to_string()).unwrap();
+        restored.advance_json(&batch(json!([{"kind":"attend-staged-process","process":"process.1","ticks":1}])).to_string()).unwrap();
+        assert_eq!(restored.query_json("[\"hive.staged-process\"]").unwrap(), "[]");
+        assert!(restored.query_json("[\"hive.lot\"]").unwrap().contains("ale"));
+    }
+}
+
 /// Check only the segments this movement budget could consume. This avoids
 /// both tunnelling through a later corner and scanning an entire future route.
 fn terrain_motion_blocked(position: Position, path: &VecDeque<Point>, mut budget: f64,
@@ -598,6 +628,7 @@ impl Kernel {
             }
         }
         world.rebuild_physical_indexes(build_routes)?;
+        world.validate_staged_processes()?;
         world.projectile_count = world
             .ids
             .values()
@@ -1785,6 +1816,8 @@ impl Kernel {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
+                    | Action::BeginStagedProcess { .. } | Action::AttendStagedProcess { .. }
+                    | Action::AdvanceStagedProcess { .. } | Action::CancelStagedProcess { .. }
                     | Action::UpdateStockpile { .. })
             });
         if needs_staging {
@@ -2052,8 +2085,101 @@ impl Kernel {
         Ok(zone)
     }
 
+    fn replace_staged_process(&mut self, id: &str, next: StagedProcessRecord) -> Result<()> {
+        let entity = self.entity(id)?;
+        let old = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("staged process is missing")?;
+        self.state_weight = self.state_weight.saturating_sub(self.registry.weight("hive.staged-process", &record(&old)));
+        self.state_weight = self.state_weight.checked_add(self.registry.weight("hive.staged-process", &record(&next))).ok_or("region canonical state capacity")?;
+        if self.state_weight > STATE_BYTES { return Err("region canonical state capacity".into()); }
+        self.ecs.entity_mut(entity).insert(next);
+        Ok(())
+    }
+
+    fn validate_staged_processes(&mut self) -> Result<()> {
+        let lots = self.ecs.query::<(&ExternalId, &Lot)>().iter(&self.ecs).map(|(id, lot)| crate::staged_process::LotFact { id: &id.0, container: &lot.container, kind: &lot.kind, quantity: lot.quantity }).collect::<Vec<_>>();
+        let mut container_query = self.ecs.query::<(&ExternalId, &Container)>();
+        let container_ids = container_query.iter(&self.ecs).map(|(id, container)| (id.0.clone(), container.capacity)).collect::<Vec<_>>();
+        let containers = container_ids.iter().map(|(id, capacity)| crate::staged_process::ContainerFact { id: id.as_str(), capacity: *capacity, quantity: self.quantity(id) }).collect::<Vec<_>>();
+        let mut processes = self.ecs.query::<(&ExternalId, &StagedProcessRecord)>();
+        for (id, record) in processes.iter(&self.ecs) {
+            let (definition, binding, mut process) = Self::process_parts(record)?;
+            process.id = id.0.clone();
+            crate::staged_process::validate_process(&process, &definition)?;
+            if binding.id != process.binding || binding.station != process.station { return Err("staged process binding relation is invalid".into()); }
+            crate::staged_process::validate_binding_facts(&binding, &lots, &containers)?;
+        }
+        Ok(())
+    }
+
+    fn process_parts(record: &StagedProcessRecord) -> Result<(crate::staged_process::ProcessDefinition, crate::staged_process::ProcessBinding, crate::staged_process::StagedProcess)> {
+        let definition: crate::staged_process::ProcessDefinition = serde_json::from_str(&record.definition).map_err(|_| "invalid staged process definition".to_string())?;
+        let binding: crate::staged_process::ProcessBinding = serde_json::from_str(&record.binding).map_err(|_| "invalid staged process binding".to_string())?;
+        let process = crate::staged_process::StagedProcess { version: crate::staged_process::CURRENT_VERSION, id: String::new(), definition: definition.id.clone(), definition_version: definition.version, binding: binding.id.clone(), station: binding.station.clone(), stage: record.stage, progress: record.progress, entered_tick: record.entered_tick, status: serde_json::from_str(&format!("\"{}\"", record.status)).map_err(|_| "invalid staged process status".to_string())? };
+        Ok((definition, binding, process))
+    }
+
+    fn begin_staged_process(&mut self, id: String, definition: crate::staged_process::ProcessDefinition, binding: crate::staged_process::ProcessBinding) -> Result<()> {
+        if !valid_id(&id) || self.known.contains(&id) { return Err("staged process identity is unavailable".into()); }
+        crate::staged_process::validate_definition(&definition)?;
+        let lots = self.ecs.query::<(&ExternalId, &Lot)>().iter(&self.ecs).map(|(id, lot)| crate::staged_process::LotFact { id: &id.0, container: &lot.container, kind: &lot.kind, quantity: lot.quantity }).collect::<Vec<_>>();
+        let mut container_query = self.ecs.query::<(&ExternalId, &Container)>();
+        let container_ids = container_query.iter(&self.ecs).map(|(id, container)| (id.0.clone(), container.capacity)).collect::<Vec<_>>();
+        let containers = container_ids.iter().map(|(id, capacity)| crate::staged_process::ContainerFact { id: id.as_str(), capacity: *capacity, quantity: self.quantity(id) }).collect::<Vec<_>>();
+        crate::staged_process::validate_binding_facts(&binding, &lots, &containers)?;
+        let process = crate::staged_process::admit(&definition, &binding, id.clone(), self.revision)?;
+        let process_record = StagedProcessRecord { definition: serde_json::to_string(&definition).map_err(|e| e.to_string())?, definition_version: definition.version, binding: serde_json::to_string(&binding).map_err(|e| e.to_string())?, station: binding.station, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: "active".into() };
+        let weight = id.len() + 128 + self.registry.weight("hive.staged-process", &record(&process_record));
+        if self.state_weight.saturating_add(weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
+        let entity = self.ecs.spawn((ExternalId(id.clone()), process_record)).id();
+        self.ids.insert(id.clone(), entity); self.known.insert(id); self.state_weight += weight;
+        Ok(())
+    }
+
+    fn attend_staged_process(&mut self, id: &str, ticks: u64) -> Result<()> {
+        let entity = self.entity(id)?;
+        let saved = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("not a staged process")?;
+        let (definition, binding, mut process) = Self::process_parts(&saved)?; process.id = id.into();
+        let advance = crate::staged_process::attend(&mut process, &definition, ticks)?;
+        self.commit_staged_advance(id, definition, binding, process, advance)
+    }
+
+    fn advance_staged_process(&mut self, id: &str) -> Result<()> {
+        let entity = self.entity(id)?;
+        let saved = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("not a staged process")?;
+        let (definition, binding, mut process) = Self::process_parts(&saved)?; process.id = id.into();
+        let advance = crate::staged_process::advance_unattended(&mut process, &definition, self.revision)?;
+        self.commit_staged_advance(id, definition, binding, process, advance)
+    }
+
+    fn commit_staged_advance(&mut self, id: &str, definition: crate::staged_process::ProcessDefinition, binding: crate::staged_process::ProcessBinding, mut process: crate::staged_process::StagedProcess, advance: crate::staged_process::Advance) -> Result<()> {
+        let crate::staged_process::Advance::Transition(token) = advance else { return self.replace_staged_process(id, StagedProcessRecord { definition: serde_json::to_string(&definition).unwrap(), definition_version: definition.version, binding: serde_json::to_string(&binding).unwrap(), station: binding.station.clone(), stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: match process.status { crate::staged_process::ProcessStatus::Active => "active", crate::staged_process::ProcessStatus::Waiting => "waiting", crate::staged_process::ProcessStatus::Complete => "complete" }.into() }); };
+        if token.operation == "prepare" {
+            let portions = binding.consumed.iter().map(|lot| material_consumption::MaterialPortion { lot: lot.lot.clone(), quantity: lot.quantity }).collect::<Vec<_>>();
+            let prepared = self.prepare_material_consumption(&portions)?;
+            self.publish_material_consumption(prepared)?;
+        }
+        if usize::from(process.stage) + 1 == definition.stages.len() {
+            for output in &binding.outputs { self.complete_material_output(MaterialOutputSpec { container: output.container.clone(), kind: output.kind.clone(), quantity: output.quantity, water_kg: None })?; }
+        }
+        let committed = crate::staged_process::commit_transition(&mut process, &definition, &token, self.revision)?;
+        let status = match process.status { crate::staged_process::ProcessStatus::Active => "active", crate::staged_process::ProcessStatus::Waiting => "waiting", crate::staged_process::ProcessStatus::Complete => "complete" };
+        let record = StagedProcessRecord { definition: serde_json::to_string(&definition).unwrap(), definition_version: definition.version, binding: serde_json::to_string(&binding).unwrap(), station: binding.station, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: status.into() };
+        if committed == crate::staged_process::Advance::Complete { self.ecs.despawn(self.entity(id)?); self.ids.remove(id); self.known.remove(id); self.refresh_state_weight(); } else { self.replace_staged_process(id, record)?; }
+        Ok(())
+    }
+
+    fn cancel_staged_process(&mut self, id: &str) -> Result<()> {
+        let entity = self.entity(id)?; let saved = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("not a staged process")?;
+        let (_, _, mut process) = Self::process_parts(&saved)?; process.id = id.into(); crate::staged_process::cancel(&process)?;
+        self.ecs.despawn(entity); self.ids.remove(id); self.known.remove(id); self.refresh_state_weight(); Ok(())
+    }
+
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
+            Action::BeginStagedProcess { process, definition, binding } => self.begin_staged_process(process, definition, binding).map(|_| ActionEffect::None),
+            Action::AttendStagedProcess { process, ticks } => self.attend_staged_process(&process, ticks).map(|_| ActionEffect::None),
+            Action::AdvanceStagedProcess { process } => self.advance_staged_process(&process).map(|_| ActionEffect::None),
+            Action::CancelStagedProcess { process } => self.cancel_staged_process(&process).map(|_| ActionEffect::None),
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::Excavate { entity, x, y, z, expected, replacement } => {

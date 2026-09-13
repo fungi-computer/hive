@@ -19,6 +19,7 @@ export const RESERVED_COMPONENTS = [
   "hive.lot",
   "hive.lot-water",
   "hive.finite-resource",
+  "hive.staged-process",
   "hive.excavation-work",
   "hive.destination",
   "hive.support",
@@ -144,6 +145,26 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
+  | {
+      readonly kind: "begin-staged-process";
+      readonly process: EntityId;
+      readonly definition: {
+        readonly id: string;
+        readonly version: number;
+        readonly stages: readonly { readonly mode: "attended" | "unattended"; readonly ticks: number; readonly operation: string }[];
+      };
+      readonly binding: {
+        readonly version: number;
+        readonly id: EntityId;
+        readonly station: EntityId;
+        readonly consumed: readonly { readonly lot: EntityId; readonly container: EntityId; readonly kind: string; readonly quantity: number }[];
+        readonly retained: readonly { readonly lot: EntityId; readonly container: EntityId; readonly kind: string; readonly quantity: number }[];
+        readonly outputs: readonly { readonly container: EntityId; readonly kind: string; readonly quantity: number }[];
+      };
+    }
+  | { readonly kind: "attend-staged-process"; readonly process: EntityId; readonly ticks: number }
+  | { readonly kind: "advance-staged-process"; readonly process: EntityId }
+  | { readonly kind: "cancel-staged-process"; readonly process: EntityId }
   | {
       readonly kind: "designate-stockpile";
       readonly zone: EntityId;

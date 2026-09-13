@@ -74,6 +74,20 @@ pub struct FiniteResource {
     pub kind: String,
     pub quantity: u32,
 }
+/// Saved native staged-process state. Definitions and bindings are opaque
+/// authored JSON validated by `staged_process`; the ECS owns the live record.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct StagedProcessRecord {
+    pub definition: String,
+    pub definition_version: u32,
+    pub binding: String,
+    pub station: String,
+    pub stage: u16,
+    pub progress: u64,
+    pub entered_tick: u64,
+    pub status: String,
+}
 /// Native earned work; authored systems may request work, never write progress.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -329,6 +343,10 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    BeginStagedProcess { process: String, definition: crate::staged_process::ProcessDefinition, binding: crate::staged_process::ProcessBinding },
+    AttendStagedProcess { process: String, ticks: u64 },
+    AdvanceStagedProcess { process: String },
+    CancelStagedProcess { process: String },
     DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
     UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
     Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },

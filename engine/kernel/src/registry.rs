@@ -63,6 +63,7 @@ impl Registry {
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
+            ("hive.staged-process", vec![("definition", FieldType::String), ("definitionVersion", FieldType::Number), ("binding", FieldType::String), ("station", FieldType::Entity), ("stage", FieldType::Number), ("progress", FieldType::Number), ("enteredTick", FieldType::Number), ("status", FieldType::String)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.construction-site", vec![
                 ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
@@ -185,6 +186,7 @@ impl Registry {
                 "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
                 "hive.finite-resource" => world.register_component::<FiniteResource>(),
+                "hive.staged-process" => world.register_component::<StagedProcessRecord>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.construction-site" => world.register_component::<ConstructionSite>(),
                 "hive.destination" => world.register_component::<Destination>(),
@@ -231,6 +233,7 @@ impl Registry {
                 | "hive.lot-water"
                 | "hive.stockpile-cell"
                 | "hive.finite-resource"
+                | "hive.staged-process"
                 | "hive.excavation-work"
                 | "hive.construction-site"
                 | "hive.destination"
@@ -332,6 +335,12 @@ impl Registry {
                 let water: LotWater = decode(value)?;
                 if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
                     return Err("invalid carried water mass".into());
+                }
+            }
+            "hive.staged-process" => {
+                let process: StagedProcessRecord = decode(value)?;
+                if process.definition.len() > 4096 || process.binding.len() > 4096 || !valid_id(&process.station) || process.status.is_empty() || process.status.len() > 32 {
+                    return Err("invalid staged process record".into());
                 }
             }
             "hive.stockpile-cell" => {

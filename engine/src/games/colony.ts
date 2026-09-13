@@ -17,6 +17,12 @@ import {
   encodeDefinition,
   transfer,
   FiniteResource,
+  StagedProcess,
+  StagedProcess,
+  beginStagedProcess,
+  attendStagedProcess,
+  advanceStagedProcess,
+  cancelStagedProcess,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { GroundStock } from "../sdk/ground-stock";
@@ -28,6 +34,8 @@ import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-s
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
+import { herbalAleProcessBinding } from "./colony-brewing";
+export { HERBAL_ALE_V1, planHerbalAleSupplies, herbalAleProcessBinding } from "./colony-brewing";
 
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
@@ -68,12 +76,13 @@ export function treeWorkProgress(order: { readonly seconds: number; readonly sta
 }
 
 const brewStationId = entity("colony.brew-station");
+const brewProcessId = entity("colony.brew.process.1");
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
   { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
   { id: brewStationId, components: {
     "hive.position": { x: 1, y: 0, z: -1, facing: 0 },
-    "hive.container": { capacity: 4 },
+    "hive.container": { capacity: 12 },
     "hive.emitter": { catalog: "wood-hearth" },
     [EmissionWork.id]: idleEmissionWork,
     [EmissionOrder.id]: { revision: 0, enabled: false },
@@ -166,6 +175,7 @@ const goInput = z.object({
   }).strict(),
 }).strict();
 const stationInput = z.object({ station: z.string().min(1).max(128).transform(entity) }).strict();
+const brewStartInput = z.object({ station: z.string().min(1).max(128).transform(entity) }).strict();
 const workerSelectionInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
 }).strict();
@@ -365,6 +375,40 @@ export const colonyPack: GamePack = {
         return { actions: [], writes: value ? [{ component: EmissionOrder.id, entity: row.id, value }] : [] };
       },
     }),
+    startBrew: command({
+      input: brewStartInput,
+      reads: [MaterialLot],
+      writes: [],
+      run(context, input) {
+        if (input.station !== brewStationId) throw new Error("This Colony brew station is unavailable");
+        const binding = herbalAleProcessBinding(context.query(query(MaterialLot)).map(row => ({ id: row.id, ...row.get(MaterialLot) })), input.station);
+        if (!binding) throw new Error("Stage malt, water, mugwort, wood, barm, and a keg at the station first");
+        return { actions: [beginStagedProcess(brewProcessId, {
+          id: HERBAL_ALE_V1.id,
+          version: HERBAL_ALE_V1.version,
+          stages: HERBAL_ALE_V1.stages,
+        }, binding)], writes: [] };
+      },
+    }),
+    attendBrew: command({
+      input: z.object({ ticks: z.number().int().positive().max(40) }).strict(),
+      reads: [StagedProcess],
+      writes: [],
+      run(context, input) {
+        const row = context.query(query(StagedProcess)).find(row => row.id === brewProcessId);
+        if (!row) throw new Error("No active herbal ale batch");
+        return { actions: [attendStagedProcess(brewProcessId, input.ticks)], writes: [] };
+      },
+    }),
+    cancelBrew: command({
+      input: emptyInput,
+      reads: [StagedProcess],
+      writes: [],
+      run(context) {
+        if (!context.query(query(StagedProcess)).some(row => row.id === brewProcessId)) throw new Error("No active herbal ale batch");
+        return { actions: [cancelStagedProcess(brewProcessId)], writes: [] };
+      },
+    }),
     deliver: command({
       input: deliveryInput,
       reads: [Worker, DeliveryTask, DeliveryControl],
@@ -550,6 +594,9 @@ export const colonyPack: GamePack = {
     ],
     controls: [
       { id: "light-hearth", label: "Light fire", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
+      { id: "start-brew", label: "Start herbal ale", command: "startBrew", input: { station: brewStationId }, subjects: [brewStationId] },
+      { id: "attend-brew", label: "Attend brew", command: "attendBrew", input: { ticks: 1 }, subjects: [brewStationId] },
+      { id: "cancel-brew", label: "Cancel brew", command: "cancelBrew", subjects: [brewStationId] },
       { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
       ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, ...(catalog === "timber-floor" ? { orientation: "north" } : {}) }, target: "world-surface" as const, designation: catalog === "timber-floor" ? ["point", "rectangle"] as const : ["point", "line", "rectangle"] as const })),
@@ -601,6 +648,7 @@ export const colonyPack: GamePack = {
         { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
         { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
         { id: "station-fuel", subjects: [brewStationId], label: "Station wood", value: total(brewStationId) },
+        { id: "brew-process", subjects: [brewStationId], label: "Herbal ale", value: context.query(query(StagedProcess)).find(row => row.id === brewProcessId)?.get(StagedProcess).status ?? "ready" },
         { id: "ignition", label: "Lighting order", subjects: [brewStationId], value: ignition?.reason || ({ idle: "Not requested", queued: "Waiting for fuel or a reachable free worker", approaching: "Worker coming", submitting: "Lighting", complete: "Completed", blocked: "Cannot light" }[ignition?.phase ?? "idle"]) },
         { id: "worker-carried", subjects: workers, label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
         ...workers.map((worker, index) => ({

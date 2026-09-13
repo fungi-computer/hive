@@ -84,6 +84,13 @@ export const FiniteResource = component<{ kind: string; quantity: number }>("hiv
   version: 1,
   fields: { kind: "string", quantity: "number" },
 });
+export const StagedProcess = component<{
+  definition: string; definitionVersion: number; binding: string; station: EntityId;
+  stage: number; progress: number; enteredTick: number; status: string;
+}>("hive.staged-process", { version: 1, fields: {
+  definition: "string", definitionVersion: "number", binding: "string", station: "entity",
+  stage: "number", progress: "number", enteredTick: "number", status: "string",
+} });
 export const Destination = component<{
   x: number;
   y: number;
@@ -130,6 +137,14 @@ export const consume = (
 export const extractResource = (worker: EntityId, source: EntityId): ActionRequest => ({
   kind: "extract-resource", worker, source,
 });
+export const beginStagedProcess = (
+  process: EntityId,
+  definition: Extract<ActionRequest, { kind: "begin-staged-process" }>['definition'],
+  binding: Extract<ActionRequest, { kind: "begin-staged-process" }>['binding'],
+): ActionRequest => ({ kind: "begin-staged-process", process, definition, binding });
+export const attendStagedProcess = (process: EntityId, ticks: number): ActionRequest => ({ kind: "attend-staged-process", process, ticks });
+export const advanceStagedProcess = (process: EntityId): ActionRequest => ({ kind: "advance-staged-process", process });
+export const cancelStagedProcess = (process: EntityId): ActionRequest => ({ kind: "cancel-staged-process", process });
 
 export interface SceneEntity {
   readonly id: EntityId;
