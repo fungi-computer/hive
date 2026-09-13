@@ -14,14 +14,32 @@ import { EmissionOrder, EmissionWork } from "../sdk/emission-work";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
+function finishedBrewStations(session: GameSession) {
+  return session.query(query(ConstructionSite)).filter(row => {
+    const site = row.get(ConstructionSite);
+    return site.catalog === "brew-station" && site.phase === "finished";
+  });
+}
+
+function buildBrewStation(session: GameSession, cell: readonly [number, number, number] = [1, 13, -1]) {
+  const expected = finishedBrewStations(session).length + 1;
+  session.command("build", { catalog: "brew-station", orientation: "north", target: { cell } });
+  for (let tick = 0; tick < 240 && finishedBrewStations(session).length < expected; tick++) session.step(0.25);
+  const site = finishedBrewStations(session).at(-1);
+  assert(site, "brew station must finish");
+  return site;
+}
+
+function materialTotal(session: GameSession) {
+  return session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
+}
+
 test("disabled ignition does not reserve workers or lumber ahead of construction", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
-    for (let tick = 0; tick < 240 && !session.query(query(EmissionOrder)).length; tick++) session.step(0.25);
-    const station = session.query(query(EmissionOrder))[0].id.replace(/:hearth$/, "");
+    const station = buildBrewStation(session).id;
     const tasks = session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask));
     assert.equal(session.query(query(EmissionOrder))[0].get(EmissionOrder).enabled, false);
     const hearth = session.query(query(EmissionOrder))[0].id;
@@ -39,10 +57,7 @@ test("brew station is absent initially and completion creates stable retained po
     session.start();
     assert.equal(session.query(query(ConstructionSite)).length, 0);
     assert.equal(session.query(query(EmissionOrder)).length, 0);
-    session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
-    for (let tick = 0; tick < 240 && !session.query(query(EmissionOrder)).length; tick++) session.step(0.25);
-    const site = session.query(query(ConstructionSite)).find(row => row.get(ConstructionSite).catalog === "brew-station");
-    assert(site && site.get(ConstructionSite).phase === "finished");
+    const site = buildBrewStation(session);
     const containers = session.query(query(Container)).map(row => row.id).filter(id => id.startsWith(`${site.id}:`)).sort();
     assert.deepEqual(containers, ["barm", "hearth", "keg", "kettle", "tray"].map(key => `${site.id}:${key}`));
     assert.deepEqual(session.query(query(EmissionOrder)).map(row => row.id), [`${site.id}:hearth`]);
@@ -59,21 +74,18 @@ test("brew station teardown waits for occupied retained ports and salvages after
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
-    for (let tick = 0; tick < 240 && !session.query(query(EmissionOrder)).length; tick++) session.step(0.25);
-    const site = session.query(query(ConstructionSite)).find(row => row.get(ConstructionSite).catalog === "brew-station");
-    assert(site && site.get(ConstructionSite).phase === "finished");
+    const site = buildBrewStation(session);
     const hearth = entity(`${site.id}:hearth`);
     session.command("lightHearth", { station: site.id });
     for (let tick = 0; tick < 160 && !session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === hearth); tick++) session.step(0.25);
     session.command("cancelIgnition", { station: site.id });
     session.step(0);
     assert.equal(port.deconstructionAccess([site.id])[0]?.status, "occupiedPort");
-    const beforeBlocked = session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
+    const beforeBlocked = materialTotal(session);
     session.command("deconstruct", { site: site.id });
     for (let tick = 0; tick < 80; tick++) session.step(0.25);
     assert(session.query(query(ConstructionSite)).some(row => row.id === site.id), "occupied port must block teardown");
-    assert.equal(session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), beforeBlocked, "blocked teardown cannot lose port contents");
+    assert.equal(materialTotal(session), beforeBlocked, "blocked teardown cannot lose port contents");
     const occupied = session.query(query(MaterialLot)).find(row => row.get(MaterialLot).container === hearth);
     assert(occupied);
     session.request(consume(hearth, occupied.id, occupied.get(MaterialLot).quantity));
@@ -90,8 +102,7 @@ test("multiple finished stations use one bounded inspection fact each", () => {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     for (const cell of [[1, 13, -1], [5, 13, -1]] as const) {
-      session.command("build", { catalog: "brew-station", orientation: "north", target: { cell } });
-      for (let tick = 0; tick < 240 && session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).catalog === "brew-station" && row.get(ConstructionSite).phase === "finished").length < (cell[0] === 1 ? 1 : 2); tick++) session.step(0.25);
+      buildBrewStation(session, cell);
     }
     const facts = colonyPack.presentation?.inspect?.({
       query: spec => session.query(spec),
