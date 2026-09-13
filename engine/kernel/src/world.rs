@@ -2841,6 +2841,7 @@ impl Kernel {
             || ((pose.x - expected.x).abs() < 1e-6 && (pose.z - (expected.z - spacing[2])).abs() < 1e-6);
         if !same_height || !cardinal_contact { return Err("worker is not in resource site contact".into()); }
         if self.ids.iter().any(|(id, existing)| id != site_id && self.ecs.get::<ResourceSite>(*existing).is_some_and(|_| self.ecs.get::<Position>(*existing).is_some_and(|position| (position.x - expected.x).abs() < spacing[0] * 0.5 && (position.y - expected.y).abs() < spacing[1] * 0.5 && (position.z - expected.z).abs() < spacing[2] * 0.5))) { return Err("resource site cell is already occupied".into()); }
+        if self.environment.as_mut().ok_or("resource sowing requires terrain")?.world.structure_surfaces(&[(i64::from(x), i64::from(z))])?.into_iter().flatten().any(|cell| cell.x == i64::from(x) && cell.y == y && cell.z == i64::from(z)) { return Err("resource site cell is occupied by a structure".into()); }
         let entity = if let Some(entity) = self.ids.get(site_id).copied() {
             if self.ecs.get::<ResourceSite>(entity).is_some() { return Err("resource site identity is already established".into()); }
             entity
