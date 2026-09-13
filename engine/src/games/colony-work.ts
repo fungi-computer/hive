@@ -70,7 +70,10 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     const destination = `${process.station}:${water.port}`;
     const quantity = lots.filter(lot => lot.container === destination && lot.kind === "water" && lot.quantity > 0)
       .reduce((sum, lot) => sum + lot.quantity, 0);
-    if (quantity >= water.quantity) continue;
+    const inFlight = ctx.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)).filter(task =>
+      task.phase !== "complete" && task.destination === destination && task.material === "water"
+    ).reduce((sum, task) => sum + task.quantity, 0);
+    if (quantity + inFlight >= water.quantity) continue;
     if (orders.length >= 256 || nextRevision >= 0xffffffff) throw new Error("water demand capacity exhausted");
     nextRevision += 1;
     const id = entity(`colony.water-process.${row.id}`);

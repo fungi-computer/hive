@@ -15,7 +15,7 @@ export const WaterSupplyWork = component<WaterSupplyState>("colony.water-supply-
 } });
 
 export const WaterSupplyOrder = component<{ revision: number; process: EntityId | null }>("colony.water-supply-order", {
-  version: 1, fields: { revision: "number", process: "nullable-entity" },
+  version: 2, fields: { revision: "number", process: "nullable-entity" },
 });
 
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] };

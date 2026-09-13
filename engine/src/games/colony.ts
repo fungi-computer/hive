@@ -148,8 +148,8 @@ const colonyInitial = [
   })),
   { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
   { id: entity("colony.brew.mugwort"), components: { "hive.lot": { quantity: 1, kind: "mugwort", container: pantryId } } },
-  { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId } } },
-  { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId } } },
+  { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId }, "hive.container": { capacity: 1 } } },
+  { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId }, "hive.container": { capacity: 4 } } },
   ...([taskOne, taskTwo] as const).map((id, index) => ({
     id,
     components: {
@@ -373,7 +373,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
 
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 5,
+  version: 6,
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
