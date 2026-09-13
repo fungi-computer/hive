@@ -280,6 +280,27 @@ Record query crossings, candidate count, route requests and phase time separatel
 This correction precedes adding more hot TypeScript work loops; it does not block
 data-only scenery, controls or art restoration.
 
+### Region scale checkpoint — September 13
+
+The current Colony definition addresses 64×64 columns and vertical cells from
+-32 through 39. Native generation is deterministic and brick-based, while the
+current terrain presentation samples every region column and deliberately rejects
+more than 4,096 columns. Therefore 64×64 is presently both the playable extent
+and the whole-region client-projection ceiling; it is not evidence that the Rust
+generator or world identity ends there. The kernel's canonical state is bounded
+to 8 MiB and must continue to contain sparse edits, residents and active fields,
+not a materialized cuboid.
+
+Do not enlarge the bounds by sending a larger complete surface array. The next
+scale proof keeps the same actors and active environmental workload while testing
+64×64, 128×128 and 256×256 region bounds behind a bounded visible/resident window.
+Measure generated-brick residency, sparse snapshot bytes, path requests, active
+water/gas work and client payload separately. A successful larger region still
+does not make one DO the whole world: adjoining region owners compose the
+practically unbounded world, and cross-region entity/material transfer requires
+the existing receipt protocol. No water or gas work is earned merely because an
+undisturbed generated coordinate exists.
+
 The first direct crossing count at `bef987e` used the ordinary Colony pack and
 current WASM. One idle 0.1-second step made **60** `KernelPort.query` calls and
 returned 156 rows; each of five subsequent designated-dig steps made **59** calls
