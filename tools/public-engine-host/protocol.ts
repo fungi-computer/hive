@@ -32,7 +32,7 @@ export function socketHandleFromPath(pathname: string): string | null {
   return match?.[1] ?? null;
 }
 
-export type SocketClientMessage = { readonly type: "authenticate"; readonly token: string };
+export type SocketClientMessage = { readonly type: "authenticate"; readonly token: string } | { readonly type: "terrain-interest"; readonly center: readonly [number, number] };
 
 export function readSocketMessage(value: string | ArrayBuffer): SocketClientMessage {
   if (typeof value !== "string") throw new Error("public-socket-message-invalid");
@@ -41,6 +41,7 @@ export function readSocketMessage(value: string | ArrayBuffer): SocketClientMess
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
     throw new Error("public-socket-message-invalid");
   const message = parsed as Record<string, unknown>;
+  if (message.type === "terrain-interest" && Array.isArray(message.center) && message.center.length === 2 && message.center.every((item) => Number.isSafeInteger(item)) && Object.keys(message).every((key) => key === "type" || key === "center")) return { type: "terrain-interest", center: [message.center[0] as number, message.center[1] as number] };
   if (message.type !== "authenticate" || typeof message.token !== "string" ||
       !tokenPattern.test(message.token) || Object.keys(message).some((key) => !["type", "token"].includes(key)))
     throw new Error("public-socket-message-invalid");

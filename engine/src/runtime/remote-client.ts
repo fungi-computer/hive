@@ -543,6 +543,11 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       return;
     }
     if (!started) throw new Error("remote runtime has not started");
+    if (command.type === "terrain-interest") {
+      if (!socket) throw new Error("remote runtime socket is unavailable");
+      socket.send(JSON.stringify({ type: "terrain-interest", center: command.center }));
+      return;
+    }
     if (command.type === "step" || command.type === "reset" || command.type === "save" || command.type === "restore") {
       emit({ type: "error", message: `remote command ${command.type} is unsupported` });
       return;

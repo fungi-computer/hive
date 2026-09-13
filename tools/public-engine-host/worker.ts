@@ -56,6 +56,7 @@ type SocketAttachment = {
   readonly retired?: boolean;
   /** The complete terrain baseline successfully sent on this connection. */
   readonly terrainRevision?: number;
+  readonly terrainInterest?: readonly [number, number];
 };
 type PublicObservationPayload = {
   readonly revision: number;
@@ -421,14 +422,15 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     });
   }
 
-  private observationPayload(): PublicObservationPayload {
+  private observationPayload(terrainInterest?: readonly [number, number]): PublicObservationPayload {
     const committed = this.region.readCommitted();
     const cached = this.observationCache;
-    if (cached?.revision === committed.revision) return cached.payload;
+    if (terrainInterest === undefined && cached?.revision === committed.revision) return cached.payload;
     const payload = this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), (session) => {
       const observation = buildObservation(session, {
         epoch: 0,
         sequence: committed.revision,
+        terrainInterest,
       });
       return { revision: committed.revision, observation };
     });
@@ -696,8 +698,16 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.renewLease(Date.now());
-          const payload = await this.queuedObservationPayload();
+          const payload = await this.serial(() => this.observationPayload(attachment.terrainInterest));
           this.sendObservation(socket, payload, attachment, true);
+          return;
+        }
+        const incoming = readSocketMessage(message);
+        if (incoming.type === "terrain-interest") {
+          const next = { ...attachment, terrainInterest: incoming.center, terrainRevision: undefined };
+          socket.serializeAttachment(next);
+          const payload = await this.serial(() => this.observationPayload(incoming.center));
+          this.sendObservation(socket, payload, next, true);
           return;
         }
       } catch { /* malformed heartbeat is rejected below */ }
