@@ -209,6 +209,17 @@ map. u6788 passed four affected consumer/ghost laws, including actual emitted wa
 actions on both axes, stair rotation and fixed floors. u6789 strict engine types
 passed. Still no rendered acceptance or new publication from this source change.
 
+Connected wall ghosts now consume the same canonical east/south/west/north mask
+owner used by finished wall art. The preview joins every proposed cell to the
+rest of its stroke and to observed finished or unfinished walls on the same
+level; unrelated visuals and other levels do not influence it. The client keeps
+bounded pooled sprites and accepts a per-cell visual without creating placement
+authority. Focused u6864 passed all three placement-preview laws and strict engine
+types. The runtime contract now declares the construction-access query already
+used by allocation, so tests provide that capability explicitly rather than
+casting through an undeclared method. This is reviewed source at 99b5ec6; no new
+rendered or hosted acceptance is claimed.
+
 ## September13 construction support correction — owning implementation plan
 
 Levi requires floor-on-wall, queued support dependencies, deterministic admission
