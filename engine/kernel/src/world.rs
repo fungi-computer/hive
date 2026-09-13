@@ -196,22 +196,22 @@ mod water_exchange_action_tests {
     #[test]
     fn rejected_field_water_action_keeps_snapshot_and_rejects_wrong_custody() {
         let mut kernel = kernel();
-        let before = kernel.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap();
+        let before = kernel.query_json(r#"["hive.lot","hive.lot-water"]"#).unwrap();
         let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[
             {"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":0,"y":0,"z":0,"direction":"withdraw","portions":1}
         ]}).to_string()).unwrap();
         let result: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
-        assert_eq!(kernel.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap(), before);
+        assert_eq!(kernel.query_json(r#"["hive.lot","hive.lot-water"]"#).unwrap(), before);
 
         let mut wrong = kernel;
-        let before = wrong.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap();
+        let before = wrong.query_json(r#"["hive.lot","hive.lot-water"]"#).unwrap();
         let result = wrong.advance_json(&json!({"delta":0,"writes":[],"actions":[
             {"kind":"exchange-field-water","worker":"pail","vessel":"pail","x":0,"y":0,"z":0,"direction":"deposit","portions":1}
         ]}).to_string()).unwrap();
         let result: serde_json::Value = serde_json::from_str(&result).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
-        assert_eq!(wrong.query_json(r#"[\"hive.lot\",\"hive.lot-water\"]"#).unwrap(), before);
+        assert_eq!(wrong.query_json(r#"["hive.lot","hive.lot-water"]"#).unwrap(), before);
     }
 
     #[test]
