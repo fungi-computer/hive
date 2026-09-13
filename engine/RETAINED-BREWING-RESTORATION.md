@@ -141,11 +141,16 @@ output identities.
 `HERBAL_ALE_V1` is the first real consumer:
 
 - consumed at prepare: 2 malt, 2 water and 1 whole mugwort in `kettle`;
-- emission source at prepare: the exact 2 wood required by `wood-hearth` in
-  `hearth`;
+- emission source at prepare: the exact 1 wood required by the recut
+  `wood-hearth` definition in `hearth`;
 - retained: 1 whole barm in `barm` and one portable keg lot/container in `keg`;
 - stages: attended prepare, elapsed ferment, attended keg;
 - keg transition outputs 4 ale inside the bound keg and 1 spent-grain in `tray`.
+
+The temporary station-lighting slice currently configures `wood-hearth` for two
+wood. The brewing cutover changes that single shared definition to one wood,
+matching the retained recipe. Manual lighting and process lighting both consume
+that same definition-owned amount; the process does not add a second fuel debit.
 
 The portable keg is one entity with native `Lot { kind: "keg" }` custody and a
 native `Container`. Ale is transferred into that entity. There is no station-only
