@@ -330,6 +330,7 @@ pub enum Action {
     UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
     Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },
     CancelWork { entity: String },
+    Deconstruct { site: String, container: String },
     PlanConstruction {
         catalog: String,
         site: String,
