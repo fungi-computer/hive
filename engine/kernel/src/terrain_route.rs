@@ -47,21 +47,11 @@ impl AdmittedEdge {
     /// Geometric length of the segments the movement integrator follows,
     /// rounded upward once to deterministic integer micrometres.
     pub fn planning_cost(self, spacing: [f64; 3]) -> Result<u64, String> {
-        let points = self.segments(spacing)?;
-        let length: f64 = points.windows(2)
-            .map(|pair| crate::navigation::distance(pair[0].clone(), pair[1].clone()))
-            .sum();
-        let cost = (length * 1_000_000.0).ceil();
-    // At most 4096 expanded nodes: this bound keeps path addition below 2^53
-    // and identical on 32-bit WASM and native hosts. Never saturate a cost.
-    if !cost.is_finite() || cost < 1.0 || cost > (1u64 << 40) as f64 {
-        return Err("terrain metric exceeds route cost bounds".into());
-    }
-    Ok(cost as u64)
+        waypoint_cost_micrometres(self.segments(spacing)?)
     }
 }
 
-pub fn admitted_edge(a: Cell, b: Cell, _spacing: [f64; 3], stairs: &[StairEdge]) -> Result<AdmittedEdge, String> {
+pub fn admitted_edge(a: Cell, b: Cell, stairs: &[StairEdge]) -> Result<AdmittedEdge, String> {
     if let Some(stair) = stairs.iter().find(|stair| (stair.entrance == a && stair.landing == b) || (stair.entrance == b && stair.landing == a)) {
         return Ok(AdmittedEdge::Stair { from: a, to: b, run: stair.run, rise: stair.rise });
     }
@@ -73,29 +63,37 @@ pub fn admitted_edge(a: Cell, b: Cell, _spacing: [f64; 3], stairs: &[StairEdge])
 }
 
 pub fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3], stairs: &[StairEdge]) -> Result<u64, String> {
-    admitted_edge(a, b, spacing, stairs)?.planning_cost(spacing)
+    admitted_edge(a, b, stairs)?.planning_cost(spacing)
 }
 
-pub fn path_waypoint_count(path: &[Cell], spacing: [f64; 3], stairs: &[StairEdge]) -> Result<usize, String> {
+pub fn path_waypoint_count(path: &[Cell], stairs: &[StairEdge]) -> Result<usize, String> {
     if path.is_empty() { return Err("invalid terrain route geometry".into()); }
     let mut count = 1usize;
-    for pair in path.windows(2) { count = count.checked_add(admitted_edge(pair[0], pair[1], spacing, stairs)?.waypoint_count()).ok_or("terrain route progress overflow")?; }
+    for pair in path.windows(2) { count = count.checked_add(admitted_edge(pair[0], pair[1], stairs)?.waypoint_count()).ok_or("terrain route progress overflow")?; }
     Ok(count)
 }
 
-pub fn waypoint_cost(points: impl IntoIterator<Item = crate::components::Point>) -> Result<f64, String> {
+/// Price the exact segments followed by movement. Search edges and external
+/// route-cost queries both use this integer metric, so assignment cannot rank
+/// a route differently from the movement owner because of a second formula.
+pub fn waypoint_cost_micrometres(points: impl IntoIterator<Item = crate::components::Point>) -> Result<u64, String> {
     let mut previous = None;
-    let mut total = 0.0;
+    let mut total = 0_u64;
     for point in points {
         if let Some(from) = previous.take() {
             let length = crate::navigation::distance(from, point.clone());
             if !length.is_finite() { return Err("route metric cost is not finite".into()); }
-            total += length;
-            if !total.is_finite() { return Err("route metric cost exceeds bound".into()); }
+            let cost = (length * 1_000_000.0).ceil();
+            // At most 4096 movement segments: this per-segment bound keeps
+            // path addition deterministic on native and 32-bit WASM hosts.
+            if !cost.is_finite() || cost < 0.0 || cost > (1_u64 << 40) as f64 {
+                return Err("terrain metric exceeds route cost bounds".into());
+            }
+            total = total.checked_add(cost as u64).ok_or("route metric cost exceeds bound")?;
         }
         previous = Some(point);
     }
-    total.is_finite().then_some(total).ok_or("route metric cost exceeds bound".into())
+    Ok(total)
 }
 
 pub fn search(
@@ -212,7 +210,7 @@ pub fn waypoints_with_stairs(path: &[Cell], config: TraversalConfig, stairs: &[S
     for pair in path.windows(2) {
         let a = pair[0];
         let b = pair[1];
-        let edge = admitted_edge(a, b, config.spacing, stairs)?;
+        let edge = admitted_edge(a, b, stairs)?;
         let emitted = edge.segments(config.spacing)?;
         // The first point is already present as the preceding edge endpoint.
         points.extend(emitted.into_iter().skip(1));
@@ -230,7 +228,7 @@ pub fn active_support_index_with_stairs(path: &[Cell], next_waypoint: usize, sta
     if next_waypoint == 0 { return Err("invalid terrain waypoint progress".into()); }
     let mut end = 0usize;
     for (index, pair) in path.windows(2).enumerate() {
-        let edge = admitted_edge(pair[0], pair[1], [1.0, 1.0, 1.0], stairs)?;
+        let edge = admitted_edge(pair[0], pair[1], stairs)?;
         end += edge.waypoint_count();
         if next_waypoint <= end { return Ok(index); }
     }
@@ -330,10 +328,12 @@ mod tests {
         ];
         for edge in edges {
             let points = edge.segments(config.spacing).unwrap();
-            let length: f64 = points.windows(2).map(|pair| crate::navigation::distance(pair[0].clone(), pair[1].clone())).sum();
-            assert_eq!(edge.planning_cost(config.spacing).unwrap(), (length * 1_000_000.0).ceil() as u64);
+            let expected: u64 = points.windows(2).map(|pair| {
+                (crate::navigation::distance(pair[0].clone(), pair[1].clone()) * 1_000_000.0).ceil() as u64
+            }).sum();
+            assert_eq!(edge.planning_cost(config.spacing).unwrap(), expected);
         }
-        assert_eq!(path_waypoint_count(&[edges[0].endpoints().0, edges[0].endpoints().1], config.spacing, &[]).unwrap(), 2);
+        assert_eq!(path_waypoint_count(&[edges[0].endpoints().0, edges[0].endpoints().1], &[]).unwrap(), 2);
     }
 
     #[test]
