@@ -159,12 +159,11 @@ export function planSiteSupplies(
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
     if (task.phase === "complete") {
-      const lot = lots.find((candidate) => candidate.id === task.sourceLot);
-      if (
-        lot?.container === task.destination &&
-        (row.id === taskId(task.destination, task.material, task.sourceLot) || row.id.startsWith(`${taskId(task.destination, task.material, task.sourceLot)}.`))
-      )
-        removals.push(row.id);
+      // Delivery already observed the committed deposit before it published
+      // complete. Construction may consume that lot in the following phase,
+      // so this planner must retire its receipt without requiring the lot to
+      // remain in the destination.
+      if (row.id.startsWith(TASK_PREFIX)) removals.push(row.id);
       continue;
     }
     if (

@@ -218,6 +218,26 @@ test("cleans only its deposited completed task, then selects the next remaining 
   );
 });
 
+test("cleans its completed receipt after construction consumes the deposited lot", () => {
+  const source = entity("supply.source.consumed");
+  const destination = entity("supply.destination.consumed");
+  const lot = entity("lot.consumed");
+  const rows = baseRows(source, destination, [{ id: lot, quantity: 1 }]);
+  const state = context(rows);
+  planSiteSupplies(state.fake, {
+    requirements: [requirement(destination)],
+    sourceContainers: [source],
+  });
+  const task = rows.find((candidate) => candidate.values.has(DeliveryTask.id))!;
+  (task.values.get(DeliveryTask.id) as Record<string, unknown>).phase = "complete";
+  rows.splice(rows.findIndex((candidate) => candidate.id === lot), 1);
+  planSiteSupplies(state.fake, {
+    requirements: [],
+    sourceContainers: [source],
+  });
+  assert.deepEqual(state.removed, [task.id]);
+});
+
 test("preserves a completed task owned by another delivery planner", () => {
   const source = entity("supply.source.foreign");
   const destination = entity("supply.destination.foreign");
