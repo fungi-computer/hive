@@ -203,6 +203,17 @@ export type ActionRequest =
       readonly station: EntityId;
     }
   | {
+      readonly kind: "exchange-field-water";
+      readonly operation: string;
+      readonly worker: EntityId;
+      readonly vessel: EntityId;
+      readonly x: number;
+      readonly y: number;
+      readonly z: number;
+      readonly direction: "withdraw" | "deposit";
+      readonly portions: number;
+    }
+  | {
       readonly kind: "direct-input";
       readonly entity: EntityId;
       readonly stream: string;
@@ -346,6 +357,7 @@ export interface ReadContext {
   terrainSurfaces(
     columns: readonly [number, number][],
   ): readonly (TerrainSurface | null)[];
+  waterContacts(centers: readonly [number, number, number][]): readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,
@@ -548,6 +560,7 @@ export interface KernelPort {
   readonly terrainSurfaces: (
     columns: readonly [number, number][],
   ) => readonly (TerrainSurface | null)[];
+  readonly waterContacts: (centers: readonly [number, number, number][]) => readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
   readonly terrainChanges: (sinceRevision: number) => TerrainChangeSet;
   readonly structureSurfaces: (
     columns: readonly [number, number][],

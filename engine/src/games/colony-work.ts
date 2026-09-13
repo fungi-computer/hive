@@ -10,6 +10,8 @@ import {
 import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
+import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
+import { Worker } from "./colony-components";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
@@ -47,11 +49,6 @@ import {
   planStockpileDeliveries,
   type StockpileFilterProfile,
 } from "../sdk/stockpile";
-export const Worker = component<{ guest: boolean }>("colony.worker", {
-  version: 1,
-  fields: { guest: "boolean" },
-});
-
 export type ColonyTreePhase = "standing" | "felled" | "chopped";
 export const ColonyTree = component<{ phase: ColonyTreePhase }>("colony.tree", {
   version: 1,
@@ -948,6 +945,8 @@ export const colonyWorkSystem = createWorkSystem({
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
+    WaterSupplyOrder,
+    WaterSupplyWork,
   ],
   writes: [
     EmissionWork,
@@ -959,6 +958,7 @@ export const colonyWorkSystem = createWorkSystem({
     ConstructionApproach,
     DeconstructionApproach,
     DeconstructionOrder,
+    WaterSupplyWork,
   ],
   phases: [
     processSupplyPhase,
@@ -985,7 +985,7 @@ export const colonyWorkSystem = createWorkSystem({
     (ctx, suspendedActors) =>
       deconstructionWorkProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
     (ctx, suspendedActors) =>
-      emissionWorkProvider(
+    emissionWorkProvider(
         ctx,
         ctx
           .query(query(Worker))
@@ -994,6 +994,7 @@ export const colonyWorkSystem = createWorkSystem({
         emissionRequirements,
         suspendedActors,
       ),
+    (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
   ],
 });
 

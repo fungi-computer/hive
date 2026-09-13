@@ -102,6 +102,16 @@ impl Field {
     fn entries(&self) -> impl Iterator<Item = (Cell, Stock)> + '_ {
         self.pages.values().flat_map(|p| p.iter().map(|(c, s)| (*c, *s)))
     }
+    pub(super) fn positive_open_cells_near(&self, centers: &[[f64; 3]], spacing: [f64; 3], limit: usize) -> Vec<Cell> {
+        let mut cells: Vec<(f64, Cell)> = self.entries().filter_map(|(cell, stock)| {
+            if stock.shape.kind != WaterCellKind::Void || stock.level() == 0 { return None; }
+            let at = [cell.x as f64 * spacing[0], (cell.y as f64 + 0.5) * spacing[1], cell.z as f64 * spacing[2]];
+            let nearest = centers.iter().map(|center| (at[0] - center[0]).powi(2) + (at[1] - center[1]).powi(2) + (at[2] - center[2]).powi(2)).fold(f64::INFINITY, f64::min);
+            (nearest <= 64.0).then_some((nearest, cell))
+        }).collect();
+        cells.sort_by(|(left_distance, left), (right_distance, right)| left_distance.total_cmp(right_distance).then_with(|| left.cmp(right)));
+        cells.into_iter().take(limit).map(|(_, cell)| cell).collect()
+    }
     fn wake(&mut self, c: Cell) {
         // Every queued coordinate has one durable stock record. This bounds the
         // queue by MAX_STOCKS and avoids waking six untracked neighbors per flow.

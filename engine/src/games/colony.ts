@@ -26,13 +26,17 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+import { Worker } from "./colony-components";
+import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } from "../contracts";
 
-export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+export { Worker } from "./colony-components";
+export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -96,6 +100,11 @@ const colonyInitial = [
       "hive.delivery-control": { enabled: true, quantity: 3 },
     },
   })),
+  ...workers.map((worker, index) => ({ id: entity(`colony.pail.${index + 1}`), components: {
+    "hive.lot": { quantity: 1, kind: "pail", container: worker },
+    "hive.container": { capacity: 7 },
+    "hive.visual": { sprite: "pail", label: "Pail" },
+  }})),
   {
     id: guestId,
     components: {
@@ -327,6 +336,7 @@ const colonyComponents = [
   DeconstructionApproach, DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
+  WaterSupplyOrder, WaterSupplyWork,
 ] as const;
 
 function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
@@ -378,6 +388,20 @@ export const colonyPack: GamePack = {
     }),
     designateStockpile: colonyStockpileCommand,
     updateStockpile: colonyStockpilePolicyCommand,
+    requestWater: command({
+      title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
+      input: emptyInput, reads: [WaterSupplyOrder], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork],
+      run(context) {
+        const orders = context.query(query(WaterSupplyOrder));
+        if (orders.length >= 256) throw new Error("water demand capacity exhausted");
+        const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
+        const id = entity(`colony.water-demand.${revision}`);
+        return { actions: [], writes: [], creates: [{ id, components: {
+          [WaterSupplyOrder.id]: { revision },
+          [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
+        } }] };
+      },
+    }),
     lightHearth: command({
       title: "Light brew station fire", category: "Colony", description: "Request lighting for the brew station.",
       localPresentation: { bindings: [{ id: "light-brew-station", label: "Light brew station fire", selection: { field: "station", cardinality: "one" } }] },

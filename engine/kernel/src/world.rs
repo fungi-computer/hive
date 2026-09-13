@@ -341,6 +341,26 @@ mod construction_tests {
         (kernel, surface, contact)
     }
 
+    #[test]
+    fn water_contacts_are_bounded_three_dimensional_and_stable() {
+        let (kernel, _, _) = world();
+        assert!(kernel.water_contacts_json("[]").is_err());
+        let too_many = serde_json::to_string(&vec![[0.0_f64, 0.0, 0.0]; 17]).unwrap();
+        assert!(kernel.water_contacts_json(&too_many).is_err());
+        let facts = kernel.environment.as_ref().unwrap().world.facts().unwrap();
+        let dry = facts.cells.iter().find(|cell| cell.level == 0).expect("fixture has dry cell");
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let center = |at: [i32; 3]| [at[0] as f64 * spacing[0], (at[1] as f64 + 0.5) * spacing[1], at[2] as f64 * spacing[2]];
+        let dry_center = center(dry.at);
+        let first: serde_json::Value = serde_json::from_str(&kernel.water_contacts_json(&serde_json::to_string(&[dry_center]).unwrap()).unwrap()).unwrap();
+        let second = kernel.water_contacts_json(&serde_json::to_string(&[dry_center]).unwrap()).unwrap();
+        assert_eq!(first.to_string(), serde_json::from_str::<serde_json::Value>(&second).unwrap().to_string());
+        let contacts = first.as_array().unwrap();
+        assert!(contacts.iter().all(|contact| contact["at"] != serde_json::json!(dry.at)));
+        let far = [dry_center[0], dry_center[1] + 100.0, dry_center[2]];
+        assert!(serde_json::from_str::<serde_json::Value>(&kernel.water_contacts_json(&serde_json::to_string(&[far]).unwrap()).unwrap()).unwrap().as_array().unwrap().is_empty());
+    }
+
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
@@ -2027,6 +2047,27 @@ impl Kernel {
         }))).collect();
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
+    /// Bounded authoritative open-water targets for work planning. Contact
+    /// approaches are emitted in world coordinates by the terrain owner.
+    pub fn water_contacts_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        if input.len() > 8 * 1024 { return Err("water contact query exceeds input budget".into()); }
+        let centers: Vec<[f64; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if centers.is_empty() || centers.len() > 16 { return Err("water contact query exceeds center budget".into()); }
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        let spacing = environment.world.cell_spacing_m();
+        let contacts: Vec<_> = environment.world.positive_open_cells_near(&centers, 128).into_iter().map(|cell| {
+            let [x, y, z] = crate::terrain_water::coordinates(cell)?;
+            let center = [(x as f64) * spacing[0], (y as f64 + 0.5) * spacing[1], (z as f64) * spacing[2]];
+            Ok(json!({ "at": [x, y, z], "approaches": [
+                {"x": center[0]-spacing[0], "y": center[1], "z": center[2], "frame": null},
+                {"x": center[0]+spacing[0], "y": center[1], "z": center[2], "frame": null},
+                {"x": center[0], "y": center[1], "z": center[2]-spacing[2], "frame": null},
+                {"x": center[0], "y": center[1], "z": center[2]+spacing[2], "frame": null}
+            ]}))
+        }).collect::<Result<Vec<_>>>()?;
+        serde_json::to_string(&contacts).map_err(|error| error.to_string())
+    }
     pub fn structure_surfaces_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 16 * 1024 { return Err("structure surface query exceeds input budget".into()); }
@@ -2958,7 +2999,7 @@ impl Kernel {
 
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
-            Action::ExchangeFieldWater { worker, vessel, x, y, z, direction, portions } => {
+            Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
             }

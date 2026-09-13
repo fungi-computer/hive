@@ -26,6 +26,7 @@ import type {
   ProcessRequirements,
   WriteIntent,
   EntityRecord,
+  MoveDestination,
 } from "../contracts";
 import { ASSIGNMENT_MAX_EDGES, checkedAssignments } from "../sdk/assignment";
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
@@ -47,6 +48,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
+  water_contacts(json: string): string;
   structure_surfaces(json: string): string;
   terrain_changes(json: string): string;
   query(json: string): string;
@@ -367,6 +369,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
           "terrain surface result does not match requested columns",
         );
       return result;
+    },
+    waterContacts(centers) {
+      if (centers.length === 0 || centers.length > 16) throw new Error("water contact query exceeds center budget");
+      return JSON.parse(binding.water_contacts(JSON.stringify(centers))) as readonly { at: readonly [number, number, number]; approaches: readonly MoveDestination[] }[];
     },
     structureSurfaces(columns) {
       if (

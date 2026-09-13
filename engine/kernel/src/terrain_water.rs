@@ -419,6 +419,9 @@ impl TerrainWater {
         self.change_index.since(since, self.physical_revision)
     }
     pub fn facts(&self) -> Result<WaterFacts, String> { self.field.facts() }
+    pub fn positive_open_cells_near(&self, centers: &[[f64; 3]], limit: usize) -> Vec<Cell> {
+        self.field.positive_open_cells_near(centers, self.geometry.spacing, limit)
+    }
 
     pub fn prepare_water_exchange(&mut self, at: Cell, direction: WaterExchangeDirection,
         portions: u8) -> Result<PreparedWaterExchange, String> {
@@ -638,7 +641,7 @@ pub(crate) fn unsupported_structures(terrain: &mut TerrainOwner, structures: &St
     Ok(crate::structure_support::resolve(structures, policy, &mut query)?.unsupported)
 }
 
-fn coordinates(cell: Cell) -> Result<[i32; 3], String> {
+pub(crate) fn coordinates(cell: Cell) -> Result<[i32; 3], String> {
     Ok([i32::try_from(cell.x).map_err(|_| "water x out of range")?, cell.y,
         i32::try_from(cell.z).map_err(|_| "water z out of range")?])
 }
