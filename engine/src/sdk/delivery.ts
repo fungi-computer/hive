@@ -132,6 +132,10 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         lot?.container === task.source
       );
     });
+    const heldLots = new Set(tasks.flatMap((row) => {
+      const task = row.get(DeliveryTask);
+      return task.actor !== null && task.phase !== "complete" ? [task.sourceLot] : [];
+    }));
     const candidates = controls.flatMap((controlRow) => {
       const control = controlRow.get(DeliveryControl);
       if (!control.enabled || sealed.has(controlRow.id)) return [];
@@ -229,6 +233,12 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       progress: () => {
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
+      const selectedLot = lotsById.get(state.sourceLot);
+      if (state.actor === null && (state.phase === "idle" || state.phase === "to-source") && selectedLot?.container !== state.source) {
+        const replacement = lots.filter((lot) => lot.container === state.source && lot.kind === state.material && lot.quantity >= state.quantity && !heldLots.has(lot.id)).sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)[0];
+        if (replacement) ctx.write(DeliveryTask, task.id, { ...state, sourceLot: replacement.id });
+        continue;
+      }
       if (state.actor === null || assigned.has(task.id)) continue;
       if (suspendedActors.has(state.actor)) continue;
       if (occupiedActors.has(state.actor)) continue;
@@ -256,6 +266,17 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       )
         continue;
       const lotState = lotsById.get(state.sourceLot);
+      if ((state.phase === "idle" || state.phase === "to-source") && lotState?.container !== state.source && lotState?.container !== state.actor) {
+        const replacement = lots
+          .filter((lot) => lot.container === state.source && lot.kind === state.material && lot.quantity >= state.quantity && !heldLots.has(lot.id))
+          .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)[0];
+        if (replacement) {
+          ctx.write(DeliveryTask, task.id, { ...state, sourceLot: replacement.id, actor: null, phase: "idle" });
+        } else if (state.actor !== null) {
+          ctx.write(DeliveryTask, task.id, { ...state, actor: null, phase: "idle" });
+        }
+        continue;
+      }
       // A completed deposit must still retire its claim if the destination
       // became sealed in that same committed step. Otherwise keep custody and
       // wait without issuing futile movement or transfer requests.

@@ -192,3 +192,23 @@ test("parallel stockpile demands never double-claim a source lot across destinat
   assert.notEqual(tasks[0].destination, tasks[1].destination);
   assert.equal(new Set(tasks.map((task) => task.sourceLot)).size, 2);
 });
+
+test("post-split stale stockpile reservation cannot overbook remaining source material", () => {
+  const zone = entity("zone.split");
+  const cells = plannerCellFixtures([
+    { zone, cell: [0, 3, 0], priority: 2, filterProfile: "materials", capacity: 1, verticalMetres: 0.54 },
+    { zone, cell: [1, 3, 0], priority: 1, filterProfile: "materials", capacity: 1, verticalMetres: 0.54 },
+  ]);
+  const source = entity("ground.split");
+  const moved = entity("lot.split.moved");
+  const remainder = entity("lot.split.remainder");
+  const worker = entity("worker.split");
+  const rows = [
+    ...cells.flatMap((cell) => [row(cell.id, StockpileCell, cell.components[StockpileCell.id]), row(cell.id, Container, { capacity: 1 }), row(cell.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 })]),
+    row(source, GroundStock, {}), row(source, Container, { capacity: 4 }),
+    row(moved, MaterialLot, { kind: "wood", quantity: 2, container: worker }),
+    row(remainder, MaterialLot, { kind: "wood", quantity: 2, container: source }),
+    row(entity("stale.stockpile.split"), DeliveryTask, { actor: worker, sourceLot: moved, source, destination: cells[0].id, material: "wood", quantity: 2, phase: "to-source" }),
+  ];
+  assert.deepEqual(planStockpileDeliveries(fake(rows).context, { filterProfiles: { materials: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } }), []);
+});

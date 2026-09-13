@@ -885,7 +885,8 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
           : [];
       }),
       ...ctx
-        .query(query(Emitter))
+        .query(query(Emitter, EmissionOrder))
+        .filter((row) => row.get(EmissionOrder).enabled)
         .slice(0, 8)
         .flatMap((row) => {
           const definition = colonyEnvironment.emissions?.find(

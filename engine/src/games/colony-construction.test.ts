@@ -8,38 +8,68 @@ import { query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
+import { EmissionOrder } from "../sdk/emission-work";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
-test("actual Colony staircase supply assigns two workers to two independent lumber lots", () => {
+test("disabled ignition does not reserve workers or lumber ahead of construction", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 13, 0] } });
+    session.step(0.25);
+    const station = session.query(query(EmissionOrder))[0].id;
+    const tasks = session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask));
+    assert.equal(session.query(query(EmissionOrder))[0].get(EmissionOrder).enabled, false);
+    assert(tasks.every(task => task.destination !== station), "disabled ignition has no fuel delivery");
+    session.command("lightHearth", { station });
+    session.step(0.25);
+    assert(session.query(query(DeliveryTask)).some(row => row.get(DeliveryTask).destination === station), "requested ignition uses shared delivery");
+  } finally { port.dispose(); }
+});
+
+test("actual Colony staircase supply splits one shared lumber lot into two lawful haul legs", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     session.command("build", { catalog: "timber-stair", orientation: "north", target: { cell: [1, 13, 0] } });
-    let live: readonly any[] = [];
-    for (let tick = 0; tick < 240; tick++) {
-      session.step(0.1);
+    let live = session.query(query(DeliveryTask)).filter(() => false);
+    for (let tick = 0; tick < 1000; tick++) {
+      session.step(0.01);
       const tasks = session.query(query(DeliveryTask)).filter((row) => {
         const task = row.get(DeliveryTask);
         return task.destination.startsWith("colony.build.") && task.phase !== "complete";
       });
       if (tasks.length === 2 && tasks.every((row) => row.get(DeliveryTask).actor !== null)) {
-        live = [tasks];
+        live = tasks;
         break;
       }
     }
-    assert.equal(live.length, 1, `staircase demand must expose two assigned haul legs: ${JSON.stringify(session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)))}`);
-    const tasks = live[0];
+    assert.equal(live.length, 2, `staircase demand must expose two assigned haul legs: ${JSON.stringify(session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)))}`);
+    const tasks = live;
     const states = tasks.map((row) => row.get(DeliveryTask));
-    assert.equal(new Set(states.map((task) => task.sourceLot)).size, 2);
+    assert.equal(new Set(tasks.map((row) => row.id)).size, 2);
     assert.equal(new Set(states.map((task) => task.actor)).size, 2);
-    assert(states.reduce((sum, task) => sum + task.quantity, 0) <= 6);
-    assert(states.every((task) => task.quantity > 0 && task.quantity <= 6));
+    assert.equal(states.reduce((sum, task) => sum + task.quantity, 0), 6);
+    assert(states.every((task) => task.quantity === 3));
     const saved = session.save();
     session.restore(saved);
     const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.phase !== "complete");
     assert.deepEqual(restored.map((task) => [task.sourceLot, task.actor, task.quantity]), states.map((task) => [task.sourceLot, task.actor, task.quantity]));
+    let finished = false;
+    for (let tick = 0; tick < 600; tick++) {
+      session.step(0.25);
+      const site = session.query(query(ConstructionSite))[0];
+      finished = site?.get(ConstructionSite).phase === "finished";
+      if (finished) break;
+    }
+    assert.equal(finished, true);
+    const site = session.query(query(ConstructionSite))[0];
+    const delivered = session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === site.id && row.get(MaterialLot).kind === "wood");
+    assert.equal(delivered.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 6);
+    assert.equal(session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).kind === "wood").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 48);
   } finally { port.dispose(); }
 });
 
