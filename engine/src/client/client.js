@@ -50,6 +50,7 @@ import { formationsPack } from "../games/formations.ts";
 import { piratesPack } from "../games/pirates.ts";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
+import { colonyControl, selectedBrewStation } from "./colony-presentation.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -384,6 +385,18 @@ export function createHiveClient({
     const buildIds = new Set(buildGroups.flatMap((group) => group.controls.map((control) => control.id)));
     const selectedBuild = terrainTarget.getSnapshot().context.control;
     const selectedGroup = buildGroups.find((group) => group.controls.some((control) => control.id === selectedBuild?.id));
+    const armTerrainControl = (control) => {
+      if (!control || control.availability?.status === "unavailable") return;
+      exitAim();
+      gesture.send({ type: "CANCEL" });
+      terrainArea.send({ type: "CANCEL" });
+      terrainTarget.send({ type: "ARM", control });
+      state.message = control.target === "terrain-area"
+        ? `${control.label}: drag a rectangle; Escape exits`
+        : `${control.label}: choose a visible terrain top; Escape exits`;
+      renderHud();
+      draw();
+    };
     const chooseBuild = (group, orientation = group.orientations[0]) => {
       const control = selectedBuildControl(group, orientation);
       if (!control || control.availability?.status === "unavailable") return;
@@ -392,6 +405,20 @@ export function createHiveClient({
       state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
       renderHud();
     };
+    const plantControl = mode === "colony" ? colonyControl(controls, "sow-mugwort") : null;
+    const plantTool = plantControl ? React.createElement("section", { className: "hive-tool-strip", "aria-label": "Colony tools" },
+      React.createElement(Button, {
+        size: "sm",
+        variant: terrainTarget.getSnapshot().context.control?.id === "sow-mugwort" ? "secondary" : "outline",
+        "aria-pressed": terrainTarget.getSnapshot().context.control?.id === "sow-mugwort",
+        disabled: !state.ready || plantControl.availability?.status === "unavailable",
+        title: plantControl.availability?.status === "unavailable" ? plantControl.availability.reason : "Choose a clear soil tile to plant mugwort",
+        onClick: () => armTerrainControl(plantControl),
+      }, "Plant mugwort"),
+      terrainTarget.getSnapshot().context.control?.id === "sow-mugwort"
+        ? React.createElement("small", null, "Click a clear soil tile · Escape or right-click cancels")
+        : null,
+    ) : null;
     const buildCatalog = buildGroups.length ? React.createElement("section", { className: "hive-build-catalog", "aria-label": "Build catalog" },
       React.createElement("strong", null, "Build"),
       buildGroups.map((group) => {
@@ -417,9 +444,16 @@ export function createHiveClient({
         ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
       ],
     });
+    const selectedStation = mode === "colony" ? selectedBrewStation(latestFacts, state.selectedIds) : null;
+    const stationSelection = selectedStation
+      ? { ...contextualPresentation.selection, label: "Brew station" }
+      : contextualPresentation.selection;
     const renderPresentationGroup = (heading, group) => group.facts.length || group.controls.length
-      ? React.createElement("section", { className: "hive-presentation", "aria-label": heading },
+      ? React.createElement("section", { className: `hive-presentation${heading === "Brew station" ? " hive-station-card" : ""}`, "aria-label": heading },
           React.createElement("strong", null, heading),
+          heading === "Brew station"
+            ? React.createElement("p", { className: "hive-status" }, "Finished station · choose an action here")
+            : null,
           group.facts.map((fact) => React.createElement("div", { key: fact.id },
             `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`)),
       group.controls.map((control) => React.createElement(Button, {
@@ -431,14 +465,7 @@ export function createHiveClient({
             onClick: () => {
               if (control.availability?.status === "unavailable") return;
               if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
-                exitAim();
-                gesture.send({ type: "CANCEL" });
-                terrainArea.send({ type: "CANCEL" });
-                terrainTarget.send({ type: "ARM", control });
-                state.message = control.target === "terrain-area"
-                  ? `${control.label}: drag a rectangle; Escape exits`
-                  : `${control.label}: choose a visible ${control.target === "world-surface" ? "ground or building surface (blue neighbors preview locations; native support is checked on submit)" : "terrain top"}; Escape exits`;
-                renderHud();
+                armTerrainControl(control);
                 return;
               }
               if (aiming) audio.unlock();
@@ -462,6 +489,7 @@ export function createHiveClient({
         React.createElement(
           CardContent,
           { className: "hive-card-content" },
+          plantTool,
           buildCatalog,
           React.createElement(
             "div",
@@ -586,9 +614,9 @@ export function createHiveClient({
               renderHud();
             } }, state.invitationCopied ? "Copied" : "Copy link"),
           ) : null,
-          renderPresentationGroup(contextualPresentation.selection.label, contextualPresentation.selection)
+          renderPresentationGroup(stationSelection.label, stationSelection)
             ?? React.createElement("div", { className: "hive-selection" },
-              state.selectedIds.length ? contextualPresentation.selection.label : "Select a person or object to see its actions"),
+              state.selectedIds.length ? stationSelection.label : "Select a person or object to see its actions"),
           isAiming()
             ? React.createElement("div", { className: "hive-actions" },
                 React.createElement("label", null, `Elevation ${Math.round(state.aim.elevation * 180 / Math.PI)}°`),
@@ -606,7 +634,10 @@ export function createHiveClient({
               ? "Select survivor · WASD / arrows move · E take bread · F eat"
               : "Click selects · Shift adds · drag selects a group · right click orders"),
           ),
-          renderPresentationGroup("World actions", contextualPresentation.world),
+          renderPresentationGroup("World actions", {
+            ...contextualPresentation.world,
+            controls: contextualPresentation.world.controls.filter((control) => control.id !== "sow-mugwort"),
+          }),
           React.createElement(
             "a",
             { className: "hive-source", href: source },

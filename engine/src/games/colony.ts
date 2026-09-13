@@ -660,6 +660,7 @@ export const colonyPack: GamePack = {
       const lotTotals = new Map<EntityId, number>();
       for (const lot of lots) lotTotals.set(lot.container, (lotTotals.get(lot.container) ?? 0) + lot.quantity);
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
+      const pails = new Map(lots.filter((lot) => lot.kind === "pail").map((lot) => [lot.container, lot]));
       const taskRows = context.query(query(DeliveryTask));
       const stationFacts = finishedBrewStations(context).slice(0, 8).map((site) => {
         const hearth = entity(`${site.id}:hearth`);
@@ -710,6 +711,10 @@ export const colonyPack: GamePack = {
           id: `worker-${index + 1}-control`, subjects: [worker],
           label: workerVisuals[index].label,
           value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
+        })),
+        ...workers.map((worker, index) => ({
+          id: `worker-${index + 1}-pail`, subjects: [worker], label: "Pail",
+          value: pails.has(worker) ? "Carried · in this worker's custody" : "None",
         })),
         { id: "guest-quantity", subjects: [guestId], label: "Guest meal", value: total(guestId) },
         ...workers.map((worker, index) => ({
