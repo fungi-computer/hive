@@ -2812,8 +2812,6 @@ impl Kernel {
         if self.ecs.get::<Body>(worker).is_none() { return Err("resource extraction requires a worker body".into()); }
         let resource = self.ecs.get::<FiniteResource>(source).cloned().ok_or("not a finite resource")?;
         if resource.quantity == 0 { return Err("finite resource is exhausted".into()); }
-        if self.ecs.get::<SealedContainer>(source).is_some() { return Err("sealed resource cannot receive output".into()); }
-        if self.ecs.get::<Container>(source).is_none() { return Err("finite resource source is not a container".into()); }
         let prepared = self.prepare_material_output(MaterialOutputSpec {
             container: worker_id.to_owned(), kind: resource.kind, quantity: resource.quantity, water_kg: None,
         })?;
