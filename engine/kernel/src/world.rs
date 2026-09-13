@@ -2834,7 +2834,12 @@ impl Kernel {
         if surface.cell.y != y { return Err("resource site must be on the generated surface".into()); }
         let expected = Point { x: f64::from(x) * spacing[0], y: (f64::from(y) + 0.5) * spacing[1], z: f64::from(z) * spacing[2], frame: None };
         let pose = self.world_pose_entity(worker, 0)?;
-        if (pose.x - expected.x).hypot(pose.z - expected.z) > 2.0 * spacing[0] || (pose.y - expected.y).abs() > spacing[1] { return Err("worker is not in resource site contact".into()); }
+        let same_height = (pose.y - expected.y).abs() < spacing[1] * 0.1;
+        let cardinal_contact = ((pose.x - (expected.x + spacing[0])).abs() < 1e-6 && (pose.z - expected.z).abs() < 1e-6)
+            || ((pose.x - (expected.x - spacing[0])).abs() < 1e-6 && (pose.z - expected.z).abs() < 1e-6)
+            || ((pose.x - expected.x).abs() < 1e-6 && (pose.z - (expected.z + spacing[2])).abs() < 1e-6)
+            || ((pose.x - expected.x).abs() < 1e-6 && (pose.z - (expected.z - spacing[2])).abs() < 1e-6);
+        if !same_height || !cardinal_contact { return Err("worker is not in resource site contact".into()); }
         if self.ids.iter().any(|(id, existing)| id != site_id && self.ecs.get::<ResourceSite>(*existing).is_some_and(|_| self.ecs.get::<Position>(*existing).is_some_and(|position| (position.x - expected.x).abs() < spacing[0] * 0.5 && (position.y - expected.y).abs() < spacing[1] * 0.5 && (position.z - expected.z).abs() < spacing[2] * 0.5))) { return Err("resource site cell is already occupied".into()); }
         let entity = if let Some(entity) = self.ids.get(site_id).copied() {
             if self.ecs.get::<ResourceSite>(entity).is_some() { return Err("resource site identity is already established".into()); }
