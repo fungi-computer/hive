@@ -5,6 +5,8 @@ use super::*;
 struct ConstructionReadinessRow {
     site: String,
     status: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<&'static str>,
 }
 
 fn construction_status(
@@ -12,6 +14,8 @@ fn construction_status(
     ids: &[String],
 ) -> Result<BTreeMap<String, &'static str>> {
     let mut result = BTreeMap::new();
+    let mut pending = Vec::new();
+    let mut pending_ids = Vec::new();
     for site in ids {
         let Some(entity) = kernel.ids.get(site).copied() else {
             result.insert(site.clone(), "unknown");
@@ -27,9 +31,14 @@ fn construction_status(
         }
         let definition = kernel.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let instance = kernel.construction_instance(site, &definition, state.x, state.y, state.z, state.orientation);
-        let unsupported = kernel.environment.as_mut().ok_or("construction needs environment")?.world.construction_support(std::slice::from_ref(&instance))?;
-        let status = if unsupported.iter().any(|id| id == site) { "waitingForSupport" } else { "ready" };
-        result.insert(site.clone(), status);
+        pending_ids.push(site.clone());
+        pending.push(instance);
+    }
+    if !pending.is_empty() {
+        let unsupported: BTreeSet<String> = kernel.environment.as_mut().ok_or("construction needs environment")?.world.construction_support(&pending)?.into_iter().collect();
+        for site in pending_ids {
+            result.insert(site.clone(), if unsupported.contains(&site) { "waitingForSupport" } else { "ready" });
+        }
     }
     Ok(result)
 }
@@ -46,6 +55,7 @@ impl Kernel {
         let statuses = construction_status(self, &ids)?;
         let rows = ids.into_iter().map(|site| ConstructionReadinessRow {
             status: statuses.get(&site).copied().unwrap_or("unknown"), site,
+            reason: (statuses.get(&site) == Some(&"waitingForSupport")).then_some("missingStructuralSupport"),
         }).collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|_| "construction readiness encoding failed".into())
     }

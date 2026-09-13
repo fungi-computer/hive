@@ -220,8 +220,16 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         if (typeof row.site !== "string" || !sites.includes(row.site as EntityId) || seen.has(row.site)
           || !["ready", "waitingForSupport", "unknown"].includes(row.status as string))
           throw new Error("invalid construction readiness row");
+        if (row.reason !== undefined && row.reason !== "missingStructuralSupport")
+          throw new Error("invalid construction readiness reason");
+        if (row.status === "waitingForSupport" && row.reason !== "missingStructuralSupport")
+          throw new Error("construction readiness is missing its waiting reason");
         seen.add(row.site);
-        return { site: row.site, status: row.status as ConstructionReadiness["status"] };
+        return {
+          site: row.site,
+          status: row.status as ConstructionReadiness["status"],
+          ...(row.reason === undefined ? {} : { reason: row.reason as "missingStructuralSupport" }),
+        };
       });
     },
     physicalContacts(cells) {
