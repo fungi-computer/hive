@@ -55,3 +55,14 @@ test("an unavailable selection command stays scoped and explains why", () => {
   assert.deepEqual(result.world.controls, []);
   assert.equal(result.selection.controls[0].availability.reason, "Construction is unfinished");
 });
+
+test("an unavailable single entity command stays scoped when its target is absent", () => {
+  const result = projectContextualPresentation({
+    facts: [{ id: "unfinished", label: "Construction", subjects: ["unfinished"] }],
+    controls: [{ commandId: "colony:deconstruct", label: "Deconstruct", selection: { field: "site", cardinality: "one" }, availability: { status: "unavailable", reason: "Construction is unfinished" } }],
+    targets: [], selectedIds: ["unfinished"], currentIds: ["unfinished"],
+  });
+  assert.deepEqual(result.world.controls, []);
+  assert.equal(result.selection.controls[0].availability.reason, "Construction is unfinished");
+  assert.deepEqual(result.selection.controls[0].subjects, []);
+});

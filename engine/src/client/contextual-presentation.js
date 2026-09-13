@@ -11,7 +11,7 @@ export function projectContextualPresentation({ facts, controls, targets, select
   for (const control of controls) {
     const subjects = targetMap.get(control.commandId);
     if (subjects === undefined) {
-      if (control.selection === "entities") {
+      if (control.selection === "entities" || (control.selection && typeof control.selection === "object")) {
         if (control.availability?.status === "unavailable" && selected.size > 0)
           selectionControls.push({ ...control, subjects: [] });
         continue;
