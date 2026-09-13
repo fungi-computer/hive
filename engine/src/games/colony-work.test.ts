@@ -104,7 +104,9 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
     session.restore(savedBeforeWork);
     assert.deepEqual(session.save(), savedBeforeWork);
     for (let tick = 0; tick < 4000; tick++) {
-      session.step(0.25);
+      try { session.step(0.25); } catch (error) {
+        throw new Error(`resource step ${tick} failed: ${String(error)}`, { cause: error as Error });
+      }
       const current = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
       if (current?.phase === "complete") break;
     }
