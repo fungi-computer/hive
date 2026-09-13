@@ -3890,8 +3890,44 @@ impl Kernel {
         Ok(())
     }
 
+    /// Replan a route that became stale at a terrain revision boundary. The
+    /// native planner retains the active prefix/history while pricing the
+    /// replacement. A failed,
+    /// bounded search releases the destination and leaves a suspended contact
+    /// witness when the actor is between support centers.
+    fn recover_invalidated_terrain_routes(&mut self) -> Result<()> {
+        let candidates: Vec<_> = self.terrain_routes.iter()
+            .filter_map(|(entity, state)| (state.waiting && state.revision.is_none() && !state.suspended).then_some(*entity))
+            .collect();
+        for entity in candidates {
+            let Some(destination) = self.ecs.get::<Destination>(entity).cloned() else {
+                self.clear_destination(entity);
+                continue;
+            };
+            let position = *self.ecs.get::<Position>(entity).ok_or("terrain route actor lost position")?;
+            let target = Point {
+                x: destination.x,
+                y: destination.y,
+                z: destination.z,
+                frame: destination.frame.clone(),
+            };
+            match self.route_for(entity, position, &target) {
+                Ok(prepared) => self.install_route(entity, prepared),
+                Err(_) => {
+                    // The destination is the lock seen by work and delivery
+                    // callers, so clearing it is the explicit unreachable
+                    // lifecycle outcome. The existing route witness remains
+                    // available to clear_destination for suspended contact.
+                    self.clear_destination(entity);
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn advance_movement(&mut self, delta: f64) -> Result<()> {
         self.invalidate_terrain_routes()?;
+        self.recover_invalidated_terrain_routes()?;
         self.routes.retain(|entity, path| {
             if self.terrain_routes.get(entity).is_some_and(|state| state.suspended) { return true; }
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
