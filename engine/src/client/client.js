@@ -391,7 +391,7 @@ export function createHiveClient({
       : [];
     const placementStatus = selectedBuild
       ? placementHint(selectedBuild, {
-        area: placementSnapshot,
+        area: { value: placementSnapshot.value, rejection: placementSnapshot.context.rejection },
         hover: terrainTarget.getSnapshot().context.hover,
         cells: placementPreviewCells.length,
       })
