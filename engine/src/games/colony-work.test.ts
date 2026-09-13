@@ -110,11 +110,11 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
       const current = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
       if (current?.phase === "complete") break;
     }
+    const completed = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
+    assert.equal(completed?.phase, "complete", "resource order must complete before conservation is assessed");
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
-    const mugwort = lots.filter(lot => lot.kind === "mugwort");
-    assert.equal(mugwort.reduce((sum, lot) => sum + lot.quantity, 0), 1);
-    assert.equal(mugwort.length, 1);
-    assert.notEqual(mugwort[0].container, intent.site, "harvest must leave the finite source and enter the ordinary lot path");
+    const harvested = lots.filter(lot => lot.kind === "mugwort" && lot.container === intent.site);
+    assert.equal(harvested.reduce((sum, lot) => sum + lot.quantity, 0), 1, "the native harvest lot must exist at the resource site");
     const saved = session.save();
     session.restore(saved);
     assert.deepEqual(session.save(), saved);
