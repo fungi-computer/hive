@@ -651,6 +651,25 @@ are visibly client-owned and never appear as server world capabilities. Entity-
 or selection-specific hints stay client-side unless the authorized server
 projection actually supplies that context.
 
+`GamePack.commands` also owns each world command's semantic title, category,
+description, Zod input and optional result schema. The Whistle contribution is a
+projection of that table, never another authored table. Commands without a local
+human surface remain agent/programmatic capabilities; commands with local controls
+carry all gesture, field and preset bindings together in one Whistle
+`custom.data.bindings` value. Four stair orientations and the building catalog are
+therefore presets of one semantic Build command, not four or more commands.
+
+Contextual targets are an authorized world-observation fact that references the
+canonical Whistle command identity and stable subject IDs. This small
+projection answers “which observed things currently offer this command?” It does
+not copy the command label, schema, handler or authority, and it is recomputed from
+canonical world state. The browser intersects it with current selection and its
+local field binding; a headless controller may use the same subject references.
+Never infer eligibility from localized inspector labels. A finished construction
+may advertise `colony:deconstruct`; an unfinished site may not. Dispatch still
+performs fresh GamePack admission, so an advertised affordance is neither
+permission nor a claim that physical work completed.
+
 Selection and targeting remain client/engine mechanisms. Clicking **Dig** arms
 the existing rectangle gesture; its completed same-level area is the argument to
 the single `colony:dig` action. Build uses the existing visible surface picker.
