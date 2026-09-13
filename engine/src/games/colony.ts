@@ -23,15 +23,11 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
-import { createColonyStockpileSystem } from "./colony-stockpile";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
 import { z } from "zod";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
 
-export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
-const colonyStockpileProfiles = {
-  wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] },
-} as const;
+export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -324,7 +320,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 4,
   components: colonyComponents,
-  systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem, createColonyStockpileSystem(colonyStockpileProfiles), colonyCatSystem],
+  systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,

@@ -2,7 +2,7 @@ import { EmissionOrder, EmissionWork, emissionWorkProvider } from "../sdk/emissi
 import { ConstructionApproach, constructionWorkProvider } from "../sdk/construction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
-import { component, entity, query, system } from "../sdk/authoring";
+import { component, entity, query } from "../sdk/authoring";
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import { deliveryProvider, DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { GroundStock } from "../sdk/ground-stock";
@@ -12,6 +12,7 @@ import {
 } from "../sdk/common";
 import type { EntityId, TerrainSurface, Vec3, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
+import { StockpileCell, planStockpileDeliveries, type StockpileFilterProfile } from "../sdk/stockpile";
 export const Worker = component<{ guest: boolean }>("colony.worker", {
   version: 1,
   fields: { guest: "boolean" },
@@ -56,6 +57,10 @@ type DigCandidate = {
 const verticalMetres = colonyEnvironment.world.verticalMetres;
 const air = colonyEnvironment.world.slots.air;
 const spoilKinds = new Set(["soil-spoil", "stone-spoil"]);
+const colonyStockpileProfiles: Readonly<Record<string, StockpileFilterProfile>> = {
+  wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] },
+  food: { materialCategories: { bread: "food" }, allowedCategories: ["food"], allowedMaterials: ["bread"] },
+};
 const distance = (a: Vec3, b: Vec3) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 function orderPoint(order: { approachX: number; approachY: number; approachZ: number }) {
@@ -366,13 +371,40 @@ function planGroundStockDeliveries(ctx: WriteContext) {
   }
 }
 
+export function colonyGroundStockPhase(ctx: WriteContext) {
+  const stockContainers = new Set(ctx.query(query(GroundStock)).map(row => row.id));
+  for (const row of ctx.query(query(DeliveryTask))) {
+    const task = row.get(DeliveryTask);
+    if (task.phase === "complete" && stockContainers.has(task.source)) ctx.removeAuthoredEntity(row.id);
+  }
+  planGroundStockDeliveries(ctx);
+}
+
+function colonySiteSuppliesPhase(ctx: WriteContext) {
+  const sites = ctx.query(query(ConstructionSite));
+  const start = sites.length ? (ctx.clock.tick * 4) % sites.length : 0;
+  const active = Array.from({ length: Math.min(3, sites.length) }, (_, offset) => sites[(start + offset) % sites.length]);
+  planSiteSupplies(ctx, {
+    sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
+    requirements: [...active.flatMap(row => {
+      const site = row.get(ConstructionSite);
+      const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
+      return definition ? definition.materials.map(({ kind: material, quantity }) => ({ destination: row.id, material, quantity })) : [];
+    }), ...ctx.query(query(Emitter)).slice(0, 8).flatMap(row => {
+      const definition = colonyEnvironment.emissions?.find(item => item.id === row.get(Emitter).catalog);
+      return definition ? [{ destination: row.id, material: definition.materialKind, quantity: definition.quantity }] : [];
+    })],
+  });
+}
+
 const emissionRequirements = new Map((colonyEnvironment.emissions ?? []).map(definition => [definition.id, definition]));
 
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
-  reads: [EmissionOrder, EmissionWork, Emitter, GroundStock, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, FiniteResource, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
+  reads: [EmissionOrder, EmissionWork, Emitter, GroundStock, StockpileCell, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, FiniteResource, Worker, Body, Traversal, Position, Container, SealedContainer, ConstructionSite, ConstructionApproach, LotWater, Destination, Support, Surface, MaterialLot, ExcavationWork, DeliveryTask, DeliveryControl],
   writes: [EmissionWork, ColonyDigOrder, ColonyTree, ColonyTreeOrder, MaterialLot, DeliveryTask, ConstructionApproach],
+  phases: [colonySiteSuppliesPhase, colonyGroundStockPhase, ctx => planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles })],
   providers: [deliveryProvider, digProvider, (ctx, suspendedActors) => treeWorkProvider(ctx, suspendedActors), (ctx, suspendedActors) => constructionWorkProvider(ctx, {
     workers: ctx.query(query(Worker)).filter(row => !row.get(Worker).guest).map(row => row.id),
     catalogMaterials: Object.fromEntries(colonyEnvironment.structures.catalog.map(definition => [
@@ -384,21 +416,6 @@ export const colonyWorkSystem = createWorkSystem({
 });
 
 /** Turns native excavation piles into ordinary shared delivery work. */
-export const colonyGroundStockSystem = system({
-  id: "colony.ground-stock", version: 1,
-  reads: [GroundStock, MaterialLot, DeliveryTask],
-  writes: [DeliveryTask],
-  run(ctx) {
-    const stockContainers = new Set(ctx.query(query(GroundStock)).map(row => row.id));
-    for (const row of ctx.query(query(DeliveryTask))) {
-      const task = row.get(DeliveryTask);
-      if (task.phase === "complete" && stockContainers.has(task.source))
-        ctx.removeAuthoredEntity(row.id);
-    }
-    planGroundStockDeliveries(ctx);
-  },
-});
-
 export function digOrderId(x: number, y: number, z: number): EntityId {
   return entity(`colony.dig.${x}.${y}.${z}`);
 }
@@ -406,24 +423,3 @@ export function digOrderId(x: number, y: number, z: number): EntityId {
 export function cancelDigAction(actor: EntityId) { return cancelWork(actor); }
 
 /** Sites request stock through the same finite deliveries as every other task. */
-export const colonySupplySystem = system({
-  id: "colony.site-supplies", version: 1,
-  reads: [ConstructionSite, Emitter, Container, MaterialLot, SealedContainer, DeliveryTask],
-  writes: [DeliveryTask],
-  run(ctx) {
-    const sites = ctx.query(query(ConstructionSite));
-    const start = sites.length ? (ctx.clock.tick * 4) % sites.length : 0;
-    const active = Array.from({ length: Math.min(3, sites.length) }, (_, offset) => sites[(start + offset) % sites.length]);
-    planSiteSupplies(ctx, {
-      sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
-      requirements: [...active.flatMap(row => {
-        const site = row.get(ConstructionSite);
-        const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
-        return definition ? definition.materials.map(({ kind: material, quantity }) => ({ destination: row.id, material, quantity })) : [];
-      }), ...ctx.query(query(Emitter)).slice(0, 8).flatMap(row => {
-        const definition = colonyEnvironment.emissions?.find(item => item.id === row.get(Emitter).catalog);
-        return definition ? [{ destination: row.id, material: definition.materialKind, quantity: definition.quantity }] : [];
-      })],
-    });
-  },
-});

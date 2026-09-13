@@ -212,6 +212,12 @@ function session(
   return { value, port };
 }
 
+test("session rejects duplicate system write authority", () => {
+  const first = { id: "test.first", version: 1, reads: [], writes: [morale], run: () => {} } as SystemDefinition;
+  const second = { id: "test.second", version: 1, reads: [], writes: [morale], run: () => {} } as SystemDefinition;
+  assert.throws(() => new GameSession({ port: new TestPort(), pack: pack(new TestPort(), undefined, undefined, [first, second]) }), /duplicate system write authority/);
+});
+
 test("game command inputs are cloned and parsed once before the handler", () => {
   const port = new TestPort();
   let parses = 0;
