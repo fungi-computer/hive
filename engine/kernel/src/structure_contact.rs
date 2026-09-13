@@ -47,20 +47,22 @@ impl Kernel {
             } else {
                 let raw = [position.x / spacing[0], position.y / spacing[1] - 0.5,
                     position.z / spacing[2]];
-                if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) {
-                    // A free moving actor may be between terrain support
-                    // centers while its route is being committed. It cannot
-                    // occupy the newly prepared structure until it has a
-                    // terrain witness, so it contributes no current-contact
-                    // obstruction to this publication.
-                    continue;
-                }
+                if raw.iter().any(|value| !value.is_finite()) { return Err("construction actor position is not finite".into()); }
                 if raw[0].abs() > 9_007_199_254_740_991.0 || raw[2].abs() > 9_007_199_254_740_991.0
                     || raw[1] < f64::from(i32::MIN) || raw[1] > f64::from(i32::MAX) {
                     return Err("construction contact coordinate out of range".into());
                 }
-                vec![Cell { x: raw[0].round() as i64, y: raw[1].round() as i32,
-                    z: raw[2].round() as i64 }]
+                let projected = Cell { x: raw[0].round() as i64, y: raw[1].round() as i32,
+                    z: raw[2].round() as i64 };
+                if (position.x / spacing[0] - raw[0].round()).abs() > 1e-7
+                    || (position.y / spacing[1] - 0.5 - raw[1].round()).abs() > 1e-7
+                    || (position.z / spacing[2] - raw[2].round()).abs() > 1e-7 {
+                    let environment = self.environment.as_mut().ok_or("construction needs environment")?;
+                    let current = environment.world.traversal_material(projected)?;
+                    let prepared_material = environment.world.prepared_traversal_material(prepared, projected)?;
+                    if current == prepared_material { continue; }
+                }
+                vec![projected]
             };
             let environment = self.environment.as_mut().ok_or("construction needs environment")?;
             let mut candidate = |at| environment.world.prepared_traversal_material(prepared, at);
