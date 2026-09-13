@@ -96,6 +96,13 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
   const session = new GameSession({ port, pack: colonyPack });
   try {
     session.start();
+    for (const columnX of [9, 9, 10, 9]) {
+      const surface = port.terrainSurfaces([[columnX, 0]])[0];
+      assert(surface, "generated column must have another diggable surface");
+      session.command("dig", { area: { start: surface.cell, end: surface.cell } });
+      for (let tick = 0; tick < 240 && port.terrainMaterials([surface.cell])[0] !== 0; tick++) session.step(0.25);
+      assert.equal(port.terrainMaterials([surface.cell])[0], 0, "groundwater exposure must finish");
+    }
     session.command("sowMugwort", { target: { cell: [0, 13, 0] } });
     session.step(0);
     const intent = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);

@@ -107,7 +107,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       if (!approach) continue;
       const pose = poses.get(assignment.worker)?.local;
       const arrived = pose && Math.hypot(pose.x - approach.x, pose.z - approach.z) < 0.1 && Math.abs(pose.y - approach.y) < 0.2;
-      if (!arrived) { ctx.action(move(assignment.worker, approach)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: assignment.worker, approachX: approach.x, approachY: approach.y, approachZ: approach.z, attempt: state.attempt + 1 }); continue; }
+      if (!arrived) { const assignedVessel = candidates.find(candidate => candidate.worker === assignment.worker && candidate.task === assignment.task)?.vessel ?? null; ctx.action(move(assignment.worker, approach)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: assignment.worker, vessel: state.phase === "tend" ? assignedVessel : null, approachX: approach.x, approachY: approach.y, approachZ: approach.z, attempt: state.attempt + 1 }); continue; }
       const site = sites.get(state.site); const worker = assignment.worker;
       const work = state.workSeconds + ctx.clock.delta;
       if (state.phase === "sow" && work >= definition.sowSeconds) { const operation = `${row.id}:sow:${state.attempt + 1}`; ctx.action(establishResourceSite(operation, worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ })); ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, phase: "submitting-sow", workSeconds: work, reason: "", attempt: state.attempt + 1 }); }
