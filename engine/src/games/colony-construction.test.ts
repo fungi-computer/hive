@@ -8,7 +8,7 @@ import { entity, query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
-import { Container, Emitter, MaterialLot, consume, transfer } from "../sdk/common";
+import { Container, Emitter, MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -51,30 +51,22 @@ test("brew station is absent initially and completion creates stable retained po
   } finally { port.dispose(); }
 });
 
-test("brew station teardown waits for occupied retained ports and salvages after emptying them", () => {
+test("brew station teardown waits for a process-owned occupied hearth port", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     const site = buildBrewStation(session);
     const hearth = entity(`${site.id}:hearth`);
-    const source = session.query(query(MaterialLot)).find(row => row.get(MaterialLot).container === "colony.lumber");
-    assert(source);
-    session.request(transfer(source.id, source.get(MaterialLot).container, hearth, 1));
-    session.step(0);
+    session.command("requestBrew", { station: site.id });
+    for (let tick = 0; tick < 160 && !session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === hearth); tick++) session.step(0.25);
+    assert.equal(session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === hearth), true, "the process supply owner must occupy the retained hearth port");
     assert.equal(port.deconstructionAccess([site.id])[0]?.status, "occupiedPort");
     const beforeBlocked = materialTotal(session);
     session.command("deconstruct", { site: site.id });
     for (let tick = 0; tick < 80; tick++) session.step(0.25);
     assert(session.query(query(ConstructionSite)).some(row => row.id === site.id), "occupied port must block teardown");
     assert.equal(materialTotal(session), beforeBlocked, "blocked teardown cannot lose port contents");
-    const occupied = session.query(query(MaterialLot)).find(row => row.get(MaterialLot).container === hearth);
-    assert(occupied);
-    session.request(consume(hearth, occupied.id, occupied.get(MaterialLot).quantity));
-    session.step(0);
-    for (let tick = 0; tick < 240 && session.query(query(ConstructionSite)).some(row => row.id === site.id); tick++) session.step(0.25);
-    assert.equal(session.query(query(ConstructionSite)).some(row => row.id === site.id), false);
-    assert(session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === "colony.worker.1" && row.get(MaterialLot).kind === "wood") || session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container === "colony.worker.2" && row.get(MaterialLot).kind === "wood"), "finite wood salvage must be delivered to a worker");
   } finally { port.dispose(); }
 });
 

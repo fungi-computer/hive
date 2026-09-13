@@ -18,6 +18,7 @@ export const RESERVED_COMPONENTS = [
   "hive.construction-site",
   "hive.lot",
   "hive.lot-water",
+  "hive.process-binding",
   "hive.finite-resource",
   "hive.excavation-work",
   "hive.destination",
