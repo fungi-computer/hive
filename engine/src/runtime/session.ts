@@ -773,6 +773,7 @@ export class GameSession {
           // committed snapshot is valid for every system in this step.
           return (committedWorkMaterialFacts ??= this.port.workMaterialFacts());
         },
+        processRequirements: (definition, station) => this.port.processRequirements(definition, station),
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });
         },

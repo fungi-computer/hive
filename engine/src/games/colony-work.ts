@@ -9,6 +9,7 @@ import {
 } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
+import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
@@ -943,6 +944,7 @@ export const colonyWorkSystem = createWorkSystem({
     Support,
     Surface,
     MaterialLot,
+    StagedProcess,
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
@@ -959,6 +961,7 @@ export const colonyWorkSystem = createWorkSystem({
     DeconstructionOrder,
   ],
   phases: [
+    (ctx) => processSupplyPhase(ctx, [entity("colony.lumber"), entity("colony.pantry")]),
     colonySiteSuppliesPhase,
     colonyGroundStockPhase,
     (ctx) =>

@@ -36,6 +36,14 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "request-process":
+      keys = ["kind", "definition", "station"];
+      valid = id(action.definition) && id(action.station);
+      break;
+    case "admit-process":
+      keys = ["kind", "process", "definition", "station"];
+      valid = id(action.process) && id(action.definition) && id(action.station);
+      break;
     case "designate-stockpile": {
       keys = ["kind", "zone", "cells"];
       const cells = action.cells;
