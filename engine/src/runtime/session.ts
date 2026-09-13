@@ -292,9 +292,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.terrainSurfaces(columns);
   }
-  waterContacts() {
+  waterContacts(centers: readonly [number, number, number][]) {
     this.ensureLive();
-    return this.port.waterContacts();
+    if (!this.port.waterContacts) throw new Error("native water contact capability unavailable");
+    return this.port.waterContacts(centers);
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
@@ -746,7 +747,7 @@ export class GameSession {
         deconstructionAccess: (sites) => this.port.deconstructionAccess(sites),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
-        waterContacts: () => this.port.waterContacts(),
+        waterContacts: (centers) => this.port.waterContacts(centers),
         routeCosts: (requests) => {
           requireRouteReads();
           if (routeRequests + requests.length > 128)

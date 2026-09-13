@@ -356,7 +356,7 @@ export interface ReadContext {
   terrainSurfaces(
     columns: readonly [number, number][],
   ): readonly (TerrainSurface | null)[];
-  waterContacts?: () => readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
+  waterContacts?: (centers: readonly [number, number, number][]) => readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
   assign(
     candidates: readonly AssignmentCandidate[],
     maxEdges?: number,
@@ -559,7 +559,7 @@ export interface KernelPort {
   readonly terrainSurfaces: (
     columns: readonly [number, number][],
   ) => readonly (TerrainSurface | null)[];
-  readonly waterContacts: () => readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
+  readonly waterContacts?: (centers: readonly [number, number, number][]) => readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
   readonly terrainChanges: (sinceRevision: number) => TerrainChangeSet;
   readonly structureSurfaces: (
     columns: readonly [number, number][],

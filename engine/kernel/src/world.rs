@@ -2029,12 +2029,18 @@ impl Kernel {
     }
     /// Bounded authoritative open-water targets for work planning. Contact
     /// approaches are emitted in world coordinates by the terrain owner.
-    pub fn water_contacts_json(&self) -> Result<String> {
+    pub fn water_contacts_json(&self, input: &str) -> Result<String> {
         self.ensure_ready()?;
+        if input.len() > 8 * 1024 { return Err("water contact query exceeds input budget".into()); }
+        let centers: Vec<[f64; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        if centers.is_empty() || centers.len() > 16 { return Err("water contact query exceeds center budget".into()); }
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         let facts = environment.world.facts()?;
         let spacing = environment.world.cell_spacing_m();
-        let contacts: Vec<_> = facts.cells.into_iter().filter(|cell| cell.level > 0).take(128).map(|cell| {
+        let contacts: Vec<_> = facts.cells.into_iter().filter(|cell| cell.level > 0 && centers.iter().any(|center| {
+            let at = [cell.at[0] as f64 * spacing[0], (cell.at[1] as f64 + 0.5) * spacing[1], cell.at[2] as f64 * spacing[2]];
+            (at[0]-center[0]).hypot(at[2]-center[2]) <= 8.0
+        })).take(128).map(|cell| {
             let [x, y, z] = cell.at;
             let center = [(x as f64) * spacing[0], (y as f64 + 0.5) * spacing[1], (z as f64) * spacing[2]];
             json!({ "at": cell.at, "approaches": [
