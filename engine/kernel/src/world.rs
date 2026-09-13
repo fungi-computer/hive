@@ -136,10 +136,12 @@ mod process_request_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
-        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
+        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
         kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
         let structure = kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap();
         structure.on_complete = CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "input".into(), components: vec![("hive.container".into(), record(&Container { capacity: 4 }))], at_site_contact: false }] };
+        let port = kernel.ecs.spawn((ExternalId("station:input".into()), Container { capacity: 4 })).id();
+        kernel.ids.insert("station:input".into(), port); kernel.known.insert("station:input".into()); kernel.contents.insert("station:input".into(), BTreeSet::new());
         let definition = ProcessDefinition { id: "process-v1".into(), version: 1, station_catalog: "floor".into(), inputs: vec![ProcessInput { role: "grain".into(), port: "input".into(), material: "grain".into(), quantity: 1, policy: InputPolicy::Portion, disposition: InputDisposition::Consume }], stages: vec![ProcessStage { id: "work".into(), mode: StageMode::Attended, duration_seconds: 1.0, transition: ProcessTransition { consume_roles: vec!["grain".into()], emission: None, outputs: vec![] } }] };
         let structures = kernel.environment.as_ref().unwrap().structures.clone();
         let emissions = kernel.environment.as_ref().unwrap().emissions.clone();
@@ -990,7 +992,7 @@ impl Kernel {
             { return Err("saved process fact is invalid".into()); }
             let station = self.entity(&process.station)?;
             let site = self.ecs.get::<ConstructionSite>(station).ok_or("saved process station is missing")?;
-            if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_some() { return Err("saved process station binding is invalid".into()); }
+            if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
             if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
         }
         Ok(())
@@ -2552,8 +2554,15 @@ impl Kernel {
         if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog {
             return Err("process station is not a completed matching catalog".into());
         }
-        if self.ecs.get::<SealedContainer>(station).is_some() {
-            return Err("process station is sealed".into());
+        if self.ecs.get::<SealedContainer>(station).is_none() {
+            return Err("process station is not sealed".into());
+        }
+        for input in &definition.inputs {
+            let port_id = format!("{station_id}:{}", input.port);
+            let port = self.entity(&port_id)?;
+            if self.ecs.get::<Container>(port).is_none() {
+                return Err("process station port is missing container capability".into());
+            }
         }
         let process_id = format!("process:{station_id}:{definition_id}");
         if !crate::components::valid_id(&process_id) || self.ids.len() >= 16_384 {
