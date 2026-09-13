@@ -50,6 +50,37 @@ import {
   planStockpileDeliveries,
   type StockpileFilterProfile,
 } from "../sdk/stockpile";
+
+/** Give a waiting process one finite field-water demand when its kettle is short.
+ * The water order owns only the fetch; ordinary delivery still stages the lot. */
+function colonyProcessWaterPhase(ctx: WriteContext): void {
+  const facts = ctx.workMaterialFacts();
+  const lots = facts.lots;
+  const orders = ctx.query(query(WaterSupplyOrder));
+  const occupied = new Set(orders.map(row => row.get(WaterSupplyOrder).process).filter((id): id is EntityId => !!id));
+  const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0);
+  const processes = ctx.query(query(StagedProcess)).slice().sort((a, b) => a.id.localeCompare(b.id));
+  let nextRevision = revision;
+  for (const row of processes) {
+    const process = row.get(StagedProcess);
+    if (process.phase !== "waiting" || occupied.has(row.id)) continue;
+    const requirements = ctx.processRequirements(process.definition, process.station);
+    const water = requirements.inputs.find(input => input.material === "water");
+    if (!water) continue;
+    const destination = `${process.station}:${water.port}`;
+    const quantity = lots.filter(lot => lot.container === destination && lot.kind === "water" && lot.quantity > 0)
+      .reduce((sum, lot) => sum + lot.quantity, 0);
+    if (quantity >= water.quantity) continue;
+    if (orders.length >= 256 || nextRevision >= 0xffffffff) throw new Error("water demand capacity exhausted");
+    nextRevision += 1;
+    const id = entity(`colony.water-process.${row.id}`);
+    ctx.createAuthoredEntity({ id, components: {
+      [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
+      [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
+    } });
+    occupied.add(row.id);
+  }
+}
 export type ColonyTreePhase = "standing" | "felled" | "chopped";
 export const ColonyTree = component<{ phase: ColonyTreePhase }>("colony.tree", {
   version: 1,
@@ -964,6 +995,7 @@ export const colonyWorkSystem = createWorkSystem({
     ProcessAttendanceWork,
   ],
   phases: [
+    colonyProcessWaterPhase,
     processSupplyPhase,
     colonySiteSuppliesPhase,
     colonyGroundStockPhase,
