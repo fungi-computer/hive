@@ -17,6 +17,7 @@ import type {
   TerrainChangeSet,
   RouteCostResult,
   WorldPose,
+  WorkMaterialFacts,
   WriteIntent,
   EntityRecord,
 } from "../contracts";
@@ -40,6 +41,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   structure_surfaces(json: string): string;
   terrain_changes(json: string): string;
   query(json: string): string;
+  work_material_snapshot(): string;
   entity_membership(json: string): string;
   advance(json: string): string;
   render_facts(): string;
@@ -262,6 +264,33 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
           return value as V;
         },
       }));
+    },
+    workMaterialFacts(): WorkMaterialFacts {
+      const value: unknown = JSON.parse(binding.work_material_snapshot());
+      if (!value || typeof value !== "object" || Array.isArray(value))
+        throw new Error("invalid work material facts");
+      const result = value as Record<string, unknown>;
+      if (result.version !== 1 || !Array.isArray(result.containers) || !Array.isArray(result.lots) ||
+          result.containers.length > 4096 || result.lots.length > 4096)
+        throw new Error("invalid work material facts");
+      const id = (entry: unknown): EntityId => {
+        if (typeof entry !== "string" || entry.length === 0 || entry.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(entry))
+          throw new Error("invalid work material entity");
+        return entry as EntityId;
+      };
+      const containers = result.containers.map((entry): WorkMaterialFacts["containers"][number] => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid work material container");
+        const row = entry as Record<string, unknown>;
+        if (!Number.isSafeInteger(row.capacity) || (row.capacity as number) < 0 || (row.capacity as number) > 0xffffffff || typeof row.sealed !== "boolean") throw new Error("invalid work material container");
+        return { id: id(row.id), capacity: row.capacity as number, sealed: row.sealed as boolean };
+      });
+      const lots = result.lots.map((entry): WorkMaterialFacts["lots"][number] => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) throw new Error("invalid work material lot");
+        const row = entry as Record<string, unknown>;
+        if (typeof row.kind !== "string" || row.kind.length === 0 || row.kind.length > 128 || !Number.isSafeInteger(row.quantity) || (row.quantity as number) < 0 || (row.quantity as number) > 0xffffffff) throw new Error("invalid work material lot");
+        return { id: id(row.id), kind: row.kind as string, quantity: row.quantity as number, container: id(row.container) };
+      });
+      return { version: 1, containers, lots };
     },
     entityMembership(ids) {
       if (ids.length === 0 || ids.length > 128)

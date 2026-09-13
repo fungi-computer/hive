@@ -116,19 +116,15 @@ export function planSiteSupplies(
   const sourceIds = [...new Set(options.sourceContainers)].sort(compareId);
   for (const source of sourceIds) entity(source);
 
-  const sealed = new Set(
-    context.query(query(SealedContainer)).map((row) => row.id),
-  );
-  const containers = new Map(
-    context.query(query(Container)).map((row) => [row.id, row.get(Container)]),
-  );
-  const lots = context.query(query(MaterialLot));
+  const materialFacts = context.workMaterialFacts();
+  const sealed = new Set(materialFacts.containers.filter((row) => row.sealed).map((row) => row.id));
+  const containers = new Map(materialFacts.containers.map((container) => [container.id, container]));
+  const lots = materialFacts.lots;
   const tasks = context.query(query(DeliveryTask));
   const invalidContainers = new Set<EntityId>();
   const quantityByContainer = new Map<EntityId, number>();
   const quantityByDestinationMaterial = new Map<string, number>();
-  for (const row of lots) {
-    const lot = row.get(MaterialLot);
+  for (const lot of lots) {
     if (!validLotQuantity(lot.quantity)) {
       invalidContainers.add(lot.container);
       continue;
@@ -153,9 +149,7 @@ export function planSiteSupplies(
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
     if (task.phase === "complete") {
-      const lot = lots
-        .find((candidate) => candidate.id === task.sourceLot)
-        ?.get(MaterialLot);
+      const lot = lots.find((candidate) => candidate.id === task.sourceLot);
       if (
         lot?.container === task.destination &&
         row.id === taskId(task.destination, task.material, task.sourceLot)
@@ -190,7 +184,7 @@ export function planSiteSupplies(
       !invalidContainers.has(source),
   );
   const sourceLots = lots
-    .map((row) => ({ id: row.id, lot: row.get(MaterialLot) }))
+    .map((lot) => ({ id: lot.id, lot }))
     .filter(({ lot }) => availableSources.includes(lot.container))
     .sort((left, right) => compareId(left.id, right.id));
   const created: EntityId[] = [];

@@ -59,6 +59,24 @@ mod ground_stock_cleanup_tests {
     use super::*;
 
     #[test]
+    fn work_material_snapshot_compacts_native_custody_and_capacity_facts() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"work-material-facts",
+            "components":[], "initial":[
+                {"id":"source","components":{"hive.container":{"capacity":8}}},
+                {"id":"sealed","components":{"hive.container":{"capacity":4},"hive.sealed-container":{}}},
+                {"id":"lot.1","components":{"hive.lot":{"kind":"wood","quantity":3,"container":"source"}}}
+            ]
+        }).to_string()).unwrap();
+        let facts: serde_json::Value = serde_json::from_str(&kernel.work_material_snapshot_json().unwrap()).unwrap();
+        assert_eq!(facts["version"], 1);
+        assert_eq!(facts["containers"].as_array().unwrap().len(), 2);
+        assert_eq!(facts["containers"].as_array().unwrap().iter().find(|row| row["id"] == "sealed").unwrap()["sealed"], true);
+        assert_eq!(facts["lots"][0]["container"], "source");
+    }
+
+    #[test]
     fn authored_reference_retains_ground_stock_until_removal_then_cleanup_releases_it() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
@@ -1137,6 +1155,41 @@ impl Kernel {
             })
             .collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|e| e.to_string())
+    }
+
+    /// Compact shared material facts for hot authored work planners.
+    ///
+    /// This is a stable, bounded projection of the native owners rather than
+    /// an ECS escape hatch: callers receive custody and capacity facts, never
+    /// component storage or arbitrary entity rows. Scoped AI observations keep
+    /// their own projection and must not crawl this index.
+    pub fn work_material_snapshot_json(&mut self) -> Result<String> {
+        self.ensure_ready()?;
+        const MAX_FACT_ROWS: usize = 4096;
+        #[derive(Serialize)]
+        struct ContainerFact { id: String, capacity: u32, sealed: bool }
+        #[derive(Serialize)]
+        struct LotFact { id: String, kind: String, quantity: u32, container: String }
+        let mut containers = self.ecs
+            .query::<(&ExternalId, &Container, Option<&SealedContainer>)>();
+        let mut container_rows = Vec::new();
+        for (id, container, sealed) in containers.iter(&self.ecs) {
+            if container_rows.len() >= MAX_FACT_ROWS { return Err("work material container fact bound exceeded".into()); }
+            container_rows.push(ContainerFact { id: id.0.clone(), capacity: container.capacity, sealed: sealed.is_some() });
+        }
+        container_rows.sort_by(|left, right| left.id.cmp(&right.id));
+        let mut lots = self.ecs.query::<(&ExternalId, &Lot)>();
+        let mut lot_rows = Vec::new();
+        for (id, lot) in lots.iter(&self.ecs) {
+            if lot_rows.len() >= MAX_FACT_ROWS { return Err("work material lot fact bound exceeded".into()); }
+            lot_rows.push(LotFact { id: id.0.clone(), kind: lot.kind.clone(), quantity: lot.quantity, container: lot.container.clone() });
+        }
+        lot_rows.sort_by(|left, right| left.id.cmp(&right.id));
+        serde_json::to_string(&json!({
+            "version": 1,
+            "containers": container_rows,
+            "lots": lot_rows,
+        })).map_err(|e| e.to_string())
     }
     pub fn entity_membership_json(&self, input: &str) -> Result<String> {
         self.ensure_ready()?;

@@ -9,6 +9,7 @@ const base = {
   impacts: [],
   random: { next: () => 0 },
   query: () => [],
+  workMaterialFacts: () => ({ version: 1 as const, containers: [], lots: [] }),
   routeCosts: () => { throw new Error("unexpected route query"); },
   environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
     atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },

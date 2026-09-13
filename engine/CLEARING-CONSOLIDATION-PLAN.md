@@ -311,6 +311,16 @@ capacity benchmark. The ignored reproducer is
 `.botanical/ecs-audit/query-crossings.ts`. It confirms that the first extraction
 should consolidate shared work/material facts rather than replace Bevy storage.
 
+The first bounded crossing keeps one lazily cached committed material projection
+per `GameSession.step`, shared by delivery and site-supply phases. Accounting
+must count this projection alongside ordinary query calls: the two consumers
+remove six `KernelPort.query` calls per phase and add one
+`work_material_snapshot` crossing per step. The projection is physical commit
+state; reserved material components cannot be authored overlays, so the cache
+remains valid across the authored system sequence. Re-run the ignored
+reproducer after rebuilding WASM and record total kernel crossings and returned
+rows before claiming a runtime reduction.
+
 ### Complete retained-to-native migration ledger
 
 This ledger is the required starting point for further Colony work. It prevents

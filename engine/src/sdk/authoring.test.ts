@@ -36,6 +36,7 @@ export function authoringContractProof(): void {
     impacts: [],
     outcomes: [],
     query: () => [],
+    workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
     assign: () => [],
     routeCosts: () => { throw new Error("unexpected route query"); },
     environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },

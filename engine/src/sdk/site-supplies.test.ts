@@ -30,6 +30,18 @@ function context(rows: Row[]) {
           get: (definition: { id: string }) =>
             candidate.values.get(definition.id),
         })),
+    workMaterialFacts: () => ({
+      version: 1 as const,
+      containers: rows.filter((candidate) => candidate.values.has(Container.id)).map((candidate) => ({
+        id: candidate.id,
+        capacity: (candidate.values.get(Container.id) as { capacity: number }).capacity,
+        sealed: rows.some((sealed) => sealed.id === candidate.id && sealed.values.has(SealedContainer.id)),
+      })),
+      lots: rows.filter((candidate) => candidate.values.has(MaterialLot.id)).map((candidate) => ({
+        id: candidate.id,
+        ...(candidate.values.get(MaterialLot.id) as { kind: string; quantity: number; container: EntityId }),
+      })),
+    }),
     worldPoses: () => [],
     routeCosts: () => [],
     physicalContacts: () => {

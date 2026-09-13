@@ -49,6 +49,11 @@ export interface RouteCostRequest {
 export type RouteCostResult =
   | { readonly actor: EntityId; readonly status: "reachable"; readonly cost: number }
   | { readonly actor: EntityId; readonly status: "unavailable"; readonly reason: string };
+export interface WorkMaterialFacts {
+  readonly version: 1;
+  readonly containers: readonly { readonly id: EntityId; readonly capacity: number; readonly sealed: boolean }[];
+  readonly lots: readonly { readonly id: EntityId; readonly kind: string; readonly quantity: number; readonly container: EntityId }[];
+}
 
 export interface Pose {
   readonly position: Vec3;
@@ -193,6 +198,8 @@ export interface ReadContext {
   readonly random: RandomSource;
   readonly impacts: readonly Impact[];
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[];
+  /** One committed physical projection shared by all work phases in a step. */
+  workMaterialFacts(): WorkMaterialFacts;
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   physicalContacts(cells: readonly [number, number, number][]): readonly PhysicalContact[];
@@ -326,6 +333,8 @@ export interface KernelPort {
   readonly query: <T extends object>(
     spec: QuerySpec<T>,
   ) => readonly QueryRow<T>[];
+  /** Compact native owner projection for shared work/material planning. */
+  readonly workMaterialFacts: () => WorkMaterialFacts;
   readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
   readonly advance: (
     delta: number,

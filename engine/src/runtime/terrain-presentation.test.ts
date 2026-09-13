@@ -127,6 +127,7 @@ function fakePort(
     structureSurfaces: structures,
     terrainChanges: changes,
     query: () => [],
+    workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
     entityMembership: () => [],
     advance: () => ({ revision: 0, results: [], impacts: [] }),
     snapshot: () => ({ format: "hive-kernel-records", version: 1, time: 0, revision: 0, records: [] }),

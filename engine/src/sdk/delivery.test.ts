@@ -69,6 +69,7 @@ test(`native ${occupation} reserves a worker without dropping its delivery state
     impacts: [],
     random: { next: () => 0 },
     query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
+    workMaterialFacts: () => materialFacts(values),
     routeCosts: () => { throw new Error("unexpected route query"); },
     environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
     atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
@@ -163,6 +164,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       clock: { now: 0, delta: 0.1, tick: 1 },
       outcomes: [], impacts: [], random: { next: () => 0 },
       query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
+      workMaterialFacts: () => materialFacts(values),
       routeCosts: () => { throw new Error("unexpected route query"); },
     environmentFacts: () => { throw new Error("unexpected environment query in this fixture"); },
     atmosphereSamples: () => { throw new Error("unexpected atmosphere query in this fixture"); },
@@ -190,6 +192,14 @@ function row<T extends object>(id: ReturnType<typeof entity>, definition: { id: 
     },
   };
 }
+function materialFacts(values: Map<string, readonly unknown[]>) {
+  const rows = (id: string) => (values.get(id) ?? []) as readonly { id: ReturnType<typeof entity>; get: (definition: { id: string }) => any }[];
+  return {
+    version: 1 as const,
+    containers: rows(Container.id).map(row => ({ id: row.id, capacity: row.get(Container).capacity, sealed: rows(SealedContainer.id).some(sealed => sealed.id === row.id) })),
+    lots: rows(MaterialLot.id).map(row => ({ id: row.id, ...row.get(MaterialLot) })),
+  };
+}
 
 test("sealed custody waits without losing cargo and still acknowledges a completed deposit", () => {
   const worker = entity("worker");
@@ -215,6 +225,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
     deliverySystem.run({
       clock: { now: 1, delta: 0.1, tick: 10 }, outcomes: [], impacts: [], random: { next: () => 0 },
       query: spec => (values.get(spec.components[0].id) ?? []) as never,
+      workMaterialFacts: () => materialFacts(values),
       worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 },
         world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
       routeCosts: () => { throw new Error("claimed delivery must not search a new route"); },
@@ -250,6 +261,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
   deliverySystem.run({
     clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: [], impacts: [], random: { next: () => 0 },
     query: spec => (values.get(spec.components[0].id) ?? []) as never,
+    workMaterialFacts: () => materialFacts(values),
     worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
     routeCosts: requests => requests.map(request => ({ actor: request.actor, status: "reachable", cost: 1 })),
     assign: candidates => { assert.equal(candidates.length, 1); return [{ worker, task, cost: 1 }]; },
@@ -281,6 +293,7 @@ test("full destination puts held goods down before releasing the worker", () => 
     deliverySystem.run({
       clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: [], impacts: [], random: { next: () => 0 },
       query: spec => (values.get(spec.components[0].id) ?? []) as never,
+      workMaterialFacts: () => materialFacts(values),
       worldPoses: ids => ids.map(id => ({ id, local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
       routeCosts: () => { throw new Error("full storage cannot request a path"); },
       assign: () => { throw new Error("full storage cannot claim a worker"); },
