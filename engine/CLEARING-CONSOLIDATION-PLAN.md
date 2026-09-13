@@ -225,6 +225,40 @@ move the supported rule once, delete the superseded special case, and exercise i
 through the real station, worker, material and save callers before starting the
 next step.
 
+### ECS correction — September 13
+
+Hive has a real `bevy_ecs::World`, typed native components and retained Bevy
+`QueryState`s keyed by component set. That is a sound physical-state foundation.
+The current hot game loop does not yet use the foundation well enough: authored
+TypeScript systems make many separate `KernelPort.query` calls, and every call
+serializes matching ECS rows through JSON/WASM before rebuilding short-lived
+JavaScript maps and sets. Bevy currently supplies authoritative storage more than
+it supplies hot-loop execution.
+
+Keep TypeScript as the game-authoring surface for definitions, recipes, policies,
+commands and unusual game rules. Move a rule into Rust only when it is a shared,
+measured hot mechanism with real consumers. Its TypeScript caller supplies
+versioned data and receives compact facts or committed results; it does not
+coordinate the native rule by repeatedly reading whole component sets. Water and
+gas remain sparse native fields rather than entities per voxel.
+
+The first correction is the shared work/material path used by excavation,
+construction, trees and stockpiles. Establish native, rebuildable indexes for
+container contents, current claims, capable workers and spatial work locality;
+then run candidate narrowing, route batching and physical claim/completion against
+those owners inside the native transaction. Keep authored priority/filter policy
+as data. Preserve the existing deterministic assignment optimizer and stable-ID
+ties. Do not port Colony names, recipe IDs or UI state into Rust, and do not add a
+second scheduler beside the current work owner.
+
+Acceptance is an actual Colony tick with multiple available jobs and workers:
+one bounded native read/operation per phase, no repeated whole-world JSON query
+for the same facts, impossible work removed before pathfinding, temporarily
+blocked work releasing its actor, and unchanged save/retry/conservation results.
+Record query crossings, candidate count, route requests and phase time separately.
+This correction precedes adding more hot TypeScript work loops; it does not block
+data-only scenery, controls or art restoration.
+
 ### Complete retained-to-native migration ledger
 
 This ledger is the required starting point for further Colony work. It prevents
