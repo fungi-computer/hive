@@ -697,6 +697,36 @@ Root evidence in .botanical/clearing-context-release:
 
 ## Starting point: actual state, not aspirations
 
+### September 13 lawful structural-support checkpoint — e8a8758
+
+The current verified preview is
+https://clearing-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html.
+The frontend version is `c48ab2d3-6241-4107-a6c4-68b391a7c10e`; the public DO
+Worker version is `69b9654f-8bad-442b-9786-f515c969166d`, with implementation
+identity `528d5836fe303fb5d7a39a77010af71bc0ab03fe6300c1381539000301afc22d`.
+The older `goblin-mvp` preview alias remained pinned to cached prior assets during
+publication, so this checkpoint uses the fresh `clearing` alias rather than
+claiming the old bookmark changed.
+
+Completed terrain, rooted walls or columns, and stair landings are structural
+anchors. Floors carry support laterally through the catalog's bounded span; the
+current timber floor uses six cells. Plans never support plans. A wall and upper
+floor may be queued in either order: the floor remains waiting without claiming a
+worker until the wall is physically complete. Admission, work eligibility and
+completion consume the same native support query. Worker access is separate from
+structural support, and only the bounded shared allocator performs route checks.
+
+Focused native support laws pass 14/14, strict engine TypeScript passes, and the
+actual generated-WASM Colony sequence passes 5/5 including parallel stair supply,
+a floor queued before its supporting wall, three-level routing, conservation and
+current save/reload. The ordinary engine build passed. HTTP readback matches all
+46 served engine files on both the stable and immutable preview URLs. A fresh
+hosted Colony performs command, receipt replay, pause/resume and advances physical
+time. No browser interaction, mid-approach restart, collapse simulation or sustained
+two-player playtest is claimed. New worlds are required across the clean-break
+program identity. This is a construction checkpoint, not completion of the
+Clearing restoration goal.
+
 ### September 12 station/route and online-host correction
 
 Runtime source `efa71ec` retires the standalone hearth presentation, names the
