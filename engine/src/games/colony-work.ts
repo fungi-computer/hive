@@ -10,6 +10,7 @@ import {
 import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
+import { ProcessAttendanceWork, processAttendanceProvider } from "../sdk/process-attendance";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
@@ -942,6 +943,7 @@ export const colonyWorkSystem = createWorkSystem({
     Surface,
     MaterialLot,
     StagedProcess,
+    ProcessAttendanceWork,
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
@@ -959,6 +961,7 @@ export const colonyWorkSystem = createWorkSystem({
     DeconstructionApproach,
     DeconstructionOrder,
     WaterSupplyWork,
+    ProcessAttendanceWork,
   ],
   phases: [
     processSupplyPhase,
@@ -995,6 +998,7 @@ export const colonyWorkSystem = createWorkSystem({
         suspendedActors,
       ),
     (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
+    (ctx, suspendedActors) => processAttendanceProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
   ],
 });
 
