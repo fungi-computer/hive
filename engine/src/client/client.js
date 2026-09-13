@@ -512,7 +512,7 @@ export function createHiveClient({
     const renderZonesPalette = () => actionBarState.get() === "zones" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Zones palette" },
       ...actionGroups.zones.map(renderWorldControl),
     ) : null;
-    const renderActiveTool = activeControl ? React.createElement("section", { className: "hive-active-tool", "aria-label": "Active tool" },
+    const renderActiveTool = () => activeControl ? React.createElement("section", { className: "hive-active-tool", "aria-label": "Active tool" },
       React.createElement("strong", null, activeControl.label),
       activeControl.detail ? React.createElement("small", null, activeControl.detail) : null,
       React.createElement("small", { className: "hive-placement-status", "aria-live": "polite" }, placementStatus),
@@ -1596,7 +1596,7 @@ export function createHiveClient({
   }
   start().catch((error) => {
     if (state.disposed) return;
-    state.message = `Art unavailable: ${error.message}`;
+    state.message = `Client unavailable: ${error.message}`;
     renderHud();
   });
   return {
