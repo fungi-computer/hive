@@ -44,6 +44,7 @@ import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
+import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -201,9 +202,8 @@ export function createHiveClient({
   const aimGraphic = new Graphics();
   const aimArcGraphic = new Graphics();
   const placementGraphic = new Graphics();
-  const placementGhost = new Sprite();
-  placementGhost.visible = false;
-  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic, placementGhost);
+  const placementGhosts = { entries: [], factory: () => { const sprite = new Sprite(); transientLayer.addChild(sprite); return sprite; } };
+  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic);
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
@@ -857,8 +857,24 @@ export function createHiveClient({
     }
     placementGraphic.clear();
     placementGraphic.visible = false;
-    placementGhost.visible = false;
+    clearPlacementGhosts(placementGhosts);
     const targetSnapshot = terrainTarget.getSnapshot();
+    const buildControl = targetSnapshot.context.control?.command === "build" ? targetSnapshot.context.control : null;
+    const anchored = displayed && targetSnapshot.context.anchor ? structureAnchor(displayed, targetSnapshot.context.anchor) : null;
+    const upperCandidates = anchored ? placementCache.candidates(displayed, anchored) : [];
+    if (buildControl && displayed) {
+      const cells = placementCells({
+        area: area.value === "dragging" ? area.context : null,
+        target: targetSnapshot.context.hover,
+        anchor: anchored,
+        upperCandidates,
+      });
+      syncPlacementGhosts(placementGhosts, placementVisualSpec(buildControl, cells, placementVisuals), {
+        art, bindings, resolve: resolveStaticVisual, project,
+        zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
+        verticalMetres: displayed.verticalMetres,
+      });
+    }
     if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayed) {
       const anchor = structureAnchor(displayed, targetSnapshot.context.anchor);
       if (targetSnapshot.context.anchor && !anchor) clearPlacement();
@@ -874,22 +890,6 @@ export function createHiveClient({
             .stroke({ color: hovered ? 0xe8c779 : 0x9fd8ff, width: 1, alpha: 0.9 });
         }
         placementGraphic.visible = true;
-      }
-    }
-    if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.command === "build" && displayed) {
-      const control = targetSnapshot.context.control;
-      const hovered = targetSnapshot.context.hover;
-      const visualId = control.input?.catalog === undefined ? undefined : placementVisuals[control.input.catalog];
-      const binding = visualId ? bindings[visualId] : undefined;
-      const resolved = binding && art ? resolveStaticVisual(art, binding, ({ north: 0, east: 1, south: 2, west: 3 })[control.input?.orientation] ?? 0) : undefined;
-      if (hovered && resolved?.texture) {
-        const projected = project(hovered[0], (hovered[1] + 0.5) * displayed.verticalMetres, hovered[2]);
-        placementGhost.texture = resolved.texture;
-        placementGhost.anchor.set(resolved.anchor?.x ?? 0.5, resolved.anchor?.y ?? 1);
-        placementGhost.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
-        placementGhost.scale.set(camera.zoom);
-        placementGhost.alpha = 0.45;
-        placementGhost.visible = true;
       }
     }
     if (isAiming() && state.aim.point && state.aim.target) {
@@ -1038,6 +1038,7 @@ export function createHiveClient({
       const { start, current, mode } = areaContext;
       const control = terrainTarget.getSnapshot().context.control;
       terrainArea.send({ type: "END" });
+      terrainTarget.send({ type: "HOVER", cell: null });
       app.canvas.releasePointerCapture?.(event.pointerId);
       if (control?.target === "terrain-area" || control?.target === "world-surface") {
         const endpoints = designationEndpoints(start, current, mode, 256);
@@ -1505,6 +1506,7 @@ export function createHiveClient({
       app.canvas?.removeEventListener("pointerup", pointerUp);
       app.canvas?.removeEventListener("contextmenu", contextMenu);
       terrainLayer.dispose();
+      disposePlacementGhosts(placementGhosts);
       state.disposeArt?.();
       for (const child of overlay.removeChildren())
         child.destroy?.({
