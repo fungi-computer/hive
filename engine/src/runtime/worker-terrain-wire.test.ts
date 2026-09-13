@@ -23,3 +23,16 @@ test("Colony local worker sends baseline then same-revision terrain reference an
     assert.equal(Boolean(afterReset?.terrain && "surfaces" in afterReset.terrain), true);
   } finally { runtime.dispose(); }
 });
+
+test("runtime metrics are opt-in", () => {
+  const normal: WorkerTransportEvent[] = [];
+  const measured: WorkerTransportEvent[] = [];
+  const a = new WorkerRuntime(() => wasmKernelPort(new WasmKernel()), { colony: colonyPack }, event => normal.push(event));
+  const b = new WorkerRuntime(() => wasmKernelPort(new WasmKernel()), { colony: colonyPack }, event => measured.push(event), { metrics: true });
+  try {
+    a.command({ type: "start", game: "colony" }); a.command({ type: "step", delta: 0.1 });
+    b.command({ type: "start", game: "colony" }); b.command({ type: "step", delta: 0.1 });
+    assert.equal(normal.find(event => event.type === "results")?.metrics, undefined);
+    assert.equal(typeof measured.find(event => event.type === "results")?.metrics?.stepCpuMs, "number");
+  } finally { a.dispose(); b.dispose(); }
+});

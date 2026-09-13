@@ -109,6 +109,10 @@ function checkedImpact(value: unknown): Impact {
   return structuredClone(value) as Impact;
 }
 export class GameSession {
+  private routeRequestsLastStep = 0;
+  get lastStepMetrics(): Readonly<{ routeRequests: number; assignmentCost: number | null }> {
+    return { routeRequests: this.routeRequestsLastStep, assignmentCost: null };
+  }
   readonly pack: GamePack;
   private readonly port: KernelPort;
   private readonly random: DeterministicRandom;
@@ -536,6 +540,7 @@ export class GameSession {
     this.ensureLive();
     if (this.paused) return [];
     try {
+      this.routeRequestsLastStep = 0;
       this.compactImpacts();
       const clock: SimulationClock = Object.freeze({
         now: this.now,
@@ -658,6 +663,7 @@ export class GameSession {
         this.cues = appendPresentationCues(this.cues, this.now + delta, this.outcomes, incoming);
       this.now += delta;
       this.tick++;
+      this.routeRequestsLastStep = routeRequests;
       return advanced.results;
     } catch (error) {
       this.poisoned = true;
@@ -859,7 +865,7 @@ export class GameSession {
     if (!this.pack.environmentDefinition) return undefined;
     if (!this.terrainPresentation) {
       const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
-      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition);
+    this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
     }
     return this.terrainPresentation.read();
   }

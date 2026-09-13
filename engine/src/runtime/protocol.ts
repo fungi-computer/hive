@@ -35,10 +35,18 @@ type WorkerEventBase =
       readonly environmentVisuals: readonly EnvironmentVisual[];
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
-  | { readonly type: "results"; readonly results: readonly unknown[] }
+  | { readonly type: "results"; readonly results: readonly unknown[]; readonly metrics?: RuntimeMetrics }
   | { readonly type: "error"; readonly message: string };
 
 export type WorkerEvent = WorkerEventBase;
+export interface RuntimeMetrics {
+  readonly stepCpuMs: number;
+  readonly routeRequests: number;
+  readonly snapshotBytes: number;
+  readonly assignmentCost: number | null;
+  readonly activeWaterWork: number | null;
+  readonly activeGasWork: number | null;
+}
 export type WorkerTransportEvent = Exclude<WorkerEventBase, { readonly type: "frame" }> | {
   readonly type: "frame";
   readonly time: number;

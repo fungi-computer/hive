@@ -356,6 +356,7 @@ export interface GamePack {
   readonly version: number;
   readonly definition: Uint8Array;
   readonly environmentDefinition?: Uint8Array;
+  readonly presentationWindow?: { readonly minX: number; readonly maxX: number; readonly minZ: number; readonly maxZ: number };
   readonly components: readonly ComponentDefinition<any>[];
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: import("./presentation").GamePresentation;
