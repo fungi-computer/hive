@@ -155,9 +155,10 @@ mod construction_tests {
 
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"site-1","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1"}
+            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
         ]});
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch.to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
@@ -234,7 +235,7 @@ mod construction_tests {
         let released = kernel.save_records().unwrap();
         let mut resumed = Kernel::new();
         resumed.restore_records(&released).unwrap();
-        resumed.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-2","site":"site-1"}]}"#).unwrap();
+        resumed.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-2","site":"site-1","contact":contact}]}).to_string()).unwrap();
         resumed.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
         let finished = resumed.query_json(r#"["hive.construction-site","hive.sealed-container"]"#).unwrap();
         assert!(finished.contains("finished"));
@@ -252,9 +253,10 @@ mod construction_tests {
     fn construction_waits_without_staged_material_and_repeated_attend_is_idempotent() {
         let (mut kernel, surface, contact) = world();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north","contact":contact},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1"},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1"}
+            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"site-1","contact":contact},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
         assert_eq!(response["results"].as_array().unwrap().len(), 3);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
@@ -268,9 +270,10 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"plan-construction","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"site-wall","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-wall"}
+            {"kind":"attend-construction","worker":"worker-1","site":"site-wall","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
         assert_eq!(response["results"].as_array().unwrap().len(), 3);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
@@ -315,9 +318,10 @@ mod construction_tests {
         environment.definition = definition.to_string();
 
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-air-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"plan-construction","catalog":"wall","site":"site-air-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"site-air-wall","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-air-wall","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-air-wall"}
+            {"kind":"attend-construction","worker":"worker-1","site":"site-air-wall","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
 
@@ -338,9 +342,10 @@ mod construction_tests {
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x + 1,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":contact},
+            {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x + 1,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"site-edge","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-edge","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-edge"},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-edge","contact":contact},
             {"kind":"move","entity":"worker-2","destination":target}
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
@@ -361,9 +366,10 @@ mod construction_tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north","contact":next_contact},
+            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"site-future","contact":next_contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-future"},
+            {"kind":"attend-construction","worker":"worker-1","site":"site-future","contact":next_contact},
             {"kind":"move","entity":"worker-2","destination":target}
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
@@ -1473,6 +1479,9 @@ impl Kernel {
     pub fn construction_readiness_json(&mut self, input: &str) -> Result<String> {
         self.construction_readiness(input)
     }
+    pub fn construction_access_json(&mut self, input: &str) -> Result<String> {
+        self.construction_access(input)
+    }
     pub fn environment_facts_json(&self) -> Result<String> {
         self.ensure_ready()?;
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
@@ -2085,8 +2094,12 @@ impl Kernel {
                 self.refresh_state_weight();
                 Ok(ActionEffect::None)
             }
-            Action::PlanConstruction { catalog, site, x, y, z, orientation, contact } => {
-                self.plan_construction(catalog, site, x, y, z, orientation, contact)?;
+            Action::PlanConstruction { catalog, site, x, y, z, orientation } => {
+                self.plan_construction(catalog, site, x, y, z, orientation)?;
+                Ok(ActionEffect::None)
+            }
+            Action::BindConstructionStage { site, contact } => {
+                self.bind_construction_stage(&site, contact)?;
                 Ok(ActionEffect::None)
             }
             Action::BeginEmission { worker, station } => {
@@ -2097,8 +2110,8 @@ impl Kernel {
                 self.set_structure_open(&worker, &site, open)?;
                 Ok(ActionEffect::None)
             }
-            Action::AttendConstruction { worker, site } => {
-                self.attend_construction(&worker, &site)?;
+            Action::AttendConstruction { worker, site, contact } => {
+                self.attend_construction(&worker, &site, contact)?;
                 Ok(ActionEffect::None)
             }
             Action::Move {
