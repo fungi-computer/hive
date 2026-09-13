@@ -11,7 +11,7 @@ use crate::components::valid_id;
 use crate::emission_definition::EmissionCatalog;
 use crate::environment_definition::StructureDefinition;
 
-pub const CURRENT_VERSION: u16 = 1;
+pub const CURRENT_VERSION: u16 = 2;
 const MAX_DEFINITIONS: usize = 64;
 const MAX_INPUTS: usize = 32;
 const MAX_STAGES: usize = 16;
