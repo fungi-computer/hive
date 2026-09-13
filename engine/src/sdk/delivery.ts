@@ -233,6 +233,12 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       progress: () => {
     for (const task of tasks) {
       const state = task.get(DeliveryTask);
+      const selectedLot = lotsById.get(state.sourceLot);
+      if (state.actor === null && (state.phase === "idle" || state.phase === "to-source") && selectedLot?.container !== state.source) {
+        const replacement = lots.filter((lot) => lot.container === state.source && lot.kind === state.material && lot.quantity >= state.quantity && !heldLots.has(lot.id)).sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)[0];
+        if (replacement) ctx.write(DeliveryTask, task.id, { ...state, sourceLot: replacement.id });
+        continue;
+      }
       if (state.actor === null || assigned.has(task.id)) continue;
       if (suspendedActors.has(state.actor)) continue;
       if (occupiedActors.has(state.actor)) continue;

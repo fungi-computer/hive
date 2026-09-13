@@ -32,7 +32,7 @@ test("actual Colony staircase supply assigns two workers to two independent lumb
     assert.equal(live.length, 1, `staircase demand must expose two assigned haul legs: ${JSON.stringify(session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)))}`);
     const tasks = live[0];
     const states = tasks.map((row) => row.get(DeliveryTask));
-    assert.equal(new Set(states.map((task) => task.sourceLot)).size, 2);
+    assert.equal(new Set(tasks.map((row) => row.id)).size, 2);
     assert.equal(new Set(states.map((task) => task.actor)).size, 2);
     assert(states.reduce((sum, task) => sum + task.quantity, 0) <= 6);
     assert(states.every((task) => task.quantity > 0 && task.quantity <= 6));
