@@ -30,9 +30,9 @@ test("local terrain references hydrate geometry and replace it after an epoch", 
   worker.emit(frame(1, baseline));
   const first = events.at(-1);
   assert(first?.type === "frame" && first.terrain);
-  worker.emit(frame(1, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 4, 0], massKg: 1, liquidVolumeM3: 0.001 }] }));
+  worker.emit(frame(1, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 4, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 }] }));
   const reference = events.at(-1);
-  assert(reference?.type === "frame" && reference.terrain);
+  assert(reference?.type === "frame" && reference.terrain, JSON.stringify(reference));
   assert.equal(reference.terrain.surfaces, first.terrain.surfaces);
   assert.equal(reference.terrain.structureSurfaces, first.terrain.structureSurfaces);
   assert.notEqual(reference.terrain.water, first.terrain.water);
@@ -64,7 +64,7 @@ test("absent terrain clears local cache and malformed references become errors",
   worker.emit(frame(1, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [] }));
   assert.equal(events.at(-1)?.type, "error");
   worker.emit(frame(3, baseline));
-  worker.emit(frame(3, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 0, 0], massKg: Infinity, liquidVolumeM3: 0 }] }));
+  worker.emit(frame(3, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 0, 0], level: 0, massKg: Infinity, liquidVolumeM3: 0 }] }));
   assert.equal(events.at(-1)?.type, "error");
   runtime.dispose();
 });

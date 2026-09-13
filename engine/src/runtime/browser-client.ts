@@ -4,12 +4,25 @@ import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 
 export interface RuntimeConnection {
   send(command: WorkerCommand): void;
-  submit(command: Extract<WorkerCommand, { type: "command" }>): Promise<unknown>;
+  submit(command: Extract<WorkerCommand, { type: "command" }>): Promise<RuntimeCommandReceipt>;
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   dispose(): void;
   /** Optional recovery control for transports that retain uncertain commands. */
   recovery?: { retry(): void };
 }
+
+/** The transport result for accepted intent. Physical work may still be pending. */
+export type RuntimeCommandReceipt =
+  | Readonly<{
+      status: "applied";
+      revision?: number;
+      result: Readonly<{ results: readonly unknown[] }>;
+    }>
+  | Readonly<{
+      status: "rejected";
+      reason: string;
+      result?: unknown;
+    }>;
 export interface BrowserConnectionOptions {
   readonly worker?: Worker;
 }
@@ -27,7 +40,10 @@ export function connectBrowserRuntime(
   let disposed = false;
   let stepping = false;
   let invocation = 0;
-  const pending = new Map<string, { resolve: (value: any) => void; reject: (error: unknown) => void }>();
+  const pending = new Map<string, {
+    resolve: (value: RuntimeCommandReceipt) => void;
+    reject: (error: unknown) => void;
+  }>();
   let terrainEpoch: number | undefined;
   let cachedTerrain: TerrainWireFrame | undefined;
   let cadence: ReturnType<typeof setInterval> | undefined;
@@ -72,7 +88,7 @@ export function connectBrowserRuntime(
   const submit = (command: Extract<WorkerCommand, { type: "command" }>) => {
     if (disposed) return Promise.reject(new Error("runtime connection disposed"));
     const invocationId = `browser-${++invocation}`;
-    return new Promise((resolve, reject) => {
+    return new Promise<RuntimeCommandReceipt>((resolve, reject) => {
       pending.set(invocationId, { resolve, reject });
       try { send({ ...command, invocationId }); } catch (error) { pending.delete(invocationId); reject(error); }
     });

@@ -1,7 +1,7 @@
 import { checkedCueList, type PresentationCue } from "./presentation-cues";
 import { checkedAction } from "./actions";
 import type { WorkerCommand, WorkerEvent } from "./protocol";
-import type { RuntimeConnection } from "./browser-client";
+import type { RuntimeCommandReceipt, RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import { presentationControlSchema, presentationFactSchema, type EnvironmentVisual, type PresentationControl, type TerrainMark } from "../presentation";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
@@ -56,7 +56,7 @@ type PendingIntent = {
   recoveries: number;
   id?: string;
   body?: string;
-  resolve?: (receipt: unknown) => void;
+  resolve?: (receipt: RuntimeCommandReceipt) => void;
   reject?: (error: unknown) => void;
 };
 
@@ -174,7 +174,7 @@ function whistleAction(value: unknown): boolean {
   const bounded = (node: unknown, depth = 0): boolean => {
     if (depth > 12) return false;
     if (node === null || typeof node !== "object") return true;
-    for (const [key, child] of Object.entries(node as Record<string, unknown>))
+    for (const [key, child] of Object.entries(node))
       if (key.length > 128 || !bounded(child, depth + 1)) return false;
     return true;
   };
@@ -182,6 +182,15 @@ function whistleAction(value: unknown): boolean {
     typeof value.title === "string" && typeof value.category === "string" && isRecord(value.action) &&
     isRecord(value.action.inputSchema) && bounded(schema) && JSON.stringify(schema).length <= 16384 && isRecord(value.availability) &&
     (value.availability.status === "available" || (value.availability.status === "unavailable" && typeof value.availability.reason === "string"));
+}
+function rejectedCommandReceipt(
+  receipt: Record<string, unknown>,
+): Extract<RuntimeCommandReceipt, { status: "rejected" }> {
+  const result = receipt.result;
+  const reason = isRecord(result) && typeof result.reason === "string" && result.reason.length <= 256
+    ? result.reason
+    : "remote command rejected";
+  return { status: "rejected", reason, result };
 }
 async function requestJson(
   fetcher: AuthorizedFetch,
@@ -516,8 +525,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
             pending.shift();
-            item.reject?.(new Error("remote command rejected"));
-            emit({ type: "error", message: "remote command rejected" });
+            const rejected = rejectedCommandReceipt(receipt);
+            item.resolve?.(rejected);
+            emit({ type: "error", message: rejected.reason });
             return;
           }
           if (receipt.status !== "applied" || !safeNonnegativeInteger(receipt.revision))
@@ -528,7 +538,15 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
               throw new Error("invalid remote action results");
           }
           pending.shift();
-          item.resolve?.(receipt);
+          item.resolve?.({
+            status: "applied",
+            revision: receipt.revision,
+            result: {
+              results: isRecord(payload) && Array.isArray(payload.results)
+                ? payload.results
+                : [],
+            },
+          });
           emitConnection("online");
           if (isRecord(payload) && Array.isArray(payload.results))
             emit({ type: "results", results: payload.results });
@@ -587,7 +605,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (blocked) return Promise.reject(new Error("remote runtime unavailable; command recovery is exhausted"));
     if (pending.length >= MAX_PENDING) return Promise.reject(new Error("remote command queue full"));
     const commandValue = { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) };
-    return new Promise((resolve, reject) => {
+    return new Promise<RuntimeCommandReceipt>((resolve, reject) => {
       pending.push({ command: structuredClone(commandValue), retries: 0, recoveries: 0, resolve, reject });
       schedulePump();
     });

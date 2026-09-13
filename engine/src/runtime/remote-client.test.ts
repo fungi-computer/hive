@@ -75,6 +75,28 @@ test("an applied receipt releases the next FIFO command without waiting for its 
   } finally { runtime.dispose(); }
 });
 
+test("submit preserves a domain rejection separately from transport failure", async () => {
+  const runtime = setup(async (input, init) => {
+    if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+    const body = JSON.parse(String(init?.body));
+    return Response.json({
+      commandId: body.id,
+      status: "rejected",
+      revision: 0,
+      result: { reason: "Area is outside the authored world" },
+    });
+  });
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    assert.deepEqual(await runtime.submit({ type: "command", name: "dig", input: {} }), {
+      status: "rejected",
+      reason: "Area is outside the authored world",
+      result: { reason: "Area is outside the authored world" },
+    });
+  } finally { runtime.dispose(); }
+});
+
 test("socket observations reject older committed revisions", async () => {
   const socket = new FakeSocket(observation(2));
   const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);

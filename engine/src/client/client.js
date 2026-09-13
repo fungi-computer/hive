@@ -343,9 +343,23 @@ export function createHiveClient({
     exitAim();
   }
   function renderHud() {
-    const semanticDig = state.whistleActions.find(action => action.commandId === "colony:dig")
-      ?? whistle?.snapshot().menu.find(action => action.commandId === "colony:dig");
-    const semanticControls = semanticDig ? [{ id: "dig", label: semanticDig.title, command: "dig", target: "terrain-area", designation: ["rectangle"] }] : [];
+    const semanticDig = state.whistleActions.find(action => action.commandId === "colony:dig");
+    const localDig = whistle?.snapshot().menu.find(action => action.commandId === "colony:dig");
+    const localBinding = localDig?.action?.presentation?.type === "custom"
+      ? localDig.action.presentation.data
+      : null;
+    const semanticControls = semanticDig && localBinding?.gesture === "terrain-rectangle" && localBinding.argument === "area"
+      ? [{
+          id: "dig",
+          label: semanticDig.title,
+          command: "dig",
+          target: "terrain-area",
+          designation: ["rectangle"],
+          disabledReason: semanticDig.availability.status === "unavailable"
+            ? semanticDig.availability.reason
+            : null,
+        }]
+      : [];
     const contextualPresentation = projectContextualPresentation({
       facts: state.presentationFacts,
       controls: [...state.presentationControls.filter(control => control.id !== "dig"), ...semanticControls],
@@ -365,8 +379,14 @@ export function createHiveClient({
             key: control.id,
             size: "sm",
             variant: "outline",
-            disabled: !state.ready,
+            disabled: !state.ready || Boolean(control.disabledReason),
+            title: control.disabledReason ?? undefined,
             onClick: () => {
+              if (control.disabledReason) {
+                state.message = control.disabledReason;
+                renderHud();
+                return;
+              }
               if (control.target === "terrain-cell" || control.target === "terrain-area" || control.target === "world-surface") {
                 exitAim();
                 gesture.send({ type: "CANCEL" });
@@ -1001,6 +1021,13 @@ export function createHiveClient({
       if (control?.target === "terrain-area" || control?.target === "world-surface") {
         const command = terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current });
         if (control.id === "dig" && whistle) {
+          const published = state.whistleActions.find(action => action.commandId === "colony:dig");
+          if (!published || published.availability.status === "unavailable") {
+            state.message = published?.availability.reason ?? "Dig is currently unavailable";
+            renderHud();
+            draw();
+            return;
+          }
           void whistle.execute("colony:dig", { origin: "browser", arguments: command.input }).then(outcome => {
             if (outcome.status === "failed") state.message = `Order refused: ${outcome.error.message}`;
             else if (outcome.status === "handled") state.message = "Order queued";
