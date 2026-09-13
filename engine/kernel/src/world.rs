@@ -1029,6 +1029,7 @@ pub struct Kernel {
     state_weight: usize,
     material_consumption_owner: Arc<()>,
     ground_stock_cleanup_pending: bool,
+    bound_process_lots: BTreeSet<String>,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -1135,6 +1136,7 @@ impl Kernel {
             state_weight: 0,
             material_consumption_owner: Arc::new(()),
             ground_stock_cleanup_pending: false,
+            bound_process_lots: BTreeSet::new(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -1664,6 +1666,7 @@ impl Kernel {
         Ok(())
     }
     fn rebuild_physical_indexes(&mut self, build_routes: bool) -> Result<()> {
+        self.bound_process_lots = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|binding| binding.lot.clone())).collect();
         self.blocked_by_frame.clear();
         self.routes.clear();
         self.terrain_routes.clear();
@@ -2556,7 +2559,7 @@ impl Kernel {
             .sum()
     }
     fn process_bindings_for_lot(&self, lot: &str) -> bool {
-        self.ids.values().any(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).is_some_and(|binding| binding.lot == lot))
+        self.bound_process_lots.contains(lot)
     }
     fn cleanup_empty_ground_stock(&mut self) {
         if !self.ground_stock_cleanup_pending { return; }
@@ -2755,6 +2758,7 @@ impl Kernel {
             if self.ecs.get::<StagedProcess>(existing).is_some_and(|process| process.phase != ProcessPhase::Complete) {
                 return Ok(process_id);
             }
+            self.remove_process_bindings(&process_id)?;
             self.ecs.entity_mut(existing).insert(StagedProcess {
                 version: crate::staged_process::CURRENT_VERSION,
                 definition: definition.id.clone(),
@@ -2818,6 +2822,7 @@ impl Kernel {
             let entity = self.ecs.spawn((ExternalId(id.clone()), binding)).id();
             self.ids.insert(id.clone(), entity);
             self.known.insert(id);
+            self.bound_process_lots.insert(self.ecs.get::<crate::staged_process::ProcessBinding>(entity).unwrap().lot.clone());
         }
         self.refresh_state_weight();
         Ok(process_id.into())
@@ -2826,6 +2831,12 @@ impl Kernel {
     fn process_bindings(&self, process: &str) -> Vec<crate::staged_process::ProcessBinding> {
         self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity)
             .filter(|binding| binding.process == process).cloned()).collect()
+    }
+    fn remove_process_bindings(&mut self, process: &str) -> Result<()> {
+        let ids: Vec<String> = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).filter(|binding| binding.process == process).map(|_| id.clone())).collect();
+        for id in ids { let entity = self.ids.remove(&id).ok_or("process binding disappeared")?; self.known.remove(&id); self.ecs.despawn(entity); }
+        self.bound_process_lots = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|binding| binding.lot.clone())).collect();
+        self.refresh_state_weight(); Ok(())
     }
 
     fn attend_process(&mut self, worker_id: &str, process_id: &str, delta: f64) -> Result<()> {
@@ -2855,7 +2866,7 @@ impl Kernel {
             state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = "transition-unimplemented".into();
             self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(());
         }
-        if usize::from(state.stage_index + 1) >= definition.stages.len() { state.phase = ProcessPhase::Complete; state.worker = None; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; state.worker = None; }
+        if usize::from(state.stage_index + 1) >= definition.stages.len() { self.remove_process_bindings(process_id)?; state.phase = ProcessPhase::Complete; state.worker = None; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; state.worker = None; }
         self.ecs.entity_mut(self.entity(process_id)?).insert(state); Ok(())
     }
 
