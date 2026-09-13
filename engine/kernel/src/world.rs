@@ -2039,7 +2039,7 @@ impl Kernel {
         let spacing = environment.world.cell_spacing_m();
         let mut cells: Vec<_> = facts.cells.into_iter().filter(|cell| cell.level > 0 && centers.iter().any(|center| {
             let at = [cell.at[0] as f64 * spacing[0], (cell.at[1] as f64 + 0.5) * spacing[1], cell.at[2] as f64 * spacing[2]];
-            (at[0]-center[0]).hypot(at[2]-center[2]) <= 8.0
+            (at[0]-center[0]).powi(2) + (at[1]-center[1]).powi(2) + (at[2]-center[2]).powi(2) <= 64.0
         })).collect();
         cells.sort_by(|a, b| {
             let nearest = |cell: &crate::water::WaterCellFact| centers.iter().map(|center| {
