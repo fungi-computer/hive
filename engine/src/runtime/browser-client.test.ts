@@ -43,6 +43,17 @@ test("local terrain references hydrate geometry and replace it after an epoch", 
   runtime.dispose();
 });
 
+test("local ordinary submission resolves the correlated worker receipt", async () => {
+  const worker = new FakeWorker();
+  const runtime = connectBrowserRuntime({ worker: worker as unknown as Worker });
+  const pending = runtime.submit({ type: "command", name: "dig", input: { area: { start: [0, 1, 0], end: [0, 1, 0] } } });
+  const command = worker.posted.at(-1) as { invocationId: string };
+  assert.match(command.invocationId, /^browser-/);
+  worker.emit({ type: "results", invocationId: command.invocationId, results: [{ accepted: true }] });
+  assert.deepEqual(await pending, { status: "applied", result: { results: [{ accepted: true }] } });
+  runtime.dispose();
+});
+
 test("absent terrain clears local cache and malformed references become errors", () => {
   const worker = new FakeWorker();
   const runtime = connectBrowserRuntime({ worker: worker as unknown as Worker });

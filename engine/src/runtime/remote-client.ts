@@ -54,6 +54,8 @@ type PendingIntent = {
   recoveries: number;
   id?: string;
   body?: string;
+  resolve?: (receipt: unknown) => void;
+  reject?: (error: unknown) => void;
 };
 
 const MAX_PENDING = 16;
@@ -495,6 +497,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
           if (receipt.commandId !== item.id) throw new Error("remote receipt command id mismatch");
           if (receipt.status === "rejected") {
             pending.shift();
+            item.reject?.(new Error("remote command rejected"));
             emit({ type: "error", message: "remote command rejected" });
             return;
           }
@@ -506,6 +509,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
               throw new Error("invalid remote action results");
           }
           pending.shift();
+          item.resolve?.(receipt);
           emitConnection("online");
           if (isRecord(payload) && Array.isArray(payload.results))
             emit({ type: "results", results: payload.results });
@@ -558,6 +562,17 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     pending.push(next);
     schedulePump();
   };
+  const submit = (command: Extract<WorkerCommand, { type: "command" }>) => {
+    if (disposed) return Promise.reject(new Error("remote runtime disposed"));
+    if (!started) return Promise.reject(new Error("remote runtime has not started"));
+    if (blocked) return Promise.reject(new Error("remote runtime unavailable; command recovery is exhausted"));
+    if (pending.length >= MAX_PENDING) return Promise.reject(new Error("remote command queue full"));
+    const commandValue = { kind: "command", name: command.name, ...(command.input === undefined ? {} : { input: command.input }) };
+    return new Promise((resolve, reject) => {
+      pending.push({ command: structuredClone(commandValue), retries: 0, recoveries: 0, resolve, reject });
+      schedulePump();
+    });
+  };
   const subscribe = (listener: (event: WorkerEvent) => void) => {
     if (disposed) throw new Error("runtime connection disposed");
     listeners.add(listener);
@@ -571,8 +586,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
     for (const timer of retryTimers) clearTimeout(timer);
     retryTimers.clear();
+    for (const item of pending) item.reject?.(new Error("remote runtime disposed"));
     pending.length = 0;
     listeners.clear();
   };
-  return { send, subscribe, dispose, recovery: { retry: retryRecovery } };
+  return { send, submit, subscribe, dispose, recovery: { retry: retryRecovery } };
 }

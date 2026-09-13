@@ -43,6 +43,7 @@ import { rectangleCells, visibleTerrainAreaPreview } from "./terrain-area-select
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
+import { createWhistle } from "@fungi.computer/whistle";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -62,6 +63,7 @@ export function createHiveClient({
   environment = "clearing",
   aiming = null,
   worldView = {},
+  whistleContribution,
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
@@ -97,6 +99,8 @@ export function createHiveClient({
   const terrainArea = createActor(terrainAreaGestureMachine).start();
   const isAiming = () => aimGesture.getSnapshot().value === "aiming";
   const listeners = new Set();
+  const whistle = whistleContribution && runtime?.submit ? createWhistle() : null;
+  whistle?.contribute(whistleContribution(command => runtime.submit(command)));
   const notify = () => listeners.forEach((listener) => listener(state));
   const emit = (action) => {
     if (state.disposed) return;
@@ -991,7 +995,14 @@ export function createHiveClient({
       terrainArea.send({ type: "END" });
       app.canvas.releasePointerCapture?.(event.pointerId);
       if (control?.target === "terrain-area" || control?.target === "world-surface") {
-        submit(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
+        const command = terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current });
+        if (control.id === "dig" && whistle) {
+          void whistle.execute("colony:dig", { origin: "browser", arguments: command.input }).then(outcome => {
+            if (outcome.status === "failed") state.message = `Order refused: ${outcome.error.message}`;
+            else if (outcome.status === "handled") state.message = "Order queued";
+            renderHud();
+          });
+        } else submit(command);
       }
       renderHud(); draw(); return;
     }
