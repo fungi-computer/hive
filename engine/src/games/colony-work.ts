@@ -39,7 +39,6 @@ import {
   move,
   cancelWork,
   StagedProcess,
-  advanceStagedProcess,
 } from "../sdk/common";
 import type { EntityId, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
@@ -972,7 +971,6 @@ export const colonyWorkSystem = createWorkSystem({
     (ctx) => {
       for (const row of ctx.query(query(StagedProcess))) {
         const process = row.get(StagedProcess);
-        if (process.status === "active" && process.stage === 1) ctx.action(advanceStagedProcess(row.id));
       }
     },
     colonyGroundStockPhase,

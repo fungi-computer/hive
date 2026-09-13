@@ -162,8 +162,7 @@ export type ActionRequest =
         readonly outputs: readonly { readonly container: EntityId; readonly kind: string; readonly quantity: number }[];
       };
     }
-  | { readonly kind: "attend-staged-process"; readonly process: EntityId; readonly ticks: number }
-  | { readonly kind: "advance-staged-process"; readonly process: EntityId }
+  | { readonly kind: "attend-staged-process"; readonly process: EntityId; readonly worker: EntityId }
   | { readonly kind: "cancel-staged-process"; readonly process: EntityId }
   | {
       readonly kind: "designate-stockpile";

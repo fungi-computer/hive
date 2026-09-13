@@ -18,10 +18,7 @@ import {
   transfer,
   FiniteResource,
   StagedProcess,
-  StagedProcess,
   beginStagedProcess,
-  attendStagedProcess,
-  advanceStagedProcess,
   cancelStagedProcess,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
@@ -390,16 +387,6 @@ export const colonyPack: GamePack = {
         }, binding)], writes: [] };
       },
     }),
-    attendBrew: command({
-      input: z.object({ ticks: z.number().int().positive().max(40) }).strict(),
-      reads: [StagedProcess],
-      writes: [],
-      run(context, input) {
-        const row = context.query(query(StagedProcess)).find(row => row.id === brewProcessId);
-        if (!row) throw new Error("No active herbal ale batch");
-        return { actions: [attendStagedProcess(brewProcessId, input.ticks)], writes: [] };
-      },
-    }),
     cancelBrew: command({
       input: emptyInput,
       reads: [StagedProcess],
@@ -595,7 +582,6 @@ export const colonyPack: GamePack = {
     controls: [
       { id: "light-hearth", label: "Light fire", command: "lightHearth", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "start-brew", label: "Start herbal ale", command: "startBrew", input: { station: brewStationId }, subjects: [brewStationId] },
-      { id: "attend-brew", label: "Attend brew", command: "attendBrew", input: { ticks: 1 }, subjects: [brewStationId] },
       { id: "cancel-brew", label: "Cancel brew", command: "cancelBrew", subjects: [brewStationId] },
       { id: "cancel-ignition", label: "Cancel lighting", command: "cancelIgnition", input: { station: brewStationId }, subjects: [brewStationId] },
       { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },

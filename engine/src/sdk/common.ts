@@ -85,10 +85,10 @@ export const FiniteResource = component<{ kind: string; quantity: number }>("hiv
   fields: { kind: "string", quantity: "number" },
 });
 export const StagedProcess = component<{
-  definition: string; definitionVersion: number; binding: string; station: EntityId;
+  definition: string; definitionVersion: number; binding: string; station: EntityId; worker: EntityId | null;
   stage: number; progress: number; enteredTick: number; status: string;
 }>("hive.staged-process", { version: 1, fields: {
-  definition: "string", definitionVersion: "number", binding: "string", station: "entity",
+  definition: "string", definitionVersion: "number", binding: "string", station: "entity", worker: "nullable-entity",
   stage: "number", progress: "number", enteredTick: "number", status: "string",
 } });
 export const Destination = component<{
@@ -142,8 +142,7 @@ export const beginStagedProcess = (
   definition: Extract<ActionRequest, { kind: "begin-staged-process" }>['definition'],
   binding: Extract<ActionRequest, { kind: "begin-staged-process" }>['binding'],
 ): ActionRequest => ({ kind: "begin-staged-process", process, definition, binding });
-export const attendStagedProcess = (process: EntityId, ticks: number): ActionRequest => ({ kind: "attend-staged-process", process, ticks });
-export const advanceStagedProcess = (process: EntityId): ActionRequest => ({ kind: "advance-staged-process", process });
+export const attendStagedProcess = (process: EntityId, worker: EntityId): ActionRequest => ({ kind: "attend-staged-process", process, worker });
 export const cancelStagedProcess = (process: EntityId): ActionRequest => ({ kind: "cancel-staged-process", process });
 
 export interface SceneEntity {

@@ -1817,7 +1817,7 @@ impl Kernel {
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
                     | Action::BeginStagedProcess { .. } | Action::AttendStagedProcess { .. }
-                    | Action::AdvanceStagedProcess { .. } | Action::CancelStagedProcess { .. }
+                    | Action::CancelStagedProcess { .. }
                     | Action::UpdateStockpile { .. })
             });
         if needs_staging {
@@ -1868,6 +1868,7 @@ impl Kernel {
         // retroactively earn a full tick of effort after spending it travelling.
         self.advance_excavation(batch.delta)?;
         self.advance_construction(batch.delta)?;
+        self.advance_staged_processes(batch.delta)?;
         self.advance_movement(batch.delta)?;
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.cleanup_empty_ground_stock();
@@ -2101,12 +2102,20 @@ impl Kernel {
         let container_ids = container_query.iter(&self.ecs).map(|(id, container)| (id.0.clone(), container.capacity)).collect::<Vec<_>>();
         let containers = container_ids.iter().map(|(id, capacity)| crate::staged_process::ContainerFact { id: id.as_str(), capacity: *capacity, quantity: self.quantity(id) }).collect::<Vec<_>>();
         let mut processes = self.ecs.query::<(&ExternalId, &StagedProcessRecord)>();
+        let mut attending = BTreeSet::new();
         for (id, record) in processes.iter(&self.ecs) {
             let (definition, binding, mut process) = Self::process_parts(record)?;
             process.id = id.0.clone();
             crate::staged_process::validate_process(&process, &definition)?;
             if binding.id != process.binding || binding.station != process.station { return Err("staged process binding relation is invalid".into()); }
             crate::staged_process::validate_binding_facts(&binding, &lots, &containers)?;
+            if let Some(worker_id) = record.worker.as_deref() {
+                if !attending.insert(worker_id.to_string()) { return Err("worker attends multiple staged processes".into()); }
+                let worker = self.entity(worker_id)?;
+                if self.ecs.get::<Body>(worker).is_none() || self.ecs.get::<Container>(worker).is_none() || self.ecs.get::<Traversal>(worker).is_none() { return Err("staged process worker lacks capabilities".into()); }
+                if self.ecs.get::<Support>(worker).is_some() || self.ecs.get::<Destination>(worker).is_some() || self.direct.contains_key(&worker) || self.ecs.get::<ExcavationWork>(worker).is_some() { return Err("staged process worker is occupied".into()); }
+                if definition.stages.get(usize::from(process.stage)).map_or(true, |stage| stage.mode != crate::staged_process::StageMode::Attended) { return Err("unattended process cannot retain worker".into()); }
+            }
         }
         Ok(())
     }
@@ -2127,7 +2136,7 @@ impl Kernel {
         let containers = container_ids.iter().map(|(id, capacity)| crate::staged_process::ContainerFact { id: id.as_str(), capacity: *capacity, quantity: self.quantity(id) }).collect::<Vec<_>>();
         crate::staged_process::validate_binding_facts(&binding, &lots, &containers)?;
         let process = crate::staged_process::admit(&definition, &binding, id.clone(), self.revision)?;
-        let process_record = StagedProcessRecord { definition: serde_json::to_string(&definition).map_err(|e| e.to_string())?, definition_version: definition.version, binding: serde_json::to_string(&binding).map_err(|e| e.to_string())?, station: binding.station, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: "active".into() };
+        let process_record = StagedProcessRecord { definition: serde_json::to_string(&definition).map_err(|e| e.to_string())?, definition_version: definition.version, binding: serde_json::to_string(&binding).map_err(|e| e.to_string())?, station: binding.station, worker: None, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: "active".into() };
         let weight = id.len() + 128 + self.registry.weight("hive.staged-process", &record(&process_record));
         if self.state_weight.saturating_add(weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         let entity = self.ecs.spawn((ExternalId(id.clone()), process_record)).id();
@@ -2135,24 +2144,63 @@ impl Kernel {
         Ok(())
     }
 
-    fn attend_staged_process(&mut self, id: &str, ticks: u64) -> Result<()> {
+    fn attend_staged_process(&mut self, id: &str, worker_id: &str) -> Result<()> {
         let entity = self.entity(id)?;
         let saved = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("not a staged process")?;
-        let (definition, binding, mut process) = Self::process_parts(&saved)?; process.id = id.into();
-        let advance = crate::staged_process::attend(&mut process, &definition, ticks)?;
-        self.commit_staged_advance(id, definition, binding, process, advance)
+        let (definition, _, process) = Self::process_parts(&saved)?;
+        if process.status != crate::staged_process::ProcessStatus::Active || definition.stages[usize::from(process.stage)].mode != crate::staged_process::StageMode::Attended { return Err("process is not awaiting attended work".into()); }
+        let worker = self.entity(worker_id)?;
+        if self.ecs.get::<Body>(worker).is_none() || self.ecs.get::<Container>(worker).is_none() || self.ecs.get::<Traversal>(worker).is_none() { return Err("worker lacks work capabilities".into()); }
+        if self.ecs.get::<Support>(worker).is_some() || self.ecs.get::<Destination>(worker).is_some() || self.direct.contains_key(&worker) || self.ecs.get::<ExcavationWork>(worker).is_some() || self.ecs.query::<&ConstructionSite>().iter(&self.ecs).any(|site| site.worker.as_deref() == Some(worker_id)) { return Err("worker is already occupied".into()); }
+        let station = self.entity(&saved.station)?;
+        let station_position = *self.ecs.get::<Position>(station).ok_or("station has no position")?;
+        let worker_position = *self.ecs.get::<Position>(worker).ok_or("worker has no position")?;
+        let distance = (worker_position.x - station_position.x).hypot(worker_position.z - station_position.z);
+        if distance > 1.5 || (worker_position.y - station_position.y).abs() > 1.5 { return Err("worker is not at station contact".into()); }
+        for (other_id, other) in self.ecs.query::<(&ExternalId, &StagedProcessRecord)>().iter(&self.ecs) { if other_id.0 != id && other.worker.as_deref() == Some(worker_id) { return Err("worker attends another process".into()); } }
+        let mut next = saved;
+        next.worker = Some(worker_id.to_string());
+        self.replace_staged_process(id, next)
     }
 
-    fn advance_staged_process(&mut self, id: &str) -> Result<()> {
-        let entity = self.entity(id)?;
-        let saved = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("not a staged process")?;
-        let (definition, binding, mut process) = Self::process_parts(&saved)?; process.id = id.into();
-        let advance = crate::staged_process::advance_unattended(&mut process, &definition, self.revision)?;
-        self.commit_staged_advance(id, definition, binding, process, advance)
+    /// Earn process time from the authoritative world clock.  An attended
+    /// stage only advances when its claimed worker remains stationary at the
+    /// station; unattended stages advance from the same delta after entry,
+    /// never in the tick that created them.
+    fn advance_staged_processes(&mut self, delta: f64) -> Result<()> {
+        let ids = self.ecs.query::<&ExternalId>().iter(&self.ecs)
+            .filter_map(|id| self.ids.get(&id.0).copied().filter(|entity| self.ecs.get::<StagedProcessRecord>(*entity).is_some()).map(|_| id.0.clone()))
+            .collect::<Vec<_>>();
+        for id in ids {
+            let entity = self.entity(&id)?;
+            let saved = self.ecs.get::<StagedProcessRecord>(entity).cloned().ok_or("staged process is missing")?;
+            let (definition, binding, mut process) = Self::process_parts(&saved)?;
+            process.id = id.clone();
+            if process.status != crate::staged_process::ProcessStatus::Active { continue; }
+            let stage = definition.stages.get(usize::from(process.stage)).ok_or("staged process stage is invalid")?;
+            let advance = match stage.mode {
+                crate::staged_process::StageMode::Unattended => crate::staged_process::advance_unattended(&mut process, &definition, self.revision, delta)?,
+                crate::staged_process::StageMode::Attended => {
+                    let Some(worker_id) = saved.worker.as_deref() else { continue; };
+                    let worker = self.entity(worker_id)?;
+                    let station = self.entity(&saved.station)?;
+                    let wp = *self.ecs.get::<Position>(worker).ok_or("worker has no position")?;
+                    let sp = *self.ecs.get::<Position>(station).ok_or("station has no position")?;
+                    let contact = (wp.x - sp.x).hypot(wp.z - sp.z) <= 1.5 && (wp.y - sp.y).abs() <= 1.5;
+                    let occupied = self.ecs.get::<Support>(worker).is_some() || self.ecs.get::<Destination>(worker).is_some() || self.direct.contains_key(&worker) || self.ecs.get::<ExcavationWork>(worker).is_some() || self.ecs.query::<&ConstructionSite>().iter(&self.ecs).any(|site| site.worker.as_deref() == Some(worker_id));
+                    if contact && !occupied { crate::staged_process::attend(&mut process, &definition, delta)? } else {
+                        let mut released = saved.clone(); released.worker = None; self.replace_staged_process(&id, released)?; continue;
+                    }
+                }
+            };
+            self.commit_staged_advance(&id, definition, binding, process, advance)?;
+        }
+        Ok(())
     }
 
     fn commit_staged_advance(&mut self, id: &str, definition: crate::staged_process::ProcessDefinition, binding: crate::staged_process::ProcessBinding, mut process: crate::staged_process::StagedProcess, advance: crate::staged_process::Advance) -> Result<()> {
-        let crate::staged_process::Advance::Transition(token) = advance else { return self.replace_staged_process(id, StagedProcessRecord { definition: serde_json::to_string(&definition).unwrap(), definition_version: definition.version, binding: serde_json::to_string(&binding).unwrap(), station: binding.station.clone(), stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: match process.status { crate::staged_process::ProcessStatus::Active => "active", crate::staged_process::ProcessStatus::Waiting => "waiting", crate::staged_process::ProcessStatus::Complete => "complete" }.into() }); };
+        let worker = self.ecs.get::<StagedProcessRecord>(self.entity(id)?).and_then(|record| record.worker.clone());
+        let crate::staged_process::Advance::Transition(token) = advance else { return self.replace_staged_process(id, StagedProcessRecord { definition: serde_json::to_string(&definition).unwrap(), definition_version: definition.version, binding: serde_json::to_string(&binding).unwrap(), station: binding.station.clone(), worker, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: match process.status { crate::staged_process::ProcessStatus::Active => "active", crate::staged_process::ProcessStatus::Waiting => "waiting", crate::staged_process::ProcessStatus::Complete => "complete" }.into() }); };
         if token.operation == "prepare" {
             let portions = binding.consumed.iter().map(|lot| material_consumption::MaterialPortion { lot: lot.lot.clone(), quantity: lot.quantity }).collect::<Vec<_>>();
             let prepared = self.prepare_material_consumption(&portions)?;
@@ -2163,7 +2211,7 @@ impl Kernel {
         }
         let committed = crate::staged_process::commit_transition(&mut process, &definition, &token, self.revision)?;
         let status = match process.status { crate::staged_process::ProcessStatus::Active => "active", crate::staged_process::ProcessStatus::Waiting => "waiting", crate::staged_process::ProcessStatus::Complete => "complete" };
-        let record = StagedProcessRecord { definition: serde_json::to_string(&definition).unwrap(), definition_version: definition.version, binding: serde_json::to_string(&binding).unwrap(), station: binding.station, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: status.into() };
+        let record = StagedProcessRecord { definition: serde_json::to_string(&definition).unwrap(), definition_version: definition.version, binding: serde_json::to_string(&binding).unwrap(), station: binding.station, worker: if committed == crate::staged_process::Advance::Complete { None } else if matches!(definition.stages[usize::from(process.stage)].mode, crate::staged_process::StageMode::Attended) { None } else { worker }, stage: process.stage, progress: process.progress, entered_tick: process.entered_tick, status: status.into() };
         if committed == crate::staged_process::Advance::Complete { self.ecs.despawn(self.entity(id)?); self.ids.remove(id); self.known.remove(id); self.refresh_state_weight(); } else { self.replace_staged_process(id, record)?; }
         Ok(())
     }
@@ -2177,8 +2225,7 @@ impl Kernel {
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
             Action::BeginStagedProcess { process, definition, binding } => self.begin_staged_process(process, definition, binding).map(|_| ActionEffect::None),
-            Action::AttendStagedProcess { process, ticks } => self.attend_staged_process(&process, ticks).map(|_| ActionEffect::None),
-            Action::AdvanceStagedProcess { process } => self.advance_staged_process(&process).map(|_| ActionEffect::None),
+            Action::AttendStagedProcess { process, worker } => self.attend_staged_process(&process, &worker).map(|_| ActionEffect::None),
             Action::CancelStagedProcess { process } => self.cancel_staged_process(&process).map(|_| ActionEffect::None),
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),

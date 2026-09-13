@@ -83,8 +83,9 @@ pub struct StagedProcessRecord {
     pub definition_version: u32,
     pub binding: String,
     pub station: String,
+    pub worker: Option<String>,
     pub stage: u16,
-    pub progress: u64,
+    pub progress: f64,
     pub entered_tick: u64,
     pub status: String,
 }
@@ -344,8 +345,7 @@ where
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
     BeginStagedProcess { process: String, definition: crate::staged_process::ProcessDefinition, binding: crate::staged_process::ProcessBinding },
-    AttendStagedProcess { process: String, ticks: u64 },
-    AdvanceStagedProcess { process: String },
+    AttendStagedProcess { process: String, worker: String },
     CancelStagedProcess { process: String },
     DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
     UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
