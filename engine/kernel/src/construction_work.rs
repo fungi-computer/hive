@@ -249,6 +249,9 @@ impl Kernel {
                         for (name, value) in &port.components {
                             if self.registry.read(&self.ecs, port_entity, name).as_ref() != Some(value) { return Err(format!("finished construction port {port_id} is missing component {name}")); }
                         }
+                        if port.at_site_contact && self.ecs.get::<Position>(port_entity) != self.ecs.get::<Position>(*entity) {
+                            return Err(format!("finished construction port {port_id} has invalid contact position"));
+                        }
                     }
                 }
                 ConstructionPhase::Planned => if site.worker.is_some() || geometry_ids.contains(id) { return Err("planned construction progress is invalid".into()); },

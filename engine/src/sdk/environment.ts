@@ -165,7 +165,7 @@ export function validateEnvironmentDefinition(
     throw new Error("structures.catalog must contain at most 64 entries");
   }
   const ids = new Set<string>();
-  for (const entry of catalog) {
+  for (const entry of catalog as readonly EnvironmentStructureDefinition[]) {
     if (!entry || typeof entry.id !== "string" || entry.id.length === 0 || entry.id.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(entry.id) || ids.has(entry.id)
       || !Number.isFinite(entry.workSeconds) || entry.workSeconds <= 0 || entry.workSeconds > 86_400
       || !Number.isSafeInteger(entry.workReachBelowCells) || entry.workReachBelowCells < 0

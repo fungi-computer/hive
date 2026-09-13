@@ -164,6 +164,70 @@ mod construction_tests {
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
     }
 
+    fn install_floor_storage_recipe(kernel: &mut Kernel) {
+        use crate::environment_definition::{CompletionRecipe, PortDefinition};
+        let environment = kernel.environment.as_mut().unwrap();
+        environment.structures.get_mut("floor").unwrap().on_complete = CompletionRecipe {
+            components: vec![],
+            ports: vec![PortDefinition {
+                key: "storage".into(),
+                at_site_contact: true,
+                components: vec![
+                    ("hive.container".into(), record(&Container { capacity: 6 })),
+                    ("hive.stockpile-cell".into(), record(&StockpileCell {
+                        zone: "shelves".into(), priority: 4, filter_profile: "materials".into(),
+                    })),
+                ],
+            }],
+        };
+        let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
+        definition["structures"]["catalog"][0]["onComplete"] = json!({
+            "ports":[{"key":"storage","at":"site-contact","components":[
+                {"name":"hive.container","value":{"capacity":6}},
+                {"name":"hive.stockpile-cell","value":{"zone":"shelves","priority":4,"filterProfile":"materials"}}
+            ]}]
+        });
+        environment.definition = definition.to_string();
+    }
+
+    #[test]
+    fn construction_completion_consumes_inputs_and_installs_one_reloadable_storage_port() {
+        let (mut kernel, surface, contact) = world();
+        install_floor_storage_recipe(&mut kernel);
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
+
+        let site = kernel.entity("site-1").unwrap();
+        let port = kernel.entity("site-1:storage").unwrap();
+        assert_eq!(kernel.ecs.get::<ConstructionSite>(site).unwrap().phase, ConstructionPhase::Finished);
+        assert_eq!(kernel.ecs.get::<Container>(port).unwrap().capacity, 6);
+        assert_eq!(kernel.ecs.get::<Position>(port), kernel.ecs.get::<Position>(site));
+        assert_eq!(kernel.ecs.get::<StockpileCell>(port).unwrap().zone, "shelves");
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot.1").unwrap()).unwrap().quantity, 0);
+
+        kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
+        assert_eq!(kernel.ids.keys().filter(|id| id.as_str() == "site-1:storage").count(), 1);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+        assert_eq!(restored.ecs.get::<Position>(restored.entity("site-1:storage").unwrap()), restored.ecs.get::<Position>(restored.entity("site-1").unwrap()));
+    }
+
+    #[test]
+    fn environment_rejects_completion_recipes_that_seize_physical_ownership() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":1, "game":"construction-recipe",
+            "components":[], "initial":[]
+        }).to_string()).unwrap();
+        let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("construction-recipe")).unwrap();
+        definition["structures"]["catalog"][0]["onComplete"] = json!({
+            "components":[{"name":"hive.lot","value":{"kind":"wood","quantity":1,"container":"anything"}}]
+        });
+        assert!(kernel.load_environment(&definition.to_string()).unwrap_err().contains("cannot be installed"));
+    }
+
     #[test]
     fn native_stockpile_designation_creates_surface_cell_and_rejects_mixed_batch() {
         let (mut kernel, surface, _) = world();
@@ -704,8 +768,20 @@ impl Kernel {
             for port in &definition.on_complete.ports { known.insert(format!("{site}:{}", port.key)); }
         }
         for definition in environment.structures.values() {
-            for (name, value) in &definition.on_complete.components { self.registry.validate(name, value, &known)?; }
-            for port in &definition.on_complete.ports { for (name, value) in &port.components { self.registry.validate(name, value, &known)?; } }
+            for (name, value) in &definition.on_complete.components {
+                if crate::registry::Registry::is_physical(name) && !matches!(name.as_str(), "hive.emitter" | "hive.visual") {
+                    return Err(format!("physical component {name} cannot be installed on a completed structure"));
+                }
+                self.registry.validate(name, value, &known)?;
+            }
+            for port in &definition.on_complete.ports {
+                for (name, value) in &port.components {
+                    if crate::registry::Registry::is_physical(name) && !matches!(name.as_str(), "hive.container" | "hive.stockpile-cell" | "hive.emitter" | "hive.visual") {
+                        return Err(format!("physical component {name} cannot be installed on a completed structure port"));
+                    }
+                    self.registry.validate(name, value, &known)?;
+                }
+            }
         }
         Ok(())
     }
