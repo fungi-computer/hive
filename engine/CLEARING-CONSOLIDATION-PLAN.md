@@ -691,19 +691,30 @@ its real consumer proves the need. Whistle does not learn terrain, stockpile or
 Goblin rules. Preview and cancelling an unfinished gesture do not become world
 commands.
 
-The frozen Whistle candidate is `f33a104` in
-`/mnt/fungi-extra/botanical-work/Botanical-agent-control-host`, with Agent Host
-wire correction `b4e3794` on top. It carries JSON input/output schemas, typed
-arguments/results, availability with unavailable reasons and portable failures.
+The accepted Whistle wire source is `38966f9` (Integration `394c655`) and its
+ordinary packed artifact has SHA-256
+`e767b3ae589183b89b74f13706c7b1a4954a5c1391a7f0ef304c35541a7ff36d`.
+It carries JSON input/output schemas, typed arguments/results, availability with
+unavailable reasons and portable failures. Hive imports the maintained neutral
+wire parser as `parse` from `@fungi.computer/whistle/wire`.
 Its local projections support action/choice/form/confirmation hints plus the
 opaque `custom.data` slot used by Hive's existing gesture binding. The maintained
 EventSource roundtrip preserves schemas, arguments, results, failures and
 availability while deliberately omitting local presentation. Presentation-only
 local actions remain discoverable commands but acquire no remote presentation
 field. Valid choices and labels come from standard schema `enum`, `oneOf`,
-`const` and `title` data. This is independently checked candidate source, not a
-published package or Hive integration claim. The first Hive join therefore
-requires:
+`const` and `title` data.
+
+Hive's clean cutover is integrated at `9f2bda7`. `GamePresentation.controls` and
+the prototype `src/whistle` adapter are deleted. A session compiles its
+`GamePack.commands` into the server's neutral Whistle projection, publishes that
+projection and contextual subject IDs through the existing authorized observation,
+and sends later capability deltas only when the projection changes. Heartbeats no
+longer resend every command schema. The browser parses the neutral projection,
+adds its local bindings to the same command identities, and submits execution to
+the existing durable command path. Reset clears the old local contribution before
+a replacement world becomes ready, so controls from the prior world cannot issue
+against the new one. The joined boundary now provides:
 
 - one validation/schema source for each game command; no handwritten Whistle
   schema beside a different Zod admission schema;
@@ -711,17 +722,18 @@ requires:
   Hive during admission rather than implemented by registration churn;
 - mapping the portable typed result/failure into Hive's existing distinction
   between rejected intent, accepted intent and completed physical work; and
-- consumer proof that the same semantic schema and availability reach a human
-  client and headless controller through the existing authorized connection.
+- focused parser, projection, availability, contextual binding, reconnect,
+  capability-delta, reset and durable-submission evidence. The normal game proof
+  now includes those replacement laws.
 
 The Whistle ADR and current Botanical client boundary remain Botanical-owned.
 Hive owns the first real game consumer and its domain schemas. Whistle does not
 become the event log, policy store, gesture state, renderer, job engine or
 authority system.
 
-- Until that clean replacement is joined, shared presentation publishes bounded
-  entity scopes for facts/actions. The
-  client derives a contextual inspector from accepted selection and facts; it
+- Shared presentation still publishes bounded non-command facts and terrain and
+  environment marks. The client derives its contextual inspector from accepted
+  selection, canonical Whistle command IDs and current subject IDs; it
   does not know Colony IDs or grant command authority. World digging/building
   tools remain globally reachable. Preserve current Caps and gesture owners.
 - Reuse the retained baked alpha silhouette for object picking, with the actual
@@ -845,11 +857,11 @@ focused native support/deconstruction laws passed before the final TypeScript-on
 provider refactor; the later native rerun failed before compilation because the
 game build-cache volume was full, so it is not additional green evidence. Final
 touched-source Fallow reports no introduced dead code, complexity, duplication or
-style finding. Source is pushed at `e0095cc`; it is not yet player-visible or
-deployed. The next joined client change must expose teardown by selecting any
-finished construction through the same Whistle-backed command catalog. It must
-not require a currently free worker, publish a second command table, or retain the
-temporary `PresentationControl` transport beside Whistle.
+style finding. The source checkpoint is `e0095cc`. The joined Whistle client at
+`9f2bda7` exposes teardown by selecting finished construction through the same
+command catalog. Designation does not require a currently free worker, and no
+parallel `PresentationControl` transport remains. This joined source is not yet
+deployed.
 
 ### September 12 station/route and online-host correction
 
