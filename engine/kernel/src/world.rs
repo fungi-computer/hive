@@ -2815,7 +2815,7 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(source).is_some() { return Err("sealed resource cannot receive output".into()); }
         if self.ecs.get::<Container>(source).is_none() { return Err("finite resource source is not a container".into()); }
         let prepared = self.prepare_material_output(MaterialOutputSpec {
-            container: source_id.to_owned(), kind: resource.kind, quantity: resource.quantity, water_kg: None,
+            container: worker_id.to_owned(), kind: resource.kind, quantity: resource.quantity, water_kg: None,
         })?;
         self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
         Ok(self.publish_material_output(prepared))
