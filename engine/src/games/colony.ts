@@ -26,7 +26,7 @@ import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environ
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
 import { createColonyStockpileSystem } from "./colony-stockpile";
 import { z } from "zod";
-import type { EntityId, GamePack } from "../contracts";
+import type { EntityId, GamePack, ReadContext } from "../contracts";
 
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
 const colonyStockpileProfiles = {
@@ -148,7 +148,7 @@ const colonyInitial = [
   } }]),
 ];
 
-type CommandContext = Pick<import("../contracts").ReadContext, "query">;
+type CommandContext = Pick<ReadContext, "query">;
 
 const goInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),

@@ -11,6 +11,9 @@ import type {
   AdvanceResult,
   ActionResult,
   ActionOutcome,
+  AssignmentCandidate,
+  ComponentDefinition,
+  ComponentId,
   GameCommandResult,
   GamePack,
   KernelPort,
@@ -210,7 +213,7 @@ export class GameSession {
     return this.port.query(spec);
   }
   assign(
-    candidates: readonly import("../contracts").AssignmentCandidate[],
+    candidates: readonly AssignmentCandidate[],
     maxEdges = 128,
   ) {
     this.ensureLive();
@@ -218,7 +221,7 @@ export class GameSession {
   }
   private worldPoses(
     entities: readonly EntityId[],
-    reads: readonly import("../contracts").ComponentDefinition<any>[],
+    reads: readonly ComponentDefinition<any>[],
   ): readonly WorldPose[] {
     const declared = new Set(reads.map((component) => component.id));
     if (
@@ -293,7 +296,7 @@ export class GameSession {
   }
   private validateAuthoredEdits(
     creates: readonly EntityRecord[], removes: readonly EntityId[], writes: readonly WriteIntent[],
-    allowed: readonly import("../contracts").ComponentDefinition<any>[],
+    allowed: readonly ComponentDefinition<any>[],
     queuedCreates: readonly EntityRecord[] = [], queuedRemoves: readonly EntityId[] = [],
     incoming?: readonly EntityRecord[],
   ) {
@@ -308,7 +311,7 @@ export class GameSession {
     const requested = new Set<EntityId>(allRemoves);
     const created = new Set<EntityId>();
     const inspectValue = (name: string, value: unknown) => {
-      const definition = definitions.get(name as import("../contracts").ComponentId);
+      const definition = definitions.get(name as ComponentId);
       if (!definition || !definition.validate(value)) throw new Error(`invalid authored component ${name}`);
       for (const [field, kind] of Object.entries(definition.fields)) {
         const item = (value as Record<string, unknown>)[field];
@@ -332,7 +335,7 @@ export class GameSession {
     }
     for (const record of creates)
       for (const name of Object.keys(record.components))
-        if (!permitted.has(name as import("../contracts").ComponentId)) throw new Error(`undeclared authored creation ${name}`);
+        if (!permitted.has(name as ComponentId)) throw new Error(`undeclared authored creation ${name}`);
     for (const write of writes) { requested.add(checkedAuthoredId(write.entity)); inspectValue(write.component, write.value); }
     const known = new Set<EntityId>();
     const ids = [...requested];
@@ -353,7 +356,7 @@ export class GameSession {
     for (const id of requested)
       if (!created.has(id) && !removed.has(id) && !known.has(id)) throw new Error(`unknown authored reference ${id}`);
     const checkReferences = (name: string, value: unknown) => {
-      const definition = definitions.get(name as import("../contracts").ComponentId)!;
+      const definition = definitions.get(name as ComponentId)!;
       for (const [field,kind] of Object.entries(definition.fields)) {
         const ref = (value as Record<string,unknown>)[field];
         if ((kind === "entity" || kind === "nullable-entity") && ref !== null && !known.has(ref as EntityId))
@@ -386,7 +389,7 @@ export class GameSession {
   }
   private validateWrites(
     writes: readonly WriteIntent[],
-    allowed: readonly import("../contracts").ComponentDefinition<any>[],
+    allowed: readonly ComponentDefinition<any>[],
     knownTargets?: ReadonlySet<EntityId>,
     knownMembership?: ReadonlySet<string>,
   ): WriteIntent[] {
@@ -469,12 +472,12 @@ export class GameSession {
     const rows = this.port.query(spec).filter((row) => !removes.includes(row.id));
     const createdRows = creates.filter((record) => spec.components.every((component) => Object.hasOwn(record.components, component.id))).map((record) => ({
       id: record.id,
-      get: <V extends object>(definition: import("../contracts").ComponentDefinition<V>) => structuredClone(record.components[definition.id]) as V,
+      get: <V extends object>(definition: ComponentDefinition<V>) => structuredClone(record.components[definition.id]) as V,
     }));
     return [...rows, ...createdRows].map((row) => ({
       id: row.id,
       get: <V extends object>(
-        definition: import("../contracts").ComponentDefinition<V>,
+        definition: ComponentDefinition<V>,
       ) => {
         if (
           !spec.components.some((component) => component.id === definition.id)
@@ -542,7 +545,7 @@ export class GameSession {
       const nextFrontiers = new Map(this.impactFrontiers);
       let systemActionCount = 0;
       let routeRequests = 0;
-      let activeReads: readonly import("../contracts").ComponentDefinition<any>[] =
+      let activeReads: readonly ComponentDefinition<any>[] =
         [];
       const context: WriteContext = {
         clock,
