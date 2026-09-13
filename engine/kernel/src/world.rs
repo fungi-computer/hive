@@ -160,6 +160,37 @@ mod water_exchange_action_tests {
         assert_eq!(result["results"][0]["accepted"], false);
         assert_eq!(wrong.snapshot_json().unwrap(), before);
     }
+
+    #[test]
+    fn generated_field_water_draw_and_pour_preserve_exact_mass_across_restore() {
+        let mut kernel = kernel();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
+        let facts: serde_json::Value = serde_json::from_str(&kernel.environment_facts_json().unwrap()).unwrap();
+        let cell = facts["cells"].as_array().unwrap().iter().find(|cell| cell["kind"] == "void" && cell["level"].as_u64().unwrap_or(0) > 0).expect("construction fixture must expose positive field water");
+        let at = (cell["at"][0].as_i64().unwrap() as i32, cell["at"][1].as_i64().unwrap() as i32, cell["at"][2].as_i64().unwrap() as i32);
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let worker = kernel.entity("worker").unwrap();
+        let pose = Position { x: f64::from(at.0 + 1) * spacing[0], y: (f64::from(at.1) + 0.5) * spacing[1], z: f64::from(at.2) * spacing[2], facing: 0.0 };
+        kernel.ecs.entity_mut(worker).insert(pose);
+        kernel.ecs.entity_mut(kernel.entity("pail").unwrap()).insert(pose);
+        kernel.rebuild_physical_indexes(true).unwrap();
+        let portions = 1;
+        let before = kernel.environment_facts_json().unwrap();
+        let draw = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":at.0,"y":at.1,"z":at.2,"direction":"withdraw","portions":portions}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&draw).unwrap()["results"][0]["accepted"], true);
+        let water_lot = kernel.ids.values().copied().find(|entity| kernel.ecs.get::<Lot>(*entity).is_some_and(|lot| lot.kind == "water" && lot.container == "pail")).unwrap();
+        assert_eq!(kernel.ecs.get::<Lot>(water_lot).unwrap().quantity, portions);
+        let mass = kernel.ecs.get::<LotWater>(water_lot).unwrap().water_kg;
+        let after: serde_json::Value = serde_json::from_str(&kernel.environment_facts_json().unwrap()).unwrap();
+        let before_mass = before.parse::<serde_json::Value>().unwrap()["totalKg"].as_f64().unwrap();
+        assert!((before_mass - after["totalKg"].as_f64().unwrap() - mass).abs() < 1e-9);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        let pour = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"exchange-field-water","worker":"worker","vessel":"pail","x":at.0,"y":at.1,"z":at.2,"direction":"deposit","portions":portions}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&pour).unwrap()["results"][0]["accepted"], true);
+        assert_eq!(restored.environment_facts_json().unwrap().parse::<serde_json::Value>().unwrap()["totalKg"], before.parse::<serde_json::Value>().unwrap()["totalKg"]);
+    }
 }
 
 #[cfg(test)]
