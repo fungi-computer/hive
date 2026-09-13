@@ -55,6 +55,7 @@ export const terrainTargetMachine = createMachine({
     idle: { on: { ARM: { target: "armed", actions: "arm" } } },
     armed: { on: {
       ARM: { actions: "arm" },
+      ROTATE: { actions: "rotate" },
       CLEAR_PLACEMENT: { actions: "clearPlacement" },
       SET_ANCHOR: { actions: "anchor" },
       HOVER: { actions: "hover" },
@@ -65,6 +66,7 @@ export const terrainTargetMachine = createMachine({
   },
 }, { actions: {
       arm: assign(({ event }) => ({ control: event.control, anchor: null, hover: null })),
+      rotate: assign(({ event }) => ({ control: event.control })),
       clear: assign({ control: null, anchor: null, hover: null }),
       clearPlacement: assign({ anchor: null, hover: null }),
       anchor: assign(({ event }) => ({ anchor: event.anchor, hover: null })),

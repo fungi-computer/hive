@@ -350,7 +350,7 @@ export function createHiveClient({
       const control = selectedBuildControl(group, orientation);
       if (!control) return;
       exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" });
-      terrainTarget.send({ type: "ARM", control });
+      terrainTarget.send({ type: selectedGroup?.catalog === group.catalog ? "ROTATE" : "ARM", control });
       state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
       renderHud();
     };
@@ -1139,7 +1139,7 @@ export function createHiveClient({
       if (group) {
         const orientation = nextOrientation(group, control.input?.orientation);
         const rotated = selectedBuildControl(group, orientation);
-        if (rotated) terrainTarget.send({ type: "ARM", control: rotated });
+        if (rotated) terrainTarget.send({ type: "ROTATE", control: rotated });
         renderHud(); draw();
       }
       return;
