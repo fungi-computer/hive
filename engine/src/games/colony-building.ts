@@ -37,6 +37,14 @@ function areaCells(area: { start: [number, number, number]; end: [number, number
 /** Player placement chooses content; native admission owns cost and geometry. */
 export const colonyBuildCommand = command({
   title: "Build structure", category: "Construction", description: "Place a construction plan on a visible world surface.",
+  localPresentation: { bindings: [
+    ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
+      id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: "world-surface" as const,
+      designation: (catalog === "timber-wall" ? ["point", "line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "line" | "rectangle")[],
+      preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? { orientation: "north" } : {}) },
+    })),
+    ...["north", "east", "south", "west"].map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface" as const, designation: ["point"] as const, preset: { catalog: "timber-stair", orientation } })),
+  ] },
   input: buildInput,
   reads: [ConstructionSite], writes: [],
   run(context, input) {

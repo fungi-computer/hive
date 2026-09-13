@@ -590,6 +590,10 @@ export interface GameCommandDefinition {
   readonly title: string;
   readonly category: string;
   readonly description: string;
+  /** Client-local acquisition metadata for the existing Hive gestures. */
+  readonly localPresentation?: {
+    readonly bindings: readonly GameLocalBinding[];
+  };
   /** Host-owned discoverability state, evaluated against the committed world. */
   readonly availability?: (
     context: Pick<ReadContext, "query">,
@@ -608,6 +612,15 @@ export interface GameCommandDefinition {
     input: unknown,
   ) => GameCommandResult;
 }
+export type GameLocalBinding = Readonly<{
+  readonly id: string;
+  readonly label: string;
+  readonly selection?: "entities" | Readonly<{ readonly field: string; readonly cardinality: "one" }>;
+  readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
+  readonly designation?: readonly ("point" | "line" | "rectangle" | "entities")[];
+  readonly preset?: JsonValue;
+}>;
+export type JsonValue = null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 export type GameCommandAvailability =
   | { readonly status: "available" }
   | { readonly status: "unavailable"; readonly reason: string };

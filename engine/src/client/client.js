@@ -44,8 +44,11 @@ import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
-import { GAME_BINDINGS } from "./game-bindings.js";
-import { createLocalGameWhistle } from "./whistle-runtime.js";
+import { colonyPack } from "../games/colony.ts";
+import { survivalPack } from "../games/survival.ts";
+import { formationsPack } from "../games/formations.ts";
+import { piratesPack } from "../games/pirates.ts";
+import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -101,7 +104,8 @@ export function createHiveClient({
   const aimGesture = createActor(aimGestureMachine).start();
   const terrainTarget = createActor(terrainTargetMachine).start();
   const terrainArea = createActor(terrainAreaGestureMachine).start();
-  const localWhistle = createLocalGameWhistle({ bindings: GAME_BINDINGS[mode] ?? [], submit: command => submit(command) });
+  const packs = { colony: colonyPack, survival: survivalPack, formations: formationsPack, pirates: piratesPack };
+  const localWhistle = createLocalGameWhistle({ bindings: localBindings(packs[mode]), submit: command => submit(command) });
   function localControls() {
     return localWhistle.whistle.snapshot().menu.flatMap(row => {
       const presentation = row.action?.presentation;
