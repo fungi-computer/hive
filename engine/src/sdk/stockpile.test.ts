@@ -139,3 +139,27 @@ test("capacity limits the planned partial quantity and equal priority is not a r
   assert.equal(task.quantity, 1);
   assert.equal(task.sourceLot, entity("lot.ground"));
 });
+
+test("one stockpile demand expands into independent legs and counts incoming capacity", () => {
+  const zone = entity("zone.parallel");
+  const destination = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
+  const source = entity("ground.parallel");
+  const first = entity("lot.parallel.a");
+  const second = entity("lot.parallel.b");
+  const third = entity("lot.parallel.c");
+  const rows = [
+    row(destination.id, StockpileCell, destination.components[StockpileCell.id]),
+    row(destination.id, Container, { capacity: 3 }),
+    row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    row(source, GroundStock, {}), row(source, Container, { capacity: 8 }),
+    row(first, MaterialLot, { kind: "wood", quantity: 1, container: source }),
+    row(second, MaterialLot, { kind: "wood", quantity: 1, container: source }),
+    row(third, MaterialLot, { kind: "wood", quantity: 1, container: source }),
+  ];
+  const state = fake(rows);
+  const profile = { filterProfiles: { materials: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } };
+  const created = planStockpileDeliveries(state.context, profile);
+  assert.equal(created.length, 3);
+  assert.deepEqual(created.map((id) => (rows.find((candidate) => candidate.id === id)!.values.get(DeliveryTask.id) as { sourceLot: EntityId }).sourceLot), [first, second, third]);
+  assert.equal(planStockpileDeliveries(state.context, profile).length, 0);
+});

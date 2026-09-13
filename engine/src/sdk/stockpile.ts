@@ -78,12 +78,15 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     if (total <= MAX_QUANTITY) quantities.set(lot.container, total);
   }
   const claimedLots = new Set<EntityId>();
-  const claimedCells = new Set<EntityId>();
+  const incomingByCell = new Map<EntityId, number>();
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
     if (task.phase === "complete") continue;
     claimedLots.add(task.sourceLot);
-    if (cellIds.has(task.destination)) claimedCells.add(task.destination);
+    if (cellIds.has(task.destination) && validInt(task.quantity) && task.quantity > 0) {
+      const incoming = (incomingByCell.get(task.destination) ?? 0) + task.quantity;
+      if (incoming <= MAX_QUANTITY) incomingByCell.set(task.destination, incoming);
+    }
   }
   const orderedCells = [...cells].sort((a, b) => {
     const left = a.get(StockpileCell), right = b.get(StockpileCell);
@@ -94,7 +97,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container) || exhaustedFinite.has(lot.container)) && !claimedLots.has(id) && lot.quantity > 0 && validInt(lot.quantity))
     .sort((a, b) => compareId(a.id, b.id));
   for (const row of orderedCells) {
-    if (claimedCells.has(row.id) || sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
+    if (sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
     const policy = row.get(StockpileCell);
     const profile = options.filterProfiles[policy.filterProfile];
     const container = containers.get(row.id);
@@ -107,28 +110,28 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     const accepts = (material: string) => !deniedMaterials.has(material) &&
       (allowedMaterials.has(material) || (typeof profile.materialCategories?.[material] === "string" && categories.has(profile.materialCategories[material])));
     const used = quantities.get(row.id) ?? 0;
-    const free = container.capacity - used;
+    let free = container.capacity - used - (incomingByCell.get(row.id) ?? 0);
     if (free <= 0) continue;
-    const source = sourceLots.find(({ lot }) => {
-      if (!accepts(lot.kind) || sealed.has(lot.container) || lot.container === row.id || (quantities.get(lot.container) ?? 0) > MAX_QUANTITY) return false;
-      const prior = sourceCell.get(lot.container);
-      // Re-hauling is only useful toward a strictly better priority cell.
-      return !prior || policy.priority > prior.priority;
-    });
-    if (!source) continue;
-    const sourceContainer = source.lot.container;
-    if (!containers.has(sourceContainer)) continue;
-    const quantity = Math.min(source.lot.quantity, free);
-    if (!validInt(quantity) || quantity <= 0) continue;
-    const id = taskId(row.id, source.id);
-    if (tasks.some(task => task.id === id)) continue;
-    context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
-      actor: null, sourceLot: source.id, source: sourceContainer, destination: row.id,
-      material: source.lot.kind, quantity, phase: "idle",
-    }}});
-    created.push(id);
-    claimedLots.add(source.id);
-    claimedCells.add(row.id);
+    for (const source of sourceLots) {
+      if (free <= 0) break;
+      if (!accepts(source.lot.kind) || sealed.has(source.lot.container) || source.lot.container === row.id || (quantities.get(source.lot.container) ?? 0) > MAX_QUANTITY) continue;
+      const prior = sourceCell.get(source.lot.container);
+      if (prior && policy.priority <= prior.priority) continue;
+      const sourceContainer = source.lot.container;
+      if (!containers.has(sourceContainer)) continue;
+      const quantity = Math.min(source.lot.quantity, free);
+      if (!validInt(quantity) || quantity <= 0) continue;
+      const id = taskId(row.id, source.id);
+      if (tasks.some(task => task.id === id)) continue;
+      context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
+        actor: null, sourceLot: source.id, source: sourceContainer, destination: row.id,
+        material: source.lot.kind, quantity, phase: "idle",
+      }}});
+      created.push(id);
+      claimedLots.add(source.id);
+      free -= quantity;
+      incomingByCell.set(row.id, (incomingByCell.get(row.id) ?? 0) + quantity);
+    }
   }
   return created;
 }
