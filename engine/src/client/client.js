@@ -46,7 +46,7 @@ import { buildControls, placementMode, nextOrientation, selectedBuildControl } f
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { GAME_BINDINGS } from "./game-bindings.js";
 import { createLocalGameWhistle } from "./whistle-runtime.js";
-import { bindingCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
+import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -1079,7 +1079,9 @@ export function createHiveClient({
     }
     if (control?.target === "terrain-area" || control?.target === "world-surface") {
       const endpoints = designationEndpoints(start, current, mode, 256);
-      executeWhistle(control, terrainAreaCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }).input);
+      executeWhistle(control, control.command === "build"
+        ? buildPlacementCommand(control, state.selectedIds, { ...endpoints, mode }).input
+        : terrainAreaCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }).input);
     }
     renderHud(); draw(); return;
   }

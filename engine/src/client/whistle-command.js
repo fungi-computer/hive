@@ -47,3 +47,17 @@ export function terrainAreaCommand(control, selected, area) {
   const selection = { start: [...area.start], end: [...area.end] };
   return { ...command, input: jsonInput({ ...(input ?? {}), ...(control.target === "world-surface" ? { target: { area: selection } } : { area: selection }) }) };
 }
+
+/** Bind a completed shared placement to the one build command. */
+export function buildPlacementCommand(control, selected, designation) {
+  if (control?.command !== "build" || control.target !== "world-surface")
+    throw new Error("binding is not a world-surface build");
+  if (!designation || !Array.isArray(designation.cells) || designation.cells.length === 0)
+    throw new Error("build designation has no cells");
+  if (designation.cells.length === 1)
+    return terrainCellCommand(control, selected, { cell: designation.cells[0] });
+  return terrainAreaCommand(control, selected, {
+    start: designation.start,
+    end: designation.end,
+  });
+}
