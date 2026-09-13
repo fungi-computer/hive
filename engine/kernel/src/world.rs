@@ -455,6 +455,71 @@ mod construction_tests {
     }
 
     #[test]
+    fn upper_floor_waits_for_completed_wall_then_binds_from_ground() {
+        let (mut kernel, surface, _) = world();
+        let environment = kernel.environment.as_mut().unwrap();
+        environment.structures.get_mut("floor").unwrap().work_reach_below_cells = 4;
+        let mut definition: serde_json::Value = serde_json::from_str(&environment.definition).unwrap();
+        let floor = definition["structures"]["catalog"].as_array_mut().unwrap()
+            .iter_mut().find(|entry| entry["id"] == "floor").unwrap();
+        floor["workReachBelowCells"] = json!(4);
+        environment.definition = serde_json::to_string(&definition).unwrap();
+
+        let floor_y = surface.y + 4;
+        let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
+            "delta":0.0,"writes":[],"actions":[{
+                "kind":"plan-construction","catalog":"floor","site":"wall-top-floor",
+                "x":surface.x,"y":floor_y,"z":surface.z,"orientation":"north"
+            }]
+        }).to_string()).unwrap()).unwrap();
+        assert_eq!(planned["results"][0]["accepted"], true);
+        let before: serde_json::Value = serde_json::from_str(
+            &kernel.construction_access_json("[\"wall-top-floor\"]").unwrap(),
+        ).unwrap();
+        assert_eq!(before[0]["support"], "waitingForSupport");
+
+        let wall = crate::structure_geometry::StaticInstance::Wall {
+            id: "completed-wall".into(),
+            base: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z },
+            height: 4,
+        };
+        let prepared = kernel.environment.as_mut().unwrap().world
+            .prepare_structures(vec![wall]).unwrap().unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+
+        let after: serde_json::Value = serde_json::from_str(
+            &kernel.construction_access_json("[\"wall-top-floor\"]").unwrap(),
+        ).unwrap();
+        assert_eq!(after[0]["support"], "ready");
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let ground_y = (f64::from(surface.y) + 0.5) * spacing[1];
+        let contacts = after[0]["contacts"].as_array().unwrap();
+        assert_eq!(contacts, &vec![
+            json!({"x":surface.x as f64 * spacing[0], "y":ground_y, "z":(surface.z as f64 - 1.0) * spacing[2], "frame":null, "kind":"origin"}),
+            json!({"x":(surface.x as f64 + 1.0) * spacing[0], "y":ground_y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}),
+            json!({"x":surface.x as f64 * spacing[0], "y":ground_y, "z":(surface.z as f64 + 1.0) * spacing[2], "frame":null, "kind":"origin"}),
+            json!({"x":(surface.x as f64 - 1.0) * spacing[0], "y":ground_y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}),
+        ]);
+        let contact = Point {
+            x: contacts[0]["x"].as_f64().unwrap(),
+            y: contacts[0]["y"].as_f64().unwrap(),
+            z: contacts[0]["z"].as_f64().unwrap(),
+            frame: None,
+        };
+        let bound: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
+            "delta":0.0,"writes":[],"actions":[{
+                "kind":"bind-construction-stage","site":"wall-top-floor","contact":contact
+            }]
+        }).to_string()).unwrap()).unwrap();
+        assert_eq!(bound["results"][0]["accepted"], true);
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+    }
+
+    #[test]
     fn construction_access_stair_groups_origin_and_landing() {
         let (mut kernel, surface, _) = world();
         kernel.environment.as_mut().unwrap().structures.insert("stair".into(), crate::environment_definition::StructureDefinition {
