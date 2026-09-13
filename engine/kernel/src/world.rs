@@ -858,6 +858,57 @@ impl Kernel {
         )?;
         Ok(PreparedRoute { points: route, terrain: None })
     }
+
+    /// Price a batch of terrain destinations from one actor with one shared
+    /// frontier. In-flight routes retain their existing per-route prefix
+    /// semantics and use the authoritative single-destination preparation.
+    pub(super) fn route_for_many(
+        &mut self, entity: Entity, start: Position, destinations: &[Point],
+    ) -> Result<Vec<Result<PreparedRoute>>> {
+        if destinations.is_empty() { return Ok(Vec::new()); }
+        let frame = self.support_id(entity);
+        if frame.is_some() || self.ecs.get::<Traversal>(entity).is_none() || self.terrain_routes.contains_key(&entity) {
+            return Ok(destinations.iter().map(|target| self.route_for(entity, start, target)).collect());
+        }
+        let capability = *self.ecs.get::<Traversal>(entity).ok_or("terrain traversal needs capability")?;
+        let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+        let spacing = environment.world.cell_spacing_m();
+        let stairs = environment.world.stair_edges().to_vec();
+        let to_cell = |point: &Point| -> Result<crate::generation::Cell> {
+            let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
+            if !values.iter().all(|value| value.is_finite() && *value >= f64::from(i32::MIN) && *value <= f64::from(i32::MAX)) {
+                return Err("terrain route metric position is not finite".into());
+            }
+            Ok(crate::generation::Cell { x: values[0].round() as i64, y: values[1].round() as i32, z: values[2].round() as i64 })
+        };
+        let start_point = navigation::point(start);
+        let start_cell = to_cell(&start_point)?;
+        let targets: Vec<_> = destinations.iter().map(to_cell).collect::<Result<_>>()?;
+        let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells };
+        let blocked = self.blocked_by_frame.get(&frame).cloned().ok_or("missing obstacle frame index")?;
+        let obstacle = |cell: crate::generation::Cell| {
+            i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x, z)| {
+                let y = ((f64::from(cell.y) + 0.5) * spacing[1]).round() as i32;
+                blocked.contains(&(x, y, z))
+            })
+        };
+        let mut query = |cell| environment.world.traversal_material(cell);
+        let paths = crate::terrain_route::search_many_with_blocked_and_stairs(start_cell, &targets, config, &mut query, &obstacle, &stairs)?;
+        let revision = environment.world.terrain_revision();
+        paths.into_iter().map(|path| {
+            match path {
+            Ok(path) => {
+                let mut points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
+                if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
+                if points.len() > 1 { points.remove(0); }
+                if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&path, &stairs)? > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
+                let target = points.first().cloned();
+                Ok(PreparedRoute { points: points.into_iter().collect(), terrain: Some(TerrainRouteState { path, revision: Some(revision), waiting: false, suspended: false, origin: start_point.clone(), target }) })
+            }
+            Err(error) => Err(error),
+            }
+        }).collect()
+    }
     fn install_route(&mut self, entity: Entity, prepared: PreparedRoute) {
         self.routes.insert(entity, prepared.points);
         match prepared.terrain {
