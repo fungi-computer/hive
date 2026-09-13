@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
-import { colonyBuildCommand } from "./colony-building";
+import { colonyBuildBindingDetail, colonyBuildCommand } from "./colony-building";
 import { entity } from "../sdk/authoring";
 
 test("building command preserves four stair directions without selecting a contact", () => {
@@ -16,6 +16,16 @@ test("building command preserves four stair directions without selecting a conta
     assert.equal(action.orientation, orientation);
     assert.equal(action.y, 17);
   }
+});
+
+test("local build detail follows the authoritative definition supplied at composition time", () => {
+  const environment = { structures: { catalog: [
+    { id: "thing", materials: [{ kind: "wood", quantity: 3 }], shape: { kind: "fixture", footprint: [[0, 0], [1, 0], [0, 1]] } },
+  ] } } as any;
+  const placement = { thing: { alignment: "fixed", facing: {} } } as any;
+  assert.equal(colonyBuildBindingDetail("thing", "north", environment, placement), "3 wood · 2×2 · click point · north");
+  environment.structures.catalog[0].materials[0].quantity = 7;
+  assert.equal(colonyBuildBindingDetail("thing", "north", environment, placement), "7 wood · 2×2 · click point · north");
 });
 test("building designation leaves support and access to native staging", () => {
   assert.equal(colonyBuildCommand.invoke({ query: () => [], physicalContacts: () => [] },

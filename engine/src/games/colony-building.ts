@@ -21,6 +21,23 @@ const buildInput = z.object({
   target,
 }).strict();
 
+/** Build copy is composed once beside the authoritative Goblin definition. */
+export function colonyBuildBindingDetail(catalog: string, orientation?: string, environment = colonyEnvironment, placement = colonyPlacement): string {
+  const definition = environment.structures.catalog.find(item => item.id === catalog);
+  const policy = placement[catalog];
+  if (!definition || !policy) throw new Error(`Unknown building presentation ${catalog}`);
+  const cost = definition.materials.map(material => `${material.quantity} ${material.kind}`).join(" + ");
+  const shape = definition.shape;
+  const footprint = shape.kind === "fixture" && shape.footprint.length
+    ? `${Math.max(...shape.footprint.map(([x]) => x)) - Math.min(...shape.footprint.map(([x]) => x)) + 1}×${Math.max(...shape.footprint.map(([, z]) => z)) - Math.min(...shape.footprint.map(([, z]) => z)) + 1}`
+    : shape.kind === "stair" ? `${shape.run}×${shape.rise} stair` : shape.kind;
+  const gesture = policy.alignment === "stroke"
+    ? "drag line · auto-facing"
+    : shape.kind === "floor" || shape.kind === "cover" ? "drag rectangle" : "click point";
+  const facing = orientation ?? (policy.alignment === "stroke" ? "auto-facing" : "cardinal");
+  return `${cost} · ${footprint} · ${gesture} · ${facing}`;
+}
+
 function areaCells(area: { start: [number, number, number]; end: [number, number, number] }): [number, number, number][] {
   const start = area.start, end = area.end;
   if (start[1] !== end[1])
@@ -41,9 +58,10 @@ export const colonyBuildCommand = command({
     ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
       id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: "world-surface" as const,
       designation: (catalog === "timber-wall" ? ["point", "line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "line" | "rectangle")[],
+      detail: colonyBuildBindingDetail(catalog, catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? "north" : undefined),
       preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? { orientation: "north" } : {}) },
     })),
-    ...["north", "east", "south", "west"].map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface" as const, designation: ["point"] as const, preset: { catalog: "timber-stair", orientation } })),
+    ...["north", "east", "south", "west"].map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface" as const, designation: ["point"] as const, detail: colonyBuildBindingDetail("timber-stair", orientation), preset: { catalog: "timber-stair", orientation } })),
   ] },
   input: buildInput,
   reads: [ConstructionSite], writes: [],

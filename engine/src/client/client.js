@@ -40,13 +40,11 @@ import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js
 
 import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
-import { projectContextualPresentation } from "./contextual-presentation.js";
+import { omitControlsById, projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
-import { buildCatalogDetails, buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
+import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { colonyPack } from "../games/colony.ts";
-import { colonyEnvironment } from "../games/colony-environment.ts";
-import { colonyPlacement } from "../games/colony-placement.ts";
 import { survivalPack } from "../games/survival.ts";
 import { formationsPack } from "../games/formations.ts";
 import { piratesPack } from "../games/pirates.ts";
@@ -438,10 +436,10 @@ export function createHiveClient({
         const active = selectedGroup?.catalog === group.catalog;
         const orientation = active ? selectedBuild?.input?.orientation : group.orientations[0];
         const control = selectedBuildControl(group, orientation);
-        const details = mode === "colony" ? buildCatalogDetails(group.catalog, colonyEnvironment, colonyPlacement, group.orientations) : null;
+        const details = control?.detail ?? null;
         return React.createElement("div", { className: "hive-build-entry", key: group.catalog },
-          React.createElement(Button, { size: "sm", variant: active ? "secondary" : "outline", "aria-pressed": active, disabled: !state.ready || control?.availability?.status === "unavailable", title: control?.availability?.status === "unavailable" ? control.availability.reason : details?.summary, onClick: () => chooseBuild(group, orientation) }, details ? `${control?.label ?? group.catalog} · ${details.cost}` : (control?.label ?? group.catalog)),
-          details ? React.createElement("small", { className: "hive-build-detail" }, `${details.footprint} · ${details.gesture} · ${details.orientation}`) : null,
+          React.createElement(Button, { size: "sm", variant: active ? "secondary" : "outline", "aria-pressed": active, disabled: !state.ready || control?.availability?.status === "unavailable", title: control?.availability?.status === "unavailable" ? control.availability.reason : details, onClick: () => chooseBuild(group, orientation) }, control?.label ?? group.catalog),
+          details ? React.createElement("small", { className: "hive-build-detail" }, details) : null,
           active && group.orientations.length > 1 ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => chooseBuild(group, nextOrientation(group, orientation)), "aria-label": "Rotate building" }, "↻") : null,
           active && group.orientations.length > 1 ? React.createElement("small", null, orientation) : null,
         );
@@ -652,7 +650,7 @@ export function createHiveClient({
           ),
           renderPresentationGroup("World actions", {
             ...contextualPresentation.world,
-            controls: contextualPresentation.world.controls.filter((control) => control.id !== "sow-mugwort"),
+            controls: omitControlsById(contextualPresentation.world.controls.filter((control) => control.id !== "sow-mugwort"), buildIds),
           }),
           React.createElement(
             "a",

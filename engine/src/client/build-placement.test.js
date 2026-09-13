@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCatalogDetails, buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl } from "./build-placement.js";
+import { buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl } from "./build-placement.js";
 
 const controls = [
   { id: "floor", command: "build", target: "world-surface", input: { catalog: "timber-floor" }, designation: ["point", "rectangle"] },
@@ -40,16 +40,4 @@ test("placement hint distinguishes a usable preview, waiting admission, and reje
   assert.equal(placementHint({ ...floor, availability: { status: "unavailable", reason: "No support" } }), "Waiting: No support");
   assert.equal(placementHint(floor, { area: { value: "dragging", rejection: "Selection exceeds the visible world" } }), "Rejected: Selection exceeds the visible world");
   assert.equal(placementHint(floor, { area: { value: "dragging", rejection: null } }), "Preview: 0 cells · release to place");
-});
-
-test("build catalog details follow authoritative definitions and placement policy", () => {
-  const environment = { structures: { catalog: [
-    { id: "thing", materials: [{ kind: "wood", quantity: 3 }], shape: { kind: "fixture", footprint: [[0, 0], [1, 0], [0, 1]] } },
-  ] } };
-  const placement = { thing: { alignment: "fixed", facing: {} } };
-  assert.deepEqual(buildCatalogDetails("thing", environment, placement, ["north", "east"]), {
-    cost: "3 wood", footprint: "2×2", gesture: "click point", orientation: "north/east", summary: "3 wood · 2×2 · click point · north/east",
-  });
-  environment.structures.catalog[0].materials[0].quantity = 7;
-  assert.equal(buildCatalogDetails("thing", environment, placement).cost, "7 wood");
 });

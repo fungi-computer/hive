@@ -32,6 +32,12 @@ export function projectContextualPresentation({
   };
 }
 
+/** Keep a semantic command in its owning catalog instead of duplicating it in a sidebar. */
+export function omitControlsById(controls, omittedIds) {
+  const omitted = new Set(omittedIds ?? []);
+  return (controls ?? []).filter((control) => !omitted.has(control.id));
+}
+
 function partitionFacts(facts, selected) {
   const visible = facts.filter(
     (fact) =>

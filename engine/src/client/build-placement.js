@@ -62,24 +62,3 @@ export function placementHint(control, { area, hover, cells = 0 } = {}) {
     ? "Choose a visible ground or structure surface"
     : "Choose a visible terrain top";
 }
-
-/** Derive the compact catalog copy from the game definition and placement policy. */
-export function buildCatalogDetails(catalog, environment, placement, allowedOrientations = []) {
-  const definition = environment?.structures?.catalog?.find((entry) => entry.id === catalog);
-  const policy = placement?.[catalog];
-  if (!definition || !policy) return null;
-  const cost = definition.materials.map(({ kind, quantity }) => `${quantity} ${kind}`).join(" + ");
-  const shape = definition.shape;
-  const footprint = shape.kind === "fixture" && Array.isArray(shape.footprint)
-    ? `${Math.max(...shape.footprint.map(([x]) => x)) - Math.min(...shape.footprint.map(([x]) => x)) + 1}×${Math.max(...shape.footprint.map(([, z]) => z)) - Math.min(...shape.footprint.map(([, z]) => z)) + 1}`
-    : shape.kind === "stair" ? `${shape.run}×${shape.rise} stair` : shape.kind;
-  const gesture = policy.alignment === "stroke"
-    ? "drag line · auto-facing"
-    : definition.shape.kind === "floor" || definition.shape.kind === "cover"
-      ? "drag rectangle"
-      : "click point";
-  const orientation = allowedOrientations.length > 1
-    ? allowedOrientations.join("/")
-    : policy.alignment === "stroke" ? "auto-facing" : allowedOrientations[0] ?? "fixed";
-  return Object.freeze({ cost, footprint, gesture, orientation, summary: `${cost} · ${footprint} · ${gesture} · ${orientation}` });
-}
