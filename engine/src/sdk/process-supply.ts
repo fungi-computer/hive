@@ -33,7 +33,9 @@ export function processSupplyPhase(ctx: WriteContext): void {
     waiting.push({ row, process, requirements });
   }
   const destinations = new Set(waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => entity(`${process.station}:${input.port}`))));
-  const sourceIds = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).sort((a, b) => a.localeCompare(b)).slice(0, 64);
+  const eligibleSources = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).sort((a, b) => a.localeCompare(b));
+  const sourceStart = eligibleSources.length ? (Math.floor(ctx.clock.tick / 4) * 64) % eligibleSources.length : 0;
+  const sourceIds = Array.from({ length: Math.min(64, eligibleSources.length) }, (_, offset) => eligibleSources[(sourceStart + offset) % eligibleSources.length]!);
   const supply: SiteSupplyRequirement[] = waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity })));
   if (supply.length) planSiteSupplies(ctx, { sourceContainers: sourceIds, batchQuantity: 1, requirements: supply });
   for (const { row, process, requirements } of waiting) {
