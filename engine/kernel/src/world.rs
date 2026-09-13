@@ -224,7 +224,7 @@ mod process_request_tests {
     #[test] fn zero_delta_pause_and_repeated_attend_do_not_cross_twice() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 0.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.attend_process("worker", &process, 2.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().clone(); assert_eq!((state.stage_index, state.phase), (1, ProcessPhase::Waiting)); kernel.attend_process("worker", &process, 0.0).unwrap_err(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().stage_index, 1); }
     #[test] fn elapsed_stage_has_no_same_tick_credit_and_survives_worker_release() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 2.0).unwrap(); kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.revision += 1; kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
     #[test] fn worker_release_allows_replacement_and_save_reload_preserves_process() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 1.0).unwrap(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); kernel.advance_staged_processes(1.0).unwrap(); assert!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().worker.is_none()); let saved = kernel.snapshot_entities_json().unwrap(); let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap(); assert_eq!(restored.ecs.get::<StagedProcess>(restored.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
-    #[test] fn blocked_herbal_transition_has_no_physical_effect() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station").unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let mut worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); kernel.attend_process("worker.blocked", &process, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Blocked); assert!(state.worker.is_none()); }
+    #[test] fn process_transition_consumes_exact_bound_portion() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station").unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); kernel.attend_process("worker.blocked", &process, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Complete); assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().quantity, 0); }
 
     #[test]
     fn process_station_rejects_different_active_definition() {
@@ -2909,14 +2909,48 @@ impl Kernel {
         let stage = definition.stages.get(state.stage_index as usize).ok_or("process stage is missing")?;
         if state.progress_seconds < stage.duration_seconds { self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(()); }
         let transition = &stage.transition;
-        if !transition.consume_roles.is_empty() || transition.emission.is_some() || !transition.outputs.is_empty() {
-            state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = "transition-unimplemented".into();
-            self.ecs.entity_mut(self.entity(process_id)?).insert(state); return Ok(());
+        if let Err(reason) = self.execute_process_transition(process_id, transition) {
+            state.phase = ProcessPhase::Blocked; state.worker = None; state.blocked_reason = if valid_id(&reason) { reason } else { "transition-blocked".into() };
+            self.ecs.entity_mut(self.entity(process_id)?).insert(state); self.refresh_state_weight(); return Ok(());
         }
         if usize::from(state.stage_index + 1) >= definition.stages.len() { self.remove_process_bindings(process_id)?; state.phase = ProcessPhase::Complete; state.worker = None; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; state.worker = None; }
         self.ecs.entity_mut(self.entity(process_id)?).insert(state);
         self.refresh_state_weight();
         Ok(())
+    }
+
+    fn execute_process_transition(&mut self, process_id: &str, transition: &crate::staged_process::ProcessTransition) -> Result<()> {
+        let bindings = self.process_bindings(process_id);
+        let mut portions = Vec::new();
+        let mut roles = BTreeSet::new();
+        for role in &transition.consume_roles { let binding = bindings.iter().find(|b| b.role == *role).ok_or("transition-missing-binding")?; portions.push(MaterialPortion { lot: binding.lot.clone(), quantity: binding.quantity }); roles.insert(role.clone()); }
+        if let Some(emission) = &transition.emission { let binding = bindings.iter().find(|b| b.role == emission.role).ok_or("transition-missing-emission-binding")?; portions.push(MaterialPortion { lot: binding.lot.clone(), quantity: binding.quantity }); roles.insert(emission.role.clone()); }
+        let prepared_consumption = if portions.is_empty() { None } else { Some(material_consumption::prepare(&self.material_consumption_owner, self.revision, &self.ecs, &self.ids, &self.registry, self.state_weight, &portions)?) };
+        let mut prepared_outputs = Vec::new();
+        for output in &transition.outputs {
+            let container = match &output.destination {
+                crate::staged_process::OutputDestination::StationPort { port } => format!("{}:{}", self.ecs.get::<StagedProcess>(self.entity(process_id)?) .ok_or("process-missing")?.station, port),
+                crate::staged_process::OutputDestination::RetainedContainer { role } => bindings.iter().find(|b| b.role == *role).ok_or("output-retained-binding-missing")?.lot.clone(),
+            };
+            prepared_outputs.push(self.prepare_material_output(MaterialOutputSpec { container, kind: output.material.clone(), quantity: output.quantity, water_kg: None })?);
+        }
+        let emission_source = if let Some(emission) = &transition.emission {
+            let station = self.ecs.get::<StagedProcess>(self.entity(process_id)?) .ok_or("process-missing")?.station.clone();
+            let source_port = bindings.iter().find(|b| b.role == emission.role).ok_or("transition-missing-emission-binding")?;
+            let lot = self.ecs.get::<Lot>(self.entity(&source_port.lot)?) .ok_or("transition-emission-lot-missing")?;
+            let emitter_id = lot.container.clone(); let emitter = self.ecs.get::<Emitter>(self.entity(&emitter_id)?) .ok_or("transition-emitter-missing")?;
+            if emitter.catalog != emission.catalog { return Err("transition-emitter-catalog-mismatch".into()); }
+            let definition = self.environment.as_ref().ok_or("transition-needs-environment")?.emissions.get(&emission.catalog).ok_or("transition-emission-definition-missing")?.definition().clone();
+            let target = self.world_pose(&emitter_id)?; let env = self.environment.as_mut().ok_or("transition-needs-environment")?; let spacing = env.world.cell_spacing_m(); let cell = crate::generation::Cell { x: (target.x / spacing[0] + 0.5).floor() as i64, y: (target.y / spacing[1] + 0.5).floor() as i32, z: (target.z / spacing[2] + 0.5).floor() as i64 }; let air = env.atmosphere.as_mut().ok_or("transition-air-unavailable")?; if !air.can_emit(&mut env.world, cell)? { return Err("transition-air-unavailable".into()); }
+            if definition.material_kind != lot.kind || definition.quantity != source_port.quantity { return Err("transition-emission-material-mismatch".into()); }
+            if env.paid_emissions.contains_key(&station) { return Err("transition-emission-already-paid".into()); }
+            Some((station, environment_runtime::PaidEmission { catalog: definition.id, cell, elapsed_s: 0.0, admitted_revision: self.revision }))
+        } else { None };
+        if let Some(prepared) = prepared_consumption { material_consumption::publish(prepared, &self.material_consumption_owner, self.revision, &mut self.ecs, &mut self.state_weight)?; }
+        for prepared in prepared_outputs { self.publish_material_output(prepared); }
+        if let Some((station, paid)) = emission_source { self.environment.as_mut().unwrap().paid_emissions.insert(station, paid); }
+        for role in roles { let ids: Vec<String> = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).filter(|b| b.process == process_id && b.role == role).map(|_| id.clone())).collect(); for id in ids { let entity = self.ids.remove(&id).unwrap(); self.known.remove(&id); self.ecs.despawn(entity); } }
+        self.bound_process_lots = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|b| b.lot.clone())).collect(); self.refresh_state_weight(); Ok(())
     }
 
     fn advance_staged_processes(&mut self, delta: f64) -> Result<()> {
