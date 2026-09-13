@@ -36,6 +36,8 @@ struct DefinitionInput {
     #[serde(default)]
     emissions: Vec<crate::emission_definition::EmissionDefinition>,
     #[serde(default)]
+    processes: Vec<crate::staged_process::ProcessDefinition>,
+    #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
 }
 #[derive(Debug, Deserialize)]
@@ -213,6 +215,7 @@ pub struct PreparedDefinition {
     pub structures: BTreeMap<String, StructureDefinition>,
     pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     pub emissions: crate::emission_definition::EmissionCatalog,
+    pub processes: crate::staged_process::ProcessCatalog,
 }
 
 pub struct BuiltEnvironment {
@@ -222,11 +225,12 @@ pub struct BuiltEnvironment {
     pub structures: BTreeMap<String, StructureDefinition>,
     pub atmosphere: Option<crate::terrain_atmosphere::TerrainAtmosphereConfig>,
     pub emissions: crate::emission_definition::EmissionCatalog,
+    pub processes: crate::staged_process::ProcessCatalog,
 }
 pub fn build_from_json(input: &str) -> Result<BuiltEnvironment, String> {
     let prepared = prepare_definition_mode(input, true)?;
     let world = TerrainWater::fresh(prepared.geometry, prepared.terrain, &prepared.stocks)?;
-    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere, emissions: prepared.emissions })
+    Ok(BuiltEnvironment { world, excavation_rules: prepared.excavation_rules, initial_placements: prepared.initial_placements, structures: prepared.structures, atmosphere: prepared.atmosphere, emissions: prepared.emissions, processes: prepared.processes })
 }
 
 pub fn prepare_definition(input: &str) -> Result<PreparedDefinition, String> {
@@ -485,6 +489,8 @@ fn prepare_definition_mode(
         limits,
         definition.structures.max_span_steps,
     )?.with_generated_groundwater();
+    let emissions = crate::emission_definition::EmissionCatalog::from_definitions(definition.emissions)?;
+    let processes = crate::staged_process::ProcessCatalog::from_definitions(definition.processes, &structures, &emissions)?;
     Ok(PreparedDefinition {
         terrain,
         geometry,
@@ -493,7 +499,8 @@ fn prepare_definition_mode(
         initial_placements,
         structures,
         atmosphere: definition.atmosphere,
-        emissions: crate::emission_definition::EmissionCatalog::from_definitions(definition.emissions)?,
+        emissions,
+        processes,
     })
 }
 

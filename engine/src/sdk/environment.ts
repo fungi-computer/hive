@@ -143,11 +143,21 @@ export interface EnvironmentEmission {
   readonly smokeKg: number;
   readonly heatJ: number;
 }
+export type ProcessInputPolicy = "portion" | "whole-lot";
+export type ProcessInputDisposition = "consume" | "retain" | "emission-source";
+export interface EnvironmentProcessInput { readonly role: string; readonly port: string; readonly material: string; readonly quantity: number; readonly policy: ProcessInputPolicy; readonly disposition: ProcessInputDisposition; }
+export interface EnvironmentProcessEmission { readonly role: string; readonly catalog: string; }
+export type EnvironmentProcessOutputDestination = { readonly kind: "station-port"; readonly port: string } | { readonly kind: "retained-container"; readonly role: string };
+export interface EnvironmentProcessOutput { readonly role: string; readonly material: string; readonly quantity: number; readonly destination: EnvironmentProcessOutputDestination; }
+export interface EnvironmentProcessTransition { readonly consumeRoles?: readonly string[]; readonly emission?: EnvironmentProcessEmission | null; readonly outputs?: readonly EnvironmentProcessOutput[]; }
+export interface EnvironmentProcessStage { readonly id: string; readonly mode: "attended" | "elapsed"; readonly durationSeconds: number; readonly transition: EnvironmentProcessTransition; }
+export interface EnvironmentProcessDefinition { readonly id: string; readonly version: number; readonly stationCatalog: string; readonly inputs: readonly EnvironmentProcessInput[]; readonly stages: readonly EnvironmentProcessStage[]; }
 
 export interface EnvironmentDefinition {
   readonly world: EnvironmentWorld;
   readonly atmosphere?: EnvironmentAtmosphere;
   readonly emissions?: readonly EnvironmentEmission[];
+  readonly processes?: readonly EnvironmentProcessDefinition[];
   readonly materials: readonly EnvironmentMaterial[];
   readonly water: EnvironmentWater;
   readonly structures: EnvironmentStructures;
