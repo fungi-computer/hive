@@ -4542,6 +4542,10 @@ mod finite_resource_tests {
         kernel.load_environment(&crate::environment_definition::tests::fixture("resource")).unwrap();
         let result = kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"establish-resource-site","operation":"site:sow:1","worker":"worker","site":"site","definition":"mugwort","x":0,"y":0,"z":0}]}).to_string()).unwrap();
         assert!(result.contains("accepted"));
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&saved).unwrap();
+        assert_eq!(restored.snapshot_json().unwrap(), saved);
     }
 
     fn action(kernel: &mut Kernel) -> serde_json::Value {

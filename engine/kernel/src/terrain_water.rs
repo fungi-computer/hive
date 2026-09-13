@@ -429,11 +429,7 @@ impl TerrainWater {
         portions: u8) -> Result<PreparedWaterExchange, String> {
         self.epoch.checked_add(1).ok_or("environment epoch exhausted")?;
         let mut candidate = self.field.clone();
-        if !candidate.has(at) {
-            let mut view = field::View { terrain: &mut self.terrain, structures: &self.structure_projection, geometry: &self.geometry, replacement: None };
-            if !candidate.realize_for_exchange(at, &mut view)? { return Err("water exchange requires a supported terrain cell".into()); }
-        }
-        let (field, before_level, after_level, mass_kg, before_mass_kg, after_mass_kg) = candidate.prepare_exchange(at, direction, portions, self.terrain.bounds())?;
+        let (field, before_level, after_level, mass_kg, before_mass_kg, after_mass_kg) = candidate.prepare_exchange(at, direction, portions, self.terrain.bounds(), &mut field::View { terrain: &mut self.terrain, structures: &self.structure_projection, geometry: &self.geometry, replacement: None })?;
         Ok(PreparedWaterExchange {
             field,
             receipt: WaterExchangeReceipt { at: coordinates(at)?, direction, portions, mass_kg,
@@ -975,6 +971,40 @@ mod tests {
         let restored = TerrainWater::restore_records(geometry, super::field_tests::terrain(), &records).unwrap();
         assert_eq!(restored.facts().unwrap(), world.facts().unwrap());
         assert_eq!(restored.save_records().unwrap().water, records.water);
+    }
+
+    #[test]
+    fn porous_deposit_uses_exact_seventh_voxel_mass_and_rejects_capacity_without_mutation() {
+        let mut geometry = super::field_tests::geometry();
+        geometry.generated_groundwater = false;
+        let mut world = TerrainWater::fresh(geometry, super::field_tests::terrain(), &[]).unwrap();
+        let soil = (-20..0).map(|y| Cell { x: 0, y, z: 0 })
+            .find(|cell| world.material(*cell).unwrap() == 1)
+            .expect("fixture must expose a soil cell");
+        let before = world.save_records().unwrap().water;
+        let one = world.prepare_water_exchange(soil, WaterExchangeDirection::Deposit, 1).unwrap();
+        let receipt = world.apply_water_exchange(one).unwrap();
+        let voxel_mass = 0.54 * 1000.0;
+        assert!((receipt.mass_kg - voxel_mass / 7.0).abs() < 1e-12);
+        let fact = world.facts().unwrap().cells.iter().find(|cell| cell.at == [soil.x, soil.y, soil.z]).unwrap();
+        assert!((fact.mass_kg - voxel_mass / 7.0).abs() < 1e-12);
+        let stable = world.save_records().unwrap().water;
+        assert!(world.prepare_water_exchange(soil, WaterExchangeDirection::Deposit, 2).is_err());
+        assert_eq!(world.save_records().unwrap().water, stable);
+        assert_ne!(before, stable, "the admitted first deposit must be durable");
+    }
+
+    #[test]
+    fn rejected_open_level_exchange_keeps_level_and_saved_record_unchanged() {
+        let at = Cell { x: 0, y: 30, z: 0 };
+        let mut geometry = super::field_tests::geometry();
+        geometry.generated_groundwater = false;
+        let mut world = TerrainWater::fresh(geometry, super::field_tests::terrain(), &[WaterStock { id: "cell:0,30,0".into(), mass_kg: 540.0 * 5.0 / 7.0 }]).unwrap();
+        let before = world.facts().unwrap();
+        let saved = world.save_records().unwrap().water;
+        assert!(world.prepare_water_exchange(at, WaterExchangeDirection::Deposit, 3).is_err());
+        assert_eq!(world.facts().unwrap(), before);
+        assert_eq!(world.save_records().unwrap().water, saved);
     }
 
     #[test]
