@@ -32,6 +32,20 @@ u6756 exited 0: maximum schema-valid coordinates reject before terrain queries,
 a subsequent valid order succeeds, strict engine types and diff checks pass.
 This is source-only; it is not evidence that this caused a particular live stall.
 
+Placement source a760eb5 joined as 6e30349. Root review rejected an intermediate
+per-cell command loop: one wall stroke must submit one area command with the
+line's normalized endpoints, retaining native stroke orientation. The joined
+caller does that. Root also bounded line allocation in the spatial owner.
+The actual published wall control -> selected line endpoints -> command binder
+-> Colony admission test proves previewed cells match admitted cells for a
+diagonal drag. u6758 passed four tests but failed TypeScript because the new
+test imported an undeclared client JS module from TS. The boundary test now lives
+alongside the JS client tests; u6759 passed that test and strict types, then failed
+diff whitespace only. Removing the trailing blank line passed diff check without
+replaying tests. Both owned scopes are inactive/dead with empty ControlGroup.
+No new browser or hosting acceptance is claimed. Full footprint/connected-wall
+ghosts and meaningful contextual object cards still remain.
+
 Owner: King Bolete. Source review against current 0cbf8d2 and retained src/.
 This is an implementation guide linked from CLEARING-CONSOLIDATION-PLAN.md,
 not a declaration of gameplay or hosted acceptance. Levi reports carrying

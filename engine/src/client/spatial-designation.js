@@ -16,12 +16,14 @@ function sameLevel(start, end) {
 export function pointDesignation(value) { return { kind: "point", cells: [cell(value)] }; }
 
 /** A deterministic horizontal line. Ties choose X so a diagonal drag is stable. */
-export function lineDesignation(startValue, endValue) {
+export function lineDesignation(startValue, endValue, maxArea = 256) {
   const start = cell(startValue), end = cell(endValue);
   sameLevel(start, end);
   const alongX = Math.abs(end[0] - start[0]) >= Math.abs(end[2] - start[2]);
   const finish = alongX ? [end[0], start[1], start[2]] : [start[0], start[1], end[2]];
   const from = alongX ? start[0] : start[2], to = alongX ? finish[0] : finish[2];
+  if (!integer(maxArea) || maxArea < 1 || maxArea > 4096) throw new Error("spatial designation area limit is invalid");
+  if (Math.abs(to - from) + 1 > maxArea) throw new Error("spatial designation exceeds area limit");
   const step = from <= to ? 1 : -1;
   const cells = [];
   for (let value = from; ; value += step) {
@@ -52,7 +54,7 @@ export function entityDesignation(values) {
 export function designation(mode, start, end, maxArea = 256) {
   if (!MODES.has(mode)) throw new Error("spatial designation mode is invalid");
   if (mode === "point") return pointDesignation(start);
-  if (mode === "line") return lineDesignation(start, end);
+  if (mode === "line") return lineDesignation(start, end, maxArea);
   if (mode === "rectangle") return rectangleDesignation(start, end, maxArea);
   return entityDesignation(start);
 }
