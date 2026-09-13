@@ -33,7 +33,7 @@ export const DeliveryTask = component<{
   destination: EntityId;
   material: string;
   quantity: number;
-  phase: string;
+  phase: DeliveryPhase;
 }>("hive.delivery-task", {
   version: 1,
   fields: {

@@ -415,10 +415,21 @@ export interface RenderFact {
     };
   } | null;
 }
-export type ActivityKind = "dig" | "build" | "chop";
+export type DeliveryActivityPhase =
+  | "pickup"
+  | "carrying"
+  | "to-destination"
+  | "putting-down";
+export type ActivityKind = "dig" | "build" | "chop" | "delivery";
+export interface DeliveryActivity {
+  readonly kind: "delivery";
+  readonly phase: DeliveryActivityPhase;
+  readonly material: string;
+  readonly target: readonly [number, number];
+}
 export interface ActivityBinding {
   readonly actor: EntityId;
-  readonly kind: ActivityKind;
+  readonly kind: Exclude<ActivityKind, "delivery">;
   readonly target: readonly [number, number];
 }
 export type KernelSnapshot = KernelRecordSnapshot;

@@ -95,12 +95,23 @@ export function animationFrames(figure, direction, walking) {
 /** Content chooses pose names; this owner resolves work, custody and locomotion. */
 export function figureFrame(figure, binding, subject, animation) {
   const direction = animation?.direction ?? 0;
+  const delivery = subject.activity?.kind === "delivery" ? subject.activity : null;
+  const deliveryPose = delivery && delivery.phase === "pickup"
+    ? binding.deliveryPoses?.pickup
+    : delivery && delivery.phase === "putting-down"
+    ? binding.deliveryPoses?.["putting-down"]
+    : null;
+  const deliveryFrames = deliveryPose && figure?.[deliveryPose]?.[direction];
   const workPose = subject.activity && binding.workPoses?.[subject.activity.kind];
   const work = workPose && figure?.[workPose]?.[direction];
   const held = subject.inventory?.items.find(item => item.quantity > 0 && binding.carryPoses?.[item.kind]);
   const carryPose = held && binding.carryPoses[held.kind];
   const carry = carryPose && figure?.[carryPose]?.[direction];
-  const frames = work || carry || animationFrames(figure, direction, animation?.walking ?? false);
-  const frame = !work && carry && !animation?.walking ? 0 : animation?.frame ?? 0;
+  const deliveryCarryPose = delivery && delivery.phase !== "pickup" && delivery.phase !== "putting-down"
+    ? binding.carryPoses?.[delivery.material]
+    : null;
+  const deliveryCarry = deliveryCarryPose && figure?.[deliveryCarryPose]?.[direction];
+  const frames = work || deliveryFrames || deliveryCarry || carry || animationFrames(figure, direction, animation?.walking ?? false);
+  const frame = (!work && (deliveryFrames || deliveryCarry || carry) && !animation?.walking) ? 0 : animation?.frame ?? 0;
   return frames[frame % Math.max(1, frames.length)];
 }

@@ -4,7 +4,8 @@ import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { colonyPack, ColonyDigOrder } from "../games/colony";
 import { entity, query } from "../sdk/authoring";
-import { ExcavationWork } from "../sdk/common";
+import { ExcavationWork, Position } from "../sdk/common";
+import { DeliveryTask } from "../sdk/delivery";
 import { buildObservation } from "./observation";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
@@ -80,4 +81,18 @@ test("activity projection rejects competing native and game attendance", () => {
   const row = { id: actor as never, get: () => ({ x: 1, y: 0, z: 2, expected: 1, replacement: 0, seconds: 1 }) };
   const context = { query: (() => [row]) as unknown as ReadContext["query"] };
   assert.throws(() => decorateWorkActivity([], context, [{ actor, kind: "chop", target: [3, 4] }]), /competing work attendance/);
+});
+
+test("committed delivery phases project pickup, carrying and drop-off poses without mutation", () => {
+  const actor = entity("delivery.worker"), source = entity("delivery.source"), destination = entity("delivery.destination");
+  const values = new Map([
+    [Position.id, new Map([[actor, { x: 0, y: 0, z: 0, facing: 0 }], [source, { x: 0, y: 0, z: 0, facing: 0 }], [destination, { x: 3, y: 0, z: 0, facing: 0 }]])],
+    [DeliveryTask.id, new Map([[entity("delivery.task"), { actor, sourceLot: entity("delivery.lot"), source, destination, material: "wood", quantity: 1, phase: "to-source" }]])],
+  ]);
+  const context = { query: ((spec: { id: string }) => [...(values.get(spec.id)?.entries() ?? [])].map(([id, value]) => ({ id, get: () => value }))) as unknown as ReadContext["query"] };
+  const facts = [{ id: actor, pose: { position: { x: 0, y: 0, z: 0 }, facing: 0 } }] as unknown as RenderFact[];
+  assert.deepEqual(decorateWorkActivity(facts, context)[0].activity, { kind: "delivery", phase: "pickup", material: "wood", target: [0, 0] });
+  values.get(DeliveryTask)?.set(entity("delivery.task"), { actor, sourceLot: entity("delivery.lot"), source, destination, material: "wood", quantity: 1, phase: "to-destination" });
+  values.get(Position)?.set(actor, { x: 2, y: 0, z: 0, facing: 0 });
+  assert.deepEqual(decorateWorkActivity(facts, context)[0].activity, { kind: "delivery", phase: "to-destination", material: "wood", target: [3, 0] });
 });

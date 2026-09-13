@@ -33,6 +33,14 @@ test("retained worker binds dig, build and chop activities without idle snap", (
     assert.equal(figureFrame(figure, workerBinding, { ...subject, activity: { kind } }, { direction, frame: 0 }), `${kind}-${direction}`);
   assert.equal(figureFrame(figure, binding, { ...subject, inventory: { items: [{ kind: "wood", quantity: 1 }] } }, { direction: 0, frame: 0 }), "carry-0");
 });
+test("delivery activity selects authored pickup, carried walk, and drop-off poses", () => {
+  const figure = Object.fromEntries(["pickup", "carry", "deliver", "idle"].map(pose => [pose, [[`${pose}-0`, `${pose}-1`]]]));
+  const binding = { deliveryPoses: { pickup: "pickup", "putting-down": "deliver" }, carryPoses: { wood: "carry" } };
+  const activity = { kind: "delivery", phase: "pickup", material: "wood", target: [0, 0] };
+  assert.equal(figureFrame(figure, binding, { activity }, { direction: 0, frame: 1 }), "pickup-0");
+  assert.equal(figureFrame(figure, binding, { activity: { ...activity, phase: "to-destination" } }, { direction: 0, frame: 1, walking: true }), "carry-1");
+  assert.equal(figureFrame(figure, binding, { activity: { ...activity, phase: "putting-down" } }, { direction: 0, frame: 1 }), "deliver-0");
+});
 test("brief stationary samples retain walking and facing, then settle without turning", () => {
   const clock = createAnimationClock();
   clock.sample([actor("a", 0, 0)], { now: 0, sequence: 1 });
