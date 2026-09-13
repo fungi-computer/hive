@@ -106,6 +106,21 @@ function surface(value: unknown): value is SupportSurface {
     value.minX <= value.maxX && value.minZ <= value.maxZ
   );
 }
+function inventoryItem(value: unknown): boolean {
+  if (!isRecord(value) || typeof value.kind !== "string" || value.kind.length === 0 || value.kind.length > 128 ||
+      !safeNonnegativeInteger(value.quantity) || value.quantity < 1 ||
+      (value.id !== undefined && (typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)) ||
+      (value.container === undefined) !== (value.id === undefined)) return false;
+  if (value.container === undefined) return true;
+  const container = value.container;
+  if (!isRecord(container) || !safeNonnegativeInteger(container.capacity) ||
+    !isRecord(container.contents) || !Array.isArray(container.contents.items) || container.contents.items.length > 8 ||
+    !(container.contents.overflow === undefined || typeof container.contents.overflow === "boolean") ||
+    !container.contents.items.every((nested) => isRecord(nested) && typeof nested.kind === "string" &&
+      nested.kind.length > 0 && nested.kind.length <= 128 && safeNonnegativeInteger(nested.quantity) && nested.quantity >= 1)) return false;
+  const total = container.contents.items.reduce((sum, nested) => sum + nested.quantity, 0);
+  return Number.isSafeInteger(total) && total <= container.capacity;
+}
 function renderFact(value: unknown): value is RenderFact {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)
     return false;
@@ -151,8 +166,7 @@ function renderFact(value: unknown): value is RenderFact {
     const inventory = value.inventory;
     if (!isRecord(inventory) || !Array.isArray(inventory.items) || inventory.items.length > 8 ||
         (inventory.overflow !== undefined && typeof inventory.overflow !== "boolean") ||
-        inventory.items.some((item) => !isRecord(item) || typeof item.kind !== "string" ||
-          item.kind.length === 0 || item.kind.length > 128 || !safeNonnegativeInteger(item.quantity) || item.quantity < 1))
+        !inventory.items.every(inventoryItem))
       return false;
   }
   return value.selected === undefined || typeof value.selected === "boolean";

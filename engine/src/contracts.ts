@@ -411,6 +411,18 @@ export interface RenderFact {
     readonly items: readonly {
       readonly kind: string;
       readonly quantity: number;
+      readonly id?: EntityId;
+      /** A bounded observation of this exact portable container lot. */
+      readonly container?: {
+        readonly capacity: number;
+        readonly contents: {
+          readonly items: readonly {
+            readonly kind: string;
+            readonly quantity: number;
+          }[];
+          readonly overflow?: boolean;
+        };
+      };
     }[];
     readonly overflow?: boolean;
   };

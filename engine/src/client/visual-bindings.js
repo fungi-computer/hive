@@ -62,7 +62,7 @@ const clearingWorker = Object.freeze({
   motion: { kind: "foot", stride: 0.65 },
   workPoses: { dig: "dig", build: "build", chop: "chop" },
   deliveryPoses: { pickup: "pickup", "putting-down": "deliver" },
-  carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone" },
+  carryPoses: { bread: "carry-ration", wood: "carry", "soil-spoil": "carry-soil", "stone-spoil": "carry-stone", pail: { contentKind: "water", empty: "carry-pail-empty", partial: "carry-pail-half", full: "carry-pail-full" } },
 });
 export const COLONY_VISUAL_BINDINGS = Object.freeze({
   "colony.rowan": Object.freeze({ ...clearingWorker, key: "rowan" }),
