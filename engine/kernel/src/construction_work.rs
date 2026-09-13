@@ -399,8 +399,17 @@ impl Kernel {
     fn validate_completion_component(&self, entity: Entity, owner: &str, name: &str, installed: &Record) -> Result<()> {
         let value = self.registry.read(&self.ecs, entity, name)
             .ok_or_else(|| format!("finished construction {owner} is missing component {name}"))?;
-        if Registry::is_physical(name) && &value != installed {
-            return Err(format!("finished construction {owner} has changed physical component {name}"));
+        match name {
+            // Native custody owns capacity and emitter identity for a port.
+            "hive.container" | "hive.emitter" | "hive.visual" if &value != installed => {
+                return Err(format!("finished construction {owner} has changed completion component {name}"));
+            }
+            // Stockpile policy owns priority/filter changes, while the
+            // completion recipe retains the stable storage zone identity.
+            "hive.stockpile-cell" if value.get("zone") != installed.get("zone") => {
+                return Err(format!("finished construction {owner} has changed stockpile zone"));
+            }
+            _ => {}
         }
         self.registry.validate(name, &value, &self.known)
             .map_err(|reason| format!("finished construction {owner} has invalid component {name}: {reason}"))
