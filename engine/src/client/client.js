@@ -39,10 +39,11 @@ import { resolveStaticVisual } from "./visual-resolver.js";
 import { terrainCameraFocus } from "./camera-focus.js";
 import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js";
 
-import { rectangleCells, visibleTerrainAreaPreview } from "./terrain-area-selection.js";
+import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
+import { buildControls, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -62,6 +63,7 @@ export function createHiveClient({
   environment = "clearing",
   aiming = null,
   worldView = {},
+  placementVisuals = {},
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
@@ -199,7 +201,9 @@ export function createHiveClient({
   const aimGraphic = new Graphics();
   const aimArcGraphic = new Graphics();
   const placementGraphic = new Graphics();
-  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic);
+  const placementGhost = new Sprite();
+  placementGhost.visible = false;
+  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic, placementGhost);
   actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
@@ -338,9 +342,35 @@ export function createHiveClient({
     exitAim();
   }
   function renderHud() {
+    const buildGroups = buildControls(state.presentationControls);
+    const buildIds = new Set(buildGroups.flatMap((group) => group.controls.map((control) => control.id)));
+    const selectedBuild = terrainTarget.getSnapshot().context.control;
+    const selectedGroup = buildGroups.find((group) => group.controls.some((control) => control.id === selectedBuild?.id));
+    const chooseBuild = (group, orientation = group.orientations[0]) => {
+      const control = selectedBuildControl(group, orientation);
+      if (!control) return;
+      exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" });
+      terrainTarget.send({ type: "ARM", control });
+      state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
+      renderHud();
+    };
+    const buildCatalog = buildGroups.length ? React.createElement("section", { className: "hive-build-catalog", "aria-label": "Build catalog" },
+      React.createElement("strong", null, "Build"),
+      buildGroups.map((group) => {
+        const active = selectedGroup?.catalog === group.catalog;
+        const orientation = active ? selectedBuild?.input?.orientation : group.orientations[0];
+        const control = selectedBuildControl(group, orientation);
+        return React.createElement("div", { className: "hive-build-entry", key: group.catalog },
+          React.createElement(Button, { size: "sm", variant: active ? "secondary" : "outline", "aria-pressed": active, onClick: () => chooseBuild(group, orientation) }, control?.label ?? group.catalog),
+          active && group.orientations.length > 1 ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => chooseBuild(group, nextOrientation(group, orientation)), "aria-label": "Rotate building" }, "↻") : null,
+          active && group.orientations.length > 1 ? React.createElement("small", null, orientation) : null,
+        );
+      }),
+      selectedGroup ? React.createElement(Button, { size: "sm", variant: "primary", onClick: () => { terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" }); state.message = "Selection"; renderHud(); } }, "Done") : null,
+    ) : null;
     const contextualPresentation = projectContextualPresentation({
       facts: state.presentationFacts,
-      controls: state.presentationControls,
+      controls: state.presentationControls.filter((control) => !buildIds.has(control.id)),
       selectedIds: state.selectedIds,
       latestFacts,
       currentIds: [
@@ -353,7 +383,7 @@ export function createHiveClient({
           React.createElement("strong", null, heading),
           group.facts.map((fact) => React.createElement("div", { key: fact.id },
             `${fact.label}: ${typeof fact.value === "number" ? displayedNumber.format(fact.value) : fact.value}`)),
-          group.controls.map((control) => React.createElement(Button, {
+      group.controls.map((control) => React.createElement(Button, {
             key: control.id,
             size: "sm",
             variant: "outline",
@@ -391,6 +421,7 @@ export function createHiveClient({
         React.createElement(
           CardContent,
           { className: "hive-card-content" },
+          buildCatalog,
           React.createElement(
             "div",
             { className: "hive-kicker" },
@@ -814,7 +845,7 @@ export function createHiveClient({
     const area = terrainArea.getSnapshot();
     const displayed = displayedTerrainFrame();
     if (area.value === "dragging" && displayed) {
-      for (const surface of visibleTerrainAreaPreview(displayed, area.context.start, area.context.current)) {
+      for (const surface of visibleTerrainDesignationPreview(displayed, area.context.start, area.context.current, area.context.mode)) {
         const [x,y,z] = surface.cell;
         const points = [[x-.5,z-.5],[x+.5,z-.5],[x+.5,z+.5],[x-.5,z+.5]].flatMap(([a,b]) => {
           const p = project(a,(y+.5)*displayed.verticalMetres,b);
@@ -826,6 +857,7 @@ export function createHiveClient({
     }
     placementGraphic.clear();
     placementGraphic.visible = false;
+    placementGhost.visible = false;
     const targetSnapshot = terrainTarget.getSnapshot();
     if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayed) {
       const anchor = structureAnchor(displayed, targetSnapshot.context.anchor);
@@ -842,6 +874,22 @@ export function createHiveClient({
             .stroke({ color: hovered ? 0xe8c779 : 0x9fd8ff, width: 1, alpha: 0.9 });
         }
         placementGraphic.visible = true;
+      }
+    }
+    if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.command === "build" && displayed) {
+      const control = targetSnapshot.context.control;
+      const hovered = targetSnapshot.context.hover;
+      const visualId = control.input?.catalog === undefined ? undefined : placementVisuals[control.input.catalog];
+      const binding = visualId ? bindings[visualId] : undefined;
+      const resolved = binding && art ? resolveStaticVisual(art, binding, ({ north: 0, east: 1, south: 2, west: 3 })[control.input?.orientation] ?? 0) : undefined;
+      if (hovered && resolved?.texture) {
+        const projected = project(hovered[0], (hovered[1] + 0.5) * displayed.verticalMetres, hovered[2]);
+        placementGhost.texture = resolved.texture;
+        placementGhost.anchor.set(resolved.anchor?.x ?? 0.5, resolved.anchor?.y ?? 1);
+        placementGhost.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
+        placementGhost.scale.set(camera.zoom);
+        placementGhost.alpha = 0.45;
+        placementGhost.visible = true;
       }
     }
     if (isAiming() && state.aim.point && state.aim.target) {
@@ -900,9 +948,7 @@ export function createHiveClient({
         draw();
         return;
       }
-      const allowed = targetControl.designation ?? ["point"];
-      const mode = event.altKey && allowed.includes("line") ? "line"
-        : event.shiftKey && allowed.includes("rectangle") ? "rectangle" : "point";
+      const mode = placementMode(targetControl, event);
       if (targetControl.target === "world-surface" && mode !== "point") {
         terrainArea.send({ type: "SET_MODE", mode });
         terrainArea.send({ type: "BEGIN", cell: surface.cell });
@@ -945,9 +991,9 @@ export function createHiveClient({
       const cell = terrainPlaneCell((at.x-camera.x)/camera.zoom, (at.y-camera.y)/camera.zoom, context.start[1], displayed.verticalMetres);
       if (cell.every((value,index) => value === context.current[index])) return;
       try {
-        rectangleCells(context.start, cell, 256);
+        designationEndpoints(context.start, cell, context.mode, 256);
         terrainArea.send({ type: "MOVE", cell });
-        state.message = `Designate ${visibleTerrainAreaPreview(displayed, context.start, cell).length} visible cells`;
+        state.message = `Designate ${visibleTerrainDesignationPreview(displayed, context.start, cell, context.mode).length} visible cells`;
       } catch (error) {
         terrainArea.send({ type: "CANCEL" });
         state.message = error.message;
@@ -963,7 +1009,9 @@ export function createHiveClient({
       if (displayed && hit?.kind === "structure-top")
         terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       const anchor = terrainTarget.getSnapshot().context.anchor;
-      const candidate = displayed && anchor ? placementCache.at(local, displayed, anchor) : null;
+      const candidate = displayed && anchor
+        ? placementCache.at(local, displayed, anchor)
+        : (targetSnapshot.context.control?.command === "build" && hit?.surface ? [...hit.surface.cell] : null);
       terrainTarget.send({ type: "HOVER", cell: candidate });
       draw();
       return;
@@ -986,12 +1034,14 @@ export function createHiveClient({
         app.canvas.releasePointerCapture?.(event.pointerId);
         return;
       }
-      const { start, current } = terrainArea.getSnapshot().context;
+      const areaContext = terrainArea.getSnapshot().context;
+      const { start, current, mode } = areaContext;
       const control = terrainTarget.getSnapshot().context.control;
       terrainArea.send({ type: "END" });
       app.canvas.releasePointerCapture?.(event.pointerId);
       if (control?.target === "terrain-area" || control?.target === "world-surface") {
-        submit(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
+        const endpoints = designationEndpoints(start, current, mode, 256);
+        submit(terrainAreaPresentationCommand(control, state.selectedIds, { start: endpoints.start, end: endpoints.end }));
       }
       renderHud(); draw(); return;
     }
@@ -1082,6 +1132,18 @@ export function createHiveClient({
     if (isTypingTarget(event.target)) return;
     if (!state.ready) return;
     const key = event.key.toLowerCase();
+    if (key === "r" && terrainTarget.getSnapshot().value === "armed" && terrainTarget.getSnapshot().context.control?.command === "build") {
+      event.preventDefault();
+      const control = terrainTarget.getSnapshot().context.control;
+      const group = buildControls(state.presentationControls).find((candidate) => candidate.controls.some((item) => item.id === control.id));
+      if (group) {
+        const orientation = nextOrientation(group, control.input?.orientation);
+        const rotated = selectedBuildControl(group, orientation);
+        if (rotated) terrainTarget.send({ type: "ARM", control: rotated });
+        renderHud(); draw();
+      }
+      return;
+    }
     if (key === "escape" && terrainTarget.getSnapshot().value === "armed") {
       event.preventDefault(); terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
       state.message = "Selection"; renderHud(); return;
