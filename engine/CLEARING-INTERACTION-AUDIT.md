@@ -274,8 +274,25 @@ exclusive orders can both win. No fresh complete-support claim from source revie
 
 Implementation checkpoint: existing native helper now owns construction readiness
 in isolated hive-construction-readiness, branch engine/construction-readiness-20260913
-from e9d3663, source only pending first API review. Root retains staging/blueprint
-admission and original-art joins. Upper placement no longer excludes the selected
+from e9d3663. Its first complete pin 320256a is NOT accepted: it rebuilds complete
+support geometry once per pending site, converts every assessment failure into an
+ordinary invalid status, and exposes no player-facing waiting reason. The recut
+must compile the committed support facts once per physical revision, assess each
+candidate without allowing unfinished plans to support one another, and propagate
+real native failures. A one-tick delay after an earlier site completes is safe;
+repeated full support solves per job per tick are not.
+
+The same review confirmed that the current ConstructionSite Position is the first
+clear adjacent cell found at designation time. Construction work routing and the
+generic delivery provider both treat that arbitrary cell as the permanent target.
+This couples structural legality, material custody and worker access: a lawful
+blueprint can remain unreachable when another side is open. The clean break keeps
+the blueprint's physical cells and occupied material buffer authoritative while a
+native construction-access query supplies bounded current approach choices. An
+occupied buffer never teleports when access changes. Empty staging may bind through
+the construction owner; hauling and attendance use that one chosen physical stage.
+
+Root retains staging/blueprint admission and original-art joins. Upper placement no longer excludes the selected
 supporting top itself; u6793 passed three focused candidate/pointer/cache checks.
 This corrects target acquisition, not physical support/worker eligibility; those
 remain native-owned. No new deployment or floor-on-wall playtest claimed.
