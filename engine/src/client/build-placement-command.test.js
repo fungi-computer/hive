@@ -62,10 +62,7 @@ test("single entity bindings bind a scoped selected subject to their declared fi
 });
 
 test("affected game bindings use one entity fields and brew station point placement", () => {
-  for (const id of ["deconstruct", "light-brew-station", "cancel-ignition"]) {
-    const control = colonyBindings.find((entry) => entry.id === id);
-    assert.deepEqual(control.selection, { field: id === "deconstruct" ? "site" : "station", cardinality: "one" });
-  }
+  assert.deepEqual(colonyBindings.find((entry) => entry.id === "deconstruct").selection, { field: "site", cardinality: "one" });
   const brew = buildControl("brew-station");
   assert.deepEqual(brew.designation, ["point"]);
   assert.deepEqual(buildPlacementCommand(brew, [], { mode: "point", cells: [[2, 13, 3]], start: [2, 13, 3], end: [2, 13, 3] }).input,

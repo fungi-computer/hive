@@ -762,18 +762,14 @@ authority system.
 - Reuse the retained baked alpha silhouette for object picking, with the actual
   rendered anchor, zoom and front-to-back order. No new pixel-read loop or
   arbitrary hearth click radius.
-- Requesting ignition records a command-owned EmissionOrder revision; the
-  system alone owns EmissionWork progress. Current Session explicitly rejects
-  shared command/system component writers. This is a station intent, not an
-  immediately selected worker action. An emission-work provider composes with the existing shared
-  Hungarian assignment owner. Existing site supplies deliver the fuel. The
-  existing Rust begin-emission operation remains sole owner of fuel debit and
-  paid smoke/fire. No separate hauling, inventory or fire clock.
-- No-fuel work waits without claiming a worker. Manual takeover releases ignition
-  attendance; cancellation stops unperformed intent and cannot refund an already
-  committed burn. Match the previous native action outcome before completing a
-  submitted ignition; that outcome is already included in the current saved
-  Session. Refused work releases its worker and exposes its actual reason.
+- Brew requests create one staged process; its input binding and attended stage
+  own the hearth fuel transition. Ordinary process supply delivers the wood to
+  the retained hearth port, and the native process transition alone owns fuel
+  debit plus paid smoke/fire. There is no manual ignition order, separate
+  hearth work provider, or second fire clock.
+- Process stage progress, cancellation/retry behavior, save/reload, and
+  deconstruction continue to use the staged process and retained port owners;
+  presentation reads their committed process and environment facts.
 - Root owns this work design and Colony callers in clearing-station-work; Luna
   owns presentation/transport/client and picking in clearing-context-ui, both
   from 23f1885. Root joins the two, reviews exact callers and one focused actual
