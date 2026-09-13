@@ -37,3 +37,13 @@ test("matches any selected subject and removes stale scoped context", () => {
   assert.deepEqual(removed.world.controls.map(({ id }) => id), ["world.action"]);
   assert.equal(removed.selection.label, "Selected");
 });
+
+test("scopes generic controls and facts to selected subjects", () => {
+  const result = projectContextualPresentation({
+    facts: [{ id: "fact", label: "Fact", value: true, subjects: ["subject"] }],
+    controls: [{ id: "control", label: "Control", command: "command", subjects: ["subject"] }],
+    selectedIds: ["subject"], latestFacts: [], currentIds: ["subject"],
+  });
+  assert.deepEqual(result.selection.facts.map(({ id }) => id), ["fact"]);
+  assert.deepEqual(result.selection.controls.map(({ id }) => id), ["control"]);
+});

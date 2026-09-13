@@ -29,6 +29,9 @@ function compareId(a: EntityId, b: EntityId): number { return a < b ? -1 : a > b
 export const designateStockpile = (zone: EntityId, cells: readonly { x: number; y: number; z: number; priority: number; filterProfile: string; capacity: number }[]) => ({
   kind: "designate-stockpile" as const, zone, cells: cells.map(cell => ({ ...cell, filterProfile: cell.filterProfile })),
 });
+export const updateStockpile = (zone: EntityId, filterProfile: string, priority: number) => ({
+  kind: "update-stockpile" as const, zone, filterProfile, priority,
+});
 
 export type StockpileFilterProfile = {
   /** Content-owned category for each supported material kind. */

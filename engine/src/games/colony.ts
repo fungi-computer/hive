@@ -24,7 +24,7 @@ import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
-import { colonyStockpileCommand } from "./colony-stockpile-command";
+import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
@@ -338,6 +338,7 @@ export const colonyPack: GamePack = {
   commands: {
     build: colonyBuildCommand,
     designateStockpile: colonyStockpileCommand,
+    updateStockpile: colonyStockpilePolicyCommand,
     lightHearth: command({
       input: stationInput,
       reads: [Emitter, EmissionOrder, EmissionWork], writes: [EmissionOrder],
@@ -540,7 +541,7 @@ export const colonyPack: GamePack = {
       }),
       ...context.query(query(StockpileCell, Position)).map(row => ({
         id: `stockpile-mark-${row.id}`, cell: [Math.round(row.get(Position).x), Math.floor(row.get(Position).y / colonyEnvironment.world.verticalMetres), Math.round(row.get(Position).z)] as const,
-        status: "queued" as const, kind: "stockpile" as const,
+        status: "queued" as const, kind: "stockpile" as const, subjects: [row.id],
       })),
     ],
     controls: [
@@ -571,16 +572,17 @@ export const colonyPack: GamePack = {
       ]]).samples[0] : null;
       return [
         ...(() => {
-          const grouped = new Map<string, { profile: string; priority: number; contents: number; capacity: number }>();
+          const grouped = new Map<string, { profile: string; priority: number; contents: number; capacity: number; cells: string[] }>();
           for (const row of context.query(query(StockpileCell, Container, Position))) {
             const cell = row.get(StockpileCell), container = row.get(Container);
-            const current = grouped.get(cell.zone) ?? { profile: cell.filterProfile, priority: cell.priority, contents: 0, capacity: 0 };
+            const current = grouped.get(cell.zone) ?? { profile: cell.filterProfile, priority: cell.priority, contents: 0, capacity: 0, cells: [] };
             current.contents += total(row.id);
             current.capacity += container.capacity;
+            current.cells.push(row.id);
             grouped.set(cell.zone, current);
           }
           return [...grouped.entries()].sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0).slice(0, 32).map(([zone, value], index) => ({
-            id: `stockpile-zone-${index}`, label: "Stockpile", value: `${value.profile} · priority ${value.priority} · ${value.contents}/${value.capacity}`,
+            id: `stockpile-zone-${index}`, label: "Stockpile", value: `${value.profile} · priority ${value.priority} · ${value.contents}/${value.capacity}`, subjects: value.cells,
           }));
         })(),
         ...(() => {

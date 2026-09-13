@@ -1784,7 +1784,8 @@ impl Kernel {
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
-                    | Action::ExtractResource { .. } | Action::DesignateStockpile { .. })
+                    | Action::ExtractResource { .. } | Action::DesignateStockpile { .. }
+                    | Action::UpdateStockpile { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -2037,9 +2038,24 @@ impl Kernel {
         Ok(prepared[0].0.clone())
     }
 
+    fn update_stockpile(&mut self, zone: String, filter_profile: String, priority: u32) -> Result<String> {
+        if !valid_id(&zone) || !valid_id(&filter_profile) || priority == 0 || priority > 100 { return Err("invalid stockpile policy".into()); }
+        let entities: Vec<_> = self.ids.values().copied().filter(|entity| self.ecs.get::<StockpileCell>(*entity).is_some_and(|cell| cell.zone == zone)).collect();
+        if entities.is_empty() { return Err("stockpile zone does not exist".into()); }
+        for entity in entities {
+            let mut policy = self.ecs.get::<StockpileCell>(entity).cloned().ok_or("stockpile zone disappeared")?;
+            policy.filter_profile = filter_profile.clone();
+            policy.priority = priority;
+            self.ecs.entity_mut(entity).insert(policy);
+        }
+        self.refresh_state_weight();
+        Ok(zone)
+    }
+
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
+            Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::Excavate { entity, x, y, z, expected, replacement } => {
                 self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
                 Ok(ActionEffect::None)

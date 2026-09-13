@@ -40,6 +40,10 @@ export function checkedAction(value: unknown): ActionRequest {
       });
       break;
     }
+    case "update-stockpile":
+      keys = ["kind", "zone", "filterProfile", "priority"];
+      valid = id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
+      break;
     case "plan-construction": {
       keys = ["kind", "catalog", "site", "x", "y", "z", "orientation", "contact"];
       const contact = action.contact as Record<string, unknown> | null;

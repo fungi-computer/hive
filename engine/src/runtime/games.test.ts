@@ -337,7 +337,8 @@ test("each pack exposes bounded facts and controls from its committed query", ()
           (fact) => typeof fact.id === "string" && fact.label.length > 0,
         ),
       );
-      assert.ok((pack.presentation?.controls.length ?? 0) > 0);
+      const controls = pack.presentation?.controls ?? [];
+      assert.ok(controls.length > 0);
     } finally {
       port.dispose();
     }
