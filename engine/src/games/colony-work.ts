@@ -869,7 +869,6 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
   );
   planSiteSupplies(ctx, {
     sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
-    batchQuantity: 3,
     requirements: [
       ...active.flatMap((row) => {
         const site = row.get(ConstructionSite);
