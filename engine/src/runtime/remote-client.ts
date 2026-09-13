@@ -168,6 +168,12 @@ function environmentVisual(value: unknown): value is EnvironmentVisual {
       value.kind !== "smoke" && value.kind !== "fire" || !finite(value.intensity) || value.intensity < 0 || value.intensity > 1) return false;
   return true;
 }
+function whistleAction(value: unknown): boolean {
+  return isRecord(value) && typeof value.commandId === "string" && typeof value.sourceId === "string" &&
+    typeof value.title === "string" && typeof value.category === "string" && isRecord(value.action) &&
+    isRecord(value.action.inputSchema) && isRecord(value.availability) &&
+    (value.availability.status === "available" || (value.availability.status === "unavailable" && typeof value.availability.reason === "string"));
+}
 async function requestJson(
   fetcher: AuthorizedFetch,
   input: RequestInfo | URL,
@@ -247,6 +253,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
   const presentationControls = observation.presentationControls;
   const terrainMarks = observation.terrainMarks;
   const environmentVisuals = observation.environmentVisuals;
+  const whistleActions = observation.whistleActions ?? [];
   if (typeof observation.paused !== "boolean" || !finite(observation.time) || observation.time < 0 ||
     !safeNonnegativeInteger(observation.epoch) || !safeNonnegativeInteger(observation.sequence) ||
     !Array.isArray(facts) || facts.length > 512 || facts.some((item) => !renderFact(item)) ||
@@ -254,6 +261,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
     !Array.isArray(presentationControls) || presentationControls.length > 16 || presentationControls.some((item) => !presentationControl(item)) ||
     !Array.isArray(terrainMarks) || terrainMarks.length > 256 || terrainMarks.some((item) => !terrainMark(item)) ||
     !Array.isArray(environmentVisuals) || environmentVisuals.length > 64 || environmentVisuals.some((item) => !environmentVisual(item)) ||
+    !Array.isArray(whistleActions) || whistleActions.length > 16 || whistleActions.some((item) => !whistleAction(item)) ||
     new Set(environmentVisuals.map(item => (item as { id: string }).id)).size !== environmentVisuals.length)
     throw new Error("invalid remote observation");
   return {
@@ -271,6 +279,7 @@ function parseObservation(value: unknown, cachedTerrain: TerrainWireFrame | unde
       presentationControls: presentationControls as PresentationControl[],
       terrainMarks: terrainMarks as TerrainMark[],
       environmentVisuals: environmentVisuals as EnvironmentVisual[],
+      whistleActions,
     },
   };
 }
