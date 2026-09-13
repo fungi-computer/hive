@@ -7,6 +7,7 @@ mod local_air;
 pub(crate) use local_air::LocalAir;
 use crate::generation::Cell;
 use crate::structure_geometry::{StaticGeometry, StaticInstance, GeometryProjection, StairEdge};
+use crate::structure_support::structure_id;
 use crate::terrain::{AppliedChange, BlockReason, PrepareResult, SurfaceCell, TerrainOwner};
 use crate::water::{SoilRule, WaterLimits, WaterRebindBlock,
     WaterStock, WaterFacts, WaterWork};
@@ -535,8 +536,15 @@ impl TerrainWater {
             crate::structure_support::resolve(&self.structures, policy, &mut query)?
         };
         let mut unsupported = Vec::new();
-        for instance in pending {
-            let id = match instance {
+        let mut ordered = pending.to_vec();
+        ordered.sort_by(|left, right| structure_id(left).cmp(structure_id(right)));
+        let mut prospective = base;
+        let mut remaining = ordered;
+        loop {
+            let mut next = Vec::new();
+            let mut added = false;
+            for instance in remaining {
+            let id = match &instance {
                 StaticInstance::Floor { id, .. } | StaticInstance::Cover { id, .. } | StaticInstance::Fixture { id, .. } | StaticInstance::Wall { id, .. }
                 | StaticInstance::ApertureWall { id, .. } | StaticInstance::Stair { id, .. } => id,
             };
@@ -547,9 +555,23 @@ impl TerrainWater {
                     Err(error) => Err(error.into()),
                 }
             };
-            if !crate::structure_support::candidate_supported(&base, instance, policy.max_span_steps, &mut query)? {
-                unsupported.push(id.clone());
+                let floor_distance = match &instance {
+                    StaticInstance::Floor { support, .. } => crate::structure_support::candidate_floor_distance(&prospective, *support, policy.max_span_steps, &mut query)?,
+                    _ => None,
+                };
+                let supported = match &instance {
+                    StaticInstance::Floor { .. } => floor_distance.is_some(),
+                    _ => crate::structure_support::candidate_supported(&prospective, &instance, policy.max_span_steps, &mut query)?,
+                };
+                if !supported {
+                    next.push(instance);
+                } else {
+                    crate::structure_support::add_prospective_support(&mut prospective, &instance, policy.max_span_steps, floor_distance)?;
+                    added = true;
+                }
             }
+            if !added { unsupported.extend(next.iter().map(|instance| structure_id(instance).to_owned())); break; }
+            remaining = next;
         }
         Ok(unsupported)
     }
