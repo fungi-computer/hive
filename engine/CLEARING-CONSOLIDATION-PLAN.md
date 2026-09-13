@@ -259,6 +259,16 @@ Record query crossings, candidate count, route requests and phase time separatel
 This correction precedes adding more hot TypeScript work loops; it does not block
 data-only scenery, controls or art restoration.
 
+The first direct crossing count at `bef987e` used the ordinary Colony pack and
+current WASM. One idle 0.1-second step made **60** `KernelPort.query` calls and
+returned 156 rows; each of five subsequent designated-dig steps made **59** calls
+and returned 158 rows. The same tick queried delivery tasks six times, lots and
+positions five times, and containers, ground stocks, construction sites and
+sealed containers four times each. This is call/row evidence, not a time or
+capacity benchmark. The ignored reproducer is
+`.botanical/ecs-audit/query-crossings.ts`. It confirms that the first extraction
+should consolidate shared work/material facts rather than replace Bevy storage.
+
 ### Complete retained-to-native migration ledger
 
 This ledger is the required starting point for further Colony work. It prevents
