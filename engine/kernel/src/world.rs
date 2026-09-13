@@ -2027,6 +2027,25 @@ impl Kernel {
         }))).collect();
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
+    /// Bounded authoritative open-water targets for work planning. Contact
+    /// approaches are emitted in world coordinates by the terrain owner.
+    pub fn water_contacts_json(&self) -> Result<String> {
+        self.ensure_ready()?;
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        let facts = environment.world.facts()?;
+        let spacing = environment.world.cell_spacing_m();
+        let contacts: Vec<_> = facts.cells.into_iter().filter(|cell| cell.level > 0).take(128).map(|cell| {
+            let [x, y, z] = cell.at;
+            let center = [(x as f64) * spacing[0], (y as f64 + 0.5) * spacing[1], (z as f64) * spacing[2]];
+            json!({ "at": cell.at, "approaches": [
+                {"x": center[0]-spacing[0], "y": center[1], "z": center[2], "frame": null},
+                {"x": center[0]+spacing[0], "y": center[1], "z": center[2], "frame": null},
+                {"x": center[0], "y": center[1], "z": center[2]-spacing[2], "frame": null},
+                {"x": center[0], "y": center[1], "z": center[2]+spacing[2], "frame": null}
+            ]})
+        }).collect();
+        serde_json::to_string(&contacts).map_err(|error| error.to_string())
+    }
     pub fn structure_surfaces_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 16 * 1024 { return Err("structure surface query exceeds input budget".into()); }

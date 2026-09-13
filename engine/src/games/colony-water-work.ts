@@ -3,7 +3,6 @@ import { Body, Container, Destination, MaterialLot, Position, Support, Surface, 
 import { createWorkSystem, type PreparedWorkProvider } from "../sdk/work-system";
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
 import { Worker } from "./colony-work";
-import { colonyEnvironment } from "./colony-environment";
 
 export type WaterSupplyPhase = "idle" | "queued" | "approaching" | "submitting" | "complete" | "blocked";
 type WaterSupplyState = {
@@ -25,8 +24,7 @@ const distance = (a: { x: number; y: number; z: number }, b: { x: number; y: num
 
 export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
   const rows = ctx.query(query(WaterSupplyWork, WaterSupplyOrder));
-  const facts = ctx.environmentFacts() as { cells?: readonly { at: readonly [number, number, number]; level: number }[] };
-  const water = (facts.cells ?? []).filter(cell => cell.level > 0).slice(0, 128);
+  const water = ctx.waterContacts?.() ?? [];
   const workers = ctx.query(query(Worker, Body, Position, Container)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
   const materialFacts = ctx.workMaterialFacts();
   const lots = materialFacts.lots;
@@ -42,7 +40,6 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     .filter(lot => { const capacity = containers.get(lot.id)?.capacity ?? 0, current = contents.get(lot.id) ?? { quantity: 0, invalid: false }; return capacity > 0 && !current.invalid && current.quantity < capacity; });
   const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(pose => [pose.id, pose.world]));
   const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
-  const spacing = 1;
   const candidates: Candidate[] = [];
   for (const row of rows) {
     const order = row.get(WaterSupplyOrder), prior = row.get(WaterSupplyWork);
@@ -52,11 +49,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     if (state.phase !== "queued") continue;
     for (const cell of water) {
       const [x, y, z] = cell.at;
-      const target = { x, y: (y + 0.5) * colonyEnvironment.world.verticalMetres, z };
-      const approaches = [
-        { x: x - spacing, y: target.y, z, frame: null }, { x: x + spacing, y: target.y, z, frame: null },
-        { x, y: target.y, z: z - spacing, frame: null }, { x, y: target.y, z: z + spacing, frame: null },
-      ] satisfies MoveDestination[];
+      const approaches = cell.approaches;
       for (const pail of pails) {
         const worker = pail.container;
         if (workers.every(row => row.id !== worker) || moving.has(worker)) continue;

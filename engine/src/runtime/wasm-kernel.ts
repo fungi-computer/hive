@@ -47,6 +47,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   physical_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
+  water_contacts(): string;
   structure_surfaces(json: string): string;
   terrain_changes(json: string): string;
   query(json: string): string;
@@ -367,6 +368,9 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
           "terrain surface result does not match requested columns",
         );
       return result;
+    },
+    waterContacts() {
+      return JSON.parse(binding.water_contacts()) as readonly { at: readonly [number, number, number]; approaches: readonly MoveDestination[] }[];
     },
     structureSurfaces(columns) {
       if (
