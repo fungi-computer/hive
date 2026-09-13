@@ -347,3 +347,21 @@ test("validates duplicate requirements and bounded injective task identities bef
   );
   assert.equal(longState.created.length, 0);
 });
+
+test("post-split stale reservations cap two destinations at remaining source material", () => {
+  const source = entity("supply.source.split");
+  const moved = entity("lot.split.moved");
+  const remainder = entity("lot.split.remainder");
+  const first = entity("supply.destination.split.a");
+  const second = entity("supply.destination.split.b");
+  const rows = [
+    row(source, Container, { capacity: 10 }),
+    row(first, Container, { capacity: 4 }), row(second, Container, { capacity: 4 }),
+    row(moved, MaterialLot, { quantity: 2, kind: "wood", container: entity("worker.split") }),
+    row(remainder, MaterialLot, { quantity: 2, kind: "wood", container: source }),
+    row(entity("stale.split"), DeliveryTask, { actor: entity("worker.split"), sourceLot: moved, source, destination: first, material: "wood", quantity: 2, phase: "to-source" }),
+  ];
+  const state = context(rows);
+  assert.deepEqual(planSiteSupplies(state.fake, { requirements: [requirement(first, 2), requirement(second, 2)], sourceContainers: [source], batchQuantity: 2 }), []);
+  assert.equal(state.created.length, 0);
+});
