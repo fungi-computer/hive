@@ -5,7 +5,7 @@ import type { EnvironmentVisual, PresentationControl, PresentationFact, TerrainM
 import type { TerrainWireFrame, TerrainWireObservation } from "./terrain-wire";
 
 export type WorkerCommand =
-  | { readonly type: "command"; readonly name: string; readonly input?: unknown }
+  | { readonly type: "command"; readonly name: string; readonly input?: unknown; readonly invocationId?: string }
   | { readonly type: "start"; readonly game: string; readonly seed?: number }
   | { readonly type: "pause" | "resume" | "reset" }
   | { readonly type: "step"; readonly delta: number }
@@ -35,7 +35,7 @@ type WorkerEventBase =
       readonly environmentVisuals: readonly EnvironmentVisual[];
     }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
-  | { readonly type: "results"; readonly results: readonly unknown[]; readonly metrics?: RuntimeMetrics }
+  | { readonly type: "results"; readonly results: readonly unknown[]; readonly invocationId?: string; readonly metrics?: RuntimeMetrics }
   | { readonly type: "error"; readonly message: string };
 
 export type WorkerEvent = WorkerEventBase;

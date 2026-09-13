@@ -4,6 +4,7 @@ import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 
 export interface RuntimeConnection {
   send(command: WorkerCommand): void;
+  submit(command: Extract<WorkerCommand, { type: "command" }>): Promise<unknown>;
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   dispose(): void;
   /** Optional recovery control for transports that retain uncertain commands. */
@@ -25,6 +26,8 @@ export function connectBrowserRuntime(
   const listeners = new Set<(event: WorkerEvent) => void>();
   let disposed = false;
   let stepping = false;
+  let invocation = 0;
+  const pending = new Map<string, { resolve: (value: any) => void; reject: (error: unknown) => void }>();
   let terrainEpoch: number | undefined;
   let cachedTerrain: TerrainWireFrame | undefined;
   let cadence: ReturnType<typeof setInterval> | undefined;
@@ -32,6 +35,11 @@ export function connectBrowserRuntime(
     if (disposed) return;
     if (event.data.type === "results" || event.data.type === "error")
       stepping = false;
+    if (event.data.type === "results" && event.data.invocationId) {
+      const waiter = pending.get(event.data.invocationId);
+      if (waiter) { pending.delete(event.data.invocationId); waiter.resolve({ status: "applied", result: { results: event.data.results } }); }
+    }
+    if (event.data.type === "error") for (const [id, waiter] of pending) { pending.delete(id); waiter.reject(new Error(event.data.message)); }
     if (event.data.type === "state") {
       if (cadence !== undefined) clearInterval(cadence);
       cadence = undefined;
@@ -58,6 +66,14 @@ export function connectBrowserRuntime(
     if (disposed) throw new Error("runtime connection disposed");
     worker.postMessage(command);
   };
+  const submit = (command: Extract<WorkerCommand, { type: "command" }>) => {
+    if (disposed) return Promise.reject(new Error("runtime connection disposed"));
+    const invocationId = `browser-${++invocation}`;
+    return new Promise((resolve, reject) => {
+      pending.set(invocationId, { resolve, reject });
+      try { send({ ...command, invocationId }); } catch (error) { pending.delete(invocationId); reject(error); }
+    });
+  };
   const startCadence = (delta: number) => {
     if (cadence !== undefined) clearInterval(cadence);
     const bounded = Math.min(1000, Math.max(16, Math.round(delta * 1000)));
@@ -81,8 +97,10 @@ export function connectBrowserRuntime(
     worker.removeEventListener("message", onMessage);
     worker.terminate();
     listeners.clear();
+    for (const waiter of pending.values()) waiter.reject(new Error("runtime connection disposed"));
+    pending.clear();
   };
-  return { send, subscribe, dispose };
+  return { send, submit, subscribe, dispose };
 }
 
 export type GameSelection = Extract<GameId, string>;

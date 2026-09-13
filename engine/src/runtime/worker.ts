@@ -126,6 +126,7 @@ export class WorkerRuntime {
       } else if (command.type === "command") {
         session.command(command.name, command.input);
         this.captureAccepted();
+        this.emit({ type: "results", invocationId: command.invocationId, results: [] });
       }
       else if (command.type === "save")
         this.emit({ type: "saved", snapshot: session.save() });
