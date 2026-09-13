@@ -161,7 +161,7 @@ export function validateEnvironmentDefinition(
     ids.add(entry.id);
     const shape = entry.shape;
     if (!shape || (shape.kind !== "floor" && shape.kind !== "cover" && shape.kind !== "fixture" && shape.kind !== "wall" && shape.kind !== "aperture" && shape.kind !== "stair")
-      || shape.kind === "fixture" && (!Array.isArray(shape.footprint) || shape.footprint.length < 1 || shape.footprint.length > 16 || shape.footprint.some(([x, z]) => !Number.isSafeInteger(x) || !Number.isSafeInteger(z) || Math.abs(x) > 8 || Math.abs(z) > 8))
+      || shape.kind === "fixture" && (!Array.isArray(shape.footprint) || shape.footprint.length < 1 || shape.footprint.length > 16 || shape.footprint.some(cell => !Array.isArray(cell) || cell.length !== 2 || !Number.isSafeInteger(cell[0]) || !Number.isSafeInteger(cell[1]) || Math.abs(cell[0]) > 8 || Math.abs(cell[1]) > 8))
       || shape.kind === "wall" && (!Number.isSafeInteger(shape.height) || shape.height < 1 || shape.height > 64)
       || shape.kind === "aperture" && (!Number.isSafeInteger(shape.height) || shape.height < 1 || shape.height > 64 || !Number.isSafeInteger(shape.openingBottom) || !Number.isSafeInteger(shape.openingHeight) || shape.openingHeight < 1 || shape.openingBottom < 0 || shape.openingBottom + shape.openingHeight >= shape.height)
       || shape.kind === "stair" && (!Number.isSafeInteger(shape.run) || !Number.isSafeInteger(shape.rise)

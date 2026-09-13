@@ -1,6 +1,6 @@
 import { command, entity, query } from "../sdk/authoring";
 import { ConstructionSite, planConstruction } from "../sdk/construction";
-import { placementOrientation } from "../sdk/placement";
+import { placementOrientation, structureOriginCell } from "../sdk/placement";
 import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";
 import { z } from "zod";
@@ -51,8 +51,7 @@ export const colonyBuildCommand = command({
     for (const cell of cells) {
       const orientation = placementOrientation(colonyPlacement[input.catalog]?.alignment ?? "fixed", area, input.orientation);
       if (!["north", "east", "south", "west"].includes(orientation)) throw new Error("Choose a cardinal building orientation");
-      const [x, supportY, z] = cell;
-      const y = supportY + (definition.shape.kind === "wall" ? 1 : 0);
+      const [x, y, z] = structureOriginCell(definition.shape, cell);
       const id = entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`);
       if (sites.some(site => site.id === id)) continue;
       actions.push(planConstruction(id, definition.id, { x, y, z }, orientation));

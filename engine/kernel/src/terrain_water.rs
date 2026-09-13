@@ -450,7 +450,7 @@ impl TerrainWater {
         let unsupported = unsupported_structures(&mut self.terrain, &structures, self.geometry.max_span_steps, None)?;
         if !unsupported.is_empty() { return Ok(Err(StructureChangeBlock::Unsupported(unsupported))); }
         let projection = structures.projection()?;
-        for cell in projection.solid_cells() {
+        for cell in projection.traversal_blockers() {
             let material = self.terrain.query(*cell)?;
             if !self.terrain.is_open_material(material) { return Err("structure overlaps solid terrain".into()); }
         }

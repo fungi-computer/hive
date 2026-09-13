@@ -22,6 +22,20 @@ test("building designation leaves support and access to native staging", () => {
     { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }).actions.length, 1);
 });
 
+test("structures use one shape-owned support-to-origin convention", () => {
+  const context = { query: () => [], physicalContacts: () => [] };
+  for (const [catalog, expectedY] of [
+    ["timber-floor", 17], ["timber-roof", 17], ["timber-stair", 17],
+    ["timber-wall", 18], ["timber-bed", 18],
+  ] as const) {
+    const result = colonyBuildCommand.invoke(context, { catalog, orientation: "east", target: { cell: [2, 17, 3] } });
+    const action = result.actions[0];
+    assert.equal(action.kind, "plan-construction");
+    if (action.kind !== "plan-construction") throw new Error("wrong action");
+    assert.deepEqual([action.x, action.y, action.z], [2, expectedY, 3]);
+  }
+});
+
 test("oversized build area rejects before terrain queries and leaves subsequent orders usable", () => {
   let queries = 0;
   const context = {

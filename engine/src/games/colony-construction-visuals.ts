@@ -10,6 +10,7 @@ type Shape = (typeof colonyEnvironment.structures.catalog)[number]["shape"];
 function visualGeometry(shape: Shape, y: number) {
   switch (shape.kind) {
     case "wall": return { top: y + shape.height - 1, surface: y - 0.5 };
+    case "fixture": return { top: y, surface: y - 0.5 };
     case "stair": return { top: y + shape.rise, surface: y + 0.5 };
     default: return { top: y, surface: y + 0.5 };
   }

@@ -230,7 +230,10 @@ fn prepare_definition_mode(
         let shape = match entry.shape {
             StructureShapeInput::Floor => StructureShape::Floor,
             StructureShapeInput::Cover => StructureShape::Cover,
-            StructureShapeInput::Fixture { footprint } if !footprint.is_empty() && footprint.len() <= 16 && footprint.iter().all(|[x,z]| i8::abs(*x) <= 8 && i8::abs(*z) <= 8) && footprint.windows(2).all(|pair| pair[0] != pair[1]) => StructureShape::Fixture { footprint },
+            StructureShapeInput::Fixture { footprint } if !footprint.is_empty() && footprint.len() <= 16
+                && footprint.iter().all(|[x, z]| i16::from(*x).abs() <= 8 && i16::from(*z).abs() <= 8)
+                && footprint.iter().copied().collect::<BTreeSet<_>>().len() == footprint.len()
+                => StructureShape::Fixture { footprint },
             StructureShapeInput::Wall { height } if (1..=64).contains(&height) => StructureShape::Wall { height },
             StructureShapeInput::Aperture { height, opening_bottom, opening_height } if (1..=64).contains(&height) && opening_height > 0 && u16::from(opening_bottom) + u16::from(opening_height) < u16::from(height) => StructureShape::Aperture { height, opening_bottom, opening_height },
             StructureShapeInput::Stair { run, rise } if valid_stair_shape(run, rise, definition.world.vertical_metres) => StructureShape::Stair { run, rise },

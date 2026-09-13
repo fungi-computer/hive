@@ -534,6 +534,27 @@ mod construction_tests {
     }
 
     #[test]
+    fn construction_access_uses_the_rotated_fixture_perimeter() {
+        let (mut kernel, surface, _) = world();
+        kernel.environment.as_mut().unwrap().structures.insert("bed".into(), crate::environment_definition::StructureDefinition {
+            id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
+        });
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
+        let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let occupied = [
+            (surface.x as f64 * spacing[0], surface.z as f64 * spacing[2]),
+            ((surface.x - 1) as f64 * spacing[0], surface.z as f64 * spacing[2]),
+        ];
+        let contacts = rows[0]["contacts"].as_array().unwrap();
+        assert!(!contacts.is_empty());
+        assert!(contacts.iter().all(|row| row["kind"] == "footprint"));
+        assert!(contacts.iter().all(|row| !occupied.contains(&(row["x"].as_f64().unwrap(), row["z"].as_f64().unwrap()))));
+        assert!(contacts.iter().any(|row| row["x"] == (surface.x - 2) as f64 * spacing[0]));
+    }
+
+    #[test]
     fn physical_contacts_compose_floor_seal_wall_bulk_and_outside() {
         let (mut kernel, surface, _) = world();
         let structures = vec![

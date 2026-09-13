@@ -35,6 +35,29 @@ impl Cardinal {
     }
 }
 
+pub(crate) fn fixture_cells(
+    origin: Cell,
+    orientation: Cardinal,
+    footprint: &[[i8; 2]],
+) -> Result<Vec<Cell>, String> {
+    footprint
+        .iter()
+        .map(|[x, z]| {
+            let (dx, dz) = match orientation {
+                Cardinal::North => (i64::from(*x), i64::from(*z)),
+                Cardinal::East => (-i64::from(*z), i64::from(*x)),
+                Cardinal::South => (-i64::from(*x), -i64::from(*z)),
+                Cardinal::West => (i64::from(*z), -i64::from(*x)),
+            };
+            Ok(Cell {
+                x: origin.x.checked_add(dx).ok_or("structure fixture coordinate overflow")?,
+                y: origin.y,
+                z: origin.z.checked_add(dz).ok_or("structure fixture coordinate overflow")?,
+            })
+        })
+        .collect()
+}
+
 /// A traversal connection owned by a committed stair.  This is derived from
 /// the canonical instance and is never saved as a second physical fact.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -134,9 +157,11 @@ impl StaticInstance {
                 Ok(1)
             }
             Self::Fixture { id, origin, orientation, footprint } => {
-                if !crate::components::valid_id(id) || footprint.is_empty() || footprint.len() > 16 { return Err("invalid bounded structure fixture".into()); }
+                if !crate::components::valid_id(id) || footprint.is_empty() || footprint.len() > 16
+                    || footprint.iter().any(|[x, z]| i16::from(*x).abs() > 8 || i16::from(*z).abs() > 8)
+                { return Err("invalid bounded structure fixture".into()); }
                 let mut cells = BTreeSet::new();
-                for [x, z] in footprint { let (dx, dz) = match orientation { Cardinal::North => (i64::from(*x), i64::from(*z)), Cardinal::East => (-i64::from(*z), i64::from(*x)), Cardinal::South => (-i64::from(*x), -i64::from(*z)), Cardinal::West => (i64::from(*z), -i64::from(*x)) }; let cell = Cell { x: origin.x.checked_add(dx).ok_or("structure fixture coordinate overflow")?, y: origin.y, z: origin.z.checked_add(dz).ok_or("structure fixture coordinate overflow")? }; if !contains(bounds, cell) || !cells.insert(cell) { return Err("invalid structure fixture footprint".into()); } }
+                for cell in fixture_cells(*origin, *orientation, footprint)? { if !contains(bounds, cell) || !cells.insert(cell) { return Err("invalid structure fixture footprint".into()); } }
                 Ok(footprint.len())
             }
             Self::Wall { id, base, height } => {
@@ -197,9 +222,10 @@ impl StaticInstance {
     fn derive(&self, solids: &mut BTreeSet<Cell>, faces: &mut BTreeSet<Face>, supports: &mut BTreeSet<Face>) -> Result<(), String> {
         match self {
             Self::Floor { support, .. } => {
-                if !faces.insert(Face::upward(*support)) || !supports.insert(Face::upward(*support)) { return Err("duplicate structure horizontal face".into()); }
+                faces.insert(Face::upward(*support));
+                supports.insert(Face::upward(*support));
             }
-            Self::Cover { support, .. } => { if !faces.insert(Face::upward(*support)) { return Err("duplicate structure horizontal face".into()); } }
+            Self::Cover { support, .. } => { faces.insert(Face::upward(*support)); }
             Self::Fixture { .. } => {}
             Self::Wall { base, height, .. } => {
                 for offset in 0..u32::from(*height) {
@@ -309,17 +335,15 @@ impl StaticGeometry {
             }
         }
         stair_edges.sort();
-        let mut fixture_cells = BTreeSet::new();
+        let mut fixture_occupied = BTreeSet::new();
         for instance in &self.instances {
             if let StaticInstance::Fixture { origin, orientation, footprint, .. } = instance {
-                for [x, z] in footprint {
-                    let (dx, dz) = match orientation { Cardinal::North => (i64::from(*x), i64::from(*z)), Cardinal::East => (-i64::from(*z), i64::from(*x)), Cardinal::South => (-i64::from(*x), -i64::from(*z)), Cardinal::West => (i64::from(*z), -i64::from(*x)) };
-                    let cell = Cell { x: origin.x + dx, y: origin.y, z: origin.z + dz };
-                    if solids.contains(&cell) || !fixture_cells.insert(cell) { return Err("duplicate structure fixture occupancy".into()); }
+                for cell in fixture_cells(*origin, *orientation, footprint)? {
+                    if solids.contains(&cell) || !fixture_occupied.insert(cell) { return Err("duplicate structure fixture occupancy".into()); }
                 }
             }
         }
-        Ok(GeometryProjection { solids, explicit_faces: faces, support_faces: supports, stair_edges, fixture_cells })
+        Ok(GeometryProjection { solids, explicit_faces: faces, support_faces: supports, stair_edges, fixture_cells: fixture_occupied })
     }
 }
 
@@ -346,6 +370,7 @@ impl GeometryProjection {
     pub fn is_bulk_solid(&self, cell: Cell) -> bool { self.solids.contains(&cell) }
     pub fn is_fixture(&self, cell: Cell) -> bool { self.fixture_cells.contains(&cell) }
     pub fn blocks_traversal(&self, cell: Cell) -> bool { self.is_bulk_solid(cell) || self.is_fixture(cell) }
+    pub fn traversal_blockers(&self) -> impl Iterator<Item = &Cell> { self.solids.iter().chain(self.fixture_cells.iter()) }
     /// A face is sealed when explicitly authored (floor/stair top) or when it
     /// touches a bulk structure cell. The latter keeps walls and stair bodies
     /// consistent without materializing six faces per solid cell.
