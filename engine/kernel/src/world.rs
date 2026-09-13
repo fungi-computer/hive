@@ -225,6 +225,20 @@ mod process_request_tests {
     #[test] fn elapsed_stage_has_no_same_tick_credit_and_survives_worker_release() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 2.0).unwrap(); kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.revision += 1; kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
     #[test] fn worker_release_allows_replacement_and_save_reload_preserves_process() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 1.0).unwrap(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); kernel.advance_staged_processes(1.0).unwrap(); assert!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().worker.is_none()); let saved = kernel.snapshot_entities_json().unwrap(); let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap(); assert_eq!(restored.ecs.get::<StagedProcess>(restored.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
     #[test] fn blocked_herbal_transition_has_no_physical_effect() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station").unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let mut worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); kernel.attend_process("worker.blocked", &process, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Blocked); assert!(state.worker.is_none()); }
+
+    #[test]
+    fn process_station_rejects_different_active_definition() {
+        let mut kernel = kernel_with_slot();
+        let first = kernel.request_process("process-v1", "station").unwrap();
+        let mut second = kernel.environment.as_ref().unwrap().processes.get("process-v1").unwrap().definition().clone();
+        second.id = "process-v2".into();
+        let first_definition = kernel.environment.as_ref().unwrap().processes.get("process-v1").unwrap().definition().clone();
+        let structures = kernel.environment.as_ref().unwrap().structures.clone();
+        let emissions = kernel.environment.as_ref().unwrap().emissions.clone();
+        kernel.environment.as_mut().unwrap().processes = ProcessCatalog::from_definitions(vec![first_definition, second], &structures, &emissions).unwrap();
+        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), first);
+        assert!(kernel.request_process("process-v2", "station").is_err());
+    }
 }
 
 #[cfg(test)]
