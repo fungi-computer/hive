@@ -3,11 +3,11 @@ import { planSiteSupplies, type SiteSupplyRequirement } from "./site-supplies";
 import type { EntityId, ProcessRequirements, QueryRow, WriteContext } from "../contracts";
 
 export const StagedProcess = component<{
-  version: number; definition: string; definitionVersion: number; station: EntityId;
+  version: number; definition: string; definitionVersion: number; station: EntityId; worker: EntityId | null;
   stageIndex: number; progressSeconds: number; enteredTick: number;
   phase: "waiting" | "working" | "complete" | "blocked"; blockedReason: string;
-}>("hive.staged-process", { version: 1, fields: {
-  version: "number", definition: "string", definitionVersion: "number", station: "entity",
+}>("hive.staged-process", { version: 2, fields: {
+  version: "number", definition: "string", definitionVersion: "number", station: "entity", worker: "nullable-entity",
   stageIndex: "number", progressSeconds: "number", enteredTick: "number", phase: "string", blockedReason: "string",
 } });
 
