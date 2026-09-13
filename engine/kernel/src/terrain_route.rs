@@ -55,6 +55,21 @@ impl AdmittedEdge {
 
 pub fn admitted_edge(a: Cell, b: Cell, stairs: &[StairEdge]) -> Result<AdmittedEdge, String> {
     if let Some(stair) = stairs.iter().find(|stair| (stair.entrance == a && stair.landing == b) || (stair.entrance == b && stair.landing == a)) {
+        // Stair edges are derived from committed geometry, but keep this
+        // boundary defensive: an endpoint match alone must never turn an
+        // inconsistent edge record into a multi-level teleport.
+        if stair.run == 0 || stair.rise == 0 {
+            return Err("invalid stair route geometry".into());
+        }
+        let (dx, dz) = stair.orientation.delta();
+        let expected = Cell {
+            x: stair.entrance.x.checked_add(dx.checked_mul(i64::from(stair.run)).ok_or("stair route coordinate overflow")?).ok_or("stair route coordinate overflow")?,
+            y: stair.entrance.y.checked_add(i32::from(stair.rise)).ok_or("stair route coordinate overflow")?,
+            z: stair.entrance.z.checked_add(dz.checked_mul(i64::from(stair.run)).ok_or("stair route coordinate overflow")?).ok_or("stair route coordinate overflow")?,
+        };
+        if stair.landing != expected {
+            return Err("invalid stair route geometry".into());
+        }
         return Ok(AdmittedEdge::Stair { from: a, to: b, run: stair.run, rise: stair.rise });
     }
     let dx = (i128::from(b.x) - i128::from(a.x)).abs();
@@ -445,6 +460,54 @@ mod tests {
             let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&at), outside:false, sealed_top:false });
             assert!(search_with_blocked_and_stairs(entrance, landing, config, &mut query, &|_| false, &[]).is_err());
         }
+    }
+
+    #[test]
+    fn completed_stairs_and_supported_floors_form_a_three_level_route() {
+        use crate::structure_geometry::{Cardinal, StaticGeometry, StaticInstance};
+        let config = TraversalConfig { spacing: [1.0, 0.54, 1.0], clearance_cells: 1, max_step_cells: 1 };
+        let stairs = vec![
+            StaticInstance::Stair { id: "lower".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::North, run: 2, rise: 2 },
+            StaticInstance::Stair { id: "middle".into(), origin: Cell { x: 1, y: 2, z: -2 }, orientation: Cardinal::South, run: 2, rise: 2 },
+            StaticInstance::Stair { id: "upper".into(), origin: Cell { x: 2, y: 4, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 },
+        ];
+        let start = Cell { x: 0, y: 0, z: 0 };
+        let target = Cell { x: 5, y: 6, z: 0 };
+        let geometry = StaticGeometry::new(crate::generation::Bounds { min_x: -8, max_x: 8, min_y: -2, max_y: 10, min_z: -8, max_z: 8 }, [
+            stairs[0].clone(), stairs[1].clone(), stairs[2].clone(),
+            StaticInstance::Floor { id: "landing-one".into(), support: Cell { x: 1, y: 2, z: -2 } },
+            StaticInstance::Floor { id: "landing-two".into(), support: Cell { x: 2, y: 4, z: 0 } },
+            StaticInstance::Floor { id: "top".into(), support: target },
+        ].into()).unwrap();
+        let projection = geometry.projection().unwrap();
+        let edges = projection.stair_edges().to_vec();
+        let mut query = |at: Cell| Ok(TraversalMaterial {
+            solid: at == start || projection.is_bulk_solid(at),
+            outside: false,
+            sealed_top: projection.supports(at),
+        });
+        let path = search_with_blocked_and_stairs(start, target, config, &mut query, &|_| false, &edges).unwrap();
+        assert_eq!(path.last(), Some(&target));
+        assert_eq!(path.iter().filter(|cell| edges.iter().any(|edge| edge.entrance == **cell || edge.landing == **cell)).count(), 6);
+        let mut query = |at: Cell| Ok(TraversalMaterial {
+            solid: at == start || projection.is_bulk_solid(at),
+            outside: false,
+            sealed_top: projection.supports(at),
+        });
+        assert!(path_supported_with_stairs(&path, config, &mut query, &edges).unwrap());
+
+        let mut query = |at: Cell| Ok(TraversalMaterial {
+            solid: at == start || projection.is_bulk_solid(at),
+            outside: false,
+            sealed_top: projection.supports(at),
+        });
+        assert!(search(start, target, config, &mut query).is_err());
+    }
+
+    #[test]
+    fn route_rejects_stair_edge_with_inconsistent_orientation_or_rise() {
+        let edge = StairEdge { id: "bad".into(), entrance: Cell { x: 0, y: 0, z: 0 }, landing: Cell { x: 2, y: 4, z: 0 }, orientation: crate::structure_geometry::Cardinal::North, run: 2, rise: 4 };
+        assert!(admitted_edge(edge.entrance, edge.landing, &[edge]).is_err());
     }
 
     #[test]
