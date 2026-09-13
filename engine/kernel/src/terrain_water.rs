@@ -547,10 +547,6 @@ impl TerrainWater {
             let mut next = Vec::new();
             let mut added = false;
             for instance in remaining {
-            let id = match &instance {
-                StaticInstance::Floor { id, .. } | StaticInstance::Cover { id, .. } | StaticInstance::Fixture { id, .. } | StaticInstance::Wall { id, .. }
-                | StaticInstance::ApertureWall { id, .. } | StaticInstance::Stair { id, .. } => id,
-            };
             let mut query = |cell: Cell| {
                 match self.terrain.query(cell) {
                     Ok(slot) => Ok(!self.terrain.is_open_material(slot)),
@@ -713,9 +709,16 @@ mod tests {
     #[test]
     fn construction_support_accepted_floor_chain_stops_at_max_span() {
         let mut world = support_law_world(2);
-        let pending = (0..=3).map(|x| StaticInstance::Floor {
-            id: format!("chain-floor-{x}"), support: Cell { x, y: 30, z: 0 },
-        }).collect::<Vec<_>>();
+        let anchor = world.terrain.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        let top = Cell { y: anchor.y + 5, ..anchor };
+        let mut pending = vec![StaticInstance::Wall {
+            id: "chain-wall".into(),
+            base: Cell { y: anchor.y + 1, ..anchor },
+            height: 5,
+        }];
+        pending.extend((0..=3).map(|x| StaticInstance::Floor {
+            id: format!("chain-floor-{x}"), support: Cell { x, ..top },
+        }));
         assert_eq!(world.construction_support(&pending).unwrap(), vec!["chain-floor-3"]);
     }
 

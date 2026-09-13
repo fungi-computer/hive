@@ -395,7 +395,9 @@ pub(crate) fn add_prospective_support(base: &mut SupportResult, instance: &Stati
             let top = wall_top(*support, *height)?;
             let load = wall_load_contact(*support, *height)?;
             base.column_tops.insert(top);
+            base.load_contacts.insert(top);
             base.load_contacts.insert(load);
+            base.structural_anchors.insert(top);
             base.structural_anchors.insert(load);
         }
         StaticInstance::Stair { origin, orientation, run, rise, .. } => {
@@ -501,7 +503,7 @@ mod tests {
         assert!(candidate_supported(&projected, &wall, 6, &mut terrain(&[Cell { x: 0, y: 0, z: 0 }])).unwrap());
         add_prospective_support(&mut projected, &wall, 6, None).unwrap();
         assert!(projected.load_contacts.contains(&Cell { x: 0, y: 5, z: 0 }));
-        let mut reverse = base;
+        let reverse = base;
         assert!(!candidate_supported(&reverse, &floor, 6, &mut terrain(&[])).unwrap());
         assert!(!candidate_supported(&reverse, &wall, 6, &mut terrain(&[])).unwrap());
     }
