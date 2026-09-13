@@ -4,6 +4,8 @@ use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
 use crate::structure_geometry::StairEdge;
 use pathfinding::prelude::astar;
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AdmittedEdge {
@@ -182,6 +184,114 @@ pub fn search_with_blocked_and_stairs(
         .ok_or_else(|| "no supported terrain route".into())
 }
 
+/// Search one terrain frontier until every requested destination is reached.
+/// The frontier and predecessor map are shared across destinations; this is
+/// the same movement graph and edge metric as `search_with_blocked_and_stairs`.
+pub fn search_many_with_blocked_and_stairs(
+    start: Cell,
+    destinations: &[Cell],
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+    stairs: &[StairEdge],
+) -> Result<Vec<Result<Vec<Cell>, String>>, String> {
+    if destinations.is_empty() { return Ok(Vec::new()); }
+    if terrain_traversal::node(start, config, query)?.is_none() {
+        return Err("route endpoint lacks support or clearance".into());
+    }
+    let key = |cell: Cell| (cell.x, cell.y, cell.z);
+    let cell = |(x, y, z): (i64, i32, i64)| Cell { x, y, z };
+    let targets: BTreeSet<_> = destinations.iter().copied().map(key).collect();
+    for destination in destinations {
+        if terrain_traversal::node(*destination, config, query)?.is_none() {
+            // Preserve per-request endpoint errors while allowing other
+            // destinations to be priced by the shared search.
+        }
+    }
+    let mut frontier = BinaryHeap::new();
+    frontier.push(Reverse((0_u64, key(start))));
+    let mut distance = BTreeMap::new();
+    let mut predecessor = BTreeMap::new();
+    distance.insert(key(start), 0_u64);
+    let mut reached = BTreeSet::new();
+    let mut expanded = 0usize;
+    let mut failure = None;
+    while let Some(Reverse((cost, current))) = frontier.pop() {
+        if distance.get(&current).copied() != Some(cost) { continue; }
+        if !reached.contains(&current) && targets.contains(&current) { reached.insert(current); }
+        if reached.len() == targets.len() { break; }
+        expanded += 1;
+        if expanded > 4096 {
+            failure = Some("terrain route exceeds local search budget".to_string());
+            break;
+        }
+        let from_cell = cell(current);
+        let from = match terrain_traversal::node(from_cell, config, query) {
+            Ok(Some(node)) => node,
+            Ok(None) => continue,
+            Err(error) => { failure = Some(error); break; }
+        };
+        let mut neighbors = Vec::with_capacity(12 + stairs.len());
+        for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
+            for dy in [0, 1, -1] {
+                match terrain_traversal::step(from, dx, dy, dz, config, query) {
+                    Ok(Some(next)) if !blocked(next.support) => match edge_cost(from_cell, next.support, config.spacing, stairs) {
+                        Ok(edge) => neighbors.push((next.support, edge)),
+                        Err(error) => { failure = Some(error); break; }
+                    },
+                    Ok(Some(_)) | Ok(None) => {},
+                    Err(error) => { failure = Some(error); break; }
+                }
+            }
+            if failure.is_some() { break; }
+        }
+        if failure.is_none() {
+            for stair in stairs {
+                let target = if stair.entrance == from_cell { stair.landing }
+                    else if stair.landing == from_cell { stair.entrance }
+                    else { continue };
+                if blocked(target) { continue; }
+                if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
+                    match edge_cost(from_cell, next.support, config.spacing, stairs) {
+                        Ok(edge) => neighbors.push((next.support, edge)),
+                        Err(error) => { failure = Some(error); break; }
+                    }
+                }
+            }
+        }
+        if failure.is_some() { break; }
+        for (next, edge) in neighbors {
+            let next_key = key(next);
+            let next_cost = cost.checked_add(edge).ok_or("terrain route cost exceeds bound")?;
+            if distance.get(&next_key).is_none_or(|prior| next_cost < *prior) {
+                distance.insert(next_key, next_cost);
+                predecessor.insert(next_key, current);
+                frontier.push(Reverse((next_cost, next_key)));
+            }
+        }
+    }
+    let mut results = Vec::with_capacity(destinations.len());
+    for destination in destinations {
+        let destination = key(*destination);
+        if let Some(error) = failure.clone() {
+            if !distance.contains_key(&destination) { results.push(Err(error)); continue; }
+        }
+        if !distance.contains_key(&destination) {
+            results.push(Err("no supported terrain route".into()));
+            continue;
+        }
+        let mut path = vec![destination];
+        let mut cursor = destination;
+        while cursor != key(start) {
+            cursor = *predecessor.get(&cursor).ok_or("invalid terrain route predecessor")?;
+            path.push(cursor);
+        }
+        path.reverse();
+        results.push(Ok(path.into_iter().map(cell).collect()));
+    }
+    Ok(results)
+}
+
 /// Convert admitted support edges to movement segments. Rise before crossing a
 /// higher voxel; cross before descending. Straight diagonal interpolation would
 /// put the actor's feet inside the high voxel's side face.
@@ -341,5 +451,18 @@ mod tests {
         let config = TraversalConfig { spacing:[1.0,1.0,1.0],clearance_cells:1,max_step_cells:1 };
         let mut query = |cell: Cell| Ok(TraversalMaterial { solid: cell.y == 0, outside: cell.x < 0, sealed_top: false });
         assert!(terrain_traversal::node(Cell{x:-1,y:0,z:0}, config, &mut query).unwrap().is_none());
+    }
+
+    #[test]
+    fn shared_search_returns_ordered_paths_for_multiple_destinations() {
+        let config = TraversalConfig { spacing:[1.0,1.0,1.0], clearance_cells:1, max_step_cells:1 };
+        let solid: BTreeSet<_> = (0..=3).map(|x| (x, 0, 0)).collect();
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x as i32, at.y, at.z as i32)), outside:false, sealed_top:false });
+        let start = Cell { x:0, y:0, z:0 };
+        let destinations = [Cell { x:3, y:0, z:0 }, Cell { x:1, y:0, z:0 }];
+        let paths = search_many_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[]).unwrap();
+        assert_eq!(paths[0].as_ref().unwrap().last(), Some(&destinations[0]));
+        assert_eq!(paths[1].as_ref().unwrap().last(), Some(&destinations[1]));
+        assert_eq!(paths[0].as_ref().unwrap().first(), Some(&start));
     }
 }

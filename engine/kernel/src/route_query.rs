@@ -120,22 +120,31 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
         prepared.push(Prepared::Search { actor: request.actor, entity, start, target: request.target });
     }
 
-    let mut results = Vec::with_capacity(prepared.len());
-    for item in prepared {
+    let result_count = prepared.len();
+    let mut results: Vec<Option<Result>> = (0..result_count).map(|_| None).collect();
+    let mut groups: std::collections::BTreeMap<bevy_ecs::prelude::Entity, Vec<(usize, String, Position, Point)>> = std::collections::BTreeMap::new();
+    for (index, item) in prepared.into_iter().enumerate() {
         match item {
-            Prepared::Immediate(result) => results.push(result),
-            Prepared::Search { actor, entity, start, target } => match kernel.route_for(entity, start, &target) {
-            Ok(prepared) => {
-                let cost = route_cost(start, prepared.points)?;
-                results.push(Result::Reachable { actor, cost });
-            }
-            Err(error) if unavailable_error(&error) => {
-                results.push(Result::Unavailable { actor, reason: error });
-            }
-            Err(error) => return Err(error),
-            },
+            Prepared::Immediate(result) => results[index] = Some(result),
+            Prepared::Search { actor, entity, start, target } => groups.entry(entity).or_default().push((index, actor, start, target)),
         }
     }
+    for (entity, entries) in groups {
+        let start = entries[0].2;
+        let targets: Vec<_> = entries.iter().map(|entry| entry.3.clone()).collect();
+        let routes = kernel.route_for_many(entity, start, &targets)?;
+        for ((index, actor, _, _), route) in entries.into_iter().zip(routes) {
+            match route {
+                Ok(prepared) => {
+                    let cost = route_cost(start, prepared.points)?;
+                    results[index] = Some(Result::Reachable { actor, cost });
+                }
+                Err(error) if unavailable_error(&error) => results[index] = Some(Result::Unavailable { actor, reason: error }),
+                Err(error) => return Err(error),
+            }
+        }
+    }
+    let results: Vec<_> = results.into_iter().map(|result| result.ok_or("route-cost result missing".into())).collect::<crate::components::Result<_>>()?;
     serde_json::to_string(&results).map_err(|error| error.to_string())
 }
 
