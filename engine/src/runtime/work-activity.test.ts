@@ -33,8 +33,10 @@ test("actual Colony attendance projects work poses only while native work exists
         for (const row of work) {
           const activity = view.facts.find(fact => fact.id === row.id)?.activity;
           assert.equal(activity?.kind, "dig");
-          assert.equal(typeof activity?.progress, "number");
-          assert(activity.progress >= 0 && activity.progress <= 1);
+          const progress = activity?.progress;
+          assert.equal(typeof progress, "number");
+          if (typeof progress !== "number") throw new Error("active dig must publish progress");
+          assert(progress >= 0 && progress <= 1);
         }
         sawWork = true;
       }
