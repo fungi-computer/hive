@@ -302,9 +302,12 @@ const colonyStockpileProfiles: Readonly<
     allowedCategories: ["building"],
   },
   food: {
-    materialCategories: { bread: "food" },
-    allowedCategories: ["food"],
-    allowedMaterials: ["bread"],
+    materialCategories: { bread: "food", malt: "brewing", mugwort: "brewing" },
+    allowedCategories: ["food", "brewing"],
+  },
+  spoil: {
+    materialCategories: { "soil-spoil": "raw", "stone-spoil": "raw" },
+    allowedCategories: ["raw"],
   },
 };
 const distance = (a: Vec3, b: Vec3) =>
