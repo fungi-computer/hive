@@ -12,6 +12,8 @@ export const presentationControlSchema = z.object({
   input: z.unknown().optional(),
   selection: z.literal("entities").optional(),
   target: z.enum(["terrain-cell", "terrain-area", "world-surface"]).optional(),
+  /** Shared spatial gesture policy; the client owns acquisition, the command owns admission. This shape is temporary presentation data and maps directly to the future Whistle custom.data boundary. */
+  designation: z.array(z.enum(["point", "line", "rectangle", "entities"])).min(1).max(4).optional(),
   subjects: presentationSubjectsSchema.optional(),
 }).strict();
 
@@ -31,6 +33,7 @@ export interface PresentationControl {
   readonly selection?: "entities";
   /** Arm a shared world-target gesture; admission remains game-owned. */
   readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
+  readonly designation?: readonly ("point" | "line" | "rectangle" | "entities")[];
   /** Display/selection binding metadata only; command authority remains game-owned. */
   readonly subjects?: readonly string[];
 }
@@ -109,7 +112,7 @@ export function terrainAreaPresentationCommand(
   selected: readonly string[],
   area: { readonly start: readonly number[]; readonly end: readonly number[] },
 ) {
-  if (control.target !== "terrain-area") throw new Error("control does not accept terrain areas");
+  if (control.target !== "terrain-area" && control.target !== "world-surface") throw new Error("control does not accept terrain areas");
   for (const cell of [area.start, area.end])
     if (!Array.isArray(cell) || cell.length !== 3 || !cell.every(Number.isSafeInteger))
       throw new Error("invalid terrain area cell");

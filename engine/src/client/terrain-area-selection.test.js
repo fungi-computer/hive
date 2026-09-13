@@ -32,7 +32,7 @@ test("XState gesture commits and cancellation clears stale rectangles", () => {
   owner.send({ type: "BEGIN", cell: [2, 4, 3] });
   owner.send({ type: "MOVE", cell: [0, 4, 2] });
   owner.send({ type: "END" });
-  assert.deepEqual(owner.getSnapshot().context.committed, rectangleCells([2, 4, 3], [0, 4, 2]));
+  assert.deepEqual(owner.getSnapshot().context.committed, { kind: "rectangle", cells: rectangleCells([2, 4, 3], [0, 4, 2]) });
   owner.send({ type: "BEGIN", cell: [1, 4, 1] });
   owner.send({ type: "MOVE", cell: [3, 4, 3] });
   owner.send({ type: "CANCEL" });

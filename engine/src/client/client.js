@@ -881,6 +881,17 @@ export function createHiveClient({
         return;
       }
       if (targetControl.target === "terrain-area") {
+        terrainArea.send({ type: "SET_MODE", mode: "rectangle" });
+        terrainArea.send({ type: "BEGIN", cell: surface.cell });
+        app.canvas.setPointerCapture?.(event.pointerId);
+        draw();
+        return;
+      }
+      const allowed = targetControl.designation ?? ["point"];
+      const mode = event.altKey && allowed.includes("line") ? "line"
+        : event.shiftKey && allowed.includes("rectangle") ? "rectangle" : "point";
+      if (targetControl.target === "world-surface" && mode !== "point") {
+        terrainArea.send({ type: "SET_MODE", mode });
         terrainArea.send({ type: "BEGIN", cell: surface.cell });
         app.canvas.setPointerCapture?.(event.pointerId);
         draw();
@@ -959,7 +970,7 @@ export function createHiveClient({
       const control = terrainTarget.getSnapshot().context.control;
       terrainArea.send({ type: "END" });
       app.canvas.releasePointerCapture?.(event.pointerId);
-      if (control?.target === "terrain-area") {
+      if (control?.target === "terrain-area" || control?.target === "world-surface") {
         submit(terrainAreaPresentationCommand(control, state.selectedIds, { start, end: current }));
       }
       renderHud(); draw(); return;

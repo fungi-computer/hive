@@ -1,4 +1,5 @@
 const integer = (value) => Number.isSafeInteger(value);
+import { rectangleDesignation } from "./spatial-designation.js";
 export const MAX_TERRAIN_SELECTION_AREA = 4096;
 
 function cell(value) {
@@ -9,19 +10,9 @@ function cell(value) {
 
 /** Return a deterministic x/z rectangle on one published voxel level. */
 export function rectangleCells(startValue, endValue, maxArea = 256) {
-  const start = cell(startValue), end = cell(endValue);
   if (!integer(maxArea) || maxArea < 1 || maxArea > MAX_TERRAIN_SELECTION_AREA)
     throw new Error("terrain selection area limit is invalid");
-  if (start[1] !== end[1]) throw new Error("terrain selection must stay on one level");
-  const width = Math.abs(end[0] - start[0]) + 1;
-  const depth = Math.abs(end[2] - start[2]) + 1;
-  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(depth) || !Number.isSafeInteger(width * depth) || width > maxArea || depth > maxArea || width * depth > maxArea)
-    throw new Error("terrain selection exceeds area limit");
-  const cells = [];
-  for (let z = Math.min(start[2], end[2]); z <= Math.max(start[2], end[2]); z++)
-    for (let x = Math.min(start[0], end[0]); x <= Math.max(start[0], end[0]); x++)
-      cells.push([x, start[1], z]);
-  return cells;
+  return rectangleDesignation(startValue, endValue, maxArea).cells;
 }
 
 /** Keep only authored exterior surfaces already present in the published frame. */
