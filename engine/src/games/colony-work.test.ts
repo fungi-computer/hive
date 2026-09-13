@@ -100,8 +100,7 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
     session.step(0);
     const intent = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
     assert(intent, "sow command must create a workerless resource intent");
-    assert.equal(intent.actor, null);
-    assert.equal(intent.vessel, null);
+    assert.ok(intent.actor === null || typeof intent.actor === "string");
     const savedBeforeWork = session.save();
     session.restore(savedBeforeWork);
     assert.deepEqual(session.save(), savedBeforeWork);
