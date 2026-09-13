@@ -1,4 +1,4 @@
-import { colonyPlacement } from "./colony-placement";
+import { colonyConstructionVisuals } from "./colony-construction-visuals";
 import { EmissionOrder, EmissionWork, idleEmissionWork, nextEmissionOrder } from "../sdk/emission-work";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
@@ -509,18 +509,7 @@ export const colonyPack: GamePack = {
         const visual = tree.phase === "standing" ? "colony.tree" : tree.phase === "felled" ? "colony.tree.felled" : "colony.tree.stump";
         return { id: row.id, visual, label: `Tree · ${tree.phase}`, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
       }),
-      ...(() => {
-      return context.query(query(ConstructionSite)).map(row => {
-      const site = row.get(ConstructionSite);
-      const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
-      if (!definition) throw new Error("Missing construction visual definition");
-      const stage = site.phase === "finished" ? "finished" : site.seconds > 0 ? "frame" : "stakes";
-      const facing = colonyPlacement[site.catalog].facing[site.orientation];
-      const cutawayTop = site.y + (definition.shape.kind === "stair" ? definition.shape.rise : definition.shape.kind === "wall" ? definition.shape.height - 1 : 0);
-      return { id: row.id, cutawayTop, visual: `colony.${definition.shape.kind}.${stage}`, label: `${site.catalog} · ${site.phase}`,
-        pose: { position: { x: site.x, y: (site.y + (definition.shape.kind === "wall" ? -0.5 : 0.5)) * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
-      });
-      })(),
+      ...colonyConstructionVisuals(context),
       ...(() => {
         const lotsByContainer = new Map<string, { kind: string; quantity: number }>();
         for (const row of context.query(query(MaterialLot))) {

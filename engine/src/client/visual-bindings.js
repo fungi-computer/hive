@@ -4,8 +4,13 @@ const constructionBindings = Object.fromEntries(["floor", "wall", "stair"].flatM
     kind: "static", path: type === "stair" ? ["buildings", type, stage] : ["buildings", type, stage, 0],
     facing: type === "stair", anchor: "propAnchor",
   })])));
+const wallJointBindings = Object.fromEntries(["stakes", "frame", "finished"].flatMap(stage =>
+  Array.from({ length: 16 }, (_, mask) => [`colony.wall.${stage}.joint-${mask}`, Object.freeze({
+    kind: "static", path: ["wallJoints", stage, mask], facing: false, anchor: "propAnchor",
+  })])));
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,
+  ...wallJointBindings,
   soil: Object.freeze({ kind: "static", path: ["soil", 3], facing: false, anchor: "propAnchor" }),
   stone: Object.freeze({ kind: "static", path: ["stone", 3], facing: false, anchor: "propAnchor" }),
   "colony.brew-station": Object.freeze({

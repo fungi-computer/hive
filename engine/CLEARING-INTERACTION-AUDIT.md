@@ -279,3 +279,14 @@ admission and original-art joins. Upper placement no longer excludes the selecte
 supporting top itself; u6793 passed three focused candidate/pointer/cache checks.
 This corrects target acquisition, not physical support/worker eligibility; those
 remain native-owned. No new deployment or floor-on-wall playtest claimed.
+
+Original wall-joint source restored through reusable gridConnectionMasks: same-level
+east/south/west/north adjacency is indexed once, then Goblin chooses the existing
+48 stage/mask atlas bindings. No new art, physics or support fact is created. Moved
+construction presentation out of Colony's inline closure into its own owner.
+u6795 passed order/level adjacency and actual Colony-to-original-bank path checks.
+Initial strict-type u6794 rejected an overly broad ReadContext parameter; narrowed
+to the actual query capability and u6796 passed. u6797 audit flagged mixed visual
+geometry/stage complexity; separated geometric origin/top calculation, then u6798
+passed new-only. Existing advisories remain. Original art composition and joined
+ghost previews still need visual acceptance; this is not a public release.
