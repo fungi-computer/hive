@@ -42,16 +42,26 @@ function isObjectPreset(preset) {
   );
 }
 
-function bindSingleEntity(control, selected) {
-  const { field, cardinality } = control.selection;
-  if (typeof field !== "string" || !field || cardinality !== "one")
-    throw new Error("invalid entity selection binding");
-  const preset = control.preset;
+function requireSingleEntityBinding(selection) {
   if (
-    preset !== undefined &&
-    (!isObjectPreset(preset) || Object.hasOwn(preset, field))
+    typeof selection.field !== "string" ||
+    selection.field.length === 0 ||
+    selection.cardinality !== "one"
   )
+    throw new Error("invalid entity selection binding");
+  return selection.field;
+}
+
+function requireFreePresetField(preset, field) {
+  if (preset === undefined) return;
+  if (!isObjectPreset(preset) || Object.hasOwn(preset, field))
     throw new Error("entity selection binding preset collision");
+}
+
+function bindSingleEntity(control, selected) {
+  const field = requireSingleEntityBinding(control.selection);
+  const preset = control.preset;
+  requireFreePresetField(preset, field);
   const scoped = scopedSelection(control, selected);
   if (scoped.length !== 1 || selected.length !== 1)
     throw new Error(
@@ -93,17 +103,21 @@ function validateSurfaceTarget(control, target) {
   if (control.target !== "terrain-cell" && control.target !== "world-surface")
     throw new Error("binding does not accept a surface");
   const source = target.source;
-  if (source !== undefined && source !== "structure" && source !== "placement")
+  if (source !== undefined && !["structure", "placement"].includes(source))
     throw new Error("invalid terrain target source");
   if (source !== undefined && control.target !== "world-surface")
     throw new Error(`${source} target requires a world-surface binding`);
-  if (
-    !Array.isArray(target.cell) ||
-    target.cell.length !== 3 ||
-    !target.cell.every(Number.isSafeInteger)
-  )
+  if (!validCell(target.cell))
     throw new Error("invalid terrain target cell");
   return source;
+}
+
+function validCell(cell) {
+  return (
+    Array.isArray(cell) &&
+    cell.length === 3 &&
+    cell.every(Number.isSafeInteger)
+  );
 }
 
 function addTarget(control, input, target) {
