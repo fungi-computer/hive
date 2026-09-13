@@ -436,6 +436,25 @@ salvage and save/reload must conserve the same site materials and remove all
 composed capabilities atomically. This is the intended next catalog boundary, not
 a claim that the current three-entry native catalog already implements it.
 
+The native projection must keep four physical questions distinct. `bulk` blocks
+bodies, water and air; `seal` closes one face to water and air; `standing` provides
+a traversable surface; `fixture` blocks bodies only. A timber floor contributes a
+seal and standing/load surface. A thatch roof contributes a seal without a
+standing or load surface. A bed, shelf or brew station contributes a rotated,
+bounded fixture footprint without sealing air or becoming structural support.
+Walls/apertures and stairs retain their existing bulk/edge rules. One canonical
+structure instance rebuilds these indexes after restore; the indexes are not saved
+as parallel truth.
+
+Catalog restoration proceeds as one coupled source stack before publication:
+first add the native `cover` and oriented `fixture` shapes with real roof and bed
+consumers; then add the complete Goblin catalog and original stage art; then bind
+finished definitions to derived rest, storage and process capabilities and add
+deconstruction/salvage through the same material transaction. The intermediate
+commits are review checkpoints, not separately advertised half-features. The final
+player flow must place/rotate/drag, wait without worker lock, finish with conserved
+materials, use the resulting object, deconstruct it, and recover the same state.
+
 The retained behavior at `src/construction-view.js:46-90,280-329` and
 `src/main.js:675-742` is the behavioral baseline: continuous row preview, valid
 and invalid cells, release-to-order, persistent armed tool and automatic neighbor
