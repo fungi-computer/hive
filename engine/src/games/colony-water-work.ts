@@ -25,8 +25,6 @@ const distance = (a: { x: number; y: number; z: number }, b: { x: number; y: num
 export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
   const rows = ctx.query(query(WaterSupplyWork, WaterSupplyOrder));
   const workers = ctx.query(query(Worker, Body, Position, Container)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
-  const centers = workers.map(row => { const p = row.get(Position); return [p.x, p.y, p.z] as [number, number, number]; });
-  const water = centers.length ? ctx.waterContacts(centers) : [];
   const materialFacts = ctx.workMaterialFacts();
   const lots = materialFacts.lots;
   const containers = new Map(materialFacts.containers.map(row => [row.id, row]));
@@ -39,7 +37,10 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   }
   const pails = lots.filter(lot => lot.kind === "pail" && lot.quantity === 1 && workers.some(worker => worker.id === lot.container))
     .filter(lot => { const capacity = containers.get(lot.id)?.capacity ?? 0, current = contents.get(lot.id) ?? { quantity: 0, invalid: false }; return capacity > 0 && !current.invalid && current.quantity < capacity; });
-  const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(pose => [pose.id, pose.world]));
+  const eligibleWorkers = [...new Set(pails.map(pail => pail.container))].sort().slice(0, 16);
+  const poses = new Map(eligibleWorkers.length ? ctx.worldPoses(eligibleWorkers).map(pose => [pose.id, pose.world]) : []);
+  const centers = eligibleWorkers.map(worker => { const p = poses.get(worker)!; return [p.x, p.y, p.z] as [number, number, number]; });
+  const water = centers.length ? ctx.waterContacts(centers) : [];
   const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
   const candidates: Candidate[] = [];
   for (const row of rows) {
@@ -53,7 +54,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
       const approaches = cell.approaches;
       for (const pail of pails) {
         const worker = pail.container;
-        if (workers.every(row => row.id !== worker) || moving.has(worker)) continue;
+        if (!eligibleWorkers.includes(worker) || moving.has(worker)) continue;
         candidates.push({ worker, task: row.id, vessel: pail.id, cell: cell.at, approaches });
       }
     }

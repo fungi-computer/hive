@@ -294,7 +294,6 @@ export class GameSession {
   }
   waterContacts(centers: readonly [number, number, number][]) {
     this.ensureLive();
-    if (!this.port.waterContacts) throw new Error("native water contact capability unavailable");
     return this.port.waterContacts(centers);
   }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
