@@ -10,12 +10,11 @@ import { Container, Destination, FiniteResource, MaterialLot, Position, query } 
 import { DeliveryTask } from "../sdk/delivery";
 import { StockpileCell } from "../sdk/stockpile";
 import { entity } from "../sdk/authoring";
-import { createColonyStockpileSystem } from "./colony-stockpile";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 test("tree work reaches chop, extracts one native wood lot, and survives reload", () => {
-  const port = wasmKernelPort(new WasmKernel()), session = new GameSession({ port, pack: { ...colonyPack, systems: [...colonyPack.systems, createColonyStockpileSystem({ wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } })] } });
+  const port = wasmKernelPort(new WasmKernel()), session = new GameSession({ port, pack: colonyPack });
   try {
     session.start();
     const tree = "colony.tree.oak";
@@ -34,7 +33,7 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
       }
       if (order.stage === "chop" && order.phase === "queued") break;
     }
-    assert.equal(typeof sawTravel, "boolean");
+    assert.equal(sawTravel, true, "tree work must observe travel before earning work");
     const stage = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree)!.get(ColonyTreeOrder);
     assert.equal(stage.phase, "queued");
     assert.equal(stage.stage, "chop");

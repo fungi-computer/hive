@@ -24,10 +24,14 @@ import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem, colonySupplySystem, colonyGroundStockSystem } from "./colony-work";
+import { createColonyStockpileSystem } from "./colony-stockpile";
 import { z } from "zod";
 import type { EntityId, GamePack } from "../contracts";
 
 export { Worker, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem, colonyGroundStockSystem } from "./colony-work";
+const colonyStockpileProfiles = {
+  wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] },
+} as const;
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -316,7 +320,7 @@ export const colonyPack: GamePack = {
   id: "colony",
   version: 4,
   components: colonyComponents,
-  systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem, colonyCatSystem],
+  systems: [colonySupplySystem, colonyWorkSystem, colonyGroundStockSystem, createColonyStockpileSystem(colonyStockpileProfiles), colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
