@@ -6,7 +6,10 @@ import { colonyDigWhistleContribution } from "./colony-dig.js";
 test("Colony Dig shares the command schema and identity across human and agent projections", async () => {
   const submitted = [];
   const whistle = createWhistle();
-  whistle.contribute(colonyDigWhistleContribution(value => submitted.push(value)));
+  whistle.contribute(colonyDigWhistleContribution(value => {
+    submitted.push(value);
+    return { commandId: "local-1", status: "applied", result: { accepted: true } };
+  }));
   const snapshot = whistle.snapshot();
   const menu = snapshot.menu.find(item => item.commandId === "colony:dig");
   const agent = snapshot.agent.find(item => item.commandId === "colony:dig");
@@ -21,7 +24,7 @@ test("Colony Dig shares the command schema and identity across human and agent p
   const outcome = await whistle.execute("colony:dig", { origin: "browser", arguments: {
     area: { start: [2, 13, 2], end: [3, 13, 2] },
   } });
-  assert.deepEqual(outcome, { status: "handled", result: { accepted: true } });
+  assert.deepEqual(outcome, { status: "handled", result: { commandId: "local-1", status: "applied", result: { accepted: true } } });
   assert.deepEqual(submitted, [{ type: "command", name: "dig", input: {
     area: { start: [2, 13, 2], end: [3, 13, 2] },
   } }]);

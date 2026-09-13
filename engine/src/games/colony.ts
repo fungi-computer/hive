@@ -550,6 +550,7 @@ export const colonyPack: GamePack = {
       { id: "resume-work", label: "Resume work", command: "resumeWork", selection: "entities", subjects: workers },
       ...(["timber-floor", "timber-wall"] as const).map(catalog => ({ id: catalog, label: catalog === "timber-floor" ? "Build floor" : "Build wall", command: "build", input: { catalog, ...(catalog === "timber-floor" ? { orientation: "north" } : {}) }, target: "world-surface" as const, designation: catalog === "timber-floor" ? ["point", "rectangle"] as const : ["point", "line", "rectangle"] as const })),
       ...(["north", "east", "south", "west"] as const).map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, command: "build", input: { catalog: "timber-stair", orientation }, target: "world-surface" as const, designation: ["point"] as const })),
+      { id: "dig", label: "Dig area", command: "dig", target: "terrain-area", designation: ["rectangle"] as const },
       { id: "cancel-dig", label: "Cancel dig area", command: "cancelDig", target: "terrain-area", designation: ["rectangle"] as const },
       { id: "deposit", label: "Deposit carried goods", command: "deposit", selection: "entities", subjects: workers },
       { id: "designate-trees", label: "Fell selected trees", command: "designateTrees", selection: "entities", subjects: trees.map(tree => tree.id) },
