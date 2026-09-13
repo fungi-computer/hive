@@ -55,7 +55,6 @@ const lotTwo = entity("colony.food.2");
 const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
 const tasks = [taskOne, taskTwo] as const;
-const waterSupplyId = entity("colony.water-supply");
 const catId = entity("colony.cat.1");
 const trees = [
   { id: entity("colony.tree.oak"), x: 2, z: 2 },
@@ -104,10 +103,6 @@ const colonyInitial = [
     "hive.container": { capacity: 7 },
     "hive.visual": { sprite: "pail", label: "Pail" },
   }})),
-  { id: waterSupplyId, components: {
-    [WaterSupplyOrder.id]: { revision: 0 },
-    [WaterSupplyWork.id]: { request: 0, phase: "idle", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
-  }},
   {
     id: guestId,
     components: {
@@ -393,13 +388,16 @@ export const colonyPack: GamePack = {
     updateStockpile: colonyStockpilePolicyCommand,
     requestWater: command({
       title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
-      input: emptyInput, reads: [WaterSupplyOrder], writes: [WaterSupplyOrder],
+      input: emptyInput, reads: [WaterSupplyOrder], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork],
       run(context) {
-        const row = context.query(query(WaterSupplyOrder)).find(row => row.id === waterSupplyId);
-        if (!row) throw new Error("Water supply is unavailable");
-        const revision = row.get(WaterSupplyOrder).revision;
-        if (!Number.isSafeInteger(revision) || revision >= Number.MAX_SAFE_INTEGER) throw new Error("water supply revision exhausted");
-        return { actions: [], writes: [{ component: WaterSupplyOrder.id, entity: waterSupplyId, value: { revision: revision + 1 } }] };
+        const orders = context.query(query(WaterSupplyOrder));
+        if (orders.length >= 256) throw new Error("water demand capacity exhausted");
+        const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
+        const id = entity(`colony.water-demand.${revision}`);
+        return { actions: [], writes: [], creates: [{ id, components: {
+          [WaterSupplyOrder.id]: { revision },
+          [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
+        } }] };
       },
     }),
     lightHearth: command({

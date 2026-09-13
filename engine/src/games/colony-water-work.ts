@@ -6,11 +6,11 @@ import { Worker } from "./colony-work";
 
 export type WaterSupplyPhase = "idle" | "queued" | "approaching" | "submitting" | "complete" | "blocked";
 type WaterSupplyState = {
-  request: number; phase: WaterSupplyPhase; actor: EntityId | null; vessel: EntityId | null;
+  request: number; attempt: number; phase: WaterSupplyPhase; actor: EntityId | null; vessel: EntityId | null;
   x: number; y: number; z: number; approachX: number; approachY: number; approachZ: number; reason: string;
 };
 export const WaterSupplyWork = component<WaterSupplyState>("colony.water-supply-work", { version: 1, fields: {
-  request: "number", phase: "string", actor: "nullable-entity", vessel: "nullable-entity",
+  request: "number", attempt: "number", phase: "string", actor: "nullable-entity", vessel: "nullable-entity",
   x: "number", y: "number", z: "number", approachX: "number", approachY: "number", approachZ: "number", reason: "string",
 } });
 
@@ -19,7 +19,7 @@ export const WaterSupplyOrder = component<{ revision: number }>("colony.water-su
 });
 
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] };
-const empty = (request: number): WaterSupplyState => ({ request, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" });
+const empty = (request: number): WaterSupplyState => ({ request, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" });
 const distance = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
@@ -37,8 +37,9 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   }
   const pails = lots.filter(lot => lot.kind === "pail" && lot.quantity === 1 && workers.some(worker => worker.id === lot.container))
     .filter(lot => { const capacity = containers.get(lot.id)?.capacity ?? 0, current = contents.get(lot.id) ?? { quantity: 0, invalid: false }; return capacity > 0 && !current.invalid && current.quantity < capacity; });
-  const eligibleWorkers = [...new Set(pails.map(pail => pail.container))].sort().slice(0, 16);
-  const poses = new Map(eligibleWorkers.length ? ctx.worldPoses(eligibleWorkers).map(pose => [pose.id, pose.world]) : []);
+  const pailWorkers = [...new Set(pails.map(pail => pail.container))].sort().slice(0, 16);
+  const poses = new Map(pailWorkers.length ? ctx.worldPoses(pailWorkers).map(pose => [pose.id, pose.world]) : []);
+  const eligibleWorkers = pailWorkers.filter(worker => poses.has(worker));
   const centers = eligibleWorkers.map(worker => { const p = poses.get(worker)!; return [p.x, p.y, p.z] as [number, number, number]; });
   const water = centers.length ? ctx.waterContacts(centers) : [];
   const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
@@ -69,8 +70,8 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     claims, candidates: boundedCandidates,
     lowerBound: candidate => { const pose = poses.get(candidate.worker); return pose ? Math.min(...candidate.approaches.map(a => distance(pose, a))) : Number.POSITIVE_INFINITY; },
     estimate: candidate => { const pose = poses.get(candidate.worker); if (!pose) return null; const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches }); if (result.status !== "reachable") return null; chosen.set(candidate.task, { candidate, approach: candidate.approaches[result.targetIndex], cost: result.cost }); return result.cost; },
-    apply: assignments => { for (const assignment of assignments) { const pick = chosen.get(assignment.task); if (!pick) continue; const { candidate, approach } = pick; ctx.write(WaterSupplyWork, assignment.task, { request: rows.find(row => row.id === assignment.task)!.get(WaterSupplyOrder).revision, phase: "approaching", actor: candidate.worker, vessel: candidate.vessel, x: candidate.cell[0], y: candidate.cell[1], z: candidate.cell[2], approachX: approach.x, approachY: approach.y, approachZ: approach.z, reason: "" }); ctx.action(move(candidate.worker, approach)); } },
-    progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); const operation = `colony.water:${row.id}:${state.request}`; if (state.phase === "submitting" && state.actor && state.vessel) { const outcome = ctx.outcomes.find(({ action }) => action.kind === "exchange-field-water" && action.operation === operation); if (outcome) { ctx.write(WaterSupplyWork, row.id, { ...state, phase: outcome.result.accepted ? "complete" : "queued", actor: null, vessel: null, reason: outcome.result.reason ?? "Water exchange rejected" }); } else { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "blocked", actor: null, vessel: null, reason: "Missing saved water exchange outcome" }); } continue; } if (state.phase !== "approaching" || !state.actor || !state.vessel) continue; const pose = poses.get(state.actor); if (!pose || moving.has(state.actor)) continue; const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; if (distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } },
+    apply: assignments => { for (const assignment of assignments) { const pick = chosen.get(assignment.task); if (!pick) continue; const { candidate, approach } = pick; const prior = rows.find(row => row.id === assignment.task)!.get(WaterSupplyWork); ctx.write(WaterSupplyWork, assignment.task, { request: prior.request, attempt: prior.attempt + 1, phase: "approaching", actor: candidate.worker, vessel: candidate.vessel, x: candidate.cell[0], y: candidate.cell[1], z: candidate.cell[2], approachX: approach.x, approachY: approach.y, approachZ: approach.z, reason: "" }); ctx.action(move(candidate.worker, approach)); } },
+    progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`; if (state.phase === "submitting" && state.actor && state.vessel) { const outcome = ctx.outcomes.find(({ action }) => action.kind === "exchange-field-water" && action.operation === operation); ctx.write(WaterSupplyWork, row.id, { ...state, phase: outcome?.result.accepted ? "complete" : "queued", actor: null, vessel: null, reason: outcome?.result.reason ?? (outcome ? "Water exchange rejected" : "Missing saved water exchange outcome") }); continue; } if (state.phase !== "approaching" || !state.actor || !state.vessel) continue; const pose = poses.get(state.actor); const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; const failedMove = ctx.outcomes.find(outcome => outcome.action.kind === "move" && outcome.action.entity === state.actor && !outcome.result.accepted && outcome.action.destination.x === approach.x && outcome.action.destination.y === approach.y && outcome.action.destination.z === approach.z); if (failedMove) { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "queued", actor: null, vessel: null, reason: failedMove.result.reason ?? "Water approach unreachable" }); continue; } if (!pose || moving.has(state.actor) || distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } },
   };
 }
 
