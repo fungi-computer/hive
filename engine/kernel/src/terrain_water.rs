@@ -654,6 +654,81 @@ mod tests {
     use crate::generation::{Bounds, MaterialSlots, WorldSpec};
     use crate::terrain::MaterialProperty;
 
+    fn support_law_world(max_span_steps: u32) -> TerrainWater {
+        let geometry = TerrainWaterGeometry::new(
+            "construction-support-laws".into(),
+            vec![Cell { x: 0, y: 30, z: 0 }],
+            BTreeMap::from([
+                (0, MaterialWater::Open),
+                (1, MaterialWater::Porous(SoilRule {
+                    id: "soil".into(), porosity: 0.4, retention: 0.1,
+                    absorb_m_per_s: 0.1, seep_m_per_s: 0.1,
+                })),
+                (2, MaterialWater::Porous(SoilRule {
+                    id: "stone".into(), porosity: 0.05, retention: 0.01,
+                    absorb_m_per_s: 0.01, seep_m_per_s: 0.01,
+                })),
+            ]),
+            [1.0, 0.54, 1.0], 0.1, 0.1, WaterLimits::default(), max_span_steps,
+        ).unwrap();
+        TerrainWater::fresh(geometry, super::field_tests::terrain(), &[]).unwrap()
+    }
+
+    fn pending_wall_and_floor() -> (TerrainWater, StaticInstance, StaticInstance) {
+        let mut world = support_law_world(2);
+        let anchor = world.terrain.surface_cells(&[(0, 0)]).unwrap()[0].unwrap().cell;
+        let floor_support = Cell { x: 0, y: 30, z: 0 };
+        let wall = StaticInstance::Wall {
+            id: "z-support-wall".into(),
+            base: Cell { y: anchor.y + 1, ..anchor },
+            height: u8::try_from(floor_support.y - anchor.y).unwrap(),
+        };
+        let floor = StaticInstance::Floor { id: "a-pending-floor".into(), support: floor_support };
+        (world, floor, wall)
+    }
+
+    #[test]
+    fn construction_support_fixpoint_roots_floor_before_supporting_pending_wall() {
+        let (mut world, floor, wall) = pending_wall_and_floor();
+        assert!(world.construction_support(&[floor, wall]).unwrap().is_empty());
+    }
+
+    #[test]
+    fn construction_support_reversing_pending_order_is_identical() {
+        let (mut first, floor, wall) = pending_wall_and_floor();
+        let (mut second, _, _) = pending_wall_and_floor();
+        let forward = first.construction_support(&[floor.clone(), wall.clone()]).unwrap();
+        let reverse = second.construction_support(&[wall, floor]).unwrap();
+        assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn construction_support_unsupported_gap_never_supports_descendant() {
+        let mut world = support_law_world(2);
+        let gap = StaticInstance::Floor { id: "gap-floor".into(), support: Cell { x: 3, y: 30, z: 0 } };
+        let descendant = StaticInstance::Floor { id: "gap-descendant".into(), support: Cell { x: 4, y: 30, z: 0 } };
+        assert_eq!(world.construction_support(&[descendant, gap]).unwrap(), vec!["gap-descendant", "gap-floor"]);
+    }
+
+    #[test]
+    fn construction_support_accepted_floor_chain_stops_at_max_span() {
+        let mut world = support_law_world(2);
+        let pending = (0..=3).map(|x| StaticInstance::Floor {
+            id: format!("chain-floor-{x}"), support: Cell { x, y: 30, z: 0 },
+        }).collect::<Vec<_>>();
+        assert_eq!(world.construction_support(&pending).unwrap(), vec!["chain-floor-3"]);
+    }
+
+    #[test]
+    fn construction_support_plans_alone_cannot_create_support_cycle() {
+        let mut world = support_law_world(2);
+        let cycle = vec![
+            StaticInstance::Floor { id: "cycle-a".into(), support: Cell { x: 3, y: 30, z: 0 } },
+            StaticInstance::Floor { id: "cycle-b".into(), support: Cell { x: 4, y: 30, z: 0 } },
+        ];
+        assert_eq!(world.construction_support(&cycle).unwrap(), vec!["cycle-a", "cycle-b"]);
+    }
+
     #[test]
     fn discrete_flow_advances_one_level_down_and_preserves_lateral_priority() {
         let high = Cell { x: 0, y: 30, z: 0 };
