@@ -436,6 +436,39 @@ salvage and save/reload must conserve the same site materials and remove all
 composed capabilities atomically. This is the intended next catalog boundary, not
 a claim that the current three-entry native catalog already implements it.
 
+The completion boundary is a checked catalog recipe, not a TypeScript callback.
+Each structure definition may declare a bounded `onComplete` record containing
+components to install on the site and stable child ports to create beneath it.
+Every component name and value is validated against the loaded game component
+registry when the environment is admitted. Port identities are derived from the
+site identity and a definition-owned key; callers never invent them. The native
+completion owner prepares the geometry, consumes the delivered construction
+lots, installs the finished marker and declared components, creates every port,
+and publishes the resulting material/index changes as one mutation. Failure of
+any part publishes none of it. A repeated completion sees the finished marker
+and cannot consume materials or create ports twice.
+
+The same recipe declares `onRemove`: which created ports must be empty or idle,
+which capabilities disappear, and which finite salvage lots are produced. A
+shelf therefore becomes a storage container by data; a brew station creates its
+checked kettle/fuel/output ports and process capability by data; a bed gains a
+rest-use capability by data. The construction buffer is temporary custody and
+is not reused as the shelf's live inventory. Embedded inputs are consumed at
+completion and the catalog remains the durable evidence used to calculate
+salvage. This avoids trapped building wood occupying usable storage and avoids a
+second hidden material ledger. Current-format reload rebuilds all derived
+indexes from the committed entities and rejects a finished site whose declared
+ports or components are incomplete.
+
+Authored systems may react to completed capabilities on later ticks, but they do
+not perform completion. This matters because authored systems currently run
+before the native advance: observing `phase: finished` and patching the object on
+the following tick would expose a committed half-finished state and could lose
+the patch on eviction. Completion composition therefore belongs inside the
+native region mutation. Goblin still owns the catalog recipe and all gameplay
+meaning; the engine only validates and applies registered components, port
+identities, custody and lifecycle laws.
+
 The native projection must keep four physical questions distinct. `bulk` blocks
 bodies, water and air; `seal` closes one face to water and air; `standing` provides
 a traversable surface; `fixture` blocks bodies only. A timber floor contributes a
