@@ -126,6 +126,56 @@ mod ground_stock_cleanup_tests {
 }
 
 #[cfg(test)]
+mod process_request_tests {
+    use super::*;
+    use crate::environment_definition::{CompletionRecipe, PortDefinition};
+    use crate::staged_process::{InputDisposition, InputPolicy, ProcessCatalog, ProcessDefinition, ProcessInput, ProcessPhase, ProcessStage, ProcessTransition, StagedProcess, StageMode};
+    use serde_json::json;
+
+    fn kernel_with_slot() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
+        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
+        kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
+        let structure = kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap();
+        structure.on_complete = CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "input".into(), components: vec![("hive.container".into(), record(&Container { capacity: 4 }))], at_site_contact: false }] };
+        let definition = ProcessDefinition { id: "process-v1".into(), version: 1, station_catalog: "floor".into(), inputs: vec![ProcessInput { role: "grain".into(), port: "input".into(), material: "grain".into(), quantity: 1, policy: InputPolicy::Portion, disposition: InputDisposition::Consume }], stages: vec![ProcessStage { id: "work".into(), mode: StageMode::Attended, duration_seconds: 1.0, transition: ProcessTransition { consume_roles: vec!["grain".into()], emission: None, outputs: vec![] } }] };
+        let structures = kernel.environment.as_ref().unwrap().structures.clone();
+        let emissions = kernel.environment.as_ref().unwrap().emissions.clone();
+        kernel.environment.as_mut().unwrap().processes = ProcessCatalog::from_definitions(vec![definition], &structures, &emissions).unwrap();
+        kernel
+    }
+
+    #[test]
+    fn request_is_workerless_idempotent_and_restarts_completed_slot() {
+        let mut kernel = kernel_with_slot();
+        let id = kernel.request_process("process-v1", "station").unwrap();
+        let entity = kernel.entity(&id).unwrap();
+        assert_eq!(kernel.ecs.get::<StagedProcess>(entity).unwrap().phase, ProcessPhase::Waiting);
+        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), id);
+        kernel.ecs.entity_mut(entity).get_mut::<StagedProcess>().unwrap().phase = ProcessPhase::Complete;
+        kernel.revision = 7;
+        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), id);
+        let process = kernel.ecs.get::<StagedProcess>(entity).unwrap();
+        assert_eq!((process.phase, process.stage_index, process.progress_seconds, process.entered_tick), (ProcessPhase::Waiting, 0, 0.0, 7));
+    }
+
+    #[test]
+    fn request_restore_rejects_stale_station_or_definition_version() {
+        let mut kernel = kernel_with_slot();
+        let id = kernel.request_process("process-v1", "station").unwrap();
+        let entity = kernel.entity(&id).unwrap();
+        kernel.ecs.get_mut::<StagedProcess>(entity).unwrap().definition_version = 2;
+        assert!(kernel.validate_process_records().is_err());
+        kernel.ecs.get_mut::<StagedProcess>(entity).unwrap().definition_version = 1;
+        let station = kernel.entity("station").unwrap();
+        kernel.ecs.get_mut::<ConstructionSite>(station).unwrap().phase = ConstructionPhase::Planned;
+        assert!(kernel.validate_process_records().is_err());
+    }
+}
+
+#[cfg(test)]
 mod construction_tests {
     use super::*;
     use serde_json::json;
@@ -2513,7 +2563,19 @@ impl Kernel {
             if self.ecs.get::<StagedProcess>(existing).is_some_and(|process| process.phase != ProcessPhase::Complete) {
                 return Ok(process_id);
             }
-            return Err("process identity already exists".into());
+            self.ecs.entity_mut(existing).insert(StagedProcess {
+                version: crate::staged_process::CURRENT_VERSION,
+                definition: definition.id.clone(),
+                definition_version: definition.version,
+                station: station_id.into(),
+                stage_index: 0,
+                progress_seconds: 0.0,
+                entered_tick: self.revision,
+                phase: ProcessPhase::Waiting,
+                blocked_reason: String::new(),
+            });
+            self.refresh_state_weight();
+            return Ok(process_id);
         }
         let entity = self.ecs.spawn((ExternalId(process_id.clone()), StagedProcess {
             version: crate::staged_process::CURRENT_VERSION,
