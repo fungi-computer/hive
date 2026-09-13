@@ -21,7 +21,7 @@ import {
   FiniteResource,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
-import { StagedProcess } from "../sdk/process-supply";
+import { StagedProcess, requestProcess } from "../sdk/process-supply";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
@@ -185,6 +185,10 @@ function finishedBrewStations(context: Pick<ReadContext, "query">) {
     const site = row.get(ConstructionSite);
     return site.catalog === "brew-station" && site.phase === "finished";
   });
+}
+function availableBrewStations(context: Pick<ReadContext, "query">) {
+  const active = new Set(context.query(query(StagedProcess)).filter(row => row.get(StagedProcess).phase !== "complete").map(row => row.get(StagedProcess).station));
+  return finishedBrewStations(context).filter(row => !active.has(row.id));
 }
 
 function hearthPort(station: EntityId): EntityId {
@@ -400,6 +404,17 @@ export const colonyPack: GamePack = {
           [WaterSupplyOrder.id]: { revision },
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };
+      },
+    }),
+    requestBrew: command({
+      title: "Brew herbal ale", category: "Colony", description: "Request one herbal ale process at a finished brew station.",
+      localPresentation: { bindings: [{ id: "brew-process", label: "Brew herbal ale", selection: { field: "station", cardinality: "one" } }] },
+      subjects: context => availableBrewStations(context).map(row => row.id),
+      input: stationInput,
+      reads: [ConstructionSite, StagedProcess], writes: [],
+      run(context, input) {
+        if (!availableBrewStations(context).some(row => row.id === input.station)) throw new Error("This brew station already has an active brew process");
+        return { actions: [requestProcess("herbal-ale-v1", input.station)], writes: [] };
       },
     }),
     lightHearth: command({
