@@ -3234,15 +3234,14 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
-        if let crate::work_attempt::ActivityRef::Route { destination } = &activity {
-            let actor = self.entity(&worker)?;
-            let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
-            self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
-            let route = self.route_for(actor, position, destination)?;
-            self.direct.remove(&actor);
-            self.ecs.entity_mut(actor).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
-            self.install_route(actor, route);
-        }
+        let crate::work_attempt::ActivityRef::Route { destination } = &activity;
+        let actor = self.entity(&worker)?;
+        let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
+        self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
+        let route = self.route_for(actor, position, destination)?;
+        self.direct.remove(&actor);
+        self.ecs.entity_mut(actor).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_route(actor, route);
         let entity = self.entity(&key.task)?;
         self.ecs.entity_mut(entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
         self.work_attempts.insert(task, entity);
@@ -3251,7 +3250,7 @@ impl Kernel {
     }
     fn attempt_mut(&mut self, task: &str, generation: u64, sequence: u32) -> Result<&mut WorkAttempt> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
-        let mut attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
+        let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
         if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
         let operation = attempt.current_operation().ok_or("work attempt has no operation")?;
         if operation.sequence != sequence { return Err("unexpected work attempt sequence".into()); }
