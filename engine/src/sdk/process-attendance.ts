@@ -78,9 +78,20 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
     progress: () => {
       for (const process of allProcesses) {
         const attempt = attempts.get(process.id);
-        if (!attempt || attempt.phase.kind !== "outcome") continue;
+        if (!attempt) continue;
+        if (attempt.phase.kind === "executing" && suspended.has(attempt.worker)) {
+          ctx.action({ kind: "interrupt-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" });
+          continue;
+        }
+        if (attempt.phase.kind !== "outcome") continue;
         const operation = attempt.phase.operation;
         if (attempt.phase.activity.kind === "process-attendance") {
+          // Native process advancement has already committed the exact stage
+          // transition (or returned the process to waiting) in the same
+          // candidate as this retained outcome. Acknowledge that fact only
+          // after observing the canonical process row.
+          const current = allProcesses.find(item => item.id === process.id)?.state;
+          if (!current || (attempt.phase.result.kind === "completed" && current.phase !== "waiting" && current.phase !== "complete" && current.phase !== "blocked")) continue;
           ctx.action({ kind: "acknowledge-work-attempt", task: operation.attempt.task, generation: operation.attempt.generation, sequence: operation.sequence });
           continue;
         }
