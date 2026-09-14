@@ -267,7 +267,7 @@ export function createConnectionChoice({
   publicHost,
   storage = globalThis.localStorage,
   cryptoSource = globalThis.crypto,
-  fetchImpl = globalThis.fetch,
+  fetchImpl = (...arguments_) => globalThis.fetch(...arguments_),
   connectLocal,
   connectRemote,
   saveOwner,
