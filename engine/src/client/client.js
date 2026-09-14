@@ -1,6 +1,8 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
-import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
+import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker, WORLD_TOWARD_CAMERA } from "./geometry.js";
+import { createWorldDepthLayer } from "./world-depth-layer.js";
+import { subjectWorldDepthItem } from "./world-depth-items.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -251,7 +253,6 @@ export function createHiveClient({
   const placementGraphic = new Graphics();
   const placementGhosts = { entries: [], factory: () => { const sprite = new Sprite(); transientLayer.addChild(sprite); return sprite; } };
   transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic);
-  actorLayer.sortableChildren = true;
   const actorCache = new Map();
   const animationClock = createAnimationClock();
   const motionCues = createMotionCueOwner();
@@ -266,6 +267,8 @@ export function createHiveClient({
   let awaitingEpochTransition = false;
   let groundSprite = null;
   const terrainLayer = createTerrainLayer();
+  let worldDepthLayer;
+  let worldDepthSprite;
   let terrainFrame;
   let markSurfaceSource;
   let markSurfaces;
@@ -803,7 +806,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, environmentGraphic, transientLayer);
+      overlay.addChild(groundSprite, worldDepthSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, environmentGraphic, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -855,20 +858,9 @@ export function createHiveClient({
       });
       actorCache.delete(id);
     }
-    const byId = new Map(state.subjects.map((subject) => [subject.id, subject]));
-    const supportDepth = (subject, seen = new Set()) => {
-      if (!subject.support || seen.has(subject.id)) return 0;
-      const parent = byId.get(subject.support);
-      if (!parent) return 0;
-      seen.add(subject.id);
-      return 1 + supportDepth(parent, seen);
-    };
-    const orderedSubjects = [...state.subjects].sort((a, b) => {
-      const depth = supportDepth(a) - supportDepth(b);
-      return depth || a.x + a.z - b.x - b.z || a.id.localeCompare(b.id);
-    });
-    for (const [renderRank, subject] of orderedSubjects.entries()) {
-      subject.renderRank = renderRank;
+    const opaqueItems = [];
+    const orderedSubjects = [...state.subjects].sort((a, b) => a.id.localeCompare(b.id));
+    for (const subject of orderedSubjects) {
       subject.screen = screenPoint(subject);
       const binding = bindings[subject.visual];
       if (!binding)
@@ -883,7 +875,6 @@ export function createHiveClient({
           marker: new Graphics()
             .ellipse(0, 0, 18, 9)
             .stroke({ color: 0xe8c779, width: 2 }),
-          pawn: new Sprite(),
           label: new Text({
             style: {
               fontFamily: getComputedStyle(root).fontFamily,
@@ -894,7 +885,7 @@ export function createHiveClient({
           progress: new Graphics(),
         };
         entry.container.eventMode = "none";
-        entry.container.addChild(entry.marker, entry.pawn, entry.label, entry.progress);
+        entry.container.addChild(entry.marker, entry.label, entry.progress);
         actorLayer.addChild(entry.container);
         actorCache.set(subject.id, entry);
       }
@@ -918,16 +909,20 @@ export function createHiveClient({
         : figureFrame(figure, binding, subject, animation);
       if (art && !texture)
         throw new Error(`visual asset unavailable for ${subject.visual}`);
-      if (texture) entry.pawn.texture = texture;
-      entry.pawn.visible = Boolean(texture);
-      entry.pawn.anchor.set(
-        isStatic ? staticVisual?.anchor?.x : art?.pawnAnchor?.x,
-        isStatic ? staticVisual?.anchor?.y : art?.pawnAnchor?.y,
-      );
+      const anchor = isStatic ? staticVisual?.anchor : art?.pawnAnchor;
+      if (texture && (!anchor || !Number.isFinite(anchor.x) || !Number.isFinite(anchor.y)))
+        throw new Error(`visual anchor unavailable for ${subject.visual}`);
       subject.hitArea = texture
-        ? visibleHitAreaFor(texture, { x: entry.pawn.anchor.x, y: entry.pawn.anchor.y })
+        ? visibleHitAreaFor(texture, anchor)
         : undefined;
-      entry.pawn.scale.set(camera.zoom);
+      if (texture) opaqueItems.push(subjectWorldDepthItem({
+        subject,
+        texture,
+        anchor,
+        art,
+        scale: camera.zoom,
+        physicalRole: binding.worldRole,
+      }));
       entry.label.text = subject.name;
       entry.label.anchor.set(0.5, 1);
       entry.label.position.set(0, -12);
@@ -942,7 +937,13 @@ export function createHiveClient({
       }
       entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
-      entry.container.zIndex = renderRank;
+    }
+    if (worldDepthLayer) {
+      if (worldDepthLayer.target.width !== app.screen.width || worldDepthLayer.target.height !== app.screen.height)
+        worldDepthLayer.resize(app.screen.width, app.screen.height);
+      worldDepthLayer.update(terrainLayer.drawItem ? [terrainLayer.drawItem, ...opaqueItems] : opaqueItems, WORLD_TOWARD_CAMERA);
+      worldDepthLayer.render(app.renderer);
+      worldDepthSprite.visible = opaqueItems.length > 0 || Boolean(terrainLayer.drawItem);
     }
     const drag = gesture.getSnapshot().context;
     if (
@@ -1191,14 +1192,18 @@ export function createHiveClient({
       box.left = box.right = end.x;
       box.top = box.bottom = end.y;
     }
-    const directHit = selectionFromSubjects(state.subjects, box, false, []);
-    let hit = selectionFromSubjects(
-      state.subjects,
-      box,
-      drag.additive,
-      state.selectedIds,
-    );
-    if (click && !directHit.length) {
+    const depthHit = click ? worldDepthLayer?.picker.pick(end) ?? null : null;
+    const directHit = depthHit?.target ? [depthHit.target] : [];
+    let hit = click
+      ? directHit.length
+        ? drag.additive
+          ? state.selectedIds.includes(directHit[0])
+            ? state.selectedIds.filter(id => id !== directHit[0])
+            : [...state.selectedIds, directHit[0]]
+          : directHit
+        : drag.additive ? state.selectedIds : []
+      : selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds);
+    if (click && depthHit === null) {
       const local = {
         x: (end.x - camera.x) / camera.zoom,
         y: (end.y - camera.y) / camera.zoom,
@@ -1326,7 +1331,12 @@ export function createHiveClient({
       backgroundAlpha: 0,
       antialias: false,
       resolution: 1,
+      preference: "webgl",
+      preferWebGLVersion: 2,
     });
+    worldDepthLayer = createWorldDepthLayer({ width: app.screen.width, height: app.screen.height });
+    worldDepthSprite = new Sprite(worldDepthLayer.texture);
+    worldDepthSprite.eventMode = "none";
     app.canvas.tabIndex = 0;
     canvasHost.appendChild(app.canvas);
     app.stage.addChild(overlay);
@@ -1637,6 +1647,9 @@ export function createHiveClient({
       app.canvas?.removeEventListener("pointerup", pointerUp);
       app.canvas?.removeEventListener("contextmenu", contextMenu);
       terrainLayer.dispose();
+      worldDepthSprite?.removeFromParent();
+      worldDepthSprite?.destroy({ texture: false, textureSource: false });
+      worldDepthLayer?.dispose();
       disposePlacementGhosts(placementGhosts);
       state.disposeArt?.();
       for (const child of overlay.removeChildren())

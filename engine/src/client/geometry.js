@@ -1,12 +1,13 @@
 import { terrainFaces } from "../../../src/art/terrain-faces.js";
 import { Ray, Vector3 } from "three";
-import { camera } from "../../../src/art/prop-camera.js";
+import { camera, towardCamera } from "../../../src/art/prop-camera.js";
 
 // Retained art/scale projection, centered on the shared bank's 15-cell ground.
 // Fresh scenes use signed coordinates about that center instead of Goblin cells.
 export const WIDTH = 640,
   HEIGHT = 400;
 const view = camera(WIDTH, HEIGHT, 1.03, 256);
+export const WORLD_TOWARD_CAMERA = towardCamera(view);
 export function project(x, y, z) {
   const point = new Vector3(x, y, z).project(view);
   return {

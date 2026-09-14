@@ -24,3 +24,11 @@ export function camera(width, height, targetY = 1.03, depth = 80) {
   c.updateMatrixWorld();
   return c;
 }
+
+/** Normalized world direction from the shared art target toward its camera. */
+export function towardCamera(value) {
+  const direction = value.getWorldDirection(new THREE.Vector3()).multiplyScalar(-1).normalize();
+  if (![direction.x, direction.y, direction.z].every(Number.isFinite))
+    throw new Error("invalid art camera direction");
+  return Object.freeze({ x: direction.x, y: direction.y, z: direction.z });
+}
