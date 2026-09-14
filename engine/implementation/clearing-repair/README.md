@@ -27,16 +27,29 @@ depth bytes through the maintained pack owner. The source-owned v4 bank now
 contains 1,781 original textures across four paired color/depth pages; all ten
 image output hashes and 45 source hashes match its manifest. Its 13 manifest
 laws, strict types and an actual browser load of all 1,781 depth bindings pass.
-The reusable world-depth caller, cutaways and exact game picking remain
-unfinished; the first single-depth-page draft was rejected when the actual bank
-proved that it spans four color pages.
+The reusable world-depth caller is now implemented through `5f454f8`. Terrain
+and resolved original-art frames enter one Pixi WebGL2 pass with paired color and
+depth pages; the CPU picker reads the same depth bytes; all shipped visual
+bindings declare an explicit physical role; terrain patch updates preserve one
+shared range and copy source-owned bytes before GPU upload. The 31 focused
+depth/terrain/geometry laws and 23 visual/client laws pass, and a fresh Vite build
+completed from 1,091 modules in `run-u7307`. This is source and build evidence,
+not live acceptance: an actual multilevel browser witness, cutaway behavior and
+transparent-water depth testing remain open before this drawing outcome can be
+called playable.
 
 The Colony v2 browser/protocol slice is integrated through `73c0b6c`: fresh and
 invited Colony worlds both use exact `/v2/colony/worlds/:world/...` routes, keep
 the world invite out of HTTP routing and keep a persisted participant credential
 out of URLs. Its 18 remote-runtime and 17 choice/protocol laws plus strict types
-pass. The DO transaction, canonical player/party spawn, principal propagation and
-two-player witness remain unfinished, so this is not yet playable multiplayer.
+pass. The isolated DO host candidate now owns `/v2/colony` join routing and has
+local Wrangler evidence for concurrent idempotent join, a stable party with two
+people, cross-principal denial, retry after an injected post-Region/pre-participant
+failure, restart over the same SQLite directory and authenticated WebSocket
+upgrade. The neutral server pack and party-owned game source are still on their
+separate candidate branch. Post-commit observation over the retained socket, a
+bounded lawful spawn query and a freshly generated joined WASM proof remain open,
+so this is not yet playable multiplayer.
 The first construction cutover defect (success leaving an executing attempt) is
 superseded by `1f56598`. The earlier 29-construction-law acceptance from
 `run-u7288` is withdrawn because it used stale generated WASM. A fresh Rust build
