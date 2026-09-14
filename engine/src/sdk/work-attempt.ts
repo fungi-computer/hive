@@ -78,6 +78,15 @@ export function interruptWorkAttempt(
   });
 }
 
+/** Replace only the current route operation, preserving its attempt generation. */
+export function retargetRouteWorkAttempt(context: Pick<WriteContext, "action">, attempt: WorkAttemptKey, operationSequence: number, destination: MoveDestination): void {
+  const exact = key(attempt);
+  const operation = sequence(operationSequence);
+  if (![destination.x, destination.y, destination.z].every(value => Number.isFinite(value))) throw new Error("work attempt destination must be finite");
+  if (destination.frame !== null) entity(destination.frame);
+  context.action({ kind: "retarget-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, destination });
+}
+
 /** Acknowledge only the currently projected terminal operation. */
 export function acknowledgeWorkAttempt(
   context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,

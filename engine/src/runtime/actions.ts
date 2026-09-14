@@ -44,6 +44,12 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "task", "worker", "party", "operation"];
       valid = id(action.task) && id(action.worker) && id(action.party) && !!action.operation && typeof action.operation === "object" && !Array.isArray(action.operation) && (action.operation as Record<string, unknown>).kind === "route" && Object.keys(action.operation as object).length === 2 && !!(action.operation as Record<string, unknown>).destination;
       break;
+    case "retarget-work-attempt": {
+      keys = ["kind", "task", "generation", "sequence", "destination"];
+      const destination = action.destination as Record<string, unknown> | null;
+      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && !!destination && !Array.isArray(destination) && Object.keys(destination).length === 4 && terrainContact(destination);
+      break;
+    }
     case "interrupt-work-attempt":
       keys = ["kind", "task", "generation", "sequence", "cause"];
       valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && ["drafted", "cancelled", "workerUnavailable", "accessLost"].includes(action.cause as string);

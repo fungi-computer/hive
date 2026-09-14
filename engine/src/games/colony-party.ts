@@ -66,6 +66,7 @@ export function createColonyPartyPlan(
         "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
         "hive.visual": workerLooks[index],
         "hive.party-member": { party },
+        "hive.owned-by-party": { party },
         "hive.work-participation": { automatic: true },
         "hive.delivery-control": { enabled: true, quantity: 3 },
         "colony.worker": { guest: false },
@@ -94,8 +95,9 @@ export function createColonyPartyPlan(
     }),
     ...starterLots.map(([kind, quantity]) => ({
       id: entity(`${party}.starter.${kind}`),
-      components: {
-        "hive.lot": { quantity, kind, container: store },
+        components: {
+          "hive.lot": { quantity, kind, container: store },
+          "hive.owned-by-party": { party },
         ...(kind === "barm" || kind === "keg"
           ? { "hive.container": { capacity: kind === "keg" ? 4 : 1 } }
           : {}),

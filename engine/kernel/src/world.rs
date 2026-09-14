@@ -3046,7 +3046,7 @@ impl Kernel {
             || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
-                    | Action::BeginWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
+                    | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
@@ -3695,6 +3695,14 @@ impl Kernel {
         let rows = tasks.into_iter().filter_map(|task| self.work_attempts.get(&task).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity))).cloned().collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
+    pub fn work_attempt_for_worker_json(&self, input: &str) -> Result<String> {
+        let worker: String = serde_json::from_str(input).map_err(|e| e.to_string())?;
+        if !valid_id(&worker) { return Err("invalid worker identity".into()); }
+        let row = self.attempts_by_worker.get(&worker)
+            .and_then(|key| self.work_attempts.get(&key.task))
+            .and_then(|entity| self.ecs.get::<WorkAttempt>(*entity));
+        serde_json::to_string(&row).map_err(|e| e.to_string())
+    }
     fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
         if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
         if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
@@ -3748,6 +3756,21 @@ impl Kernel {
             _ => return Err("work attempt operation is already settled".into()),
         };
         self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Interrupted { cause } })
+    }
+    fn retarget_work_attempt(&mut self, task: String, generation: u64, sequence: u32, destination: Point) -> Result<()> {
+        let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
+        let attempt = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.clone();
+        if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
+        let operation = match attempt.phase { AttemptPhase::Executing { operation, .. } if operation.sequence == sequence => operation, _ => return Err("work attempt operation is not executing".into()) };
+        let worker = self.entity(&attempt.worker)?;
+        let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
+        self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
+        let route = self.route_for(worker, position, &destination)?;
+        self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_route(worker, route);
+        let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.into_inner();
+        attempt.phase = AttemptPhase::Executing { operation: OperationKey { attempt: operation.attempt, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? }, activity: crate::work_attempt::ActivityRef::Route { destination } };
+        Ok(())
     }
     fn acknowledge_work_attempt(&mut self, task: String, generation: u64, sequence: u32) -> Result<()> {
         {
@@ -3816,6 +3839,7 @@ impl Kernel {
         match action {
             Action::EstablishParty { binding_id, player, party, records } => self.establish_party(binding_id, player, party, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
+            Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
             Action::ContinueWorkAttempt { task, generation, sequence, next_activity } => self.continue_work_attempt(task, generation, sequence, next_activity).map(|_| ActionEffect::None),

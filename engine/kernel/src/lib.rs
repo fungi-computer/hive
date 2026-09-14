@@ -197,6 +197,9 @@ impl WasmKernel {
     pub fn work_attempts(&self, json: &str) -> Result<String, JsValue> {
         self.0.work_attempts_json(json).map_err(js_error)
     }
+    pub fn work_attempt_for_worker(&self, json: &str) -> Result<String, JsValue> {
+        self.0.work_attempt_for_worker_json(json).map_err(js_error)
+    }
     pub fn entity_membership(&self, json: &str) -> Result<String, JsValue> {
         self.0.entity_membership_json(json).map_err(js_error)
     }

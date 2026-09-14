@@ -57,6 +57,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   query(json: string): string;
   work_material_snapshot(): string;
   work_attempts(json: string): string;
+  work_attempt_for_worker(json: string): string;
   process_requirements(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -611,6 +612,12 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         if (!key || typeof key.task !== "string" || !taskIds.includes(key.task as EntityId) || !Number.isSafeInteger(key.generation) || (key.generation as number) <= 0 || typeof value.worker !== "string" || typeof value.party !== "string" || !value.phase || typeof value.phase !== "object") throw new Error("invalid work attempt row");
       }
       return result as WorkAttempt[];
+    },
+    workAttemptForWorker(worker) {
+      const result = JSON.parse(binding.work_attempt_for_worker(JSON.stringify(worker))) as unknown;
+      if (result === null) return null;
+      if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error("invalid worker work attempt projection");
+      return result as WorkAttempt;
     },
     processRequirements(definition, station): ProcessRequirements {
       if (!entityIdWireSchema.safeParse(definition).success || !entityIdWireSchema.safeParse(station).success)

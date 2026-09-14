@@ -14,7 +14,6 @@ import {
   Position,
   Traversal,
   cancelWork,
-  move as moveAction,
   encodeDefinition,
   transfer,
   FiniteResource,
@@ -30,11 +29,12 @@ import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
+import { beginRouteWorkAttempt, retargetRouteWorkAttempt } from "../sdk/work-attempt";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
-import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext, GameCommandContext } from "../contracts";
+import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, ReadContext, GameCommandContext } from "../contracts";
 
 export { Worker } from "./colony-components";
 export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
@@ -175,7 +175,7 @@ const colonyInitial = [
   } }]),
 ];
 
-type CommandContext = Pick<GameCommandContext, "query" | "scope">;
+type CommandContext = Pick<GameCommandContext, "query" | "scope" | "workAttempts" | "workAttemptForWorker">;
 
 const goInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
@@ -237,6 +237,34 @@ function selectedWorkers(context: CommandContext, raw: readonly EntityId[]): rea
     if (!worker || worker.guest) throw new Error("guests cannot deliver");
   }
   return selected;
+}
+
+function attemptForWorker(context: CommandContext, worker: EntityId) {
+  return context.workAttemptForWorker?.(worker) ?? null;
+}
+
+function admittedParty(context: CommandContext, worker: EntityId): EntityId {
+  const membership = context.query(query(PartyMember)).find(row => row.id === worker)?.get(PartyMember);
+  if (context.scope.kind === "player") {
+    if (!membership || membership.party !== context.scope.party) throw new Error("worker is outside the command party");
+    return context.scope.party;
+  }
+  if (!membership) throw new Error("worker has no admitted party");
+  return membership.party;
+}
+
+function exactRouteReplacement(context: CommandContext, worker: EntityId, party: EntityId, destination: MoveDestination): readonly ActionRequest[] {
+  const current = attemptForWorker(context, worker);
+  if (!current) {
+    const actions: ActionRequest[] = [];
+    beginRouteWorkAttempt({ action: request => actions.push(request) }, worker, worker, party, destination);
+    return actions;
+  }
+  if (current.worker !== worker || current.party !== party || current.key.task !== worker) throw new Error("worker has an incompatible active work attempt");
+  if (current.phase.kind !== "executing") throw new Error("worker route is waiting for work-attempt reconciliation");
+  const actions: ActionRequest[] = [];
+  retargetRouteWorkAttempt({ action: request => actions.push(request) }, current.key, current.phase.operation.sequence, destination);
+  return actions;
 }
 
 function activeTaskFor(context: CommandContext, actor: EntityId) {
@@ -490,27 +518,16 @@ export const colonyPack: GamePack = {
     go: command({
       title: "Move workers", category: "Colony", description: "Move selected workers to a destination under manual control.",
       input: goInput,
-      reads: [Worker, Position, WorkParticipation, ExcavationWork, ConstructionSite],
+      reads: [Worker, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
       run: (context, input) => {
         const parsed = input;
         const selected = selectedWorkers(context, parsed.entities);
-        const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
-        const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
-        const building = new Set(context.query(query(ConstructionSite)).flatMap(row => {
-          const worker = row.get(ConstructionSite).worker;
-          return worker === null ? [] : [worker];
-        }));
         const participation = new Map(context.query(query(WorkParticipation)).map(row => [row.id, row.get(WorkParticipation)]));
         if (selected.some(worker => participation.get(worker)?.automatic !== false))
           throw new Error("go requires drafted workers");
         return {
-          actions: selected.flatMap(worker => (excavating.has(worker) || building.has(worker)) ? [cancelWork(worker)] : [])
-            .concat(selected.map(worker => {
-              const position = positions.get(worker);
-              if (!position) throw new Error("selected worker position is unavailable");
-              return moveAction(worker, parsed.destination, position.facing);
-            })),
+          actions: selected.flatMap(worker => exactRouteReplacement(context, worker, admittedParty(context, worker), parsed.destination)),
           writes: [],
         };
       },
@@ -519,11 +536,16 @@ export const colonyPack: GamePack = {
       title: "Draft workers", category: "Colony", description: "Draft selected workers for manual control.",
       localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities" }] },
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation],
+      reads: [Worker, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
+        const actions = selected.flatMap(worker => {
+          const attempt = attemptForWorker(context, worker);
+          if (!attempt || attempt.worker !== worker || attempt.party !== admittedParty(context, worker)) return [];
+          return attempt.phase.kind === "executing" ? [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }] : [];
+        });
+        return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
       },
     }),
     undraft: command({
@@ -534,7 +556,14 @@ export const colonyPack: GamePack = {
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
+        const actions = selected.flatMap(worker => {
+          const attempt = attemptForWorker(context, worker);
+          if (!attempt || attempt.key.task !== worker || attempt.party !== admittedParty(context, worker)) return [];
+          if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" as const }];
+          if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
+          throw new Error("worker route is waiting for work-attempt reconciliation");
+        });
+        return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
       },
     }),
     resumeWork: command({
