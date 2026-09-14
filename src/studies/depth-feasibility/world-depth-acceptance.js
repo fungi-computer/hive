@@ -146,8 +146,8 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
   layer.update([], WORLD_TOWARD_CAMERA);
   const lifecycleAfterEmpty = layer.diagnostics();
   const emptyLifecycleStable = lifecycleAfterEmpty.opaque.active === 0 && lifecycleAfterEmpty.transparent.active === 0 &&
-    lifecycleAfterEmpty.opaque.destroyed >= lifecycleBeforeEmpty.opaque.active &&
-    lifecycleAfterEmpty.transparent.destroyed >= lifecycleBeforeEmpty.transparent.active;
+    lifecycleAfterEmpty.opaque.destroyed - lifecycleBeforeEmpty.opaque.destroyed === lifecycleBeforeEmpty.opaque.active &&
+    lifecycleAfterEmpty.transparent.destroyed - lifecycleBeforeEmpty.transparent.destroyed === lifecycleBeforeEmpty.transparent.active;
   const result = Object.freeze({
     status: "rendered",
     permutationStable: frames[0].checksum === frames[1].checksum && frames[0].nonzero === frames[1].nonzero && outputs[0]?.entityId === outputs[1]?.entityId,
