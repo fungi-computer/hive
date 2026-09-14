@@ -250,3 +250,24 @@ test("invalidated executing contact interrupts the exact native attempt and leav
     },
   ]);
 });
+
+test("executing construction contact remains a lawful access contact", () => {
+  const attempt = {
+    key: { task: site, generation: 3 },
+    worker,
+    party,
+    phase: {
+      kind: "executing",
+      operation: { attempt: { task: site, generation: 3 }, sequence: 2 },
+      activity: {
+        kind: "construction",
+        site,
+        mode: "work",
+        contact: { x: 1, y: 0.5, z: 1, frame: null },
+      },
+    },
+  };
+  const f = fixture([attempt]);
+  constructionWorkProvider(f.base, { workers: [worker] }, new Set()).progress();
+  assert.deepEqual(f.actions, [], "valid physical construction must not be released as accessLost");
+});

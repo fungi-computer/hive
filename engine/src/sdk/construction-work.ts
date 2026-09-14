@@ -237,11 +237,15 @@ export function constructionWorkProvider(
           a.phase.kind === "executing"
             ? a.phase.activity.kind === "route"
               ? a.phase.activity.destination
-              : null
+              : a.phase.activity.kind === "construction"
+                ? a.phase.activity.contact
+                : null
             : a.phase.kind === "outcome"
               ? a.phase.activity.kind === "route"
                 ? a.phase.activity.destination
-                : null
+                : a.phase.activity.kind === "construction"
+                  ? a.phase.activity.contact
+                  : null
               : null;
         const selected =
           current && ar?.contacts.find((c) => exactContact(current, target(c)));
