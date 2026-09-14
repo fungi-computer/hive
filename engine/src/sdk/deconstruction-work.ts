@@ -1,5 +1,6 @@
 import { component, entity, query } from "./authoring";
-import { ConstructionSite, deconstruct } from "./construction";
+import { ConstructionSite } from "./construction";
+import { OwnedByParty, PartyMember } from "./party";
 import {
   Body,
   Container,
@@ -8,73 +9,49 @@ import {
   MaterialLot,
   Support,
   Traversal,
-  move,
 } from "./common";
 import type { PreparedWorkProvider } from "./work-system";
+import {
+  acknowledgeWorkAttempt,
+  beginRouteWorkAttempt,
+  continueDeconstructionWorkAttempt,
+  interruptWorkAttempt,
+  workAttempt,
+  workAttemptsFor,
+} from "./work-attempt";
 import type {
   ConstructionAccessContact,
   DeconstructionAccess,
   EntityId,
   EntityRecord,
-  QueryRow,
-  WorldPose,
   WriteContext,
 } from "../contracts";
 
 type DeconstructionOrderState = {
   site: EntityId;
-  actor: EntityId | null;
-  phase:
-    | "queued"
-    | "approaching"
-    | "working"
-    | "submitting"
-    | "blocked"
-    | "complete";
-  seconds: number;
   contactX: number;
   contactY: number;
   contactZ: number;
+  salvageQuantity: number;
+  workSeconds: number;
+  status: "queued" | "complete" | "blocked";
   reason: string;
   retryKey: string;
 };
 export const DeconstructionOrder = component<DeconstructionOrderState>(
   "hive.deconstruction-order",
   {
-    version: 3,
+    version: 4,
     fields: {
-      // The accepted physical action removes this target before its durable
-      // receipt is reconciled on the following authored step.
       site: "string",
-      actor: "nullable-entity",
-      phase: "string",
-      seconds: "number",
       contactX: "number",
       contactY: "number",
       contactZ: "number",
+      salvageQuantity: "number",
+      workSeconds: "number",
+      status: "string",
       reason: "string",
       retryKey: "string",
-    },
-  },
-);
-
-type DeconstructionApproachState = {
-  order: EntityId;
-  worker: EntityId;
-  contactX: number;
-  contactY: number;
-  contactZ: number;
-};
-export const DeconstructionApproach = component<DeconstructionApproachState>(
-  "hive.deconstruction-approach",
-  {
-    version: 2,
-    fields: {
-      order: "entity",
-      worker: "entity",
-      contactX: "number",
-      contactY: "number",
-      contactZ: "number",
     },
   },
 );
@@ -82,18 +59,54 @@ export const DeconstructionApproach = component<DeconstructionApproachState>(
 type Candidate = {
   readonly worker: EntityId;
   readonly task: EntityId;
-  readonly order: EntityId;
   readonly site: EntityId;
   readonly contacts: readonly ConstructionAccessContact[];
+  readonly party: EntityId;
 };
+const target = (contact: ConstructionAccessContact) => ({
+  x: contact.x,
+  y: contact.y,
+  z: contact.z,
+  frame: contact.frame,
+});
 const distance = (
   a: { x: number; y: number; z: number },
   b: { x: number; y: number; z: number },
 ) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-const approachId = (order: EntityId) =>
-  entity(`deconstruction-approach.${order.length}:${order}`);
+const sameTarget = (
+  a: { x: number; y: number; z: number; frame: EntityId | null },
+  b: ConstructionAccessContact,
+) => a.x === b.x && a.y === b.y && a.z === b.z && a.frame === b.frame;
+const retryKey = (
+  info: DeconstructionAccess | undefined,
+  party: EntityId | undefined,
+  workers: readonly EntityId[],
+  members: ReadonlyMap<EntityId, EntityId>,
+  quantities: ReadonlyMap<EntityId, number>,
+  containers: ReadonlyMap<EntityId, { readonly capacity: number }>,
+) => {
+  const freeCapacity = workers
+    .filter((worker) => members.get(worker) === party)
+    .reduce(
+      (maximum, worker) =>
+        Math.max(
+          maximum,
+          (containers.get(worker)?.capacity ?? 0) -
+            (quantities.get(worker) ?? 0),
+        ),
+      0,
+    );
+  const contacts =
+    info?.contacts
+      .map(
+        (contact) =>
+          `${contact.x},${contact.y},${contact.z},${contact.frame},${contact.kind}`,
+      )
+      .join(";") ?? "";
+  return `${info?.status ?? "missing"}|${info?.salvageQuantity ?? 0}|${info?.workSeconds ?? 0}|${contacts}|${freeCapacity}`;
+};
 
-/** Queue intent is an authored record; worker availability is deliberately irrelevant. */
+/** Queue intent owns target/progress/result facts; native WorkAttempt owns attendance. */
 export const queueDeconstruction = (site: EntityId): EntityRecord => {
   const id = entity(`deconstruction-order.${site.length}:${site}`);
   return {
@@ -101,12 +114,12 @@ export const queueDeconstruction = (site: EntityId): EntityRecord => {
     components: {
       [DeconstructionOrder.id]: {
         site,
-        actor: null,
-        phase: "queued",
-        seconds: 0,
         contactX: 0,
         contactY: 0,
         contactZ: 0,
+        salvageQuantity: 0,
+        workSeconds: 0,
+        status: "queued",
         reason: "",
         retryKey: "",
       },
@@ -114,40 +127,11 @@ export const queueDeconstruction = (site: EntityId): EntityRecord => {
   };
 };
 
-type ApproachRow = {
-  readonly id: EntityId;
-  readonly state: DeconstructionApproachState;
-};
-type SiteState = {
-  readonly catalog: string;
-  readonly x: number;
-  readonly y: number;
-  readonly z: number;
-  readonly orientation: string;
-  readonly worker: EntityId | null;
-  readonly seconds: number;
-  readonly phase: "planned" | "working" | "finished";
-};
-type DeconstructionFacts = {
-  readonly orders: readonly QueryRow<DeconstructionOrderState>[];
-  readonly sites: ReadonlyMap<EntityId, SiteState>;
-  readonly access: ReadonlyMap<EntityId, DeconstructionAccess>;
-  readonly approaches: ReadonlyMap<EntityId, ApproachRow>;
-  readonly bodies: ReadonlyMap<EntityId, { readonly speed: number }>;
-  readonly containers: ReadonlyMap<EntityId, { readonly capacity: number }>;
-  readonly quantities: ReadonlyMap<EntityId, number>;
-  readonly traversals: ReadonlySet<EntityId>;
-  readonly positions: ReadonlyMap<EntityId, WorldPose>;
-  readonly occupied: ReadonlySet<EntityId>;
-  readonly workers: readonly EntityId[];
-  readonly suspended: ReadonlySet<EntityId>;
-};
-
-function indexDeconstructionFacts(
+export function deconstructionWorkProvider(
   ctx: WriteContext,
   workers: readonly EntityId[],
-  suspended: ReadonlySet<EntityId>,
-): DeconstructionFacts {
+  suspendedActors: ReadonlySet<EntityId>,
+): PreparedWorkProvider<Candidate> {
   const orders = [...ctx.query(query(DeconstructionOrder))].sort((a, b) =>
     a.id.localeCompare(b.id),
   );
@@ -158,29 +142,16 @@ function indexDeconstructionFacts(
       .query(query(ConstructionSite))
       .map((row) => [row.id, row.get(ConstructionSite)] as const),
   );
-  const requestedSites = [
-    ...new Set(orders.map((row) => row.get(DeconstructionOrder).site)),
-  ];
-  const access = new Map(
-    (requestedSites.length ? ctx.deconstructionAccess(requestedSites) : []).map(
-      (row) => [row.site, row] as const,
-    ),
-  );
-  const approaches = new Map(
+  const owners = new Map(
     ctx
-      .query(query(DeconstructionApproach))
-      .map(
-        (row) =>
-          [
-            row.get(DeconstructionApproach).order,
-            { id: row.id, state: row.get(DeconstructionApproach) },
-          ] as const,
-      ),
+      .query(query(OwnedByParty))
+      .map((row) => [row.id, row.get(OwnedByParty).party] as const),
   );
-  const orderIds = new Set(orders.map((row) => row.id));
-  for (const approach of approaches.values())
-    if (!orderIds.has(approach.state.order))
-      ctx.removeAuthoredEntity(approach.id);
+  const members = new Map(
+    ctx
+      .query(query(PartyMember))
+      .map((row) => [row.id, row.get(PartyMember).party] as const),
+  );
   const bodies = new Map(
     ctx.query(query(Body)).map((row) => [row.id, row.get(Body)] as const),
   );
@@ -188,6 +159,14 @@ function indexDeconstructionFacts(
     ctx
       .query(query(Container))
       .map((row) => [row.id, row.get(Container)] as const),
+  );
+  const traversals = new Set(ctx.query(query(Traversal)).map((row) => row.id));
+  const destinations = new Set(
+    ctx.query(query(Destination)).map((row) => row.id),
+  );
+  const supports = new Set(ctx.query(query(Support)).map((row) => row.id));
+  const excavations = new Set(
+    ctx.query(query(ExcavationWork)).map((row) => row.id),
   );
   const quantities = new Map<EntityId, number>();
   for (const row of ctx.query(query(MaterialLot))) {
@@ -197,488 +176,246 @@ function indexDeconstructionFacts(
       (quantities.get(lot.container) ?? 0) + lot.quantity,
     );
   }
-  const traversals = new Set(ctx.query(query(Traversal)).map((row) => row.id));
-  const positions = new Map(
-    workers
-      .flatMap((_, index) =>
-        index % 128 === 0
-          ? ctx.worldPoses(workers.slice(index, index + 128))
-          : [],
-      )
-      .map((pose) => [pose.id, pose] as const),
+  const siteIds = [
+    ...new Set(orders.map((row) => row.get(DeconstructionOrder).site)),
+  ];
+  const access = new Map(
+    (siteIds.length ? ctx.deconstructionAccess(siteIds) : []).map(
+      (row) => [row.site, row] as const,
+    ),
   );
-  const occupied = new Set<EntityId>([
-    ...ctx.query(query(ExcavationWork)).map((row) => row.id),
-    ...ctx.query(query(Destination)).map((row) => row.id),
-    ...ctx.query(query(Support)).map((row) => row.id),
-    ...ctx.query(query(ConstructionSite)).flatMap((row) => {
-      const worker = row.get(ConstructionSite).worker;
-      return worker === null ? [] : [worker];
-    }),
-    ...[...approaches.values()].map(({ state }) => state.worker),
-  ]);
-  return {
-    orders,
-    sites,
-    access,
-    approaches,
-    bodies,
-    containers,
-    quantities,
-    traversals,
-    positions,
-    occupied,
-    workers,
-    suspended,
-  };
-}
-
-type WorkerAvailability =
-  | {
-      readonly kind: "eligible";
-      readonly capacity: number;
-      readonly quantity: number;
-      readonly pose: WorldPose | undefined;
-    }
-  | { readonly kind: "suspended" | "occupied" | "unavailable" };
-
-function workerAvailability(
-  facts: DeconstructionFacts,
-  worker: EntityId,
-): WorkerAvailability {
-  if (facts.suspended.has(worker)) return { kind: "suspended" };
-  if (facts.occupied.has(worker)) return { kind: "occupied" };
-  const body = facts.bodies.get(worker);
-  const container = facts.containers.get(worker);
-  if (!body || body.speed <= 0 || !container || !facts.traversals.has(worker)) return { kind: "unavailable" };
-  return {
-    kind: "eligible",
-    capacity: container.capacity,
-    quantity: facts.quantities.get(worker) ?? 0,
-    pose: facts.positions.get(worker),
-  };
-}
-
-function workerRetryKey(facts: DeconstructionFacts, worker: EntityId): string {
-  const availability = workerAvailability(facts, worker);
-  if (availability.kind !== "eligible") return `${worker}:ineligible:${availability.kind}`;
-  const pose = availability.pose?.world;
-  const coordinates = pose ? `${pose.x},${pose.y},${pose.z}` : "?,?,?";
-  return `${worker}:eligible:${availability.quantity}:${availability.capacity}:${coordinates}`;
-}
-
-function deconstructionRetryKey(
-  facts: DeconstructionFacts,
-  site: EntityId,
-  rowAccess: DeconstructionAccess | undefined,
-): string {
-  const accessKey = rowAccess
-    ? `${rowAccess.status}|${rowAccess.salvageQuantity}|${rowAccess.workSeconds}|${rowAccess.contacts.map((contact) => `${contact.x},${contact.y},${contact.z},${contact.kind}`).join(";")}`
-    : "missing-access";
-  const workerKey = facts.workers
-    .map((worker) => workerRetryKey(facts, worker))
-    .join("|");
-  return `${site}|${accessKey}|${workerKey}`;
-}
-
-export function deconstructionWorkProvider(
-  ctx: WriteContext,
-  workers: readonly EntityId[],
-  suspended: ReadonlySet<EntityId>,
-): PreparedWorkProvider<Candidate> {
-  const facts = indexDeconstructionFacts(ctx, workers, suspended);
-  const { activeOrders, claims } = reconcileDeconstructionOrders(ctx, facts);
-  const candidates = buildDeconstructionCandidates(facts, activeOrders);
-  const assignment = beginDeconstructionAssignment(ctx, facts, candidates);
-  return {
-    claims,
-    occupiedActors: [...facts.occupied],
-    candidates,
-    lowerBound: assignment.lowerBound,
-    estimate: assignment.estimate,
-    apply: assignment.apply,
-    progress: () => progressDeconstruction(ctx, facts, activeOrders),
-  };
-}
-
-function removeDeconstructionOrder(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  order: EntityId,
-): void {
-  ctx.removeAuthoredEntity(order);
-  const approach = facts.approaches.get(order);
-  if (approach) ctx.removeAuthoredEntity(approach.id);
-}
-
-function removeDeconstructionApproach(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  order: EntityId,
-): void {
-  const approach = facts.approaches.get(order);
-  if (approach) ctx.removeAuthoredEntity(approach.id);
-}
-
-function settleDeconstructionOutcome(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  row: QueryRow<DeconstructionOrderState>,
-): boolean {
-  const state = row.get(DeconstructionOrder);
-  const outcome = ctx.outcomes.find(
-    ({ action }) =>
-      action.kind === "deconstruct" &&
-      action.worker === state.actor &&
-      action.site === state.site,
+  const attempts = new Map(
+    workAttemptsFor(ctx, orders.map((row) => row.id)).map(
+      (attempt) => [attempt.key.task, attempt] as const,
+    ),
   );
-  if (!outcome) return false;
-  if (outcome.result.accepted) {
-    removeDeconstructionOrder(ctx, facts, row.id);
-  } else {
-    removeDeconstructionApproach(ctx, facts, row.id);
-    ctx.write(DeconstructionOrder, row.id, {
-      ...state,
-      actor: null,
-      phase: "blocked",
-      reason: (outcome.result.reason ?? "Deconstruction was rejected").slice(
-        0,
-        512,
-      ),
-      retryKey: deconstructionRetryKey(
-        facts,
-        state.site,
-        facts.access.get(state.site),
-      ),
-    });
-  }
-  return true;
-}
+  const poses = new Map<EntityId, { x: number; y: number; z: number }>();
+  for (let i = 0; i < workers.length; i += 128)
+    for (const pose of ctx.worldPoses(workers.slice(i, i + 128)))
+      poses.set(pose.id, pose.world);
 
-function reconcileDeconstructionOrders(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-) {
   const liveSites = new Set<EntityId>();
-  const removedOrders = new Set<EntityId>();
-  for (const row of facts.orders) {
+  const candidates: Candidate[] = [];
+  for (const row of orders) {
     const state = row.get(DeconstructionOrder);
-    if (
-      !facts.sites.has(state.site) ||
-      state.phase === "complete" ||
-      liveSites.has(state.site)
-    ) {
-      removeDeconstructionOrder(ctx, facts, row.id);
-      removedOrders.add(row.id);
+    const site = sites.get(state.site);
+    const info = access.get(state.site);
+    const party = owners.get(state.site);
+    const attempt = attempts.get(row.id);
+    const currentRetryKey = retryKey(
+      info,
+      party,
+      workers,
+      members,
+      quantities,
+      containers,
+    );
+    // Establish stable first-order ownership before attempt/status branching.
+    // A committed deconstruction can remove its site before reconciliation.
+    if (liveSites.has(state.site)) {
+      if (!attempt) ctx.removeAuthoredEntity(row.id);
       continue;
     }
     liveSites.add(state.site);
-    if (settleDeconstructionOutcome(ctx, facts, row)) {
-      removedOrders.add(row.id);
+    if (attempt) continue;
+    if (
+      !site ||
+      !info ||
+      site.phase !== "finished" ||
+      info.status !== "ready" ||
+      !info.contacts.length ||
+      !party
+    ) {
+      if (!site) ctx.removeAuthoredEntity(row.id);
       continue;
     }
-    if (state.actor !== null && !facts.approaches.has(row.id))
-      ctx.write(DeconstructionOrder, row.id, {
-        ...state,
-        actor: null,
-        phase: "queued",
-        reason: "",
-        retryKey: "",
-      });
-  }
-  const activeOrders = facts.orders.filter((row) => !removedOrders.has(row.id));
-  const claims = activeOrders.flatMap((row) => {
-    const state = row.get(DeconstructionOrder);
-    return facts.sites.has(state.site) && state.phase !== "complete"
-      ? [{ task: row.id, actor: state.actor }]
-      : [];
-  });
-  return { activeOrders, claims };
-}
-
-function orderCanStart(
-  facts: DeconstructionFacts,
-  row: QueryRow<DeconstructionOrderState>,
-  access: DeconstructionAccess | undefined,
-): access is DeconstructionAccess {
-  const state = row.get(DeconstructionOrder);
-  const site = facts.sites.get(state.site);
-  if (
-    !site ||
-    site.phase !== "finished" ||
-    state.actor !== null ||
-    facts.approaches.has(row.id)
-  )
-    return false;
-  if (!access || access.status !== "ready" || access.contacts.length === 0)
-    return false;
-  return (
-    state.phase !== "blocked" ||
-    state.retryKey !== deconstructionRetryKey(facts, state.site, access)
-  );
-}
-
-function workerCanDeconstruct(
-  facts: DeconstructionFacts,
-  worker: EntityId,
-  salvageQuantity: number,
-): boolean {
-  const availability = workerAvailability(facts, worker);
-  return availability.kind === "eligible" && availability.pose !== undefined && availability.quantity + salvageQuantity <= availability.capacity;
-}
-
-function buildDeconstructionCandidates(
-  facts: DeconstructionFacts,
-  orders: readonly QueryRow<DeconstructionOrderState>[],
-): Candidate[] {
-  return orders.flatMap((row) => {
-    const state = row.get(DeconstructionOrder);
-    const rowAccess = facts.access.get(state.site);
-    if (!orderCanStart(facts, row, rowAccess)) return [];
-    return facts.workers
-      .filter((worker) =>
-        workerCanDeconstruct(facts, worker, rowAccess.salvageQuantity),
+    if (
+      state.status === "complete" ||
+      (state.status === "blocked" && state.retryKey === currentRetryKey)
+    )
+      continue;
+    for (const worker of workers) {
+      const body = bodies.get(worker),
+        pose = poses.get(worker),
+        container = containers.get(worker);
+      if (
+        suspendedActors.has(worker) ||
+        !pose ||
+        !body ||
+        body.speed <= 0 ||
+        !container ||
+        !traversals.has(worker) ||
+        destinations.has(worker) ||
+        supports.has(worker) ||
+        excavations.has(worker) ||
+        members.get(worker) !== party ||
+        (quantities.get(worker) ?? 0) + info.salvageQuantity >
+          container.capacity
       )
-      .map((worker) => ({
+        continue;
+      candidates.push({
         worker,
         task: row.id,
-        order: row.id,
         site: state.site,
-        contacts: rowAccess.contacts,
-      }));
-  });
-}
-
-function beginDeconstructionAssignment(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  candidates: readonly Candidate[],
-) {
-  const routed = new Map<
-    string,
-    { contact: ConstructionAccessContact; cost: number }
-  >();
+        contacts: info.contacts,
+        party,
+      });
+    }
+  }
+  const routed = new Map<string, ConstructionAccessContact>();
+  const byPair = new Map(
+    candidates.map((candidate) => [
+      `${candidate.task}\\0${candidate.worker}`,
+      candidate,
+    ]),
+  );
+  const claims = orders.map((row) => ({
+    task: row.id,
+    actor: attempts.get(row.id)?.worker ?? null,
+  }));
   return {
-    lowerBound: (candidate: Candidate) => {
-      const pose = facts.positions.get(candidate.worker)?.local;
+    claims,
+    occupiedActors: [
+      ...new Set([...attempts.values()].map((attempt) => attempt.worker)),
+    ],
+    candidates,
+    lowerBound: (candidate) => {
+      const pose = poses.get(candidate.worker);
       return pose
         ? Math.min(
             ...candidate.contacts.map((contact) => distance(pose, contact)),
           )
-        : 0;
+        : Number.POSITIVE_INFINITY;
     },
-    estimate: (candidate: Candidate) => {
+    estimate: (candidate) => {
       const result = ctx.routeToAny({
         actor: candidate.worker,
-        targets: candidate.contacts.map((contact) => ({
-          x: contact.x,
-          y: contact.y,
-          z: contact.z,
-          frame: null,
-        })),
+        targets: candidate.contacts.map(target),
       });
       if (result.status !== "reachable") return null;
       const contact = candidate.contacts[result.targetIndex];
       if (!contact) return null;
-      routed.set(`${candidate.worker}\0${candidate.task}`, {
-        contact,
-        cost: result.cost,
-      });
+      routed.set(`${candidate.task}\\0${candidate.worker}`, contact);
       return result.cost;
     },
-    apply: (
-      assignments: readonly {
-        readonly worker: EntityId;
-        readonly task: EntityId;
-      }[],
-    ) => {
+    apply: (assignments) => {
       for (const assignment of assignments) {
-        const candidate = candidates.find(
-          (item) =>
-            item.worker === assignment.worker && item.task === assignment.task,
+        const candidate = byPair.get(
+          `${assignment.task}\\0${assignment.worker}`,
         );
-        const chosen =
-          candidate && routed.get(`${assignment.worker}\0${assignment.task}`);
-        if (!candidate || !chosen) continue;
-        const state = facts.orders
-          .find((row) => row.id === candidate.order)
-          ?.get(DeconstructionOrder);
-        if (!state) continue;
-        ctx.write(DeconstructionOrder, candidate.order, {
-          ...state,
-          actor: candidate.worker,
-          phase: "approaching",
-          contactX: chosen.contact.x,
-          contactY: chosen.contact.y,
-          contactZ: chosen.contact.z,
-          reason: "",
-          retryKey: "",
-        });
-        ctx.createAuthoredEntity({
-          id: approachId(candidate.order),
-          components: {
-            [DeconstructionApproach.id]: {
-              order: candidate.order,
-              worker: candidate.worker,
-              contactX: chosen.contact.x,
-              contactY: chosen.contact.y,
-              contactZ: chosen.contact.z,
-            },
-          },
-        });
-        ctx.action(
-          move(candidate.worker, {
-            x: chosen.contact.x,
-            y: chosen.contact.y,
-            z: chosen.contact.z,
-            frame: null,
-          }),
-        );
+        const contact =
+          candidate && routed.get(`${assignment.task}\\0${assignment.worker}`);
+        if (candidate && contact)
+          beginRouteWorkAttempt(
+            ctx,
+            candidate.task,
+            candidate.worker,
+            candidate.party,
+            target(contact),
+          );
+      }
+    },
+    progress: () => {
+      for (const row of orders) {
+        const attempt = workAttempt(ctx, row.id);
+        if (!attempt) continue;
+        const state = row.get(DeconstructionOrder),
+          info = access.get(state.site),
+          phase = attempt.phase;
+        // A retained route outcome must be acknowledged while drafted so the
+        // worker is released and the queued task can be assigned again. A
+        // completed deconstruction outcome is different: its physical effect
+        // is already committed and must be reconciled exactly once.
+        if (
+          suspendedActors.has(attempt.worker) &&
+          !(
+            phase.kind === "outcome" &&
+            phase.result.kind === "completed" &&
+            phase.activity.kind === "deconstruction"
+          )
+        ) {
+          if (phase.kind === "executing")
+            interruptWorkAttempt(
+              ctx,
+              attempt.key,
+              phase.operation.sequence,
+              "workerUnavailable",
+            );
+          else if (phase.kind === "outcome")
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
+        const activity =
+          phase.kind === "executing" || phase.kind === "outcome"
+            ? phase.activity
+            : null;
+        if (
+          phase.kind === "executing" &&
+          (!info || info.status !== "ready" || !activity ||
+            (activity.kind === "route" && !info.contacts.some((contact) => sameTarget(activity.destination, contact))) ||
+            (activity.kind === "deconstruction" && (!info.contacts.some((contact) => sameTarget(activity.contact, contact)) || !sites.has(activity.site))) ||
+            (activity.kind !== "route" && activity.kind !== "deconstruction"))
+        ) {
+          interruptWorkAttempt(
+            ctx,
+            attempt.key,
+            phase.operation.sequence,
+            "accessLost",
+          );
+          continue;
+        }
+        if (phase.kind !== "outcome") continue;
+        if (phase.result.kind !== "completed") {
+          ctx.write(DeconstructionOrder, row.id, {
+            ...state,
+            status: phase.result.kind === "blocked" ? "blocked" : "queued",
+            reason: (phase.result.kind === "blocked" ? phase.result.reason : "Deconstruction was interrupted").slice(0, 512),
+            retryKey: phase.result.kind === "blocked" ? retryKey(info, owners.get(state.site), workers, members, quantities, containers) : "",
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
+        const completedActivity = phase.activity;
+        if (completedActivity.kind === "route") {
+          const contact = info?.contacts.find((item) =>
+            sameTarget(completedActivity.destination, item),
+          );
+          if (contact && info) {
+            // Persist the exact native admission facts before continuing. The
+            // site may disappear before the deconstruction outcome is read.
+            ctx.write(DeconstructionOrder, row.id, {
+              ...state,
+              contactX: contact.x,
+              contactY: contact.y,
+              contactZ: contact.z,
+              salvageQuantity: info.salvageQuantity,
+              workSeconds: info.workSeconds,
+            });
+            continueDeconstructionWorkAttempt(
+              ctx,
+              attempt.key,
+              phase.operation.sequence,
+              state.site,
+              contact,
+            );
+          } else
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+        } else if (completedActivity.kind === "deconstruction") {
+          ctx.write(DeconstructionOrder, row.id, {
+            ...state,
+            contactX: completedActivity.contact.x,
+            contactY: completedActivity.contact.y,
+            contactZ: completedActivity.contact.z,
+            salvageQuantity: info?.salvageQuantity ?? state.salvageQuantity,
+            workSeconds: info?.workSeconds ?? state.workSeconds,
+            status: "complete",
+            reason: "",
+            retryKey: "",
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+        } else
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
       }
     },
   };
-}
-
-type ApproachTarget = {
-  readonly x: number;
-  readonly y: number;
-  readonly z: number;
-  readonly frame: null;
-};
-
-function releaseDeconstructionApproach(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  row: QueryRow<DeconstructionOrderState>,
-  approach: ApproachRow,
-  phase: "queued" | "blocked",
-  reason: string,
-): void {
-  const state = row.get(DeconstructionOrder);
-  ctx.removeAuthoredEntity(approach.id);
-  ctx.write(DeconstructionOrder, row.id, {
-    ...state,
-    actor: null,
-    phase,
-    reason,
-    retryKey:
-      phase === "blocked"
-        ? deconstructionRetryKey(
-            facts,
-            state.site,
-            facts.access.get(state.site),
-          )
-        : "",
-  });
-}
-
-function matchingRejectedMove(
-  ctx: WriteContext,
-  worker: EntityId,
-  target: ApproachTarget,
-) {
-  return ctx.outcomes.find(
-    ({ action, result }) =>
-      !result.accepted &&
-      action.kind === "move" &&
-      action.entity === worker &&
-      action.destination.x === target.x &&
-      action.destination.y === target.y &&
-      action.destination.z === target.z &&
-      action.destination.frame === target.frame,
-  );
-}
-
-function validApproachAccess(
-  facts: DeconstructionFacts,
-  siteId: EntityId,
-  approach: ApproachRow,
-  target: ApproachTarget,
-): DeconstructionAccess | undefined {
-  const site = facts.sites.get(siteId);
-  const access = facts.access.get(siteId);
-  if (
-    !site ||
-    site.phase !== "finished" ||
-    !access ||
-    access.status !== "ready"
-  )
-    return undefined;
-  return access.contacts.some(
-    (contact) =>
-      contact.x === target.x &&
-      contact.y === target.y &&
-      contact.z === target.z,
-  )
-    ? access
-    : undefined;
-}
-
-function progressApproach(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  row: QueryRow<DeconstructionOrderState>,
-  approach: ApproachRow,
-): void {
-  if (facts.suspended.has(approach.state.worker)) {
-    releaseDeconstructionApproach(ctx, facts, row, approach, "queued", "");
-    return;
-  }
-  const target: ApproachTarget = {
-    x: approach.state.contactX,
-    y: approach.state.contactY,
-    z: approach.state.contactZ,
-    frame: null,
-  };
-  const pose = facts.positions.get(approach.state.worker);
-  const state = row.get(DeconstructionOrder);
-  const access = validApproachAccess(facts, state.site, approach, target);
-  if (!pose || !access) {
-    releaseDeconstructionApproach(
-      ctx,
-      facts,
-      row,
-      approach,
-      "blocked",
-      "Waiting for reachable site",
-    );
-    return;
-  }
-  const rejectedMove = matchingRejectedMove(ctx, approach.state.worker, target);
-  if (rejectedMove) {
-    const reason = (
-      rejectedMove.result.reason ??
-      "Movement to deconstruction contact was rejected"
-    ).slice(0, 512);
-    releaseDeconstructionApproach(ctx, facts, row, approach, "blocked", reason);
-    return;
-  }
-  if (distance(pose.world, target) > 1e-7) {
-    ctx.action(move(approach.state.worker, target));
-    return;
-  }
-  const seconds = Math.min(state.seconds + ctx.clock.delta, access.workSeconds);
-  const phase = seconds >= access.workSeconds ? "submitting" : "working";
-  ctx.write(DeconstructionOrder, row.id, {
-    ...state,
-    actor: approach.state.worker,
-    phase,
-    seconds,
-    reason: "",
-    retryKey: "",
-  });
-  if (phase === "submitting")
-    ctx.action(deconstruct(approach.state.worker, state.site));
-}
-
-function progressDeconstruction(
-  ctx: WriteContext,
-  facts: DeconstructionFacts,
-  orders: readonly QueryRow<DeconstructionOrderState>[],
-): void {
-  for (const row of orders) {
-    const approach = facts.approaches.get(row.id);
-    if (approach && row.get(DeconstructionOrder).phase !== "submitting")
-      progressApproach(ctx, facts, row, approach);
-  }
 }

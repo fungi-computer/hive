@@ -205,7 +205,7 @@ test("colony delivery reaches the guest through the actual WASM owner", () => {
           puttingDownSave = session.save();
       }
       const complete = session.query(query(DeliveryTask))
-        .find((row) => row.id === "colony.delivery.1")?.get(DeliveryTask).phase === "complete";
+        .find((row) => row.id === "colony.delivery.1")?.get(DeliveryTask).custody === "delivered";
       if (complete) break;
     }
     assert(seenPhases.has("pickup"), "committed source attendance must publish pickup pose");

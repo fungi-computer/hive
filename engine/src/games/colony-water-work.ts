@@ -1,108 +1,187 @@
 import { component, query } from "../sdk/authoring";
 import { Body, Container, Destination, MaterialLot, Position, Support, Surface, exchangeFieldWater, move } from "../sdk/common";
-import type { PreparedWorkProvider } from "../sdk/work-system";
+import { shouldRetryWorkTask, type PreparedWorkProvider } from "../sdk/work-system";
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
 import { Worker } from "./colony-components";
+import { OwnedByParty, PartyMember } from "../sdk/party";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
 
-export type WaterSupplyPhase = "idle" | "queued" | "approaching" | "submitting" | "complete" | "blocked";
+export type WaterSupplyPhase = "queued" | "complete" | "blocked";
 type WaterSupplyState = {
-  request: number; attempt: number; phase: WaterSupplyPhase; actor: EntityId | null; vessel: EntityId | null;
-  x: number; y: number; z: number; approachX: number; approachY: number; approachZ: number; reason: string;
+  request: number; phase: WaterSupplyPhase;
+  x: number; y: number; z: number; reason: string;
 };
-export const WaterSupplyWork = component<WaterSupplyState>("colony.water-supply-work", { version: 1, fields: {
-  request: "number", attempt: "number", phase: "string", actor: "nullable-entity", vessel: "nullable-entity",
-  x: "number", y: "number", z: "number", approachX: "number", approachY: "number", approachZ: "number", reason: "string",
+export const WaterSupplyWork = component<WaterSupplyState>("colony.water-supply-work", { version: 2, fields: {
+  request: "number", phase: "string", x: "number", y: "number", z: "number", reason: "string",
 } });
 
-export const WaterSupplyOrder = component<{ revision: number; process: EntityId | null }>("colony.water-supply-order", {
-  version: 2, fields: { revision: "number", process: "nullable-entity" },
+export const WaterSupplyOrder = component<{
+  revision: number;
+  consumer: EntityId | null;
+  party: EntityId | null;
+}>("colony.water-supply-order", {
+  version: 4,
+  fields: {
+    revision: "number",
+    consumer: "nullable-entity",
+    party: "nullable-entity",
+  },
 });
 
 type WaterOption = { readonly cell: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] };
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly vessel: EntityId; readonly options: readonly WaterOption[] };
-const empty = (request: number): WaterSupplyState => ({ request, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" });
 const distance = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
-  const rows = [...ctx.query(query(WaterSupplyWork, WaterSupplyOrder))].sort((left, right) => left.id.localeCompare(right.id));
-  const settle = (row: (typeof rows)[number], state: WaterSupplyState): boolean => {
-    if (state.phase === "complete") { ctx.removeAuthoredEntity(row.id); return true; }
-    if (state.phase !== "submitting" || !state.actor || !state.vessel) return false;
-    const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`;
-    const outcome = ctx.outcomes.find(({ action }) => action.kind === "exchange-field-water" && action.operation === operation);
-    ctx.write(WaterSupplyWork, row.id, { ...state, phase: outcome?.result.accepted ? "complete" : "queued", actor: null, vessel: null, reason: outcome?.result.reason ?? (outcome ? "Water exchange rejected" : "Missing saved water exchange outcome") });
-    return true;
-  };
-  const queued = rows.filter(row => row.get(WaterSupplyWork).phase === "queued");
-  if (queued.length === 0) {
-    const active = rows.filter(row => ["approaching", "submitting"].includes(row.get(WaterSupplyWork).phase));
-    const actors = active.flatMap(row => row.get(WaterSupplyWork).actor ? [row.get(WaterSupplyWork).actor!] : []);
-    const poses = actors.length ? new Map(ctx.worldPoses(actors).map(pose => [pose.id, pose.world])) : new Map();
-    const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
-    return { claims: active.map(row => ({ task: row.id, actor: row.get(WaterSupplyWork).actor })), candidates: [], lowerBound: () => 0, estimate: () => null, apply: () => {}, progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); if (settle(row, state) || state.phase !== "approaching" || !state.actor || !state.vessel) continue; const pose = poses.get(state.actor); const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`; if (!pose || moving.has(state.actor) || distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } } };
-  }
-  const workers = ctx.query(query(Worker, Body, Position, Container)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
-  const workerIds = new Set(workers.map(worker => worker.id));
-  const materialFacts = ctx.workMaterialFacts();
-  const lots = materialFacts.lots;
-  const containers = new Map(materialFacts.containers.map(row => [row.id, row]));
-  const contents = new Map<EntityId, { quantity: number; invalid: boolean }>();
-  for (const lot of lots) if (lot.kind !== "pail") {
-    const current = contents.get(lot.container) ?? { quantity: 0, invalid: false };
-    current.quantity += lot.quantity;
-    current.invalid ||= lot.kind !== "water";
-    contents.set(lot.container, current);
-  }
-  const pails = lots.filter(lot => lot.kind === "pail" && lot.quantity === 1 && workerIds.has(lot.container))
-    .filter(lot => { const capacity = containers.get(lot.id)?.capacity ?? 0, current = contents.get(lot.id) ?? { quantity: 0, invalid: false }; return capacity > 0 && !current.invalid && current.quantity < capacity; });
-  pails.sort((left, right) => left.id.localeCompare(right.id));
-  const pailWorkers = [...new Set(pails.map(pail => pail.container))].sort().slice(0, 16);
-  const poses = new Map(pailWorkers.length ? ctx.worldPoses(pailWorkers).map(pose => [pose.id, pose.world]) : []);
-  const eligibleWorkers = pailWorkers.filter(worker => poses.has(worker));
-  const activeActors = [...new Set(rows.flatMap(row => { const state = row.get(WaterSupplyWork); return ["approaching", "submitting"].includes(state.phase) && state.actor ? [state.actor] : []; }))].sort();
-  for (const pose of activeActors.length ? ctx.worldPoses(activeActors) : []) poses.set(pose.id, pose.world);
-  const centers = eligibleWorkers.map(worker => { const p = poses.get(worker)!; return [p.x, p.y, p.z] as [number, number, number]; });
-  const water = centers.length ? ctx.waterContacts(centers) : [];
-  const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
-  const queuedRows: EntityId[] = [];
-  for (const row of rows) {
-    const order = row.get(WaterSupplyOrder), prior = row.get(WaterSupplyWork);
-    if (order.revision < prior.request) throw new Error("invalid water supply request correspondence");
-    if (order.revision !== prior.request) ctx.write(WaterSupplyWork, row.id, empty(order.revision));
-    const state = order.revision !== prior.request ? empty(order.revision) : prior;
-    if (state.phase !== "queued") continue;
-    queuedRows.push(row.id);
-  }
-  // One worker/task pair is one allocation candidate. Each candidate carries
-  // several water contacts so its one exact route search can choose a
-  // reachable source without presenting duplicate pairs to the allocator.
+  const nativeRows = [...ctx.query(query(WaterSupplyWork, WaterSupplyOrder))].sort((a, b) => a.id.localeCompare(b.id));
+  const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const members = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
+  const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
+  const attempts = new Map(workAttemptsFor(ctx, nativeRows.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
+  const lots = ctx.workMaterialFacts().lots;
+  const pails = new Map<EntityId, EntityId>(lots.filter(lot => lot.kind === "pail" && workers.some(worker => worker.id === lot.container)).map(lot => [lot.container, lot.id]));
+  const poses = new Map((workers.length ? ctx.worldPoses(workers.map(row => row.id)) : []).map(pose => [pose.id, pose.local]));
+  const centers = workers.flatMap(worker => { const pose = poses.get(worker.id); return pose ? [[Math.round(pose.x), Math.round(pose.y), Math.round(pose.z)] as [number, number, number]] : []; });
+  const contacts = centers.length ? ctx.waterContacts(centers).slice(0, 8) : [];
   const candidates: Candidate[] = [];
-  const rounds = Math.min(pails.length, Math.ceil(128 / Math.max(1, queuedRows.length)));
-  for (let round = 0; round < rounds && candidates.length < 128; round++) {
-    for (const [taskIndex, task] of queuedRows.entries()) {
-      const pail = pails[(round + taskIndex) % pails.length];
-      if (!pail || !eligibleWorkers.includes(pail.container) || moving.has(pail.container)) continue;
-      const pose = poses.get(pail.container)!;
-      const options = water.slice().sort((left, right) => {
-        const cost = (option: typeof left) => Math.min(...option.approaches.map(approach => distance(pose, approach)));
-        return cost(left) - cost(right) || left.at[0] - right.at[0] || left.at[1] - right.at[1] || left.at[2] - right.at[2];
-      }).slice(0, 8).map(option => ({ cell: option.at, approaches: option.approaches }));
-      if (!options.length) continue;
-      candidates.push({ worker: pail.container, task, vessel: pail.id, options });
-      if (candidates.length === 128) break;
+  for (const row of nativeRows) {
+    if (attempts.has(row.id)) continue;
+    const state = row.get(WaterSupplyWork), party = owners.get(row.id), order = row.get(WaterSupplyOrder);
+    const retryBlocked = state.phase === "blocked" && shouldRetryWorkTask(row.id, ctx.clock.tick);
+    if ((state.phase !== "queued" && !retryBlocked) || order.revision !== state.request || !party || order.party !== party) continue;
+    for (const worker of workers) {
+      const vessel = pails.get(worker.id);
+      if (!vessel || members.get(worker.id) !== party) continue;
+      const options = contacts.map(contact => ({ cell: contact.at, approaches: contact.approaches })).filter(option => option.approaches.length);
+      if (options.length) candidates.push({ worker: worker.id, task: row.id, vessel, options });
     }
   }
-  const boundedCandidates = candidates;
-  const claims = rows.filter(row => {
-    const state = row.get(WaterSupplyWork), order = row.get(WaterSupplyOrder);
-    return order.revision !== state.request || state.phase === "queued" || state.phase === "approaching" || state.phase === "submitting";
-  }).map(row => ({ task: row.id, actor: row.get(WaterSupplyWork).actor }));
-  const chosen = new Map<string, { candidate: Candidate; cell: readonly [number, number, number]; approach: MoveDestination; cost: number }>();
+  const selected = new Map<string, { cell: readonly [number, number, number]; approach: MoveDestination }>();
   return {
-    claims, candidates: boundedCandidates,
-    lowerBound: candidate => { const pose = poses.get(candidate.worker); return pose ? Math.min(...candidate.options.flatMap(option => option.approaches).map(a => distance(pose, a))) : Number.POSITIVE_INFINITY; },
-    estimate: candidate => { const pose = poses.get(candidate.worker); if (!pose) return null; const targets = candidate.options.flatMap(option => option.approaches.map(approach => ({ option, approach }))); const result = ctx.routeToAny({ actor: candidate.worker, targets: targets.map(target => target.approach) }); if (result.status !== "reachable") return null; const target = targets[result.targetIndex]; if (!target) return null; chosen.set(`${candidate.task}\0${candidate.worker}`, { candidate, cell: target.option.cell, approach: target.approach, cost: result.cost }); return result.cost; },
-    apply: assignments => { for (const assignment of assignments) { const pick = chosen.get(`${assignment.task}\0${assignment.worker}`); if (!pick || pick.candidate.worker !== assignment.worker) continue; const { candidate, cell, approach } = pick; const prior = rows.find(row => row.id === assignment.task)!.get(WaterSupplyWork); ctx.write(WaterSupplyWork, assignment.task, { request: prior.request, attempt: prior.attempt + 1, phase: "approaching", actor: candidate.worker, vessel: candidate.vessel, x: cell[0], y: cell[1], z: cell[2], approachX: approach.x, approachY: approach.y, approachZ: approach.z, reason: "" }); ctx.action(move(candidate.worker, approach)); } },
-    progress: () => { for (const row of rows) { const state = row.get(WaterSupplyWork); if (settle(row, state) || state.phase !== "approaching" || !state.actor || !state.vessel) continue; const operation = `colony.water:${row.id}:${state.request}:${state.attempt}`; const pose = poses.get(state.actor); const approach = { x: state.approachX, y: state.approachY, z: state.approachZ }; const failedMove = ctx.outcomes.find(outcome => outcome.action.kind === "move" && outcome.action.entity === state.actor && !outcome.result.accepted && outcome.action.destination.x === approach.x && outcome.action.destination.y === approach.y && outcome.action.destination.z === approach.z); if (failedMove) { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "queued", actor: null, vessel: null, reason: failedMove.result.reason ?? "Water approach unreachable" }); continue; } if (!pose || moving.has(state.actor) || distance(pose, approach) > 1.5) continue; ctx.action(exchangeFieldWater(operation, state.actor, state.vessel, { x: state.x, y: state.y, z: state.z })); ctx.write(WaterSupplyWork, row.id, { ...state, phase: "submitting" }); } },
+    claims: nativeRows.map((row) => ({
+      task: row.id,
+      actor: attempts.get(row.id)?.worker ?? null,
+    })),
+    candidates,
+    lowerBound: (candidate) => {
+      const pose = poses.get(candidate.worker);
+      return pose
+        ? Math.min(
+            ...candidate.options.flatMap((option) =>
+              option.approaches.map((target) =>
+                Math.hypot(pose.x - target.x, pose.z - target.z),
+              ),
+            ),
+          )
+        : Number.POSITIVE_INFINITY;
+    },
+    estimate: (candidate) => {
+      const targets = candidate.options.flatMap((option) =>
+        option.approaches.map((approach) => ({ option, approach })),
+      );
+      const result = ctx.routeToAny({
+        actor: candidate.worker,
+        targets: targets.map((target) => target.approach),
+      });
+      if (result.status !== "reachable") return null;
+      const target = targets[result.targetIndex];
+      if (!target) return null;
+      selected.set(`${candidate.task}\0${candidate.worker}`, {
+        cell: target.option.cell,
+        approach: target.approach,
+      });
+      return result.cost;
+    },
+    apply: (assignments) => {
+      for (const assignment of assignments) {
+        const candidate = candidates.find(
+            (item) =>
+              item.task === assignment.task &&
+              item.worker === assignment.worker,
+          ),
+          party = owners.get(assignment.task),
+          target = selected.get(`${assignment.task}\0${assignment.worker}`);
+        if (!candidate || !party || !target) continue;
+        beginRouteWorkAttempt(
+          ctx,
+          assignment.task,
+          assignment.worker,
+          party,
+          target.approach,
+        );
+      }
+    },
+    progress: () => {
+      for (const row of nativeRows) {
+        const attempt = attempts.get(row.id);
+        if (!attempt || attempt.phase.kind !== "outcome") continue;
+        const state = row.get(WaterSupplyWork),
+          phase = attempt.phase,
+          activity = phase.activity;
+        if (
+          suspended.has(attempt.worker) &&
+          (phase.result.kind !== "completed" || activity.kind === "route")
+        ) {
+          ctx.write(WaterSupplyWork, row.id, {
+            ...state,
+            phase: "blocked",
+            reason: "Drafted",
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
+        if (phase.result.kind !== "completed") {
+          ctx.write(WaterSupplyWork, row.id, {
+            ...state,
+            phase: "blocked",
+            reason:
+              phase.result.kind === "blocked"
+                ? phase.result.reason
+                : phase.result.cause,
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
+        if (activity.kind === "route") {
+          const pail = pails.get(attempt.worker),
+            contact = contacts.find((item) =>
+              item.approaches.some(
+                (approach) =>
+                  approach.x === activity.destination.x &&
+                  approach.y === activity.destination.y &&
+                  approach.z === activity.destination.z,
+              ),
+            );
+          if (!pail || !contact) {
+            ctx.write(WaterSupplyWork, row.id, {
+              ...state,
+              phase: "blocked",
+              reason: "worker unavailable",
+            });
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            continue;
+          }
+          continueFieldWaterWorkAttempt(
+            ctx,
+            attempt.key,
+            phase.operation.sequence,
+            pail,
+            contact.at,
+            "withdraw",
+            1,
+          );
+        } else if (activity.kind === "field-water") {
+          ctx.write(WaterSupplyWork, row.id, {
+            ...state,
+            phase: "complete",
+            x: activity.cell[0],
+            y: activity.cell[1],
+            z: activity.cell[2],
+            reason: "",
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+        }
+      }
+    },
   };
 }

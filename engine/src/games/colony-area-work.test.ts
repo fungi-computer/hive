@@ -25,8 +25,8 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
     assert.equal(orders.length, 2);
     assert.ok(
       orders.every((row) =>
-        ["queued", "approaching", "excavating", "blocked"].includes(
-          row.get(ColonyDigOrder).phase,
+        ["queued", "blocked"].includes(
+          row.get(ColonyDigOrder).status,
         ),
       ),
     );

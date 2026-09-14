@@ -25,28 +25,35 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
   const session = new GameSession({ port, pack: colonyPack });
   try {
     session.start();
-    const [worker, other] = localWorkers(session);
-    session.command("deliver", { entities: [worker, other], quantity: 1 });
+    const workers = localWorkers(session);
+    session.command("build", { catalog: "timber-stair", orientation: "north", target: { cell: [1, 13, 0] } });
+    let worker: string | undefined;
+    let other: string | undefined;
     let taskId: string | undefined;
     let otherTaskId: string | undefined;
     for (let tick = 0; tick < 120; tick++) {
       session.step(0.1);
       const carrying = session.query(query(DeliveryTask)).find((row) => {
         const task = row.get(DeliveryTask);
-        return task.actor === worker && task.phase === "to-destination";
+        return task.custody === "held";
       });
-      if (carrying && session.query(query(MaterialLot)).some((row) => row.get(MaterialLot).container === worker)) {
+      const holder = carrying ? port.workAttempts([carrying.id])[0]?.worker : undefined;
+      if (carrying && holder && session.query(query(MaterialLot)).some((row) => row.get(MaterialLot).container === holder)) {
+        worker = holder;
+        other = workers.find(candidate => candidate !== holder);
         taskId = carrying.id;
-        otherTaskId = session.query(query(DeliveryTask)).find((row) => row.get(DeliveryTask).actor === other)?.id;
+        otherTaskId = session.query(query(DeliveryTask)).find((row) => row.id !== taskId)?.id;
         break;
       }
     }
+    assert(worker && other, "held delivery must retain its assigned party worker");
     assert(taskId, "Go must be exercised while the selected worker carries a lot");
     assert(otherTaskId, "another worker must receive an independent delivery claim");
 
     const destination = port.terrainSurfaces([[2, 0]])[0];
     assert(destination, "native terrain must provide a reachable Go destination");
     session.command("draft", { entities: [worker] });
+    session.step(0);
     session.command("go", {
       entities: [worker],
       destination: { x: 2, y: (destination.cell[1] + 0.5) * 0.54, z: 0, frame: null },
@@ -64,53 +71,55 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
     const pose = port.worldPoses([worker])[0];
     assert(pose && Math.abs(pose.world.x - 2) < 1e-6 && Math.abs(pose.world.z) < 1e-6, "manual worker must remain at the requested position");
     assert.equal(session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === worker).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), manualCargo, "manual cargo quantity is conserved");
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).actor, worker, "manual delivery claim remains owned");
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === otherTaskId)?.get(DeliveryTask).phase, "complete", "other worker completes independent work");
+    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody, "held", "manual delivery obligation retains carried custody");
+    const otherTask = session.query(query(DeliveryTask)).find((row) => row.id === otherTaskId)?.get(DeliveryTask);
+    assert(!otherTask || otherTask.custody === "delivered", "other worker completes and retires independent work");
 
     const saved = session.save();
     session.restore(saved);
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, false, "manual intent must survive restore");
 
     session.command("resumeWork", { entities: [worker] });
-    for (let tick = 0; tick < 160; tick++) {
+    for (let tick = 0; tick < 240; tick++) {
       session.step(0.1);
-      if (session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).phase === "complete") break;
+      if (session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody === "delivered") break;
     }
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, true);
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).phase, "complete", "resume returns the claimed delivery to automatic completion");
+    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody, "delivered", "resume returns the claimed delivery to automatic completion");
   } finally {
     port.dispose();
   }
 });
 
-test("Colony Go cancels active digging without losing the order or terrain", () => {
+test("Colony Go interrupts an assigned excavation without losing the order or terrain", () => {
   const port = wasmKernelPort(new WasmKernel());
   const session = new GameSession({ port, pack: colonyPack });
   try {
     session.start();
     const [worker, other] = localWorkers(session);
     session.command("draft", { entities: [other] });
-    session.command("go", { entities: [other], destination: { x: 0, y: 0, z: 2, frame: null } });
     session.step(0);
-    session.command("dig", { area: { start: [1, 13, 0], end: [1, 13, 0] } });
-    let active = false;
+    const digSurface = port.terrainSurfaces([[1, 0]])[0];
+    assert(digSurface, "generated terrain must expose a diggable surface");
+    const digCell = digSurface.cell;
+    session.command("dig", { area: { start: digCell, end: digCell } });
     let orderId: string | undefined;
-    for (let tick = 0; tick < 160; tick++) {
+    for (let tick = 0; tick < 240; tick++) {
       session.step(0.1);
-      active = session.query(query(ExcavationWork)).some((row) => row.id === worker);
-      orderId = session.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).actor === worker)?.id;
-      if (active) break;
+      orderId = session.query(query(ColonyDigOrder)).find((row) => port.workAttempts([row.id])[0]?.worker === worker)?.id;
+      if (orderId) break;
     }
-    assert.equal(active, true, "worker must reach native digging work");
-    const before = port.terrainMaterials([[1, 13, 0]])[0];
+    assert(orderId, "worker must receive the native excavation attempt");
+    const before = port.terrainMaterials([digCell])[0];
     const surface = port.terrainSurfaces([[2, 0]])[0];
     assert(surface);
     session.command("draft", { entities: [worker] });
+    session.step(0);
     session.command("go", { entities: [worker], destination: { x: 2, y: (surface.cell[1] + 0.5) * 0.54, z: 0, frame: null } });
     session.step(0.1);
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, false);
     assert.equal(session.query(query(ExcavationWork)).some((row) => row.id === worker), false, "Go cancels native digging attendance");
-    assert.equal(port.terrainMaterials([[1, 13, 0]])[0], before, "canceled digging does not award a terrain edit");
+    assert.equal(port.terrainMaterials([digCell])[0], before, "canceled digging does not award a terrain edit");
     assert(orderId && session.query(query(ColonyDigOrder)).some(row => row.id === orderId), "manual digging keeps its authored order");
     for (let tick = 0; tick < 30; tick++) {
       session.step(0.1);

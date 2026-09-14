@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { createWorkSystem } from "./work-system";
+import { createWorkSystem, shouldRetryWorkTask, WORK_RETRY_INTERVAL } from "./work-system";
 import { component, entity } from "./authoring";
 import type { EntityId } from "../contracts";
 
@@ -42,6 +42,18 @@ const base = {
   },
   action: () => {},
 };
+
+test("blocked work gets one deterministic retry slot per interval", () => {
+  const tasks = Array.from({ length: 32 }, (_, index) => entity(`retry-task-${index}`));
+  const first = tasks.map(task => Array.from({ length: WORK_RETRY_INTERVAL }, (_, tick) => shouldRetryWorkTask(task, tick)));
+  const second = tasks.map(task => Array.from({ length: WORK_RETRY_INTERVAL }, (_, tick) => shouldRetryWorkTask(task, tick)));
+  assert.deepEqual(second, first, "the slot is stable across repeated planning");
+  for (const slots of first) assert.equal(slots.filter(Boolean).length, 1, "every task retries once per interval");
+  assert.ok(new Set(first.map(slots => slots.findIndex(Boolean))).size > 1, "task ids are distributed across slots");
+  for (const task of tasks) for (let tick = 0; tick < WORK_RETRY_INTERVAL * 3; tick++) {
+    assert.equal(shouldRetryWorkTask(task, tick), shouldRetryWorkTask(task, tick + WORK_RETRY_INTERVAL));
+  }
+});
 
 test("shared work system calls one matcher and preserves claims across providers", () => {
   const worker = entity("worker.shared");

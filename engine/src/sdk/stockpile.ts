@@ -3,6 +3,7 @@ import { DeliveryTask } from "./delivery";
 import { GroundStock } from "./ground-stock";
 import { SealedContainer } from "./construction";
 import { Container, FiniteResource, MaterialLot, Position } from "./common";
+import { OwnedByParty } from "./party";
 import type { EntityId, WriteContext } from "../contracts";
 
 const MAX_CELLS = 256;
@@ -74,6 +75,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     .map(row => row.id));
   const lots = context.query(query(MaterialLot));
   const tasks = context.query(query(DeliveryTask));
+  const owners = new Map(context.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const sourceCell = new Map(cells.map(cell => [cell.id, cell.get(StockpileCell)]));
   const lotById = new Map(lots.map(row => [row.id, row.get(MaterialLot)]));
   const quantities = new Map<EntityId, number>();
@@ -96,7 +98,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
   const incomingByCell = new Map<EntityId, number>();
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
-    if (task.phase === "complete") continue;
+    if (task.custody === "delivered") continue;
     if (validInt(task.quantity) && task.quantity > 0) {
       reservedByLot.set(task.sourceLot, (reservedByLot.get(task.sourceLot) ?? 0) + task.quantity);
       const key = `${task.source}\0${task.material}`;
@@ -149,9 +151,9 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
       let id = taskId(row.id, source.id, leg);
       while (tasks.some(task => task.id === id)) { leg++; id = taskId(row.id, source.id, leg); }
       context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
-        actor: null, sourceLot: source.id, source: sourceContainer, destination: row.id,
-        destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
-        material: source.lot.kind, quantity, phase: "idle",
+        version: 2, party: owners.get(row.id) ?? owners.get(sourceContainer) ?? entity("host"), sourceLot: source.id, source: sourceContainer, destination: row.id,
+        material: source.lot.kind, quantity, custody: "available",
+            ground: null,
       }}}, { kind: "host" });
       created.push(id);
       reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);

@@ -66,9 +66,17 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     ]});
     let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&setup.to_string()).unwrap()).unwrap();
     assert!(result["results"].as_array().unwrap().iter().all(|r| r["accepted"] == true));
+    let route: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"door","worker":"worker","party":"party","operation":{"kind":"route","destination":contact}}}]}).to_string()).unwrap()).unwrap();
+    let generation = route["results"][0]["attempt"]["generation"].as_u64().unwrap();
+    let work: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"door","generation":generation,"sequence":1,"nextActivity":{"kind":"construction","site":"door","contact":contact,"mode":"work"}}}]}).to_string()).unwrap()).unwrap();
+    assert_eq!(work["results"][0]["accepted"], true, "{work}");
     kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
     let site = kernel.entity("door").unwrap();
     assert_eq!(kernel.ecs.get::<ConstructionSite>(site).unwrap().phase, ConstructionPhase::Finished);
+    let attempt = kernel.ecs.get::<WorkAttempt>(site).unwrap().clone();
+    let sequence = attempt.current_operation().unwrap().sequence;
+    let acknowledged: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"door","generation":attempt.key.generation,"sequence":sequence}}]}).to_string()).unwrap()).unwrap();
+    assert_eq!(acknowledged["results"][0]["accepted"], true, "{acknowledged}");
     (kernel, site_surface, contact)
 }
 
@@ -80,7 +88,7 @@ fn aperture_action(kernel: &mut Kernel, open: bool) -> serde_json::Value {
 fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     let (mut kernel, surface, _) = constructed_aperture();
     let opened = aperture_action(&mut kernel, true);
-    assert_eq!(opened["results"][0]["accepted"], true);
+    assert_eq!(opened["results"][0]["accepted"], true, "{opened}");
     let revision = kernel.environment.as_ref().unwrap().world.terrain_revision();
     let repeated = aperture_action(&mut kernel, true);
     assert_eq!(repeated["results"][0]["accepted"], true);
@@ -100,7 +108,8 @@ fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
 #[test]
 fn native_open_aperture_record_restores_and_corrupt_shape_is_rejected() {
     let (mut kernel, _, _) = constructed_aperture();
-    assert_eq!(aperture_action(&mut kernel, true)["results"][0]["accepted"], true);
+    let opened = aperture_action(&mut kernel, true);
+    assert_eq!(opened["results"][0]["accepted"], true, "{opened}");
     let saved = kernel.save_records().unwrap();
     let mut restored = Kernel::new();
     restored.restore_records(&saved).unwrap();
@@ -115,7 +124,8 @@ fn native_open_aperture_record_restores_and_corrupt_shape_is_rejected() {
 #[test]
 fn closing_aperture_is_not_blocked_by_ordinary_air() {
     let (mut kernel, support, _) = constructed_aperture();
-    assert_eq!(aperture_action(&mut kernel, true)["results"][0]["accepted"], true);
+    let opened = aperture_action(&mut kernel, true);
+    assert_eq!(opened["results"][0]["accepted"], true, "{opened}");
     // Ordinary clean air is not a physical obstruction.
     let cell = Cell { y: support.y + 1, ..support };
     let config_value = serde_json::json!({

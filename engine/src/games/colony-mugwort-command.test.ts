@@ -41,7 +41,7 @@ function context(options: {
 function orderRow() {
   return row("colony.resource.mugwort.0.13.0", new Map([[ColonyResourceOrder.id, {
     definition: "mugwort", cellX: 0, cellY: 13, cellZ: 0, site: "colony.resource.mugwort.0.13.0",
-    actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "",
+    stage: "sow", status: "queued", workSeconds: 0, reason: "",
   }]]));
 }
 
@@ -51,7 +51,7 @@ test("sow mugwort accepts the current terrain-cell material and stays workerless
   assert.deepEqual(result.writes, []);
   assert.deepEqual(result.creates?.[0]?.components[ColonyResourceOrder.id], {
     definition: "mugwort", cellX: 0, cellY: 13, cellZ: 0, site: "colony.resource.mugwort.0.13.0",
-    actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "",
+    stage: "sow", status: "queued", workSeconds: 0, reason: "",
   });
 });
 

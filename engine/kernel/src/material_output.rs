@@ -5,7 +5,7 @@ use crate::components::{valid_id, Lot, LotWater, MAX_CARRIED_WATER_KG};
 
 pub(super) enum MaterialOutputLocation {
     Container(String),
-    Ground(crate::components::Position),
+    Ground { position: crate::components::Position, owner_party: Option<String> },
 }
 
 pub(super) struct MaterialOutputSpec {
@@ -24,6 +24,7 @@ pub(super) struct PreparedGroundStock {
 
 pub(super) struct PreparedMaterialOutput {
     pub(super) ground: Option<PreparedGroundStock>,
+    pub(super) owner_party: Option<String>,
     pub(super) revision: u64,
     pub(super) container: String,
     pub(super) lot_id: String,
@@ -78,6 +79,7 @@ pub(super) fn prepare(
     let lot = Lot { kind: spec.kind, quantity: spec.quantity, container: spec.container.clone() };
     Ok(PreparedMaterialOutput {
         ground: None,
+        owner_party: None,
         revision,
         container: spec.container,
         lot_id,

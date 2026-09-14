@@ -2,851 +2,594 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
 import { GroundStock } from "./ground-stock";
-import { ConstructionSite, SealedContainer } from "./construction";
 import {
-  ExcavationWork,
+  DeliveryControl,
+  DeliveryTask,
+  decodeDeliveryObligation,
+  decodeDeliveryTask,
+  deliveryProvider,
+  type DeliveryTaskValue,
+} from "./delivery";
+import {
   Body,
   Container,
+  Destination,
   MaterialLot,
   Position,
-  Support,
-  Surface,
+  ExcavationWork,
 } from "./common";
-import { DeliveryControl, DeliveryTask, deliverySystem } from "./delivery";
-import { WorkParticipation } from "./work-control";
+import { SealedContainer } from "./construction";
+import { PartyMember } from "./party";
+import type {
+  EntityId,
+  WorkAttempt,
+  WorkActivityRef,
+  WorkOutcome,
+} from "../contracts";
 
-const contactFields = () => ({ destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false });
-
-for (const occupation of ["excavation", "construction"] as const) {
-  test(`native ${occupation} reserves a worker without dropping its delivery state`, () => {
-    const worker = entity("worker.digging");
-    const source = entity("stock.source");
-    const destination = entity("stock.destination");
-    const lot = entity("lot.food");
-    const active = entity("delivery.active");
-    const waiting = entity("delivery.waiting");
-    const taskValues = (actor: typeof worker | null, phase: string) => ({
-      ...contactFields(),
-      actor,
-      sourceLot: lot,
-      source,
-      destination,
-      material: "food",
-      quantity: 1,
-      phase,
-    });
-    const taskRows = [
-      row(active, DeliveryTask, taskValues(worker, "to-source")),
-      row(waiting, DeliveryTask, taskValues(null, "idle")),
-    ];
-    const values = new Map<string, readonly unknown[]>([
-      [DeliveryTask.id, taskRows],
-      [
-        DeliveryControl.id,
-        [row(worker, DeliveryControl, { enabled: true, quantity: 1 })],
-      ],
-      [
-        ExcavationWork.id,
-        occupation === "excavation"
-          ? [
-              row(worker, ExcavationWork, {
-                x: 0,
-                y: 0,
-                z: 0,
-                expected: 1,
-                replacement: 0,
-                seconds: 0,
-              }),
-            ]
-          : [],
-      ],
-      [
-        ConstructionSite.id,
-        occupation === "construction"
-          ? [
-              row(entity("site.building"), ConstructionSite, {
-                catalog: "floor",
-                x: 0,
-                y: 0,
-                z: 0,
-                orientation: "north",
-                contactX: 0,
-                contactY: 0,
-                contactZ: 0,
-                worker,
-                seconds: 0.5,
-                phase: "working",
-              }),
-            ]
-          : [],
-      ],
-      [Body.id, [row(worker, Body, { speed: 1 })]],
-      [
-        Container.id,
-        [
-          row(worker, Container, { capacity: 4 }),
-          row(source, Container, { capacity: 4 }),
-          row(destination, Container, { capacity: 4 }),
-        ],
-      ],
-      [
-        Position.id,
-        [worker, source, destination].map((id) =>
-          row(id, Position, {
-            x: 0,
-            y: 0,
-            z: 0,
-            facing: 0,
-          }),
-        ),
-      ],
-      [
-        MaterialLot.id,
-        [
-          row(lot, MaterialLot, {
-            quantity: 2,
-            kind: "food",
-            container: source,
-          }),
-        ],
-      ],
-      [Support.id, []],
-      [Surface.id, []],
-    ]);
-    const writes: unknown[] = [];
-    const actions: unknown[] = [];
-    let assignments = 0;
-    deliverySystem.run({
-      clock: { now: 0, delta: 0.1, tick: 1 },
-      outcomes: [],
-      impacts: [],
-      random: { next: () => 0 },
-      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
-      workMaterialFacts: () => materialFacts(values),
-      routeCosts: () => {
-        throw new Error("unexpected route query");
-      },
-      routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 0 }),
-      environmentFacts: () => {
-        throw new Error("unexpected environment query in this fixture");
-      },
-      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
-      constructionAccess: () => [],
-      deconstructionAccess: () => [],
-      atmosphereSamples: () => {
-        throw new Error("unexpected atmosphere query in this fixture");
-      },
-      physicalContacts: () => {
-        throw new Error("unexpected physical contact query in this fixture");
-      },
-      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
-      terrainMaterials: () => [],
-      terrainSurfaces: () => [],
-      worldPoses: (ids) =>
-        ids.map((id) => ({
-          id,
-          local: { x: 0, y: 0, z: 0, facing: 0 },
-          world: { x: 0, y: 0, z: 0, facing: 0 },
-          support: null,
-          surface: null,
-        })),
-      assign: () => {
-        assignments++;
-        return [];
-      },
-      write: (...args) => writes.push(args),
-      createAuthoredEntity: () => {
-        throw new Error("unexpected authored creation");
-      },
-      removeAuthoredEntity: () => {
-        throw new Error("unexpected authored removal");
-      },
-      action: (request) => actions.push(request),
-    });
-    assert.equal(assignments, 0);
-    assert.equal(writes.length, 0);
-    assert.equal(actions.length, 0);
-    assert.deepEqual(
-      taskRows[0].get(DeliveryTask),
-      taskValues(worker, "to-source"),
-    );
-  });
-}
-
-test("delivery rejects impossible pairs before matcher cost", () => {
-  const cases = [
-    {
-      name: "sealed source",
-      sealed: "source",
-      lots: [{ quantity: 2, kind: "food", container: "source" }],
-    },
-    {
-      name: "sealed destination",
-      sealed: "destination",
-      lots: [{ quantity: 2, kind: "food", container: "source" }],
-    },
-    {
-      name: "sealed worker",
-      sealed: "worker",
-      lots: [{ quantity: 2, kind: "food", container: "source" }],
-    },
-    { name: "missing lot", lots: [] },
-    {
-      name: "insufficient source",
-      lots: [{ quantity: 1, kind: "food", container: "source" }],
-    },
-    {
-      name: "full destination",
-      lots: [
-        { quantity: 2, kind: "food", container: "source" },
-        { quantity: 4, kind: "food", container: "destination" },
-      ],
-    },
-  ] as const;
-  for (const candidate of cases) {
-    const slug = candidate.name.replaceAll(" ", ".");
-    const worker = entity(`eligibility.worker.${slug}`);
-    const source = entity(`eligibility.source.${slug}`);
-    const destination = entity(`eligibility.destination.${slug}`);
-    const task = entity(`eligibility.task.${slug}`);
-    const lotRows = candidate.lots.map((lot, index) =>
-      row(entity(`eligibility.lot.${slug}.${index}`), MaterialLot, {
-        ...lot,
-        container: lot.container === "source" ? source : destination,
-      }),
-    );
-    const taskValue = {
-      actor: null,
-      sourceLot: lotRows[0]?.id ?? entity(`eligibility.missing.${slug}`),
-      source,
-      destination,
-      material: "food",
-      quantity: 2,
-      phase: "idle",
-    };
-    const values = new Map<string, readonly unknown[]>([
-      [DeliveryTask.id, [row(task, DeliveryTask, taskValue)]],
-      [
-        DeliveryControl.id,
-        [row(worker, DeliveryControl, { enabled: true, quantity: 2 })],
-      ],
-      [Body.id, [row(worker, Body, { speed: 1 })]],
-      [
-        Container.id,
-        [
-          row(worker, Container, { capacity: 4 }),
-          row(source, Container, { capacity: 8 }),
-          row(destination, Container, { capacity: 4 }),
-        ],
-      ],
-      [
-        Position.id,
-        [worker, source, destination].map((id) =>
-          row(id, Position, {
-            x: 0,
-            y: 0,
-            z: 0,
-            facing: 0,
-          }),
-        ),
-      ],
-      [MaterialLot.id, lotRows],
-      [
-        SealedContainer.id,
-        "sealed" in candidate
-          ? [
-              row(
-                candidate.sealed === "source"
-                  ? source
-                  : candidate.sealed === "destination"
-                    ? destination
-                    : worker,
-                SealedContainer,
-                {},
-              ),
-            ]
-          : [],
-      ],
-      [ExcavationWork.id, []],
-      [Support.id, []],
-      [Surface.id, []],
-    ]);
-    let assignments = 0;
-    let coordinateReads = 0;
-    const point = Object.defineProperties(
-      {} as { x: number; y: number; z: number; facing: number },
-      {
-        x: {
-          get: () => {
-            coordinateReads++;
-            return 0;
-          },
-        },
-        y: {
-          get: () => {
-            coordinateReads++;
-            return 0;
-          },
-        },
-        z: {
-          get: () => {
-            coordinateReads++;
-            return 0;
-          },
-        },
-        facing: { value: 0 },
-      },
-    );
-    deliverySystem.run({
-      clock: { now: 0, delta: 0.1, tick: 1 },
-      outcomes: [],
-      impacts: [],
-      random: { next: () => 0 },
-      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
-      workMaterialFacts: () => materialFacts(values),
-      routeCosts: () => {
-        throw new Error("unexpected route query");
-      },
-      routeToAny: () => {
-        return { actor: entity("batch.worker"), status: "reachable" as const, targetIndex: 0, cost: 0 };
-      },
-      environmentFacts: () => {
-        throw new Error("unexpected environment query in this fixture");
-      },
-      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
-      constructionAccess: () => [],
-      deconstructionAccess: () => [],
-      atmosphereSamples: () => {
-        throw new Error("unexpected atmosphere query in this fixture");
-      },
-      physicalContacts: () => {
-        throw new Error("unexpected physical contact query in this fixture");
-      },
-      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
-      terrainMaterials: () => [],
-      terrainSurfaces: () => [],
-      worldPoses: (ids) =>
-        ids.map((id) => ({
-          id,
-          local: point,
-          world: point,
-          support: null,
-          surface: null,
-        })),
-      assign: () => {
-        assignments++;
-        return [];
-      },
-      createAuthoredEntity: () => {
-        throw new Error("unexpected authored creation");
-      },
-      removeAuthoredEntity: () => {
-        throw new Error("unexpected authored removal");
-      },
-      write: () => {},
-      action: () => {},
-    });
-    assert.equal(assignments, 0, `${candidate.name} reached native matcher`);
-    assert.equal(coordinateReads, 0, `${candidate.name} reached distance cost`);
-  }
+const point = { x: 0, y: 0, z: 0, frame: null } as const;
+const row = (id: EntityId, definition: { id: string }, value: unknown) => ({
+  id,
+  get: (requested: { id: string }) => {
+    assert.equal(requested.id, definition.id);
+    return value as never;
+  },
 });
 
-function row<T extends object>(
-  id: ReturnType<typeof entity>,
-  definition: { id: string },
-  value: T,
-) {
-  return {
-    id,
-    get(requested: { id: string }) {
-      assert.equal(requested.id, definition.id);
-      return (definition.id === DeliveryTask.id ? { ...contactFields(), ...value } : value) as T;
-    },
-  };
-}
-function materialFacts(values: Map<string, readonly unknown[]>) {
-  const rows = (id: string) =>
-    (values.get(id) ?? []) as readonly {
-      id: ReturnType<typeof entity>;
-      get: (definition: { id: string }) => any;
-    }[];
-  return {
-    version: 1 as const,
-    containers: rows(Container.id).map((row) => ({
-      id: row.id,
-      capacity: row.get(Container).capacity,
-      sealed: rows(SealedContainer.id).some((sealed) => sealed.id === row.id),
-    })),
-    lots: rows(MaterialLot.id).map((row) => ({
-      id: row.id,
-      ...row.get(MaterialLot),
-    })),
-  };
-}
-
-test("sealed custody waits without losing cargo and still acknowledges a completed deposit", () => {
-  const worker = entity("worker");
-  const source = entity("source");
-  const destination = entity("destination");
-  const lot = entity("lot");
-  const task = entity("delivery");
-  for (const scenario of ["blocked", "deposited", "departed-source"] as const) {
-    const state = {
-      ...contactFields(),
-      actor: worker,
-      sourceLot: lot,
-      source,
-      destination,
-      material: "wood",
-      quantity: 1,
-      phase: "to-destination",
-    };
-    const values = new Map<string, readonly unknown[]>([
-      [DeliveryTask.id, [row(task, DeliveryTask, state)]],
-      [
-        DeliveryControl.id,
-        [row(worker, DeliveryControl, { enabled: true, quantity: 1 })],
-      ],
-      [Body.id, [row(worker, Body, { speed: 1 })]],
-      [
-        Container.id,
-        [worker, source, destination].map((id) =>
-          row(id, Container, { capacity: 4 }),
-        ),
-      ],
-      [
-        Position.id,
-        [worker, source, destination].map((id) =>
-          row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }),
-        ),
-      ],
-      [
-        MaterialLot.id,
-        [
-          row(lot, MaterialLot, {
-            kind: "wood",
-            quantity: 1,
-            container: scenario === "deposited" ? destination : worker,
-          }),
-        ],
-      ],
-      [
-        SealedContainer.id,
-        [
-          row(
-            scenario === "departed-source" ? source : destination,
-            SealedContainer,
-            {},
-          ),
-        ],
-      ],
-    ]);
-    const writes: unknown[][] = [];
-    const actions: unknown[] = [];
-    deliverySystem.run({
-      clock: { now: 1, delta: 0.1, tick: 10 },
-      outcomes: [],
-      impacts: [],
-      random: { next: () => 0 },
-      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
-      workMaterialFacts: () => materialFacts(values),
-      worldPoses: (ids) =>
-        ids.map((id) => ({
-          id,
-          local: { x: 0, y: 0, z: 0, facing: 0 },
-          world: { x: 0, y: 0, z: 0, facing: 0 },
-          support: null,
-          surface: null,
-        })),
-      routeCosts: () => {
-        throw new Error("claimed delivery must not search a new route");
-      },
-      routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 0 }),
-      assign: () => {
-        throw new Error("claimed delivery must not be reassigned");
-      },
-      environmentFacts: () => {
-        throw new Error("unexpected environment query in this fixture");
-      },
-      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
-      constructionAccess: () => [],
-      deconstructionAccess: () => [],
-      atmosphereSamples: () => {
-        throw new Error("unexpected atmosphere query in this fixture");
-      },
-      physicalContacts: () => {
-        throw new Error("unexpected physical contact query in this fixture");
-      },
-      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
-      terrainMaterials: () => [],
-      terrainSurfaces: () => [],
-      createAuthoredEntity: () => {
-        throw new Error("no new task");
-      },
-      removeAuthoredEntity: () => {
-        throw new Error("no task removal");
-      },
-      write: (...args) => writes.push(args),
-      action: (request) => actions.push(request),
-    });
-    assert.deepEqual(
-      writes,
-      scenario === "deposited"
-        ? [[DeliveryTask, task, { ...state, actor: null, phase: "complete" }]]
-        : scenario === "departed-source"
-          ? [[DeliveryTask, task, { ...state, phase: "putting-down" }]]
-        : [],
-    );
-    assert.deepEqual(
-      actions,
-      scenario === "departed-source"
-        ? [
-            {
-              kind: "transfer",
-              lot,
-              from: worker,
-              to: destination,
-              quantity: 1,
-            },
-          ]
-        : [],
-    );
-    assert.equal(
-      state.actor,
-      worker,
-      "queried committed data was not mutated in place",
-    );
-  }
-});
-
-test("worker batch preference cannot exceed a delivery's requested quantity", () => {
-  const worker = entity("worker"),
-    source = entity("source"),
-    destination = entity("destination");
-  const task = entity("task"),
-    lot = entity("lot");
-  const state = {
-    ...contactFields(),
-    actor: null,
+type FixtureOptions = {
+  readonly workers?: readonly EntityId[];
+  readonly party?: EntityId;
+  readonly workerParties?: ReadonlyMap<EntityId, EntityId>;
+  readonly lotContainer?: EntityId;
+  readonly lotQuantity?: number;
+  readonly taskQuantity?: number;
+  readonly containerCapacity?: number;
+  readonly occupiedWorkers?: readonly EntityId[];
+  readonly sealedContainers?: readonly EntityId[];
+  readonly attempt?: WorkAttempt;
+  readonly contacts?: "ready" | "blocked";
+  readonly routeTargetIndex?: number;
+};
+function fixture(options: FixtureOptions = {}) {
+  const task = entity("delivery.task"),
+    worker = options.workers?.[0] ?? entity("delivery.worker"),
+    workers = options.workers ?? [worker];
+  const party = options.party ?? entity("delivery.party"),
+    source = entity("delivery.source"),
+    destination = entity("delivery.destination"),
+    lot = entity("delivery.lot"),
+    routeTargetIndex = options.routeTargetIndex ?? 0;
+  const lotQuantity = options.lotQuantity ?? 1,
+    capacity = options.containerCapacity ?? 8;
+  let lotContainer = options.lotContainer ?? source;
+  let state: DeliveryTaskValue = {
+    version: 2,
+    party,
     sourceLot: lot,
     source,
     destination,
     material: "wood",
-    quantity: 1,
-    phase: "idle",
+    quantity: options.taskQuantity ?? 1,
+    custody: "available",
+    ground: null,
   };
+  const actions: unknown[] = [],
+    writes: unknown[] = [];
+  let attempt = options.attempt;
+  let contactState = options.contacts ?? "ready";
+  let batchCalls = 0;
   const values = new Map<string, readonly unknown[]>([
     [DeliveryTask.id, [row(task, DeliveryTask, state)]],
     [
       DeliveryControl.id,
-      [row(worker, DeliveryControl, { enabled: true, quantity: 2 })],
+      workers.map((id) =>
+        row(id, DeliveryControl, { enabled: true, quantity: 1 }),
+      ),
     ],
-    [Body.id, [row(worker, Body, { speed: 1 })]],
+    [
+      PartyMember.id,
+      workers.map((id) =>
+        row(id, PartyMember, {
+          party: options.workerParties?.get(id) ?? party,
+        }),
+      ),
+    ],
+    [Body.id, workers.map((id) => row(id, Body, { speed: 1 }))],
     [
       Container.id,
-      [
-        row(worker, Container, { capacity: 2 }),
-        row(source, Container, { capacity: 2 }),
-        row(destination, Container, { capacity: 1 }),
-      ],
+      [source, destination, ...workers].map((id) =>
+        row(id, Container, { capacity }),
+      ),
     ],
     [
       Position.id,
-      [worker, source, destination].map((id) =>
+      [source, destination, ...workers].map((id) =>
         row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }),
+      ),
+    ],
+    [Destination.id, []],
+    [
+      ExcavationWork.id,
+      (options.occupiedWorkers ?? []).map((id) =>
+        row(id, ExcavationWork, {
+          x: 0,
+          y: 0,
+          z: 0,
+          expected: 1,
+          replacement: 0,
+          seconds: 0,
+        }),
+      ),
+    ],
+    [GroundStock.id, [row(source, GroundStock, {})]],
+    [
+      SealedContainer.id,
+      (options.sealedContainers ?? []).map((id) =>
+        row(id, SealedContainer, {}),
       ),
     ],
     [
       MaterialLot.id,
-      [row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source })],
+      [
+        row(lot, MaterialLot, {
+          kind: "wood",
+          quantity: lotQuantity,
+          container: lotContainer,
+        }),
+      ],
     ],
   ]);
-  const writes: unknown[][] = [];
-  deliverySystem.run({
-    clock: { now: 0, delta: 0.1, tick: 1 },
+  const context = {
+    clock: { now: 1, delta: 0.1, tick: 1 },
     outcomes: [],
     impacts: [],
     random: { next: () => 0 },
-    query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
-    workMaterialFacts: () => materialFacts(values),
-    worldPoses: (ids) =>
+    query: (spec: { components: readonly { id: string }[] }) =>
+      (spec.components[0]!.id === DeliveryTask.id
+        ? [row(task, DeliveryTask, state)]
+        : (values.get(spec.components[0]!.id) ?? [])) as never,
+    workMaterialFacts: () => ({
+      version: 1 as const,
+      containers: [source, destination, ...workers].map((id) => ({
+        id,
+        capacity,
+        sealed: (options.sealedContainers ?? []).includes(id),
+      })),
+      lots: [
+        {
+          id: lot,
+          container: lotContainer,
+          kind: "wood",
+          quantity: lotQuantity,
+        },
+      ],
+    }),
+    workAttempts: (ids: readonly EntityId[]) => {
+      batchCalls++;
+      return attempt && ids.includes(attempt.key.task) ? [attempt] : [];
+    },
+    workAttemptForWorker: (id: EntityId) =>
+      attempt?.worker === id ? attempt : null,
+    worldPoses: (ids: readonly EntityId[]) =>
       ids.map((id) => ({
         id,
-        local: { x: 0, y: 0, z: 0, facing: 0 },
-        world: { x: 0, y: 0, z: 0, facing: 0 },
+        local: point,
+        world: point,
         support: null,
         surface: null,
       })),
-    routeCosts: (requests) =>
+    routeCosts: (requests: readonly { actor: EntityId }[]) =>
       requests.map((request) => ({
         actor: request.actor,
-        status: "reachable",
+        status: "reachable" as const,
         cost: 1,
       })),
-    routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 1 }),
-    assign: (candidates) => {
-      assert.equal(candidates.length, 1);
-      return [{ worker, task, cost: 1 }];
+    routeToAny: ({ actor }: { actor: EntityId }) => ({
+      actor,
+      status: "reachable" as const,
+      targetIndex: routeTargetIndex,
+      cost: 1,
+    }),
+    transferContacts: () =>
+      contactState === "ready"
+        ? {
+            kind: "ready" as const,
+            targets: [point, { x: 1, y: 0, z: 0, frame: null }],
+          }
+        : { kind: "blocked" as const, reason: "no-contact" as const },
+    write: (_definition: unknown, id: EntityId, value: DeliveryTaskValue) => {
+      assert.equal(id, task);
+      state = value;
+      writes.push(value);
     },
-    environmentFacts: () => {
-      throw new Error("unexpected environment query in this fixture");
-    },
-    constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
-    constructionAccess: () => [],
-    deconstructionAccess: () => [],
-    atmosphereSamples: () => {
-      throw new Error("unexpected atmosphere query in this fixture");
-    },
-    physicalContacts: () => {
-      throw new Error("unexpected physical contact query in this fixture");
-    },
-    transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
-    terrainMaterials: () => [],
-    terrainSurfaces: () => [],
-    createAuthoredEntity: () => {
-      throw new Error("no new task");
-    },
-    removeAuthoredEntity: () => {
-      throw new Error("no removal");
-    },
-    write: (...args) => writes.push(args),
-    action: () => {
-      throw new Error("assignment earns no transfer");
-    },
-  });
-  assert.deepEqual(writes, [
-    [
-      DeliveryTask,
-      task,
-      { ...state, actor: worker, quantity: 1, phase: "to-source", destinationContactSet: true },
-    ],
-  ]);
-});
-
-test("full destination puts held goods down before releasing the worker", () => {
-  const worker = entity("worker"),
-    source = entity("source"),
-    destination = entity("destination"),
-    ground = entity("ground");
-  const task = entity("task"),
-    lot = entity("lot");
-  let state = {
-    actor: worker as typeof worker | null,
-    sourceLot: lot,
-    source,
-    destination,
-    material: "soil",
-    quantity: 3,
-    phase: "to-destination",
-  };
-  let holder = worker;
-  const actions: unknown[] = [];
-  let contactsReady = true;
-  let contactX = 0;
-  const step = () => {
-    const values = new Map<string, readonly unknown[]>([
-      [DeliveryTask.id, [row(task, DeliveryTask, state)]],
-      [GroundStock.id, [row(ground, GroundStock, {})]],
-      [
-        DeliveryControl.id,
-        [row(worker, DeliveryControl, { enabled: true, quantity: 3 })],
-      ],
-      [Body.id, [row(worker, Body, { speed: 1 })]],
-      [
-        Container.id,
-        [worker, source, destination, ground].map((id) =>
-          row(id, Container, { capacity: id === destination ? 0 : 3 }),
-        ),
-      ],
-      [
-        Position.id,
-        [worker, source, destination, ground].map((id) =>
-          row(id, Position, { x: 0, y: 0, z: 0, facing: 0 }),
-        ),
-      ],
-      [
-        MaterialLot.id,
-        [
-          row(lot, MaterialLot, {
-            kind: "soil",
-            quantity: 3,
-            container: holder,
-          }),
-        ],
-      ],
-    ]);
-    deliverySystem.run({
-      clock: { now: 0, delta: 0.1, tick: 1 },
-      outcomes: [],
-      impacts: [],
-      random: { next: () => 0 },
-      query: (spec) => (values.get(spec.components[0].id) ?? []) as never,
-      workMaterialFacts: () => materialFacts(values),
-      worldPoses: (ids) =>
-        ids.map((id) => ({
-          id,
-          local: { x: 0, y: 0, z: 0, facing: 0 },
-          world: { x: 0, y: 0, z: 0, facing: 0 },
-          support: null,
-          surface: null,
-        })),
-      routeCosts: () => {
-        throw new Error("full storage cannot request a path");
-      },
-      routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 0 }),
-      assign: () => {
-        throw new Error("full storage cannot claim a worker");
-      },
-      environmentFacts: () => {
-        throw new Error("no environment query");
-      },
-      constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" as const })),
-      constructionAccess: () => [],
-      deconstructionAccess: () => [],
-      atmosphereSamples: () => {
-        throw new Error("no air query");
-      },
-      physicalContacts: () => [],
-      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
-      terrainMaterials: () => [],
-      terrainSurfaces: () => [],
-      createAuthoredEntity: () => {
-        throw new Error("native drop owns physical creation");
-      },
-      removeAuthoredEntity: () => {
-        throw new Error("no deletion");
-      },
-      write: (component, id, value) => {
-        assert.equal(component, DeliveryTask);
-        assert.equal(id, task);
-        state = value as typeof state;
-      },
-      action: (action) => actions.push(action),
-    });
-  };
-  step();
-  assert.equal(
-    state.actor,
-    worker,
-    "claim remains until the physical drop commits",
-  );
-  assert.equal(state.phase, "putting-down");
-  assert(
-    actions.some((action) => (action as { kind: string }).kind === "drop-lot"),
-  );
-  actions.length = 0;
-  step();
-  assert.equal(
-    state.actor,
-    worker,
-    "failed or uncommitted drop cannot lose custody",
-  );
-  holder = ground;
-  step();
-  assert.equal(state.actor, null);
-  assert.equal(state.source, ground);
-  assert.equal(state.phase, "idle");
-  actions.length = 0;
-  step();
-  assert.equal(
-    actions.length,
-    0,
-    "waiting ground goods do not repeatedly move a worker",
-  );
-});
-
-function rejectedDeliveryFixture(initial: {
-  actor: ReturnType<typeof entity>;
-  sourceLot: ReturnType<typeof entity>;
-  source: ReturnType<typeof entity>;
-  destination: ReturnType<typeof entity>;
-  material: string;
-  quantity: number;
-  phase: string;
-}, options: { readonly destinationGround?: boolean; readonly outcomes?: readonly unknown[]; readonly automatic?: boolean } = {}) {
-  const task = entity("rejected.delivery");
-  let state = initial;
-  let lotContainer = initial.phase === "to-source" ? initial.source : initial.actor;
-  const worker = initial.actor;
-  const ground = entity("rejected.ground");
-  const writes: unknown[][] = [];
-  const actions: unknown[] = [];
-  let contactX = 0;
-  let contactsReady = true;
-  const positions = new Map([
-    [worker, { x: 1, y: 0, z: 0, facing: 0 }],
-    [initial.source, { x: 0, y: 0, z: 0, facing: 0 }],
-    [initial.destination, { x: 4, y: 0, z: 0, facing: 0 }],
-    [ground, { x: 1, y: 0, z: 0, facing: 0 }],
-  ]);
-  const values = new Map<string, readonly unknown[]>([
-    [DeliveryTask.id, [row(task, DeliveryTask, state)]],
-    [GroundStock.id, options.destinationGround ? [row(ground, GroundStock, {})] : []],
-    [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: initial.quantity })]],
-    [WorkParticipation.id, [row(worker, WorkParticipation, { automatic: options.automatic ?? true })]],
-    [Body.id, [row(worker, Body, { speed: 1 })]],
-    [Container.id, [worker, initial.source, initial.destination, ground].map((id) => row(id, Container, { capacity: 8 }))],
-    [Position.id, [...positions].map(([id, value]) => row(id, Position, value))],
-    [MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]],
-    [ExcavationWork.id, []], [ConstructionSite.id, []], [Support.id, []], [Surface.id, []], [SealedContainer.id, []],
-  ]);
-  const context = {
-    clock: { now: 0, delta: 0.1, tick: 1 }, outcomes: options.outcomes ?? [], impacts: [], random: { next: () => 0 },
-    query: (spec: { components: readonly { id: string }[] }) =>
-      spec.components[0].id === DeliveryTask.id
-        ? [row(task, DeliveryTask, state)] as never
-        : (values.get(spec.components[0].id) ?? []) as never,
-    workMaterialFacts: () => materialFacts(values),
-    worldPoses: (ids: readonly ReturnType<typeof entity>[]) => ids.map((id) => ({ id, local: positions.get(id)!, world: positions.get(id)!, support: null, surface: null })),
-    routeCosts: () => { throw new Error("unexpected route query"); }, routeToAny: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], transferContacts: () => contactsReady ? ({ kind: "ready", targets: [{ x: contactX, y: 0, z: 0, frame: null }] }) : ({ kind: "blocked", reason: "no-contact" }), terrainMaterials: () => [], terrainSurfaces: () => [],
-    assign: () => [], createAuthoredEntity: () => { throw new Error("unexpected creation"); }, removeAuthoredEntity: () => { throw new Error("unexpected removal"); },
-    write: (_definition: unknown, id: unknown, value: unknown) => { assert.equal(id, task); state = value as typeof state; writes.push([id, value]); },
     action: (value: unknown) => actions.push(value),
   } as never;
-  return { task, worker, ground, state: () => state, setState: (value: typeof state) => { state = value; }, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, setContactsReady: (value: boolean) => { contactsReady = value; }, setContactX: (value: number) => { contactX = value; }, writes, actions, context };
+  const makeAttempt = (
+    activity: WorkActivityRef,
+    result: WorkOutcome,
+    attemptWorker = worker,
+  ): WorkAttempt => ({
+    key: { task, generation: 1 },
+    worker: attemptWorker,
+    party,
+    phase: {
+      kind: "outcome",
+      operation: { attempt: { task, generation: 1 }, sequence: 1 },
+      activity,
+      result,
+    },
+  });
+  return {
+    task,
+    worker,
+    workers,
+    party,
+    source,
+    destination,
+    lot,
+    context,
+    actions,
+    writes,
+    get state() {
+      return state;
+    },
+    set state(value: DeliveryTaskValue) {
+      state = value;
+    },
+    setAttempt(value: WorkAttempt | undefined) {
+      attempt = value;
+    },
+    setLotContainer(value: EntityId) {
+      lotContainer = value;
+      values.set(MaterialLot.id, [
+        row(lot, MaterialLot, {
+          kind: "wood",
+          quantity: lotQuantity,
+          container: value,
+        }),
+      ]);
+    },
+    setContacts(value: "ready" | "blocked") {
+      contactState = value;
+    },
+    get batchCalls() {
+      return batchCalls;
+    },
+    prepare: (suspended: ReadonlySet<EntityId> = new Set()) =>
+      deliveryProvider(context, suspended),
+    makeAttempt,
+  };
+}
+function route(destination = point): WorkActivityRef {
+  return { kind: "route", destination };
+}
+function transfer(
+  lot: EntityId,
+  from: EntityId,
+  to: EntityId,
+): WorkActivityRef {
+  return { kind: "material-transfer", lot, from, to, quantity: 1 };
+}
+function drop(lot: EntityId): WorkActivityRef {
+  return { kind: "material-drop", lot };
 }
 
-test("lost selected contact releases labor while preserving carried cargo and obligation", () => {
-  const worker = entity("j2.worker");
-  const source = entity("j2.source");
-  const destination = entity("j2.destination");
-  const lot = entity("j2.lot");
-  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination", destinationContactSet: true, destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null } as never, { destinationGround: true });
-  fixture.setContactX(1);
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().phase, "putting-down");
-  assert.equal(fixture.state().actor, worker);
-  assert.deepEqual(fixture.actions, [{ kind: "drop-lot", entity: worker, lot }]);
-  fixture.setLotContainer(fixture.ground);
-  fixture.actions.length = 0;
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().actor, null);
-  assert.equal(fixture.state().phase, "idle");
-});
-
-test("rejected delivery move before pickup returns the task to idle without retrying", () => {
-  const worker = entity("rejected.worker.source");
-  const source = entity("rejected.source");
-  const destination = entity("rejected.destination");
-  const lot = entity("rejected.lot.source");
-  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "to-source" }, {
-    outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 0, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
+test("delivery uses one native attempt and completes source pickup through destination deposit", () => {
+  const f = fixture();
+  let p = f.prepare();
+  assert.equal(p.candidates.length, 1);
+  assert.equal(p.estimate(p.candidates[0]!), 2);
+  p.apply([{ task: f.task, worker: f.worker, cost: 2 }]);
+  assert.equal((f.actions[0] as { kind: string }).kind, "begin-work-attempt");
+  f.actions.length = 0;
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  p = f.prepare();
+  p.progress();
+  assert.deepEqual(f.actions[0], {
+    kind: "continue-work-attempt",
+    task: f.task,
+    generation: 1,
+    sequence: 1,
+    nextActivity: {
+      kind: "material-transfer",
+      lot: f.lot,
+      from: f.source,
+      to: f.worker,
+      quantity: 1,
+    },
   });
-  deliverySystem.run(fixture.context);
-  assert.deepEqual(fixture.state(), { ...contactFields(), actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
-  assert.equal(fixture.actions.length, 0);
+  f.actions.length = 0;
+  f.setLotContainer(f.worker);
+  f.setAttempt(
+    f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }),
+  );
+  p = f.prepare();
+  p.progress();
+  assert.equal(
+    (f.actions[0] as { nextActivity: { kind: string } }).nextActivity.kind,
+    "route",
+  );
+  f.actions.length = 0;
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  p = f.prepare();
+  p.progress();
+  assert.equal(
+    (f.actions[0] as { nextActivity: { kind: string } }).nextActivity.kind,
+    "material-transfer",
+  );
+  f.actions.length = 0;
+  f.setLotContainer(f.destination);
+  f.setAttempt(
+    f.makeAttempt(transfer(f.lot, f.worker, f.destination), {
+      kind: "completed",
+    }),
+  );
+  p = f.prepare();
+  p.progress();
+  assert.equal(f.state.custody, "delivered");
+  assert.equal(
+    (f.actions.at(-1) as { kind: string }).kind,
+    "acknowledge-work-attempt",
+  );
 });
 
-test("manual participation leaves a ready delivery obligation unclaimed", () => {
-  const worker = entity("manual.worker");
-  const source = entity("manual.source");
-  const destination = entity("manual.destination");
-  const lot = entity("manual.lot");
-  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" }, { automatic: false });
-  fixture.setState({ ...fixture.state(), actor: null } as never);
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().actor, null);
-  assert.equal(fixture.state().phase, "idle");
-  assert.equal(fixture.actions.length, 0);
+test("interrupted carrying preserves lot custody, releases labor, and only its holder may resume", () => {
+  const holder = entity("holder"),
+    other = entity("other"),
+    f = fixture({ workers: [holder, other], lotContainer: holder });
+  f.setAttempt(
+    f.makeAttempt(
+      transfer(f.lot, f.source, holder),
+      { kind: "interrupted", cause: "drafted" },
+      holder,
+    ),
+  );
+  f.prepare().progress();
+  assert.equal(f.state.custody, "held");
+  f.setAttempt(undefined);
+  assert.deepEqual(
+    f.prepare().candidates.map((candidate) => candidate.worker),
+    [holder],
+  );
+});
+
+test("J2 lost destination contact drops held material, then reopens from committed ground lot", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(
+    f.makeAttempt(transfer(f.lot, f.worker, f.destination), {
+      kind: "completed",
+    }),
+  );
+  f.setContacts("blocked");
+  f.prepare().progress();
+  assert.equal(
+    (f.actions[0] as { nextActivity: { kind: string } }).nextActivity.kind,
+    "material-drop",
+  );
+  f.actions.length = 0;
+  f.setLotContainer(f.source);
+  f.setAttempt(f.makeAttempt(drop(f.lot), { kind: "completed" }));
+  f.prepare().progress();
+  assert.equal(f.state.custody, "dropped");
+  assert.equal(f.state.ground, f.source);
+  f.actions.length = 0;
+  f.setAttempt(undefined);
+  f.prepare().progress();
+  assert.equal(f.state.custody, "available");
+  assert.equal(f.state.source, f.source);
+  assert.equal(f.state.ground, null);
+});
+
+test("delivery batches WorkAttempt projection and excludes a foreign worker for the same task", () => {
+  const good = entity("party.worker"),
+    foreign = entity("foreign.worker"),
+    party = entity("delivery.party"),
+    foreignParty = entity("foreign.party");
+  const f = fixture({
+    workers: [good, foreign],
+    party,
+    workerParties: new Map([
+      [good, party],
+      [foreign, foreignParty],
+    ]),
+  });
+  assert.deepEqual(
+    f.prepare().candidates.map((candidate) => candidate.worker),
+    [good],
+  );
+  assert.equal(f.batchCalls, 1);
+});
+
+test("impossible pairs are filtered before routing: missing, insufficient, sealed, full, and occupied", () => {
+  for (const options of [
+    { lotQuantity: 0 },
+    { sealedContainers: [entity("delivery.source")] },
+    { containerCapacity: 0 },
+    { occupiedWorkers: [entity("delivery.worker")] },
+  ] as const) {
+    const f = fixture(options);
+    assert.equal(f.prepare().candidates.length, 0);
+  }
+});
+
+test("a held obligation never routes a second worker to the physical holder", () => {
+  const holder = entity("delivery.holder"),
+    other = entity("delivery.other"),
+    f = fixture({ workers: [holder, other], lotContainer: holder });
+  f.state = { ...f.state, custody: "held" };
+  const candidates = f.prepare().candidates;
+  assert.deepEqual(
+    candidates.map((candidate) => candidate.worker),
+    [holder],
+  );
+});
+
+test("capacity remains bounded by the requested quantity", () => {
+  const f = fixture({
+    lotQuantity: 3,
+    taskQuantity: 3,
+    containerCapacity: 1,
+  });
+  assert.equal(f.prepare().candidates.length, 0);
+});
+
+test("manual control removes a worker from automatic delivery without changing the obligation", () => {
+  const f = fixture();
+  assert.equal(f.prepare(new Set([f.worker])).candidates.length, 0);
+  assert.equal(f.state.custody, "available");
+});
+
+test("Draft after a completed route reconciles custody and acknowledges for manual control", () => {
+  const f = fixture();
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+  assert.deepEqual(f.writes, []);
+  assert.equal(f.state.custody, "available");
+});
+
+test("Draft at the destination route preserves held pickup custody and does not auto transfer or drop", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.state.custody, "held");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+});
+
+test("committed pickup persists held custody before continuing its destination route", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }));
+  f.prepare().progress();
+  assert.equal(f.state.custody, "held");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { nextActivity: { kind: string } }).nextActivity.kind, "route");
+});
+
+test("Draft after committed pickup acknowledges once and retains held lot custody", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.state.custody, "held");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+});
+
+test("Draft after committed deposit reconciles delivered custody without duplicate quantity", () => {
+  const f = fixture({ lotContainer: entity("delivery.destination") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.worker, f.destination), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.state.custody, "delivered");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+});
+
+test("reconciled delivery task custody survives current-format save and reload", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  const restored = decodeDeliveryTask(JSON.parse(JSON.stringify(f.state)));
+  assert.equal(restored.custody, "held");
+  assert.equal(restored.sourceLot, f.lot);
+  assert.equal(restored.quantity, 1);
+});
+
+test("a move interruption leaves source custody and does not fabricate a transfer", () => {
+  const f = fixture();
+  f.setAttempt(
+    f.makeAttempt(route(), { kind: "blocked", reason: "accessLost" }),
+  );
+  f.prepare().progress();
+  assert.equal(f.state.custody, "available");
+  assert.equal(
+    f.actions.at(-1) && (f.actions.at(-1) as { kind: string }).kind,
+    "acknowledge-work-attempt",
+  );
+  assert.equal(f.writes.length, 0);
+});
+
+test("an existing native construction or excavation attempt occupies its worker", () => {
+  const f = fixture();
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  assert.equal(f.prepare().candidates.length, 0);
+});
+
+test("repeated terminal delivery output is idempotent and cannot duplicate completion", () => {
+  const f = fixture({ lotContainer: entity("delivery.destination") });
+  f.state = { ...f.state, custody: "delivered" };
+  assert.equal(f.prepare().candidates.length, 0);
+});
+
+test("versioned obligation codec rejects unsupported versions and ground mismatch on reload", () => {
+  assert.deepEqual(
+    decodeDeliveryObligation({ version: 2, kind: "available", lot: "lot" }),
+    { version: 2, kind: "available", lot: "lot" },
+  );
+  assert.deepEqual(
+    decodeDeliveryObligation({
+      version: 2,
+      kind: "dropped",
+      lot: "lot",
+      ground: "ground",
+    }),
+    { version: 2, kind: "dropped", lot: "lot", ground: "ground" },
+  );
+  assert.throws(
+    () =>
+      decodeDeliveryObligation({ version: 1, kind: "available", lot: "lot" }),
+    /version/,
+  );
+  assert.throws(
+    () =>
+      decodeDeliveryObligation({
+        version: 2,
+        kind: "dropped",
+        lot: "lot",
+        ground: null,
+      }),
+    /custody/,
+  );
+  assert.throws(
+    () =>
+      decodeDeliveryObligation({
+        version: 2,
+        kind: "available",
+        lot: "lot",
+        ground: "stale",
+      }),
+    /custody|shape/,
+  );
+});
+
+test("native pickup and deposit are emitted as the two closed material-transfer shapes", () => {
+  const f = fixture();
+  const p = f.prepare();
+  p.estimate(p.candidates[0]!);
+  p.apply([{ task: f.task, worker: f.worker, cost: 2 }]);
+  assert.equal(
+    (f.actions[0] as { operation: { kind: string } }).operation.kind,
+    "route",
+  );
+  assert.notEqual(f.source, f.worker);
+});
+
+test("J3 completed pickup recomputes contact routing instead of trusting the first contact", () => {
+  const f = fixture({ routeTargetIndex: 1 });
+  f.setLotContainer(f.worker);
+  f.setAttempt(
+    f.makeAttempt(transfer(f.lot, f.worker, f.destination), {
+      kind: "completed",
+    }),
+  );
+  f.prepare().progress();
+  assert.deepEqual(
+    (f.actions[0] as { nextActivity: { destination: unknown } }).nextActivity
+      .destination,
+    { x: 1, y: 0, z: 0, frame: null },
+  );
 });

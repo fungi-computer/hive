@@ -11,7 +11,7 @@ use crate::components::valid_id;
 use crate::emission_definition::EmissionCatalog;
 use crate::environment_definition::StructureDefinition;
 
-pub const CURRENT_VERSION: u16 = 2;
+pub const CURRENT_VERSION: u16 = 3;
 const MAX_DEFINITIONS: usize = 64;
 const MAX_INPUTS: usize = 32;
 const MAX_STAGES: usize = 16;
@@ -350,7 +350,6 @@ pub struct StagedProcess {
     pub entered_tick: u64,
     pub phase: ProcessPhase,
     pub blocked_reason: String,
-    pub worker: Option<String>,
 }
 
 #[derive(Component, Clone, Debug, Deserialize, Serialize, PartialEq)]
@@ -402,7 +401,38 @@ pub fn validate_bindings(
     bindings: &[ProcessBinding],
     lot: &impl Fn(&str) -> Option<crate::components::Lot>,
 ) -> Result<(), String> {
-    let inputs: BTreeMap<&str, &ProcessInput> = definition.inputs.iter().map(|input| (input.role.as_str(), input)).collect();
+    validate_bindings_for_inputs(definition.inputs.iter(), process, station, bindings, lot)
+}
+
+/// Validate only the bindings that remain after earlier stages committed.
+pub fn validate_bindings_at_stage(
+    definition: &ProcessDefinition,
+    stage_index: usize,
+    process: &str,
+    station: &str,
+    bindings: &[ProcessBinding],
+    lot: &impl Fn(&str) -> Option<crate::components::Lot>,
+) -> Result<(), String> {
+    let mut settled = BTreeSet::new();
+    for stage in definition.stages.iter().take(stage_index) {
+        settled.extend(stage.transition.consume_roles.iter().map(String::as_str));
+        if let Some(emission) = &stage.transition.emission { settled.insert(emission.role.as_str()); }
+    }
+    validate_bindings_for_inputs(
+        definition.inputs.iter().filter(|input| !settled.contains(input.role.as_str())),
+        process, station, bindings, lot,
+    )
+}
+
+fn validate_bindings_for_inputs<'a>(
+    expected: impl Iterator<Item = &'a ProcessInput>,
+    process: &str,
+    station: &str,
+    bindings: &[ProcessBinding],
+    lot: &impl Fn(&str) -> Option<crate::components::Lot>,
+) -> Result<(), String> {
+    let expected = expected.collect::<Vec<_>>();
+    let inputs: BTreeMap<&str, &ProcessInput> = expected.iter().map(|input| (input.role.as_str(), *input)).collect();
     let mut roles: BTreeMap<&str, u32> = BTreeMap::new();
     let mut lots = BTreeSet::new();
     for binding in bindings {
@@ -417,7 +447,7 @@ pub fn validate_bindings(
         *total = total.checked_add(binding.quantity).ok_or("process binding quantity overflow")?;
         if input.policy == InputPolicy::WholeLot && *total > input.quantity { return Err("whole-lot process binding is duplicated".into()); }
     }
-    for input in &definition.inputs {
+    for input in expected {
         if roles.get(input.role.as_str()).copied().unwrap_or(0) != input.quantity { return Err("process bindings do not satisfy every input role".into()); }
         if input.policy == InputPolicy::WholeLot && roles.get(input.role.as_str()).copied().unwrap_or(0) != input.quantity { return Err("whole-lot process input is not exact".into()); }
     }

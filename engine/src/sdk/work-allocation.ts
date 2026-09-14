@@ -143,7 +143,9 @@ export function allocateWork<Candidate extends WorkPair>(
     const exact = estimate(state.candidate);
     remainingRoutes--;
     if (exact !== null && (!Number.isFinite(exact) || exact < state.bound))
-      throw new Error("invalid exact work candidate cost");
+      throw new Error(
+        `invalid exact work candidate cost for ${state.candidate.task}: bound ${state.bound}, exact ${exact}`,
+      );
     state.exact = exact;
     if (exact === null || materiallyWorse(state.bound, exact)) {
       const corrected = proposedCosts(states);

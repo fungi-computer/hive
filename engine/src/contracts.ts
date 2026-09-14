@@ -27,6 +27,7 @@ export const RESERVED_COMPONENTS = [
   "hive.finite-resource",
   "hive.resource-site",
   "hive.excavation-work",
+  "hive.deconstruction-work",
   "hive.destination",
   "hive.support",
   "hive.surface",
@@ -163,7 +164,6 @@ export type ActionRequest =
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
   | { readonly kind: "admit-process"; readonly process: EntityId; readonly definition: string; readonly station: EntityId }
-  | { readonly kind: "attend-process"; readonly worker: EntityId; readonly process: EntityId }
   | {
       readonly kind: "designate-stockpile";
       readonly zone: EntityId;
@@ -196,15 +196,6 @@ export type ActionRequest =
     }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
-  | {
-      readonly kind: "excavate";
-      readonly entity: EntityId;
-      readonly x: number;
-      readonly y: number;
-      readonly z: number;
-      readonly expected: number;
-      readonly replacement: number;
-    }
   | { readonly kind: "cancel-work"; readonly entity: EntityId }
   | {
       readonly kind: "begin-direct";
@@ -308,7 +299,18 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
-export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination } | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" };
+export type WorkActivityRef =
+  | { readonly kind: "route"; readonly destination: MoveDestination }
+  | { readonly kind: "construction"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null }; readonly mode: "bind" | "work" }
+  | { readonly kind: "excavation"; readonly cell: readonly [number, number, number]; readonly expectedMaterial: number; readonly replacementMaterial: number }
+  | { readonly kind: "deconstruction"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
+  | { readonly kind: "process-attendance"; readonly process: EntityId }
+  | { readonly kind: "material-transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly quantity: number }
+  | { readonly kind: "material-drop"; readonly lot: EntityId }
+  | { readonly kind: "resource-establish"; readonly site: EntityId; readonly definition: string; readonly cell: readonly [number, number, number] }
+  | { readonly kind: "resource-tend"; readonly site: EntityId; readonly vessel: EntityId }
+  | { readonly kind: "resource-extract"; readonly source: EntityId }
+  | { readonly kind: "field-water"; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly direction: "withdraw" | "deposit"; readonly portions: number };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }
@@ -422,6 +424,10 @@ export interface ScopedAction {
 export interface ScopedCreate {
   readonly scope: ActionScope;
   readonly record: EntityRecord;
+}
+export interface ScopedRemove {
+  readonly scope: ActionScope;
+  readonly entity: EntityId;
 }
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts"> & {
   readonly scope: CommandScope;
@@ -575,6 +581,7 @@ export interface ConstructionAccess {
   readonly site: EntityId;
   readonly support: ConstructionReadinessStatus;
   readonly materialsReady: boolean;
+  readonly blockedActors: readonly EntityId[];
   readonly contacts: readonly ConstructionAccessContact[];
 }
 export type DeconstructionAccess = { readonly site: EntityId; readonly status: "ready" | "occupiedPort" | "structuralDependency" | "invalidGeometry"; readonly contacts: readonly ConstructionAccessContact[]; readonly salvageQuantity: number; readonly workSeconds: number };
@@ -659,7 +666,7 @@ export interface KernelPort {
     actions: readonly ScopedAction[],
     options?: {
       readonly creates?: readonly ScopedCreate[];
-      readonly removes?: readonly EntityId[];
+      readonly removes?: readonly ScopedRemove[];
     },
   ) => AdvanceResult;
   readonly snapshot: () => KernelSnapshot;

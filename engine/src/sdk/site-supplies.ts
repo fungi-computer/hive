@@ -2,6 +2,7 @@ import { entity, query } from "./authoring";
 import { DeliveryTask } from "./delivery";
 import { SealedContainer } from "./construction";
 import { Container, MaterialLot } from "./common";
+import { OwnedByParty } from "./party";
 import type { EntityId, EntityRecord, WriteContext } from "../contracts";
 
 const MAX_REQUIREMENTS = 64;
@@ -123,6 +124,8 @@ export function planSiteSupplies(
   const containers = new Map(materialFacts.containers.map((container) => [container.id, container]));
   const lots = materialFacts.lots;
   const tasks = context.query(query(DeliveryTask));
+  const owners = new Map(context.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const ownerOf = (id: EntityId) => owners.get(id);
   const invalidContainers = new Set<EntityId>();
   const quantityByContainer = new Map<EntityId, number>();
   const quantityByDestinationMaterial = new Map<string, number>();
@@ -158,7 +161,7 @@ export function planSiteSupplies(
   const removals: EntityId[] = [];
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
-    if (task.phase === "complete") {
+    if (task.custody === "delivered") {
       // Delivery already observed the committed deposit before it published
       // complete. Construction may consume that lot in the following phase,
       // so this planner must retire its receipt without requiring the lot to
@@ -172,7 +175,7 @@ export function planSiteSupplies(
       !entity(task.destination) ||
       !validMaterial(task.material) ||
       !validQuantity(task.quantity) ||
-      typeof task.phase !== "string"
+      typeof task.custody !== "string" || !entity(task.party)
     )
       throw new Error("invalid active site supply task");
     addChecked(reservedByLot, task.sourceLot, task.quantity);
@@ -200,7 +203,10 @@ export function planSiteSupplies(
   const created: EntityId[] = [];
   const plannedIds = new Set(tasks.map((row) => row.id));
   const plannedRecords: EntityRecord[] = [];
+  const plannedParties = new Map<EntityId, EntityId>();
   for (const requirement of requirements) {
+    const destinationParty = ownerOf(requirement.destination);
+    if (!destinationParty) throw new Error("site supply destination has no party owner");
     const destinationContainer = containers.get(requirement.destination);
     if (
       !destinationContainer ||
@@ -237,30 +243,30 @@ export function planSiteSupplies(
       while (available > 0 && remaining > 0 && freeCapacity > 0) {
         const quantity = Math.min(batchQuantity, remaining, freeCapacity, available);
         if (!validQuantity(quantity)) break;
+        const sourceParty = ownerOf(source.lot.container);
+        if (!sourceParty || sourceParty !== destinationParty) throw new Error("site supply source ownership mismatch");
         let id = taskId(requirement.destination, requirement.material, source.id, leg);
         while (plannedIds.has(id)) { leg++; id = taskId(requirement.destination, requirement.material, source.id, leg); }
       const record: EntityRecord = {
         id,
         components: {
           [DeliveryTask.id]: {
-            actor: null,
+            version: 2,
+            party: destinationParty,
             sourceLot: source.id,
             source: source.lot.container,
             destination: requirement.destination,
-            destinationContactX: 0,
-            destinationContactY: 0,
-            destinationContactZ: 0,
-            destinationContactFrame: null,
-            destinationContactSet: false,
             material: requirement.material,
             // This is a finite planning cap. The delivery provider must preserve
             // it when applying a worker's DeliveryControl quantity.
             quantity,
-            phase: "idle",
+            custody: "available",
+            ground: null,
           },
         },
       };
       plannedRecords.push(record);
+      plannedParties.set(id, destinationParty);
       plannedIds.add(id);
       created.push(id);
       reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
@@ -280,6 +286,10 @@ export function planSiteSupplies(
     }
   }
   for (const id of removals) context.removeAuthoredEntity(id);
-  for (const record of plannedRecords) context.createAuthoredEntity(record);
+  for (const record of plannedRecords) {
+    const party = plannedParties.get(record.id);
+    if (!party) throw new Error("site supply task party missing");
+    context.createAuthoredEntity(record, { kind: "party", party });
+  }
   return created;
 }

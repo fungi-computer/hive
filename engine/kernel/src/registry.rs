@@ -69,13 +69,13 @@ impl Registry {
                 ("version", FieldType::Number), ("definition", FieldType::String), ("definitionVersion", FieldType::Number),
                 ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number),
                 ("enteredTick", FieldType::Number), ("phase", FieldType::String), ("blockedReason", FieldType::String),
-                ("worker", FieldType::NullableEntity),
             ]),
             ("hive.process-binding", vec![("process", FieldType::Entity), ("role", FieldType::String), ("lot", FieldType::Entity), ("quantity", FieldType::Number)]),
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
             ("hive.resource-site", vec![("definition", FieldType::String), ("stage", FieldType::Number), ("nextDue", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
+            ("hive.deconstruction-work", vec![("site", FieldType::Entity), ("contactX", FieldType::Number), ("contactY", FieldType::Number), ("contactZ", FieldType::Number), ("seconds", FieldType::Number), ("requiredSeconds", FieldType::Number)]),
             ("hive.construction-site", vec![
                 ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
                 ("orientation", FieldType::String),
@@ -202,6 +202,7 @@ impl Registry {
                 "hive.finite-resource" => world.register_component::<FiniteResource>(),
                 "hive.resource-site" => world.register_component::<ResourceSite>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
+                "hive.deconstruction-work" => world.register_component::<DeconstructionWork>(),
                 "hive.construction-site" => world.register_component::<ConstructionSite>(),
                 "hive.floor-replacement" => world.register_component::<FloorReplacement>(),
                 "hive.destination" => world.register_component::<Destination>(),
@@ -256,6 +257,7 @@ impl Registry {
                 | "hive.finite-resource"
                 | "hive.resource-site"
                 | "hive.excavation-work"
+                | "hive.deconstruction-work"
                 | "hive.construction-site"
                 | "hive.floor-replacement"
                 | "hive.destination"
@@ -346,6 +348,10 @@ impl Registry {
                     return Err("invalid excavation progress".into());
                 }
             }
+            "hive.deconstruction-work" => {
+                let work: DeconstructionWork = decode(value)?;
+                if !valid_id(&work.site) || !work.seconds.is_finite() || work.seconds < 0.0 || !work.required_seconds.is_finite() || work.required_seconds < 0.0 { return Err("invalid deconstruction progress".into()); }
+            }
             "hive.construction-site" => {
                 let site: ConstructionSite = decode(value)?;
                 if !valid_id(&site.catalog) || !site.seconds.is_finite() || site.seconds < 0.0 {
@@ -366,7 +372,6 @@ impl Registry {
                     || !valid_id(&process.station) || !process.progress_seconds.is_finite()
                     || process.progress_seconds < 0.0 || (!process.blocked_reason.is_empty() && !valid_id(&process.blocked_reason))
                     || (process.phase == crate::staged_process::ProcessPhase::Blocked) != !process.blocked_reason.is_empty()
-                    || process.worker.as_deref().is_some_and(|worker| !valid_id(worker))
                 { return Err("invalid staged process fact".into()); }
             }
             "hive.process-binding" => {
@@ -534,6 +539,7 @@ impl Registry {
             "hive.excavation-work" => {
                 world.entity_mut(entity).insert(decode::<ExcavationWork>(value)?);
             }
+            "hive.deconstruction-work" => { world.entity_mut(entity).insert(decode::<DeconstructionWork>(value)?); }
             "hive.construction-site" => {
                 world.entity_mut(entity).insert(decode::<ConstructionSite>(value)?);
             }
@@ -618,6 +624,7 @@ impl Registry {
             "hive.finite-resource" => world.get::<FiniteResource>(entity).map(record),
             "hive.resource-site" => world.get::<ResourceSite>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
+            "hive.deconstruction-work" => world.get::<DeconstructionWork>(entity).map(record),
             "hive.construction-site" => world.get::<ConstructionSite>(entity).map(record),
             "hive.floor-replacement" => world.get::<FloorReplacement>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),

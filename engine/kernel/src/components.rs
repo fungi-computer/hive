@@ -116,6 +116,17 @@ pub struct ExcavationWork {
     pub replacement: u16,
     pub seconds: f64,
 }
+/// Native saved deconstruction progress owned by the task entity.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeconstructionWork {
+    pub site: String,
+    pub contact_x: f64,
+    pub contact_y: f64,
+    pub contact_z: f64,
+    pub seconds: f64,
+    pub required_seconds: f64,
+}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ConstructionSite {
@@ -382,11 +393,9 @@ pub enum Action {
     ContinueWorkAttempt { task: String, generation: u64, sequence: u32, #[serde(rename = "nextActivity")] next_activity: crate::work_attempt::ActivityRef },
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
-    AttendProcess { worker: String, process: String },
     ExchangeFieldWater { operation: String, worker: String, vessel: String, x: i32, y: i32, z: i32, direction: crate::terrain_water::WaterExchangeDirection, portions: u8 },
     DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
     UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
-    Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },
     CancelWork { entity: String },
     Deconstruct { worker: String, site: String },
     PlanConstruction {
@@ -454,12 +463,18 @@ pub struct ScopedCreate {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ScopedRemove {
+    pub scope: ActionScope,
+    pub entity: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Batch {
     pub delta: f64,
     #[serde(default)]
     pub creates: Vec<ScopedCreate>,
     #[serde(default)]
-    pub removes: Vec<String>,
+    pub removes: Vec<ScopedRemove>,
     pub writes: Vec<Write>,
     pub actions: Vec<ScopedAction>,
 }

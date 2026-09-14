@@ -23,6 +23,7 @@ import type {
   WorldPose,
   Impact,
   ScopedAction,
+  ScopedRemove,
   ScopedCreate,
 } from "../contracts";
 
@@ -116,7 +117,13 @@ class TestPort implements KernelPort {
   constructionAccess(
     sites: readonly import("../contracts").EntityId[],
   ): readonly import("../contracts").ConstructionAccess[] {
-    return sites.map((site) => ({ site, support: "ready", materialsReady: true, contacts: [] }));
+    return sites.map((site) => ({
+      site,
+      support: "ready",
+      materialsReady: true,
+      blockedActors: [],
+      contacts: [],
+    }));
   }
   deconstructionAccess(
     sites: readonly import("../contracts").EntityId[],
@@ -166,7 +173,7 @@ class TestPort implements KernelPort {
     delta: number,
     writes: readonly WriteIntent[],
     actions: readonly ScopedAction[],
-    _options?: { readonly creates?: readonly ScopedCreate[]; readonly removes?: readonly import("../contracts").EntityId[] },
+    _options?: { readonly creates?: readonly ScopedCreate[]; readonly removes?: readonly ScopedRemove[] },
   ): AdvanceResult {
     this.revision++;
     if (this.failAdvance) throw new Error("native advance failed");
@@ -297,6 +304,7 @@ function pack(
   return {
     id: "colony",
     version: 1,
+    localScope: { kind: "host" },
     definition,
     components: [morale],
     systems: systems ?? (system ? [system] : []),
@@ -892,7 +900,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", {}));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 9);
+  assert.equal(value.save().version, 10);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {

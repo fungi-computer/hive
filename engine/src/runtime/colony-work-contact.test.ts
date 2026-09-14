@@ -74,7 +74,7 @@ test("an obstructed construction delivery chooses a lawful contact or releases i
       session.step(0.1);
       delivery = session.query(query(DeliveryTask)).find((row) => {
         const task = row.get(DeliveryTask);
-        return task.destination === floor.id && task.actor !== null && task.phase !== "complete";
+        return task.destination === floor.id && task.custody !== "delivered";
       });
       if (delivery) break;
     }
@@ -96,7 +96,7 @@ test("an obstructed construction delivery chooses a lawful contact or releases i
     const deliveryAfter = session.query(query(DeliveryTask)).find((row) => row.id === delivery.id);
     assert(floorAfter, `floor intent disappeared after contact obstruction: ${stateDump(session)}`);
     if (deliveryAfter) {
-      assert.equal(deliveryAfter.get(DeliveryTask).actor, null, `delivery retained worker after contact obstruction: ${stateDump(session)}`);
+      assert.equal(deliveryAfter.get(DeliveryTask).custody, "delivered", `delivery retained worker after contact obstruction: ${stateDump(session)}`);
     } else {
       assert.equal(floorAfter.get(ConstructionSite).phase, "finished", stateDump(session));
     }

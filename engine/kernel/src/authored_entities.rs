@@ -29,6 +29,7 @@ mod tests {
 
     fn advance(kernel: &mut Kernel, creates: serde_json::Value, removes: serde_json::Value, writes: serde_json::Value) -> Result<String> {
         let creates = creates.as_array().unwrap().iter().map(|record| json!({"scope":{"kind":"host"},"record":record})).collect::<Vec<_>>();
+        let removes = removes.as_array().unwrap().iter().map(|id| json!({"scope":{"kind":"host"},"entity":id})).collect::<Vec<_>>();
         kernel.advance_json(&json!({"delta":0,"creates":creates,"removes":removes,"writes":writes,"actions":[]}).to_string())
     }
 
@@ -95,7 +96,11 @@ impl Kernel {
             let entity = self.entity(id)?;
             for name in self.registry.schemas.keys() {
                 if let Some(value) = self.registry.read(&self.ecs, entity, name) {
-                    if Registry::is_physical(name) {
+                    // Party ownership is the native authorization label for an
+                    // authored record, not an independently surviving physical
+                    // capability. The scoped batch has already authorized its
+                    // removal; every other physical component remains protected.
+                    if Registry::is_physical(name) && name != "hive.owned-by-party" {
                         return Err("cannot remove physical entity through authored records".into());
                     }
                     weight -= self.registry.weight(name, &value);

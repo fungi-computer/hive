@@ -41,6 +41,7 @@ import type {
   CommandScope,
   ScopedAction,
   ScopedCreate,
+  ScopedRemove,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -84,7 +85,7 @@ export interface SessionSnapshot {
   readonly pendingActions: readonly ScopedAction[];
   readonly pendingWrites: readonly WriteIntent[];
   readonly pendingCreates: readonly ScopedCreate[];
-  readonly pendingRemoves: readonly EntityId[];
+  readonly pendingRemoves: readonly ScopedRemove[];
   readonly pendingImpacts: readonly Impact[];
   readonly impactHighWater: number;
   readonly impactFrontiers: readonly {
@@ -192,7 +193,7 @@ export class GameSession {
   private pendingActions: ScopedAction[] = [];
   private pendingWrites: WriteIntent[] = [];
   private pendingCreates: ScopedCreate[] = [];
-  private pendingRemoves: EntityId[] = [];
+  private pendingRemoves: ScopedRemove[] = [];
   private pendingImpacts: Impact[] = [];
   private impactHighWater = 0;
   private cues: CueSnapshot = { sequence: 0, recent: [] };
@@ -341,6 +342,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.waterContacts(centers);
   }
+  workAttempts(taskIds: readonly EntityId[]) {
+    this.ensureLive();
+    return this.port.workAttempts(taskIds);
+  }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
     return this.port.query(spec);
@@ -415,9 +420,10 @@ export class GameSession {
       throw new Error("invalid command result");
     const actionScope: ActionScope = scope.kind === "host" ? scope : { kind: "party", party: scope.party };
     const actions = result.actions.map((action) => ({ scope: actionScope, request: checkedAction(action) }));
+    const scopedRemoves = (result.removes ?? []).map((entity) => ({ scope: actionScope, entity: checkedAuthoredId(entity) }));
     const edits = this.validateAuthoredEdits(
       result.creates ?? [],
-      result.removes ?? [],
+      scopedRemoves,
       [...this.pendingWrites, ...result.writes],
       handler.lifecycle ?? [],
       this.pendingCreates.map((scoped) => scoped.record),
@@ -453,28 +459,42 @@ export class GameSession {
   }
   private validateAuthoredEdits(
     creates: readonly EntityRecord[],
-    removes: readonly EntityId[],
+    removes: readonly ScopedRemove[],
     writes: readonly WriteIntent[],
     allowed: readonly ComponentDefinition<any>[],
     queuedCreates: readonly EntityRecord[] = [],
-    queuedRemoves: readonly EntityId[] = [],
+    queuedRemoves: readonly ScopedRemove[] = [],
     incoming?: readonly EntityRecord[],
   ) {
     const allCreates = [...queuedCreates, ...creates];
-    const allRemoves = [...queuedRemoves, ...removes].map(checkedAuthoredId);
+    const checkedRemoves = removes.map((remove) => ({
+      scope: checkedActionScope(remove.scope),
+      entity: checkedAuthoredId(remove.entity),
+    }));
+    const allRemoves = [
+      ...queuedRemoves.map((remove) => ({
+        scope: checkedActionScope(remove.scope),
+        entity: checkedAuthoredId(remove.entity),
+      })),
+      ...checkedRemoves,
+    ];
+    const removeIds = allRemoves.map(({ entity }) => entity);
+    const currentRemoveIds = new Set(
+      checkedRemoves.map(({ entity }) => entity),
+    );
     if (
       allCreates.length > MAX_AUTHORED_RECORDS ||
       allRemoves.length > MAX_AUTHORED_REMOVES
     )
       throw new Error("authored edit budget exceeded");
-    const removed = new Set(allRemoves);
+    const removed = new Set(removeIds);
     if (removed.size !== allRemoves.length)
       throw new Error("duplicate authored removal");
     const permitted = new Set(allowed.map((definition) => definition.id));
     const definitions = new Map(
       this.pack.components.map((definition) => [definition.id, definition]),
     );
-    const requested = new Set<EntityId>(allRemoves);
+    const requested = new Set<EntityId>(removeIds);
     const created = new Set<EntityId>();
     const inspectValue = (name: string, value: unknown) => {
       const definition = definitions.get(name as ComponentId);
@@ -564,8 +584,8 @@ export class GameSession {
         throw new Error("write targets removed entity");
       checkReferences(write.component, write.value);
     }
-    if (removes.length) {
-      const targets = new Set(removes);
+    if (allRemoves.length) {
+      const targets = new Set(removeIds);
       const owned = new Set<EntityId>();
       // Removal is uncommon. Read component membership only here, never for
       // ordinary ticks or creation. Native removal also checks physical state
@@ -581,19 +601,28 @@ export class GameSession {
         for (const row of rows)
           if (targets.has(row.id)) {
             if (
-              isReservedComponent(definition.id) ||
-              !permitted.has(definition.id)
+              currentRemoveIds.has(row.id) &&
+              ((isReservedComponent(definition.id) &&
+                definition.id !== "hive.owned-by-party") ||
+                (!permitted.has(definition.id) &&
+                  definition.id !== "hive.owned-by-party"))
             )
               throw new Error("authored removal exceeds component ownership");
             owned.add(row.id);
           }
       }
-      if (removes.some((id) => !owned.has(id)))
+      if (removeIds.some((id) => !owned.has(id)))
         throw new Error("authored removal has no owned record");
+      for (const remove of allRemoves) {
+        if (remove.scope.kind !== "party") continue;
+        const owner = this.port.query(query(OwnedByParty)).find((row) => row.id === remove.entity);
+        if (!owner || owner.get(OwnedByParty).party !== remove.scope.party)
+          throw new Error("scoped authored removal is outside party");
+      }
     }
     return {
       creates: structuredClone([...creates]),
-      removes: [...removes],
+      removes: checkedRemoves,
       known,
     };
   }
@@ -709,11 +738,11 @@ export class GameSession {
     spec: QuerySpec<T>,
     pending: readonly WriteIntent[],
     creates: readonly ScopedCreate[] = this.pendingCreates,
-    removes: readonly EntityId[] = this.pendingRemoves,
+    removes: readonly ScopedRemove[] = this.pendingRemoves,
   ): readonly QueryRow<T>[] {
     const rows = this.port
       .query(spec)
-      .filter((row) => !removes.includes(row.id));
+      .filter((row) => !removes.some((remove) => remove.entity === row.id));
     const createdRows = creates
       .map((scoped) => scoped.record)
       .filter((record) =>
@@ -876,7 +905,7 @@ export class GameSession {
         removeAuthoredEntity: (id) => {
           if (queuedRemoves.length >= MAX_AUTHORED_REMOVES)
             throw new Error("authored removal budget exceeded");
-          queuedRemoves.push(checkedAuthoredId(id));
+          queuedRemoves.push({ scope: { kind: "host" }, entity: checkedAuthoredId(id) });
         },
       };
       for (const definition of this.pack.systems) {

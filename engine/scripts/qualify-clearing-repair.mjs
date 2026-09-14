@@ -39,6 +39,12 @@ const groups = Object.freeze({
     "engine/src/runtime/physical-contact-query.test.ts",
     "engine/src/runtime/work-activity.test.ts",
   ]),
+  process: Object.freeze([
+    "engine/src/sdk/process-attendance.test.ts",
+    "engine/src/sdk/process-supply.test.ts",
+    "engine/src/games/colony-work.test.ts",
+    "engine/src/games/colony-water-work.test.ts",
+  ]),
   construction: Object.freeze([
     "engine/src/sdk/construction-work.test.ts",
     "engine/src/sdk/deconstruction-work.test.ts",

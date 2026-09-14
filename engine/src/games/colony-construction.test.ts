@@ -6,7 +6,7 @@ import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { entity, query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
-import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
+import { DeconstructionOrder } from "../sdk/deconstruction-work";
 import { Container, Emitter, MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
@@ -21,10 +21,24 @@ function finishedBrewStations(session: GameSession) {
 
 function buildBrewStation(session: GameSession, cell: readonly [number, number, number] = [1, 13, -1]) {
   const expected = finishedBrewStations(session).length + 1;
-  session.command("build", { catalog: "brew-station", orientation: "north", target: { cell } });
-  for (let tick = 0; tick < 240 && finishedBrewStations(session).length < expected; tick++) session.step(0.25);
-  const site = finishedBrewStations(session).at(-1);
-  assert(site, "brew station must finish");
+  session.command("build", {
+    catalog: "brew-station",
+    orientation: "north",
+    target: { cell },
+  });
+  for (
+    let tick = 0;
+    tick < 600 && finishedBrewStations(session).length < expected;
+    tick++
+  )
+    session.step(0.25);
+  const stations = finishedBrewStations(session);
+  assert.equal(stations.length, expected, "brew station must finish");
+  const site = stations.find((row) => {
+    const state = row.get(ConstructionSite);
+    return state.x === cell[0] && state.z === cell[2];
+  });
+  assert(site, "finished brew station must retain its requested cell");
   return site;
 }
 
@@ -155,9 +169,9 @@ test("actual Colony staircase supply splits one shared lumber lot into two lawfu
       session.step(0.01);
       const tasks = session.query(query(DeliveryTask)).filter((row) => {
         const task = row.get(DeliveryTask);
-        return task.destination.startsWith("colony.build.") && task.phase !== "complete";
+        return task.destination.startsWith("colony.build.") && task.custody !== "delivered";
       });
-      if (tasks.length === 2 && tasks.every((row) => row.get(DeliveryTask).actor !== null)) {
+      if (tasks.length === 2 && tasks.every((row) => port.workAttempts([row.id]).length > 0)) {
         live = tasks;
         break;
       }
@@ -166,13 +180,13 @@ test("actual Colony staircase supply splits one shared lumber lot into two lawfu
     const tasks = live;
     const states = tasks.map((row) => row.get(DeliveryTask));
     assert.equal(new Set(tasks.map((row) => row.id)).size, 2);
-    assert.equal(new Set(states.map((task) => task.actor)).size, 2);
+    assert.equal(new Set(tasks.flatMap((row) => port.workAttempts([row.id]).map(attempt => attempt.worker))).size, 2);
     assert.equal(states.reduce((sum, task) => sum + task.quantity, 0), 6);
     assert(states.every((task) => task.quantity === 3));
     const saved = session.save();
     session.restore(saved);
-    const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.phase !== "complete");
-    assert.deepEqual(restored.map((task) => [task.sourceLot, task.actor, task.quantity]), states.map((task) => [task.sourceLot, task.actor, task.quantity]));
+    const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.custody !== "delivered");
+    assert.deepEqual(restored.map((task) => [task.sourceLot, task.custody, task.quantity]), states.map((task) => [task.sourceLot, task.custody, task.quantity]));
     let finished = false;
     for (let tick = 0; tick < 600; tick++) {
       session.step(0.25);
@@ -182,10 +196,27 @@ test("actual Colony staircase supply splits one shared lumber lot into two lawfu
     }
     assert.equal(finished, true);
     const site = session.query(query(ConstructionSite))[0];
-    const delivered = session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === site.id && row.get(MaterialLot).kind === "wood");
-    assert.equal(delivered.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 6);
-    assert.equal(session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).kind === "wood").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 48);
-  } finally { port.dispose(); }
+    const delivered = session
+      .query(query(MaterialLot))
+      .filter(
+        (row) =>
+          row.get(MaterialLot).container === site.id &&
+          row.get(MaterialLot).kind === "wood",
+      );
+    assert.equal(
+      delivered.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0),
+      0,
+    );
+    assert.equal(
+      session
+        .query(query(MaterialLot))
+        .filter((row) => row.get(MaterialLot).kind === "wood")
+        .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0),
+      42,
+    );
+  } finally {
+    port.dispose();
+  }
 });
 
 test("actual Colony workers supply and finish a player floor with finite lumber", () => {
@@ -200,11 +231,26 @@ test("actual Colony workers supply and finish a player floor with finite lumber"
     }
     const sites = session.query(query(ConstructionSite));
     assert.equal(sites.length, 1);
-    assert.equal(sites[0].get(ConstructionSite).phase, "finished", JSON.stringify(sites[0].get(ConstructionSite)));
-    const wood = session.query(query(MaterialLot)).map(row => row.get(MaterialLot)).filter(lot => lot.kind === "wood");
-    assert.equal(wood.reduce((sum, lot) => sum + lot.quantity, 0), 48);
-    assert.equal(wood.filter(lot => lot.container === sites[0].id).reduce((sum, lot) => sum + lot.quantity, 0), 2);
-    const fact = session.renderFacts().find(fact => fact.id === sites[0].id);
+    assert.equal(
+      sites[0].get(ConstructionSite).phase,
+      "finished",
+      JSON.stringify(sites[0].get(ConstructionSite)),
+    );
+    const wood = session
+      .query(query(MaterialLot))
+      .map((row) => row.get(MaterialLot))
+      .filter((lot) => lot.kind === "wood");
+    assert.equal(
+      wood.reduce((sum, lot) => sum + lot.quantity, 0),
+      46,
+    );
+    assert.equal(
+      wood
+        .filter((lot) => lot.container === sites[0].id)
+        .reduce((sum, lot) => sum + lot.quantity, 0),
+      0,
+    );
+    const fact = session.renderFacts().find((fact) => fact.id === sites[0].id);
     assert.equal(fact?.visual, "colony.floor.finished");
     assert.deepEqual(fact?.view, { pickable: false, cutawayTop: 13 });
     assert.deepEqual(port.structureSurfaces([[1, 0]]), [[{ cell: [1, 13, 0] }]]);
@@ -228,9 +274,9 @@ test("actual Colony queues, performs, reloads, and conserves a floor deconstruct
     for (let tick = 0; tick < 240 && session.query(query(ConstructionSite)).some((row) => row.id === site.id); tick++) session.step(0.25);
 
     assert.equal(session.query(query(ConstructionSite)).some((row) => row.id === site.id), false);
-    session.step(0.01); // retire the authored order after the native receipt removed its site
-    assert.equal(session.query(query(DeconstructionOrder)).length, 0);
-    assert.equal(session.query(query(DeconstructionApproach)).length, 0);
+    session.step(0.01);
+    assert.equal(session.query(query(DeconstructionOrder)).length, 1);
+    assert.equal(session.query(query(DeconstructionOrder))[0].get(DeconstructionOrder).status, "complete");
     assert.equal(session.query(query(MaterialLot)).reduce((sum, row) => sum + (row.get(MaterialLot).kind === "wood" ? row.get(MaterialLot).quantity : 0), 0), initialWood);
     const saved = session.save();
     session.restore(saved);
@@ -253,9 +299,16 @@ test("actual Colony queues an upper floor before its timber wall and waits for s
     const floor = sites.find(row => row.get(ConstructionSite).catalog === "timber-floor");
     assert(wall && floor);
     const initialFloor = floor.get(ConstructionSite);
-    assert.equal(initialFloor.worker, null);
-    assert.equal(port.constructionAccess([floor.id])[0].support, "waitingForSupport");
-    const current = (id: typeof wall.id) => session.query(query(ConstructionSite)).find(row => row.id === id)!.get(ConstructionSite);
+    assert.equal("worker" in initialFloor, false);
+    assert.equal(
+      port.constructionAccess([floor.id])[0].support,
+      "waitingForSupport",
+    );
+    const current = (id: typeof wall.id) =>
+      session
+        .query(query(ConstructionSite))
+        .find((row) => row.id === id)!
+        .get(ConstructionSite);
 
     let wallFinished = false;
     let wallCompletionTick = -1;
@@ -277,9 +330,23 @@ test("actual Colony queues an upper floor before its timber wall and waits for s
       bothFinished = current(floor.id).phase === "finished" && current(wall.id).phase === "finished";
       if (bothFinished) break;
     }
-    assert.equal(bothFinished, true, JSON.stringify(session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite))));
-    const wood = session.query(query(MaterialLot)).map(row => row.get(MaterialLot)).filter(lot => lot.kind === "wood");
-    assert.equal(wood.reduce((sum, lot) => sum + lot.quantity, 0), 48);
+    assert.equal(
+      bothFinished,
+      true,
+      JSON.stringify(
+        session
+          .query(query(ConstructionSite))
+          .map((row) => row.get(ConstructionSite)),
+      ),
+    );
+    const wood = session
+      .query(query(MaterialLot))
+      .map((row) => row.get(MaterialLot))
+      .filter((lot) => lot.kind === "wood");
+    assert.equal(
+      wood.reduce((sum, lot) => sum + lot.quantity, 0),
+      42,
+    );
     const surfaces = port.structureSurfaces([[1, 0]]);
     assert(surfaces[0].some(surface => surface.cell[1] === 17), JSON.stringify(surfaces));
     const saved = session.save();

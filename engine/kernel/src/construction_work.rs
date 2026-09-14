@@ -25,6 +25,7 @@ struct ConstructionAccessRow {
     site: String,
     support: &'static str,
     materials_ready: bool,
+    blocked_actors: Vec<String>,
     contacts: Vec<ConstructionAccessContact>,
 }
 
@@ -201,9 +202,28 @@ impl Kernel {
                 let definition = self.environment.as_ref()?.structures.get(&state.catalog)?;
                 Some(self.construction_materials_ready(&site, definition))
             }).unwrap_or(false);
+            let mut blocked_actors = Vec::new();
             let contacts = if let Some(entity) = self.ids.get(&site).copied() {
                 if let Some(state) = self.ecs.get::<ConstructionSite>(entity).cloned() {
                     if let Some(definition) = self.environment.as_ref().and_then(|environment| environment.structures.get(&state.catalog)).cloned() {
+                        if state.phase != ConstructionPhase::Finished {
+                            let candidate = self.construction_instance(&site, &definition, state.x, state.y, state.z, state.orientation);
+                            let prepared = {
+                                let environment = self.environment.as_mut().ok_or("construction needs environment")?;
+                                let mut instances = environment.world.structure_instances();
+                                instances.push(candidate);
+                                match environment.world.prepare_structures(instances) {
+                                    Ok(Ok(prepared)) => Some(prepared),
+                                    Ok(Err(_)) => None,
+                                    Err(reason) if reason == "structure overlaps solid terrain"
+                                        || reason == "duplicate structure bulk occupied cell" => None,
+                                    Err(reason) => return Err(reason),
+                                }
+                            };
+                            if let Some(prepared) = prepared {
+                                blocked_actors = self.structure_contact_blocked_actors(&prepared)?;
+                            }
+                        }
                         self.current_contact_candidate_rows(&state, &definition, spacing)?.into_iter().map(|(point, kind)| ConstructionAccessContact {
                             x: point[0], y: point[1], z: point[2], frame: None, kind,
                         }).collect()
@@ -211,7 +231,7 @@ impl Kernel {
                 } else { Vec::new() }
             } else { Vec::new() };
             let support = statuses.get(&site).copied().unwrap_or("unknown");
-            rows.push(ConstructionAccessRow { site, support, materials_ready, contacts });
+            rows.push(ConstructionAccessRow { site, support, materials_ready, blocked_actors, contacts });
         }
         serde_json::to_string(&rows).map_err(|_| "construction access encoding failed".into())
     }
@@ -509,10 +529,12 @@ impl Kernel {
         }
         let prepared_consumption = self.prepare_material_consumption(&portions)?;
         let marker_weight = self.registry.weight("hive.sealed-container", &record(&SealedContainer {}));
+        let site_owner = self.ecs.get::<OwnedByParty>(site_entity).cloned().ok_or("construction site has no party owner")?;
         let recipe_weight: usize = definition.on_complete.components.iter().map(|(name, value)| self.registry.weight(name, value)).sum();
         let site_position = self.ecs.get::<Position>(site_entity).copied();
         if definition.on_complete.ports.iter().any(|port| port.at_site_contact && site_position.is_none()) { return Ok(false); }
-        let port_weight: usize = definition.on_complete.ports.iter().map(|port| port.key.len() + 128 + port.components.iter().map(|(name, value)| self.registry.weight(name, value)).sum::<usize>() + if port.at_site_contact { self.registry.weight("hive.position", &record(&site_position.unwrap())) } else { 0 }).sum();
+        let port_owner_weight = self.registry.weight("hive.owned-by-party", &record(&site_owner));
+        let port_weight: usize = definition.on_complete.ports.iter().map(|port| port.key.len() + 128 + port_owner_weight + port.components.iter().map(|(name, value)| self.registry.weight(name, value)).sum::<usize>() + if port.at_site_contact { self.registry.weight("hive.position", &record(&site_position.unwrap())) } else { 0 }).sum();
         if self.state_weight.saturating_add(marker_weight).saturating_add(recipe_weight).saturating_add(port_weight) > STATE_BYTES || self.ids.len().saturating_add(definition.on_complete.ports.len()) > 16384 { return Ok(false); }
         for port in &definition.on_complete.ports {
             let id = format!("{site_id}:{}", port.key);
@@ -528,6 +550,7 @@ impl Kernel {
             let id = format!("{site_id}:{}", port.key);
             let entity = self.ecs.spawn(ExternalId(id.clone())).id();
             self.ids.insert(id.clone(), entity); self.known.insert(id.clone());
+            self.ecs.entity_mut(entity).insert(site_owner.clone());
             for (name, value) in &port.components { self.registry.insert(&mut self.ecs, entity, name, value).expect("validated completion port component"); }
             if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
             if self.ecs.get::<Container>(entity).is_some() { self.contents.insert(id, BTreeSet::new()); }

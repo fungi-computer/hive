@@ -1,4 +1,4 @@
-import { system, type QueryRow } from "./authoring";
+import { system } from "./authoring";
 import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
@@ -22,6 +22,7 @@ import type {
   ConstructionAccessContact,
   EntityId,
   MoveDestination,
+  QueryRow,
   WorldPose,
   WriteContext,
 } from "../contracts";
@@ -134,6 +135,7 @@ export function constructionWorkProvider(
       attempts.get(row.id)
     )
       return [];
+    const blocked = new Set(ar.blockedActors);
     const mode: ConstructionCandidate["mode"] = positions.has(row.id)
       ? "work"
       : "bind";
@@ -150,7 +152,8 @@ export function constructionWorkProvider(
         destinations.has(worker) ||
         excavations.has(worker) ||
         !pose ||
-        suspendedActors.has(worker)
+        suspendedActors.has(worker) ||
+        (blocked.size > 0 && !blocked.has(worker))
       )
         return [];
       return [{ worker, task: row.id, contacts: ar.contacts, mode, party }];
@@ -208,6 +211,25 @@ export function constructionWorkProvider(
               a.phase.operation.sequence,
               "workerUnavailable",
             );
+          else if (a.phase.kind === "outcome") {
+            // A completed route only proves movement.  Drafting owns the
+            // worker now, so leave the authored site retryable and release
+            // the terminal native outcome without admitting construction.
+            if (a.phase.result.kind !== "completed") {
+              if (state.phase === "working")
+                ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });
+              acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+            } else if (a.phase.activity.kind === "route") {
+              if (state.phase === "working")
+                ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });
+              acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+            } else {
+              // Native construction is already committed before its outcome
+              // is exposed.  Reconcile the canonical site exactly once even
+              // when the worker was drafted during the physical operation.
+              acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+            }
+          }
           continue;
         }
         const ar = access.get(row.id);
@@ -222,7 +244,7 @@ export function constructionWorkProvider(
                 : null
               : null;
         const selected =
-          current && ar?.contacts.some((c) => exactContact(current, target(c)));
+          current && ar?.contacts.find((c) => exactContact(current, target(c)));
         if (
           a.phase.kind === "executing" &&
           (!ar || ar.support !== "ready" || !selected)
@@ -236,9 +258,18 @@ export function constructionWorkProvider(
           continue;
         }
         if (a.phase.kind !== "outcome") continue;
-        const contact = current;
+        const contact = selected || null;
+        if (a.phase.result.kind !== "completed") {
+          if (state.phase === "working")
+            ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });
+          acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+          continue;
+        }
         if (a.phase.result.kind === "completed" && contact) {
-          if (a.phase.activity.kind === "route")
+          if (
+            a.phase.activity.kind === "route" &&
+            (ar?.blockedActors.length ?? 0) === 0
+          )
             continueConstructionWorkAttempt(
               ctx,
               a.key,
