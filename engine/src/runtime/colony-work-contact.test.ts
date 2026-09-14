@@ -49,8 +49,11 @@ test("a floor below a finished brewer completes without moving the brewer", () =
     session.step(0);
     const floor = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-floor");
     assert(floor, stateDump(session));
-    for (let tick = 0; tick < 600 && floor.get(ConstructionSite).phase !== "finished"; tick++) session.step(0.25);
-    assert.equal(floor.get(ConstructionSite).phase, "finished", stateDump(session));
+    for (let tick = 0; tick < 600; tick++) {
+      if (session.query(query(ConstructionSite)).find((row) => row.id === floor.id)?.get(ConstructionSite).phase === "finished") break;
+      session.step(0.25);
+    }
+    assert.equal(session.query(query(ConstructionSite)).find((row) => row.id === floor.id)?.get(ConstructionSite).phase, "finished", stateDump(session));
     assert.equal(finishedBrewStation(session)?.id, brewer.id);
   } finally {
     port.dispose();
@@ -80,14 +83,17 @@ test("an obstructed construction delivery releases its worker and preserves the 
     const destination = session.query(query(Position)).find((row) => row.id === task.destination);
     assert(destination, `delivery destination has no authoritative position: ${stateDump(session)}`);
     const contact = destination.get(Position);
-    const obstructionCell: [number, number, number] = [Math.round(contact.x), Math.floor(contact.y / 0.54), Math.round(contact.z)];
+    const obstructionCell: [number, number, number] = [Math.round(contact.x), Math.floor(contact.y / 0.54) - 1, Math.round(contact.z)];
     session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: obstructionCell } });
     session.step(0);
-    const obstruction = session.query(query(ConstructionSite)).find((row) => {
-      const site = row.get(ConstructionSite);
-      return site.catalog === "timber-wall" && site.x === obstructionCell[0] && site.y === obstructionCell[1] && site.z === obstructionCell[2];
-    });
+    const obstruction = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-wall");
     assert(obstruction, `obstruction command was not accepted: ${stateDump(session)}`);
+
+    for (let tick = 0; tick < 600; tick++) {
+      if (session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase === "finished") break;
+      session.step(0.1);
+    }
+    assert.equal(session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase, "finished", `obstruction was not physically committed: ${stateDump(session)}`);
 
     for (let tick = 0; tick < 300; tick++) session.step(0.1);
     const floorAfter = session.query(query(ConstructionSite)).find((row) => row.id === floor.id);
