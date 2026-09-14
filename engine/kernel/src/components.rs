@@ -434,15 +434,33 @@ pub enum Action {
     },
 }
 #[derive(Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum ActionScope {
+    Host,
+    Party { party: String },
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScopedAction {
+    pub scope: ActionScope,
+    pub request: Action,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScopedCreate {
+    pub scope: ActionScope,
+    pub record: EntityRecord,
+}
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Batch {
     pub delta: f64,
     #[serde(default)]
-    pub creates: Vec<EntityRecord>,
+    pub creates: Vec<ScopedCreate>,
     #[serde(default)]
     pub removes: Vec<String>,
     pub writes: Vec<Write>,
-    pub actions: Vec<Action>,
+    pub actions: Vec<ScopedAction>,
 }
 #[derive(Serialize)]
 pub struct ActionResult {

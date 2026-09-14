@@ -152,7 +152,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
         actor: null, sourceLot: source.id, source: sourceContainer, destination: row.id,
         destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
         material: source.lot.kind, quantity, phase: "idle",
-      }}});
+      }}}, { kind: "host" });
       created.push(id);
       reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
       reservedBySourceMaterial.set(sourceKey, (reservedBySourceMaterial.get(sourceKey) ?? 0) + quantity);

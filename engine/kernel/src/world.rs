@@ -3045,6 +3045,7 @@ impl Kernel {
         let needs_staging = !batch.creates.is_empty() || !batch.removes.is_empty()
             || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
+                let action = &action.request;
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
@@ -3076,14 +3077,31 @@ impl Kernel {
         {
             return Err("invalid advancement budget".into());
         }
-        let prepared = self.prepare_authored_entities(batch.creates, batch.removes, batch.writes)?;
+        let mut owned_creates = Vec::new();
+        let creates = batch.creates.into_iter().map(|create| {
+            let ScopedCreate { scope, record } = create;
+                if record.components.contains_key("hive.owned-by-party") { return Err("authored records cannot provide party ownership".into()); }
+                if let ActionScope::Party { ref party } = scope {
+                    let party_entity = self.entity(party)?;
+                    if self.ecs.get::<Party>(party_entity).is_none() { return Err("creation scope is not a party".into()); }
+                    owned_creates.push((record.id.clone(), party.clone()));
+                }
+                Ok(record)
+        }).collect::<Result<Vec<_>>>()?;
+        let prepared = self.prepare_authored_entities(creates, batch.removes, batch.writes)?;
         self.publish_authored_entities(prepared);
+        for (id, party) in owned_creates {
+            let entity = self.entity(&id)?;
+            self.ecs.entity_mut(entity).insert(OwnedByParty { party });
+        }
+        self.refresh_state_weight();
         self.revision += 1;
         let results = batch
             .actions
             .into_iter()
             .map(|action| {
-                let result = self.apply_action(action, batch.delta);
+                let ScopedAction { scope, request } = action;
+                let result = self.validate_action_scope(&scope, &request).and_then(|()| self.apply_action(request, batch.delta));
                 ActionResult {
                     accepted: result.is_ok(),
                     projectile_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(id, _) => Some(id.clone()), _ => None }),
@@ -4053,6 +4071,55 @@ impl Kernel {
                 Ok(ActionEffect::None)
             }
         }
+    }
+
+    fn validate_action_scope(&self, scope: &ActionScope, action: &Action) -> Result<()> {
+        let ActionScope::Party { party } = scope else { return Ok(()); };
+        let party_entity = self.entity(party)?;
+        if self.ecs.get::<Party>(party_entity).is_none() { return Err("scoped action party is not a party".into()); }
+        let mut targets = Vec::new();
+        match action {
+            Action::EstablishParty { .. } => return Err("party scope cannot establish a party".into()),
+            Action::BeginWorkAttempt { task, worker, party: action_party, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+                let worker_entity = self.entity(worker)?;
+                if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("scoped worker is outside party".into()); }
+                targets.push(task.as_str());
+                targets.push(worker.as_str());
+            }
+            Action::RetargetWorkAttempt { task, .. }
+            | Action::InterruptWorkAttempt { task, .. }
+            | Action::AcknowledgeWorkAttempt { task, .. }
+            | Action::ContinueWorkAttempt { task, .. } => {
+                let task_entity = self.entity(task)?;
+                let attempt_entity = self.work_attempts.get(task).ok_or("scoped work attempt is missing")?;
+                if self.ecs.get::<WorkAttempt>(*attempt_entity).map(|attempt| attempt.party.as_str()) != Some(party.as_str()) { return Err("scoped work attempt party mismatch".into()); }
+                targets.push(task.as_str());
+                let _ = task_entity;
+            }
+            Action::RequestProcess { station, .. } => targets.push(station.as_str()),
+            Action::AdmitProcess { process, station, .. } => { targets.push(process.as_str()); targets.push(station.as_str()); }
+            Action::AttendProcess { worker, process } => { targets.push(worker.as_str()); targets.push(process.as_str()); }
+            Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
+            Action::DesignateStockpile { zone, .. } | Action::UpdateStockpile { zone, .. } => targets.push(zone.as_str()),
+            Action::Excavate { entity, .. } | Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
+            Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
+            Action::PlanConstruction { site, party: action_party, .. } => { if action_party != party { return Err("scoped action party mismatch".into()); } targets.push(site.as_str()); }
+            Action::ReplaceFloor { order_id, existing_floor_id, .. } => { targets.push(order_id.as_str()); targets.push(existing_floor_id.as_str()); }
+            Action::BindConstructionStage { site, .. } => targets.push(site.as_str()),
+            Action::BeginEmission { worker, station } => { targets.push(worker.as_str()); targets.push(station.as_str()); }
+            Action::DropLot { entity, lot } | Action::Consume { entity, lot, .. } => { targets.push(entity.as_str()); targets.push(lot.as_str()); }
+            Action::Transfer { lot, from, to, .. } => { targets.push(lot.as_str()); targets.push(from.as_str()); targets.push(to.as_str()); }
+            Action::ExtractResource { worker, source, .. } => { targets.push(worker.as_str()); targets.push(source.as_str()); }
+            Action::EstablishResourceSite { worker, site, .. } | Action::TendResourceSite { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
+            Action::Launch { launcher, ammunition, .. } => { targets.push(launcher.as_str()); targets.push(ammunition.as_str()); }
+        }
+        for target in targets {
+            let entity = self.entity(target)?;
+            if let Some(member) = self.ecs.get::<PartyMember>(entity) && member.party != *party { return Err("scoped action worker is outside party".into()); }
+            if let Some(owner) = self.ecs.get::<OwnedByParty>(entity) && owner.party != *party { return Err("scoped action target is outside party".into()); }
+        }
+        Ok(())
     }
     fn clear_destination(&mut self, entity: Entity) {
         self.direct.remove(&entity);

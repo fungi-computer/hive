@@ -89,7 +89,7 @@ export function processAttendanceProvider(
         const pose = positions.get(candidate.worker);
         const attendanceId = `process-attendance.${candidate.task}` as EntityId;
         const party = owners.get(candidate.task);
-        ctx.createAuthoredEntity({ id: attendanceId, components: { ...(party ? { [OwnedByParty.id]: { party } } : {}), [ProcessAttendanceWork.id]: { process: candidate.task, actor: candidate.worker, contactX: candidate.target.x, contactY: candidate.target.y, contactZ: candidate.target.z } } });
+        ctx.createAuthoredEntity({ id: attendanceId, components: { [ProcessAttendanceWork.id]: { process: candidate.task, actor: candidate.worker, contactX: candidate.target.x, contactY: candidate.target.y, contactZ: candidate.target.z } } }, party ? { kind: "party", party } : { kind: "host" });
         if (pose && Math.hypot(pose.x - candidate.target.x, pose.y - candidate.target.y, pose.z - candidate.target.z) <= CONTACT_DISTANCE) ctx.action(attendProcess(candidate.worker, candidate.task));
         else ctx.action(move(candidate.worker, candidate.target));
       }

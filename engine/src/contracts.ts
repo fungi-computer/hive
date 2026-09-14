@@ -37,6 +37,8 @@ export const RESERVED_COMPONENTS = [
   "hive.emitter",
   "hive.projectile",
   "hive.impact-material",
+  "hive.owned-by-party",
+  "hive.party-member",
 ] as const;
 export const isReservedComponent = (id: string): boolean =>
   (RESERVED_COMPONENTS as readonly string[]).includes(id);
@@ -391,6 +393,17 @@ export interface ReadContext {
 export type CommandScope =
   | { readonly kind: "host" }
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
+export type ActionScope =
+  | { readonly kind: "host" }
+  | { readonly kind: "party"; readonly party: EntityId };
+export interface ScopedAction {
+  readonly scope: ActionScope;
+  readonly request: ActionRequest;
+}
+export interface ScopedCreate {
+  readonly scope: ActionScope;
+  readonly record: EntityRecord;
+}
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
   readonly scope: CommandScope;
   readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
@@ -403,8 +416,8 @@ export interface WriteContext extends ReadContext {
     entity: EntityId,
     value: T,
   ): void;
-  action(request: ActionRequest): void;
-  createAuthoredEntity(record: EntityRecord): void;
+  action(request: ActionRequest, scope?: ActionScope): void;
+  createAuthoredEntity(record: EntityRecord, scope?: ActionScope): void;
   removeAuthoredEntity(id: EntityId): void;
 }
 export interface SystemDefinition {
@@ -623,9 +636,9 @@ export interface KernelPort {
   readonly advance: (
     delta: number,
     writes: readonly WriteIntent[],
-    actions: readonly ActionRequest[],
+    actions: readonly ScopedAction[],
     options?: {
-      readonly creates?: readonly EntityRecord[];
+      readonly creates?: readonly ScopedCreate[];
       readonly removes?: readonly EntityId[];
     },
   ) => AdvanceResult;

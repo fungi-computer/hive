@@ -14,6 +14,7 @@ import { Body, Position, Support, Surface } from "../sdk/common";
 import { ASSIGNMENT_MAX_EDGES } from "../sdk/assignment";
 import type {
   ActionRequest,
+  ActionScope,
   AdvanceResult,
   ActionResult,
   ActionOutcome,
@@ -36,6 +37,8 @@ import type {
   Impact,
   WorkMaterialFacts,
   CommandScope,
+  ScopedAction,
+  ScopedCreate,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -66,7 +69,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 8;
+  readonly version: 9;
   readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
@@ -76,9 +79,9 @@ export interface SessionSnapshot {
   readonly tick: number;
   readonly random: number;
   readonly outcomes: readonly ActionOutcome[];
-  readonly pendingActions: readonly ActionRequest[];
+  readonly pendingActions: readonly ScopedAction[];
   readonly pendingWrites: readonly WriteIntent[];
-  readonly pendingCreates: readonly EntityRecord[];
+  readonly pendingCreates: readonly ScopedCreate[];
   readonly pendingRemoves: readonly EntityId[];
   readonly pendingImpacts: readonly Impact[];
   readonly impactHighWater: number;
@@ -103,6 +106,13 @@ function checkedAuthoredId(value: unknown): EntityId {
   )
     throw new Error("invalid authored entity id");
   return value as EntityId;
+}
+function checkedActionScope(value: unknown): ActionScope {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid action scope");
+  const scope = value as Record<string, unknown>;
+  if (scope.kind === "host" && Object.keys(scope).length === 1) return { kind: "host" };
+  if (scope.kind === "party" && Object.keys(scope).length === 2 && typeof scope.party === "string") return { kind: "party", party: checkedAuthoredId(scope.party) };
+  throw new Error("invalid action scope");
 }
 function finiteVec3(
   value: unknown,
@@ -177,9 +187,9 @@ export class GameSession {
   private now = 0;
   private tick = 0;
   private outcomes: ActionOutcome[] = [];
-  private pendingActions: ActionRequest[] = [];
+  private pendingActions: ScopedAction[] = [];
   private pendingWrites: WriteIntent[] = [];
-  private pendingCreates: EntityRecord[] = [];
+  private pendingCreates: ScopedCreate[] = [];
   private pendingRemoves: EntityId[] = [];
   private pendingImpacts: Impact[] = [];
   private impactHighWater = 0;
@@ -248,7 +258,7 @@ export class GameSession {
     if (this.pack.environmentDefinition)
       this.port.loadEnvironment(this.pack.environmentDefinition);
     if (this.pack.initialActions)
-      this.pendingActions.push(...this.pack.initialActions);
+      this.pendingActions.push(...this.pack.initialActions.map((request): ScopedAction => ({ scope: { kind: "host" }, request })));
     this.poisoned = false;
   }
   private ensureLive(): void {
@@ -360,7 +370,7 @@ export class GameSession {
     this.ensureLive();
     if (this.pendingActions.length >= 128)
       throw new Error("pending action limit reached");
-    this.pendingActions.push(checkedAction(action));
+    this.pendingActions.push({ scope: { kind: "host" }, request: checkedAction(action) });
   }
   command(name: string, input: unknown, scope: CommandScope = this.scope): void {
     this.ensureLive();
@@ -398,13 +408,14 @@ export class GameSession {
       (result.removes !== undefined && !Array.isArray(result.removes))
     )
       throw new Error("invalid command result");
-    const actions = result.actions.map(checkedAction);
+    const actionScope: ActionScope = scope.kind === "host" ? scope : { kind: "party", party: scope.party };
+    const actions = result.actions.map((action) => ({ scope: actionScope, request: checkedAction(action) }));
     const edits = this.validateAuthoredEdits(
       result.creates ?? [],
       result.removes ?? [],
       [...this.pendingWrites, ...result.writes],
       handler.lifecycle ?? [],
-      this.pendingCreates,
+      this.pendingCreates.map((scoped) => scoped.record),
       this.pendingRemoves,
     );
     const writes = this.validateWrites(
@@ -432,7 +443,7 @@ export class GameSession {
       throw new Error("pending action limit reached");
     this.pendingActions.push(...actions);
     this.pendingWrites = merged;
-    this.pendingCreates.push(...creates);
+    this.pendingCreates.push(...creates.map((record) => ({ scope: actionScope, record })));
     this.pendingRemoves.push(...removes);
   }
   private validateAuthoredEdits(
@@ -668,16 +679,38 @@ export class GameSession {
       return structuredClone(write);
     });
   }
+  private canonicalPartyFor(id: EntityId): EntityId | undefined {
+    const member = this.port.query({ components: [{ id: "hive.party-member" } as ComponentDefinition<any>] }).find((row) => row.id === id);
+    if (member) return (member.get({ id: "hive.party-member" } as ComponentDefinition<{ party: EntityId }>)).party;
+    const owner = this.port.query({ components: [{ id: "hive.owned-by-party" } as ComponentDefinition<any>] }).find((row) => row.id === id);
+    return owner ? (owner.get({ id: "hive.owned-by-party" } as ComponentDefinition<{ party: EntityId }>)).party : undefined;
+  }
+  private derivedActionScope(action: ActionRequest): ActionScope {
+    const values = Object.values(action as unknown as Record<string, unknown>).filter((value): value is EntityId => typeof value === "string");
+    const parties = [...new Set(values.map((id) => this.canonicalPartyFor(id)).filter((party): party is EntityId => party !== undefined))];
+    if (parties.length > 1) throw new Error("system action crosses party scope");
+    return parties.length ? { kind: "party", party: parties[0]! } : { kind: "host" };
+  }
+  private derivedCreateScope(record: EntityRecord): ActionScope {
+    const values = Object.values(record.components).flatMap((value) => {
+      if (!value || typeof value !== "object") return [];
+      return Object.values(value as Record<string, unknown>).filter((item): item is EntityId => typeof item === "string");
+    });
+    const parties = [...new Set(values.map((id) => this.canonicalPartyFor(id)).filter((party): party is EntityId => party !== undefined))];
+    if (parties.length > 1) throw new Error("system creation crosses party scope");
+    return parties.length ? { kind: "party", party: parties[0]! } : { kind: "host" };
+  }
   private queryOverlay<T extends object>(
     spec: QuerySpec<T>,
     pending: readonly WriteIntent[],
-    creates: readonly EntityRecord[] = this.pendingCreates,
+    creates: readonly ScopedCreate[] = this.pendingCreates,
     removes: readonly EntityId[] = this.pendingRemoves,
   ): readonly QueryRow<T>[] {
     const rows = this.port
       .query(spec)
       .filter((row) => !removes.includes(row.id));
     const createdRows = creates
+      .map((scoped) => scoped.record)
       .filter((record) =>
         spec.components.every((component) =>
           Object.hasOwn(record.components, component.id),
@@ -755,7 +788,7 @@ export class GameSession {
       const queuedRemoves = structuredClone(this.pendingRemoves);
       this.pendingRemoves = [];
       const writes: WriteIntent[] = [...queuedWrites];
-      const actions: ActionRequest[] = this.pendingActions.splice(0);
+      const actions: ScopedAction[] = this.pendingActions.splice(0);
       const nextFrontiers = new Map(this.impactFrontiers);
       let systemActionCount = 0;
       let routeRequests = 0;
@@ -825,15 +858,15 @@ export class GameSession {
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });
         },
-        action: (action) => {
+        action: (action, scope = this.derivedActionScope(action)) => {
           if (++systemActionCount > 128)
             throw new Error("game systems exceeded 128 actions per step");
-          actions.push(checkedAction(action));
+          actions.push({ scope, request: checkedAction(action) });
         },
-        createAuthoredEntity: (record) => {
+        createAuthoredEntity: (record, scope = this.derivedCreateScope(record)) => {
           if (queuedCreates.length >= MAX_AUTHORED_RECORDS)
             throw new Error("authored creation budget exceeded");
-          queuedCreates.push(structuredClone(record));
+          queuedCreates.push({ scope, record: structuredClone(record) });
         },
         removeAuthoredEntity: (id) => {
           if (queuedRemoves.length >= MAX_AUTHORED_REMOVES)
@@ -864,11 +897,11 @@ export class GameSession {
             this.pendingImpacts[this.pendingImpacts.length - 1].sequence,
           );
         const edits = this.validateAuthoredEdits(
-          queuedCreates.slice(beforeCreates),
+          queuedCreates.slice(beforeCreates).map((scoped) => scoped.record),
           queuedRemoves.slice(beforeRemoves),
           writes,
           definition.writes,
-          queuedCreates.slice(0, beforeCreates),
+          queuedCreates.slice(0, beforeCreates).map((scoped) => scoped.record),
           queuedRemoves.slice(0, beforeRemoves),
         );
         writes.push(
@@ -917,8 +950,8 @@ export class GameSession {
       this.compactImpacts();
       if (this.pendingImpacts.length > MAX_PENDING_IMPACTS)
         throw new Error("physical impact backlog limit reached");
-      this.outcomes = actions.map((action, index) => ({
-        action,
+      this.outcomes = actions.map(({ request }, index) => ({
+        action: request,
         result: advanced.results[index],
       }));
       if (this.pack.presentation?.feedback)
@@ -941,7 +974,7 @@ export class GameSession {
     this.ensureLive();
     return {
       format: "hive-session",
-      version: 8,
+      version: 9,
       cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
@@ -970,7 +1003,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 8 ||
+      snapshot.version !== 9 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||
@@ -1015,7 +1048,10 @@ export class GameSession {
     )
       throw new Error("snapshot environment definitions do not match");
     const cues = checkedCueSnapshot(snapshot.cues, snapshot.now);
-    const pending = snapshot.pendingActions.map(checkedAction);
+    const pending = snapshot.pendingActions.map((scoped) => ({
+      scope: checkedActionScope(scoped.scope),
+      request: checkedAction(scoped.request),
+    }));
     let canonical: any;
     try {
       canonical = readKernelEntities(snapshot.kernel);
@@ -1042,7 +1078,7 @@ export class GameSession {
       (command) => command.writes,
     );
     const edits = this.validateAuthoredEdits(
-      snapshot.pendingCreates,
+      snapshot.pendingCreates.map((scoped) => scoped.record),
       snapshot.pendingRemoves,
       snapshot.pendingWrites,
       Object.values(this.pack.commands ?? {}).flatMap(
@@ -1057,7 +1093,12 @@ export class GameSession {
       authoredDefinitions,
       edits.known,
     );
-    const pendingCreates = edits.creates;
+    if (snapshot.pendingCreates.length !== edits.creates.length)
+      throw new Error("invalid pending authored creations");
+    const pendingCreates = edits.creates.map((record, index) => ({
+      scope: checkedActionScope(snapshot.pendingCreates[index]!.scope),
+      record,
+    }));
     const pendingRemoves = edits.removes;
     const pendingImpacts = snapshot.pendingImpacts.map(checkedImpact);
     const impactIds = new Set<string>();

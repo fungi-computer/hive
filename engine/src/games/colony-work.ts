@@ -132,7 +132,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       if (!enough && site.stage < definition.stages.length) {
         const supplyId = entity(`colony.resource-water.${row.id}.${site.stage}`);
         if (!ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) {
-          ctx.createAuthoredEntity({ id: supplyId, components: { ...(orderOwners.get(row.id) ? { [OwnedByParty.id]: orderOwners.get(row.id)! } : {}), [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
+          ctx.createAuthoredEntity({ id: supplyId, components: { [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } }, orderOwners.get(row.id) ? { kind: "party", party: orderOwners.get(row.id)!.party } : { kind: "host" });
         }
       }
       ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
@@ -220,10 +220,9 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     const id = entity(`colony.water-process.${row.id}.${quantity + inFlight}`);
     const owner = ctx.query(query(OwnedByParty)).find(candidate => candidate.id === row.id)?.get(OwnedByParty);
     ctx.createAuthoredEntity({ id, components: {
-      ...(owner ? { [OwnedByParty.id]: owner } : {}),
       [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
       [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
-    } });
+    } }, owner ? { kind: "party", party: owner } : { kind: "host" });
     ordersByProcess.set(row.id, []);
   }
 }
@@ -1038,9 +1037,8 @@ function planGroundStockDeliveries(ctx: WriteContext) {
           quantity: lot.quantity,
           phase: "idle",
         },
-        ...(party ? { [OwnedByParty.id]: { party } } : {}),
       },
-    });
+    }, party ? { kind: "party", party } : { kind: "host" });
     existing.add(row.id);
     taskIds.add(taskId);
   }

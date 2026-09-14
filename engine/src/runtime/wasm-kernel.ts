@@ -5,6 +5,8 @@ import type {
   AssignmentCandidate,
   AssignmentPair,
   ActionRequest,
+  ScopedAction,
+  ScopedCreate,
   AdvanceResult,
   AtmosphereSamples,
   ConstructionReadiness,
@@ -651,9 +653,9 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     advance(
       delta: number,
       writes: readonly WriteIntent[],
-      actions: readonly ActionRequest[],
+      actions: readonly ScopedAction[],
       options?: {
-        readonly creates?: readonly EntityRecord[];
+        readonly creates?: readonly ScopedCreate[];
         readonly removes?: readonly EntityId[];
       },
     ): AdvanceResult {
