@@ -65,14 +65,43 @@ test("point-line ordering is independent of endpoint and input order", () => {
   assert.deepEqual(sorter.order([inFront, reversed, behind]).map((entry) => entry.id), ["behind", "wall", "front"]);
 });
 
-test("static relations cache and explicit invalidation clear only affected pairs", () => {
+test("static relations cache and explicit invalidation clear the static graph", () => {
   const sorter = createIsometricSorter();
   sorter.order([node("a", 0, 0), node("b", 1, 1), node("c", 4, 4)]);
   assert.equal(sorter.cacheSize(), 3);
   sorter.invalidate(["b"]);
-  assert.equal(sorter.cacheSize(), 1);
+  assert.equal(sorter.cacheSize(), 0);
   sorter.invalidate();
   assert.equal(sorter.cacheSize(), 0);
+});
+
+test("moving broad phase does not relation-test distant records", () => {
+  const sorter = createIsometricSorter();
+  const actor = node("actor", 0, 0, {
+    moving: true,
+    screenBounds: { left: 0, right: 20, top: 0, bottom: 20 },
+  });
+  const near = node("near", 1, 1, {
+    screenBounds: { left: 10, right: 30, top: 10, bottom: 30 },
+  });
+  const distant = node("distant", 100, 100, {
+    screenBounds: { left: 1000, right: 1020, top: 1000, bottom: 1020 },
+  });
+  sorter.order([distant, actor, near]);
+  assert.equal(sorter.diagnostics().relationTests, 1);
+});
+
+test("static graph reuse and explicit invalidation are observable", () => {
+  const sorter = createIsometricSorter();
+  const a = node("a", 0, 0);
+  const b = node("b", 1, 1);
+  sorter.order([a, b]);
+  assert.equal(sorter.diagnostics().relationTests, 1);
+  sorter.order([b, a]);
+  assert.equal(sorter.diagnostics().relationTests, 0);
+  sorter.invalidate(["a"]);
+  sorter.order([a, b]);
+  assert.equal(sorter.diagnostics().relationTests, 1);
 });
 
 test("static geometry signatures replace stale cached relations and inactive pairs are pruned", () => {

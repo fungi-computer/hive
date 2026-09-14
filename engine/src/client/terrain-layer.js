@@ -123,7 +123,7 @@ export function createTerrainLayer() {
       container.addChild(sprite);
       sprite.__terrainBounds = bounds;
       const hitArea = visibleHitAreaFor(sprite.texture, { x: 0, y: 0 });
-      bandCache.set(level, { sprite, bounds, record: { id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains((point.x - sprite.x) / sprite.scale.x, (point.y - sprite.y) / sprite.scale.y) } });
+      bandCache.set(level, { sprite, bounds, record: { id: `terrain:${level}`, part: "ground", role: "terrain", relationPolicy: "terrain-band", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains((point.x - sprite.x) / sprite.scale.x, (point.y - sprite.y) / sprite.scale.y) } });
     }
     sortableItems = [...bandCache.values()].sort((a, b) => a.record.storeyBand - b.record.storeyBand).map(({ record }) => record);
   }
@@ -172,6 +172,7 @@ export function createTerrainLayer() {
           id: `water:${x}:${y}:${z}`,
           part: "surface",
           role: "water",
+          relationPolicy: "water-surface",
           display: water,
           footprint: [{ x, y: top, z }],
           screenBounds: { left: projected.x - 16, right: projected.x + 16, top: projected.y - 8, bottom: projected.y + 8 },

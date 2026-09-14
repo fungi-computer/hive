@@ -104,6 +104,9 @@ function compareStable(a, b) {
 
 function geometrySignature(node) {
   return JSON.stringify([
+    node.role,
+    node.part,
+    node.relationPolicy,
     node.screenBounds,
     node.storeyBand,
     node.footprint.map(({ x, y, z }) => [x, y, z]),
@@ -147,6 +150,7 @@ function validateNode(input) {
     storeyBand: finite(input.storeyBand ?? 0, `${input.id} storey band`),
     pickable: input.pickable === true,
     role: input.role ?? "actor",
+    relationPolicy: input.relationPolicy === undefined ? "default" : String(input.relationPolicy),
     moving: input.moving === true,
     visible: input.visible !== false,
   });
@@ -179,18 +183,63 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     z: basis.z / length,
   });
   const staticRelations = new Map();
+  const bucketSize = 64;
+  let staticIndex = new Map();
+  let staticSetSignature = null;
+  let relationTests = 0;
+
+  function bucketRange(screenBounds) {
+    return {
+      // Expand by the same tolerance as overlaps(), so touching bounds that
+      // are lawful relations cannot fall into disjoint buckets.
+      left: Math.floor((screenBounds.left - EPSILON) / bucketSize),
+      right: Math.floor((screenBounds.right + EPSILON) / bucketSize),
+      top: Math.floor((screenBounds.top - EPSILON) / bucketSize),
+      bottom: Math.floor((screenBounds.bottom + EPSILON) / bucketSize),
+    };
+  }
+
+  function bucketKey(x, y) {
+    return `${x}:${y}`;
+  }
+
+  function makeIndex(nodes) {
+    const index = new Map();
+    for (const node of nodes) {
+      const range = bucketRange(node.screenBounds);
+      for (let x = range.left; x <= range.right; x++)
+        for (let y = range.top; y <= range.bottom; y++) {
+          const key = bucketKey(x, y);
+          let bucket = index.get(key);
+          if (!bucket) index.set(key, (bucket = new Map()));
+          bucket.set(stableKey(node), node);
+        }
+    }
+    return index;
+  }
+
+  function indexedCandidates(index, node) {
+    const found = new Map();
+    const range = bucketRange(node.screenBounds);
+    for (let x = range.left; x <= range.right; x++)
+      for (let y = range.top; y <= range.bottom; y++)
+        for (const [key, candidate] of index.get(bucketKey(x, y)) ?? [])
+          found.set(key, candidate);
+    return [...found.values()].sort(compareStable);
+  }
+
+  function nodeSignature(node) {
+    return [stableKey(node), geometrySignature(node)];
+  }
 
   function invalidate(ids) {
-    if (!ids) return staticRelations.clear();
-    const changed = new Set([...ids].map(String));
-    for (const key of staticRelations.keys()) {
-      const [left, right] = key.split("\u0000\u0000");
-      if (
-        changed.has(left?.split("\u0000")[0]) ||
-        changed.has(right?.split("\u0000")[0])
-      )
-        staticRelations.delete(key);
-    }
+    // A static graph is one coherent cache. A scoped invalidation therefore
+    // drops the whole graph, while the optional IDs document the transition
+    // that caused it and keep the public operation useful to callers.
+    void ids;
+    staticRelations.clear();
+    staticIndex = new Map();
+    staticSetSignature = null;
   }
 
   function relation(left, right) {
@@ -199,12 +248,25 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     const signature = `${geometrySignature(left)}|${geometrySignature(right)}`;
     if (!moving && staticRelations.get(key)?.signature === signature)
       return staticRelations.get(key).result;
+    relationTests++;
     const result = edgeFor(left, right, normalized);
     if (!moving) staticRelations.set(key, { signature, result });
     return result;
   }
 
+  function ensureStaticGraph(staticNodes) {
+    const signature = JSON.stringify(staticNodes.map(nodeSignature));
+    if (signature === staticSetSignature) return;
+    staticRelations.clear();
+    staticIndex = makeIndex(staticNodes);
+    staticSetSignature = signature;
+    for (const left of staticNodes)
+      for (const right of indexedCandidates(staticIndex, left))
+        if (compareStable(left, right) < 0) relation(left, right);
+  }
+
   function order(inputs) {
+    relationTests = 0;
     const nodes = inputs
       .filter((node) => node?.visible !== false)
       .map(validateNode)
@@ -212,17 +274,26 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     const byKey = new Map(nodes.map((node) => [stableKey(node), node]));
     const outgoing = new Map(nodes.map((node) => [stableKey(node), new Set()]));
     const indegree = new Map(nodes.map((node) => [stableKey(node), 0]));
-    for (let i = 0; i < nodes.length; i++)
-      for (let j = i + 1; j < nodes.length; j++) {
-        const edge = relation(nodes[i], nodes[j]);
-        if (!edge) continue;
+    const staticNodes = nodes.filter((node) => !node.moving);
+    const movingNodes = nodes.filter((node) => node.moving);
+    ensureStaticGraph(staticNodes);
+    const movingIndex = makeIndex(movingNodes);
+    const addRelation = (edge) => {
+        if (!edge) return;
         const [before, after] = edge;
         const from = stableKey(before),
           to = stableKey(after);
-        if (outgoing.get(from).has(to)) continue;
+        if (outgoing.get(from).has(to)) return;
         outgoing.get(from).add(to);
         indegree.set(to, indegree.get(to) + 1);
-      }
+    };
+    for (const relation of staticRelations.values()) addRelation(relation.result);
+    for (const moving of movingNodes) {
+      for (const candidate of indexedCandidates(staticIndex, moving))
+        addRelation(relation(moving, candidate));
+      for (const candidate of indexedCandidates(movingIndex, moving))
+        if (compareStable(moving, candidate) < 0) addRelation(relation(moving, candidate));
+    }
     const activeKeys = new Set(nodes.map(stableKey));
     for (const key of staticRelations.keys()) {
       const [left, right] = key.split("\u0000\u0000");
@@ -287,6 +358,7 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     apply,
     invalidate,
     cacheSize: () => staticRelations.size,
+    diagnostics: () => ({ relationTests }),
     camera: normalized,
   });
 }
