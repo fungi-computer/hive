@@ -1,7 +1,8 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, interruptWorkAttempt, retargetRouteWorkAttempt, workAttempt } from "./work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, interruptWorkAttempt, retargetRouteWorkAttempt, workAttempt, workAttemptsFor } from "./work-attempt";
+import { checkedAction } from "../runtime/actions";
 import type { WorkAttempt, WriteContext } from "../contracts";
 
 const task = entity("attempt.task");
@@ -39,4 +40,39 @@ test("retarget emits one native exact-key operation", () => {
   const context = fake();
   retargetRouteWorkAttempt(context, attempt, 4, { x: 2, y: 0, z: 1, frame: null });
   assert.deepEqual(context.actions, [{ kind: "retarget-work-attempt", task, generation: 3, sequence: 4, destination: { x: 2, y: 0, z: 1, frame: null } }]);
+});
+
+test("attempt batches skip empty native queries and preserve the native bound", () => {
+  const calls: string[][] = [];
+  const context = { workAttempts: (tasks: readonly typeof task[]) => {
+    calls.push([...tasks]);
+    return [];
+  } };
+  assert.deepEqual(workAttemptsFor(context, []), []);
+  assert.equal(calls.length, 0);
+  const tasks = Array.from({ length: 129 }, (_, index) => entity(`attempt.task.${index}`));
+  assert.deepEqual(workAttemptsFor(context, tasks), []);
+  assert.deepEqual(calls.map(batch => batch.length), [128, 1]);
+});
+
+test("the action boundary accepts every closed work activity and rejects additions", () => {
+  const contact = { x: 1, y: 0, z: 2, frame: null, kind: "origin" as const };
+  const activities = [
+    { kind: "route" as const, destination: { x: 1, y: 0, z: 2, frame: null } },
+    { kind: "construction" as const, site: task, contact, mode: "work" as const },
+    { kind: "excavation" as const, cell: [1, 0, 2] as const, expectedMaterial: 2, replacementMaterial: 0 },
+    { kind: "deconstruction" as const, site: task, contact },
+    { kind: "process-attendance" as const, process: task },
+    { kind: "material-transfer" as const, lot: task, from: worker, to: party, quantity: 1 },
+    { kind: "material-drop" as const, lot: task },
+    { kind: "resource-establish" as const, site: task, definition: "mugwort", cell: [1, 0, 2] as const },
+    { kind: "resource-tend" as const, site: task, vessel: worker },
+    { kind: "resource-extract" as const, source: task },
+    { kind: "field-water" as const, vessel: worker, cell: [1, 0, 2] as const, direction: "withdraw" as const, portions: 1 },
+  ];
+  for (const nextActivity of activities) {
+    const action = { kind: "continue-work-attempt" as const, task, generation: 3, sequence: 7, nextActivity };
+    assert.deepEqual(checkedAction(action), action);
+  }
+  assert.throws(() => checkedAction({ kind: "continue-work-attempt", task, generation: 3, sequence: 7, nextActivity: { ...activities[2], extra: true } }), /invalid action/);
 });

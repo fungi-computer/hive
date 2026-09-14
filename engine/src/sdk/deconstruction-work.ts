@@ -17,6 +17,7 @@ import {
   continueDeconstructionWorkAttempt,
   interruptWorkAttempt,
   workAttempt,
+  workAttemptsFor,
 } from "./work-attempt";
 import type {
   ConstructionAccessContact,
@@ -184,7 +185,7 @@ export function deconstructionWorkProvider(
     ),
   );
   const attempts = new Map(
-    (ctx.workAttempts?.(orders.map((row) => row.id)) ?? []).map(
+    workAttemptsFor(ctx, orders.map((row) => row.id)).map(
       (attempt) => [attempt.key.task, attempt] as const,
     ),
   );

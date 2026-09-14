@@ -30,7 +30,7 @@ import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyRe
 import { Worker } from "./colony-components";
 import { createColonyPartyPlan } from "./colony-party";
 import { encodeEnvironmentDefinition } from "../sdk/environment";
-import { beginRouteWorkAttempt, retargetRouteWorkAttempt } from "../sdk/work-attempt";
+import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
@@ -191,7 +191,7 @@ function exactRouteReplacement(context: CommandContext, worker: EntityId, party:
 
 function activeTaskFor(context: CommandContext, actor: EntityId) {
   const tasks = context.query(query(DeliveryTask));
-  const attempts = context.workAttempts(tasks.map(row => row.id));
+  const attempts = workAttemptsFor(context, tasks.map(row => row.id));
   const taskIds = new Set(attempts.filter(attempt => attempt.worker === actor).map(attempt => attempt.key.task));
   return tasks.find(row => taskIds.has(row.id))?.get(DeliveryTask);
 }
@@ -302,6 +302,7 @@ const colonyComponents = [
   FiniteResource,
   ResourceSite,
   Cat,
+  DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
   WaterSupplyOrder, WaterSupplyWork,
@@ -547,7 +548,7 @@ export const colonyPack: GamePack = {
         if (party && context.query(query(OwnedByParty)).some(owner => selected.has(owner.id) && owner.get(OwnedByParty).party !== party)) throw new Error("tree belongs to another party");
         if (!rows.length) throw new Error("no matching tree");
         const orders = context.query(query(ColonyTreeOrder));
-        const attempts = new Map((context.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+        const attempts = new Map(workAttemptsFor(context, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
         const actions: ActionRequest[] = orders.flatMap<ActionRequest>(row => {
           const order = row.get(ColonyTreeOrder), attempt = attempts.get(row.id);
           if (!selected.has(order.tree) || !attempt) return [];
@@ -576,7 +577,7 @@ export const colonyPack: GamePack = {
         }
         if (selected === null && area === null) throw new Error("cancel dig requires workers or an area");
         const orders = context.query(query(ColonyDigOrder));
-        const attempts = new Map((context.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+        const attempts = new Map(workAttemptsFor(context, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
         const matching = orders.filter((row) => {
           const state = row.get(ColonyDigOrder);
           const attempt = attempts.get(row.id);
@@ -616,7 +617,7 @@ export const colonyPack: GamePack = {
     activities: context => {
       const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
       const treeOrders = context.query(query(ColonyTreeOrder));
-      const treeAttempts = new Map((context.workAttempts?.(treeOrders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+      const treeAttempts = new Map(workAttemptsFor(context, treeOrders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
       const trees = treeOrders.flatMap(row => {
         const order = row.get(ColonyTreeOrder), position = positions.get(order.tree), attempt = treeAttempts.get(row.id);
         const activity = attempt?.phase.kind === "outcome" && attempt.phase.result.kind === "completed" ? attempt.phase.activity : null;
@@ -624,7 +625,7 @@ export const colonyPack: GamePack = {
           ? [{ actor: attempt.worker, kind: "chop" as const, target: [position.x, position.z] as const, progress: treeWorkProgress(order) }]
           : [];
       });
-      const excavationAttempts = new Map((context.workAttempts?.(context.query(query(ExcavationWork)).map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt.worker]));
+      const excavationAttempts = new Map(workAttemptsFor(context, context.query(query(ExcavationWork)).map(row => row.id)).map(attempt => [attempt.key.task, attempt.worker]));
       const excavation = context.query(query(ExcavationWork)).flatMap(row => {
         const work = row.get(ExcavationWork);
         const definition = colonyEnvironment.materials.find(slot => slot.slot === work.expected)?.excavation;
@@ -632,7 +633,7 @@ export const colonyPack: GamePack = {
         return definition && actor ? [{ actor, kind: "dig" as const, target: [work.x, work.z] as const, progress: Math.max(0, Math.min(1, work.seconds / definition.workSeconds)) }] : [];
       });
       const constructionSites = context.query(query(ConstructionSite));
-      const constructionAttempts = new Map((context.workAttempts?.(constructionSites.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+      const constructionAttempts = new Map(workAttemptsFor(context, constructionSites.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
       const construction = constructionSites.flatMap(row => {
         const site = row.get(ConstructionSite);
         const attempt = constructionAttempts.get(row.id);

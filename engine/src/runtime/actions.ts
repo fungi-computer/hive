@@ -27,6 +27,49 @@ const terrainContact = (value: unknown): boolean => {
   return Object.keys(contact).length === 4 && contact.frame === null
     && coordinate(contact.x) && coordinate(contact.y) && coordinate(contact.z);
 };
+const record = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+const exactKeys = (value: Record<string, unknown>, keys: readonly string[]): boolean =>
+  Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
+const cell = (value: unknown): boolean =>
+  Array.isArray(value) && value.length === 3 && value.every(item => typeof item === "number" && Number.isSafeInteger(item));
+const destination = (value: unknown): boolean =>
+  record(value) && exactKeys(value, ["x", "y", "z", "frame"]) &&
+  coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
+  (value.frame === null || id(value.frame));
+const constructionContact = (value: unknown): boolean =>
+  record(value) && exactKeys(value, ["x", "y", "z", "frame", "kind"]) &&
+  value.frame === null && coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
+  (value.kind === "origin" || value.kind === "landing");
+const activity = (value: unknown): boolean => {
+  if (!record(value)) return false;
+  switch (value.kind) {
+    case "route":
+      return exactKeys(value, ["kind", "destination"]) && destination(value.destination);
+    case "construction":
+      return exactKeys(value, ["kind", "site", "contact", "mode"]) && id(value.site) && constructionContact(value.contact) && (value.mode === "bind" || value.mode === "work");
+    case "excavation":
+      return exactKeys(value, ["kind", "cell", "expectedMaterial", "replacementMaterial"]) && cell(value.cell) && [value.expectedMaterial, value.replacementMaterial].every(Number.isSafeInteger);
+    case "deconstruction":
+      return exactKeys(value, ["kind", "site", "contact"]) && id(value.site) && constructionContact(value.contact);
+    case "process-attendance":
+      return exactKeys(value, ["kind", "process"]) && id(value.process);
+    case "material-transfer":
+      return exactKeys(value, ["kind", "lot", "from", "to", "quantity"]) && id(value.lot) && id(value.from) && id(value.to) && quantity(value.quantity);
+    case "material-drop":
+      return exactKeys(value, ["kind", "lot"]) && id(value.lot);
+    case "resource-establish":
+      return exactKeys(value, ["kind", "site", "definition", "cell"]) && id(value.site) && id(value.definition) && cell(value.cell);
+    case "resource-tend":
+      return exactKeys(value, ["kind", "site", "vessel"]) && id(value.site) && id(value.vessel);
+    case "resource-extract":
+      return exactKeys(value, ["kind", "source"]) && id(value.source);
+    case "field-water":
+      return exactKeys(value, ["kind", "vessel", "cell", "direction", "portions"]) && id(value.vessel) && cell(value.cell) && (value.direction === "withdraw" || value.direction === "deposit") && typeof value.portions === "number" && Number.isInteger(value.portions) && value.portions >= 1 && value.portions <= 7;
+    default:
+      return false;
+  }
+};
 
 /** Structural admission only. Native custody, capacity and reach decide availability. */
 export function checkedAction(value: unknown): ActionRequest {
@@ -42,7 +85,7 @@ export function checkedAction(value: unknown): ActionRequest {
       break;
     case "begin-work-attempt":
       keys = ["kind", "task", "worker", "party", "operation"];
-      valid = id(action.task) && id(action.worker) && id(action.party) && !!action.operation && typeof action.operation === "object" && !Array.isArray(action.operation) && (action.operation as Record<string, unknown>).kind === "route" && Object.keys(action.operation as object).length === 2 && !!(action.operation as Record<string, unknown>).destination;
+      valid = id(action.task) && id(action.worker) && id(action.party) && activity(action.operation) && (action.operation as Record<string, unknown>).kind === "route";
       break;
     case "retarget-work-attempt": {
       keys = ["kind", "task", "generation", "sequence", "destination"];
@@ -60,8 +103,7 @@ export function checkedAction(value: unknown): ActionRequest {
       break;
     case "continue-work-attempt": {
       keys = ["kind", "task", "generation", "sequence", "nextActivity"];
-      const next = action.nextActivity as Record<string, unknown> | undefined;
-      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && !!next && Object.keys(next).length === 4 && next.kind === "construction" && id(next.site) && (next.mode === "bind" || next.mode === "work") && terrainContact(next.contact);
+      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && activity(action.nextActivity);
       break;
     }
     case "establish-resource-site":

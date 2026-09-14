@@ -4,6 +4,7 @@ import { StagedProcess } from "./process-supply";
 import { OwnedByParty, PartyMember } from "./party";
 import type { EntityId, MoveDestination, ProcessRequirements, WriteContext } from "../contracts";
 import type { PreparedWorkProvider } from "./work-system";
+import { workAttemptsFor } from "./work-attempt";
 
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly target: MoveDestination };
 const CONTACT_DISTANCE = 1.5;
@@ -29,7 +30,7 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
   const destinations = new Set(ctx.query(query(Destination)).map(row => row.id));
   const excavating = new Set(ctx.query(query(ExcavationWork)).map(row => row.id));
   const targets = new Map(allProcesses.flatMap(process => { const target = positions.get(process.state.station); return target ? [[process.id, target] as const] : []; }));
-  const attempts = new Map((ctx.workAttempts?.(allProcesses.map(process => process.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const attempts = new Map(workAttemptsFor(ctx, allProcesses.map(process => process.id)).map(attempt => [attempt.key.task, attempt]));
   const materialFacts = processes.some(process => (process.state.phase === "waiting" || process.state.phase === "blocked") && process.state.stageIndex === 0) ? ctx.workMaterialFacts() : null;
   const ready = processes.filter(process => {
     if (attempts.has(process.id)) return false;

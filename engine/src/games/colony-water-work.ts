@@ -4,7 +4,7 @@ import { shouldRetryWorkTask, type PreparedWorkProvider } from "../sdk/work-syst
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
 import { Worker } from "./colony-components";
 import { OwnedByParty, PartyMember } from "../sdk/party";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt } from "../sdk/work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
 
 export type WaterSupplyPhase = "queued" | "complete" | "blocked";
 type WaterSupplyState = {
@@ -28,7 +28,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const members = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
   const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
-  const attempts = new Map((ctx.workAttempts?.(nativeRows.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const attempts = new Map(workAttemptsFor(ctx, nativeRows.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
   const lots = ctx.workMaterialFacts().lots;
   const pails = new Map<EntityId, EntityId>(lots.filter(lot => lot.kind === "pail" && workers.some(worker => worker.id === lot.container)).map(lot => [lot.container, lot.id]));
   const poses = new Map((workers.length ? ctx.worldPoses(workers.map(row => row.id)) : []).map(pose => [pose.id, pose.local]));

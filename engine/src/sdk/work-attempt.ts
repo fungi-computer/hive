@@ -23,15 +23,38 @@ function key(value: WorkAttemptKey): WorkAttemptKey {
   return value;
 }
 
+/** Query native attempt ownership without leaking the port's non-empty batch contract. */
+export function workAttemptsFor(
+  context: Pick<ReadContext, "workAttempts">,
+  tasks: readonly EntityId[],
+): readonly WorkAttempt[] {
+  const unique = [...new Set(tasks)];
+  if (!unique.length) return [];
+  const query = context.workAttempts;
+  if (!query) throw new Error("work attempt query is unavailable");
+  const rows: WorkAttempt[] = [];
+  for (let offset = 0; offset < unique.length; offset += 128) {
+    const batch = unique.slice(offset, offset + 128);
+    const returned = query(batch);
+    const requested = new Set(batch);
+    for (const attempt of returned) {
+      if (!requested.has(attempt.key.task))
+        throw new Error("work attempt query returned an unrequested task");
+      if (rows.some((row) => row.key.task === attempt.key.task))
+        throw new Error("work attempt query returned duplicate task rows");
+      rows.push(attempt);
+    }
+  }
+  return rows;
+}
+
 /** Read the one native attempt projection for a task. */
 export function workAttempt(
   context: Pick<ReadContext, "workAttempts">,
   task: EntityId,
 ): WorkAttempt | null {
   entity(task);
-  const query = context.workAttempts;
-  if (!query) throw new Error("work attempt query is unavailable");
-  const rows = query([task]);
+  const rows = workAttemptsFor(context, [task]);
   if (rows.length > 1)
     throw new Error("work attempt query returned duplicate task rows");
   return rows[0] ?? null;

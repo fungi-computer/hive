@@ -37,7 +37,7 @@ import {
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
 import { OwnedByParty, PartyMember } from "../sdk/party";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, interruptWorkAttempt, workAttempt } from "../sdk/work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, interruptWorkAttempt, workAttempt, workAttemptsFor } from "../sdk/work-attempt";
 
 export type ColonyResourceStage = "sow" | "tend" | "harvest";
 export type ColonyResourceStatus = "queued" | "blocked" | "complete";
@@ -66,7 +66,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   const nativeOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const nativeMembers = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
   const nativeWorkers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspendedActors.has(row.id));
-  const nativeAttempts = new Map((ctx.workAttempts?.(nativeOrders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const nativeAttempts = new Map(workAttemptsFor(ctx, nativeOrders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
   const nativeFacts = ctx.workMaterialFacts();
   const nativePails = new Map<EntityId, EntityId>(nativeFacts.lots.filter(lot => lot.kind === "pail" && nativeWorkers.some(worker => worker.id === lot.container)).map(lot => [lot.container, lot.id]));
   const nativeCandidates: ResourceCandidate[] = [];
@@ -245,7 +245,7 @@ export const treeWorkProvider = (
   const orders = [...ctx.query(query(ColonyTreeOrder))].sort((a, b) => a.id.localeCompare(b.id));
   const treeOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const policies = new Map(ctx.query(query(ColonyTreePolicy)).map(row => [row.id, row.get(ColonyTreePolicy)]));
-  const attempts = new Map((ctx.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const attempts = new Map(workAttemptsFor(ctx, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
   const active = new Map<EntityId, { id: EntityId; state: TreeOrderState }>(orders.map(row => [row.get(ColonyTreeOrder).tree, { id: row.id, state: row.get(ColonyTreeOrder) }]));
   const positions = new Map(ctx.query(query(Position)).map(row => [row.id, row.get(Position)]));
   const poses = new Map(ctx.worldPoses([...new Set([...workers, ...trees.map(row => row.id)])]).map(p => [p.id, p]));
@@ -438,7 +438,7 @@ export function digProvider(
   suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
-  const attempts = new Map((ctx.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const attempts = new Map(workAttemptsFor(ctx, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
   const orderOwners = new Map(ctx.query(query(OwnedByParty)).map((row) => [row.id, row.get(OwnedByParty).party]));
   const memberships = new Map(ctx.query(query(PartyMember)).map((row) => [row.id, row.get(PartyMember).party]));
   const workers = new Set(
