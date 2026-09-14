@@ -3,6 +3,7 @@ export * from "./common";
 export * from "./construction";
 export * from "./deconstruction-work";
 export * from "./work-control";
+export * from "./work-attempt";
 export * from "./party";
 export * from "./combat";
 export * from "../contracts";
