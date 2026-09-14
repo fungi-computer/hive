@@ -46,34 +46,10 @@ function manifest() {
       height: 400,
       silhouette: emptySilhouette(640, 400),
     },
-    groundDepth: {
-      file: "ground-depth.png",
-      sha256: HASH,
-      width: 640,
-      height: 400,
-    },
-    groundDepthRange: { min: -8, max: 8 },
-    groundVisualBounds: {
-      minX: -8,
-      minY: -1,
-      minZ: -8,
-      maxX: 8,
-      maxY: 2,
-      maxZ: 8,
-    },
     pages: [
       {
         id: "atlas-0",
         file: "atlas-0.png",
-        sha256: HASH,
-        width: 16,
-        height: 16,
-      },
-    ],
-    depthPages: [
-      {
-        id: "atlas-0",
-        file: "depth-atlas-0.png",
         sha256: HASH,
         width: 16,
         height: 16,
@@ -87,9 +63,6 @@ function manifest() {
         y: 1,
         width: 2,
         height: 2,
-        depth: { x: 1, y: 1, width: 2, height: 2 },
-        depthRange: { min: 1, max: 2 },
-        visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 },
         silhouette: { rows: [0, 1, 1], spans: [0, 1] },
       },
       {
@@ -99,9 +72,6 @@ function manifest() {
         y: 1,
         width: 2,
         height: 2,
-        depth: { x: 4, y: 1, width: 2, height: 2 },
-        depthRange: { min: 2, max: 3 },
-        visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 },
         silhouette: { rows: [0, 0, 1], spans: [1, 1] },
       },
     ],
@@ -125,6 +95,8 @@ test("static art manifest admits detached finite frames and CPU silhouettes", ()
   assert.deepEqual(parsed.entries[0].silhouette.spans, [0, 1]);
   assert.deepEqual(parsed.anchors.pawn, { x: 0.5, y: 0.75 });
   assert.deepEqual(parsed.anchors.vehicle, { x: 0.5, y: 0.82 });
+  assert.equal("depth" in parsed.entries[0], false);
+  assert.equal("visualBounds" in parsed.entries[0], false);
   assert(Object.isFrozen(parsed));
 });
 
@@ -159,24 +131,19 @@ test("manifest completion binds output and source byte identities", () => {
   const draft = {
     ...input,
     ground: (({ sha256, ...ground }) => ground)(input.ground),
-    groundDepth: (({ sha256, ...depth }) => depth)(input.groundDepth),
     pages: input.pages.map(({ sha256, ...page }) => page),
-    depthPages: input.depthPages.map(({ sha256, ...page }) => page),
     provenance: (({ sources, ...provenance }) => provenance)(input.provenance),
   };
   const parsed = completeStaticArtManifest(
     draft,
     {
       "ground.png": HASH,
-      "ground-depth.png": HASH,
       "atlas-0.png": HASH,
-      "depth-atlas-0.png": HASH,
     },
     input.provenance.sources,
   );
   assert.equal(parsed.ground.sha256, HASH);
   assert.equal(parsed.pages[0].sha256, HASH);
-  assert.equal(parsed.depthPages[0].sha256, HASH);
   assert.deepEqual(parsed.provenance.sources, input.provenance.sources);
 });
 
@@ -198,33 +165,6 @@ test("static art manifest rejects unknown data and malformed finite bounds", () 
     },
   });
   assert.throws(() => parseStaticArtManifest(getter), /plain-data-required/);
-});
-
-test("static art depth pages are required matched atlases with their own identities", () => {
-  const missing = manifest();
-  delete missing.depthPages;
-  assert.throws(() => parseStaticArtManifest(missing), /unexpected-fields/);
-  const mismatch = manifest();
-  mismatch.depthPages[0].width = 15;
-  assert.throws(() => parseStaticArtManifest(mismatch), /atlas-size-mismatch/);
-  const alias = manifest();
-  alias.depthPages[0].file = "ground.png";
-  assert.throws(() => parseStaticArtManifest(alias), /duplicate-file/);
-  const unmatched = manifest();
-  unmatched.depthPages[0].id = "atlas-1";
-  assert.throws(() => parseStaticArtManifest(unmatched), /unmatched-page/);
-  const missingGroundRange = manifest();
-  delete missingGroundRange.groundDepthRange;
-  assert.throws(
-    () => parseStaticArtManifest(missingGroundRange),
-    /unexpected-fields/,
-  );
-  const invertedGroundBounds = manifest();
-  invertedGroundBounds.groundVisualBounds.maxY = -2;
-  assert.throws(
-    () => parseStaticArtManifest(invertedGroundBounds),
-    /inverted-bounds/,
-  );
 });
 
 test("texture paths have one container shape and cannot overlap or alias", () => {
@@ -267,7 +207,6 @@ test("silhouette rows own ordered, bounded nonadjacent spans", () => {
   assert.throws(() => parseStaticArtManifest(count), /span-count/);
   const adjacent = manifest();
   adjacent.entries[0].width = 4;
-  adjacent.entries[0].depth.width = 4;
   adjacent.entries[0].silhouette = { rows: [0, 2, 2], spans: [0, 0, 1, 1] };
   assert.throws(() => parseStaticArtManifest(adjacent), /overlap-or-adjacency/);
   const outside = manifest();
@@ -315,9 +254,7 @@ test("manifest completion preserves actual camelCase art paths", () => {
     input,
     {
       "ground.png": HASH,
-      "ground-depth.png": HASH,
       "atlas-0.png": HASH,
-      "depth-atlas-0.png": HASH,
     },
     input.provenance.sources,
   );

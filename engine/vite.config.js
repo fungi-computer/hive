@@ -12,9 +12,7 @@ function manifestFiles(manifest) {
   return new Set([
     "manifest.json",
     manifest.ground.file,
-    manifest.groundDepth.file,
     ...manifest.pages.map((page) => page.file),
-    ...manifest.depthPages.map((page) => page.file),
   ]);
 }
 

@@ -423,12 +423,11 @@ try {
     assert(fact?.pose?.position, `${fragment} has no authoritative pose`);
     assert(fact.placement, `${fragment} has no authoritative placement datum`);
     const entry = manifestEntryForVisual(fact.visual);
-    assert(entry?.placement && entry.visualBounds && entry.silhouette, `${fragment} has no matching public art metadata`);
+    assert(entry?.placement && entry.silhouette, `${fragment} has no matching public art metadata`);
     const resolved = resolveWorldArtPlacement({
       subjectPlacement: fact.placement,
       artPlacement: entry.placement,
       orientation: fact.placement.orientation,
-      decodedDepth: { visualBounds: entry.visualBounds },
     });
     const box = await canvasBox(page);
     const zoom = box.width >= 600 ? 2 : 1;
