@@ -64,7 +64,8 @@ impl Kernel {
             };
             let environment = self.environment.as_mut().ok_or("construction needs environment")?;
             let mut candidate = |at| environment.world.prepared_traversal_material(prepared, at);
-            if !terrain_traversal::path_supported_with_stairs(&occupied, config, &mut candidate, &stairs)? {
+            let boundary_blocked = occupied.windows(2).any(|pair| pair[0].y == pair[1].y && prepared.blocks_crossing(pair[0], pair[1]).unwrap_or(true));
+            if boundary_blocked || !terrain_traversal::path_supported_with_stairs(&occupied, config, &mut candidate, &stairs)? {
                 blocked.push(id);
             }
         }

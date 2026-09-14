@@ -25,6 +25,18 @@ pub fn direct_step(
     blocked: &BTreeSet<Cell>,
     bounds: Option<Bounds>,
 ) -> Result<Position> {
+    direct_step_with_crossings(position, x, z, speed, blocked, bounds, &|_, _| false)
+}
+
+pub fn direct_step_with_crossings(
+    mut position: Position,
+    x: f64,
+    z: f64,
+    speed: f64,
+    blocked: &BTreeSet<Cell>,
+    bounds: Option<Bounds>,
+    crossing_blocked: &dyn Fn(f64, f64, f64, f64, i32) -> bool,
+) -> Result<Position> {
     if [position.x, position.y, position.z, position.facing, x, z, speed]
         .iter().any(|value| !value.is_finite()) || speed < 0.0 || x.abs() > 1.0 || z.abs() > 1.0 {
         return Err("invalid direct motion".into());
@@ -45,6 +57,7 @@ pub fn direct_step(
     let attempt = |ax: f64, az: f64| -> bool {
         let end = Point { x: position.x + ax, y: position.y, z: position.z + az, frame: None };
         bounds.is_none_or(|b| end.x >= b.min_x && end.x <= b.max_x && end.z >= b.min_z && end.z <= b.max_z)
+            && !crossing_blocked(position.x, position.z, end.x, end.z, position.y.round() as i32)
             && !blocked.iter().any(|cell| cell.1 == position.y.round() as i32 && segment_intersects_cell(&point(position), &end, *cell))
     };
     let (move_x, move_z) = if attempt(dx, dz) { (dx, dz) }

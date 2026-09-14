@@ -267,8 +267,8 @@ impl Kernel {
             StructureShape::Floor => StaticInstance::Floor { id: site.into(), support: crate::generation::Cell { x, y, z } },
             StructureShape::Cover => StaticInstance::Cover { id: site.into(), support: crate::generation::Cell { x, y, z } },
             StructureShape::Fixture { footprint } => StaticInstance::Fixture { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, footprint: footprint.clone() },
-            StructureShape::Wall { height } => StaticInstance::Wall { id: site.into(), base: crate::generation::Cell { x, y, z }, height: *height },
-            StructureShape::Aperture { height, opening_bottom, opening_height } => StaticInstance::ApertureWall { id: site.into(), base: crate::generation::Cell { x, y, z }, height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false },
+            StructureShape::Wall { height } => StaticInstance::Wall { id: site.into(), edge: crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation), height: *height },
+            StructureShape::Aperture { height, opening_bottom, opening_height } => StaticInstance::ApertureWall { id: site.into(), edge: crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation), height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false },
             StructureShape::Stair { run, rise } => StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise },
         }
     }
@@ -377,7 +377,7 @@ impl Kernel {
                     if self.ecs.get::<SealedContainer>(*entity).is_none()
                         || site.seconds != definition.work_seconds
                         || !geometry_instances.iter().any(|instance| match (&expected, instance) {
-                            (crate::structure_geometry::StaticInstance::ApertureWall { id, base, height, opening_bottom, opening_height, .. }, crate::structure_geometry::StaticInstance::ApertureWall { id: other, base: other_base, height: other_height, opening_bottom: other_bottom, opening_height: other_opening, .. }) => id == other && base == other_base && height == other_height && opening_bottom == other_bottom && opening_height == other_opening,
+                            (crate::structure_geometry::StaticInstance::ApertureWall { id, edge, height, opening_bottom, opening_height, .. }, crate::structure_geometry::StaticInstance::ApertureWall { id: other, edge: other_edge, height: other_height, opening_bottom: other_bottom, opening_height: other_opening, .. }) => id == other && edge == other_edge && height == other_height && opening_bottom == other_bottom && opening_height == other_opening,
                             _ => instance == &expected,
                         }) { return Err("finished construction linkage is invalid".into()); }
                     for (name, value) in &definition.on_complete.components {

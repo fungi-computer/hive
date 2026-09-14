@@ -153,6 +153,12 @@ pub(crate) struct PreparedStructureChange {
     epoch: u64,
 }
 
+impl PreparedStructureChange {
+    pub(crate) fn blocks_crossing(&self, from: Cell, to: Cell) -> Result<bool, String> {
+        self.projection.blocks_crossing(from, to)
+    }
+}
+
 /// Detached field advancement for compound water/air admission.
 pub(crate) struct PreparedWaterAdvance {
     field: field::Field,
@@ -315,6 +321,10 @@ impl TerrainWater {
     pub fn bounds(&self) -> crate::generation::Bounds { self.terrain.bounds() }
     pub fn cell_spacing_m(&self) -> [f64; 3] { self.terrain.cell_spacing_m() }
     pub fn stair_edges(&self) -> &[StairEdge] { self.structure_projection.stair_edges() }
+    pub fn structure_blocks_crossing(&self, from: Cell, to: Cell) -> Result<bool, String> {
+        self.structure_projection.blocks_crossing(from, to)
+    }
+    pub fn structure_projection_snapshot(&self) -> GeometryProjection { self.structure_projection.clone() }
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     /// Shared physical contact query for placement, route admission and retained
     /// route validation. These callers must not reconstruct geometry separately.
@@ -679,7 +689,7 @@ mod tests {
         let floor_support = Cell { x: 0, y: 30, z: 0 };
         let wall = StaticInstance::Wall {
             id: "z-support-wall".into(),
-            base: Cell { y: anchor.y + 1, ..anchor },
+            edge: crate::structure_geometry::Face { cell: Cell { y: anchor.y + 1, ..anchor }, axis: crate::structure_geometry::FaceAxis::X },
             height: u8::try_from(floor_support.y - anchor.y).unwrap(),
         };
         let floor = StaticInstance::Floor { id: "a-pending-floor".into(), support: floor_support };
@@ -716,7 +726,7 @@ mod tests {
         let top = Cell { y: anchor.y + 5, ..anchor };
         let mut pending = vec![StaticInstance::Wall {
             id: "chain-wall".into(),
-            base: Cell { y: anchor.y + 1, ..anchor },
+            edge: crate::structure_geometry::Face { cell: Cell { y: anchor.y + 1, ..anchor }, axis: crate::structure_geometry::FaceAxis::X },
             height: 5,
         }];
         pending.extend((0..=3).map(|x| StaticInstance::Floor {
@@ -824,7 +834,7 @@ mod tests {
         ]).unwrap();
         let anchor = world.terrain.surface_cells(&[(1, 0)]).unwrap()[0].unwrap().cell;
         let floor = || vec![
-            StaticInstance::Wall { id: "column".into(), base: Cell { y: anchor.y + 1, ..anchor }, height: u8::try_from(low.y - anchor.y).unwrap() },
+            StaticInstance::Wall { id: "column".into(), edge: crate::structure_geometry::Face { cell: Cell { y: anchor.y + 1, ..anchor }, axis: crate::structure_geometry::FaceAxis::X }, height: u8::try_from(low.y - anchor.y).unwrap() },
             StaticInstance::Floor { id: "floor".into(), support: low },
         ];
         let before = world.facts().unwrap();

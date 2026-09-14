@@ -140,6 +140,20 @@ pub fn search_any_with_blocked_and_stairs(
     blocked: &dyn Fn(Cell) -> bool,
     stairs: &[StairEdge],
 ) -> Result<(usize, Vec<Cell>), String> {
+    search_any_with_blocked_and_stairs_and_crossings(start, destinations, config, query, blocked, stairs, &|_, _| false)
+}
+
+/// Search with the same bounded A* frontier while consulting the canonical
+/// physical boundary for every cardinal crossing.
+pub fn search_any_with_blocked_and_stairs_and_crossings(
+    start: Cell,
+    destinations: &[Cell],
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+    stairs: &[StairEdge],
+    crossing_blocked: &dyn Fn(Cell, Cell) -> bool,
+) -> Result<(usize, Vec<Cell>), String> {
     if destinations.is_empty() || terrain_traversal::node(start, config, query)?.is_none() {
         return Err("route endpoint lacks support or clearance".into());
     }
@@ -172,7 +186,7 @@ pub fn search_any_with_blocked_and_stairs(
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
                     match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) if !blocked(next.support) => match edge_cost(cell(*current), next.support, config.spacing, stairs) {
+                        Ok(Some(next)) if !blocked(next.support) && !crossing_blocked(cell(*current), next.support) => match edge_cost(cell(*current), next.support, config.spacing, stairs) {
                             Ok(cost) => neighbors.push((key(next.support), cost)),
                             Err(error) => { failure = Some(error); return Vec::new(); }
                         },
@@ -186,7 +200,7 @@ pub fn search_any_with_blocked_and_stairs(
                 let target = if stair.entrance == cell(*current) { stair.landing }
                     else if stair.landing == cell(*current) { stair.entrance }
                     else { continue };
-                if blocked(target) { continue; }
+                if blocked(target) || crossing_blocked(cell(*current), target) { continue; }
                 if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
                     match edge_cost(cell(*current), next.support, config.spacing, stairs) {
                         Ok(cost) => neighbors.push((key(next.support), cost)),
@@ -222,6 +236,7 @@ pub fn search_many_with_blocked_and_stairs(
     query: &mut MaterialQuery<'_>,
     blocked: &dyn Fn(Cell) -> bool,
     stairs: &[StairEdge],
+    crossing_blocked: &dyn Fn(Cell, Cell) -> bool,
 ) -> Result<Vec<Result<Vec<Cell>, String>>, String> {
     if destinations.is_empty() { return Ok(Vec::new()); }
     if terrain_traversal::node(start, config, query)?.is_none() {
@@ -264,7 +279,7 @@ pub fn search_many_with_blocked_and_stairs(
         for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
             for dy in [0, 1, -1] {
                 match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                    Ok(Some(next)) if !blocked(next.support) => match edge_cost(from_cell, next.support, config.spacing, stairs) {
+                    Ok(Some(next)) if !blocked(next.support) && !crossing_blocked(from_cell, next.support) => match edge_cost(from_cell, next.support, config.spacing, stairs) {
                         Ok(edge) => neighbors.push((next.support, edge)),
                         Err(error) => { failure = Some(error); break; }
                     },
@@ -279,7 +294,7 @@ pub fn search_many_with_blocked_and_stairs(
                 let target = if stair.entrance == from_cell { stair.landing }
                     else if stair.landing == from_cell { stair.entrance }
                     else { continue };
-                if blocked(target) { continue; }
+                if blocked(target) || crossing_blocked(from_cell, target) { continue; }
                 if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
                     match edge_cost(from_cell, next.support, config.spacing, stairs) {
                         Ok(edge) => neighbors.push((next.support, edge)),
@@ -491,7 +506,7 @@ mod tests {
         let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x as i32, at.y, at.z as i32)), outside:false, sealed_top:false });
         let start = Cell { x:0, y:0, z:0 };
         let destinations = [Cell { x:3, y:0, z:0 }, Cell { x:1, y:0, z:0 }];
-        let paths = search_many_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[]).unwrap();
+        let paths = search_many_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[], &|_, _| false).unwrap();
         assert_eq!(paths[0].as_ref().unwrap().last(), Some(&destinations[0]));
         assert_eq!(paths[1].as_ref().unwrap().last(), Some(&destinations[1]));
         assert_eq!(paths[0].as_ref().unwrap().first(), Some(&start));
@@ -504,7 +519,7 @@ mod tests {
         let mut query = |at: Cell| Ok(TraversalMaterial { solid: solid.contains(&(at.x as i32, at.y, at.z as i32)), outside:false, sealed_top:false });
         let start = Cell { x:0, y:0, z:0 };
         let destinations = [Cell { x:9, y:0, z:0 }, Cell { x:2, y:0, z:0 }];
-        let paths = search_many_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[]).unwrap();
+        let paths = search_many_with_blocked_and_stairs(start, &destinations, config, &mut query, &|_| false, &[], &|_, _| false).unwrap();
         assert_eq!(paths[0].as_ref().unwrap_err(), "route endpoint lacks support or clearance");
         assert_eq!(paths[1].as_ref().unwrap().last(), Some(&destinations[1]));
     }
@@ -523,5 +538,15 @@ mod tests {
         assert_eq!(index,1);
         assert_eq!(path.last(),Some(&destinations[1]));
         assert!(queries < 100,"nearest goal should settle without exploring the distant goal; queried {queries} cells");
+    }
+
+    #[test]
+    fn search_consults_boundary_for_each_cardinal_crossing() {
+        let config = TraversalConfig { spacing:[1.0,1.0,1.0], clearance_cells:1, max_step_cells:1 };
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: at.y == -1, outside:false, sealed_top:false });
+        let start = Cell { x:0, y:0, z:0 };
+        let destination = Cell { x:2, y:0, z:0 };
+        let wall = |from: Cell, to: Cell| from.y == 0 && to.y == 0 && ((from.x == 0 && to.x == 1) || (from.x == 1 && to.x == 0));
+        assert!(search_any_with_blocked_and_stairs_and_crossings(start, &[destination], config, &mut query, &|_| false, &[], &wall).is_err());
     }
 }

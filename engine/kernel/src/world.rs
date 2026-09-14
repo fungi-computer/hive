@@ -1164,7 +1164,7 @@ mod construction_tests {
         });
         let wall = StaticInstance::Wall {
             id: "support-wall".into(),
-            base: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z },
+            edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X },
             height: 4,
         };
         let upper = StaticInstance::Floor {
@@ -1236,7 +1236,7 @@ mod construction_tests {
             id: "wall".into(), shape: StructureShape::Wall { height: 4 }, materials: BTreeMap::new(), work_seconds: 1.0,
             work_reach_below_cells: 0, on_complete: Default::default(), on_remove: RemovalRecipe::default(),
         });
-        let wall = StaticInstance::Wall { id: "support-wall".into(), base: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, height: 4 };
+        let wall = StaticInstance::Wall { id: "support-wall".into(), edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X }, height: 4 };
         let upper = StaticInstance::Floor { id: "dependent-floor".into(), support: crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z } };
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
@@ -1617,7 +1617,7 @@ mod construction_tests {
 
         let wall = crate::structure_geometry::StaticInstance::Wall {
             id: "completed-wall".into(),
-            base: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z },
+            edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X },
             height: 4,
         };
         let prepared = kernel.environment.as_mut().unwrap().world
@@ -1697,7 +1697,7 @@ mod construction_tests {
         let (mut kernel, surface, _) = world();
         let structures = vec![
             crate::structure_geometry::StaticInstance::Floor { id: "floor-contact".into(), support: crate::generation::Cell { x: surface.x + 1, y: surface.y + 1, ..surface } },
-            crate::structure_geometry::StaticInstance::Wall { id: "wall-contact".into(), base: crate::generation::Cell { y: surface.y + 1, ..surface }, height: 1 },
+            crate::structure_geometry::StaticInstance::Wall { id: "wall-contact".into(), edge: crate::structure_geometry::Face { cell: crate::generation::Cell { y: surface.y + 1, ..surface }, axis: crate::structure_geometry::FaceAxis::X }, height: 1 },
         ];
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(structures).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
@@ -2260,11 +2260,16 @@ impl Kernel {
                         blocked.contains(&(x, y, z))
                     })
                 };
+                let structure = environment.world.structure_projection_snapshot();
+                let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
+                    from.y == to.y && structure.blocks_crossing(from, to).unwrap_or(true)
+                };
                 if !history.is_empty() && (!crate::terrain_traversal::path_supported_with_stairs(&history[contact_start..], config, &mut query, &stairs)?
-                    || history[contact_start..].iter().copied().any(&obstacle)) {
+                    || history[contact_start..].iter().copied().any(&obstacle)
+                    || history[contact_start..].windows(2).any(|pair| pair[0].y == pair[1].y && structure.blocks_crossing(pair[0], pair[1]).unwrap_or(true))) {
                     return Err("retained terrain contact is no longer traversable".into());
                 }
-                let mut path = crate::terrain_route::search_with_blocked_and_stairs(start_cell, destination_cell, config, &mut query, &obstacle, &stairs)?;
+                let mut path = crate::terrain_route::search_any_with_blocked_and_stairs_and_crossings(start_cell, &[destination_cell], config, &mut query, &obstacle, &stairs, &crossing)?.1;
                 let mut points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
                 if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
                 if points.len() > 1 || !prefix.is_empty() { points.remove(0); }
@@ -2336,8 +2341,12 @@ impl Kernel {
             })
         };
         let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+        let structure = environment.world.structure_projection_snapshot();
+        let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
+            from.y == to.y && structure.blocks_crossing(from, to).unwrap_or(true)
+        };
         let mut query = |cell| environment.world.traversal_material(cell);
-        let paths = crate::terrain_route::search_many_with_blocked_and_stairs(start_cell, &targets, config, &mut query, &obstacle, &stairs)?;
+        let paths = crate::terrain_route::search_many_with_blocked_and_stairs(start_cell, &targets, config, &mut query, &obstacle, &stairs, &crossing)?;
         let revision = environment.world.terrain_revision();
         let routes: Vec<Result<PreparedRoute>> = paths.into_iter().map(|path| {
             match path {
@@ -2394,8 +2403,12 @@ impl Kernel {
             })
         };
         let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
+        let structure = environment.world.structure_projection_snapshot();
+        let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
+            from.y == to.y && structure.blocks_crossing(from, to).unwrap_or(true)
+        };
         let mut query = |cell| environment.world.traversal_material(cell);
-        let (index,path) = crate::terrain_route::search_any_with_blocked_and_stairs(start_cell,&targets,config,&mut query,&obstacle,&stairs)?;
+        let (index,path) = crate::terrain_route::search_any_with_blocked_and_stairs_and_crossings(start_cell,&targets,config,&mut query,&obstacle,&stairs,&crossing)?;
         let mut points = crate::terrain_route::waypoints_with_stairs(&path,config,&stairs)?;
         if points.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
         if points.len() > 1 { points.remove(0); }
@@ -2486,6 +2499,10 @@ impl Kernel {
                 }
                 if route.terrain_target.as_ref() != route.path.first() {
                     return Err("saved terrain route target witness mismatch".into());
+                }
+                let environment = self.environment.as_ref().ok_or("saved terrain route needs environment")?;
+                if route.path.windows(2).any(|pair| pair[0].y == pair[1].y && environment.world.structure_blocks_crossing(pair[0], pair[1]).unwrap_or(true)) {
+                    return Err("saved terrain route crosses a sealed structure face".into());
                 }
                 self.terrain_routes.insert(entity, TerrainRouteState {
                     path,
@@ -5444,6 +5461,7 @@ impl Kernel {
                 max_step_cells: capability.max_step_cells,
             };
             let stairs = environment.world.stair_edges().to_vec();
+            let structure = environment.world.structure_projection_snapshot();
             let expected_points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
             let remaining: Vec<_> = self.routes.get(&entity).map(|route| route.iter().cloned().collect()).unwrap_or_default();
             let offset = expected_points.len().checked_sub(remaining.len());
@@ -5462,7 +5480,8 @@ impl Kernel {
             }
             let mut query = |cell| environment.world.traversal_material(cell);
             let active = crate::terrain_route::active_support_index_with_stairs(&path, offset.ok_or("missing route progress")?, &stairs)?;
-            let valid = crate::terrain_traversal::path_supported_with_stairs(&path[active..], config, &mut query, &stairs)?;
+            let boundary_valid = path[active..].windows(2).all(|pair| pair[0].y != pair[1].y || !structure.blocks_crossing(pair[0], pair[1]).unwrap_or(true));
+            let valid = boundary_valid && crate::terrain_traversal::path_supported_with_stairs(&path[active..], config, &mut query, &stairs)?;
             if !valid { invalid.push(entity); }
             else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
         }
@@ -5565,9 +5584,24 @@ impl Kernel {
             let body = *self.ecs.get::<Body>(entity).ok_or("direct stream lost body")?;
             let blocked = self.blocked_by_frame.get(&None).cloned().unwrap_or_default();
             let bounds = self.frame_bounds(None)?;
+            let structure = self.environment.as_ref().map(|environment| environment.world.structure_projection_snapshot());
             let mut next = position;
             for input in state.queue.iter().take(steps) {
-                next = navigation::direct_step(next, input.x, input.z, body.speed, &blocked, bounds)?;
+                let crossing = |from_x: f64, from_z: f64, to_x: f64, to_z: f64, y: i32| {
+                    let Some(projection) = structure.as_ref() else { return false; };
+                    let from = crate::generation::Cell { x: from_x.round() as i64, y, z: from_z.round() as i64 };
+                    let to = crate::generation::Cell { x: to_x.round() as i64, y, z: to_z.round() as i64 };
+                    if from == to { return false; }
+                    if from.x != to.x && from.z != to.z {
+                        let via_x = crate::generation::Cell { x: to.x, ..from };
+                        let via_z = crate::generation::Cell { z: to.z, ..from };
+                        projection.blocks_crossing(from, via_x).unwrap_or(true)
+                            || projection.blocks_crossing(from, via_z).unwrap_or(true)
+                    } else {
+                        projection.blocks_crossing(from, to).unwrap_or(true)
+                    }
+                };
+                next = navigation::direct_step_with_crossings(next, input.x, input.z, body.speed, &blocked, bounds, &crossing)?;
                 state.last_processed = input.sequence;
             }
             state.queue.drain(..steps);

@@ -238,7 +238,7 @@ mod tests {
             .prepare_structures(vec![
                 crate::structure_geometry::StaticInstance::Wall {
                     id: "column".into(),
-                    base: wall_base,
+                    edge: crate::structure_geometry::Face { cell: wall_base, axis: crate::structure_geometry::FaceAxis::X },
                     height: 2,
                 },
                 crate::structure_geometry::StaticInstance::Floor {
