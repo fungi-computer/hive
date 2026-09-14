@@ -85,6 +85,7 @@ const groups = Object.freeze({
   performance: Object.freeze([
     "engine/src/client/performance-page.test.js",
     "engine/src/client/whistle-runtime.test.js",
+    "engine/src/games/colony-performance.test.ts",
     "engine/src/runtime/whistle.test.ts",
   ]),
   terrain: Object.freeze([

@@ -189,11 +189,11 @@ test("completed demand does not invoke provider-side contact queries", () => {
   };
   waterSupplyProvider(context, new Set()).progress();
   assert.equal(removed, "");
-  assert.equal(facts, 1, "the provider reads canonical material facts before scheduling");
+  assert.equal(facts, 0, "completed demands do not require material facts for scheduling");
   assert.equal(contacts, 0);
 });
 
-test("queued planning stays bounded with many demands and keeps an active bound actor visible", () => {
+test("queued planning queries only eligible pail holders", () => {
   const active = row("worker-z", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }]]));
   const worker = row("worker-0", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }]]));
   const pails = Array.from({ length: 4 }, (_, index) => ({ id: id(`pail-${index}`), kind: "pail", quantity: 1, container: id(`worker-${index}`) }));
@@ -245,7 +245,8 @@ test("queued planning stays bounded with many demands and keeps an active bound 
   const prepared = waterSupplyProvider(context, new Set());
   assert.ok(prepared.candidates.length <= 128);
   assert.equal(new Set(prepared.candidates.slice(0, 4).map(candidate => candidate.worker)).size, 4);
-  assert.ok(posed.includes("worker-z"));
+  assert.ok(!posed.includes("worker-z"), "worker without a pail is excluded from spatial planning");
+  assert.deepEqual(new Set(posed), new Set(pails.map(pail => pail.container)));
   prepared.progress();
   assert.equal(actions.length, 0, "native outcome owns field-water continuation");
 });
