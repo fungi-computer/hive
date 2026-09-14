@@ -69,7 +69,6 @@ impl Registry {
                 ("version", FieldType::Number), ("definition", FieldType::String), ("definitionVersion", FieldType::Number),
                 ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number),
                 ("enteredTick", FieldType::Number), ("phase", FieldType::String), ("blockedReason", FieldType::String),
-                ("worker", FieldType::NullableEntity),
             ]),
             ("hive.process-binding", vec![("process", FieldType::Entity), ("role", FieldType::String), ("lot", FieldType::Entity), ("quantity", FieldType::Number)]),
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
@@ -373,7 +372,6 @@ impl Registry {
                     || !valid_id(&process.station) || !process.progress_seconds.is_finite()
                     || process.progress_seconds < 0.0 || (!process.blocked_reason.is_empty() && !valid_id(&process.blocked_reason))
                     || (process.phase == crate::staged_process::ProcessPhase::Blocked) != !process.blocked_reason.is_empty()
-                    || process.worker.as_deref().is_some_and(|worker| !valid_id(worker))
                 { return Err("invalid staged process fact".into()); }
             }
             "hive.process-binding" => {
