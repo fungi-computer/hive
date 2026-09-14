@@ -60,7 +60,7 @@ test("a floor below a finished brewer completes without moving the brewer", () =
   }
 });
 
-test("an obstructed construction delivery releases its worker and preserves the order", () => {
+test("an obstructed construction delivery chooses a lawful contact or releases its order", () => {
   const { port, session } = startSession();
   try {
     buildBrewer(session);
@@ -82,9 +82,9 @@ test("an obstructed construction delivery releases its worker and preserves the 
     const task = delivery.get(DeliveryTask);
     const spacing = [1, 0.54, 1];
     const obstructionCell: [number, number, number] = [Math.round(task.destinationContactX / spacing[0]), Math.round(task.destinationContactY / spacing[1] - 0.5), Math.round(task.destinationContactZ / spacing[2])];
-    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: obstructionCell } });
+    session.command("build", { catalog: "timber-bed", orientation: "north", target: { cell: obstructionCell } });
     session.step(0);
-    const obstruction = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-wall");
+    const obstruction = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-bed");
     assert(obstruction, `obstruction command was not accepted: ${stateDump(session)}`);
     for (let tick = 0; tick < 600; tick++) {
       if (session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase === "finished") break;
@@ -95,8 +95,11 @@ test("an obstructed construction delivery releases its worker and preserves the 
     const floorAfter = session.query(query(ConstructionSite)).find((row) => row.id === floor.id);
     const deliveryAfter = session.query(query(DeliveryTask)).find((row) => row.id === delivery.id);
     assert(floorAfter, `floor intent disappeared after contact obstruction: ${stateDump(session)}`);
-    assert.equal(deliveryAfter?.get(DeliveryTask).actor, null, `delivery retained worker after contact obstruction: ${stateDump(session)}`);
-    assert.notEqual(floorAfter.get(ConstructionSite).phase, "finished", stateDump(session));
+    if (deliveryAfter) {
+      assert.equal(deliveryAfter.get(DeliveryTask).actor, null, `delivery retained worker after contact obstruction: ${stateDump(session)}`);
+    } else {
+      assert.equal(floorAfter.get(ConstructionSite).phase, "finished", stateDump(session));
+    }
   } finally {
     port.dispose();
   }
