@@ -1,67 +1,35 @@
 # Clearing repair implementation packet
 
-Status: active implementation over source baseline `ab58104` in
-`/mnt/fungi-data/botanical-work/pathfinding-clean`. Integrator remains on
-`engine/pathfinding-clean-20260913`; use separate worktrees for each writer.
-Accepted through `65deaa2`: the native WorkAttempt owner retains exact
-generation/sequence and now rejects worker/task/party ownership mismatches; the
-shared native transfer-contact query follows portable custody, enumerates lawful
-three-dimensional terrain contacts, and shares its metric reach predicate with
-final transfer admission. Typed SDK helpers preserve those exact identities. The
-rebuilt Colony contact consumer and delivery laws pass 11/11. Native floor finish
-replacement now preserves the supporting floor identity and geometry beneath a
-completed 2x2 brewer, including its kettle port and live contents; cancellation
-leaves staged material recoverable, target mutation cannot publish, current-format
-save/reload passes, and the 24 affected floor laws pass. Construction now uses
-the WorkAttempt owner exclusively: the direct `AttendConstruction` path and the
-site-local worker claim are deleted, terminal success or blockage is explicit,
-and acknowledgement releases the worker. Shared-party hosting, complete migration
-of the other providers, the real Colony floor consumer, and live per-pixel drawing
-remain review work rather than accepted behavior. The bounded WebGL2 depth
-feasibility checkpoint at `6bc00a3` is accepted: the retained actual-art capture
-uses terrain, the retained bed and Rowan; all 460 overlapping proof pixels agree
-with the CPU depth winner and reversed submission is byte-identical. This proves
-the chosen per-pixel technique only. The static-art format is now explicitly v4
-and carries checked ground/frame depth ranges, visual bounds and decoded CPU
-depth bytes through the maintained pack owner. The source-owned v4 bank now
-contains 1,781 original textures across four paired color/depth pages; all ten
-image output hashes and 45 source hashes match its manifest. Its 13 manifest
-laws, strict types and an actual browser load of all 1,781 depth bindings pass.
-The reusable world-depth caller is now implemented through `5f454f8`. Terrain
-and resolved original-art frames enter one Pixi WebGL2 pass with paired color and
-depth pages; the CPU picker reads the same depth bytes; all shipped visual
-bindings declare an explicit physical role; terrain patch updates preserve one
-shared range and copy source-owned bytes before GPU upload. The 31 focused
-depth/terrain/geometry laws and 23 visual/client laws pass, and a fresh Vite build
-completed from 1,091 modules in `run-u7307`. This is source and build evidence,
-not live acceptance: an actual multilevel browser witness, cutaway behavior and
-transparent-water depth testing remain open before this drawing outcome can be
-called playable.
+Status: active integration on `engine/clearing-repair-acceptance-20260914`.
+The clean remotely backed acceptance branch is currently pinned at `0de1d1f`.
+Historical branches and receipts remain evidence; they are not the active queue.
 
-The Colony v2 browser/protocol slice is integrated through `73c0b6c`: fresh and
-invited Colony worlds both use exact `/v2/colony/worlds/:world/...` routes, keep
-the world invite out of HTTP routing and keep a persisted participant credential
-out of URLs. Its 18 remote-runtime and 17 choice/protocol laws plus strict types
-pass. The isolated DO host candidate now owns `/v2/colony` join routing and has
-local Wrangler evidence for concurrent idempotent join, a stable party with two
-people, cross-principal denial, retry after an injected post-Region/pre-participant
-failure, restart over the same SQLite directory and authenticated WebSocket
-upgrade. The neutral server pack and party-owned game source are still on their
-separate candidate branch. Post-commit observation over the retained socket, a
-bounded lawful spawn query and a freshly generated joined WASM proof remain open,
-so this is not yet playable multiplayer.
-The first construction cutover defect (success leaving an executing attempt) is
-superseded by `1f56598`. The earlier 29-construction-law acceptance from
-`run-u7288` is withdrawn because it used stale generated WASM. A fresh Rust build
-completed in `run-u7296`; the resulting joined Colony run exposed missing party
-ownership across starter state and authored work, with 17/25 construction laws
-passing. `65deaa2` fixes undeclared reads and empty-batch native queries, but it
-does not make the joined game green. Construction, hauling, brewing, planting,
-digging, water work and deconstruction remain unaccepted until the neutral server
-pack and complete party/custody propagation pass against freshly generated WASM.
-This packet refines the September 14 sections of
-[the owning sprint](../../CLEARING-CONSOLIDATION-PLAN.md). Later direct Levi
-instructions supersede it. Do not revive historical queues elsewhere in that file.
+The joined source now contains the native WorkAttempt identity/lifecycle owner,
+party-scoped pending actions and authored creation, lawful transfer contacts,
+atomic floor-finish replacement under occupied furniture, and the actual Colony
+floor consumer. It also contains native world-local party allocation and replay:
+one host-derived binding commits a player, party and GamePack-authored people in
+the Region transaction, and reconnect projects the actual bounded PartyMember IDs
+rather than synthesizing names in the host. Draft and Undraft use the persistent
+bottom action dock; unavailable actions remain visible with their reason, while
+selection stays UI state and server admission remains authoritative.
+
+Original retained art placement metadata is now owned beside the bed, brewer and
+stair recipes and survives the v4 static pack. The client resolves that metadata
+through the shared world-depth draw/pick owner. Terrain water no longer uses the
+ordinary Pixi Graphics compatibility overlay: the terrain layer emits bounded
+nonpickable transparent paired depth items from one cached 32×16 metric water tile,
+with its inverse projection derived from the shared camera. The executable retained
+art fixture is source-prepared for real terrain, bed/person/stair overlap, cutaway,
+nonpickable occlusion, permutation stability and water depth.
+
+These are accepted source checkpoints, not a playable release claim. The generated
+WASM has not yet been rebuilt against the joined source. The canonical DeliveryTask
+clean break and the remaining work providers are still being migrated to exact
+WorkAttempt operations; old actor/phase/coordinate-outcome logic is not accepted as
+the finished system. The two-participant SQLite/DO witness, interrupted-cargo
+recovery, actual WebGL2 D3-D5 run, joined strict checks, build and preview deployment
+remain open. No current public world has been reset or silently migrated.
 
 ## Outcome
 
