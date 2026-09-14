@@ -339,6 +339,18 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         }
         continue;
       }
+      if (state.destinationContactSet && (state.phase === "carrying" || state.phase === "to-destination")) {
+        const contacts = ctx.transferContacts({ worker: state.actor, container: state.destination });
+        if (contacts.kind !== "ready") {
+          if (lotState?.container === state.actor) {
+            ctx.write(DeliveryTask, task.id, { ...state, phase: "putting-down" });
+            ctx.action(dropLot(state.actor, state.sourceLot));
+          } else {
+            ctx.write(DeliveryTask, task.id, { ...state, actor: null, phase: "idle" });
+          }
+          continue;
+        }
+      }
       // A completed deposit must still retire its claim if the destination
       // became sealed in that same committed step. Otherwise keep custody and
       // wait without issuing futile movement or transfer requests.
@@ -435,8 +447,10 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       } else if (state.phase === "carrying" && actorLotState) {
         ctx.write(DeliveryTask, task.id, { ...state, phase: "to-destination" });
         requestMove(state.actor, {
-            ...destination.get(Position),
-            frame: destinationPose.support,
+            x: state.destinationContactSet ? state.destinationContactX : destination.get(Position).x,
+            y: state.destinationContactSet ? state.destinationContactY : destination.get(Position).y,
+            z: state.destinationContactSet ? state.destinationContactZ : destination.get(Position).z,
+            frame: state.destinationContactSet ? state.destinationContactFrame : destinationPose.support,
           });
       } else if (
         state.phase === "to-destination" &&
