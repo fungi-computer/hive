@@ -374,7 +374,7 @@ export const colonyPack: GamePack = {
         const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
         const id = entity(`colony.water-demand.${revision}`);
         return { actions: [], writes: [], creates: [{ id, components: {
-          [WaterSupplyOrder.id]: { revision, process: null },
+          [WaterSupplyOrder.id]: { revision, process: null, party: context.scope.kind === "party" ? context.scope.party : null },
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };
       },

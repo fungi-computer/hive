@@ -188,7 +188,7 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     const id = entity(`colony.water-process.${row.id}.${quantity + inFlight}`);
     const owner = ctx.query(query(OwnedByParty)).find(candidate => candidate.id === row.id)?.get(OwnedByParty);
     ctx.createAuthoredEntity({ id, components: {
-      [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
+      [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id, party: owner?.party ?? null },
       [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
     } }, owner ? { kind: "party", party: owner.party } : { kind: "host" });
     ordersByProcess.set(row.id, []);

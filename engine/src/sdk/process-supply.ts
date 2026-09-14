@@ -1,5 +1,6 @@
 import { component, entity, query } from "./authoring";
 import { planSiteSupplies, type SiteSupplyRequirement } from "./site-supplies";
+import { OwnedByParty } from "./party";
 import type { EntityId, ProcessRequirements, QueryRow, WriteContext } from "../contracts";
 
 export const StagedProcess = component<{
@@ -21,7 +22,8 @@ export function processSupplyPhase(ctx: WriteContext): void {
   const facts = ctx.workMaterialFacts();
   const lots = facts.lots;
   const admitted = new Set(ctx.outcomes.flatMap(({ action, result }) => action.kind === "admit-process" && result.accepted ? [action.process] : []));
-  const waiting: { row: ProcessRow; process: { definition: string; station: EntityId }; requirements: ProcessRequirements }[] = [];
+  const partyByEntity = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const waiting: { row: ProcessRow; process: { definition: string; station: EntityId }; requirements: ProcessRequirements; party: EntityId | null }[] = [];
   const rows = ctx.query(query(StagedProcess)).slice().sort((a, b) => a.id.localeCompare(b.id));
   const start = rows.length ? (ctx.clock.tick * 4) % rows.length : 0;
   const window = Array.from({ length: Math.min(4, rows.length) }, (_, offset) => rows[(start + offset) % rows.length]!);
@@ -31,14 +33,17 @@ export function processSupplyPhase(ctx: WriteContext): void {
     const requirements: ProcessRequirements = ctx.processRequirements(process.definition, process.station);
     // Collected below and planned once: planSiteSupplies' reservation view is
     // per call, so separate calls could promise one source lot twice.
-    waiting.push({ row, process, requirements });
+    waiting.push({ row, process, requirements, party: partyByEntity.get(process.station) ?? null });
   }
   const destinations = new Set(waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => entity(`${process.station}:${input.port}`))));
   const eligibleSources = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).sort((a, b) => a.localeCompare(b));
-  const sourceStart = eligibleSources.length ? (Math.floor(ctx.clock.tick / 4) * 64) % eligibleSources.length : 0;
-  const sourceIds = Array.from({ length: Math.min(64, eligibleSources.length) }, (_, offset) => eligibleSources[(sourceStart + offset) % eligibleSources.length]!);
-  const supply: SiteSupplyRequirement[] = waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity })));
-  if (supply.length) planSiteSupplies(ctx, { sourceContainers: sourceIds, batchQuantity: 1, requirements: supply });
+  const grouped = new Map<string, typeof waiting>();
+  for (const item of waiting) { const key = item.party ?? "__host__"; grouped.set(key, [...(grouped.get(key) ?? []), item]); }
+  for (const [party, group] of grouped) {
+    const sourceIds = eligibleSources.filter(source => (party === "__host__" ? !partyByEntity.has(source) : partyByEntity.get(source) === party)).slice(0, 64);
+    const supply: SiteSupplyRequirement[] = group.flatMap(({ process, requirements }) => requirements.inputs.map(input => ({ destination: entity(`${process.station}:${input.port}`), material: input.material, quantity: input.quantity })));
+    if (supply.length && sourceIds.length) planSiteSupplies(ctx, { sourceContainers: sourceIds, batchQuantity: 1, requirements: supply });
+  }
   for (const { row, process, requirements } of waiting) {
     const ready = requirements.inputs.every(input => {
       const port = `${process.station}:${input.port}`;
