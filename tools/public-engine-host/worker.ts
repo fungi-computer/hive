@@ -40,6 +40,7 @@ type Environment = {
   REGIONS: DurableObjectNamespace;
   IMPLEMENTATION_HASH: string;
   PUBLIC_ORIGIN: string;
+  TEST_FAILURE_AFTER_JOIN?: string;
 };
 type HostRow = {
   singleton: number;
@@ -652,6 +653,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const command = { id: `join:${credentialHash}`, command: { kind: "action", action: { kind: "establish-party", bindingId: credentialHash.slice(0, 96), player, party, records: plan.records } } };
         this.resident.begin(this.region.readCommitted().revision, this.region.readCommitted().state, this.residentRecords(this.region.readCommitted().revision));
         this.region.dispatch("colony-host", command);
+        if (this.hostEnv.TEST_FAILURE_AFTER_JOIN === "1") throw new Error("test-join-injected-failure");
         this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, principal, player, party);
         return { binding: { credential_hash: credentialHash, principal, player_id: player, party_id: party } satisfies ParticipantRow, created: true };
       });
