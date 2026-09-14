@@ -1,4 +1,4 @@
-import { system, type QueryRow } from "./authoring";
+import { system } from "./authoring";
 import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
@@ -22,6 +22,7 @@ import type {
   ConstructionAccessContact,
   EntityId,
   MoveDestination,
+  QueryRow,
   WorldPose,
   WriteContext,
 } from "../contracts";
@@ -48,8 +49,8 @@ function validateOptions(options: ConstructionWorkOptions): void {
     if (typeof worker !== "string")
       throw new Error("invalid construction worker");
 }
-function target(contact: ConstructionAccessContact): MoveDestination {
-  return { x: contact.x, y: contact.y, z: contact.z, frame: contact.frame };
+function target(contact: ConstructionAccessContact): ConstructionAccessContact {
+  return contact;
 }
 function exactContact(a: MoveDestination, b: MoveDestination): boolean {
   return a.x === b.x && a.y === b.y && a.z === b.z && a.frame === b.frame;
@@ -241,7 +242,7 @@ export function constructionWorkProvider(
                 : null
               : null;
         const selected =
-          current && ar?.contacts.some((c) => exactContact(current, target(c)));
+          current && ar?.contacts.find((c) => exactContact(current, target(c)));
         if (
           a.phase.kind === "executing" &&
           (!ar || ar.support !== "ready" || !selected)
@@ -255,7 +256,7 @@ export function constructionWorkProvider(
           continue;
         }
         if (a.phase.kind !== "outcome") continue;
-        const contact = current;
+        const contact = selected || null;
         if (a.phase.result.kind !== "completed") {
           if (state.phase === "working")
             ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });

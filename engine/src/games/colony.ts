@@ -367,7 +367,7 @@ export const colonyPack: GamePack = {
         const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
         const id = entity(`colony.water-demand.${revision}`);
         return { actions: [], writes: [], creates: [{ id, components: {
-          [WaterSupplyOrder.id]: { revision, process: null, party: context.scope.kind === "party" ? context.scope.party : null },
+          [WaterSupplyOrder.id]: { revision, process: null, party: context.scope.kind === "player" ? context.scope.party : null },
           [WaterSupplyWork.id]: { request: revision, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
         } }] };
       },
@@ -516,17 +516,18 @@ export const colonyPack: GamePack = {
     designateTrees: command({
       title: "Fell selected trees", category: "Colony", description: "Designate standing trees for felling and chopping.",
       localPresentation: { bindings: [{ id: "designate-trees", label: "Fell selected trees", selection: "entities" }] },
-      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing" && (context.scope.kind !== "player" || !context.query(query(OwnedByParty)).some(owner => owner.id === row.id && owner.get(OwnedByParty).party !== context.scope.party))).map(row => row.id),
+      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing").map(row => row.id),
       input: treeSelectionInput,
       reads: [ColonyTree, OwnedByParty], writes: [ColonyTreePolicy, OwnedByParty],
       run(context, input) {
         const selected = new Set(input.entities);
+        const party = context.scope.kind === "player" ? context.scope.party : null;
         const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
         const owners = new Map(context.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
         const selectedRows = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing");
-        if (context.scope.kind === "player" && selectedRows.some(row => owners.get(row.id) && owners.get(row.id) !== context.scope.party))
+        if (party && selectedRows.some(row => owners.get(row.id) && owners.get(row.id) !== party))
           throw new Error("tree belongs to another party");
-        const writes = selectedRows.flatMap(row => [{ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }, ...(context.scope.kind === "player" && !owners.has(row.id) ? [{ component: OwnedByParty.id, entity: row.id, value: { party: context.scope.party } }] : [])]);
+        const writes = selectedRows.flatMap(row => [{ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }, ...(party && !owners.has(row.id) ? [{ component: OwnedByParty.id, entity: row.id, value: { party } }] : [])]);
         if (!writes.length) throw new Error("no standing trees selected");
         return { actions: [], writes };
       },
@@ -535,18 +536,19 @@ export const colonyPack: GamePack = {
       title: "Cancel tree work", category: "Colony", description: "Remove the felling designation from selected trees.",
       localPresentation: { bindings: [{ id: "cancel-trees", label: "Cancel tree work", selection: "entities" }] },
       subjects: context => context.query(query(ColonyTree, ColonyTreePolicy))
-        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped" && (context.scope.kind !== "player" || !context.query(query(OwnedByParty)).some(owner => owner.id === row.id && owner.get(OwnedByParty).party !== context.scope.party)))
+        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped")
         .map(row => row.id),
       input: treeSelectionInput,
       reads: [ColonyTree, ColonyTreePolicy, OwnedByParty], writes: [ColonyTreePolicy],
       run(context, input) {
         const selected = new Set(input.entities);
+        const party = context.scope.kind === "player" ? context.scope.party : null;
         const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
-        if (context.scope.kind === "player" && context.query(query(OwnedByParty)).some(owner => selected.has(owner.id) && owner.get(OwnedByParty).party !== context.scope.party)) throw new Error("tree belongs to another party");
+        if (party && context.query(query(OwnedByParty)).some(owner => selected.has(owner.id) && owner.get(OwnedByParty).party !== party)) throw new Error("tree belongs to another party");
         if (!rows.length) throw new Error("no matching tree");
         const orders = context.query(query(ColonyTreeOrder));
         const attempts = new Map((context.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
-        const actions: ActionRequest[] = orders.flatMap(row => {
+        const actions: ActionRequest[] = orders.flatMap<ActionRequest>(row => {
           const order = row.get(ColonyTreeOrder), attempt = attempts.get(row.id);
           if (!selected.has(order.tree) || !attempt) return [];
           if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" as const }];
@@ -629,11 +631,14 @@ export const colonyPack: GamePack = {
         const actor = excavationAttempts.get(row.id);
         return definition && actor ? [{ actor, kind: "dig" as const, target: [work.x, work.z] as const, progress: Math.max(0, Math.min(1, work.seconds / definition.workSeconds)) }] : [];
       });
-      const construction = context.query(query(ConstructionSite)).flatMap(row => {
+      const constructionSites = context.query(query(ConstructionSite));
+      const constructionAttempts = new Map((context.workAttempts?.(constructionSites.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+      const construction = constructionSites.flatMap(row => {
         const site = row.get(ConstructionSite);
-        if (site.phase !== "working" || site.worker === null) return [];
+        const attempt = constructionAttempts.get(row.id);
+        if (site.phase !== "working" || attempt?.phase.kind !== "executing" || attempt.phase.activity.kind !== "construction") return [];
         const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
-        return definition ? [{ actor: site.worker, kind: "build" as const, target: [site.x, site.z] as const, progress: Math.max(0, Math.min(1, site.seconds / definition.workSeconds)) }] : [];
+        return definition ? [{ actor: attempt.worker, kind: "build" as const, target: [site.x, site.z] as const, progress: Math.max(0, Math.min(1, site.seconds / definition.workSeconds)) }] : [];
       });
       return [...trees, ...excavation, ...construction];
     },
@@ -767,7 +772,7 @@ export const colonyPack: GamePack = {
             return tree ? [{ id: `tree-${order.tree}`, subjects: [order.tree], label: "Tree work", value: `${tree.phase} · ${order.stage} · ${order.phase}` }] : [];
           });
         })(),
-        ...context.query(query(Container, OwnedByParty)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `party-store-${index}`, subjects: [row.id], label: "Party store", value: total(row.id) })),
+        ...[...context.query(query(Container, OwnedByParty))].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `party-store-${index}`, subjects: [row.id], label: "Party store", value: total(row.id) })),
         ...stationFacts,
         { id: "worker-carried", subjects: partyWorkers, label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
         ...partyWorkers.map((worker, index) => ({
@@ -795,7 +800,7 @@ export const colonyPack: GamePack = {
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).status === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
-        ...taskRows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).custody })),
+        ...[...taskRows].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).custody })),
       ];
     },
   },

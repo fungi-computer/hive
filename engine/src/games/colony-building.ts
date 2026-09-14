@@ -66,6 +66,8 @@ export const colonyBuildCommand = command({
   input: buildInput,
   reads: [ConstructionSite, FloorReplacement], writes: [],
   run(context, input) {
+    if (context.scope.kind !== "player")
+      throw new Error("building requires a player party");
     const definition = colonyEnvironment.structures.catalog.find(item => item.id === input.catalog);
     if (!definition) throw new Error("Unknown building");
     const sites = context.query(query(ConstructionSite));
