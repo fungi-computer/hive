@@ -27,10 +27,17 @@ import {
   readSocketMessage,
   socketHandleFromPath,
   colonyWorldRoute,
+  participantPrincipal,
+  colonyBindingId,
+  readColonyJoin,
 } from "./protocol";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
+import { createColonyPartyPlan } from "../../engine/src/games/colony-party";
+import { establishParty } from "../../engine/src/sdk/party";
+import { PartyMember } from "../../engine/src/sdk/party";
+import { query } from "../../engine/src/sdk/authoring";
 
 type Environment = {
   REGIONS: DurableObjectNamespace;
@@ -49,6 +56,8 @@ type HostRow = {
   due_request_json: string | null;
   due_deadline_ms: number | null;
 };
+type WorldRow = { singleton: number; format_version: number; world_handle: string; pack: string; invite_hash: string };
+type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: string };
 type SocketAttachment = {
   readonly pack: PublicPack;
   readonly tokenHash: string;
@@ -175,6 +184,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private resident!: SessionResident;
   private pack!: PublicPack;
   private tokenHash!: string;
+  private worldHandle!: string;
+  private colonyWorld = false;
   private readonly owner: RegionSqliteOwner;
   private initialized = false;
   private startupFailure: string | undefined;
@@ -213,7 +224,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         initSync({ module: wasmBytes });
         if (this.hasHostTable()) {
           const persisted = this.hostRow();
-          if (persisted) await this.initializeCore(persisted.pack as PublicPack, persisted.token_hash);
+          if (persisted) {
+            const world = this.owner.sql.exec<WorldRow>("SELECT * FROM hive_public_world WHERE singleton=1").toArray()[0];
+            if (world) await this.initializeCore(persisted.pack as PublicPack, persisted.token_hash, world.world_handle);
+            else await this.initializeCore(persisted.pack as PublicPack, persisted.token_hash);
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
@@ -223,7 +238,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async initialize(pack: PublicPack, tokenHash: string): Promise<void> {
-    const expectedId = this.hostEnv.REGIONS.idFromName(`${pack}:${tokenHash}`);
+    const expectedId = this.hostEnv.REGIONS.idFromName(worldHandle !== undefined ? `colony-party-v1:${worldHandle}` : `${pack}:${tokenHash}`);
     if (expectedId.toString() !== this.state.id.toString())
       throw new Error("public-capability-conflict");
     if (this.initialized) {
@@ -237,9 +252,24 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     });
   }
 
+  private async initializeColony(world: string, inviteHash: string): Promise<void> {
+    if (!/^[a-f0-9]{64}$/.test(world) || world !== inviteHash) throw new Error("public-unauthorized");
+    const expectedId = this.hostEnv.REGIONS.idFromName(`colony-party-v1:${world}`);
+    if (expectedId.toString() !== this.state.id.toString()) throw new Error("public-capability-conflict");
+    if (this.initialized) {
+      if (!this.colonyWorld || this.worldHandle !== world) throw new Error("public-capability-conflict");
+      return;
+    }
+    await this.state.blockConcurrencyWhile(async () => {
+      if (this.initialized) return;
+      await this.initializeCore("colony", world, world);
+    });
+  }
+
   private async initializeCore(
     pack: PublicPack,
     tokenHash: string,
+    worldHandle?: string,
   ): Promise<void> {
     const game = packFor(pack);
     const hostPrincipal = `${pack}-host`;
@@ -251,11 +281,18 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       ownerPrincipal: playerPrincipal,
       hostPrincipal,
       seed: 17,
+      scopeForPrincipal: (principal) => {
+        if (principal === hostPrincipal) return { kind: "host" };
+        const row = this.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE principal=?", principal).toArray()[0];
+        return row ? { kind: "player", player: row.player_id as never, party: row.party_id as never } : null;
+      },
     });
     this.resident = runtime.resident;
     const program = runtime.program;
     this.pack = pack;
     this.tokenHash = tokenHash;
+    this.worldHandle = worldHandle ?? "";
+    this.colonyWorld = worldHandle !== undefined;
     this.region = openRegion({
       owner: this.owner,
       region: `public-v1-${pack}-${tokenHash.slice(0, 32)}`,
@@ -316,6 +353,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       const paused = this.region.readCommitted().state.session.paused;
       if (stored.paused !== (paused ? 1 : 0))
         throw new Error("public-host-format");
+      if (worldHandle !== undefined) {
+        const world = this.owner.sql.exec<WorldRow>("SELECT * FROM hive_public_world WHERE singleton=1").toArray()[0];
+        if (world && (world.format_version !== 2 || world.world_handle !== worldHandle || world.pack !== pack || world.invite_hash !== worldHandle)) throw new Error("public-capability-conflict");
+        if (!world) this.owner.sql.exec("INSERT INTO hive_public_world VALUES (1,2,?,?,?)", worldHandle, pack, worldHandle);
+      }
     });
     this.initialized = true;
   }
@@ -327,7 +369,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       .exec<HostRow>("SELECT * FROM hive_public_host WHERE singleton=1")
       .toArray()[0];
     if (!row) return;
-    await this.initialize(row.pack as PublicPack, row.token_hash);
+    const world = this.owner.sql.exec<WorldRow>("SELECT * FROM hive_public_world WHERE singleton=1").toArray()[0];
+    if (world) await this.initializeColony(world.world_handle, world.invite_hash);
+    else await this.initialize(row.pack as PublicPack, row.token_hash);
   }
 
   private hostRow(): HostRow | undefined {
@@ -537,17 +581,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return this.publicationQueue.request();
   }
 
-  private async command(input: PublicCommandInput, now: number) {
-    return this.serial(() => this.commandExclusive(input, now));
+  private async command(input: PublicCommandInput, now: number, principal = `${this.pack}-player`) {
+    return this.serial(() => this.commandExclusive(input, now, principal));
   }
 
-  private async commandExclusive(input: PublicCommandInput, now: number) {
+  private async commandExclusive(input: PublicCommandInput, now: number, principal = `${this.pack}-player`) {
     if (commandKind(input) === "step") throw new Error("public-step-forbidden");
     try {
       const result = await this.inTransaction(async () => {
         const committed = this.region.readCommitted();
         this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
-        const receipt = this.region.dispatch(`${this.pack}-player`, input);
+        const receipt = this.region.dispatch(principal, input);
         const current = this.hostRow();
         if (!current) throw new Error("public-host-state");
         validateHostRow(current);
@@ -587,6 +631,45 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       try { this.resident.discard(); } catch {}
       throw error;
     }
+  }
+
+  private async joinColony(credentialHash: string, inviteHash: string, now: number) {
+    return this.serial(async () => {
+      if (!this.colonyWorld) throw new Error("public-capability-conflict");
+      const existing = this.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE credential_hash=?", credentialHash).toArray()[0];
+      if (existing) return { player: existing.player_id, party: existing.party_id, people: this.partyPeople(existing.party_id) };
+      const bindingId = await colonyBindingId(this.worldHandle, credentialHash);
+      const player = `player:${bindingId.slice(0, 24)}`;
+      const party = `party:${bindingId.slice(0, 24)}`;
+      const plan = createColonyPartyPlan(player, party, { x: 10, y: 0, z: 10 });
+      let revision: number | undefined;
+      try {
+        const result = await this.inTransaction(async () => {
+          const recheck = this.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE credential_hash=?", credentialHash).toArray()[0];
+          if (recheck) return { player: recheck.player_id, party: recheck.party_id, people: this.partyPeople(recheck.party_id) };
+          const committed = this.region.readCommitted();
+          this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
+          const receipt = this.region.dispatch(`${this.pack}-host`, { id: `join:${credentialHash}`, command: { kind: "action", action: establishParty(bindingId, player, party, plan.records) } });
+          revision = this.region.readCommitted().revision;
+          const people = plan.people.map(String);
+          this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, participantPrincipal(credentialHash), player, party);
+          await this.arm(this.hostRow()!);
+          return { player, party, people, receipt };
+        });
+        this.resident.accept(revision!);
+        return { player: result.player, party: result.party, people: result.people };
+      } catch (error) {
+        try { this.resident.discard(); } catch {}
+        throw error;
+      }
+    });
+  }
+
+  private partyPeople(party: string): string[] {
+    const committed = this.region.readCommitted();
+    return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session =>
+      session.query(query(PartyMember)).filter(row => row.get(PartyMember).party === party).map(row => String(row.id))
+    );
   }
 
   private async runDue(now: number): Promise<void> {
@@ -762,10 +845,36 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const worldRoute = colonyWorldRoute(pathname);
     const pack = packFromPath(pathname);
     if (worldRoute) {
-      if (worldRoute.operation === "join") {
-        return jsonResponse({ error: "colony-join-not-initialized" }, 503, origin);
+      if (worldRoute.operation === "socket") return jsonResponse({ error: "colony-socket-unavailable" }, 501, origin);
+      try {
+        const credential = tokenFromRequest(request);
+        const credentialHash = await sha256Hex(credential);
+        await this.initializeColony(worldRoute.world, worldRoute.world);
+        if (worldRoute.operation === "join" && request.method === "POST") {
+          const input = await readColonyJoin(request);
+          const inviteHash = await sha256Hex(input.invite);
+          if (inviteHash !== worldRoute.world) throw new Error("public-unauthorized");
+          return jsonResponse(await this.joinColony(credentialHash, inviteHash, Date.now()), 200, origin);
+        }
+        if (worldRoute.operation === "observe" && request.method === "GET") {
+          const participant = this.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE credential_hash=?", credentialHash).toArray()[0];
+          if (!participant) throw new Error("public-unauthorized");
+          await this.renewLease(Date.now());
+          return withCors(await this.observationResponse(), origin);
+        }
+        if (worldRoute.operation === "command" && request.method === "POST") {
+          const participant = this.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE credential_hash=?", credentialHash).toArray()[0];
+          if (!participant) throw new Error("public-unauthorized");
+          const result = await this.command(await readCommand(request), Date.now(), participant.principal);
+          this.state.waitUntil(this.queueObservationPublication());
+          return withCors(Response.json(result.receipt), origin);
+        }
+        return jsonResponse({ error: "not-found" }, 404, origin);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        const status = message === "public-unauthorized" ? 403 : message === "region-command-conflict" ? 409 : message === "public-body-too-large" ? 413 : 400;
+        return jsonResponse({ error: status === 403 ? "forbidden" : status === 409 ? "conflict" : status === 413 ? "body-too-large" : "bad-request" }, status, origin);
       }
-      return jsonResponse({ error: "colony-world-route-unavailable" }, 503, origin);
     }
     if (!pack) return jsonResponse({ error: "not-found" }, 404, origin);
     try {

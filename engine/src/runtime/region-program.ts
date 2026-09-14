@@ -52,7 +52,11 @@ export interface SessionResident {
 
 function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope): unknown {
   switch (command.kind) {
-    case "action": session.request(command.action); return [];
+    case "action":
+      session.request(command.action);
+      // Party establishment is a durable join effect and must settle now.
+      if (command.action.kind === "establish-party") return session.step(0);
+      return [];
     case "command": session.command(command.name, command.input, scope); return [];
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];
@@ -255,7 +259,7 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
     authorize(principal, command) {
       if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action")
         return principal === hostPrincipal;
-      return principal === ownerPrincipal;
+      return principal === ownerPrincipal || options.scopeForPrincipal(principal) !== null;
     },
     execute(candidate, command, records, baseRevision, context) {
       return options.resident.execute(candidate, command, records, baseRevision, context);
