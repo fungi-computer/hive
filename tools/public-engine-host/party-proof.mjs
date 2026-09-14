@@ -16,8 +16,10 @@ const output = resolve(outputArgument);
 const root = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const port = 8790;
 const endpoint = `http://127.0.0.1:${port}`;
-const world = randomBytes(32).toString("hex");
 const invite = randomBytes(32).toString("hex");
+// The v2 world handle is part of the public contract, not an independent
+// random routing key: the host derives it from the invitation.
+const world = createHash("sha256").update(invite).digest("hex");
 const credentialA = randomBytes(32).toString("hex");
 const credentialB = randomBytes(32).toString("hex");
 const configPath = resolve(output, "wrangler.json");
@@ -35,6 +37,15 @@ const sourceInventory = [
   "engine/src/runtime/session.ts",
   "engine/src/runtime/session-record-store.ts",
   "engine/src/runtime/wasm-kernel.ts",
+  "engine/kernel/src/authored_entities.rs",
+  "engine/kernel/src/components.rs",
+  "engine/kernel/src/lib.rs",
+  "engine/kernel/src/party_tests.rs",
+  "engine/kernel/src/record_bundle.rs",
+  "engine/kernel/src/registry.rs",
+  "engine/kernel/src/work_attempt.rs",
+  "engine/kernel/src/world.rs",
+  "engine/generated/hive_kernel.d.ts",
   "engine/generated/hive_kernel.js",
   "engine/generated/hive_kernel_bg.wasm",
 ].sort();
@@ -68,7 +79,7 @@ async function stop() {
   }
   throw new Error("party witness listener did not close");
 }
-async function start({ dropJoinResponse }) {
+async function start() {
   assert.equal(starts < 3, true, "party witness start budget exceeded");
   await freePort();
   starts++;
@@ -139,7 +150,9 @@ function assertJoin(value, label) {
   return row;
 }
 function assertRejected(result, label) {
-  assert.notEqual(result.response.status, 200, `${label} unexpectedly succeeded: ${redact(result.text)}`);
+  const transportRejected = result.response.status >= 400;
+  const receiptRejected = result.response.status === 200 && result.value?.status === "rejected";
+  assert(transportRejected || receiptRejected, `${label} unexpectedly succeeded: ${redact(result.text)}`);
 }
 
 await mkdir(output, { recursive: true });
@@ -154,26 +167,27 @@ try {
     digest.update(relative); digest.update("\0"); digest.update(bytes); digest.update("\0");
     hashes.push({ path: relative, sha256 });
   }
-  await writeFile(resolve(output, "hash-inventory.json"), JSON.stringify({ implementation: digest.digest("hex"), files: hashes }, null, 2));
+  const implementation = digest.digest("hex");
+  await writeFile(resolve(output, "hash-inventory.json"), JSON.stringify({ implementation, files: hashes }, null, 2));
   if (missing.length > 0) {
     await writeFile(resolve(output, "party-proof-diagnostics.json"), JSON.stringify({ status: "preflight-failed", reason: "source-or-generated-artifact-missing", missing }, null, 2));
     throw new Error(`preflight missing source/generated artifact: ${missing.join(", ")}`);
   }
   const config = JSON.parse(await readFile(resolve(root, "tools/public-engine-host/wrangler.json"), "utf8"));
   config.main = resolve(root, "tools/public-engine-host/worker.ts");
-  config.vars = { IMPLEMENTATION_HASH: hashes.find(({ path }) => path === "engine/generated/hive_kernel_bg.wasm")?.sha256, PUBLIC_ORIGIN: endpoint, TEST_DROP_JOIN_RESPONSE: "1" };
+  config.vars = { IMPLEMENTATION_HASH: implementation, PUBLIC_ORIGIN: endpoint, TEST_DROP_JOIN_RESPONSE: "1" };
   await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
 
   // Start 1 commits A's membership but drops both HTTP responses. Restarting
   // the same SQLite state is the lost-ack proof; no second world is created.
-  await start({ dropJoinResponse: true });
+  await start();
   const lost = await Promise.all([join(credentialA), join(credentialA)]);
   assert(lost.every(({ response }) => response.status !== 200), "injected lost join response unexpectedly succeeded");
   await stop();
 
   config.vars.TEST_DROP_JOIN_RESPONSE = "0";
   await writeFile(configPath, JSON.stringify(config), { mode: 0o600 });
-  await start({ dropJoinResponse: false });
+  await start();
   const a = assertJoin(await join(credentialA), "A recovery");
   const aRetry = assertJoin(await join(credentialA), "A retry");
   assert.deepEqual(aRetry, a, "A retry changed its durable party membership");
@@ -192,20 +206,45 @@ try {
   assertRejected(await command(credentialA, "party-forged-pause", { kind: "pause" }), "player global pause");
   assertRejected(await command(credentialA, "party-forged-native", { kind: "action", action: { kind: "pause" }, scope: { kind: "host" } }), "forged native/global scope");
 
-  const digCell = before.observation.terrain.surfaces?.[0]?.cell;
+  const aInitial = await observe(credentialA);
+  const aPerson = a.people.map((id) => facts(aInitial).find((row) => row.id === id)).find((row) => row?.pose?.position);
+  assert(aPerson?.pose?.position, "A people have no observed positions");
+  const aPosition = aPerson.pose.position;
+  const digCell = before.observation.terrain.surfaces
+    ?.slice()
+    .sort((left, right) => (left.cell[0] - aPosition.x) ** 2 + (left.cell[2] - aPosition.z) ** 2 - ((right.cell[0] - aPosition.x) ** 2 + (right.cell[2] - aPosition.z) ** 2))[0]?.cell;
   assert(Array.isArray(digCell) && digCell.length === 3, "party dig witness has no generated surface");
   const dig = await command(credentialA, "party-a-dig", {
     kind: "command", name: "dig", input: { area: { start: digCell, end: digCell } },
   });
   assert.equal(dig.response.status, 200, `A ordinary work enqueue failed: ${redact(dig.text)}`);
+  assert.equal(dig.value?.status, "applied", `A ordinary work was rejected: ${redact(dig.text)}`);
   const afterEnqueue = await observe(credentialA);
-  await delay(1500); // A is intentionally idle; B renews the shared Region lease below.
-  const bRenew = await observe(credentialB);
-  const afterTick = await observe(credentialB);
-  assert(afterTick.revision > afterEnqueue.revision || afterTick.observation.time > afterEnqueue.observation.time, "A work did not advance while A was disconnected");
-  assert(terrainMarkIds(afterTick).some((id) => id.startsWith("colony.dig.")), "A queued work disappeared while disconnected");
+  const digId = `colony.dig.${digCell[0]}.${digCell[1]}.${digCell[2]}`;
+  const mark = (observation) => observation.observation.terrainMarks?.find((row) => row.id === digId);
+  const initialMark = mark(afterEnqueue);
+  assert(initialMark, "A dig did not publish its exact order");
+  let bRenew;
+  let afterTick;
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    await delay(200);
+    // A makes no requests in this interval. B alone keeps the shared Region
+    // lease alive and reads the exact order's durable status.
+    bRenew = await observe(credentialB);
+    const currentMark = mark(bRenew);
+    const surface = bRenew.observation.terrain.surfaces?.find(({ cell }) => cell[0] === digCell[0] && cell[2] === digCell[2]);
+    if ((currentMark && currentMark.status !== initialMark.status) || (surface && surface.cell[1] < digCell[1])) {
+      afterTick = bRenew;
+      break;
+    }
+  }
+  assert(afterTick, "A queued work did not advance while A was disconnected");
+  assert(mark(afterTick) || afterTick.observation.terrain.surfaces?.some(({ cell }) => cell[0] === digCell[0] && cell[2] === digCell[2]), "A exact dig order disappeared while disconnected");
   const aReconnected = await observe(credentialA);
-  assert.deepEqual(terrainMarkIds(aReconnected), terrainMarkIds(afterTick), "A reconnect did not restore the same world projection");
+  assert.deepEqual(mark(aReconnected), mark(afterTick), "A reconnect did not restore the exact dig order state");
+  assert.deepEqual(terrainMarkIds(aReconnected), terrainMarkIds(afterTick), "A reconnect did not restore the same order IDs");
+  assert.deepEqual(aReconnected.observation.terrain.surfaces?.find(({ cell }) => cell[0] === digCell[0] && cell[2] === digCell[2]), afterTick.observation.terrain.surfaces?.find(({ cell }) => cell[0] === digCell[0] && cell[2] === digCell[2]), "A reconnect changed the dig world state");
   assert(aReconnected.revision >= afterTick.revision, "A reconnect regressed world revision");
   const witness = { world, a, b, beforeRevision: before.revision, dig: dig.value, afterEnqueueRevision: afterEnqueue.revision, bRenewRevision: bRenew.revision, afterTickRevision: afterTick.revision, reconnectedRevision: aReconnected.revision };
   await writeFile(resolve(output, "party-proof-witness.json"), JSON.stringify(witness, null, 2));
