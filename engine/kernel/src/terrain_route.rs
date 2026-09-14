@@ -200,6 +200,10 @@ pub fn search_any_with_blocked_and_stairs_and_crossings(
                 let target = if stair.entrance == cell(*current) { stair.landing }
                     else if stair.landing == cell(*current) { stair.entrance }
                     else { continue };
+                // Stair endpoints are represented as solid derived geometry;
+                // the stair transition itself owns that occupied landing.
+                // Ordinary blocked cells remain filtered by the traversal
+                // query and crossing law.
                 if blocked(target) || crossing_blocked(cell(*current), target) { continue; }
                 if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
                     match edge_cost(cell(*current), next.support, config.spacing, stairs) {

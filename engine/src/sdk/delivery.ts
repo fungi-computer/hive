@@ -351,12 +351,7 @@ export function deliveryProvider(
       if (lot.container !== worker && !hasCapacity(worker, state.quantity))
         continue;
       const pose = poses.get(worker);
-      if (
-        !pose ||
-        pose.support !== source.support ||
-        pose.support !== destination.support
-      )
-        continue;
+      if (!pose) continue;
       candidates.push({
         worker,
         task: id,

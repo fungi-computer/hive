@@ -293,7 +293,10 @@ impl Kernel {
             let mut cells = [edge.cell, edge.neighbor()?];
             cells.iter_mut().for_each(|cell| cell.y = walking_y);
             return Ok(cells.into_iter().map(|cell| {
-                (cell, [cell.x as f64 * spacing[0], (f64::from(cell.y) + 0.5) * spacing[1], cell.z as f64 * spacing[2]], "edge")
+                // A wall has one construction side class.  The contact wire
+                // reserves `origin` for that class; `landing` is reserved
+                // for the upper endpoint of a stair.
+                (cell, [cell.x as f64 * spacing[0], (f64::from(cell.y) + 0.5) * spacing[1], cell.z as f64 * spacing[2]], "origin")
             }).collect());
         }
         let ConstructionTarget::Cell { cell: origin, orientation } = site.target else { unreachable!() };
@@ -326,6 +329,9 @@ impl Kernel {
             let Some(z) = i64::from(dz).checked_mul(i64::from(*run)).and_then(|offset| origin.z.checked_add(offset)) else { return Ok(Vec::new()); };
             endpoints.push((x, y, z, "landing"));
         }
+        let origin_has_surface = matches!(definition.shape, crate::environment_definition::StructureShape::Stair { .. })
+            && self.environment.as_ref()
+                .is_some_and(|environment| environment.world.structure_projection_snapshot().supports(origin));
         let raw_candidates = endpoints.into_iter().flat_map(|(ex, endpoint_y, ez, kind)| {
             let cardinal = [(0_i64, -1_i64), (1, 0), (0, 1), (-1, 0)];
             let center_and_cardinals = move |y: i32, include_center: bool| {
@@ -333,7 +339,11 @@ impl Kernel {
                     Some((crate::generation::Cell { x: ex.checked_add(x)?, y, z: ez.checked_add(z)? }, [(ex.checked_add(x)? as f64) * spacing[0], (f64::from(y) + 0.5) * spacing[1], (ez.checked_add(z)? as f64) * spacing[2]], kind))
                 }))
             };
-            let depth0 = center_and_cardinals(endpoint_y, false);
+            // A stair origin normally is its open entrance, so terrain rooted
+            // stairs retain perimeter contacts.  When an upper stair starts
+            // on a committed floor, the floor cell itself is the lawful
+            // upper entrance and must remain reachable for hauling.
+            let depth0 = center_and_cardinals(endpoint_y, kind == "origin" && origin_has_surface);
             let lower = (1..=definition.work_reach_below_cells).filter_map(move |depth| endpoint_y.checked_sub(i32::try_from(depth).ok()?)).flat_map(move |y| center_and_cardinals(y, true));
             depth0.chain(lower)
         });

@@ -422,6 +422,16 @@ impl GeometryProjection {
             else { (to, FaceAxis::Z) };
         Ok(self.is_face_sealed(Face { cell, axis }))
     }
+    fn blocks_crossing_except_stair(&self, from: Cell, to: Cell, ignored: &BTreeSet<Cell>) -> Result<bool, String> {
+        let dx = i128::from(to.x) - i128::from(from.x);
+        let dz = i128::from(to.z) - i128::from(from.z);
+        if from.y != to.y || dx.abs() + dz.abs() != 1 { return Err("structure crossing must be one cardinal horizontal step".into()); }
+        let (cell, axis) = if dx > 0 { (from, FaceAxis::X) } else if dx < 0 { (to, FaceAxis::X) } else if dz > 0 { (from, FaceAxis::Z) } else { (to, FaceAxis::Z) };
+        let face = Face { cell, axis };
+        if self.explicit_faces.contains(&face) { return Ok(true); }
+        Ok((self.solids.contains(&face.cell) && !ignored.contains(&face.cell))
+            || face.neighbor().is_ok_and(|neighbor| self.solids.contains(&neighbor) && !ignored.contains(&neighbor)))
+    }
     /// Validate the occupied body layer above one admitted support edge.
     /// Terrain routes store support cells; an edge wall begins in the first
     /// open voxel above that support.
@@ -432,6 +442,13 @@ impl GeometryProjection {
             let (mut dx, mut dz) = stair.orientation.delta();
             let run = i64::from(stair.run);
             if run == 0 { return Err("stair sweep has zero run".into()); }
+            let (sdx, sdz) = stair.orientation.delta();
+            let ignored = (1..=run).map(|index| {
+                let x = stair.entrance.x.checked_add(sdx.checked_mul(index).ok_or("stair sweep x overflow")?).ok_or("stair sweep x overflow")?;
+                let z = stair.entrance.z.checked_add(sdz.checked_mul(index).ok_or("stair sweep z overflow")?).ok_or("stair sweep z overflow")?;
+                let y = stair.entrance.y.checked_add(i32::try_from(index.checked_mul(i64::from(stair.rise)).ok_or("stair sweep height overflow")? / run).map_err(|_| "stair sweep height overflow")?).ok_or("stair sweep height overflow")?;
+                Ok(Cell { x, y, z })
+            }).collect::<Result<BTreeSet<_>, String>>()?;
             let rise = if forward { i64::from(stair.rise) } else { -i64::from(stair.rise) };
             if !forward { dx = -dx; dz = -dz; }
             for step in 0..run {
@@ -444,7 +461,7 @@ impl GeometryProjection {
                 let high = y0.max(y1);
                 for support_y in low..=high {
                     let y = support_y.checked_add(1).ok_or("structure sweep height overflow")?;
-                    if self.blocks_crossing(Cell { y, ..Cell { x, y: start.y, z } }, Cell { y, ..next })? { return Ok(true); }
+                    if self.blocks_crossing_except_stair(Cell { y, ..Cell { x, y: start.y, z } }, Cell { y, ..next }, &ignored)? { return Ok(true); }
                 }
             }
             return Ok(false);
@@ -829,6 +846,25 @@ mod tests {
             id: "stair-wall".into(), edge: Face { cell: Cell { x: 1, y: 2, z: 0 }, axis: FaceAxis::X }, height: 1,
         }]).unwrap().projection().unwrap();
         let stair = StairEdge { id: "stair".into(), entrance: Cell { x: 0, y: 0, z: 0 }, landing: Cell { x: 2, y: 2, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        assert!(projection.blocks_swept_transition(stair.entrance, stair.landing, &[stair]).unwrap());
+    }
+
+    #[test]
+    fn swept_stair_allows_its_own_derived_steps() {
+        let stair = StairEdge { id: "stair".into(), entrance: Cell { x: 0, y: 0, z: 0 }, landing: Cell { x: 2, y: 2, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        let projection = StaticGeometry::new(bounds(), vec![StaticInstance::Stair {
+            id: "stair".into(), origin: stair.entrance, orientation: stair.orientation, run: stair.run, rise: stair.rise,
+        }]).unwrap().projection().unwrap();
+        assert!(!projection.blocks_swept_transition(stair.entrance, stair.landing, &[stair]).unwrap());
+    }
+
+    #[test]
+    fn swept_stair_still_blocks_a_foreign_wall() {
+        let stair = StairEdge { id: "stair".into(), entrance: Cell { x: 0, y: 0, z: 0 }, landing: Cell { x: 2, y: 2, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        let projection = StaticGeometry::new(bounds(), vec![
+            StaticInstance::Stair { id: "stair".into(), origin: stair.entrance, orientation: stair.orientation, run: stair.run, rise: stair.rise },
+            StaticInstance::Wall { id: "wall".into(), edge: Face { cell: Cell { x: 1, y: 2, z: 0 }, axis: FaceAxis::X }, height: 1 },
+        ]).unwrap().projection().unwrap();
         assert!(projection.blocks_swept_transition(stair.entrance, stair.landing, &[stair]).unwrap());
     }
 
