@@ -266,6 +266,8 @@ pub struct Snapshot {
     pub routes: Vec<RouteSnapshot>,
     pub direct: Vec<DirectSnapshot>,
     pub projectile_contacts: Vec<ProjectileContactsSnapshot>,
+    pub next_work_generation: u64,
+    pub work_attempts: Vec<crate::work_attempt::WorkAttempt>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -334,6 +336,9 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
+    InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },
+    AcknowledgeWorkAttempt { task: String, generation: u64, sequence: u32 },
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
     AttendProcess { worker: String, process: String },
@@ -409,6 +414,8 @@ pub struct ActionResult {
     pub launch_point: Option<Vector3>,
     #[serde(rename = "entityId", skip_serializing_if = "Option::is_none")]
     pub entity_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attempt: Option<crate::work_attempt::AttemptKey>,
 }
 pub fn valid_id(s: &str) -> bool {
     !s.is_empty()

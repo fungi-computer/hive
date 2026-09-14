@@ -45,6 +45,7 @@ use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 use crate::terrain_water::WaterExchangeDirection;
+use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -59,7 +60,65 @@ struct ImpactEvent {
     normal: Vector3,
     velocity: Vector3,
 }
-enum ActionEffect { None, Entity(String), Projectile(String, Vector3) }
+
+#[cfg(test)]
+mod work_attempt_laws {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn world() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
+            {"id":"task","components":{}},{"id":"task2","components":{}},{"id":"worker","components":{"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{}}
+        ]}).to_string()).unwrap();
+        kernel
+    }
+
+    #[test]
+    fn exact_attempt_survives_restore_and_stale_key_cannot_touch_new_attempt() {
+        let mut kernel = world();
+        let begin = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}]}).to_string()).unwrap();
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&saved).unwrap();
+        assert_eq!(restored.work_attempts_json("[\"task\"]").unwrap(), kernel.work_attempts_json("[\"task\"]").unwrap());
+        let key = serde_json::from_str::<Value>(&begin).unwrap()["results"][0]["attempt"].clone();
+        restored.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
+        let retained: Value = serde_json::from_str(&restored.work_attempts_json("[\"task\"]").unwrap()).unwrap();
+        assert_eq!(retained[0]["phase"]["kind"], "outcome");
+        let reassigned: Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(reassigned["results"][0]["accepted"], true);
+        let task2_key = reassigned["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"interrupt-work-attempt","task":"task2","generation":task2_key,"sequence":1,"cause":"cancelled"}]}).to_string()).unwrap();
+        restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"acknowledge-work-attempt","task":"task","generation":key["generation"],"sequence":1}]}).to_string()).unwrap();
+        let replacement = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}]}).to_string()).unwrap();
+        let new_generation = serde_json::from_str::<Value>(&replacement).unwrap()["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        assert!(new_generation > key["generation"].as_u64().unwrap());
+        let stale = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"interrupt-work-attempt","task":"task","generation":key["generation"],"sequence":1,"cause":"cancelled"}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<Value>(&stale).unwrap()["results"][0]["accepted"], false);
+        let stale_ack = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"acknowledge-work-attempt","task":"task","generation":key["generation"],"sequence":1}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<Value>(&stale_ack).unwrap()["results"][0]["accepted"], false);
+        assert_eq!(restored.work_attempts_json("[\"task\"]").unwrap().contains(&new_generation.to_string()), true);
+    }
+
+    #[test]
+    fn interrupt_clears_owned_route_and_releases_worker_without_ack() {
+        let mut kernel = world();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":10.0,"y":0.0,"z":0.0,"frame":null}}}]}).to_string()).unwrap()).unwrap();
+        let key = &begin["results"][0]["attempt"];
+        let interrupted: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"interrupt-work-attempt","task":"task","generation":key["generation"],"sequence":1,"cause":"cancelled"}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(interrupted["results"][0]["accepted"], true);
+        let position: Value = serde_json::from_str(&kernel.query_json("[\"hive.position\"]").unwrap()).unwrap();
+        assert_eq!(position[0]["components"]["hive.position"]["x"], 0.0);
+        assert!(kernel.query_json("[\"hive.destination\"]").unwrap().contains("[]"));
+        kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
+        let after: Value = serde_json::from_str(&kernel.query_json("[\"hive.position\"]").unwrap()).unwrap();
+        assert_eq!(after[0]["components"]["hive.position"]["x"], 0.0);
+        let next: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(next["results"][0]["accepted"], true);
+    }
+}
+enum ActionEffect { None, Entity(String), Projectile(String, Vector3), Attempt(AttemptKey) }
 enum PreparedWaterMaterial { Output(PreparedMaterialOutput), Consumption(PreparedConsumption) }
 
 #[cfg(test)]
@@ -1100,6 +1159,10 @@ pub struct Kernel {
     material_consumption_owner: Arc<()>,
     ground_stock_cleanup_pending: bool,
     bound_process_lots: BTreeSet<String>,
+    next_work_generation: u64,
+    work_attempts: BTreeMap<String, Entity>,
+    attempts_by_worker: BTreeMap<String, AttemptKey>,
+    arrived_routes: BTreeSet<Entity>,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -1223,6 +1286,10 @@ impl Kernel {
             material_consumption_owner: Arc::new(()),
             ground_stock_cleanup_pending: false,
             bound_process_lots: BTreeSet::new(),
+            next_work_generation: 1,
+            work_attempts: BTreeMap::new(),
+            attempts_by_worker: BTreeMap::new(),
+            arrived_routes: BTreeSet::new(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -2279,7 +2346,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 7,
+            version: 8,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -2298,6 +2365,8 @@ impl Kernel {
                 projectile_id: projectile_id.clone(),
                 targets: targets.iter().cloned().collect(),
             }).collect(),
+            next_work_generation: self.next_work_generation,
+            work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -2308,7 +2377,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 7
+            || state.version != 8
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -2374,6 +2443,30 @@ impl Kernel {
         candidate.next_lot = state.next_lot;
         candidate.next_projectile = state.next_projectile;
         candidate.next_impact = state.next_impact;
+        if state.next_work_generation == 0 || state.work_attempts.len() > 16384 {
+            return Err("invalid work attempt snapshot".into());
+        }
+        let mut attempts = BTreeMap::new();
+        for attempt in state.work_attempts {
+            if !valid_id(&attempt.key.task) || !valid_id(&attempt.worker) || !valid_id(&attempt.party)
+                || !candidate.ids.contains_key(&attempt.key.task) || !candidate.ids.contains_key(&attempt.worker)
+                || !candidate.ids.contains_key(&attempt.party) || attempt.key.generation == 0
+                || attempts.insert(attempt.key.task.clone(), attempt).is_some() {
+                return Err("invalid work attempt ownership".into());
+            }
+        }
+        for attempt in attempts.values() {
+            if let Some(operation) = attempt.current_operation() {
+                if operation.attempt != attempt.key || operation.sequence == 0 { return Err("invalid work attempt operation".into()); }
+            }
+        }
+        candidate.next_work_generation = state.next_work_generation;
+        for (task, attempt) in attempts {
+            let entity = candidate.entity(&task)?;
+            candidate.ecs.entity_mut(entity).insert(attempt.clone());
+            candidate.work_attempts.insert(task, entity);
+            if candidate.attempts_by_worker.insert(attempt.worker.clone(), attempt.key.clone()).is_some() { return Err("competing work attempt workers".into()); }
+        }
         for id in candidate.ids.keys() {
             if let Some(sequence) = id.strip_prefix("shot.").and_then(|value| value.parse::<u64>().ok()) {
                 if sequence >= candidate.next_projectile {
@@ -2497,6 +2590,7 @@ impl Kernel {
             || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
+                    | Action::BeginWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
@@ -2537,7 +2631,8 @@ impl Kernel {
                     accepted: result.is_ok(),
                     projectile_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(id, _) => Some(id.clone()), _ => None }),
                     launch_point: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(_, point) => Some(*point), _ => None }),
-                    entity_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Entity(id) | ActionEffect::Projectile(id, _) => Some(id.clone()), ActionEffect::None => None }),
+                    entity_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Entity(id) | ActionEffect::Projectile(id, _) => Some(id.clone()), ActionEffect::None | ActionEffect::Attempt(_) => None }),
+                    attempt: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Attempt(key) => Some(key.clone()), _ => None }),
                     reason: result.err(),
                     revision: self.revision,
                 }
@@ -2551,6 +2646,7 @@ impl Kernel {
         self.advance_excavation(batch.delta)?;
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
+        self.settle_arrived_work_attempts();
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.advance_staged_processes(batch.delta)?;
         self.cleanup_empty_ground_stock();
@@ -2558,6 +2654,23 @@ impl Kernel {
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
         if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work.water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(work.air).map_err(|e| e.to_string())?; }
         serde_json::to_string(&output).map_err(|e| e.to_string())
+    }
+    fn settle_arrived_work_attempts(&mut self) {
+        let arrived: Vec<(String, AttemptPhase)> = self.work_attempts.iter().filter_map(|(task, entity)| {
+            let attempt = self.ecs.get::<WorkAttempt>(*entity)?;
+            let worker = self.entity(&attempt.worker).ok()?;
+            if !matches!(attempt.phase, AttemptPhase::Executing { .. }) || !self.arrived_routes.contains(&worker) { return None; }
+            let operation = attempt.current_operation()?.clone();
+            Some((task.clone(), AttemptPhase::Outcome { operation, result: WorkOutcome::Completed }))
+        }).collect();
+        for (task, phase) in arrived { let _ = self.settle_attempt(&task, phase); }
+    }
+    fn settle_attempt(&mut self, task: &str, phase: AttemptPhase) -> Result<()> {
+        let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
+        let worker = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.worker.clone();
+        self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = phase;
+        self.attempts_by_worker.remove(&worker);
+        Ok(())
     }
     fn entity(&self, id: &str) -> Result<Entity> {
         self.ids
@@ -3103,8 +3216,74 @@ impl Kernel {
         serde_json::to_string(&requirements).map_err(|error| error.to_string())
     }
 
+    pub fn work_attempts_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        let tasks: Vec<String> = serde_json::from_str(input).map_err(|e| e.to_string())?;
+        if tasks.is_empty() || tasks.len() > 128 || tasks.iter().any(|id| !valid_id(id)) { return Err("invalid work attempt query".into()); }
+        let rows = tasks.into_iter().filter_map(|task| self.work_attempts.get(&task).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity))).cloned().collect::<Vec<_>>();
+        serde_json::to_string(&rows).map_err(|e| e.to_string())
+    }
+    fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
+        if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
+        if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
+        let generation = self.next_work_generation;
+        self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
+        let key = AttemptKey { task: task.clone(), generation };
+        let operation = OperationKey { attempt: key.clone(), sequence: 1 };
+        if let crate::work_attempt::ActivityRef::Route { destination } = &activity {
+            let actor = self.entity(&worker)?;
+            let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
+            self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
+            let route = self.route_for(actor, position, destination)?;
+            self.direct.remove(&actor);
+            self.ecs.entity_mut(actor).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+            self.install_route(actor, route);
+        }
+        let entity = self.entity(&key.task)?;
+        self.ecs.entity_mut(entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
+        self.work_attempts.insert(task, entity);
+        self.attempts_by_worker.insert(worker.clone(), key.clone());
+        Ok(key)
+    }
+    fn attempt_mut(&mut self, task: &str, generation: u64, sequence: u32) -> Result<&mut WorkAttempt> {
+        let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
+        let mut attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
+        if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
+        let operation = attempt.current_operation().ok_or("work attempt has no operation")?;
+        if operation.sequence != sequence { return Err("unexpected work attempt sequence".into()); }
+        Ok(attempt.into_inner())
+    }
+    fn interrupt_work_attempt(&mut self, task: String, generation: u64, sequence: u32, cause: InterruptCause) -> Result<()> {
+        let worker = self.attempt_mut(&task, generation, sequence)?.worker.clone();
+        let entity = self.entity(&worker)?;
+        if let Some(destination) = self.ecs.get::<Destination>(entity).cloned() {
+            if let Some(attempt_entity) = self.work_attempts.get(&task).copied() {
+                if let Some(WorkAttempt { phase: AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { destination: expected }, .. }, .. }) = self.ecs.get::<WorkAttempt>(attempt_entity) {
+                    if destination.x == expected.x && destination.y == expected.y && destination.z == expected.z && destination.frame == expected.frame { self.clear_destination(entity); }
+                }
+            }
+        }
+        let attempt = self.attempt_mut(&task, generation, sequence)?;
+        if !matches!(&attempt.phase, AttemptPhase::Executing { .. }) { return Err("work attempt operation is already settled".into()); }
+        let operation = OperationKey { attempt: attempt.key.clone(), sequence };
+        self.settle_attempt(&task, AttemptPhase::Outcome { operation, result: WorkOutcome::Interrupted { cause } })
+    }
+    fn acknowledge_work_attempt(&mut self, task: String, generation: u64, sequence: u32) -> Result<()> {
+        {
+            let attempt = self.attempt_mut(&task, generation, sequence)?;
+            if !matches!(&attempt.phase, AttemptPhase::Outcome { .. }) { return Err("work attempt has no terminal outcome".into()); }
+        }
+        let entity = self.work_attempts.remove(&task).ok_or("work attempt is not current")?;
+        let worker = self.ecs.get::<WorkAttempt>(entity).map(|attempt| attempt.worker.clone());
+        self.ecs.entity_mut(entity).remove::<WorkAttempt>();
+        if let Some(worker) = worker { self.attempts_by_worker.remove(&worker); }
+        Ok(())
+    }
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
+            Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
+            Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
+            Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
             Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
@@ -3926,6 +4105,7 @@ impl Kernel {
     }
 
     fn advance_movement(&mut self, delta: f64) -> Result<()> {
+        self.arrived_routes.clear();
         self.invalidate_terrain_routes()?;
         self.recover_invalidated_terrain_routes()?;
         self.routes.retain(|entity, path| {
@@ -3955,6 +4135,7 @@ impl Kernel {
             p.facing = target.facing;
             self.ecs.entity_mut(*entity).insert(p);
             if path.is_empty() {
+                self.arrived_routes.insert(*entity);
                 self.state_weight -= self.registry.weight("hive.destination", &record(&target));
                 self.ecs.entity_mut(*entity).remove::<Destination>();
                 false
