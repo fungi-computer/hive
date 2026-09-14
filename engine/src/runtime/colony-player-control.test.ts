@@ -4,21 +4,28 @@ import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { entity, query } from "../sdk/authoring";
+import { query } from "../sdk/authoring";
 import { ExcavationWork, MaterialLot, Destination } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { WorkParticipation } from "../sdk/work-control";
+import { PartyMember } from "../sdk/party";
+import { Worker } from "../games/colony-components";
 import { colonyPack, ColonyDigOrder } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
+function localWorkers(session: GameSession): readonly [string, string] {
+  const workers = session.query(query(Worker, PartyMember)).map((row) => row.id).sort();
+  assert.equal(workers.length, 2, "local Colony session must establish two workers");
+  return [workers[0]!, workers[1]!];
+}
+
 test("Colony Go takes carrying work manual and Resume work restores automatic participation", () => {
   const port = wasmKernelPort(new WasmKernel());
   const session = new GameSession({ port, pack: colonyPack });
-  const worker = entity("colony.worker.1");
-  const other = entity("colony.worker.2");
   try {
     session.start();
+    const [worker, other] = localWorkers(session);
     session.command("deliver", { entities: [worker, other], quantity: 1 });
     let taskId: string | undefined;
     let otherTaskId: string | undefined;
@@ -79,10 +86,9 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
 test("Colony Go cancels active digging without losing the order or terrain", () => {
   const port = wasmKernelPort(new WasmKernel());
   const session = new GameSession({ port, pack: colonyPack });
-  const worker = entity("colony.worker.1");
-  const other = entity("colony.worker.2");
   try {
     session.start();
+    const [worker, other] = localWorkers(session);
     session.command("draft", { entities: [other] });
     session.command("go", { entities: [other], destination: { x: 0, y: 0, z: 2, frame: null } });
     session.step(0);
