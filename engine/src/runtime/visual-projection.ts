@@ -1,4 +1,4 @@
-import type { EntityId, Pose, RenderFact } from "../contracts";
+import type { CardinalOrientation, EntityId, Pose, RenderFact, VisualPlacement } from "../contracts";
 
 /** Read-only art projection for a real entity whose display origin differs from its work contact. */
 export interface EntityVisualProjection {
@@ -7,6 +7,29 @@ export interface EntityVisualProjection {
   readonly visual: string;
   readonly label: string;
   readonly cutawayTop?: number;
+  readonly placement?: VisualPlacement;
+}
+
+const orientations = new Set<CardinalOrientation>(["north", "east", "south", "west"]);
+const finiteBounded = (value: unknown): value is number =>
+  typeof value === "number" && Number.isFinite(value) && Math.abs(value) <= 64;
+const cell = (value: unknown): value is readonly [number, number] =>
+  Array.isArray(value) && value.length === 2 && value.every(item => Number.isSafeInteger(item) && Math.abs(item) <= 8);
+const point = (value: unknown): value is readonly [number, number, number] =>
+  Array.isArray(value) && value.length === 3 && value.every(finiteBounded);
+
+export function validVisualPlacement(value: unknown): value is VisualPlacement {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const placement = value as Record<string, unknown>;
+  if (!orientations.has(placement.orientation as CardinalOrientation)) return false;
+  if (placement.kind === "footprint") {
+    if (Object.keys(placement).some(key => !["kind", "footprint", "orientation"].includes(key)) ||
+      !Array.isArray(placement.footprint) || placement.footprint.length < 1 || placement.footprint.length > 16 ||
+      !placement.footprint.every(cell)) return false;
+    return new Set(placement.footprint.map(([x, z]) => `${x},${z}`)).size === placement.footprint.length;
+  }
+  return placement.kind === "stair" && Object.keys(placement).every(key => ["kind", "entrance", "landing", "orientation"].includes(key)) &&
+    point(placement.entrance) && point(placement.landing);
 }
 
 export function appendVisualProjections(
@@ -27,6 +50,7 @@ export function appendVisualProjections(
     if (original && (original.visual || original.collision || original.direct || original.aim || original.support))
       throw new Error("visual projection cannot replace an existing visual or dynamic body");
     if (projection.cutawayTop !== undefined && !Number.isSafeInteger(projection.cutawayTop)) throw new Error("invalid visual cutaway level");
+    if (projection.placement !== undefined && !validVisualPlacement(projection.placement)) throw new Error("invalid visual placement");
     const point = projection.pose?.position;
     if (!point || ![point.x, point.y, point.z, projection.pose.facing].every(Number.isFinite) ||
       typeof projection.visual !== "string" || !projection.visual || projection.visual.length > 128 ||
@@ -41,6 +65,8 @@ export function appendVisualProjections(
   }
   if (physical.length + projections.filter(item => !existing.has(item.id)).length > limit) throw new Error("combined visual projection exceeds bound");
   for (const item of projections) existing.set(item.id, { ...existing.get(item.id), id: item.id, visual: item.visual, label: item.label,
-    pose: { position: { ...item.pose.position }, facing: item.pose.facing }, view: { pickable: false, ...(item.cutawayTop === undefined ? {} : { cutawayTop: item.cutawayTop }) } });
+    pose: { position: { ...item.pose.position }, facing: item.pose.facing },
+    ...(item.placement === undefined ? {} : { placement: structuredClone(item.placement) }),
+    view: { pickable: false, ...(item.cutawayTop === undefined ? {} : { cutawayTop: item.cutawayTop }) } });
   return [...existing.values()];
 }

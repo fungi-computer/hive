@@ -488,6 +488,18 @@ export interface CollisionFact {
     readonly embedSpeed: number;
   };
 }
+export type VisualPlacement =
+  | {
+      readonly kind: "footprint";
+      readonly footprint: readonly (readonly [number, number])[];
+      readonly orientation: CardinalOrientation;
+    }
+  | {
+      readonly kind: "stair";
+      readonly entrance: readonly [number, number, number];
+      readonly landing: readonly [number, number, number];
+      readonly orientation: CardinalOrientation;
+    };
 export interface RenderFact {
   readonly activity?: WorkActivity;
   readonly view?: { readonly pickable?: boolean; readonly cutawayTop?: number };
@@ -508,6 +520,7 @@ export interface RenderFact {
   readonly surface?: SupportSurface | null;
   readonly visual?: string | null;
   readonly label?: string | null;
+  readonly placement?: VisualPlacement;
   readonly selected?: boolean;
   readonly inventory?: {
     readonly items: readonly {

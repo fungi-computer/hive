@@ -12,6 +12,7 @@ import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { activitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
 import { z } from "zod";
+import { validVisualPlacement } from "./visual-projection";
 
 const rejectionReasonSchema = z.object({ reason: z.string().min(1) });
 const partyJoinSchema = z.object({
@@ -150,6 +151,7 @@ function renderFact(value: unknown): value is RenderFact {
   if (value.local !== undefined && !pose(value.local)) return false;
   if (value.support !== undefined && value.support !== null && typeof value.support !== "string") return false;
   if (value.surface !== undefined && value.surface !== null && !surface(value.surface)) return false;
+  if (value.placement !== undefined && !validVisualPlacement(value.placement)) return false;
   for (const key of ["visual", "label"] as const)
       if (value[key] !== undefined && value[key] !== null && (typeof value[key] !== "string" || value[key].length > 512)) return false;
   if (value.aim !== undefined && value.aim !== null) {
