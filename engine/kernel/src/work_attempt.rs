@@ -28,7 +28,7 @@ pub struct WorkAttempt {
 pub enum AttemptPhase {
     Ready,
     Executing { operation: OperationKey, activity: ActivityRef },
-    Outcome { operation: OperationKey, result: WorkOutcome },
+    Outcome { operation: OperationKey, activity: ActivityRef, result: WorkOutcome },
     Settling { operation: OperationKey, cause: InterruptCause },
 }
 

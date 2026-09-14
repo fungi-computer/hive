@@ -390,6 +390,7 @@ pub enum Action {
     PlanConstruction {
         catalog: String,
         site: String,
+        party: String,
         x: i64,
         y: i32,
         z: i64,

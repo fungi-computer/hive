@@ -35,8 +35,9 @@ export const planConstruction = (
   catalog: string,
   cell: Vec3,
   orientation: CardinalOrientation,
+  party: EntityId,
 ): ActionRequest => ({
-  kind: "plan-construction", site, catalog,
+  kind: "plan-construction", site, party, catalog,
   x: cell.x, y: cell.y, z: cell.z, orientation,
 });
 

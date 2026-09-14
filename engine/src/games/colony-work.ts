@@ -1,14 +1,11 @@
-import {
-  ConstructionApproach,
-  constructionWorkProvider,
-} from "../sdk/construction-work";
+import { constructionWorkProvider } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
 import { ProcessAttendanceWork, processAttendanceProvider } from "../sdk/process-attendance";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
-import { ConstructionSite, FloorReplacement, SealedContainer } from "../sdk/construction";
+import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
   createWorkSystem,
@@ -1078,8 +1075,6 @@ export const colonyWorkSystem = createWorkSystem({
     Container,
     SealedContainer,
     ConstructionSite,
-    FloorReplacement,
-    ConstructionApproach,
     DeconstructionApproach,
     DeconstructionOrder,
     LotWater,
@@ -1102,7 +1097,6 @@ export const colonyWorkSystem = createWorkSystem({
     ColonyTreeOrder,
     MaterialLot,
     DeliveryTask,
-    ConstructionApproach,
     DeconstructionApproach,
     DeconstructionOrder,
     WaterSupplyOrder,

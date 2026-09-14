@@ -87,8 +87,8 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
       break;
     case "plan-construction": {
-      keys = ["kind", "catalog", "site", "x", "y", "z", "orientation"];
-      valid = id(action.catalog) && id(action.site)
+      keys = ["kind", "catalog", "site", "party", "x", "y", "z", "orientation"];
+      valid = id(action.catalog) && id(action.site) && id(action.party)
         && [action.x, action.z].every(value => typeof value === "number" && Number.isSafeInteger(value))
         && typeof action.y === "number" && Number.isInteger(action.y) && action.y >= -2147483648 && action.y <= 2147483647
         && ["north", "east", "south", "west"].includes(action.orientation as string);

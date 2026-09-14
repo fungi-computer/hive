@@ -8,7 +8,7 @@ import { isReservedComponent } from "../contracts";
 
 test("construction authoring cannot choose earned effort, cost or embedded custody", () => {
   const site = entity("site.floor.1");
-  const request = planConstruction(site, "timber-floor", { x: -4, y: -12, z: 8 }, "west");
+  const request = planConstruction(site, "timber-floor", { x: -4, y: -12, z: 8 }, "west", entity("party"));
   assert.deepEqual(checkedAction(request), request);
   assert.deepEqual(checkedAction(bindConstructionStage(site, { x: -3, y: -6.21, z: 8 })), {
     kind: "bind-construction-stage", site, contact: { x: -3, y: -6.21, z: 8, frame: null },

@@ -93,7 +93,7 @@ export const colonyBuildCommand = command({
       }
       const id = entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`);
       if (sites.some(site => site.id === id)) continue;
-      actions.push(planConstruction(id, definition.id, { x, y, z }, orientation));
+      actions.push(planConstruction(id, definition.id, { x, y, z }, orientation, context.scope.party));
     }
     return { writes: [], actions };
   },

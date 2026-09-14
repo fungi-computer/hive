@@ -6,7 +6,6 @@ import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { entity, query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
-import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder } from "../sdk/deconstruction-work";
 import { Container, Emitter, MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
@@ -200,7 +199,6 @@ test("actual Colony queues an upper floor before its timber wall and waits for s
     assert(wall && floor);
     const initialFloor = floor.get(ConstructionSite);
     assert.equal(initialFloor.worker, null);
-    assert.equal(session.query(query(ConstructionApproach)).some(row => row.get(ConstructionApproach).site === floor.id), false);
     assert.equal(port.constructionAccess([floor.id])[0].support, "waitingForSupport");
     const current = (id: typeof wall.id) => session.query(query(ConstructionSite)).find(row => row.id === id)!.get(ConstructionSite);
 

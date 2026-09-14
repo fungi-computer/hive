@@ -414,7 +414,9 @@ impl Kernel {
         self.registry.validate(name, &value, &self.known)
             .map_err(|reason| format!("finished construction {owner} has invalid component {name}: {reason}"))
     }
-    pub(super) fn plan_construction(&mut self, catalog: String, site: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal) -> Result<()> {
+    pub(super) fn plan_construction(&mut self, catalog: String, site: String, party: String, x: i64, y: i32, z: i64, orientation: crate::structure_geometry::Cardinal) -> Result<()> {
+        let party_entity = self.entity(&party)?;
+        if self.ecs.get::<Party>(party_entity).is_none() { return Err("construction owner is not a party".into()); }
         if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
         let environment = self.environment.as_ref().ok_or("construction needs environment")?;
         let definition = environment.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
@@ -423,9 +425,10 @@ impl Kernel {
         let staged = ConstructionSite { catalog, x, y, z, orientation, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
         let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
-            + self.registry.weight("hive.construction-site", &record(&staged));
+            + self.registry.weight("hive.construction-site", &record(&staged))
+            + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }));
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, staged)).id();
+        let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, staged)).id();
         self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site, BTreeSet::new()); self.state_weight += added;
         Ok(())
     }
@@ -468,6 +471,8 @@ impl Kernel {
         let worker_entity = self.entity(worker)?;
         let site_entity = self.entity(site)?;
         let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
+        let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("construction site has no party owner")?;
+        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(owner.party.as_str()) { return Err("construction worker is outside site party".into()); }
         if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction stage is not bound".into()); }
         if self.ecs.get::<SealedContainer>(site_entity).is_some() || state.phase == ConstructionPhase::Finished { return Err("construction site is finished".into()); }
         if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || self.ecs.get::<Traversal>(worker_entity).is_none() || self.ecs.get::<Support>(worker_entity).is_some()
