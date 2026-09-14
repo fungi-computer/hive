@@ -1,5 +1,5 @@
-export const STATIC_ART_SCHEMA = "goblin-static-art-v2";
-export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v2";
+export const STATIC_ART_SCHEMA = "goblin-static-art-v3";
+export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v3";
 export function staticArtBase(base = "/") {
   return `${base.endsWith("/") ? base : `${base}/`}${STATIC_ART_DIRECTORY}/`;
 }
@@ -235,6 +235,58 @@ function page(value, index) {
   });
 }
 
+function depth(value) {
+  keys(value, ["file", "sha256", "width", "height"], "depth");
+  return Object.freeze({
+    file: file(value.file, "depth.file"),
+    sha256: sha256(value.sha256, "depth.sha256"),
+    width: integer(value.width, "depth.width", 1, STATIC_ART_LIMITS.pageSide),
+    height: integer(
+      value.height,
+      "depth.height",
+      1,
+      STATIC_ART_LIMITS.pageSide,
+    ),
+  });
+}
+
+function depthRange(value, at) {
+  keys(value, ["min", "max"], at);
+  const min = finite(
+    value.min,
+    `${at}.min`,
+    -Number.MAX_VALUE,
+    Number.MAX_VALUE,
+  );
+  const max = finite(
+    value.max,
+    `${at}.max`,
+    -Number.MAX_VALUE,
+    Number.MAX_VALUE,
+  );
+  if (!(max > min)) problem(at, "empty-range");
+  return Object.freeze({ min, max });
+}
+
+function visualBounds(value, at) {
+  keys(value, ["minX", "minY", "minZ", "maxX", "maxY", "maxZ"], at);
+  const result = {};
+  for (const key of ["minX", "minY", "minZ", "maxX", "maxY", "maxZ"])
+    result[key] = finite(
+      value[key],
+      `${at}.${key}`,
+      -Number.MAX_VALUE,
+      Number.MAX_VALUE,
+    );
+  if (!(
+    result.maxX >= result.minX &&
+    result.maxY >= result.minY &&
+    result.maxZ >= result.minZ
+  ))
+    problem(at, "inverted-bounds");
+  return Object.freeze(result);
+}
+
 function path(value, at) {
   const result = array(value, at, {
     min: 2,
@@ -257,9 +309,24 @@ function path(value, at) {
   return Object.freeze(result);
 }
 
-function entry(value, index, pages) {
+function entry(value, index, pages, depthAtlas) {
   const at = `entries[${index}]`;
-  keys(value, ["path", "page", "x", "y", "width", "height", "silhouette"], at);
+  keys(
+    value,
+    [
+      "path",
+      "page",
+      "x",
+      "y",
+      "width",
+      "height",
+      "silhouette",
+      "depth",
+      "depthRange",
+      "visualBounds",
+    ],
+    at,
+  );
   const pageId = string(value.page, `${at}.page`, /^atlas-[0-7]$/, 16);
   const owner = pages.get(pageId);
   if (!owner) problem(`${at}.page`, "unknown-page");
@@ -277,6 +344,33 @@ function entry(value, index, pages) {
   );
   const x = integer(value.x, `${at}.x`, 0, owner.width - width);
   const y = integer(value.y, `${at}.y`, 0, owner.height - height);
+  keys(value.depth, ["x", "y", "width", "height"], `${at}.depth`);
+  const depthX = integer(
+    value.depth.x,
+    `${at}.depth.x`,
+    0,
+    depthAtlas.width - width,
+  );
+  const depthY = integer(
+    value.depth.y,
+    `${at}.depth.y`,
+    0,
+    depthAtlas.height - height,
+  );
+  const depthWidth = integer(
+    value.depth.width,
+    `${at}.depth.width`,
+    1,
+    depthAtlas.width - depthX,
+  );
+  const depthHeight = integer(
+    value.depth.height,
+    `${at}.depth.height`,
+    1,
+    depthAtlas.height - depthY,
+  );
+  if (depthWidth !== width || depthHeight !== height)
+    problem(`${at}.depth`, "unexpected-size");
   return Object.freeze({
     path: path(value.path, `${at}.path`),
     page: pageId,
@@ -284,6 +378,14 @@ function entry(value, index, pages) {
     y,
     width,
     height,
+    depth: Object.freeze({
+      x: depthX,
+      y: depthY,
+      width: depthWidth,
+      height: depthHeight,
+    }),
+    depthRange: depthRange(value.depthRange, `${at}.depthRange`),
+    visualBounds: visualBounds(value.visualBounds, `${at}.visualBounds`),
     silhouette: silhouette(value.silhouette, width, height, `${at}.silhouette`),
   });
 }
@@ -399,6 +501,8 @@ export function parseStaticArtManifest(input) {
       "textureCount",
       "anchors",
       "ground",
+      "groundDepth",
+      "depth",
       "pages",
       "entries",
       "provenance",
@@ -413,6 +517,20 @@ export function parseStaticArtManifest(input) {
   }).map(page);
   const pageIds = new Map();
   const pageFiles = new Set(["ground.png"]);
+  const checkedDepth = depth(input.depth);
+  const checkedGroundDepth = depth(input.groundDepth);
+  if (
+    checkedGroundDepth.width !== STATIC_ART_RENDER.ground.width ||
+    checkedGroundDepth.height !== STATIC_ART_RENDER.ground.height
+  )
+    problem("groundDepth", "unexpected-size");
+  if (
+    checkedGroundDepth.file === "ground.png" ||
+    checkedGroundDepth.file === checkedDepth.file
+  )
+    problem("groundDepth.file", "duplicate-file");
+  if (pageFiles.has(checkedDepth.file)) problem("depth.file", "duplicate-file");
+  pageFiles.add(checkedDepth.file);
   let pagePixels = 0;
   for (const current of checkedPages) {
     if (pageIds.has(current.id) || pageFiles.has(current.file))
@@ -421,12 +539,18 @@ export function parseStaticArtManifest(input) {
     pageFiles.add(current.file);
     pagePixels += current.width * current.height;
   }
+  for (const current of checkedPages)
+    if (
+      current.width !== checkedDepth.width ||
+      current.height !== checkedDepth.height
+    )
+      problem("depth", "atlas-size-mismatch");
   if (pagePixels > STATIC_ART_LIMITS.pagePixels)
     problem("pages", "pixel-budget");
   const checkedEntries = array(input.entries, "entries", {
     min: 1,
     max: STATIC_ART_LIMITS.textures - 1,
-  }).map((value, index) => entry(value, index, pageIds));
+  }).map((value, index) => entry(value, index, pageIds, checkedDepth));
   const textureCount = integer(
     input.textureCount,
     "textureCount",
@@ -455,6 +579,8 @@ export function parseStaticArtManifest(input) {
       exactFile: "ground.png",
       exactSize: STATIC_ART_RENDER.ground,
     }),
+    groundDepth: checkedGroundDepth,
+    depth: checkedDepth,
     pages: Object.freeze(checkedPages),
     entries: Object.freeze(checkedEntries),
     provenance: provenance(input.provenance),
@@ -479,6 +605,11 @@ export function completeStaticArtManifest(draft, fileSha256, sources) {
       ...draft.ground,
       sha256: hashes[draft.ground.file],
     },
+    groundDepth: {
+      ...draft.groundDepth,
+      sha256: hashes[draft.groundDepth.file],
+    },
+    depth: { ...draft.depth, sha256: hashes[draft.depth.file] },
     pages: draft.pages.map((page) => ({
       ...page,
       sha256: hashes[page.file],

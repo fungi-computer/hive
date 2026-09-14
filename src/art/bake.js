@@ -82,7 +82,9 @@ export function renderBakePairCanvas(
   const colorCanvas = document.createElement("canvas");
   colorCanvas.width = width;
   colorCanvas.height = height;
-  const colorContext = colorCanvas.getContext("2d", { willReadFrequently: true });
+  const colorContext = colorCanvas.getContext("2d", {
+    willReadFrequently: true,
+  });
   if (!colorContext) throw new Error("Unable to create a color bake canvas");
   renderer.render(scene, camera);
   colorContext.drawImage(renderer.domElement, 0, 0);
@@ -93,7 +95,9 @@ export function renderBakePairCanvas(
   const depthCanvas = document.createElement("canvas");
   depthCanvas.width = width;
   depthCanvas.height = height;
-  const depthContext = depthCanvas.getContext("2d", { willReadFrequently: true });
+  const depthContext = depthCanvas.getContext("2d", {
+    willReadFrequently: true,
+  });
   if (!depthContext) throw new Error("Unable to create a depth bake canvas");
   const priorOverride = scene.overrideMaterial;
   const priorClearColor = renderer.getClearColor(new THREE.Color());
@@ -119,6 +123,7 @@ export function renderBakePairCanvas(
   const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
   const towardCamera = cameraDirection.multiplyScalar(-1).normalize();
   const range = projectedDepthRange(scene, towardCamera);
+  const bounds = new THREE.Box3().setFromObject(scene, true);
   const linear = makeLinearDepthImage({
     sourceColor: sourceColor.data,
     finalColor: finalColor.data,
@@ -135,13 +140,20 @@ export function renderBakePairCanvas(
   image.data.set(linear);
   depthContext.putImageData(image, 0, 0);
 
-  if (releaseGeometry)
-    scene.traverse((object) => object.geometry?.dispose());
+  if (releaseGeometry) scene.traverse((object) => object.geometry?.dispose());
   return {
     colorCanvas,
     depthCanvas,
     depthPixels: linear,
     depthRange: Object.freeze(range),
+    visualBounds: Object.freeze({
+      minX: bounds.min.x,
+      minY: bounds.min.y,
+      minZ: bounds.min.z,
+      maxX: bounds.max.x,
+      maxY: bounds.max.y,
+      maxZ: bounds.max.z,
+    }),
     towardCamera: Object.freeze({
       x: towardCamera.x,
       y: towardCamera.y,

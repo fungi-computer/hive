@@ -1,4 +1,4 @@
-import { bake } from "./art/bake.js";
+import { bake, renderBakePairCanvas } from "./art/bake.js";
 import { compositeWaterOccluders } from "./visual-order.js";
 import { sliceCamera } from "./art/slice-camera.js";
 import { terrainCell } from "./terrain.ts";
@@ -37,6 +37,7 @@ import {
 import { BUILDINGS } from "./construction.js";
 import { loadStaticArtPack } from "./art/static-pack.js";
 import { STATIC_ART_RENDER } from "./art/static-manifest.js";
+import { registerVisibleTexture } from "./visual-hit-geometry.js";
 
 function propScene(draw) {
   const result = scene();
@@ -320,17 +321,56 @@ export async function loadArt(onProgress = () => {}, options = {}) {
   }
 }
 
-export async function bakeArt(onProgress = () => {}) {
+export async function bakeArt(
+  onProgress = () => {},
+  { withDepth = false } = {},
+) {
   let completedTextures = 0;
   const bakedTextures = new Set();
+  const depthTextures = new Set();
+  const depthByTexture = new Map();
+  const allBakedTextures = new Set();
   let detail = "Preparing the drawing tools";
   const report = (waitingFor = null) =>
     onProgress({ detail, completedTextures, waitingFor });
   report();
   function bakeStartup(...args) {
     try {
-      const texture = bake(...args);
+      const [renderer, source, camera, width, height, ink = true] = args;
+      let texture;
+      let depth;
+      let pair;
+      if (withDepth) {
+        pair = renderBakePairCanvas(renderer, source, camera, width, height, {
+          ink,
+          releaseGeometry: true,
+        });
+        texture = Texture.from(pair.colorCanvas);
+        texture.source.scaleMode = "nearest";
+        registerVisibleTexture(
+          texture,
+          pair.colorCanvas
+            .getContext("2d", { willReadFrequently: true })
+            .getImageData(0, 0, width, height).data,
+          width,
+          height,
+        );
+        depth = Texture.from(pair.depthCanvas);
+        depth.source.scaleMode = "nearest";
+      } else {
+        texture = bake(renderer, source, camera, width, height, ink);
+      }
       bakedTextures.add(texture);
+      allBakedTextures.add(texture);
+      if (withDepth) {
+        depthTextures.add(depth);
+        allBakedTextures.add(depth);
+        depthByTexture.set(texture, {
+          texture: depth,
+          depthRange: pair.depthRange,
+          visualBounds: pair.visualBounds,
+        });
+      }
       completedTextures++;
       return texture;
     } catch (error) {
@@ -339,7 +379,7 @@ export async function bakeArt(onProgress = () => {}) {
     }
   }
   const renderer = createArtRenderer();
-  const disposeStatic = textureDisposer(bakedTextures);
+  const disposeStatic = textureDisposer(allBakedTextures);
   try {
     const portrait = camera(
         STATIC_ART_RENDER.portrait.width,
@@ -426,7 +466,9 @@ export async function bakeArt(onProgress = () => {}) {
         target[pose] = [];
         for (let direction = 0; direction < 4; direction++) {
           const count =
-            pose === "sleep" || (pose === "idle" && kind.startsWith("goblin")) ? 1 : 8;
+            pose === "sleep" || (pose === "idle" && kind.startsWith("goblin"))
+              ? 1
+              : 8;
           target[pose].push(
             Array.from({ length: count }, (_, frame) =>
               bakeStartup(
@@ -465,7 +507,9 @@ export async function bakeArt(onProgress = () => {}) {
           ? ["stakes", "frame", "finished", "filled"]
           : ["stakes", "frame", "finished"];
       for (const stage of stages)
-        art.buildings[type][stage] = (type === "stair" ? [0, 1, 2, 3] : [0, 1]).map((direction) =>
+        art.buildings[type][stage] = (
+          type === "stair" ? [0, 1, 2, 3] : [0, 1]
+        ).map((direction) =>
           bakeStartup(
             renderer,
             building(type, stage, direction),
@@ -585,8 +629,9 @@ export async function bakeArt(onProgress = () => {}) {
     );
     for (const kind of ["crate", "chest", "barrel"])
       art.props[kind] = bakeStartup(renderer, cargoScene(kind), prop, 112, 112);
-    art.effects.ripple = Array.from({length:6},(_,frame) =>
-      bakeStartup(renderer,rippleScene(frame/6),prop,112,112));
+    art.effects.ripple = Array.from({ length: 6 }, (_, frame) =>
+      bakeStartup(renderer, rippleScene(frame / 6), prop, 112, 112),
+    );
     detail = "Drawing cannon props";
     report();
     art.props.cannon = Array.from({ length: 4 }, (_, direction) =>
@@ -594,7 +639,18 @@ export async function bakeArt(onProgress = () => {}) {
     );
     art.props.cannonRecoil = Array.from({ length: 4 }, (_, direction) =>
       Array.from({ length: 8 }, (_, frame) =>
-        bakeStartup(renderer, cannonScene(direction, frame < 2 ? 1 - frame * 0.18 : Math.max(0, 0.64 - (frame - 2) * 0.16)), prop, 112, 112),
+        bakeStartup(
+          renderer,
+          cannonScene(
+            direction,
+            frame < 2
+              ? 1 - frame * 0.18
+              : Math.max(0, 0.64 - (frame - 2) * 0.16),
+          ),
+          prop,
+          112,
+          112,
+        ),
       ),
     );
     art.effects.smoke = Array.from({ length: 6 }, (_, frame) =>
@@ -624,6 +680,10 @@ export async function bakeArt(onProgress = () => {}) {
     // It never updates simulation state or time. View owns replacement textures.
     detail = "Preparing water rendering";
     report();
+    Object.defineProperty(art, "depthByTexture", {
+      value: depthByTexture,
+      enumerable: false,
+    });
     return attachDynamicBakers(art, renderer, disposeStatic);
   } catch (error) {
     disposeStatic();

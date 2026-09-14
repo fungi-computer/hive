@@ -76,6 +76,27 @@ function closeBitmap(bitmap) {
   bitmap?.close?.();
 }
 
+async function decodeCpuPixels(bitmap) {
+  const canvas =
+    typeof OffscreenCanvas === "function"
+      ? new OffscreenCanvas(bitmap.width, bitmap.height)
+      : Object.assign(document.createElement("canvas"), {
+          width: bitmap.width,
+          height: bitmap.height,
+        });
+  if (!(canvas.width && canvas.height)) {
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+  }
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) throw new Error("Static art CPU depth canvas is unavailable");
+  context.imageSmoothingEnabled = false;
+  context.drawImage(bitmap, 0, 0);
+  return new Uint8Array(
+    context.getImageData(0, 0, bitmap.width, bitmap.height).data,
+  );
+}
+
 /**
  * Load one complete immutable static bank. Nothing is returned until every
  * checked image, frame and CPU silhouette has been assembled successfully.
@@ -84,6 +105,7 @@ export async function loadStaticArtPack({
   baseUrl = STATIC_ART_BASE,
   fetchImpl = fetch,
   decodeImage = createImageBitmap,
+  decodeDepthPixels = decodeCpuPixels,
   onProgress = () => {},
 } = {}) {
   const base = new URL(baseUrl, document.baseURI);
@@ -105,7 +127,12 @@ export async function loadStaticArtPack({
     });
   }
 
-  const definitions = [manifest.ground, ...manifest.pages];
+  const definitions = [
+    manifest.ground,
+    manifest.groundDepth,
+    manifest.depth,
+    ...manifest.pages,
+  ];
   onProgress({ detail: "Loading the clearing art", completedTextures: 0 });
   const loaded = await Promise.allSettled(
     definitions.map((definition) =>
@@ -134,8 +161,16 @@ export async function loadStaticArtPack({
   }
 
   try {
+    const groundDepthPixels = decodeDepthPixels
+      ? await decodeDepthPixels(bitmaps[1])
+      : null;
+    const depthPixels = decodeDepthPixels
+      ? await decodeDepthPixels(bitmaps[2])
+      : null;
     const ground = textureFromBitmap(bitmaps[0]);
-    ownerTextures.push(ground);
+    const groundDepth = textureFromBitmap(bitmaps[1]);
+    const depth = textureFromBitmap(bitmaps[2]);
+    ownerTextures.push(ground, groundDepth, depth);
     registerVisibleSilhouette(ground, {
       width: manifest.ground.width,
       height: manifest.ground.height,
@@ -143,12 +178,14 @@ export async function loadStaticArtPack({
     });
     const pageTextures = new Map();
     manifest.pages.forEach((page, index) => {
-      const texture = textureFromBitmap(bitmaps[index + 1]);
+      const texture = textureFromBitmap(bitmaps[index + 3]);
       ownerTextures.push(texture);
       pageTextures.set(page.id, texture);
     });
     const art = {
       ground,
+      groundDepth,
+      depth,
       pawnAnchor: { ...manifest.anchors.pawn },
       propAnchor: { ...manifest.anchors.prop },
       vehicleAnchor: { ...manifest.anchors.vehicle },
@@ -171,7 +208,7 @@ export async function loadStaticArtPack({
       detail: "Clearing art ready",
       completedTextures: manifest.textureCount,
     });
-    return { art, manifest, dispose };
+    return { art, depthPixels, manifest, dispose };
   } catch (error) {
     dispose();
     throw new Error("The checked static art pack could not assemble", {
