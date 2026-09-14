@@ -55,6 +55,7 @@ import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
 import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
+import { acquireEdgeStroke, canonicalEdges, nearestGridSegment } from "./edge-gesture.js";
 import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -80,6 +81,7 @@ export function createHiveClient({
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   let directControl;
   let nativeBinding;
+  let edgeStroke = null;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   let activeSelectionShortcuts = selectionShortcuts.filter((shortcut) => shortcut?.id);
   const state = {
@@ -1039,6 +1041,15 @@ export function createHiveClient({
     }
     placementGraphic.clear();
     placementGraphic.visible = false;
+    if (edgeStroke && displayed) {
+      placementGraphic.visible = true;
+      for (const edge of edgeStroke.edges) {
+        const [x, y, z] = edge.cell;
+        const a = edge.axis === "x" ? project(x, (y + 0.5) * displayed.verticalMetres, z) : project(x, (y + 0.5) * displayed.verticalMetres, z);
+        const b = edge.axis === "x" ? project(x + 1, (y + 0.5) * displayed.verticalMetres, z) : project(x, (y + 0.5) * displayed.verticalMetres, z + 1);
+        placementGraphic.moveTo(a.x * camera.zoom + camera.x, a.y * camera.zoom + camera.y).lineTo(b.x * camera.zoom + camera.x, b.y * camera.zoom + camera.y).stroke({ color: 0xe8c779, width: 3, alpha: 0.8 });
+      }
+    }
     clearPlacementGhosts(placementGhosts);
     const targetSnapshot = terrainTarget.getSnapshot();
     const buildControl = targetSnapshot.context.control?.command === "build" ? targetSnapshot.context.control : null;
@@ -1127,6 +1138,11 @@ export function createHiveClient({
         renderHud();
         return;
       }
+      if (targetControl.target === "world-edge") {
+        const segment = nearestGridSegment(localPoint, project, surface.cell[1], displayed.verticalMetres);
+        edgeStroke = { start: [...segment.cell], current: [...segment.cell], axis: segment.axis, edges: [{ cell: [...segment.cell], axis: segment.axis }] };
+        app.canvas.setPointerCapture?.(event.pointerId); draw(); return;
+      }
       if (targetControl.target === "terrain-area") {
         terrainArea.send({ type: "SET_MODE", mode: "rectangle" });
         terrainArea.send({ type: "BEGIN", cell: surface.cell });
@@ -1164,6 +1180,15 @@ export function createHiveClient({
     app.canvas.setPointerCapture?.(event.pointerId);
   }
   function pointerMove(event) {
+    if (edgeStroke) {
+      const displayed = displayedTerrainFrame();
+      if (!displayed) { edgeStroke = null; draw(); return; }
+      const at = point(event), local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
+      const segment = nearestGridSegment(local, project, edgeStroke.start[1], displayed.verticalMetres, edgeStroke.axis);
+      edgeStroke.current = [...segment.cell];
+      edgeStroke.edges = acquireEdgeStroke(edgeStroke.start, edgeStroke.current, project, displayed.verticalMetres, 256, edgeStroke.axis);
+      draw(); return;
+    }
     if (terrainArea.getSnapshot().value === "dragging") {
       const context = terrainArea.getSnapshot().context;
       const displayed = displayedTerrainFrame();
@@ -1234,6 +1259,13 @@ export function createHiveClient({
     renderHud(); draw(); return;
   }
   function pointerUp(event) {
+    if (edgeStroke) {
+      const stroke = edgeStroke; edgeStroke = null;
+      app.canvas.releasePointerCapture?.(event.pointerId);
+      const control = terrainTarget.getSnapshot().context.control;
+      if (control) executeWhistle(control, buildPlacementCommand(control, state.selectedIds, { edges: canonicalEdges(stroke.edges), mode: "edge-line" }).input);
+      draw(); return;
+    }
     if (terrainArea.getSnapshot().value === "dragging") {
       finishTerrainArea(event);
       return;
@@ -1339,7 +1371,7 @@ export function createHiveClient({
       return;
     }
     if (key === "escape" && terrainTarget.getSnapshot().value === "armed") {
-      event.preventDefault(); terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
+      event.preventDefault(); edgeStroke = null; terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
       state.message = "Selection"; closeActionBar(); renderHud(); return;
     }
     if (key === "escape" && isAiming()) { event.preventDefault(); toggleAim(); return; }
