@@ -45,7 +45,7 @@ test("a floor below a finished brewer completes without moving the brewer", () =
   const { port, session } = startSession();
   try {
     const brewer = buildBrewer(session);
-    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 12, -1] } });
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 13, -1] } });
     session.step(0);
     const floor = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-floor");
     assert(floor, stateDump(session));
