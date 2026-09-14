@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { BufferImageSource, Texture } from "pixi.js";
 import { writeDepth24 } from "../../../src/art/depth-image.js";
-import { atlasFrameUV, createWorldDepthLayer, worldDepthItemKey } from "./world-depth-layer.js";
+import { atlasFrameUV, createWorldDepthLayer, worldDepthGeometrySignature, worldDepthItemKey } from "./world-depth-layer.js";
 
 test("atlas UVs use the exact frame rectangle", () => {
   assert.deepEqual(atlasFrameUV({ frame: { x: 2, y: 4, width: 8, height: 6 } }, 32, 24), [
@@ -11,9 +11,16 @@ test("atlas UVs use the exact frame rectangle", () => {
 });
 
 test("stable visual keys and permutation independent role order", () => {
-  assert.equal(worldDepthItemKey({ entityId: "e", visualPartId: "p" }), "e:p");
+  assert.equal(worldDepthItemKey({ entityId: "e", visualPartId: "p" }), '["e","p"]');
+  assert.notEqual(worldDepthItemKey({ entityId: "a:b", visualPartId: "c" }), worldDepthItemKey({ entityId: "a", visualPartId: "b:c" }));
   const layerSource = String(createWorldDepthLayer);
   assert.match(layerSource, /sort\(\(a, b\) => compareWorldDepthItems/);
+});
+
+test("geometry signature includes both atlas dimensions", () => {
+  const base = { colorFrame: { frame: { x: 1, y: 2, width: 3, height: 4 } }, depthFrame: { frame: { x: 5, y: 6, width: 3, height: 4 } }, colorTexture: { source: { width: 16, height: 16 } }, depthTexture: { source: { width: 32, height: 32 } }, anchor: { x: 0.5, y: 1 } };
+  const changed = { ...base, colorTexture: { source: { width: 64, height: 16 } }, depthTexture: { source: { width: 32, height: 64 } } };
+  assert.notEqual(worldDepthGeometrySignature(base), worldDepthGeometrySignature(changed));
 });
 
 test("layer rejects invalid sizes before allocating render resources", () => {

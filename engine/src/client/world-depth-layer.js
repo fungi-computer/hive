@@ -83,7 +83,7 @@ export function atlasFrameUV(frameValue, atlasWidth, atlasHeight) {
 }
 
 export function worldDepthItemKey(item) {
-  return `${String(item.entityId)}:${String(item.visualPartId)}`;
+  return JSON.stringify([String(item.entityId), String(item.visualPartId)]);
 }
 
 function originDepth(item, basis) {
@@ -118,7 +118,7 @@ function makeGeometry(item) {
 function updateGeometry(record, item) {
   const colorFrame = frameOf(item.colorFrame, "color");
   const depthFrame = frameOf(item.depthFrame, "depth");
-  const signature = `${colorFrame.x},${colorFrame.y},${colorFrame.width},${colorFrame.height}:${depthFrame.x},${depthFrame.y},${depthFrame.width},${depthFrame.height}:${item.anchor.x},${item.anchor.y}`;
+  const signature = worldDepthGeometrySignature(item);
   if (record.signature === signature) return;
   const ax = finite(item.anchor?.x, "anchor x"), ay = finite(item.anchor?.y, "anchor y");
   record.geometry.positions = new Float32Array([-ax * colorFrame.width, -ay * colorFrame.height, (1 - ax) * colorFrame.width, -ay * colorFrame.height, (1 - ax) * colorFrame.width, (1 - ay) * colorFrame.height, -ax * colorFrame.width, (1 - ay) * colorFrame.height]);
@@ -126,6 +126,18 @@ function updateGeometry(record, item) {
   record.geometry.getBuffer("aDepthUV").data = new Float32Array(atlasFrameUV(item.depthFrame, ...textureSize(item.depthTexture, depthFrame, "depth")));
   record.geometry.getBuffer("aDepthUV").update();
   record.signature = signature;
+}
+
+export function worldDepthGeometrySignature(item) {
+  const colorFrame = frameOf(item.colorFrame, "color");
+  const depthFrame = frameOf(item.depthFrame, "depth");
+  const [colorWidth, colorHeight] = textureSize(item.colorTexture, colorFrame, "color");
+  const [depthWidth, depthHeight] = textureSize(item.depthTexture, depthFrame, "depth");
+  return JSON.stringify([
+    colorFrame.x, colorFrame.y, colorFrame.width, colorFrame.height, colorWidth, colorHeight,
+    depthFrame.x, depthFrame.y, depthFrame.width, depthFrame.height, depthWidth, depthHeight,
+    item.anchor?.x, item.anchor?.y,
+  ]);
 }
 
 function setTransform(mesh, transform) {
