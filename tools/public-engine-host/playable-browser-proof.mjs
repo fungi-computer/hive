@@ -13,6 +13,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { project } from "../../engine/src/client/geometry.js";
+import { edgeSegmentEndpoints } from "../../engine/src/client/edge-gesture.js";
 import { resolveWorldArtPlacement } from "../../engine/src/client/art-placement.js";
 
 const frontendArgument = process.argv[2];
@@ -32,6 +33,7 @@ const sourceInventory = [
   "engine/src/client/client.js",
   "engine/src/client/action-bar.js",
   "engine/src/client/controls.js",
+  "engine/src/client/edge-gesture.js",
   "engine/src/client/build-placement.js",
   "engine/src/client/art-placement.js",
   "engine/src/client/isometric-sorter.js",
@@ -463,20 +465,31 @@ try {
     assert.equal(submitted.name, expectedName, `${label} submitted ${submitted.name}`);
     return submitted;
   }
-  async function buildLine(label, startCell, endCell) {
+  const projectedEdge = (edge, verticalMetres, box, supportCell = edge.cell) => {
+    const [a, b] = edgeSegmentEndpoints(edge, verticalMetres);
+    const midpoint = projectedWorld({
+      x: (a[0] + b[0]) / 2,
+      y: (a[1] + b[1]) / 2,
+      z: (a[2] + b[2]) / 2,
+    }, box);
+    const center = projectedCell(supportCell, verticalMetres, box);
+    return {
+      x: midpoint.x + (center.x - midpoint.x) * 0.18,
+      y: midpoint.y + (center.y - midpoint.y) * 0.18,
+    };
+  };
+  async function buildLine(label, startCell, endCell, axis) {
     await (await waitForVisible(page, "Build")).click();
     await (await waitForVisible(page, label)).click();
     const frame = latestObservation.observation.terrain;
     const box = await canvasBox(page);
-    const start = projectedCell(startCell, frame.verticalMetres, box);
-    const end = projectedCell(endCell, frame.verticalMetres, box);
+    const start = projectedEdge({ cell: startCell, axis }, frame.verticalMetres, box);
+    const end = projectedEdge({ cell: endCell, axis }, frame.verticalMetres, box, endCell);
     const before = commandCount();
-    await page.keyboard.down("Alt");
     await page.mouse.move(start.x, start.y);
     await page.mouse.down();
     await page.mouse.move(end.x, end.y, { steps: 4 });
     await page.mouse.up();
-    await page.keyboard.up("Alt");
     const submitted = await waitCommandAccepted(before, label);
     assert.equal(submitted.name, "build", `${label} submitted ${submitted.name}`);
     return submitted;
@@ -515,13 +528,28 @@ try {
   await waitForObservation(() => structureFact("colony.bed.finished", rectangle.bed) && structureFact("colony.brew-station.profile", rectangle.brewer), "finished bed and brewer", 30_000);
   const wallSupport = freeSurface();
   const wallEndSupport = freeSurface({ level: wallSupport.cell[1], adjacentTo: wallSupport.cell });
-  const wallBuild = await buildLine("Build wall", wallSupport.cell, wallEndSupport.cell);
+  const wallAxis = wallSupport.cell[2] === wallEndSupport.cell[2] ? "z" : "x";
+  const wallBuild = await buildLine("Build wall", wallSupport.cell, wallEndSupport.cell, wallAxis);
   assert.deepEqual(bedBuild.command.input.target.cell, rectangle.bed,
     "bed placement did not retain the authoritative 1x2 floor support origin");
   assert.deepEqual(brewerBuild.command.input.target.cell, rectangle.brewer,
     "brewer placement did not retain the authoritative 2x2 floor support origin");
-  assert(wallBuild.command.input.target.area || wallBuild.command.input.target.cell, "wall line did not produce a placement target");
-  record("wall/floor/furniture placement uses the shared visible-surface tool", { builds: buildCommandsBefore().length });
+  assert(Array.isArray(wallBuild.command.input.target.edges) && wallBuild.command.input.target.edges.length >= 1,
+    "wall stroke did not produce canonical edge targets");
+  const doorSupport = freeSurface({ level: wallSupport.cell[1] });
+  const doorAxis = wallAxis === "x" ? "z" : "x";
+  const doorBuild = await buildLine("Build door", doorSupport.cell, doorSupport.cell, doorAxis);
+  assert(Array.isArray(doorBuild.command.input.target.edges) && doorBuild.command.input.target.edges.length === 1,
+    "door stroke did not produce one canonical edge target");
+  assert.equal(doorBuild.command.input.catalog, "timber-door", "door stroke used the wrong catalog");
+  const wallEdgeKeys = new Set(wallBuild.command.input.target.edges.map(edge => `${edge.cell.join(",")}:${edge.axis}`));
+  assert(doorBuild.command.input.target.edges.every(edge => !wallEdgeKeys.has(`${edge.cell.join(",")}:${edge.axis}`)),
+    "door stroke reused a wall edge");
+  record("wall/door edge strokes plus floor/furniture placement use the shared visible-surface tool", {
+    builds: buildCommandsBefore().length,
+    wallEdges: wallBuild.command.input.target.edges,
+    doorEdges: doorBuild.command.input.target.edges,
+  });
   await screenshot(page, "desktop-04-structures.png");
 
   // A second floor gesture over the occupied support is the replacement path.
@@ -577,7 +605,7 @@ try {
   const firstRevision = latestObservation.revision;
   const joinsBeforeReload = joinResponseCount;
   const firstStructureIds = latestObservation.observation.facts
-    .filter(fact => typeof fact.visual === "string" && /^colony\.(?:floor|bed|brew-station|wall|stair)\b/.test(fact.visual))
+    .filter(fact => typeof fact.visual === "string" && /^colony\.(?:floor|bed|brew-station|wall|door|stair)\b/.test(fact.visual))
     .map(fact => fact.id)
     .sort();
   assert(firstStructureIds.length > 0, "completed hosted build produced no persistent structure identities");
