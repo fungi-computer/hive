@@ -352,7 +352,7 @@ fn admitted() -> (Kernel, String) {
 #[test]
 fn split_bindings_are_consumed_once_and_retained_bindings_survive() {
     let (mut kernel, process) = admitted();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     assert_eq!(
         kernel
             .ecs
@@ -385,7 +385,7 @@ fn split_bindings_are_consumed_once_and_retained_bindings_survive() {
 #[test]
 fn prepare_emits_on_next_tick_and_fermentation_survives_save_reload() {
     let (mut kernel, process) = admitted();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     let paid = kernel.snapshot_entities_json().unwrap();
     assert!(kernel
         .environment
@@ -442,14 +442,14 @@ fn prepare_emits_on_next_tick_and_fermentation_survives_save_reload() {
 #[test]
 fn final_outputs_use_retained_keg_and_distinct_tray_lots() {
     let (mut kernel, _process) = admitted();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     let lots: Vec<_> = kernel
         .ecs
         .query::<&Lot>()
@@ -500,7 +500,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .unwrap()
         .insert(filler);
     kernel.refresh_state_weight();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
@@ -509,7 +509,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .unwrap();
     let before_lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
     let before_bindings = kernel.query_json(r#"["hive.process-binding"]"#).unwrap();
-    let blocked: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap()).unwrap();
+    let blocked: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap()).unwrap();
     assert_eq!(blocked["results"][0]["accepted"], true);
     assert_eq!(kernel.query_json(r#"["hive.lot"]"#).unwrap(), before_lots);
     assert_eq!(
@@ -527,14 +527,14 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .entity_mut(tray)
         .insert(Container { capacity: 16 });
     kernel.refresh_state_weight();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     let ale_count = kernel
         .ecs
         .query::<&Lot>()
         .iter(&kernel.ecs)
         .filter(|lot| lot.kind == "ale")
         .count();
-    let repeated: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap()).unwrap();
+    let repeated: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap()).unwrap();
     assert_eq!(repeated["results"][0]["accepted"], false);
     assert_eq!(
         kernel
@@ -567,7 +567,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
     let before = kernel
         .query_json(r#"["hive.lot","hive.process-binding"]"#)
         .unwrap();
-    let blocked: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap()).unwrap();
+    let blocked: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap()).unwrap();
     assert_eq!(blocked["results"][0]["accepted"], true);
     assert_eq!(
         kernel
@@ -608,7 +608,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
             });
     }
     kernel.rebuild_physical_indexes(true).unwrap();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}]}"#).unwrap();
+    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
     assert_eq!(kernel.environment.as_ref().unwrap().paid_emissions.len(), 1);
     assert!(kernel
         .environment

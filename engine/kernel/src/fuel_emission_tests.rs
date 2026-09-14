@@ -76,7 +76,7 @@ fn make_kernel(fuel_quantity: Option<u32>, wet: bool) -> Kernel {
 
 fn action(kernel: &mut Kernel, delta: f64) -> Value {
     let input = format!(
-        r#"{{"delta":{delta},"writes":[],"actions":[{{"kind":"begin-emission","worker":"worker","station":"station"}}]}}"#
+        r#"{{"delta":{delta},"writes":[],"actions":[{{"scope":{{"kind":"host"}},"request":{{"kind":"begin-emission","worker":"worker","station":"station"}}}}]}}"#
     );
     serde_json::from_str(&kernel.advance_json(&input).unwrap()).unwrap()
 }

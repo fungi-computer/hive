@@ -33,7 +33,7 @@ fn climbing_world() -> (Kernel, Point) {
 #[test]
 fn terrain_kernel_climb_recovers_after_every_partial_segment() {
     let (mut kernel,target) = climbing_world();
-    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     for _ in 0..20 {
         kernel.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap();
         let saved = kernel.save_records().unwrap();
@@ -48,7 +48,7 @@ fn terrain_kernel_climb_recovers_after_every_partial_segment() {
 #[test]
 fn terrain_kernel_rejects_forged_waiting_waypoints() {
     let (mut kernel,target) = climbing_world();
-    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let mut saved = kernel.save_records().unwrap();
     let mut data: serde_json::Value = serde_json::from_str(&saved.entities).unwrap();
     data["routes"][0]["terrain_waiting"] = json!(true);
@@ -60,7 +60,7 @@ fn terrain_kernel_rejects_forged_waiting_waypoints() {
 #[test]
 fn terrain_kernel_waiting_replans_and_resumes_after_recovery() {
     let (mut kernel,target) = climbing_world();
-    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let actor = kernel.entity("walker").unwrap();
     kernel.terrain_routes.get_mut(&actor).unwrap().waiting = true;
     let pose = *kernel.ecs.get::<Position>(actor).unwrap();
@@ -82,7 +82,7 @@ fn terrain_kernel_waiting_replans_and_resumes_after_recovery() {
 fn terrain_route_invalidated_by_revision_replans_through_native_owner() {
     let (mut kernel, target) = climbing_world();
     let actor = kernel.entity("walker").unwrap();
-    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let before = *kernel.ecs.get::<Position>(actor).unwrap();
     kernel.terrain_routes.get_mut(&actor).unwrap().waiting = true;
     kernel.terrain_routes.get_mut(&actor).unwrap().revision = None;
@@ -102,7 +102,7 @@ fn terrain_route_invalidated_by_revision_replans_through_native_owner() {
 fn unreachable_invalidated_terrain_route_releases_destination() {
     let (mut kernel, target) = climbing_world();
     let actor = kernel.entity("walker").unwrap();
-    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
     kernel.blocked_by_frame.get_mut(&None).unwrap().insert((
         (target.x / spacing[0]).round() as i32,
@@ -124,7 +124,7 @@ fn terrain_kernel_same_position_move_has_no_pending_route() {
     let (mut kernel,_) = climbing_world();
     let actor = kernel.entity("walker").unwrap();
     let pose = *kernel.ecs.get::<Position>(actor).unwrap();
-    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":{"x":pose.x,"y":pose.y,"z":pose.z,"frame":null}}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":{"x":pose.x,"y":pose.y,"z":pose.z,"frame":null}}}]}).to_string()).unwrap();
     assert!(!kernel.routes.contains_key(&actor));
     assert!(!kernel.terrain_routes.contains_key(&actor));
     assert!(kernel.ecs.get::<Destination>(actor).is_none());
@@ -134,7 +134,7 @@ fn terrain_kernel_same_position_move_has_no_pending_route() {
 #[test]
 fn terrain_kernel_long_tick_cannot_cross_blocked_second_segment() {
     let (mut kernel,target) = climbing_world();
-    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let actor = kernel.entity("walker").unwrap();
     let before = *kernel.ecs.get::<Position>(actor).unwrap();
     kernel.blocked_by_frame.get_mut(&None).unwrap().insert((target.x.round() as i32,target.y.round() as i32,target.z.round() as i32));
@@ -161,7 +161,7 @@ fn terrain_kernel_route_preparation_does_not_install_work() {
 #[test]
 fn terrain_kernel_failed_replacement_preserves_existing_route() {
     let (mut kernel,target) = climbing_world();
-    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let before = kernel.snapshot_entities_json().unwrap();
     let actor = kernel.entity("walker").unwrap();
     let pose = *kernel.ecs.get::<Position>(actor).unwrap();
@@ -184,7 +184,7 @@ fn terrain_kernel_mid_climb_redirect_preserves_pose_and_recovers() {
     let (mut kernel,target) = climbing_world();
     let actor = kernel.entity("walker").unwrap();
     let original = navigation::point(*kernel.ecs.get::<Position>(actor).unwrap());
-    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
     let before = *kernel.ecs.get::<Position>(actor).unwrap();
     kernel.apply_action(Action::Move{entity:"walker".into(),destination:original.clone(),facing:None},0.0).unwrap();
     let after = kernel.ecs.get::<Position>(actor).unwrap();
@@ -203,11 +203,11 @@ fn terrain_kernel_mid_climb_redirect_preserves_pose_and_recovers() {
 fn terrain_stop_retains_contact_and_resumes_after_restore() {
     for elapsed in [0.1, 0.8] {
         let (mut kernel, target) = climbing_world();
-        kernel.advance_json(&json!({"delta":elapsed,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":elapsed,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap();
         let actor = kernel.entity("walker").unwrap();
         let stopped = *kernel.ecs.get::<Position>(actor).unwrap();
         let stop = json!({"kind":"move","entity":"walker","destination":navigation::point(stopped)});
-        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[stop]}).to_string()).unwrap()).unwrap();
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":stop}]}).to_string()).unwrap()).unwrap();
         assert_eq!(response["results"][0]["accepted"], true);
         assert!(kernel.ecs.get::<Destination>(actor).is_none());
         assert!(kernel.terrain_routes.get(&actor).unwrap().suspended);
@@ -223,7 +223,7 @@ fn terrain_stop_retains_contact_and_resumes_after_restore() {
         recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let actor = recovered.entity("walker").unwrap();
         assert_eq!(navigation::point(*recovered.ecs.get::<Position>(actor).unwrap()), navigation::point(stopped));
-        let response: serde_json::Value = serde_json::from_str(&recovered.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":target}]}).to_string()).unwrap()).unwrap();
+        let response: serde_json::Value = serde_json::from_str(&recovered.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"move","entity":"walker","destination":target}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(response["results"][0]["accepted"], true);
         for _ in 0..20 { recovered.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap(); }
         let reached = recovered.ecs.get::<Position>(actor).unwrap();
@@ -240,12 +240,12 @@ fn terrain_kernel_mid_segment_return_join_uses_waypoint_cursor() {
     // The return route deliberately revisits its origin. Its vertical rise
     // and cross waypoints have different lengths, so find the exact retained
     // cursor state instead of assuming a fixed travel time.
-    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{
+    kernel.advance_json(&json!({"delta":0.1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
         "kind":"move","entity":"walker","destination":target
-    }]}).to_string()).expect("initial segment must advance");
-    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{
+    }}]}).to_string()).expect("initial segment must advance");
+    kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
         "kind":"move","entity":"walker","destination":origin
-    }]}).to_string()).expect("return route must be admitted");
+    }}]}).to_string()).expect("return route must be admitted");
 
     let capability = *kernel.ecs.get::<Traversal>(actor).unwrap();
     let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
@@ -269,9 +269,9 @@ fn terrain_kernel_mid_segment_return_join_uses_waypoint_cursor() {
         let revisited_next = next > 0 && next < points.len()
             && route.front().is_some_and(|front| points[..next].iter().any(|point| point == front));
         if mid_segment && revisited_next {
-            kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{
+            kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
                 "kind":"move","entity":"walker","destination":target
-            }]}).to_string()).expect("revisited mid-segment join must not panic");
+            }}]}).to_string()).expect("revisited mid-segment join must not panic");
             joined = true;
             break;
         }

@@ -59,10 +59,10 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     }
     kernel.rebuild_physical_indexes(true).unwrap();
     let site_surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 1, surface.z)]).unwrap().into_iter().next().flatten().unwrap().cell;
-    let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[
-        {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north"},
-        {"kind":"bind-construction-stage","site":"door","contact":contact},
-        {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1},
+    let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
+        {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+        {"kind":"bind-construction-stage","site":"door","contact":contact}},{"scope":{"kind":"host"},"request":
+        {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1}},
     ]});
     let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&setup.to_string()).unwrap()).unwrap();
     assert!(result["results"].as_array().unwrap().iter().all(|r| r["accepted"] == true));
@@ -73,7 +73,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
 }
 
 fn aperture_action(kernel: &mut Kernel, open: bool) -> serde_json::Value {
-    serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"kind":"set-structure-open","worker":"worker","site":"door","open":open}]}).to_string()).unwrap()).unwrap()
+    serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"set-structure-open","worker":"worker","site":"door","open":open}}]}).to_string()).unwrap()).unwrap()
 }
 
 #[test]

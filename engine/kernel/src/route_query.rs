@@ -481,9 +481,9 @@ mod tests {
     fn route_cost_uses_saved_terrain_prefix_without_mutating_midroute_or_suspended_state() {
         let (mut kernel, target) = climbing_world();
         kernel.advance_json(&json!({
-            "delta": 0.1, "writes": [], "actions": [{
+            "delta": 0.1, "writes": [], "actions": [{"scope":{"kind":"host"},"request":{
                 "kind": "move", "entity": "walker", "destination": target
-            }]
+            }}]
         }).to_string()).unwrap();
         let actor = kernel.entity("walker").unwrap();
         let midroute = kernel.snapshot_entities_json().unwrap();
@@ -496,10 +496,10 @@ mod tests {
 
         let stopped = *kernel.ecs.get::<Position>(actor).unwrap();
         kernel.advance_json(&json!({
-            "delta": 0.0, "writes": [], "actions": [{
+            "delta": 0.0, "writes": [], "actions": [{"scope":{"kind":"host"},"request":{
                 "kind": "move", "entity": "walker",
                 "destination": { "x": stopped.x, "y": stopped.y, "z": stopped.z, "frame": null }
-            }]
+            }}]
         }).to_string()).unwrap();
         assert!(kernel.terrain_routes.get(&actor).is_some_and(|state| state.suspended));
         let suspended = kernel.snapshot_entities_json().unwrap();

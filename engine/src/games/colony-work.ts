@@ -222,7 +222,7 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     ctx.createAuthoredEntity({ id, components: {
       [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
       [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
-    } }, owner ? { kind: "party", party: owner } : { kind: "host" });
+    } }, owner ? { kind: "party", party: owner.party } : { kind: "host" });
     ordersByProcess.set(row.id, []);
   }
 }

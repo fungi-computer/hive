@@ -720,7 +720,7 @@ pub(crate) mod tests {
         assert_eq!(pantry["local"]["facing"], 1.25);
         let destination: serde_json::Value = serde_json::from_str(&kernel.terrain_surfaces_json("[[2,0]]").unwrap()).unwrap();
         let destination_y = (destination[0]["cell"][1].as_i64().unwrap() as f64 + 0.5) * 0.54;
-        let move_output: serde_json::Value = serde_json::from_str(&kernel.advance_json(&format!(r#"{{"delta":0,"writes":[],"actions":[{{"kind":"move","entity":"actor","destination":{{"x":2,"y":{destination_y},"z":0,"frame":null}}}}]}}"#)).unwrap()).unwrap();
+        let move_output: serde_json::Value = serde_json::from_str(&kernel.advance_json(&format!(r#"{{"delta":0,"writes":[],"actions":[{{"scope":{{"kind":"host"}},"request":{{"kind":"move","entity":"actor","destination":{{"x":2,"y":{destination_y},"z":0,"frame":null}}}}}}]}}"#)).unwrap()).unwrap();
         assert_eq!(move_output["results"][0]["accepted"], true);
         for _ in 0..4 { kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap(); }
         let moved: serde_json::Value = serde_json::from_str(&kernel.render_json().unwrap()).unwrap();

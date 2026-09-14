@@ -192,10 +192,10 @@ mod tests {
     fn work_blocks_direct_control_and_cancel_preserves_material() {
         let (mut kernel, work) = fixture();
         kernel.request_excavation("worker", work).unwrap();
-        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"begin-direct","entity":"worker","stream":"keys"}]}"#).unwrap()).unwrap();
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-direct","entity":"worker","stream":"keys"}}]}"#).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], false);
         assert_eq!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).unwrap().seconds, 0.0);
-        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"cancel-work","entity":"worker"}]}"#).unwrap();
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"cancel-work","entity":"worker"}}]}"#).unwrap();
         assert_eq!(kernel.quantity("worker"), 0);
         assert_eq!(kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap(), work.expected);
         assert!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).is_none());

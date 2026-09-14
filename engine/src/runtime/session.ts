@@ -11,6 +11,8 @@ import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
 import { readKernelEntities } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
+import { query } from "../sdk/authoring";
+import { OwnedByParty, PartyMember } from "../sdk/party";
 import { ASSIGNMENT_MAX_EDGES } from "../sdk/assignment";
 import type {
   ActionRequest,
@@ -680,10 +682,10 @@ export class GameSession {
     });
   }
   private canonicalPartyFor(id: EntityId): EntityId | undefined {
-    const member = this.port.query({ components: [{ id: "hive.party-member" } as ComponentDefinition<any>] }).find((row) => row.id === id);
-    if (member) return (member.get({ id: "hive.party-member" } as ComponentDefinition<{ party: EntityId }>)).party;
-    const owner = this.port.query({ components: [{ id: "hive.owned-by-party" } as ComponentDefinition<any>] }).find((row) => row.id === id);
-    return owner ? (owner.get({ id: "hive.owned-by-party" } as ComponentDefinition<{ party: EntityId }>)).party : undefined;
+    const member = this.port.query(query(PartyMember)).find((row) => row.id === id);
+    if (member) return member.get(PartyMember).party;
+    const owner = this.port.query(query(OwnedByParty)).find((row) => row.id === id);
+    return owner?.get(OwnedByParty).party;
   }
   private derivedActionScope(action: ActionRequest): ActionScope {
     const values = Object.values(action as unknown as Record<string, unknown>).filter((value): value is EntityId => typeof value === "string");
