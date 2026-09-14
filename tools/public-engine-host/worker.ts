@@ -31,6 +31,7 @@ import {
   socketHandleFromPath,
 } from "./protocol";
 import { createColonyPartyPlan } from "../../engine/src/games/colony-party";
+import { entity } from "../../engine/src/sdk/authoring";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
@@ -52,7 +53,16 @@ type HostRow = {
   due_request_json: string | null;
   due_deadline_ms: number | null;
 };
-type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: string };
+type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: import("../../engine/src/contracts").EntityId };
+function participantRow(value: unknown): ParticipantRow {
+  if (!value || typeof value !== "object") throw new Error("public-participant-format");
+  const row = value as Record<string, unknown>;
+  if (typeof row.credential_hash !== "string" || !/^[a-f0-9]{64}$/.test(row.credential_hash) ||
+      typeof row.principal !== "string" || row.principal !== `participant:${row.credential_hash}` ||
+      typeof row.player_id !== "string" || !/^[A-Za-z0-9._:-]{1,96}$/.test(row.player_id) ||
+      typeof row.party_id !== "string") throw new Error("public-participant-format");
+  return { credential_hash: row.credential_hash, principal: row.principal, player_id: row.player_id, party_id: entity(row.party_id) };
+}
 type SocketAttachment = {
   readonly pack: PublicPack;
   readonly worldHandle: string;
@@ -268,8 +278,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       seed: 17,
       scopeForPrincipal: (principal) => {
         if (principal === hostPrincipal) return { kind: "host" };
-        const participant = this.owner.sql.exec<ParticipantRow>("SELECT player_id,party_id FROM hive_public_participants WHERE principal=?", principal).toArray()[0];
-        return participant ? { kind: "player", player: participant.player_id, party: participant.party_id as any } : null;
+        const raw = this.owner.sql.exec("SELECT credential_hash,principal,player_id,party_id FROM hive_public_participants WHERE principal=?", principal).toArray()[0];
+        if (!raw) return null;
+        const participant = participantRow(raw);
+        return { kind: "player", player: participant.player_id, party: participant.party_id };
       },
     });
     this.resident = runtime.resident;
@@ -611,10 +623,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private participant(credentialHash: string): ParticipantRow | undefined {
-    return this.owner.sql.exec<ParticipantRow>(
+    const raw = this.owner.sql.exec(
       "SELECT credential_hash,principal,player_id,party_id FROM hive_public_participants WHERE credential_hash=?",
       credentialHash,
     ).toArray()[0];
+    return raw ? participantRow(raw) : undefined;
   }
 
   /** Admission and the Region party establishment share the DO transaction. */
@@ -634,7 +647,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const existing = this.participant(credentialHash);
         if (existing) return existing;
         const player = `player-${credentialHash.slice(0, 24)}`;
-        const party = `party-${credentialHash.slice(0, 24)}` as import("../../engine/src/contracts").EntityId;
+        const party = entity(`party-${credentialHash.slice(0, 24)}`);
         const plan = createColonyPartyPlan(player, party, { x: 0, y: 0, z: 0 });
         const command = { id: `join:${credentialHash}`, command: { kind: "action", action: { kind: "establish-party", bindingId: credentialHash.slice(0, 96), player, party, records: plan.records } } };
         this.resident.begin(this.region.readCommitted().revision, this.region.readCommitted().state, this.residentRecords(this.region.readCommitted().revision));
