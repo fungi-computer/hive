@@ -124,6 +124,10 @@ export function building(type, stage, direction = 0, options) {
     model = group(s);
   model.rotation.y = (direction * Math.PI) / 2;
   build(model, stage);
+  // Multipart declarations live beside their authored groups on the model.
+  // The exporter consumes this returned scene, so expose the same checked
+  // declarations at that public scene boundary without duplicating ownership.
+  if (model.userData.staticParts) s.userData.staticParts = model.userData.staticParts;
   if (STATIC_PLACEMENTS[type]) s.userData.staticPlacement = STATIC_PLACEMENTS[type];
   return s;
 }

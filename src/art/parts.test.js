@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parsePartGeometry, partitionCompositePixels, partIdCodes, partOwnerKey, renderPartIdPass } from "./parts.js";
+import { building } from "./home.js";
 
 test("part geometry is detached and bounds are ordered", () => {
   const input = { footprint: [[0, 0, 0], [1, 2, 3]], minY: 0, maxY: 2 };
@@ -64,4 +65,13 @@ test("256x256 ownership propagation stays linear in the export pixel count", () 
   assert(stats.operations <= pixels * 8);
   const assignedAlpha = output.reduce((total, image) => total + image.reduce((sum, value, index) => sum + (index % 4 === 3 ? value : 0), 0), 0);
   assert.equal(assignedAlpha, 255 * pixels);
+});
+
+test("the public stair scene exposes its checked multipart declarations", () => {
+  for (const stage of ["stakes", "frame", "finished"])
+    for (const facing of [0, 1, 2, 3]) {
+      const authored = building("stair", stage, facing);
+      assert.deepEqual(authored.userData.staticParts.map(({ id }) => id), ["surface", "rail.left", "rail.right"]);
+      for (const part of authored.userData.staticParts) assert.notEqual(part.group.parent, null);
+    }
 });
