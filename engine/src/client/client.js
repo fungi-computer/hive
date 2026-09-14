@@ -15,6 +15,7 @@ import { Slider } from "@fungi.computer/caps/components/slider";
 import { Input } from "@fungi.computer/caps/components/input";
 import { Card, CardContent } from "@fungi.computer/caps/components/card";
 import { loadStaticArtPack } from "../../../src/art/static-pack.js";
+import { staticArtBase } from "../../../src/art/static-manifest.js";
 import {
   isTypingTarget,
   selectionFromSubjects,
@@ -1329,7 +1330,9 @@ export function createHiveClient({
     app.canvas.tabIndex = 0;
     canvasHost.appendChild(app.canvas);
     app.stage.addChild(overlay);
-    const pack = await loadStaticArtPack();
+    const pack = await loadStaticArtPack({
+      baseUrl: staticArtBase(import.meta.env?.BASE_URL ?? "/engine/"),
+    });
     art = pack.art;
     state.disposeArt = pack.dispose;
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });

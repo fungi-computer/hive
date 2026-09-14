@@ -6,6 +6,7 @@ import {
   STATIC_ART_SCHEMA,
   completeStaticArtManifest,
   parseStaticArtManifest,
+  staticArtBase,
 } from "./static-manifest.js";
 import {
   registerVisibleSilhouette,
@@ -18,6 +19,10 @@ test("static art resolves from the host root on nested game routes", () => {
   assert.equal(
     new URL(STATIC_ART_BASE, "https://game.example/engine/colony").href,
     "https://game.example/generated-art/goblin-static-art-v2/",
+  );
+  assert.equal(
+    staticArtBase("/engine/"),
+    "/engine/generated-art/goblin-static-art-v2/",
   );
 });
 
