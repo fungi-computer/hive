@@ -25,6 +25,7 @@ export type PublicCommandInput = z.infer<typeof commandInput>;
 
 const joinInput = z.object({ invite: z.string().regex(tokenPattern) }).strict();
 export type ColonyJoinInput = z.infer<typeof joinInput>;
+export type ColonyJoinResult = Readonly<{ player: string; party: string; people: readonly string[] }>;
 export type ColonyWorldOperation = "join" | "observe" | "command" | "connect" | "socket";
 export type ColonyWorldRoute = {
   readonly world: string;
@@ -74,6 +75,22 @@ export function tokenFromRequest(request: Request): string {
   const token = value?.startsWith("Bearer ") ? value.slice(7) : "";
   if (!tokenPattern.test(token)) throw new Error("public-unauthorized");
   return token;
+}
+
+/** Opaque host identity helpers. Credential material never appears in IDs. */
+export function participantPrincipal(tokenHash: string): string {
+  if (!tokenPattern.test(tokenHash)) throw new Error("public-unauthorized");
+  return `participant:${tokenHash}`;
+}
+
+export async function colonyBindingId(world: string, tokenHash: string): Promise<string> {
+  if (!worldPattern.test(world) || !tokenPattern.test(tokenHash)) throw new Error("public-unauthorized");
+  return sha256Hex(`hive:colony-party-binding-v1\0${world}\0${tokenHash}`);
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 async function readBoundedJson(request: Request): Promise<unknown> {

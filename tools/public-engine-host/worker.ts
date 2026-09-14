@@ -26,6 +26,7 @@ import {
   type PublicPack,
   readSocketMessage,
   socketHandleFromPath,
+  colonyWorldRoute,
 } from "./protocol";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
@@ -269,6 +270,12 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           next_sequence INTEGER NOT NULL,
           lease_until_ms INTEGER, due_sequence INTEGER, due_request_json TEXT,
           due_deadline_ms INTEGER);`);
+      this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_world (
+          singleton INTEGER PRIMARY KEY CHECK(singleton=1), format_version INTEGER NOT NULL,
+          world_handle TEXT NOT NULL UNIQUE, pack TEXT NOT NULL, invite_hash TEXT NOT NULL UNIQUE);`);
+      this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_participants (
+          credential_hash TEXT PRIMARY KEY, principal TEXT NOT NULL UNIQUE,
+          player_id TEXT NOT NULL UNIQUE, party_id TEXT NOT NULL UNIQUE);`);
       const row = this.hostRow();
       if (!row) {
         if (hadHostTable) throw new Error("public-host-format");
@@ -751,7 +758,15 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       request.headers.get("Origin") !== origin
     )
       return jsonResponse({ error: "public-origin-forbidden" }, 403, origin);
-    const pack = packFromPath(new URL(request.url).pathname);
+    const pathname = new URL(request.url).pathname;
+    const worldRoute = colonyWorldRoute(pathname);
+    const pack = packFromPath(pathname);
+    if (worldRoute) {
+      if (worldRoute.operation === "join") {
+        return jsonResponse({ error: "colony-join-not-initialized" }, 503, origin);
+      }
+      return jsonResponse({ error: "colony-world-route-unavailable" }, 503, origin);
+    }
     if (!pack) return jsonResponse({ error: "not-found" }, 404, origin);
     try {
       await this.ready;
@@ -845,6 +860,11 @@ export default {
           "Access-Control-Allow-Headers": "Authorization,Content-Type",
         }),
       });
+    const worldRoute = colonyWorldRoute(url.pathname);
+    if (worldRoute) {
+      const id = env.REGIONS.idFromName(`colony-party-v1:${worldRoute.world}`);
+      return await env.REGIONS.get(id).fetch(request);
+    }
     if (!pack) return jsonResponse({ error: "not-found" }, 404, origin);
     try {
       const handle = socketHandleFromPath(url.pathname);
