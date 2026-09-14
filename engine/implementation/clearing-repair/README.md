@@ -3,7 +3,7 @@
 Status: active implementation over source baseline `ab58104` in
 `/mnt/fungi-data/botanical-work/pathfinding-clean`. Integrator remains on
 `engine/pathfinding-clean-20260913`; use separate worktrees for each writer.
-Accepted through `89c334f`: the native WorkAttempt owner retains exact
+Accepted through `b12cfdb`: the native WorkAttempt owner retains exact
 generation/sequence and now rejects worker/task/party ownership mismatches; the
 shared native transfer-contact query follows portable custody, enumerates lawful
 three-dimensional terrain contacts, and shares its metric reach predicate with
@@ -18,8 +18,24 @@ remain review work rather than accepted behavior. The bounded WebGL2 depth
 feasibility checkpoint at `6bc00a3` is accepted: the retained actual-art capture
 uses terrain, the retained bed and Rowan; all 460 overlapping proof pixels agree
 with the CPU depth winner and reversed submission is byte-identical. This proves
-the chosen per-pixel technique only. The reusable world-depth layer, complete
-static bank consumption, cutaways and game picking remain unfinished.
+the chosen per-pixel technique only. The static-art format is now explicitly v4
+and carries checked ground/frame depth ranges, visual bounds and decoded CPU
+depth bytes through the maintained pack owner. Its 13 manifest laws, formatting
+and strict types pass. The v4 exported byte bank, reusable world-depth caller,
+cutaways and game picking remain unfinished; the first exporter run stopped
+before output because the provisioned Chromium environment lacks
+libcups/cairo/pango.
+
+The Colony v2 browser/protocol slice is integrated through `73c0b6c`: fresh and
+invited Colony worlds both use exact `/v2/colony/worlds/:world/...` routes, keep
+the world invite out of HTTP routing and keep a persisted participant credential
+out of URLs. Its 18 remote-runtime and 17 choice/protocol laws plus strict types
+pass. The DO transaction, canonical player/party spawn, principal propagation and
+two-player witness remain unfinished, so this is not yet playable multiplayer.
+The construction provider cutover is still under review: its site-local worker
+field is removed, but the reviewed candidate failed to release the WorkAttempt
+after successful completion. Do not integrate or describe that candidate as the
+trapped-worker fix until its terminal-result law passes.
 This packet refines the September 14 sections of
 [the owning sprint](../../CLEARING-CONSOLIDATION-PLAN.md). Later direct Levi
 instructions supersede it. Do not revive historical queues elsewhere in that file.
