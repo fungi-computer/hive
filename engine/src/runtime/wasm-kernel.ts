@@ -23,6 +23,7 @@ import type {
   RouteToAnyResult,
   WorldPose,
   WorkMaterialFacts,
+  WorkAttempt,
   ProcessRequirements,
   WriteIntent,
   EntityRecord,
@@ -53,6 +54,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   terrain_changes(json: string): string;
   query(json: string): string;
   work_material_snapshot(): string;
+  work_attempts(json: string): string;
   process_requirements(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -575,6 +577,17 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         },
       );
       return { version: 1, containers, lots };
+    },
+    workAttempts(taskIds) {
+      if (taskIds.length === 0 || taskIds.length > 128) throw new Error("work attempt query must contain between 1 and 128 tasks");
+      const result = JSON.parse(binding.work_attempts(JSON.stringify(taskIds))) as unknown;
+      if (!Array.isArray(result) || result.length > taskIds.length) throw new Error("invalid work attempt projection");
+      for (const row of result) {
+        if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("invalid work attempt row");
+        const value = row as Record<string, unknown>, key = value.key as Record<string, unknown> | null;
+        if (!key || typeof key.task !== "string" || !taskIds.includes(key.task as EntityId) || !Number.isSafeInteger(key.generation) || (key.generation as number) <= 0 || typeof value.worker !== "string" || typeof value.party !== "string" || !value.phase || typeof value.phase !== "object") throw new Error("invalid work attempt row");
+      }
+      return result as WorkAttempt[];
     },
     processRequirements(definition, station): ProcessRequirements {
       if (!entityIdWireSchema.safeParse(definition).success || !entityIdWireSchema.safeParse(station).success)

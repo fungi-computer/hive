@@ -36,6 +36,18 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "begin-work-attempt":
+      keys = ["kind", "task", "worker", "party", "operation"];
+      valid = id(action.task) && id(action.worker) && id(action.party) && !!action.operation && typeof action.operation === "object" && !Array.isArray(action.operation) && (action.operation as Record<string, unknown>).kind === "route" && Object.keys(action.operation as object).length === 2 && !!(action.operation as Record<string, unknown>).destination;
+      break;
+    case "interrupt-work-attempt":
+      keys = ["kind", "task", "generation", "sequence", "cause"];
+      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && ["drafted", "cancelled", "workerUnavailable", "accessLost"].includes(action.cause as string);
+      break;
+    case "acknowledge-work-attempt":
+      keys = ["kind", "task", "generation", "sequence"];
+      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0;
+      break;
     case "establish-resource-site":
       keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
       valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
