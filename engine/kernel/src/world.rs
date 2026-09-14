@@ -3728,6 +3728,9 @@ impl Kernel {
             }
             crate::work_attempt::ConstructionMode::Work => {
                 if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction continuation requires bound stage".into()); }
+                let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("construction site is missing")?;
+                state.phase = ConstructionPhase::Working;
+                self.ecs.entity_mut(site_entity).insert(state);
                 self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode } };
             }
         }

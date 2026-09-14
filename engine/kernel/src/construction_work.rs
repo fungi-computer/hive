@@ -661,15 +661,19 @@ impl Kernel {
         let readiness = construction_status(self, &working_ids)?;
         for (site_id, mut state) in pending {
             if state.phase != ConstructionPhase::Working { continue; }
-            let worker_id = state.worker.clone().ok_or("working construction lacks worker")?;
+            let attempt = self.work_attempts.get(&site_id).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).cloned();
+            let worker_id = state.worker.clone().or_else(|| attempt.as_ref().and_then(|attempt| match &attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Construction { site, mode: crate::work_attempt::ConstructionMode::Work, .. }, .. } if site == &site_id => Some(attempt.worker.clone()), _ => None }));
+            let Some(worker_id) = worker_id else { continue; };
             let worker = self.entity(&worker_id)?;
             if readiness.get(&site_id).is_some_and(|status| *status != "ready") {
                 self.release_construction_worker(&site_id, state)?;
+                if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost } })?; } }
                 continue;
             }
             if self.direct.contains_key(&worker) || self.ecs.get::<Destination>(worker).is_some()
                 || self.ecs.get::<ExcavationWork>(worker).is_some() || self.ecs.get::<Support>(worker).is_some() {
                 self.release_construction_worker(&site_id, state)?;
+                if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::WorkerUnavailable } })?; } }
                 continue;
             }
             let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
@@ -677,6 +681,7 @@ impl Kernel {
             let pose = self.world_pose(worker_id.as_str())?;
             if !self.contact_is_valid(&state, &definition, [pose.x, pose.y, pose.z], spacing)? {
                 self.release_construction_worker(&site_id, state)?;
+                if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost } })?; } }
                 continue;
             }
             if !self.construction_materials_ready(&site_id, &definition) { continue; }
@@ -685,6 +690,7 @@ impl Kernel {
             if state.seconds < definition.work_seconds { continue; }
             if !self.complete_construction(&site_id, &state)? {
                 self.release_construction_worker(&site_id, state)?;
+                if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Completed })?; } }
             }
         }
         self.refresh_state_weight();
