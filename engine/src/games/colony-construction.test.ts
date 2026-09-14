@@ -89,33 +89,35 @@ test("Colony floor designation preserves finished brewer and bed callers and the
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    // Four actual timber floors establish the support faces for two finished
-    // fixtures through the public Colony command, rather than direct native
-    // actions. The brewer and bed occupy different 2x2/1x2 footprints.
-    for (const cell of [[1, 13, -1], [2, 13, -1], [1, 13, 0], [2, 13, 0], [5, 13, -1], [5, 13, 0]] as const) {
-      buildFinished(session, "timber-floor", cell);
-    }
+    // Place both fixtures directly on generated terrain first. Flooring is
+    // then added underneath their already-finished footprints through the
+    // public Colony command, rather than through direct native actions.
     const brewer = buildFinished(session, "brew-station", [1, 13, -1]);
     const bed = buildFinished(session, "timber-bed", [5, 13, -1]);
+    // This is the actual public brewing command, used only to put real
+    // process-owned contents in a station port before the floor operation.
     session.command("requestBrew", { station: brewer.id });
     for (let tick = 0; tick < 160 && !session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container.startsWith(`${brewer.id}:`)); tick++) session.step(0.25);
     const brewerPorts = stablePortSnapshot(session, brewer.id);
     const bedPorts = stablePortSnapshot(session, bed.id);
     const beforeLots = session.query(query(MaterialLot)).map(row => [row.id, row.get(MaterialLot)] as const).filter(([, lot]) => lot.container.startsWith(`${brewer.id}:`) || lot.container.startsWith(`${bed.id}:`));
-    const beforeSurfaces = port.structureSurfaces([[1, -1], [5, -1]]);
+    const beforeFurniture = session.renderFacts().filter(fact => fact.id === brewer.id || fact.id === bed.id);
 
-    // This is the actual public floor operation. With the current Colony
-    // catalog it resolves to an unchanged finish, but it still exercises the
-    // floor resolver and native provider beneath occupied furniture.
-    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 13, -1] } });
-    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [5, 13, -1] } });
-    session.step(0.25);
+    // Every support cell under each finished footprint goes through the same
+    // user-facing operation and provider path. buildFinished waits for the
+    // newly-created floor site to settle before the next designation.
+    for (const cell of [[1, 13, -1], [2, 13, -1], [1, 13, 0], [2, 13, 0], [5, 13, -1], [5, 13, 0]] as const) {
+      buildFinished(session, "timber-floor", cell);
+    }
 
-    assert.equal(session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase !== "finished").length, 0, "same-finish floor designation must not create a second job");
+    assert.equal(session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase !== "finished").length, 0, "floor designations beneath finished fixtures must complete");
     assert.deepEqual(stablePortSnapshot(session, brewer.id), brewerPorts);
     assert.deepEqual(stablePortSnapshot(session, bed.id), bedPorts);
     assert.deepEqual(session.query(query(MaterialLot)).map(row => [row.id, row.get(MaterialLot)] as const).filter(([, lot]) => lot.container.startsWith(`${brewer.id}:`) || lot.container.startsWith(`${bed.id}:`)), beforeLots);
-    assert.deepEqual(port.structureSurfaces([[1, -1], [5, -1]]), beforeSurfaces);
+    const supportCells = [[1, -1], [2, -1], [1, 0], [2, 0], [5, -1], [5, 0]] as const;
+    const surfaces = port.structureSurfaces(supportCells);
+    assert(surfaces.every((rows, index) => rows.some(surface => surface.cell[1] === 13 && surface.cell[0] === supportCells[index][0] && surface.cell[2] === supportCells[index][1])), "every fixture footprint support cell must have a finished floor");
+    assert.deepEqual(session.renderFacts().filter(fact => fact.id === brewer.id || fact.id === bed.id), beforeFurniture);
     assert(session.query(query(ConstructionSite)).some(row => row.id === brewer.id && row.get(ConstructionSite).phase === "finished"));
     assert(session.query(query(ConstructionSite)).some(row => row.id === bed.id && row.get(ConstructionSite).phase === "finished"));
   } finally { port.dispose(); }
