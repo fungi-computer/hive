@@ -563,6 +563,9 @@ export type TerrainChangeSet =
       readonly reason: "history" | "restored" | "stale";
     };
 export interface KernelPort {
+  readonly transferContacts: (request: { readonly worker: EntityId; readonly container: EntityId }) =>
+    | { readonly kind: "ready"; readonly targets: readonly MoveDestination[] }
+    | { readonly kind: "blocked"; readonly reason: "sealed" | "unavailable-frame" | "no-contact" };
   readonly physicalContacts: (
     cells: readonly [number, number, number][],
   ) => readonly PhysicalContact[];
