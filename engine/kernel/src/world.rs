@@ -806,6 +806,75 @@ mod construction_tests {
     }
 
     #[test]
+    fn floor_replacement_preserves_bed_identity_port_and_support() {
+        let (mut kernel, surface, contact) = world();
+        install_floor_alt_and_furniture(&mut kernel);
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+
+        let bounds = kernel.environment.as_ref().unwrap().world.bounds();
+        let mut bed_origin = None;
+        'search: for x in bounds.min_x + 2..bounds.max_x - 2 {
+            for z in bounds.min_z + 2..bounds.max_z - 3 {
+                let cells = kernel.environment.as_mut().unwrap().world.surface_cells(&[(x, z), (x, z + 1)]).unwrap();
+                let Some(first) = cells[0].as_ref().map(|surface| surface.cell) else { continue; };
+                if cells[1].as_ref().is_some_and(|value| value.cell.y == first.y) {
+                    bed_origin = Some(first);
+                    break 'search;
+                }
+            }
+        }
+        let bed_origin = bed_origin.expect("fixture terrain contains a flat bed surface");
+        finish_test_structure(&mut kernel, "floor-bed-0", "floor", bed_origin, "worker-2");
+        finish_test_structure(&mut kernel, "floor-bed-1", "floor", crate::generation::Cell { x: bed_origin.x, y: bed_origin.y, z: bed_origin.z + 1 }, "worker-3");
+        finish_test_structure(&mut kernel, "bed-1", "timber-bed", crate::generation::Cell { x: bed_origin.x, y: bed_origin.y + 1, z: bed_origin.z }, "worker-2");
+
+        let bed_entity = kernel.entity("bed-1").unwrap();
+        let bed_before = record(kernel.ecs.get::<ConstructionSite>(bed_entity).unwrap());
+        let position_before = record(kernel.ecs.get::<Position>(bed_entity).unwrap());
+        let sleep_before = record(kernel.ecs.get::<Container>(kernel.entity("bed-1:sleep").unwrap()).unwrap());
+        let floor_id = "floor-bed-0";
+        let support = crate::generation::Cell { x: bed_origin.x, y: bed_origin.y, z: bed_origin.z };
+        let original_floor = kernel.ecs.get::<ConstructionSite>(kernel.entity(floor_id).unwrap()).unwrap().clone();
+        let base = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        kernel.environment.as_mut().unwrap().structures.insert("floor-alt-2".into(), crate::environment_definition::StructureDefinition { id: "floor-alt-2".into(), ..base });
+        let queued: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"replace-floor","orderId":"replace-bed-floor","existingFloorId":"floor-bed-0","desiredCatalog":"floor-alt-2"}}]}"#).unwrap()).unwrap();
+        assert_eq!(queued["results"][0]["accepted"], true, "{queued}");
+        let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(r#"["replace-bed-floor"]"#).unwrap()).unwrap();
+        let selected = &access[0]["contacts"][0];
+        let replacement_contact = Point { x: selected["x"].as_f64().unwrap(), y: selected["y"].as_f64().unwrap(), z: selected["z"].as_f64().unwrap(), frame: selected["frame"].as_str().map(str::to_owned) };
+        kernel.ecs.entity_mut(kernel.entity("worker-2").unwrap()).insert(Position { x: replacement_contact.x, y: replacement_contact.y, z: replacement_contact.z, facing: 0.0 });
+        let material_lot = source_stone_lot(&kernel);
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[
+            {"scope":{"kind":"host"},"request":{"kind":"bind-construction-stage","site":"replace-bed-floor","contact":replacement_contact}},
+            {"scope":{"kind":"host"},"request":{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-bed-floor","quantity":1}}
+        ]}).to_string()).unwrap();
+        begin_construction(&mut kernel, "worker-2", "replace-bed-floor", &replacement_contact);
+        let staged_save = kernel.save_records().unwrap();
+        let mut resumed = Kernel::new();
+        resumed.restore_records(&staged_save).unwrap();
+        assert_eq!(resumed.ecs.get::<FloorReplacement>(resumed.entity("replace-bed-floor").unwrap()).unwrap().phase, FloorReplacementPhase::Working);
+        assert!(!resumed.contents.get("replace-bed-floor").unwrap().is_empty(), "staged material must survive restore");
+        kernel = resumed;
+        for _ in 0..16 {
+            if kernel.ecs.get::<FloorReplacement>(kernel.entity("replace-bed-floor").unwrap()).unwrap().phase == FloorReplacementPhase::Completed { break; }
+            kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        }
+        let replaced = kernel.ecs.get::<ConstructionSite>(kernel.entity(floor_id).unwrap()).unwrap();
+        assert_eq!(replaced.catalog, "floor-alt-2");
+        assert_eq!((replaced.x, replaced.y, replaced.z, replaced.orientation), (original_floor.x, original_floor.y, original_floor.z, original_floor.orientation));
+        assert_eq!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Floor { id, support: actual } if id == floor_id && *actual == support)).count(), 1);
+        assert_eq!(record(kernel.ecs.get::<ConstructionSite>(bed_entity).unwrap()), bed_before);
+        assert_eq!(record(kernel.ecs.get::<Position>(bed_entity).unwrap()), position_before);
+        assert_eq!(record(kernel.ecs.get::<Container>(kernel.entity("bed-1:sleep").unwrap()).unwrap()), sleep_before);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(record(restored.ecs.get::<ConstructionSite>(restored.entity("bed-1").unwrap()).unwrap()), bed_before);
+        assert_eq!(restored.query_json(r#"["hive.floor-replacement"]"#).unwrap(), kernel.query_json(r#"["hive.floor-replacement"]"#).unwrap());
+    }
+
+    #[test]
     fn deconstruction_removes_storage_and_publishes_one_salvage_lot() {
         let (mut kernel, surface, contact) = world();
         install_floor_storage_recipe(&mut kernel);
