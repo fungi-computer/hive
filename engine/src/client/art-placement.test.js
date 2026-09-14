@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { building } from "../../../src/art/home.js";
 import { parseStaticArtManifest } from "../../../src/art/static-manifest.js";
+import { colonyConstructionVisuals } from "../games/colony-construction-visuals.ts";
 import { resolvePlacementArtTransform, resolveStairArtEndpoints, resolveWorldArtPlacement, rotatePlacementPoint } from "./art-placement.js";
 
 const recipePlacement = (type) => building(type, "finished", 0).userData.staticPlacement;
@@ -92,8 +93,10 @@ test("recipe footprints align every native bed and brewer facing", () => {
   const decodedDepth = { visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 2, maxY: 2, maxZ: 2 } };
   for (const [type, placement] of [["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT]]) {
     for (const orientation of ["north", "east", "south", "west"]) {
+      const catalog = type === "bed" ? "timber-bed" : "brew-station";
+      const [visual] = colonyConstructionVisuals({ query: () => [{ id: type, get: () => ({ catalog, x: 3, y: 14, z: -2, orientation, phase: "finished", seconds: 4 }) }] });
       const result = resolveWorldArtPlacement({
-        subjectPlacement: { kind: "footprint", footprint: placement.bakedFootprint, orientation },
+        subjectPlacement: visual.placement,
         artPlacement: placement,
         orientation,
         decodedDepth,
@@ -109,8 +112,9 @@ test("recipe footprints align every native bed and brewer facing", () => {
 test("recipe stair endpoints align all four native directions", () => {
   const decodedDepth = { visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 2, maxY: 2, maxZ: 2 } };
   for (const orientation of ["north", "east", "south", "west"]) {
+    const [visual] = colonyConstructionVisuals({ query: () => [{ id: "stair", get: () => ({ catalog: "timber-stair", x: 3, y: 14, z: -2, orientation, phase: "finished", seconds: 4 }) }] });
     const result = resolveWorldArtPlacement({
-      subjectPlacement: { kind: "stair", entrance: STAIR_PLACEMENT.entrance, landing: STAIR_PLACEMENT.landing, orientation },
+      subjectPlacement: visual.placement,
       artPlacement: STAIR_PLACEMENT,
       orientation,
       decodedDepth,
@@ -125,7 +129,7 @@ test("recipe stair endpoints align all four native directions", () => {
 });
 
 test("v4 manifest retains recipe placement for every bed, brewer, and stair frame", () => {
-  const manifest = parseStaticArtManifest(JSON.parse(readFileSync(new URL("../../../public/generated-art/goblin-static-art-v4/manifest.json", import.meta.url))));
+  const manifest = parseStaticArtManifest(JSON.parse(readFileSync("public/generated-art/goblin-static-art-v4/manifest.json", "utf8")));
   const recipes = new Map([["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT], ["stair", STAIR_PLACEMENT]]);
   const entries = manifest.entries.filter((entry) => recipes.has(entry.path[1]));
   assert.equal(entries.length, 82);
