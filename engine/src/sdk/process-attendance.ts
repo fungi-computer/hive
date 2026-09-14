@@ -2,7 +2,7 @@ import { component, query } from "./authoring";
 import { Body, Container, Destination, ExcavationWork, Position, Support, Traversal, move } from "./common";
 import { StagedProcess, attendProcess } from "./process-supply";
 import type { EntityId, MoveDestination, ProcessRequirements, WriteContext } from "../contracts";
-import type { PreparedWorkProvider } from "./work-system";
+import type { PreparedWorkProvider, WorkContext } from "./work-system";
 
 export const ProcessAttendanceWork = component<{ process: EntityId; actor: EntityId; contactX: number; contactY: number; contactZ: number }>("hive.process-attendance", { version: 1, fields: { process: "entity", actor: "entity", contactX: "number", contactY: "number", contactZ: "number" } });
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly target: MoveDestination };
@@ -85,8 +85,9 @@ export function processAttendanceProvider(
         const pose = positions.get(candidate.worker);
         const attendanceId = `process-attendance.${candidate.task}` as EntityId;
         ctx.createAuthoredEntity({ id: attendanceId, components: { [ProcessAttendanceWork.id]: { process: candidate.task, actor: candidate.worker, contactX: candidate.target.x, contactY: candidate.target.y, contactZ: candidate.target.z } } });
-        if (pose && Math.hypot(pose.x - candidate.target.x, pose.y - candidate.target.y, pose.z - candidate.target.z) <= CONTACT_DISTANCE) ctx.action(attendProcess(candidate.worker, candidate.task));
-        else ctx.action(move(candidate.worker, candidate.target));
+        const process = processes.find(item => item.id === candidate.task);
+        if (!process) throw new Error("unknown process attendance task");
+        ctx.action({ kind: "begin-work-attempt", task: candidate.task, worker: candidate.worker, party: process.state.station, operation: { kind: "route", destination: candidate.target } });
       }
     },
     progress() {
@@ -98,13 +99,10 @@ export function processAttendanceProvider(
         const stage = process && ctx.processRequirements(process.state.definition, process.state.station).stages[process.state.stageIndex];
         if (!process || !target || !stage || stage.mode !== "attended" || process.state.phase === "blocked" || process.state.phase === "complete" || process.state.phase === "working" && process.state.worker !== work.actor) { ctx.removeAuthoredEntity(row.id); continue; }
         const contact = { x: work.contactX, y: work.contactY, z: work.contactZ, frame: null } satisfies MoveDestination;
-        const rejected = ctx.outcomes.some(({ action, result }) => !result.accepted && ((action.kind === "move" && action.entity === work.actor && action.destination.x === contact.x && action.destination.y === contact.y && action.destination.z === contact.z) || (action.kind === "attend-process" && action.worker === work.actor && action.process === work.process)));
-        if (rejected) { ctx.removeAuthoredEntity(row.id); continue; }
+        const attempt = (ctx as WorkContext).workAttempts([work.process])[0];
+        if (!attempt) { ctx.removeAuthoredEntity(row.id); continue; }
+        if (attempt.phase.kind === "outcome" || attempt.phase.kind === "settling") { ctx.removeAuthoredEntity(row.id); continue; }
         if (destinations.has(work.actor)) continue;
         if (process.state.phase === "working") { ctx.action(attendProcess(work.actor, work.process)); continue; }
         if (pose && Math.hypot(pose.x - contact.x, pose.y - contact.y, pose.z - contact.z) <= CONTACT_DISTANCE) ctx.action(attendProcess(work.actor, work.process));
-        else ctx.action(move(work.actor, contact));
-      }
-    },
-  };
-}
+        else if (attempt.phase.kind === "ready") ctx.action({ kind: "begin-work-attempt", task: work.process, worker: work.actor, party: process.st
