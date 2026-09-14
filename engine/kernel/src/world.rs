@@ -496,7 +496,6 @@ mod process_attempt_tests {
         kernel.advance_json(&json!({"delta":0.5,"writes":[],"actions":[]}).to_string()).unwrap();
         let waiting = kernel.ecs.get::<StagedProcess>(kernel.entity(process).unwrap()).unwrap();
         assert_eq!(waiting.phase, ProcessPhase::Waiting);
-        assert_eq!(waiting.phase, ProcessPhase::Waiting);
         assert!(kernel.work_attempts_json(&format!("[\"{process}\"]")).unwrap().contains("workerUnavailable"));
         let saved = kernel.snapshot_entities_json().unwrap();
         let mut restored = Kernel::new();
