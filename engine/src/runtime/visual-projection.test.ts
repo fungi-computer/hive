@@ -41,7 +41,7 @@ test("construction placement survives projection for fixture and stair art", () 
   assert.deepEqual(result.map(fact => fact.placement), [
     { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" },
     { kind: "footprint", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]], orientation: "east" },
-    { kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation: "south" },
+    { kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, -2], orientation: "south" },
   ]);
   assert.deepEqual(result.map(fact => fact.view?.pickable), [true, true, true]);
 });
