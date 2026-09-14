@@ -3115,7 +3115,28 @@ impl Kernel {
         }
         candidate.projectile_count = candidate.ids.values().filter(|entity| candidate.ecs.get::<Projectile>(**entity).is_some_and(|p| p.state == "flying" || p.state == "rolling")).count();
         candidate.ground_stock_cleanup_pending = true;
+        candidate.validate_party_relations()?;
         *self = candidate;
+        Ok(())
+    }
+
+    fn validate_party_relations(&self) -> Result<()> {
+        for entity in self.ids.values() {
+            if let Some(member) = self.ecs.get::<PartyMember>(*entity) {
+                let party = self.entity(&member.party)?;
+                if self.ecs.get::<Party>(party).is_none() { return Err("party member references a non-party".into()); }
+            }
+            if let Some(owner) = self.ecs.get::<OwnedByParty>(*entity) {
+                let party = self.entity(&owner.party)?;
+                if self.ecs.get::<Party>(party).is_none() { return Err("owned entity references a non-party".into()); }
+            }
+            if let Some(receipt) = self.ecs.get::<PartyReceipt>(*entity) {
+                let party = self.entity(&receipt.party)?;
+                let record = self.ecs.get::<Party>(party).ok_or("party receipt references a non-party")?;
+                if record.owner_player != receipt.player { return Err("party receipt player mismatch".into()); }
+                if receipt.binding_id.is_empty() || receipt.digest.is_empty() { return Err("party receipt is incomplete".into()); }
+            }
+        }
         Ok(())
     }
     pub fn render_json(&self) -> Result<String> {
