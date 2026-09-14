@@ -3999,6 +3999,21 @@ impl Kernel {
     fn interrupt_work_attempt(&mut self, task: String, generation: u64, sequence: u32, cause: InterruptCause) -> Result<()> {
         let worker = self.attempt_mut(&task, generation, sequence)?.worker.clone();
         let entity = self.entity(&worker)?;
+        if let Some(attempt_entity) = self.work_attempts.get(&task).copied() {
+            if let Some(attempt) = self.ecs.get::<WorkAttempt>(attempt_entity).cloned() {
+                if let AttemptPhase::Executing { activity, .. } = attempt.phase {
+                    match activity {
+                        crate::work_attempt::ActivityRef::Excavation { .. } => {
+                            if self.ecs.get::<ExcavationWork>(entity).is_some() { self.ecs.entity_mut(entity).remove::<ExcavationWork>(); }
+                        }
+                        crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
+                            if let Ok(process_entity) = self.entity(&process) { if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() { if state.phase == ProcessPhase::Working { self.ecs.entity_mut(process_entity).insert(StagedProcess { phase: ProcessPhase::Waiting, ..state }); } } }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
         if let Some(destination) = self.ecs.get::<Destination>(entity).cloned() {
             if let Some(attempt_entity) = self.work_attempts.get(&task).copied() {
                 if let Some(WorkAttempt { phase: AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { destination: expected }, .. }, .. }) = self.ecs.get::<WorkAttempt>(attempt_entity) {
@@ -4098,6 +4113,47 @@ impl Kernel {
             } else {
                 self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             }
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::Deconstruction { site, contact } = next_activity.clone() {
+            let site_entity = self.entity(&site)?;
+            let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction site has no party owner")?;
+            if owner.party != current.party { return Err("deconstruction continuation party mismatch".into()); }
+            self.deconstruct_construction(&current.worker, &site)?;
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::Deconstruction { site, contact }, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::Excavation { cell, expected_material, replacement_material } = next_activity.clone() {
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.request_excavation(&current.worker, ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 })?;
+            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::ResourceEstablish { site, definition, cell } = next_activity.clone() {
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.establish_resource_site("work-attempt", &current.worker, &site, &definition, cell[0], cell[1], cell[2])?;
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::ResourceTend { site, vessel } = next_activity.clone() {
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.tend_resource_site("work-attempt", &current.worker, &site, &vessel)?;
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::ResourceExtract { source } = next_activity.clone() {
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.extract_resource(&current.worker, &source)?;
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::FieldWater { vessel, cell, direction, portions } = next_activity.clone() {
+            if portions == 0 { return Err("field water portions must be positive".into()); }
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            let direction = match direction { crate::work_attempt::WaterDirection::Withdraw => WaterExchangeDirection::Withdraw, crate::work_attempt::WaterDirection::Deposit => WaterExchangeDirection::Deposit };
+            self.exchange_field_water(&current.worker, &vessel, crate::generation::Cell { x: i64::from(cell[0]), y: cell[1], z: i64::from(cell[2]) }, direction, portions)?;
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             return Ok(());
         }
         let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };

@@ -2,7 +2,7 @@ import { colonyConstructionVisuals } from "./colony-construction-visuals";
 import { colonyBrewStationProfiles } from "./colony-brewing-presentation";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
-import { DeconstructionApproach, DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
+import { DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
   Emitter,
@@ -35,7 +35,7 @@ import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
-import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, ReadContext, GameCommandContext } from "../contracts";
+import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, MoveDestination, ReadContext, GameCommandContext } from "../contracts";
 
 export { Worker } from "./colony-components";
 export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
@@ -309,7 +309,6 @@ const colonyComponents = [
   FiniteResource,
   ResourceSite,
   Cat,
-  DeconstructionApproach, DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
   WaterSupplyOrder, WaterSupplyWork,

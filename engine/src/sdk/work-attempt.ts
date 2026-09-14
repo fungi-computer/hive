@@ -159,6 +159,57 @@ export function continueConstructionWorkAttempt(
   });
 }
 
+export function continueDeconstructionWorkAttempt(
+  context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
+  attempt: WorkAttemptKey,
+  operationSequence: number,
+  site: EntityId,
+  contact: ConstructionAccessContact,
+): void {
+  const exact = key(attempt), operation = sequence(operationSequence);
+  entity(site);
+  if (![contact.x, contact.y, contact.z].every(Number.isFinite)) throw new Error("deconstruction contact must be finite");
+  const current = workAttempt(context, exact.task);
+  if (!current || current.key.generation !== exact.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "deconstruction", site, contact } });
+}
+
+function requireCompleted(context: Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operation: number): void {
+  const current = workAttempt(context, attempt.task);
+  if (!current || current.key.generation !== attempt.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
+}
+
+export function continueExcavationWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, cell: readonly [number, number, number], expectedMaterial: number, replacementMaterial: number): void {
+  const exact = key(attempt), operation = sequence(operationSequence);
+  if (cell.length !== 3 || !cell.every(Number.isSafeInteger) || ![expectedMaterial, replacementMaterial].every(Number.isSafeInteger)) throw new Error("excavation activity must be integral");
+  requireCompleted(context, exact, operation);
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "excavation", cell, expectedMaterial, replacementMaterial } });
+}
+
+export function continueResourceEstablishWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, site: EntityId, definition: string, cell: readonly [number, number, number]): void {
+  const exact = key(attempt), operation = sequence(operationSequence); entity(site);
+  if (cell.length !== 3 || !cell.every(Number.isSafeInteger)) throw new Error("resource cell must be integral");
+  requireCompleted(context, exact, operation);
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "resource-establish", site, definition, cell } });
+}
+
+export function continueResourceTendWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, site: EntityId, vessel: EntityId): void {
+  const exact = key(attempt), operation = sequence(operationSequence); entity(site); entity(vessel); requireCompleted(context, exact, operation);
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "resource-tend", site, vessel } });
+}
+
+export function continueResourceExtractWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, source: EntityId): void {
+  const exact = key(attempt), operation = sequence(operationSequence); entity(source); requireCompleted(context, exact, operation);
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "resource-extract", source } });
+}
+
+export function continueFieldWaterWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, vessel: EntityId, cell: readonly [number, number, number], direction: "withdraw" | "deposit", portions: number): void {
+  const exact = key(attempt), operation = sequence(operationSequence); entity(vessel);
+  if (cell.length !== 3 || !cell.every(Number.isSafeInteger) || !Number.isSafeInteger(portions) || portions <= 0) throw new Error("field water activity is invalid");
+  requireCompleted(context, exact, operation);
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "field-water", vessel, cell, direction, portions } });
+}
+
 /** Continue one admitted attempt through the native material transfer owner. */
 export function continueMaterialTransferAttempt(
   context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,

@@ -1,5 +1,6 @@
 import { component, entity, query } from "./authoring";
 import { ConstructionSite, deconstruct } from "./construction";
+import { OwnedByParty, PartyMember } from "./party";
 import {
   Body,
   Container,
@@ -11,6 +12,7 @@ import {
   move,
 } from "./common";
 import type { PreparedWorkProvider } from "./work-system";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueDeconstructionWorkAttempt } from "./work-attempt";
 import type {
   ConstructionAccessContact,
   DeconstructionAccess,
@@ -124,7 +126,6 @@ type SiteState = {
   readonly y: number;
   readonly z: number;
   readonly orientation: string;
-  readonly worker: EntityId | null;
   readonly seconds: number;
   readonly phase: "planned" | "working" | "finished";
 };
@@ -211,10 +212,6 @@ function indexDeconstructionFacts(
     ...ctx.query(query(ExcavationWork)).map((row) => row.id),
     ...ctx.query(query(Destination)).map((row) => row.id),
     ...ctx.query(query(Support)).map((row) => row.id),
-    ...ctx.query(query(ConstructionSite)).flatMap((row) => {
-      const worker = row.get(ConstructionSite).worker;
-      return worker === null ? [] : [worker];
-    }),
     ...[...approaches.values()].map(({ state }) => state.worker),
   ]);
   return {
@@ -286,20 +283,26 @@ export function deconstructionWorkProvider(
   workers: readonly EntityId[],
   suspended: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<Candidate> {
-  const facts = indexDeconstructionFacts(ctx, workers, suspended);
-  const { activeOrders, claims } = reconcileDeconstructionOrders(ctx, facts);
-  const candidates = buildDeconstructionCandidates(facts, activeOrders);
-  const assignment = beginDeconstructionAssignment(ctx, facts, candidates);
+  const orders = [...ctx.query(query(DeconstructionOrder))].sort((a,b)=>a.id.localeCompare(b.id));
+  const sites = new Map(ctx.query(query(ConstructionSite)).map(row=>[row.id,row.get(ConstructionSite)] as const));
+  const owners = new Map(ctx.query(query(OwnedByParty)).map(row=>[row.id,row.get(OwnedByParty).party] as const));
+  const members = new Map(ctx.query(query(PartyMember)).map(row=>[row.id,row.get(PartyMember).party] as const));
+  const access = new Map((orders.length ? ctx.deconstructionAccess([...new Set(orders.map(row=>row.get(DeconstructionOrder).site))]) : []).map(row=>[row.site,row] as const));
+  const attempts = new Map((ctx.workAttempts?.(orders.map(row=>row.id)) ?? []).map(attempt=>[attempt.key.task,attempt] as const));
+  const poses = new Map(ctx.worldPoses(workers).map(pose=>[pose.id,pose.world] as const));
+  const candidates: Candidate[]=[];
+  for(const row of orders){const state=row.get(DeconstructionOrder),site=sites.get(state.site),info=access.get(state.site),party=owners.get(state.site);if(!site||site.phase!=="finished"||!info||info.status!=="ready"||!info.contacts.length||attempts.has(row.id)||!party)continue;for(const worker of workers){const pose=poses.get(worker);if(suspended.has(worker)||!pose||members.get(worker)!==party)continue;candidates.push({worker,task:row.id,order:row.id,site:state.site,contacts:info.contacts});}}
+  const routes=new Map<string,ConstructionAccessContact>();const byPair=new Map(candidates.map(candidate=>[`${candidate.task}\0${candidate.worker}`,candidate]));
   return {
-    claims,
-    occupiedActors: [...facts.occupied],
+    claims: orders.filter(row=>attempts.has(row.id)).map(row=>({task:row.id,actor:attempts.get(row.id)?.worker??null})), occupiedActors:[...new Set([...attempts.values()].map(attempt=>attempt.worker))],
     candidates,
-    lowerBound: assignment.lowerBound,
-    estimate: assignment.estimate,
-    apply: assignment.apply,
-    progress: () => progressDeconstruction(ctx, facts, activeOrders),
+    lowerBound: candidate=>{const pose=poses.get(candidate.worker);return pose?Math.min(...candidate.contacts.map(contact=>distance(pose,contact))):Infinity;},
+    estimate: candidate=>{const result=ctx.routeToAny({actor:candidate.worker,targets:candidate.contacts.map(contact=>({x:contact.x,y:contact.y,z:contact.z,frame:null}))});if(result.status!=="reachable")return null;const contact=candidate.contacts[result.targetIndex];if(!contact)return null;routes.set(`${candidate.task}\0${candidate.worker}`,contact);return result.cost;},
+    apply: assignments=>{for(const assignment of assignments){const candidate=byPair.get(`${assignment.task}\0${assignment.worker}`),contact=candidate&&routes.get(`${assignment.task}\0${assignment.worker}`),party=candidate&&owners.get(candidate.site);if(!candidate||!contact||!party)continue;beginRouteWorkAttempt(ctx,candidate.task,candidate.worker,party,{x:contact.x,y:contact.y,z:contact.z,frame:null});}},
+    progress:()=>{for(const row of orders){const attempt=attempts.get(row.id);if(!attempt||attempt.phase.kind!=="outcome")continue;const phase=attempt.phase;if(phase.result.kind!=="completed"){acknowledgeWorkAttempt(ctx,attempt.key,phase.operation.sequence);continue;}const activity=phase.activity;if(activity.kind==="route"){const state=row.get(DeconstructionOrder),info=access.get(state.site),contact=info?.contacts.find(item=>item.x===activity.destination.x&&item.y===activity.destination.y&&item.z===activity.destination.z);if(contact)continueDeconstructionWorkAttempt(ctx,attempt.key,phase.operation.sequence,state.site,contact);else acknowledgeWorkAttempt(ctx,attempt.key,phase.operation.sequence);}else if(activity.kind==="deconstruction"){ctx.removeAuthoredEntity(row.id);acknowledgeWorkAttempt(ctx,attempt.key,phase.operation.sequence);}}},
   };
 }
+
 
 function removeDeconstructionOrder(
   ctx: WriteContext,

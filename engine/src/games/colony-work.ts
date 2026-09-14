@@ -1,5 +1,5 @@
 import { constructionWorkProvider } from "../sdk/construction-work";
-import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
+import { DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
 import { processAttendanceProvider } from "../sdk/process-attendance";
@@ -40,6 +40,7 @@ import {
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
 import { OwnedByParty, PartyMember } from "../sdk/party";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, workAttempt } from "../sdk/work-attempt";
 
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
 type ColonyResourceOrderState = {
@@ -104,74 +105,41 @@ function advanceResourceAtContact(ctx: WriteContext, row: ResourceOrderRow, stat
 
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
 export function resourceWorkProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<ResourceCandidate> {
-  const orders = ctx.query(query(ColonyResourceOrder));
-  const orderOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty)]));
-  const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
-  const entityOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
-  const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspendedActors.has(row.id));
-  const eligible = (row: ResourceOrderRow) => {
-    const owner = orderOwners.get(row.id)?.party;
-    const actor = row.get(ColonyResourceOrder).actor;
-    return !owner || (actor === null ? true : memberships.get(actor) === owner);
+  // WorkAttempt is the sole lifecycle owner. The legacy authored fields below
+  // remain definition/progress data until their current-format recut lands;
+  // they never claim a worker or settle a physical operation.
+  const nativeOrders = [...ctx.query(query(ColonyResourceOrder))].sort((a, b) => a.id.localeCompare(b.id));
+  const nativeSites = new Map(ctx.query(query(ResourceSite)).map(row => [row.id, row.get(ResourceSite)]));
+  const nativeDefinitions = new Map(colonyEnvironment.resourceSites?.map(definition => [definition.id, definition]) ?? []);
+  const nativeOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const nativeMembers = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
+  const nativeWorkers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspendedActors.has(row.id));
+  const nativeAttempts = new Map((ctx.workAttempts?.(nativeOrders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const nativeFacts = ctx.workMaterialFacts();
+  const nativePails = new Map<EntityId, EntityId>(nativeFacts.lots.filter(lot => lot.kind === "pail" && nativeWorkers.some(worker => worker.id === lot.container)).map(lot => [lot.container, lot.id]));
+  const nativeCandidates: ResourceCandidate[] = [];
+  for (const row of nativeOrders) {
+    if (nativeAttempts.has(row.id)) continue;
+    const state = row.get(ColonyResourceOrder), site = nativeSites.get(state.site), definition = nativeDefinitions.get(state.definition), party = nativeOwners.get(row.id);
+    if (!site || !definition || !party || (state.phase !== "sow" && state.phase !== "tend" && state.phase !== "harvest")) continue;
+    if (state.phase !== "harvest" && site.nextDue > ctx.clock.now) continue;
+    for (const worker of nativeWorkers) {
+      if (nativeMembers.get(worker.id) !== party || (state.phase === "tend" && !nativePails.has(worker.id))) continue;
+      nativeCandidates.push({ worker: worker.id, task: row.id, vessel: nativePails.get(worker.id), approaches: [{ x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null }] });
+    }
+  }
+  const nativePoses = new Map(ctx.worldPoses(nativeWorkers.map(row => row.id)).map(pose => [pose.id, pose.local]));
+  const nativeSelected = new Map<string, ResourceCandidate["approaches"][number]>();
+  return {
+    claims: nativeOrders.filter(row => nativeAttempts.has(row.id)).map(row => ({ task: row.id, actor: nativeAttempts.get(row.id)?.worker ?? null })),
+    candidates: nativeCandidates,
+    lowerBound: candidate => { const pose = nativePoses.get(candidate.worker), target = candidate.approaches[0]; return pose ? Math.hypot(pose.x - target.x, pose.z - target.z) : Number.POSITIVE_INFINITY; },
+    estimate: candidate => { const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches }); if (result.status !== "reachable") return null; nativeSelected.set(`${candidate.task}\0${candidate.worker}`, candidate.approaches[result.targetIndex]); return result.cost; },
+    apply: assignments => { for (const assignment of assignments) { const candidate = nativeCandidates.find(item => item.task === assignment.task && item.worker === assignment.worker), party = nativeOwners.get(assignment.task); if (!candidate || !party) continue; beginRouteWorkAttempt(ctx, assignment.task, assignment.worker, party, nativeSelected.get(`${assignment.task}\0${assignment.worker}`) ?? candidate.approaches[0]); if (candidate.vessel) ctx.write(ColonyResourceOrder, assignment.task, { ...ctx.query(query(ColonyResourceOrder)).find(row => row.id === assignment.task)!.get(ColonyResourceOrder), vessel: candidate.vessel }); } },
+    progress: () => { for (const row of nativeOrders) { const attempt = nativeAttempts.get(row.id); if (!attempt || attempt.phase.kind !== "outcome") continue; const state = row.get(ColonyResourceOrder), phase = attempt.phase; if (phase.result.kind !== "completed") { acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } if (phase.activity.kind === "route") { const cell = [state.cellX, state.cellY, state.cellZ] as const, vessel = nativePails.get(attempt.worker); if (state.phase === "sow") continueResourceEstablishWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site, state.definition, cell); else if (state.phase === "tend" && vessel) continueResourceTendWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site, vessel); else if (state.phase === "harvest") continueResourceExtractWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site); else acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } else if (phase.activity.kind === "resource-extract") { ctx.write(ColonyResourceOrder, row.id, { ...state, phase: "complete", actor: null, vessel: null, reason: "", workSeconds: 0 }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } else if (phase.activity.kind === "resource-establish" || phase.activity.kind === "resource-tend") { ctx.write(ColonyResourceOrder, row.id, { ...state, phase: "waiting", actor: null, vessel: null, reason: "", workSeconds: 0 }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } } },
   };
-  const ownedOrders = orders.filter(eligible);
-  const sites = new Map(ctx.query(query(ResourceSite)).map(row => [row.id, row.get(ResourceSite)]));
-  const definitions = new Map(colonyEnvironment.resourceSites?.map(definition => [definition.id, definition]) ?? []);
-  const materialFacts = ctx.workMaterialFacts();
-  const heldPails = new Map<EntityId, { vessel: EntityId; water: number }>();
-  for (const pail of materialFacts.lots.filter(lot => lot.kind === "pail" && workers.some(worker => worker.id === lot.container) && (!entityOwners.get(lot.id) || memberships.get(lot.container) === entityOwners.get(lot.id)))) {
-    const water = materialFacts.lots.filter(lot => lot.kind === "water" && lot.container === pail.id).reduce((sum, lot) => sum + lot.quantity, 0);
-    if (water > 0) heldPails.set(pail.container, { vessel: pail.id, water });
-  }
-  reconcileResourceOutcomes(ctx, ownedOrders);
-  for (const row of ownedOrders) {
-    const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
-    if ((state.phase === "waiting" || (state.phase === "tend" && state.actor === null)) && site && definition && ctx.clock.now >= site.nextDue) {
-      const required = site.stage < definition.stages.length ? definition.stages[site.stage].waterPortions : 0;
-      const enough = [...heldPails.values()].some(pail => pail.water >= required);
-      if (!enough && site.stage < definition.stages.length) {
-        const supplyId = entity(`colony.resource-water.${row.id}.${site.stage}`);
-        if (!ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) {
-          ctx.createAuthoredEntity({ id: supplyId, components: { [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } }, orderOwners.get(row.id) ? { kind: "party", party: orderOwners.get(row.id)!.party } : { kind: "host" });
-        }
-      }
-      ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
-    }
-  }
-  const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
-  const poses = new Map(workers.length === 0 ? [] : ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
-  const candidates = ownedOrders.flatMap(row => {
-    const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
-    const owner = orderOwners.get(row.id)?.party;
-    const approach = { x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null as EntityId | null };
-    return state.actor === null && (["sow", "harvest"].includes(state.phase) || (state.phase === "tend" && site && definition && heldPails.size > 0))
-      ? workers.filter(worker => (!owner || memberships.get(worker.id) === owner) && (state.phase !== "tend" || (site && definition && (heldPails.get(worker.id)?.water ?? 0) >= definition.stages[site.stage]?.waterPortions))).map(worker => ({ worker: worker.id, task: row.id, vessel: heldPails.get(worker.id)?.vessel, approaches: [approach] })) : [];
-  });
-  const selected = new Map<string, { x: number; y: number; z: number; frame: EntityId | null }>();
-  return { claims, candidates, lowerBound: candidate => { const p = poses.get(candidate.worker)?.local; return p ? Math.hypot(p.x - candidate.approaches[0].x, p.z - candidate.approaches[0].z) : 0; }, estimate: candidate => { const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches }); if (result.status !== "reachable") return null; selected.set(`${candidate.worker}\0${candidate.task}`, candidate.approaches[result.targetIndex]); return result.cost; }, apply: assignments => {
-    for (const assignment of assignments) {
-      const row = orders.find(item => item.id === assignment.task); if (!row) continue;
-      const state = row.get(ColonyResourceOrder); const definition = definitions.get(state.definition); if (!definition) continue;
-      const approach = selected.get(`${assignment.worker}\0${assignment.task}`) ?? candidates.find(c => c.worker === assignment.worker && c.task === assignment.task)?.approaches[0];
-      if (!approach) continue;
-      const pose = poses.get(assignment.worker)?.local;
-      const arrived = pose && Math.hypot(pose.x - approach.x, pose.z - approach.z) < 0.1 && Math.abs(pose.y - approach.y) < 0.2;
-      if (!arrived) { const assignedVessel = candidates.find(candidate => candidate.worker === assignment.worker && candidate.task === assignment.task)?.vessel ?? null; ctx.action(move(assignment.worker, approach)); ctx.write(ColonyResourceOrder, row.id, { ...state, actor: assignment.worker, vessel: state.phase === "tend" ? assignedVessel : null, approachX: approach.x, approachY: approach.y, approachZ: approach.z, attempt: state.attempt + 1 }); continue; }
-      const vessel = state.vessel ?? candidates.find(candidate => candidate.worker === assignment.worker && candidate.task === row.id)?.vessel ?? null;
-      advanceResourceAtContact(ctx, row, state, definition, assignment.worker, vessel);
-    }
-  }, progress: () => {
-    for (const row of ownedOrders) {
-      const state = row.get(ColonyResourceOrder);
-      if (!state.actor || !["sow", "tend", "harvest"].includes(state.phase)) continue;
-      const definition = definitions.get(state.definition); if (!definition) continue;
-      if (ctx.query(query(Destination)).some(destination => destination.id === state.actor)) continue;
-      const pose = ctx.worldPoses([state.actor])[0]?.local;
-      if (!pose || Math.hypot(pose.x - state.approachX, pose.z - state.approachZ) > 0.1 || Math.abs(pose.y - state.approachY) > 0.2) continue;
-      advanceResourceAtContact(ctx, row, state, definition, state.actor, state.vessel);
-    }
-  } };
 }
+
 import {
   StockpileCell,
   planStockpileDeliveries,
@@ -1105,7 +1073,6 @@ export const colonyWorkSystem = createWorkSystem({
     Container,
     SealedContainer,
     ConstructionSite,
-    DeconstructionApproach,
     DeconstructionOrder,
     LotWater,
     Destination,
@@ -1126,7 +1093,6 @@ export const colonyWorkSystem = createWorkSystem({
     ColonyTreeOrder,
     MaterialLot,
     DeliveryTask,
-    DeconstructionApproach,
     DeconstructionOrder,
     WaterSupplyOrder,
     WaterSupplyWork,
