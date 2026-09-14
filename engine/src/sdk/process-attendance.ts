@@ -30,10 +30,13 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
   const excavating = new Set(ctx.query(query(ExcavationWork)).map(row => row.id));
   const targets = new Map(allProcesses.flatMap(process => { const target = positions.get(process.state.station); return target ? [[process.id, target] as const] : []; }));
   const attempts = new Map((ctx.workAttempts?.(allProcesses.map(process => process.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
-  const materialFacts = processes.some(process => process.state.phase === "waiting" && process.state.stageIndex === 0) ? ctx.workMaterialFacts() : null;
+  const materialFacts = processes.some(process => (process.state.phase === "waiting" || process.state.phase === "blocked") && process.state.stageIndex === 0) ? ctx.workMaterialFacts() : null;
   const ready = processes.filter(process => {
     if (attempts.has(process.id)) return false;
-    if (process.state.phase !== "waiting") return false;
+    // The rotating bounded process window is itself the deterministic retry
+    // scheduler. Admitting a blocked row when its window returns avoids both a
+    // global retry burst and starvation from composing two unrelated moduli.
+    if (process.state.phase !== "waiting" && process.state.phase !== "blocked") return false;
     const requirements: ProcessRequirements = ctx.processRequirements(process.state.definition, process.state.station);
     const stage = requirements.stages[process.state.stageIndex];
     if (stage?.mode !== "attended") return false;

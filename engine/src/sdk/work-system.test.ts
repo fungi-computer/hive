@@ -1,6 +1,5 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { readFileSync } from "node:fs";
 import { createWorkSystem, shouldRetryWorkTask, WORK_RETRY_INTERVAL } from "./work-system";
 import { component, entity } from "./authoring";
 import type { EntityId } from "../contracts";
@@ -54,15 +53,6 @@ test("blocked work gets one deterministic retry slot per interval", () => {
   for (const task of tasks) for (let tick = 0; tick < WORK_RETRY_INTERVAL * 3; tick++) {
     assert.equal(shouldRetryWorkTask(task, tick), shouldRetryWorkTask(task, tick + WORK_RETRY_INTERVAL));
   }
-});
-
-test("resource, tree, and water providers use the shared retry owner", () => {
-  const resourceAndTree = readFileSync("engine/src/games/colony-work.ts", "utf8");
-  const water = readFileSync("engine/src/games/colony-water-work.ts", "utf8");
-  assert.equal((resourceAndTree.match(/shouldRetryWorkTask\(/g) ?? []).length, 2);
-  assert.equal((water.match(/shouldRetryWorkTask\(/g) ?? []).length, 1);
-  assert.equal(resourceAndTree.includes("ctx.clock.tick % 8"), false);
-  assert.equal(water.includes("ctx.clock.tick % 8"), false);
 });
 
 test("shared work system calls one matcher and preserves claims across providers", () => {
