@@ -50,7 +50,7 @@ const project = (x, y, z) => ({ x, y: z });
 test("ordered structure hit resolves bed, rotated brewer, and stair canonical support cells", () => {
   assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" }), { x: 4, y: 4 }, frame([[4, 13, 4], [4, 13, 5]]), project).cell, [4, 13, 4]);
   assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "footprint", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]], orientation: "east" }), { x: 4, y: 4 }, frame([[4, 13, 4], [4, 13, 5], [3, 13, 4], [3, 13, 5]]), project).cell, [4, 13, 4]);
-  assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation: "south" }), { x: 4, y: 4 }, frame([[4, 13, 4]]), project).cell, [4, 13, 4]);
+  assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation: "south" }), { x: 4, y: 4 }, frame([[4, 15, 5], [4, 17, 6]]), project).cell, [4, 15, 5]);
 });
 
 test("structure surface resolution is null without a match and stable on ties", () => {
@@ -58,4 +58,16 @@ test("structure surface resolution is null without a match and stable on ties", 
   assert.equal(structureSurfaceFromSprite(node, bed, { x: 4, y: 4 }, frame([[9, 13, 9]]), project), null);
   const tied = structureSurfaceFromSprite(node, subject({ kind: "footprint", footprint: [[0, 0], [1, 0]], orientation: "north" }), { x: 4.5, y: 4 }, frame([[4, 13, 4], [5, 13, 4]]), project);
   assert.deepEqual(tied.cell, [4, 13, 4]);
+});
+
+test("stair resolution follows actual step faces for every orientation", () => {
+  const faces = {
+    north: [[4, 15, 3], [4, 17, 2]], east: [[5, 15, 4], [6, 17, 4]],
+    south: [[4, 15, 5], [4, 17, 6]], west: [[3, 15, 4], [2, 17, 4]],
+  };
+  for (const orientation of Object.keys(faces)) {
+    const result = structureSurfaceFromSprite(node, subject({ kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation }), { x: 4, y: 4 }, frame(faces[orientation]), project);
+    assert.deepEqual(result.cell, faces[orientation][0]);
+    assert.notDeepEqual(result.cell, [4, 13, 4]);
+  }
 });

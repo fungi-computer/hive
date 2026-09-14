@@ -5,11 +5,19 @@ export function structureSurfaceFromSprite(node, subject, point, displayed, proj
   if (!node?.target || node.role !== "structure" || !subject?.placement || !displayed?.structureSurfaces || !Number.isFinite(displayed.verticalMetres)) return null;
   const supportLevel = Math.round(subject.y / displayed.verticalMetres - 0.5);
   const localCells = subject.placement.kind === "footprint"
-    ? subject.placement.footprint
-    : [[subject.placement.entrance[0], subject.placement.entrance[2]]];
-  const cells = localCells.map(([x, z]) => {
-    const rotated = rotatePlacementPoint([x, z], subject.placement.orientation);
-    return [Math.round(subject.x + rotated[0]), supportLevel, Math.round(subject.z + rotated[1])];
+    ? subject.placement.footprint.map(([x, z]) => ({ x, z, level: supportLevel }))
+    : (() => {
+      const direction = { north: [0, -1], east: [1, 0], south: [0, 1], west: [-1, 0] }[subject.placement.orientation];
+      const run = Math.max(Math.abs(subject.placement.landing[0] - subject.placement.entrance[0]), Math.abs(subject.placement.landing[2] - subject.placement.entrance[2]));
+      const rise = Math.abs(subject.placement.landing[1] - subject.placement.entrance[1]) / displayed.verticalMetres;
+      return Array.from({ length: Math.max(0, Math.round(run)) }, (_, index) => ({
+        x: direction[0] * (index + 1), z: direction[1] * (index + 1),
+        level: supportLevel + Math.floor((index + 1) * rise / run),
+      }));
+    })();
+  const cells = localCells.map(({ x, z, level }) => {
+    const rotated = subject.placement.kind === "footprint" ? rotatePlacementPoint([x, z], subject.placement.orientation) : [x, z];
+    return [Math.round(subject.x + rotated[0]), level, Math.round(subject.z + rotated[1])];
   });
   const surfaces = cells.flatMap(cell => displayed.structureSurfaces.filter(surface => surface.cell.every((value, index) => value === cell[index])));
   if (!surfaces.length) return null;
