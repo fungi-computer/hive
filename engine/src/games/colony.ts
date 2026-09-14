@@ -687,13 +687,13 @@ export const colonyPack: GamePack = {
       ...context.query(query(ColonyTree, Position)).map(row => {
         const tree = row.get(ColonyTree), position = row.get(Position);
         const visual = tree.phase === "standing" ? "colony.tree" : tree.phase === "felled" ? "colony.tree.felled" : "colony.tree.stump";
-        return { id: row.id, visual, label: `Tree · ${tree.phase}`, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
+        return { id: row.id, visual, label: `Tree · ${tree.phase}`, pickable: false, pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
       }),
       ...context.query(query(ResourceSite, Position)).map(row => {
         const site = row.get(ResourceSite), position = row.get(Position);
         const definition = colonyEnvironment.resourceSites?.find(candidate => candidate.id === site.definition);
         const stage = definition && site.stage >= definition.stages.length ? "ready" : site.stage === 0 ? "planted" : "growing";
-        return { id: row.id, visual: `colony.${site.definition}.${stage}`, label: `${site.definition} · ${stage}`,
+        return { id: row.id, visual: `colony.${site.definition}.${stage}`, label: `${site.definition} · ${stage}`, pickable: false,
           pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } };
       }),
       ...colonyConstructionVisuals(context).map(visual => {
@@ -712,7 +712,7 @@ export const colonyPack: GamePack = {
           const lot = lotsByContainer.get(row.id);
           if (!lot) return [];
           const visual = lot.kind === "soil-spoil" ? "soil" : "stone";
-          return [{ id: row.id, visual, label: `${lot.kind} · ${lot.quantity}`,
+          return [{ id: row.id, visual, label: `${lot.kind} · ${lot.quantity}`, pickable: false,
             pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } }];
         });
       })(),
