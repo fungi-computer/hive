@@ -14,7 +14,12 @@ completed 2x2 brewer, including its kettle port and live contents; cancellation
 leaves staged material recoverable, target mutation cannot publish, current-format
 save/reload passes, and the 24 affected floor laws pass. Shared-party hosting,
 complete provider migration, the real Colony floor consumer, and per-pixel drawing
-remain review work rather than accepted behavior.
+remain review work rather than accepted behavior. The bounded WebGL2 depth
+feasibility checkpoint at `6bc00a3` is accepted: the retained actual-art capture
+uses terrain, the retained bed and Rowan; all 460 overlapping proof pixels agree
+with the CPU depth winner and reversed submission is byte-identical. This proves
+the chosen per-pixel technique only. The reusable world-depth layer, complete
+static bank consumption, cutaways and game picking remain unfinished.
 This packet refines the September 14 sections of
 [the owning sprint](../../CLEARING-CONSOLIDATION-PLAN.md). Later direct Levi
 instructions supersede it. Do not revive historical queues elsewhere in that file.
