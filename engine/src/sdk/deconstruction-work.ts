@@ -20,6 +20,7 @@ import {
 } from "./work-attempt";
 import type {
   ConstructionAccessContact,
+  DeconstructionAccess,
   EntityId,
   EntityRecord,
   WriteContext,
@@ -33,8 +34,9 @@ type DeconstructionOrderState = {
   seconds: number;
   salvageQuantity: number;
   workSeconds: number;
-  result: "pending" | "completed" | "blocked";
+  status: "queued" | "complete" | "blocked";
   reason: string;
+  retryKey: string;
 };
 export const DeconstructionOrder = component<DeconstructionOrderState>(
   "hive.deconstruction-order",
@@ -48,8 +50,9 @@ export const DeconstructionOrder = component<DeconstructionOrderState>(
       seconds: "number",
       salvageQuantity: "number",
       workSeconds: "number",
-      result: "string",
+      status: "string",
       reason: "string",
+      retryKey: "string",
     },
   },
 );
@@ -75,6 +78,13 @@ const sameTarget = (
   a: { x: number; y: number; z: number; frame: EntityId | null },
   b: ConstructionAccessContact,
 ) => a.x === b.x && a.y === b.y && a.z === b.z && a.frame === b.frame;
+const retryKey = (
+  info: DeconstructionAccess | undefined,
+  workers: readonly EntityId[],
+  quantities: ReadonlyMap<EntityId, number>,
+  containers: ReadonlyMap<EntityId, { readonly capacity: number }>,
+) =>
+  `${info?.status ?? "missing"}|${info?.salvageQuantity ?? 0}|${info?.workSeconds ?? 0}|${info?.contacts.map((contact) => `${contact.x},${contact.y},${contact.z}`).join(";") ?? ""}|${workers.map((worker) => `${worker}:${quantities.get(worker) ?? 0}:${containers.get(worker)?.capacity ?? 0}`).join("|")}`;
 
 /** Queue intent owns target/progress/result facts; native WorkAttempt owns attendance. */
 export const queueDeconstruction = (site: EntityId): EntityRecord => {
@@ -90,8 +100,9 @@ export const queueDeconstruction = (site: EntityId): EntityRecord => {
         seconds: 0,
         salvageQuantity: 0,
         workSeconds: 0,
-        result: "pending",
+        status: "queued",
         reason: "",
+        retryKey: "",
       },
     },
   };
@@ -171,6 +182,11 @@ export function deconstructionWorkProvider(
     const site = sites.get(state.site);
     const info = access.get(state.site);
     const party = owners.get(state.site);
+    const attempt = attempts.get(row.id);
+    const currentRetryKey = retryKey(info, workers, quantities, containers);
+    // A committed deconstruction can remove its site before this outcome is
+    // reconciled. Keep the order alive until progress settles the attempt.
+    if (attempt) continue;
     if (
       !site ||
       !info ||
@@ -188,9 +204,8 @@ export function deconstructionWorkProvider(
     }
     liveSites.add(state.site);
     if (
-      attempts.has(row.id) ||
-      state.result === "completed" ||
-      state.result === "blocked"
+      state.status === "complete" ||
+      (state.status === "blocked" && state.retryKey === currentRetryKey)
     )
       continue;
     for (const worker of workers) {
@@ -328,6 +343,15 @@ export function deconstructionWorkProvider(
         }
         if (phase.kind !== "outcome") continue;
         if (phase.result.kind !== "completed") {
+          ctx.write(DeconstructionOrder, row.id, {
+            ...state,
+            status: "blocked",
+            reason: (phase.result.kind === "blocked"
+              ? phase.result.reason
+              : "Deconstruction was interrupted"
+            ).slice(0, 512),
+            retryKey: retryKey(info, workers, quantities, containers),
+          });
           acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
           continue;
         }
@@ -346,16 +370,17 @@ export function deconstructionWorkProvider(
             );
           else
             acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
-        } else if (phase.activity.kind === "deconstruction") {
+        } else if (completedActivity.kind === "deconstruction") {
           ctx.write(DeconstructionOrder, row.id, {
             ...state,
-            contactX: phase.activity.contact.x,
-            contactY: phase.activity.contact.y,
-            contactZ: phase.activity.contact.z,
+            contactX: completedActivity.contact.x,
+            contactY: completedActivity.contact.y,
+            contactZ: completedActivity.contact.z,
             salvageQuantity: info?.salvageQuantity ?? state.salvageQuantity,
             workSeconds: info?.workSeconds ?? state.workSeconds,
-            result: "completed",
+            status: "complete",
             reason: "",
+            retryKey: "",
           });
           acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
         } else

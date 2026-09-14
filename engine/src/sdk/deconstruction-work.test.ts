@@ -18,7 +18,7 @@ import type {
 
 const site = entity("site.finished");
 
-test("deconstruction intent stores task-owned target, progress, and result facts", () => {
+test("deconstruction intent stores task-owned target, progress, and status facts", () => {
   const record = queueDeconstruction(site);
   const state = record.components[DeconstructionOrder.id] as Record<
     string,
@@ -28,7 +28,7 @@ test("deconstruction intent stores task-owned target, progress, and result facts
   assert.equal(state.seconds, 0);
   assert.equal(state.salvageQuantity, 0);
   assert.equal(state.workSeconds, 0);
-  assert.equal(state.result, "pending");
+  assert.equal(state.status, "queued");
   assert.equal("actor" in state, false);
   assert.equal("phase" in state, false);
 });
@@ -58,7 +58,8 @@ test("native attempt routes, performs timed deconstruction, and records one term
       seconds: 0,
       salvageQuantity: 0,
       workSeconds: 0,
-      result: "pending",
+      status: "queued",
+      retryKey: "",
       reason: "",
     }),
     row(site, ConstructionSite, {
@@ -152,7 +153,7 @@ test("native attempt routes, performs timed deconstruction, and records one term
     },
   };
   provider.progress();
-  assert.equal((writes[0] as any).result, "completed");
+  assert.equal((writes[0] as any).status, "complete");
   assert.equal((actions[2] as any).kind, "acknowledge-work-attempt");
   current = {
     ...current,
