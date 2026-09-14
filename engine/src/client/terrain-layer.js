@@ -2,7 +2,7 @@ import { WebGLRenderer, Vector3 } from "three";
 import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { renderBakeCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
-import { createTerrainSceneCache, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
+import { createTerrainSceneCache, terrainBandScene, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
 import {
   terrainChunkKey,
   terrainFaceBounds,
@@ -124,7 +124,7 @@ export function createTerrainLayer() {
   const container = new Container();
   container.eventMode = "none";
   let renderer, colorTexture, colorCanvas, colorContext;
-  let terrainSprite, waterItems = [], sortableItems = [], terrainSurfaces = [];
+  let terrainSprite, bandSprites = [], waterItems = [], sortableItems = [], terrainSurfaces = [];
   const waterTile = createWaterTile();
   let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
   let terrainCache, canonicalCamera, cachedVerticalMetres;
@@ -137,6 +137,8 @@ export function createTerrainLayer() {
     colorContext = undefined;
     terrainSprite?.destroy();
     terrainSprite = undefined;
+    for (const sprite of bandSprites) sprite.destroy();
+    bandSprites = [];
     terrainCache?.dispose();
     terrainCache = undefined;
     canonicalCamera = undefined;
@@ -169,20 +171,15 @@ export function createTerrainLayer() {
     colorTexture?.destroy(true);
     colorTexture = Texture.from(colorCanvas);
     colorTexture.source.scaleMode = "nearest";
-    terrainSprite = new Sprite(colorTexture);
-    terrainSprite.position.set((640 - WIDTH) / 2, (400 - HEIGHT) / 2);
-    terrainSprite.eventMode = "none";
-    container.addChildAt(terrainSprite, 0);
-    sortableItems = [{
-      id: "terrain:ground",
-      part: "ground",
-      display: terrainSprite,
-      footprint: terrainSurfaces.map(({ cell: [x, y, z] }) => ({ x, y, z })),
-      screenBounds: { left: 0, right: WIDTH, top: 0, bottom: HEIGHT },
-      storeyBand: 0,
-      pickable: false,
-      visible: true,
-    }];
+    sortableItems = [];
+    for (const level of [...new Set(terrainSurfaces.map(({ cell: [, y] }) => y))].sort((a, b) => a - b)) {
+      const baked = renderBakeCanvas(renderer, terrainBandScene(terrainSurfaces, level, { verticalMetres: frame.verticalMetres }), canonicalCamera, WIDTH, HEIGHT, { ink: false, releaseGeometry: true });
+      const sprite = new Sprite(Texture.from(baked.canvas));
+      sprite.eventMode = "none";
+      bandSprites.push(sprite);
+      container.addChild(sprite);
+      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: terrainSurfaces.filter(({ cell: [, y] }) => y === level).map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: { left: 0, right: WIDTH, top: 0, bottom: HEIGHT }, storeyBand: level, pickable: false, visible: true });
+    }
   }
 
   function patchBake(frame, update) {
@@ -244,16 +241,10 @@ export function createTerrainLayer() {
         projectionKey !== nextProjectionKey ||
         cachedVerticalMetres !== frame.verticalMetres;
       if (needsFull) fullBake(frame);
-      else if (revision !== frame.revision) {
-        const update = terrainCache.update(
-          frame.surfaces,
-          frame.verticalMetres,
-        );
-        patchBake(frame, update);
-      }
+      else if (revision !== frame.revision) fullBake(frame);
       revision = frame.revision;
       projectionKey = nextProjectionKey;
-      sortableItems = sortableItems.filter((item) => item.id === "terrain:ground");
+      sortableItems = sortableItems.filter((item) => item.id.startsWith("terrain:"));
       for (const item of waterItems) item.destroy();
       waterItems = [];
       for (const cell of frame.water) {
@@ -270,6 +261,7 @@ export function createTerrainLayer() {
         sortableItems.push({
           id: `water:${x}:${y}:${z}`,
           part: "surface",
+          role: "water",
           display: water,
           footprint: [{ x, y: top, z }],
           screenBounds: { left: projected.x - 16, right: projected.x + 16, top: projected.y - 8, bottom: projected.y + 8 },
@@ -281,19 +273,28 @@ export function createTerrainLayer() {
       }
     },
     position(camera) {
-      container.position.set(camera.x, camera.y);
-      container.scale.set(camera.zoom);
+      container.position.set(0, 0);
+      container.scale.set(1);
       screenTransform = terrainScreenTransform(camera);
-      if (terrainSprite) terrainSprite.position.set((640 - WIDTH) / 2, (400 - HEIGHT) / 2);
-      const terrain = sortableItems.find((item) => item.id === "terrain:ground");
-      if (terrain) terrain.screenBounds = {
+      for (const sprite of bandSprites) {
+        sprite.position.set(
+          camera.x + ((640 - WIDTH) / 2) * camera.zoom,
+          camera.y + ((400 - HEIGHT) / 2) * camera.zoom,
+        );
+        sprite.scale.set(camera.zoom);
+      }
+      for (const terrain of sortableItems.filter((item) => item.id.startsWith("terrain:"))) {
+        terrain.screenBounds = {
         left: camera.x + ((640 - WIDTH) / 2) * camera.zoom,
         right: camera.x + ((640 - WIDTH) / 2 + WIDTH) * camera.zoom,
         top: camera.y + ((400 - HEIGHT) / 2) * camera.zoom,
         bottom: camera.y + ((400 - HEIGHT) / 2 + HEIGHT) * camera.zoom,
-      };
-      for (const item of sortableItems) if (item.id !== "terrain:ground") {
+        };
+      }
+      for (const item of sortableItems) if (!item.id.startsWith("terrain:")) {
         const projected = project(item.footprint[0].x, item.footprint[0].y, item.footprint[0].z);
+        item.display.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
+        item.display.scale.set(camera.zoom);
         item.screenBounds = {
           left: projected.x * camera.zoom + camera.x - 16,
           right: projected.x * camera.zoom + camera.x + 16,
@@ -302,7 +303,7 @@ export function createTerrainLayer() {
         };
       }
     },
-    get drawItem() { return terrainSprite; },
+    get drawItem() { return null; },
     get transparentItems() { return waterItems; },
     get sortableItems() { return sortableItems; },
     get waterTile() { return waterTile; },

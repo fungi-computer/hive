@@ -81,7 +81,7 @@ export function createHiveClient({
   let directControl;
   let nativeBinding;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
-  let activeSelectionShortcuts = [...selectionShortcuts];
+  let activeSelectionShortcuts = selectionShortcuts.filter((shortcut) => shortcut?.id);
   const state = {
     ready: false,
     connection: { status: "online", pending: 0 },
@@ -826,7 +826,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, environmentGraphic, transientLayer);
+      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -908,7 +908,7 @@ export function createHiveClient({
         entry.container.eventMode = "none";
         entry.sprite.eventMode = "none";
         entry.container.addChild(entry.sprite, entry.marker, entry.label, entry.progress);
-        actorLayer.addChild(entry.container);
+        terrainLayer.container.addChild(entry.container);
         actorCache.set(subject.id, entry);
       }
       const animation = animationById.get(subject.id);
@@ -962,6 +962,7 @@ export function createHiveClient({
         entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);
         sortableSprites.push({
           id: subject.id,
+          role: isStatic ? "structure" : "actor",
           display: entry.container,
           moving: !isStatic,
           footprint: subjectSortFootprint(subject, resolvedPlacement),

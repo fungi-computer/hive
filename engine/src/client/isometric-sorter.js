@@ -8,6 +8,7 @@
  */
 
 const EPSILON = 1e-7;
+const ROLE_ORDER = Object.freeze({ terrain: 0, water: 1, structure: 2, item: 3, actor: 4 });
 
 function finite(value, name) {
   if (!Number.isFinite(value)) throw new Error(`invalid isometric ${name}`);
@@ -102,6 +103,27 @@ function geometrySignature(node) {
   ]);
 }
 
+function normalizeFootprint(values, name) {
+  const unique = [...new Map(values.map((value) => {
+    const p = point(value, name);
+    return [`${p.x}:${p.y}:${p.z}`, p];
+  })).values()];
+  if (unique.length <= 2) return unique;
+  const [origin, axis] = unique;
+  const cross = unique.every((p) => Math.abs((axis.x - origin.x) * (p.z - origin.z) - (axis.z - origin.z) * (p.x - origin.x)) <= EPSILON);
+  if (cross) {
+    let first = unique[0], last = unique[0], distance = -1;
+    for (const left of unique) for (const right of unique) {
+      const d = (left.x - right.x) ** 2 + (left.z - right.z) ** 2;
+      if (d > distance) { distance = d; first = left; last = right; }
+    }
+    return [first, last];
+  }
+  const xs = unique.map((p) => p.x), zs = unique.map((p) => p.z);
+  const y = unique.reduce((sum, p) => sum + p.y, 0) / unique.length;
+  return [{ x: Math.min(...xs), y, z: Math.min(...zs) }, { x: Math.max(...xs), y, z: Math.max(...zs) }];
+}
+
 function validateNode(input) {
   if (!input || input.id === undefined || input.id === null)
     throw new Error("isometric node needs an id");
@@ -112,15 +134,14 @@ function validateNode(input) {
     ...input,
     id: String(input.id),
     part: input.part === undefined ? "body" : String(input.part),
-    footprint: Object.freeze(
-      footprint.map((value) => point(value, `${input.id} footprint`)),
-    ),
+    footprint: Object.freeze(normalizeFootprint(footprint, `${input.id} footprint`)),
     screenBounds: bounds(
       input.screenBounds ?? { left: 0, right: 0, top: 0, bottom: 0 },
       stableKey(input),
     ),
     storeyBand: finite(input.storeyBand ?? 0, `${input.id} storey band`),
     pickable: input.pickable === true,
+    role: input.role ?? "actor",
     moving: input.moving === true,
     visible: input.visible !== false,
   });
@@ -129,6 +150,8 @@ function validateNode(input) {
 function edgeFor(left, right, camera) {
   if (!overlaps(left.screenBounds, right.screenBounds)) return null;
   if (left.storeyBand !== right.storeyBand) return left.storeyBand < right.storeyBand ? [left, right] : [right, left];
+  if (ROLE_ORDER[left.role] !== undefined && ROLE_ORDER[right.role] !== undefined && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
+    return ROLE_ORDER[left.role] < ROLE_ORDER[right.role] ? [left, right] : [right, left];
   return relationByFootprints(left, right, camera);
 }
 
