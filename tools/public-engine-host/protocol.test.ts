@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { packFromPath, readCommand, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
+import { colonyWorldRoute, packFromPath, readColonyJoin, readCommand, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
 
 const token = "a".repeat(64);
 
@@ -27,6 +27,24 @@ test("public capability requires exactly a lowercase 256-bit bearer token", () =
     /public-unauthorized/,
   );
   assert.throws(() => tokenFromRequest(request("")), /public-unauthorized/);
+});
+
+test("shared Colony routes separate world routing from participant authority", () => {
+  const world = "b".repeat(64);
+  assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/join`), { world, operation: "join" });
+  assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/observe`), { world, operation: "observe" });
+  assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/socket/client.1`), { world, operation: "socket", socketHandle: "client.1" });
+  assert.equal(colonyWorldRoute(`/v2/colony/worlds/${"B".repeat(64)}/join`), null);
+  assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/socket`), null);
+  assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/join/extra`), null);
+});
+
+test("Colony join body carries only the bounded invitation", async () => {
+  const invite = "c".repeat(64);
+  const request = new Request("https://demo.invalid", { method: "POST", body: JSON.stringify({ invite }) });
+  assert.deepEqual(await readColonyJoin(request), { invite });
+  await assert.rejects(readColonyJoin(new Request("https://demo.invalid", { method: "POST", body: JSON.stringify({ invite, player: "forged" }) })));
+  await assert.rejects(readColonyJoin(new Request("https://demo.invalid", { method: "POST", body: JSON.stringify({ invite: "short" }) })));
 });
 
 test("socket admission accepts an opaque routing handle but authenticates separately", () => {

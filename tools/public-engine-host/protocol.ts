@@ -12,6 +12,8 @@ export function clockRequest(sequence: number) {
 }
 
 const tokenPattern = /^[a-f0-9]{64}$/;
+const worldPattern = /^[a-f0-9]{64}$/;
+const socketHandlePattern = /^[A-Za-z0-9._:-]{1,256}$/;
 const commandInput = z
   .object({
     id: z.string().min(1).max(160),
@@ -20,6 +22,26 @@ const commandInput = z
   })
   .strict();
 export type PublicCommandInput = z.infer<typeof commandInput>;
+
+const joinInput = z.object({ invite: z.string().regex(tokenPattern) }).strict();
+export type ColonyJoinInput = z.infer<typeof joinInput>;
+export type ColonyWorldOperation = "join" | "observe" | "command" | "connect" | "socket";
+export type ColonyWorldRoute = {
+  readonly world: string;
+  readonly operation: ColonyWorldOperation;
+  readonly socketHandle?: string;
+};
+
+/** Parse the shared-world Colony protocol without deriving authority from the URL. */
+export function colonyWorldRoute(pathname: string): ColonyWorldRoute | null {
+  const match = /^\/v2\/colony\/worlds\/([^/]+)\/(join|observe|command|connect|socket)(?:\/([^/]+))?$/.exec(pathname);
+  if (!match || !worldPattern.test(match[1])) return null;
+  const operation = match[2] as ColonyWorldOperation;
+  const handle = match[3];
+  if ((operation === "socket") !== (handle !== undefined)) return null;
+  if (handle !== undefined && !socketHandlePattern.test(handle)) return null;
+  return Object.freeze({ world: match[1], operation, ...(handle === undefined ? {} : { socketHandle: handle }) });
+}
 
 export function packFromPath(pathname: string): PublicPack | null {
   const match = /^\/v1\/([^/]+)\/(observe|command|connect|socket(?:\/[A-Za-z0-9._:-]{1,256})?)$/.exec(pathname);
@@ -54,7 +76,7 @@ export function tokenFromRequest(request: Request): string {
   return token;
 }
 
-export async function readCommand(request: Request) {
+async function readBoundedJson(request: Request): Promise<unknown> {
   const contentLength = request.headers.get("Content-Length");
   if (
     contentLength !== null &&
@@ -86,7 +108,15 @@ export async function readCommand(request: Request) {
     offset += chunk.byteLength;
   }
   const text = new TextDecoder().decode(bytes);
-  return commandInput.parse(JSON.parse(text));
+  return JSON.parse(text);
+}
+
+export async function readCommand(request: Request) {
+  return commandInput.parse(await readBoundedJson(request));
+}
+
+export async function readColonyJoin(request: Request): Promise<ColonyJoinInput> {
+  return joinInput.parse(await readBoundedJson(request));
 }
 
 export function corsHeaders(origin: string): Headers {
