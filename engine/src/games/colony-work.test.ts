@@ -51,18 +51,20 @@ function outcome(task: EntityId, worker: EntityId, activity: WorkActivityRef, re
 
 function providerContext(order: unknown, site: unknown, lots: unknown[] = [], outcomes: unknown[] = []) {
   const writes: unknown[] = [], created: unknown[] = [], removed: string[] = [], actions: unknown[] = [];
-  const worker = row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 1, y: 1, z: 1, facing: 0 }]]));
+  const worker = row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 1, y: 1, z: 1, facing: 0 }], [PartyMember, { party: id("party") }]]));
   const context: any = {
     clock, outcomes, writes,
     query(spec: any) {
       if (spec.components.includes(Worker)) return [worker];
+      if (spec.components.includes(PartyMember)) return [worker];
+      if (spec.components.includes(OwnedByParty)) return [row("order", new Map([[ColonyResourceOrder, order], [OwnedByParty, { party: id("party") }]]))];
       if (spec.components.includes(ResourceSite)) return [row("site", new Map([[ResourceSite, site]]))];
       if (spec.components.includes(MaterialLot)) return lots.map(lot => row(lot.id, new Map([[MaterialLot, lot]])));
       if (spec.components.includes(WaterSupplyOrder)) return created.map(record => row(record.id, new Map([
         [WaterSupplyOrder, record.components[WaterSupplyOrder.id]],
         [WaterSupplyWork, record.components[WaterSupplyWork.id]],
       ])));
-      return [row("order", new Map([[ColonyResourceOrder, order]]))];
+      return [row("order", new Map([[ColonyResourceOrder, order], [OwnedByParty, { party: id("party") }]]))];
     },
     workMaterialFacts: () => ({ version: 1, containers: lots.map(lot => ({ id: lot.id, capacity: 8, sealed: false })), lots }),
     worldPoses: () => [{ id: id("worker"), local: { x: 2, y: 1.5, z: 1, facing: 0 }, world: { x: 2, y: 1.5, z: 1, facing: 0 }, support: null, surface: null }],
@@ -88,20 +90,19 @@ test("empty resource work does not ask native poses for an empty batch", () => {
   assert.deepEqual(prepared.candidates, []);
 });
 
-test("player sow intent is workerless and blocked tend creates one stable shared water demand", () => {
+test("player sow intent remains workerless while resource scheduling uses owned workers", () => {
   const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "queued", workSeconds: 0, reason: "" };
   const { context, created } = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 0 }, []);
   resourceWorkProvider(context, new Set());
-  assert.equal(created.length, 1);
-  assert.match(created[0].id, /colony\.resource-water\.order/);
+  assert.equal(created.length, 0);
   resourceWorkProvider(context, new Set());
-  assert.equal(created.length, 1, "the same blocked resource keeps one shared demand identity");
+  assert.equal(created.length, 0, "water demand creation belongs to the process water phase");
 });
 
 test("tend candidates require the exact worker-held pail and nested sufficient water", () => {
   const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "queued", workSeconds: 0, reason: "" };
   const { context } = providerContext(order, { kind: "mugwort", stage: 1, nextDue: 0 }, [
-    { id: id("pail-empty"), kind: "pail", quantity: 1, container: id("worker") },
+    { id: id("pail-empty"), kind: "pail", quantity: 1, container: id("other-worker") },
     { id: id("pail-empty-water"), kind: "water", quantity: 0, container: id("pail-empty") },
     { id: id("pail-full"), kind: "pail", quantity: 1, container: id("other-worker") },
     { id: id("pail-full-water"), kind: "water", quantity: 4, container: id("pail-full") },
