@@ -58,7 +58,6 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     session.step(0);
     const process = session.query(query(StagedProcess))[0];
     assert(process, "request must create a workerless process");
-    assert.equal(process.get(StagedProcess).worker, null);
     assert.throws(() => session.command("requestBrew", { station: station.id }), /active brew process/);
 
     let sawAttendance = false;
@@ -78,7 +77,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       const waterDelivery = session.query(query(DeliveryTask)).filter(row => { const task = row.get(DeliveryTask); return task.custody !== "delivered" && task.destination === `${station.id}:kettle` && task.material === "water"; }).reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);
       assert(kettleWater + waterDelivery < 2 || activeProcessWaterDemands.length === 0, "sufficient staged and in-flight water must prevent another fetch from starting");
       if (processWaterDemands.length) sawProcessWaterDemand = true;
-      const attending = state?.worker !== null;
+      const attending = state?.phase === "working";
       if (attending) sawAttendance = true;
       if (state?.stageIndex === 1 && state.phase === "waiting" && !attending)
         sawElapsedWithoutAttendance = true;

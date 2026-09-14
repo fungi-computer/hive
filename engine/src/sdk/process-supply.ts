@@ -4,11 +4,11 @@ import { OwnedByParty } from "./party";
 import type { EntityId, ProcessRequirements, QueryRow, WriteContext } from "../contracts";
 
 export const StagedProcess = component<{
-  version: number; definition: string; definitionVersion: number; station: EntityId; worker: EntityId | null;
+  version: number; definition: string; definitionVersion: number; station: EntityId;
   stageIndex: number; progressSeconds: number; enteredTick: number;
   phase: "waiting" | "working" | "complete" | "blocked"; blockedReason: string;
 }>("hive.staged-process", { version: 1, fields: {
-  version: "number", definition: "string", definitionVersion: "number", station: "entity", worker: "nullable-entity",
+  version: "number", definition: "string", definitionVersion: "number", station: "entity",
   stageIndex: "number", progressSeconds: "number", enteredTick: "number", phase: "string", blockedReason: "string",
 } });
 

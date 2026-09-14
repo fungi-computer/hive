@@ -5,7 +5,7 @@ import { StagedProcess, processSupplyPhase } from "./process-supply";
 import { OwnedByParty } from "./party";
 import type { EntityId, ProcessRequirements, QueryRow, QuerySpec, WriteContext } from "../contracts";
 const req: ProcessRequirements = { definition: "ale", version: 1, stationCatalog: "brew-station", phase: "waiting", inputs: [{ role: "grain", port: "kettle", material: "grain", quantity: 2, policy: "portion", disposition: "consume" }], stages: [{ id: "work", mode: "attended", durationSeconds: 1 }] };
-const value = (station: EntityId) => ({ version: 2, definition: "ale", definitionVersion: 1, station, worker: null, stageIndex: 0, progressSeconds: 0, enteredTick: 0, phase: "waiting" as const, blockedReason: "" });
+const value = (station: EntityId) => ({ version: 3, definition: "ale", definitionVersion: 1, station, stageIndex: 0, progressSeconds: 0, enteredTick: 0, phase: "waiting" as const, blockedReason: "" });
 function run(processes: readonly EntityId[], lots: { id: EntityId; container: EntityId; kind: string; quantity: number }[], outcomes: WriteContext["outcomes"] = [], requirement = req) {
   const created: { id: EntityId; components: Record<string, unknown> }[] = [], actions: unknown[] = [];
   const rows: QueryRow<object>[] = processes.map(id => ({ id, get: <T extends object>(definition: { id: string }) => ({ [StagedProcess.id]: value(`${id}.station`) }[definition.id] as T) }));
