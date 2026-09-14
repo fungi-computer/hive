@@ -157,6 +157,7 @@ const colonyInitial = [
         sourceLot: index === 0 ? lotOne : lotTwo,
         source: pantryId,
         destination: guestId,
+        destinationContactX: null, destinationContactY: null, destinationContactZ: null, destinationContactFrame: null,
         material: "bread",
         quantity: 2,
         phase: "idle",

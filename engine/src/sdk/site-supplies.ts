@@ -247,6 +247,10 @@ export function planSiteSupplies(
             sourceLot: source.id,
             source: source.lot.container,
             destination: requirement.destination,
+            destinationContactX: null,
+            destinationContactY: null,
+            destinationContactZ: null,
+            destinationContactFrame: null,
             material: requirement.material,
             // This is a finite planning cap. The delivery provider must preserve
             // it when applying a worker's DeliveryControl quantity.
