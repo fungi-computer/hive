@@ -13,6 +13,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { project } from "../../engine/src/client/geometry.js";
+import { resolveWorldArtPlacement } from "../../engine/src/client/art-placement.js";
 
 const frontendArgument = process.argv[2];
 const outputArgument = process.argv[3] ?? ".botanical/playable-browser-proof";
@@ -31,11 +32,13 @@ const sourceInventory = [
   "engine/src/client/action-bar.js",
   "engine/src/client/controls.js",
   "engine/src/client/build-placement.js",
+  "engine/src/client/art-placement.js",
   "engine/src/client/whistle-command.js",
   "engine/src/games/colony.ts",
   "engine/src/games/colony-building.ts",
   "engine/src/games/colony-party.ts",
   "engine/src/runtime/remote-client.ts",
+  "public/generated-art/goblin-static-art-v4/manifest.json",
   "tools/public-engine-host/worker.ts",
   "tools/public-engine-host/protocol.ts",
 ].sort();
@@ -94,6 +97,15 @@ const screenshot = async (page, name) => {
 const waitForReady = async (page) => {
   await page.getByText(/Online · server saved|Online · server saved/i).waitFor({ state: "visible", timeout: 45_000 });
   await page.getByRole("button", { name: "Select Rowan", exact: true }).waitFor({ state: "visible", timeout: 20_000 });
+};
+const resizeAndResetCamera = async (page) => {
+  const viewport = await page.viewportSize();
+  assert(viewport, "browser viewport is unavailable");
+  await page.setViewportSize({ width: viewport.width + 1, height: viewport.height });
+  await page.waitForTimeout(350);
+  const box = await canvasBox(page);
+  assert.equal(box.width, viewport.width + 1, "ordinary resize did not reach the clearing canvas");
+  return box;
 };
 const commandName = (body) => body?.command?.kind === "command" ? body.command.name : body?.command?.kind;
 const latestSurface = (observation) => observation?.observation?.terrain?.surfaces?.find(surface => surface.material === 1)
@@ -172,6 +184,7 @@ try {
   const response = await page.goto(worldUrl, { waitUntil: "domcontentloaded" });
   assert.equal(response?.status(), 200, `Clearing frontend returned ${response?.status()}`);
   await waitForReady(page);
+  const resetCanvas = await resizeAndResetCamera(page);
   await page.waitForFunction(() => true, null, { timeout: 100 });
   await page.waitForTimeout(300);
   assert(latestObservation?.observation?.terrain?.surfaces?.length, "authoritative terrain observation was not received");
@@ -185,8 +198,9 @@ try {
   const waitCommandResponse = async (from, label) => {
     const deadline = Date.now() + 10_000;
     let command;
+    let commandIndex = from;
     while (Date.now() < deadline && !command) {
-      command = evidence.commands.slice(from).at(-1);
+      command = evidence.commands[commandIndex];
       if (!command) await new Promise(resolve => setTimeout(resolve, 50));
     }
     assert(command, `${label} did not emit a command request`);
@@ -211,7 +225,7 @@ try {
   assert.equal(commandCount(), afterSelection, "selecting a person issued a world command");
   record("selection has no side effect", { commandsAfterSelection: afterSelection });
 
-  const canvas = await canvasBox(page);
+  const canvas = resetCanvas;
   const beforeDraft = commandCount();
   const noDraftTarget = visibleSurface();
   const noDraftPoint = projectedCell(noDraftTarget.cell, latestObservation.observation.terrain.verticalMetres, canvas);
@@ -276,10 +290,67 @@ try {
   };
   const structureFact = (fragment) => latestObservation?.observation?.facts?.find(fact =>
     typeof fact.visual === "string" && fact.visual.includes(fragment));
+  const artManifestResponse = await page.request.get(new URL("/generated-art/goblin-static-art-v4/manifest.json", frontend));
+  assert.equal(artManifestResponse.status(), 200, "the public static-art manifest is unavailable");
+  const artManifest = await artManifestResponse.json();
+  const visualPathPrefix = (visual) => {
+    if (visual.startsWith("colony.bed.")) return ["buildings", "bed", visual.split(".")[2]];
+    if (visual.startsWith("colony.brew-station.profile.")) {
+      return ["buildings", "brew-station", "profiles", visual.split(".")[3]];
+    }
+    return null;
+  };
+  const manifestEntryForVisual = (visual) => {
+    const prefix = visualPathPrefix(visual);
+    if (!prefix) return null;
+    return artManifest.entries.find(entry => prefix.every((part, index) => entry.path[index] === part));
+  };
+  const visibleManifestPixel = (entry) => {
+    const rows = entry.silhouette.rows;
+    const spans = entry.silhouette.spans;
+    let best = null;
+    for (let y = Math.floor(entry.height * 0.45); y < entry.height; y++) {
+      const start = rows[y] * 2;
+      const end = rows[y + 1] * 2;
+      for (let index = start; index < end; index += 2) {
+        const candidate = { x: Math.floor((spans[index] + spans[index + 1]) / 2), y, width: spans[index + 1] - spans[index] + 1 };
+        if (!best || candidate.width > best.width) best = candidate;
+      }
+    }
+    assert(best, "static-art manifest has no opaque placement pixel");
+    return best;
+  };
   const structurePoint = async (fragment) => {
-    const fact = await waitForObservation(() => structureFact(fragment), `${fragment} visual`);
-    assert(fact.pose?.position, `${fragment} has no authoritative pose`);
-    return { fact, point: projectedWorld(fact.pose.position, await canvasBox(page), latestObservation.observation.terrain.verticalMetres) };
+    await waitForObservation(() => structureFact(fragment), `${fragment} visual`);
+    const fact = structureFact(fragment);
+    assert(fact?.pose?.position, `${fragment} has no authoritative pose`);
+    assert(fact.placement, `${fragment} has no authoritative placement datum`);
+    const entry = manifestEntryForVisual(fact.visual);
+    assert(entry?.placement && entry.visualBounds && entry.silhouette, `${fragment} has no matching public art metadata`);
+    const resolved = resolveWorldArtPlacement({
+      subjectPlacement: fact.placement,
+      artPlacement: entry.placement,
+      orientation: fact.placement.orientation,
+      decodedDepth: { visualBounds: entry.visualBounds },
+    });
+    const box = await canvasBox(page);
+    const zoom = box.width >= 600 ? 2 : 1;
+    const base = projectedWorld(fact.pose.position, box);
+    const shifted = projectedWorld({
+      x: fact.pose.position.x + resolved.offset[0],
+      y: fact.pose.position.y,
+      z: fact.pose.position.z + resolved.offset[1],
+    }, box);
+    const pixel = visibleManifestPixel(entry);
+    const anchor = artManifest.anchors.prop;
+    return {
+      fact,
+      point: {
+        x: shifted.x + (pixel.x - anchor.x * entry.width) * zoom,
+        y: shifted.y + (pixel.y - anchor.y * entry.height) * zoom,
+      },
+      art: { path: entry.path, pixel, offset: resolved.offset, base, shifted },
+    };
   };
   async function buildPoint(label, targetCell, expectedName = "build") {
     await (await waitForVisible(page, "Build")).click();
@@ -341,9 +412,9 @@ try {
   await (await waitForVisible(page, "Build floor")).click();
   await page.mouse.click(bedSurface.point.x, bedSurface.point.y);
   const replacement = await waitCommandAccepted(replacementBefore, "bed floor replacement");
-  assert.equal(replacement.command.name, "build");
-  assert.equal(replacement.command.command.input.target.source, "structure", "bed floor gesture did not hit a structure surface");
-  assert.deepEqual(replacement.command.command.input.target.cell, firstFloorBuild.command.input.target.cell,
+  assert.equal(replacement.name, "build");
+  assert.equal(replacement.command.input.target.source, "structure", "bed floor gesture did not hit a structure surface");
+  assert.deepEqual(replacement.command.input.target.cell, firstFloorBuild.command.input.target.cell,
     "bed floor replacement did not preserve its support cell");
   await waitForObservation(observation => observation.observation.facts?.some(fact => fact.id === originalFloorId), "floor identity after bed replacement");
   const brewerReplacementBefore = commandCount();
@@ -351,9 +422,9 @@ try {
   await (await waitForVisible(page, "Build floor")).click();
   await page.mouse.click(brewerSurface.point.x, brewerSurface.point.y);
   const brewerReplacement = await waitCommandAccepted(brewerReplacementBefore, "brewer floor replacement");
-  assert.equal(brewerReplacement.command.name, "build");
-  assert.equal(brewerReplacement.command.command.input.target.source, "structure", "brewer floor gesture did not hit a structure surface");
-  assert.deepEqual(brewerReplacement.command.command.input.target.cell, brewerFloorBuild.command.input.target.cell,
+  assert.equal(brewerReplacement.name, "build");
+  assert.equal(brewerReplacement.command.input.target.source, "structure", "brewer floor gesture did not hit a structure surface");
+  assert.deepEqual(brewerReplacement.command.input.target.cell, brewerFloorBuild.command.input.target.cell,
     "brewer floor replacement did not preserve its support cell");
   record("floor replacement is attempted through the same Build floor command", {
     replacementAccepted: true,

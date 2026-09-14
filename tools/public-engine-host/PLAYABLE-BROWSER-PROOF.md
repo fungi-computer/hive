@@ -30,7 +30,17 @@ visible support surface for a placement it records the failure and screenshot.
 The separate native/DO, party-recovery, and depth qualification commands own
 those proofs.
 
+Before deriving any world click it performs one ordinary one-pixel viewport
+resize. This lets the client's existing `ResizeObserver` run its camera reset;
+the driver then uses the actual canvas box rather than assuming that the
+initial camera focus was centered. Structure clicks use the public static-art
+manifest's placement, anchor, silhouette, and the client's shared
+`resolveWorldArtPlacement` datum. They choose an opaque manifest pixel, rather
+than clicking a raw pose center. Command assertions associate the first
+request after each recorded boundary with its response ID.
+
 The exact source inventory is embedded in
 `tools/public-engine-host/playable-browser-proof.mjs` and includes the driver,
-the shared client gesture/action-bar/placement binders, Colony definitions and
-party plan, the remote runtime, and the public host protocol/worker.
+the shared client gesture/action-bar/placement binders and art-placement owner,
+the checked static-art manifest, Colony definitions and party plan, the remote
+runtime, and the public host protocol/worker.
