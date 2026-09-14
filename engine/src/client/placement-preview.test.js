@@ -37,26 +37,9 @@ test("ghost strokes reject oversized selections but expose programming errors", 
   assert.throws(() => placementCells({ area: { mode: "typo", start: [0, 0, 0], current: [2, 0, 2] } }), /mode is invalid/);
 });
 
-test("wall ghost art joins within a stroke and observed wall neighbors", () => {
+test("cell placement never reconstructs physical edges from visual names", () => {
   const control = { input: { catalog: "timber-wall" } };
-  const placement = {
-    "timber-wall": {
-      visual: "colony.wall.finished", alignment: "stroke",
-      facing: { north: 2, east: 1, south: 0, west: 3 },
-    },
-  };
-  const facts = [
-    { id: "west-wall", visual: "colony.wall.finished.joint-4", pose: { position: { x: -1, y: 1, z: 0 } } },
-    { id: "east-wall", visual: "colony.wall.finished.joint-1", pose: { position: { x: 3, y: 1, z: 0 } } },
-    { id: "north-wall", visual: "colony.wall.finished.joint-8", pose: { position: { x: 2, y: 1, z: -1 } } },
-    { id: "tree", visual: "colony.tree", pose: { position: { x: 1, y: 1, z: 0 } } },
-  ];
-  const spec = placementVisualSpec(control, [[0, 0, 0], [1, 0, 0], [2, 0, 0]], placement,
-    { start: [0, 0, 0], end: [2, 0, 0] }, facts, 2);
-  assert.deepEqual(spec.visual, [
-    "colony.wall.finished.joint-5",
-    "colony.wall.finished.joint-5",
-    "colony.wall.finished.joint-13",
-  ]);
-  assert.equal(spec.facing, 1);
+  const placement = { "timber-wall": { visual: "colony.wall.finished", alignment: "stroke", facing: { north: 2, east: 1, south: 0, west: 3 } } };
+  const spec = placementVisualSpec(control, [[0, 0, 0]], placement, { start: [0, 0, 0], end: [0, 0, 0] });
+  assert.deepEqual(spec, { visual: "colony.wall.finished", facing: 1, cells: [[0, 0, 0]] });
 });

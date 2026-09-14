@@ -1,5 +1,4 @@
 import { placementOrientation } from "../sdk/placement.ts";
-import { gridConnectionMasks } from "../sdk/grid-connections.ts";
 import { evaluateDesignation } from "./spatial-designation.js";
 
 
@@ -13,37 +12,16 @@ export function placementCells({ area, target, anchor, upperCandidates = [] }) {
   return target ? [target] : [];
 }
 
-function observedWallCells(facts, verticalMetres) {
-  if (!Array.isArray(facts) || !Number.isFinite(verticalMetres) || verticalMetres <= 0) return [];
-  return facts.flatMap((fact) => {
-    if (typeof fact?.visual !== "string" || !fact.visual.startsWith("colony.wall.")) return [];
-    const position = fact.pose?.position;
-    if (!position || ![position.x, position.y, position.z].every(Number.isFinite)) return [];
-    return [[Math.round(position.x), Math.round(position.y / verticalMetres + 0.5), Math.round(position.z)]];
-  });
-}
-
 /**
- * Resolve placement art from the proposed cells and ordinary observed facts.
- * Wall masks are presentation-only: the construction command remains the sole
- * owner of admission, support and site identity.
+ * Resolve ordinary cell-placement art. Edge placement owns a different
+ * acquisition shape and never reconstructs physical edges from visual names.
  */
-export function placementVisualSpec(control, cells, placementVisuals, area, observedFacts = [], verticalMetres = 1) {
+export function placementVisualSpec(control, cells, placementVisuals, area) {
   const catalog = control?.input?.catalog;
   const definition = catalog === undefined ? undefined : placementVisuals?.[catalog];
   const orientation = placementOrientation(definition?.alignment ?? "fixed", area, control?.input?.orientation);
   const facing = definition?.facing[orientation] ?? 0;
-  if (definition?.visual !== "colony.wall.finished" || !cells.length)
-    return { visual: definition?.visual, facing, cells };
-  const proposed = cells.map(([x, y, z], index) => ({ id: `placement-${index}`, cell: [x, y + 1, z] }));
-  const neighbors = observedWallCells(observedFacts, verticalMetres)
-    .map((cell, index) => ({ id: `observed-${index}`, cell }));
-  const masks = gridConnectionMasks([...proposed, ...neighbors]);
-  return {
-    visual: cells.map((_, index) => `colony.wall.finished.joint-${masks.get(`placement-${index}`) ?? 0}`),
-    facing,
-    cells,
-  };
+  return { visual: definition?.visual, facing, cells };
 }
 
 /** Reuse bounded sprites and destroy only the sprites owned by this pool. */

@@ -78,6 +78,7 @@ const groups = Object.freeze({
     "engine/src/client/geometry.test.js",
     "engine/src/client/isometric-sorter.test.js",
     "engine/src/client/multipart-visual-owner.test.js",
+    "engine/src/client/placement-preview.test.js",
     "engine/src/client/visual-resolver.test.js",
   ]),
   performance: Object.freeze([

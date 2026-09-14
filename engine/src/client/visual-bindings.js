@@ -1,5 +1,5 @@
 /** Content-owned visual choices. The renderer only consumes this checked shape. */
-const constructionBindings = Object.fromEntries(["floor", "wall", "stair", "roof", "bed", "shelf", "brew-station"].flatMap(type =>
+const constructionBindings = Object.fromEntries(["floor", "stair", "roof", "bed", "shelf", "brew-station"].flatMap(type =>
   ["stakes", "frame", "finished"].map(stage => [`colony.${type}.${stage}`, Object.freeze({
     kind: "static", path: type === "stair" || type === "bed" || type === "roof" || type === "shelf" ? ["buildings", type, stage] : ["buildings", type, stage, 0],
     facing: type === "stair" || type === "bed" || type === "roof" || type === "shelf", anchor: "propAnchor",
