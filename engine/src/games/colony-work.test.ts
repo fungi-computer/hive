@@ -13,36 +13,39 @@ import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { ConstructionSite } from "../sdk/construction";
 import { DeliveryTask } from "../sdk/delivery";
 import { StagedProcess } from "../sdk/process-supply";
+import type { ActionRequest, EntityId, QueryRow, WorkActivityRef, WorkAttempt, WorkOutcome } from "../contracts";
 
 const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
 const clock = { now: 20, delta: 0.25, tick: 80 };
 
-function reconciliationContext(kind: "dig" | "tree", attempt: any, stateOverride: any = {}) {
+type ReconciliationState = { cellX: number; cellY: number; cellZ: number; expected: number; status: "queued" | "blocked"; reason: string } | { tree: EntityId; phase: "queued" | "working" | "blocked" | "complete"; stage: "fell" | "chop"; seconds: number; reason: string };
+function reconciliationContext(kind: "dig" | "tree", attempt: WorkAttempt | null, stateOverride: Partial<ReconciliationState> = {}) {
   const task = id(kind === "dig" ? "dig-order" : "tree-order"), worker = id("worker"), tree = id("tree");
   const state = kind === "dig"
     ? { cellX: 1, cellY: 1, cellZ: 1, expected: 2, status: "queued", reason: "" }
     : { tree, phase: "queued", stage: "chop", seconds: 0, reason: "" };
   Object.assign(state, stateOverride);
-  const records: any[] = [
+  const records: Array<QueryRow> = [
     row(task as string, new Map([[kind === "dig" ? ColonyDigOrder : ColonyTreeOrder, state], [OwnedByParty, { party: id("party") }]])),
     row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 1, z: 0, facing: 0 }], [PartyMember, { party: id("party") }]])),
   ];
   if (kind === "tree") records.push(
     row("tree", new Map([[ColonyTree, { phase: "felled" }], [ColonyTreePolicy, { designated: true }], [Position, { x: 1, y: 1, z: 1 }], [Container, { capacity: 6 }], [FiniteResource, { kind: "wood", quantity: 6 }], [OwnedByParty, { party: id("party") }]])),
   );
-  const writes: any[] = [], actions: any[] = [], removed: any[] = [];
+  const writes: Array<readonly [unknown, EntityId, unknown]> = [], actions: ActionRequest[] = [], removed: EntityId[] = [];
+  let projectedAttempt = attempt;
   const context: any = {
     clock, query: (spec: any) => records.filter(record => spec.components.every((component: any) => record.get(component) !== undefined)),
-    workAttempts: () => attempt ? [attempt] : [],
+    workAttempts: () => projectedAttempt ? [projectedAttempt] : [],
     worldPoses: () => [{ id: worker, local: { x: 0, y: 1, z: 0, facing: 0 }, world: { x: 0, y: 1, z: 0, facing: 0 }, support: null, surface: null }],
     terrainMaterials: () => [2], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }),
-    action: (action: any) => actions.push(action), write: (definition: any, entity: any, value: any) => writes.push([definition, entity, value]),
+    action: (action: ActionRequest) => { actions.push(action); if (action.kind === "acknowledge-work-attempt") projectedAttempt = null; }, write: (definition: unknown, entity: EntityId, value: unknown) => writes.push([definition, entity, value]),
     removeAuthoredEntity: (entity: any) => removed.push(entity),
   };
   return { context, task, worker, tree, writes, actions, removed, state };
 }
-function outcome(task: any, worker: any, activity: any, result: any = { kind: "completed" }) {
+function outcome(task: EntityId, worker: EntityId, activity: WorkActivityRef, result: WorkOutcome = { kind: "completed" }): WorkAttempt {
   return { key: { task, generation: 1 }, worker, party: id("party"), phase: { kind: "outcome", operation: { attempt: { task, generation: 1 }, sequence: 1 }, activity, result } };
 }
 
@@ -160,6 +163,7 @@ test("drafted tree route remains queued, then committed extraction completes exa
   assert.equal(route.writes[0][2].phase, "queued");
   assert.equal(route.actions.length, 1);
   const physical = reconciliationContext("tree", outcome(id("tree-order"), id("worker"), { kind: "resource-extract", source: route.tree }));
+  treeWorkProvider(physical.context, new Set([physical.worker])).progress();
   treeWorkProvider(physical.context, new Set([physical.worker])).progress();
   assert.equal(physical.writes.filter(write => write[0] === ColonyTree).length, 1);
   assert.equal(physical.writes[1][2].phase, "complete");
