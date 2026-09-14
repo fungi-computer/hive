@@ -641,6 +641,7 @@ export interface KernelPort {
 export interface GamePack {
   readonly id: GameId;
   readonly version: number;
+  readonly localScope?: CommandScope;
   readonly definition: Uint8Array;
   readonly environmentDefinition?: Uint8Array;
   readonly presentationWindow?: {

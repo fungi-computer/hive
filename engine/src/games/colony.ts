@@ -329,7 +329,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
   for (let x = minX; x <= maxX; x++) for (let z = minZ; z <= maxZ; z++) {
     const id = `colony.dig.${x}.${y}.${z}` as EntityId;
     if (existing.has(id)) continue;
-    creates.push({ id, components: { [ColonyDigOrder.id]: {
+    creates.push({ id, components: { ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}), [ColonyDigOrder.id]: {
       cellX: x, cellY: y, cellZ: z, expected: -1,
       actor: null, phase: "queued", reason: "", approachX: 0, approachY: 0, approachZ: 0,
     }}});
@@ -341,6 +341,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
 export const colonyPack: GamePack = {
   id: "colony",
   version: 6,
+  localScope: { kind: "player", player: "local", party: entity("colony.local-party") },
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
@@ -410,7 +411,7 @@ export const colonyPack: GamePack = {
         });
         if (occupiedOrder || occupiedResource || occupiedStructure)
           throw new Error("mugwort cell already has an active designation");
-        return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] };
+        return { actions: [], writes: [], creates: [{ id, components: { ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}), [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] };
       },
     }),
     requestBrew: command({

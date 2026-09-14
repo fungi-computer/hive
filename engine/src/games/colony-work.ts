@@ -39,7 +39,7 @@ import {
 } from "../sdk/common";
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
-import { OwnedByParty } from "../sdk/party";
+import { OwnedByParty, PartyMember } from "../sdk/party";
 
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
 type ColonyResourceOrderState = {
@@ -1069,6 +1069,8 @@ export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
   reads: [
+    OwnedByParty,
+    PartyMember,
     GroundStock,
     StockpileCell,
     ColonyDigOrder,

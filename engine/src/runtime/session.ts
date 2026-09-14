@@ -192,7 +192,7 @@ export class GameSession {
     this.pack = options.pack;
     this.port = options.port;
     this.seed = (options.seed ?? 1) >>> 0;
-    this.scope = options.scope ?? { kind: "player", player: "local", party: "local" as EntityId };
+    this.scope = options.scope ?? this.pack.localScope ?? { kind: "host" };
     this.random = new DeterministicRandom(this.seed);
     this.whistleProjection = createWhistleObservationProjector(this.pack);
     const consumers = new Set<string>();
