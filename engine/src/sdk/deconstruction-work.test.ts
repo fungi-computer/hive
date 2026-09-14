@@ -58,6 +58,7 @@ test("native attempt routes, performs timed deconstruction, and records one term
       seconds: 0,
       salvageQuantity: 0,
       workSeconds: 0,
+      seconds: 0,
       status: "queued",
       retryKey: "",
       reason: "",
