@@ -120,3 +120,26 @@ test("wall edge designation deduplicates and sorts before native planning", () =
     { kind: "edge", edge: { cell: { x: 2, y: 18, z: -1 }, axis: "z" } },
   ]);
 });
+
+test("door uses the same worker-free canonical edge designation as walls", () => {
+  const binding = colonyBuildCommand.localPresentation.bindings.find(item => item.id === "timber-door");
+  assert.deepEqual(binding, {
+    id: "timber-door",
+    label: "Build door",
+    target: "world-edge",
+    designation: ["edge-line"],
+    detail: "4 wood · aperture · drag line · auto-facing",
+    preset: { catalog: "timber-door" },
+  });
+  const result = colonyBuildCommand.invoke({
+    scope: { kind: "player" as const, player: "player", party: entity("party") },
+    query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
+  }, { catalog: "timber-door", target: { edges: [{ cell: [-3, 17, 4], axis: "z" }] } });
+  assert.deepEqual(result.actions, [{
+    kind: "plan-construction",
+    party: "party",
+    catalog: "timber-door",
+    site: "colony.build.timber-door.edge.-3.18.4.z",
+    target: { kind: "edge", edge: { cell: { x: -3, y: 18, z: 4 }, axis: "z" } },
+  }]);
+});

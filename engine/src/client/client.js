@@ -1318,8 +1318,9 @@ export function createHiveClient({
       const stroke = edgeGesture.getSnapshot().context;
       app.canvas.releasePointerCapture?.(event.pointerId);
       const control = terrainTarget.getSnapshot().context.control;
-      if (control && stroke.committed.length) executeWhistle(control, buildPlacementCommand(control, state.selectedIds, { edges: canonicalEdges(stroke.committed), mode: "edge-line" }).input);
-      draw(); return;
+      if (stroke.rejection) state.message = stroke.rejection;
+      else if (control && stroke.committed.length) executeWhistle(control, buildPlacementCommand(control, state.selectedIds, { edges: canonicalEdges(stroke.committed), mode: "edge-line" }).input);
+      renderHud(); draw(); return;
     }
     if (terrainArea.getSnapshot().value === "dragging") {
       finishTerrainArea(event);

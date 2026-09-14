@@ -265,7 +265,7 @@ impl Kernel {
             (StructureShape::Cover, ConstructionTarget::Cell { cell, .. }) => Ok(StaticInstance::Cover { id: site.into(), support: cell }),
             (StructureShape::Fixture { footprint }, ConstructionTarget::Cell { cell, orientation }) => Ok(StaticInstance::Fixture { id: site.into(), origin: cell, orientation, footprint: footprint.clone() }),
             (StructureShape::Wall { height }, ConstructionTarget::Edge { edge }) => Ok(StaticInstance::Wall { id: site.into(), edge, height: *height }),
-            (StructureShape::Aperture { height, opening_bottom, opening_height }, ConstructionTarget::Edge { edge }) => Ok(StaticInstance::ApertureWall { id: site.into(), edge, height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false }),
+            (StructureShape::Aperture { height, opening_bottom, opening_height }, ConstructionTarget::Edge { edge }) => Ok(StaticInstance::ApertureWall { id: site.into(), edge, height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: true }),
             (StructureShape::Stair { run, rise }, ConstructionTarget::Cell { cell, orientation }) => Ok(StaticInstance::Stair { id: site.into(), origin: cell, orientation, run: *run, rise: *rise }),
             (StructureShape::Wall { .. } | StructureShape::Aperture { .. }, ConstructionTarget::Cell { .. }) => Err("wall construction requires an edge target".into()),
             (_, ConstructionTarget::Edge { .. }) => Err("only wall construction accepts an edge target".into()),

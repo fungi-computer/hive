@@ -86,6 +86,9 @@ fn aperture_action(kernel: &mut Kernel, open: bool) -> serde_json::Value {
 #[test]
 fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     let (mut kernel, surface, _) = constructed_aperture();
+    assert!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().any(|instance|
+        matches!(instance, StaticInstance::ApertureWall { id, open: true, .. } if id == "door")
+    ));
     let opened = aperture_action(&mut kernel, true);
     assert_eq!(opened["results"][0]["accepted"], true, "{opened}");
     let revision = kernel.environment.as_ref().unwrap().world.terrain_revision();

@@ -34,7 +34,7 @@ export function colonyBuildBindingDetail(catalog: string, orientation?: string, 
     ? `${Math.max(...shape.footprint.map(([x]) => x)) - Math.min(...shape.footprint.map(([x]) => x)) + 1}×${Math.max(...shape.footprint.map(([, z]) => z)) - Math.min(...shape.footprint.map(([, z]) => z)) + 1}`
     : shape.kind === "stair" ? `${shape.run}×${shape.rise} stair` : shape.kind;
   const gesture = policy.alignment === "stroke"
-    ? "drag line · auto-facing"
+    ? "drag line"
     : shape.kind === "floor" || shape.kind === "cover" ? "drag rectangle" : "click point";
   const facing = orientation ?? (policy.alignment === "stroke" ? "auto-facing" : "cardinal");
   return `${cost} · ${footprint} · ${gesture} · ${facing}`;
@@ -57,9 +57,9 @@ function areaCells(area: { start: [number, number, number]; end: [number, number
 export const colonyBuildCommand = command({
   title: "Build structure", category: "Construction", description: "Place a construction plan on a visible world surface.",
   localPresentation: { bindings: [
-    ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
-      id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: (catalog === "timber-wall" ? "world-edge" : "world-surface") as "world-edge" | "world-surface",
-      designation: (catalog === "timber-wall" ? ["edge-line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "rectangle" | "edge-line")[],
+    ...["timber-floor", "timber-wall", "timber-door", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
+      id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: (catalog === "timber-wall" || catalog === "timber-door" ? "world-edge" : "world-surface") as "world-edge" | "world-surface",
+      designation: (catalog === "timber-wall" || catalog === "timber-door" ? ["edge-line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "rectangle" | "edge-line")[],
       detail: colonyBuildBindingDetail(catalog, catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? "north" : undefined),
       preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? { orientation: "north" } : {}) },
     })),
@@ -75,7 +75,7 @@ export const colonyBuildCommand = command({
     const sites = context.query(query(ConstructionSite));
     const replacements = context.query(query(FloorReplacement));
     if ("edges" in input.target) {
-      if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture") throw new Error("Only walls accept edge placement");
+      if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture") throw new Error("Only boundary structures accept edge placement");
       const edges = [...new Map(input.target.edges.map(edge => [
         `${edge.cell[0]}:${edge.cell[1]}:${edge.cell[2]}:${edge.axis}`,
         edge,
@@ -93,7 +93,7 @@ export const colonyBuildCommand = command({
       });
       return { writes: [], actions: actions.filter(action => !sites.some(site => site.id === action.site)) };
     }
-    if (definition.shape.kind === "wall" || definition.shape.kind === "aperture") throw new Error("Walls require edge placement");
+    if (definition.shape.kind === "wall" || definition.shape.kind === "aperture") throw new Error("Boundary structures require edge placement");
     const area = "area" in input.target ? input.target.area : undefined;
     const cells = "area" in input.target
       ? areaCells(input.target.area)

@@ -82,6 +82,8 @@ export const colonyEnvironment: EnvironmentDefinition = {
         onRemove: { salvage: [{ kind: "wood", quantity: 2 }] } },
       { id: "timber-wall", shape: { kind: "wall", height: 4 }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 4 }], workSeconds: 4,
         onRemove: { salvage: [{ kind: "wood", quantity: 4 }] } },
+      { id: "timber-door", shape: { kind: "aperture", height: 4, openingBottom: 0, openingHeight: 3 }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 4 }], workSeconds: 4,
+        onRemove: { salvage: [{ kind: "wood", quantity: 4 }] } },
       { id: "timber-stair", shape: { kind: "stair", run: 2, rise: 4 }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 6,
         onRemove: { salvage: [{ kind: "wood", quantity: 6 }] } },
       { id: "timber-roof", shape: { kind: "cover" }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 3,
