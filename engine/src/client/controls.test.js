@@ -31,7 +31,8 @@ test("edge gesture retains the last valid preview on limit rejection and commits
   assert.equal(rejected.context.edges.length, 1);
   actor.send({ type: "END" });
   assert.equal(actor.getSnapshot().value, "idle");
-  assert.deepEqual(actor.getSnapshot().context.committed, [{ cell: [0, 4, 0], axis: "z" }]);
+  assert.deepEqual(actor.getSnapshot().context.committed, []);
+  assert.match(actor.getSnapshot().context.rejection, /256/);
   assert.deepEqual(actor.getSnapshot().context.edges, []);
   actor.send({ type: "END" });
   assert.equal(actor.getSnapshot().value, "idle");

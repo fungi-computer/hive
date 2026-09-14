@@ -1647,11 +1647,11 @@ export function createHiveClient({
           directControl?.reset();
           terrainArea.send({ type: "CANCEL" });
           edgeGesture.send({ type: "CANCEL" });
-    terrainTarget.send({ type: "CANCEL" });
+          terrainTarget.send({ type: "CANCEL" });
           gesture.send({ type: "CANCEL" });
           state.selectedIds = [];
           state.terrainMarks = [];
-    state.environmentVisuals = [];
+          state.environmentVisuals = [];
           exitAim();
           interpolation.reset(event.epoch);
           pendingCues = [];
