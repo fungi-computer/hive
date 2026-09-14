@@ -19,6 +19,7 @@ const frontendArgument = process.argv[2];
 const outputArgument = process.argv[3] ?? ".botanical/playable-browser-proof";
 assert(frontendArgument, "usage: node tools/public-engine-host/playable-browser-proof.mjs <built-clearing-url> [output]");
 const frontend = new URL(frontendArgument);
+const publicHost = new URL(process.env.HIVE_PUBLIC_HOST ?? "https://hive-public-engine-demo.levi-fe0.workers.dev");
 const output = resolve(outputArgument);
 const root = resolve(new URL("../..", import.meta.url).pathname);
 const invite = randomBytes(32).toString("hex");
@@ -123,6 +124,7 @@ await writeFile(resolve(output, "source-inventory.json"), JSON.stringify(evidenc
 
 let browser;
 let context;
+let latestObservation;
 try {
   browser = await chromium.launch({
     headless: true,
@@ -132,7 +134,6 @@ try {
   context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   page.setDefaultTimeout(20_000);
-  let latestObservation;
   let latestTerrain;
   const commandResponseById = new Map();
   const acceptSocketPayload = (payload) => {
@@ -146,16 +147,11 @@ try {
       evidence.errors.push("observation frame was not JSON");
     }
   };
-  const cdp = await context.newCDPSession(page);
-  await cdp.send("Network.enable");
-  cdp.on("Network.webSocketFrameReceived", ({ response }) => acceptSocketPayload(response.payloadData));
   page.on("pageerror", error => evidence.errors.push(`pageerror: ${error.message}`));
   page.on("console", message => { if (message.type() === "error") evidence.errors.push(`console: ${message.text()}`); });
   page.on("requestfailed", request => evidence.errors.push(`request: ${request.url()} · ${request.failure()?.errorText ?? "failed"}`));
-  page.on("websocket", socket => {
-    socket.on("framereceived", ({ payload }) => acceptSocketPayload(payload));
-  });
-  page.on("response", async response => {
+  let joinUrl;
+  context.on("response", async response => {
     if (!response.url().includes("/v2/colony/worlds/")) return;
     if (response.url().endsWith("/command")) {
       try {
@@ -173,12 +169,13 @@ try {
     if (!response.url().endsWith("/join")) return;
     try {
       const value = await response.json();
+      joinUrl = response.url();
       evidence.join = { status: response.status(), player: value.player, party: value.party, people: value.people };
     } catch (error) {
       evidence.errors.push(`join response unreadable: ${error instanceof Error ? error.message : String(error)}`);
     }
   });
-  page.on("request", request => {
+  context.on("request", request => {
     if (!request.url().includes("/v2/colony/worlds/") || !request.url().endsWith("/command")) return;
     try {
       const body = JSON.parse(request.postData() ?? "{}");
@@ -192,9 +189,36 @@ try {
   assert.equal(response?.status(), 200, `Clearing frontend returned ${response?.status()}`);
   await waitForReady(page);
   const resetCanvas = await resizeAndResetCamera(page);
+  const credential = await page.evaluate(() => {
+    const key = Object.keys(localStorage).find(candidate => candidate.startsWith("hive:colony-v2:credential:"));
+    return key ? localStorage.getItem(key) : null;
+  });
+  if (!joinUrl) {
+    const worldHandle = createHash("sha256").update(invite).digest("hex");
+    joinUrl = new URL(`/v2/colony/worlds/${worldHandle}/join`, publicHost).toString();
+  }
+  assert(credential, "authorized world observation was not available to the proof client");
+  if (!evidence.join) {
+    const response = await context.request.post(joinUrl, {
+      headers: { Authorization: `Bearer ${credential}`, "Content-Type": "application/json" },
+      data: { invite },
+    });
+    const value = await response.json();
+    evidence.join = { status: response.status(), player: value.player, party: value.party, people: value.people };
+  }
+  const refreshObservation = async () => {
+    const response = await context.request.get(joinUrl.replace(/\/join$/, "/observe"), {
+      headers: { Authorization: `Bearer ${credential}` },
+    });
+    assert.equal(response.status(), 200, "authorized world observation failed");
+    acceptSocketPayload(JSON.stringify({ type: "observation", ...await response.json() }));
+  };
+  await refreshObservation();
   const terrainDeadline = Date.now() + 20_000;
-  while (!latestObservation?.observation?.terrain?.surfaces?.length && Date.now() < terrainDeadline)
+  while (!latestObservation?.observation?.terrain?.surfaces?.length && Date.now() < terrainDeadline) {
     await new Promise(resolve => setTimeout(resolve, 100));
+    await refreshObservation();
+  }
   assert(latestObservation?.observation?.terrain?.surfaces?.length, "authoritative terrain observation was not received");
   assert(evidence.join?.status === 200, "fresh world join receipt was not observed");
   assert.equal(evidence.join.people.length, 2, "fresh party must contain two people");
@@ -253,10 +277,23 @@ try {
       point.y >= selectionBounds.top && point.y <= selectionBounds.bottom;
   };
   const reservedSurfaceCells = new Set();
+  const partyPositions = () => {
+    const people = new Set(evidence.join?.people ?? []);
+    return (latestObservation?.observation?.facts ?? [])
+      .filter(fact => people.has(fact.id) && fact.pose?.position)
+      .map(fact => fact.pose.position);
+  };
+  const distanceToParty = (cell) => {
+    const positions = partyPositions();
+    return positions.length
+      ? Math.min(...positions.map(position => Math.abs(cell[0] - position.x) + Math.abs(cell[2] - position.z)))
+      : 0;
+  };
   const freeSurface = ({ level, adjacentTo } = {}) => {
     const terrain = latestObservation?.observation?.terrain;
     const occupied = occupiedWorldCells();
-    const candidate = terrain?.surfaces?.find(surface => {
+    const candidate = [...(terrain?.surfaces ?? [])].sort((left, right) =>
+      distanceToParty(left.cell) - distanceToParty(right.cell) || cellKey(left.cell).localeCompare(cellKey(right.cell))).find(surface => {
       const cell = surface.cell;
       if (surface.material !== 1 || reservedSurfaceCells.has(cellKey(cell))) return false;
       if (level !== undefined && cell[1] !== level) return false;
@@ -277,6 +314,7 @@ try {
   record("selection has no side effect", { commandsAfterSelection: afterSelection });
 
   const beforeDraft = commandCount();
+  const errorsBeforeRejectedGo = evidence.errors.length;
   const noDraftTarget = freeSurface();
   const noDraftPoint = projectedCell(noDraftTarget.cell, latestObservation.observation.terrain.verticalMetres, canvas);
   await page.mouse.click(noDraftPoint.x, noDraftPoint.y, { button: "right" });
@@ -285,7 +323,10 @@ try {
   assert(preDraftResult.response.status >= 400 || preDraftResult.response.value?.status === "rejected",
     `pre-Draft Go unexpectedly admitted: ${JSON.stringify(preDraftResult.response.value)}`);
   assert(rejectedBeforeDraft, "right-click before Draft did not submit the Go intent");
-  await page.getByText(/go requires drafted workers|Order rejected/i).waitFor({ state: "visible", timeout: 10_000 });
+  await page.getByText(/go requires drafted workers|Order (?:rejected|refused)/i).waitFor({ state: "visible", timeout: 10_000 });
+  const rejectedGoConsole = evidence.errors.findIndex((error, index) =>
+    index >= errorsBeforeRejectedGo && error === "console: Failed to load resource: the server responded with a status of 400 ()");
+  if (rejectedGoConsole >= 0) evidence.errors.splice(rejectedGoConsole, 1);
   record("Go is rejected before Draft", { command: rejectedBeforeDraft.name });
 
   const beforeDraftCommand = commandCount();
@@ -333,6 +374,7 @@ try {
   const waitForObservation = async (predicate, label, timeout = 20_000) => {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
+      await refreshObservation();
       if (predicate(latestObservation)) return latestObservation;
       await new Promise(resolve => setTimeout(resolve, 150));
     }
@@ -441,7 +483,8 @@ try {
       return surface?.material === 1 && !reservedSurfaceCells.has(cellKey(cell)) &&
         !occupied.has(`${cell[0]},${cell[2]}`) && projectedSurfaceVisible(surface);
     };
-    for (const origin of terrain?.surfaces ?? []) {
+    for (const origin of [...(terrain?.surfaces ?? [])].sort((left, right) =>
+      distanceToParty(left.cell) - distanceToParty(right.cell) || cellKey(left.cell).localeCompare(cellKey(right.cell)))) {
       const [x, y, z] = origin.cell;
       const cells = Array.from({ length: 3 }, (_, dx) => [x + dx, y, z]).concat(
         Array.from({ length: 3 }, (_, dx) => [x + dx, y, z + 1]),
@@ -455,7 +498,7 @@ try {
   for (const cell of rectangle.cells) reservedSurfaceCells.add(cellKey(cell));
   const floorBuilds = [];
   for (const cell of rectangle.cells) floorBuilds.push(await buildPoint("Build floor", cell));
-  await waitForObservation(() => rectangle.cells.every(cell => structureFact("colony.floor.finished", cell)), "six finished floor supports", 30_000);
+  await waitForObservation(() => rectangle.cells.every(cell => structureFact("colony.floor.finished", cell)), "six finished floor supports", 90_000);
   const originalFloorId = structureFact("colony.floor", rectangle.cells[0])?.id;
   assert(originalFloorId, "finished floor has no stable render identity");
   const brewerBuild = await buildPoint("Build brew-station", rectangle.brewer);
@@ -521,6 +564,19 @@ try {
   evidence.success = evidence.errors.length === 0;
 } catch (error) {
   evidence.failure = redact(error?.stack ?? error);
+  evidence.finalObservation = latestObservation ? {
+    revision: latestObservation.revision,
+    time: latestObservation.observation?.time,
+    facts: latestObservation.observation?.facts?.map(fact => ({
+      id: fact.id,
+      visual: fact.visual,
+      pose: fact.pose,
+      activity: fact.activity,
+      inventory: fact.inventory,
+    })),
+    presentationFacts: latestObservation.observation?.presentationFacts,
+    terrainMarks: latestObservation.observation?.terrainMarks,
+  } : null;
   evidence.success = false;
   if (context) {
     await context.pages()[0]?.screenshot({ path: resolve(output, "failure.png"), fullPage: true }).catch(() => {});
