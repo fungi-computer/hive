@@ -500,21 +500,15 @@ export const colonyPack: GamePack = {
         const parsed = input;
         const selected = selectedWorkers(context, parsed.entities);
         const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
-        const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
-        const building = new Set(context.query(query(ConstructionSite)).flatMap(row => {
-          const worker = row.get(ConstructionSite).worker;
-          return worker === null ? [] : [worker];
-        }));
         const participation = new Map(context.query(query(WorkParticipation)).map(row => [row.id, row.get(WorkParticipation)]));
         if (selected.some(worker => participation.get(worker)?.automatic !== false))
           throw new Error("go requires drafted workers");
         return {
-          actions: selected.flatMap(worker => (excavating.has(worker) || building.has(worker)) ? [cancelWork(worker)] : [])
-            .concat(selected.map(worker => {
+          actions: selected.map(worker => {
               const position = positions.get(worker);
               if (!position) throw new Error("selected worker position is unavailable");
               return moveAction(worker, parsed.destination, position.facing);
-            })),
+            }),
           writes: [],
         };
       },
