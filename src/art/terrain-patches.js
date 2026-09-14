@@ -1,7 +1,7 @@
 // Original terrain art. Coordinates are ground metres; bit order NW, NE, SE, SW.
 // Display patches sit between four physical cells and never redefine those cells.
 import * as THREE from "three";
-import { scene, mesh, box, ball } from "./geometry.js";
+import { scene, mesh } from "./geometry.js";
 
 const points = [
   [0, 0],
@@ -157,54 +157,7 @@ export function terrainPatch(kind, mask, variant = 0) {
   if (!Number.isInteger(variant) || variant < 0 || variant > 2)
     throw new Error("terrain variant must be 0..2");
   const s = scene();
-  const shapes = patchShapes(mask);
   for (const emission of terrainPatchEmissions(kind, mask, variant)) emissionMesh(s, emission);
-  const polygons = shapes.map((shape) => shape.getPoints(12));
-  const inside = (x, z) =>
-    polygons.some((polygon) => {
-      let hit = false;
-      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const a = polygon[i],
-          b = polygon[j];
-        if (
-          a.y > z !== b.y > z &&
-          x < ((b.x - a.x) * (z - a.y)) / (b.y - a.y) + a.x
-        )
-          hit = !hit;
-      }
-      return hit;
-    });
-  const rng = random(1027 + variant * 93);
-  for (let i = 0; i < (kind === "rock" ? 11 : 7); i++) {
-    const x = (rng() - 0.5) * 0.94,
-      z = (rng() - 0.5) * 0.94;
-    if (!inside(x, z)) continue;
-    const w = 0.08 + rng() * 0.13,
-      d = 0.035 + rng() * 0.08;
-    if (
-      ![
-        [x - w, z - d],
-        [x + w, z - d],
-        [x - w, z + d],
-        [x + w, z + d],
-      ].every(([px, pz]) => inside(px, pz))
-    )
-      continue;
-    if (kind === "rock") {
-      // Embedded flakes, deliberately shallow: decoration is not a boulder.
-      const stone = ball(
-        s,
-        palette.flecks[i % 3],
-        x,
-        0.008,
-        z,
-        w,
-        0.008 + rng() * 0.015,
-        d,
-      );
-      stone.rotation.y = rng() * Math.PI;
-    } else box(s, palette.flecks[i % 3], x, 0.003, z, w, 0.003, d);
-  }
   return s;
 }
 
@@ -219,63 +172,5 @@ export function cliffPart(kind, facing, variant = 0) {
     g = new THREE.Group();
   s.add(g);
   for (const emission of cliffEmissions(kind, facing, variant)) emissionMesh(g, emission);
-  return s;
-  /* Legacy authoring detail geometry remains below as preserved reference. */
-  /* istanbul ignore next */
-  if (kind === "grass-lip") {
-    box(g, "#627b46", 0, -0.025, 0, 1, 0.05, 0.055);
-    for (let i = 0; i < 12; i++) {
-      const x = -0.46 + i * 0.083;
-      box(
-        g,
-        ["#778c47", "#8f9e53", "#627b46"][i % 3],
-        x,
-        -0.018,
-        0,
-        0.09,
-        0.035 + (i % 3) * 0.012,
-        0.07,
-      );
-      if (i % 3 === variant % 3)
-        box(g, "#746343", x, -0.1, 0.012, 0.018, 0.15 + (i % 2) * 0.04, 0.018);
-    }
-  } else {
-    box(
-      g,
-      kind === "earth" ? "#806143" : "#676b60",
-      0,
-      -0.27,
-      -0.012,
-      1,
-      0.54,
-      0.024,
-    );
-    for (let i = 0; i < 4; i++)
-      box(
-        g,
-        kind === "earth"
-          ? ["#92704c", "#76583d"][i % 2]
-          : ["#7a7c6c", "#5e6459"][i % 2],
-        0,
-        -0.06 - i * 0.13,
-        0,
-        1,
-        0.035,
-        0.012,
-      );
-    const rng = random(34 + variant * 19);
-    for (let i = 0; i < 12; i++)
-      ball(
-        g,
-        kind === "earth" ? "#b1966c" : "#97957d",
-        (rng() - 0.5) * 0.9,
-        -0.05 - rng() * 0.43,
-        0.008,
-        0.018 + rng() * 0.045,
-        0.012 + rng() * 0.03,
-        0.01,
-      );
-  }
-  g.rotation.y = (facing * Math.PI) / 2;
   return s;
 }

@@ -52,7 +52,7 @@ function chunkIndex(columnIndex, chunkSize) {
   return chunks;
 }
 
-function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex) {
+function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex, ownerChunk = undefined) {
   const buckets = new Map();
   function polygon(colour, vertices) {
     let points = buckets.get(colour);
@@ -68,7 +68,7 @@ function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex) {
     );
   }
   const result = new THREE.Group();
-  for (const placement of terrainPatchPlacements(surfaces, columnIndex, soilMaterial, verticalMetres))
+  for (const placement of terrainPatchPlacements(surfaces, columnIndex, soilMaterial, verticalMetres, ownerChunk))
     for (const emission of terrainPatchEmissions(placement.kind, placement.mask, placement.variant))
       polygon(emission.color, emission.vertices.map(([x, y, z]) => [x + placement.x + 0.5, y + placement.y, z + placement.z + 0.5]));
   for (const placement of terrainCliffPlacements(surfaces, columnIndex, soilMaterial, verticalMetres)) {
@@ -98,12 +98,14 @@ function stableVariant(x, z) {
 }
 
 /** Pure dual-grid placement facts. Missing or stepped corners stay bare. */
-export function terrainPatchPlacements(surfaces, columnIndex = terrainColumnMap(surfaces), soilMaterial = 1, verticalMetres = 0.54) {
+export function terrainPatchPlacements(surfaces, columnIndex = terrainColumnMap(surfaces), soilMaterial = 1, verticalMetres = 0.54, ownerChunk = undefined) {
   const placements = [];
   const vertices = new Set();
-  for (const { cell: [x, y, z] } of surfaces) for (const [dx, dz] of [[0, 0], [1, 0], [1, 1], [0, 1]]) vertices.add(`${x + dx},${y},${z + dz}`);
+  const context = ownerChunk === undefined ? surfaces : [...columnIndex.values()];
+  for (const { cell: [x, y, z] } of context) for (const [dx, dz] of [[0, 0], [1, 0], [1, 1], [0, 1]]) vertices.add(`${x + dx},${y},${z + dz}`);
   for (const key of [...vertices].sort()) {
     const [vx, y, vz] = key.split(",").map(Number), x = vx - 1, z = vz - 1;
+    if (ownerChunk !== undefined && terrainChunkKey(x, z) !== ownerChunk) continue;
     const neighbors = [[x, z], [x + 1, z], [x + 1, z + 1], [x, z + 1]].map(([cx, cz]) => columnIndex.get(`${cx},${cz}`));
     const kinds = neighbors.map((neighbor) => neighbor?.cell[1] === y ? terrainKind(neighbor, soilMaterial) : null);
     for (const kind of ["grass", "rock"]) {
@@ -200,7 +202,7 @@ export function terrainBandScene(
   if (!Number.isSafeInteger(level)) throw new Error("invalid terrain band level");
   const selected = surfaces.filter(({ cell: [, y] }) => y === level);
   const result = scene();
-  result.add(buildChunk(selected, verticalMetres, soilMaterial, columnIndex));
+  result.add(buildChunk(selected, verticalMetres, soilMaterial, columnIndex, selected.length ? terrainChunkKey(selected[0].cell[0], selected[0].cell[2]) : undefined));
   return result;
 }
 
@@ -250,6 +252,7 @@ export function createTerrainSceneCache({
         nextVerticalMetres,
         soilMaterial,
         nextIndex,
+        key,
       );
       if (replaceRetainedChunk(retained, old, built)) chunks.set(key, built);
       else chunks.delete(key);

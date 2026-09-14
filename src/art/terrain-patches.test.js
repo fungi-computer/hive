@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { patchShapes, terrainPatch, cliffPart } from "./terrain-patches.js";
 import { terrainPatchPlacements, terrainCliffPlacements } from "./terrain-columns.js";
+import { terrainColumnMap } from "./terrain-faces.js";
 
 function interval(mask, side) {
   const ranges = [];
@@ -92,6 +93,17 @@ test("dual-grid patches require four same-height physical neighbors", () => {
   assert.ok(stepped.length > 0);
   assert.ok(stepped.every(({ mask }) => mask !== 15));
   assert.deepEqual(terrainPatchPlacements(full), terrainPatchPlacements([...full].reverse()));
+});
+
+test("canonical chunk ownership makes seam placement disjoint, including negative coordinates", () => {
+  const surfaces = [surface(-8, 0, 0), surface(-7, 0, 0), surface(-7, 0, 1), surface(-8, 0, 1)];
+  const full = terrainPatchPlacements(surfaces);
+  const index = terrainColumnMap(surfaces);
+  const left = terrainPatchPlacements(surfaces.filter(({ cell: [x] }) => x < -7), index, 1, 0.54, "-1,0");
+  const right = terrainPatchPlacements(surfaces.filter(({ cell: [x] }) => x >= -7), index, 1, 0.54, "0,0");
+  const ids = (items) => new Set(items.map(({ x, z, kind, mask }) => `${x},${z}:${kind}:${mask}`));
+  assert.equal([...ids(left)].filter((id) => ids(right).has(id)).length, 0);
+  assert.deepEqual(new Set([...ids(left), ...ids(right)]), ids(full.filter(({ x, z }) => (x === -8 || x === -7) && (z === 0 || z === 1))));
 });
 
 test("material precedence and exposed cliff lips follow physical facts", () => {
