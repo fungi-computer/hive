@@ -836,6 +836,10 @@ test("rejected delivery move before pickup returns the task to idle without retr
   const lot = entity("rejected.lot.source");
   const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "to-source" }, {
     outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 0, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
+  });
+  deliverySystem.run(fixture.context);
+  assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
+  assert.equal(fixture.actions.length, 0);
 });
 
 test("manual participation leaves a ready delivery obligation unclaimed", () => {
@@ -847,7 +851,4 @@ test("manual participation leaves a ready delivery obligation unclaimed", () => 
   deliverySystem.run(fixture.context);
   assert.equal(fixture.state().actor, null);
   assert.equal(fixture.state().phase, "idle");
-});
-  deliverySystem.run(fixture.context);
-  assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
-  assert.equal(fixture.actions.length, 0);
+})
