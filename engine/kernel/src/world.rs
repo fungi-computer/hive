@@ -155,6 +155,19 @@ mod work_attempt_laws {
         assert_eq!(next["results"][0]["accepted"], true);
     }
 
+    #[test]
+    fn acknowledging_old_outcome_cannot_erase_new_worker_attempt_index() {
+        let mut kernel = world();
+        let first: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let first_key = first["results"][0]["attempt"].clone();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task","generation":first_key["generation"],"sequence":1,"cause":"cancelled"}}]}).to_string()).unwrap();
+        let second: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(second["results"][0]["accepted"], true);
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"task","generation":first_key["generation"],"sequence":1}}]}).to_string()).unwrap();
+        assert_eq!(kernel.attempts_by_worker.get("worker").map(|key| key.task.as_str()), Some("task2"));
+        assert!(kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":3.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).is_err());
+    }
+
     fn material_kernel(destination_capacity: u32, destination_x: f64, quantity: u32) -> (Kernel, u64) {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
@@ -3357,7 +3370,7 @@ impl Kernel {
         self.advance_excavation(batch.delta)?;
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
-        self.settle_arrived_work_attempts();
+        self.settle_arrived_work_attempts()?;
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.advance_process_work_attempts(batch.delta)?;
         self.advance_staged_processes(batch.delta)?;
@@ -3367,7 +3380,7 @@ impl Kernel {
         if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work.water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(work.air).map_err(|e| e.to_string())?; }
         serde_json::to_string(&output).map_err(|e| e.to_string())
     }
-    fn settle_arrived_work_attempts(&mut self) {
+    fn settle_arrived_work_attempts(&mut self) -> Result<()> {
         let arrived: Vec<(String, AttemptPhase)> = self.work_attempts.iter().filter_map(|(task, entity)| {
             let attempt = self.ecs.get::<WorkAttempt>(*entity)?;
             let worker = self.entity(&attempt.worker).ok()?;
@@ -3375,7 +3388,8 @@ impl Kernel {
             let operation = attempt.current_operation()?.clone();
             Some((task.clone(), AttemptPhase::Outcome { operation, activity: match &attempt.phase { AttemptPhase::Executing { activity, .. } => activity.clone(), _ => unreachable!() }, result: WorkOutcome::Completed }))
         }).collect();
-        for (task, phase) in arrived { let _ = self.settle_attempt(&task, phase); }
+        for (task, phase) in arrived { self.settle_attempt(&task, phase)?; }
+        Ok(())
     }
     fn advance_process_work_attempts(&mut self, delta: f64) -> Result<()> {
         if delta == 0.0 { return Ok(()); }
@@ -4127,7 +4141,11 @@ impl Kernel {
         let entity = self.work_attempts.remove(&task).ok_or("work attempt is not current")?;
         let worker = self.ecs.get::<WorkAttempt>(entity).map(|attempt| attempt.worker.clone());
         self.ecs.entity_mut(entity).remove::<WorkAttempt>();
-        if let Some(worker) = worker { self.attempts_by_worker.remove(&worker); }
+        if let Some(worker) = worker {
+            if self.attempts_by_worker.get(&worker).is_some_and(|key| key.task == task && key.generation == generation) {
+                self.attempts_by_worker.remove(&worker);
+            }
+        }
         Ok(())
     }
     fn continue_work_attempt(&mut self, task: String, generation: u64, sequence: u32, next_activity: crate::work_attempt::ActivityRef) -> Result<()> {
