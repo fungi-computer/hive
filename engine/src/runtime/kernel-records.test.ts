@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { captureKernelRecords, restoreKernelRecords, type NativeRecordHandle } from "./kernel-records";
 
-const entity = JSON.stringify({ format: "hive-kernel", version: 9, revision: 7, time: 1.5, scene: { format: "hive-game", version: 1, game: "colony", components: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, work_attempts: [] });
+const entity = JSON.stringify({ format: "hive-kernel", version: 10, revision: 7, time: 1.5, scene: { format: "hive-game", version: 1, game: "colony", components: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, work_attempts: [] });
 function handle(seed: readonly { key: string; bytes: Uint8Array }[], fail = false): NativeRecordHandle & { freed: boolean; reads: number; inserts: number } {
   const records = new Map<string, Uint8Array>(seed.map(record => [record.key, Uint8Array.from(record.bytes)]));
   const result = { freed: false, reads: 0, inserts: 0, free() { this.freed = true; }, keys() { return JSON.stringify([...records.keys()]); }, read(key: string) { this.reads += 1; return records.get(key)!; }, insert(key: string, bytes: Uint8Array) { this.inserts += 1; if (fail) throw new Error("insert failed"); records.set(key, bytes); } };
@@ -38,11 +38,11 @@ test("invalid native keys are rejected before any read and metadata before inser
   assert.equal(target.freed, false);
 });
 
-test("current native entity version round trips and version 8 is rejected", () => {
+test("current native entity version round trips and version 9 is rejected", () => {
   const current = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} });
-  assert.equal(readEntityVersion(current), 9);
+  assert.equal(readEntityVersion(current), 10);
   const old = { ...current, records: current.records.map((record) => record.key.startsWith("kernel/entities/")
-    ? { ...record, bytes: new TextEncoder().encode(entity.replace('"version":9', '"version":8')) }
+    ? { ...record, bytes: new TextEncoder().encode(entity.replace('"version":10', '"version":9')) }
     : record) };
   assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} }, () => handle([]), old), /unsupported kernel entity snapshot/);
 });

@@ -33,6 +33,23 @@ const exactKeys = (value: Record<string, unknown>, keys: readonly string[]): boo
   Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 const cell = (value: unknown): boolean =>
   Array.isArray(value) && value.length === 3 && value.every(item => typeof item === "number" && Number.isSafeInteger(item));
+const constructionCell = (value: unknown): boolean => record(value) && exactKeys(value, ["x", "y", "z"])
+  && typeof value.x === "number" && Number.isSafeInteger(value.x)
+  && typeof value.y === "number" && Number.isInteger(value.y) && value.y >= -2147483648 && value.y <= 2147483647
+  && typeof value.z === "number" && Number.isSafeInteger(value.z);
+const constructionTarget = (value: unknown): boolean => {
+  if (!record(value)) return false;
+  if (value.kind === "cell")
+    return exactKeys(value, ["kind", "cell", "orientation"]) && constructionCell(value.cell)
+      && (value.orientation === "north" || value.orientation === "east"
+        || value.orientation === "south" || value.orientation === "west");
+  if (value.kind === "edge") {
+    if (!exactKeys(value, ["kind", "edge"]) || !record(value.edge) || !exactKeys(value.edge, ["cell", "axis"]) || !record(value.edge.cell)) return false;
+    return constructionCell(value.edge.cell)
+      && (value.edge.axis === "x" || value.edge.axis === "z");
+  }
+  return false;
+};
 const destination = (value: unknown): boolean =>
   record(value) && exactKeys(value, ["x", "y", "z", "frame"]) &&
   coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
@@ -133,11 +150,9 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.party) && id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
       break;
     case "plan-construction": {
-      keys = ["kind", "catalog", "site", "party", "x", "y", "z", "orientation"];
+      keys = ["kind", "catalog", "site", "party", "target"];
       valid = id(action.catalog) && id(action.site) && id(action.party)
-        && [action.x, action.z].every(value => typeof value === "number" && Number.isSafeInteger(value))
-        && typeof action.y === "number" && Number.isInteger(action.y) && action.y >= -2147483648 && action.y <= 2147483647
-        && ["north", "east", "south", "west"].includes(action.orientation as string);
+        && constructionTarget(action.target);
       break;
     }
     case "replace-floor":

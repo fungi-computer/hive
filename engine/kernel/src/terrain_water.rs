@@ -325,6 +325,9 @@ impl TerrainWater {
         self.structure_projection.blocks_crossing(from, to)
     }
     pub fn structure_projection_snapshot(&self) -> GeometryProjection { self.structure_projection.clone() }
+    pub fn structure_vertical_faces(&self) -> impl Iterator<Item = &crate::structure_geometry::Face> {
+        self.structure_projection.explicit_vertical_faces()
+    }
     pub fn material(&mut self, at: Cell) -> Result<u16, String> { Ok(self.terrain.query(at)?) }
     /// Shared physical contact query for placement, route admission and retained
     /// route validation. These callers must not reconstruct geometry separately.
@@ -743,10 +746,10 @@ mod tests {
             edge: crate::structure_geometry::Face { cell: Cell { y: anchor.y + 1, ..anchor }, axis: crate::structure_geometry::FaceAxis::X },
             height: 5,
         }];
-        pending.extend((0..=3).map(|x| StaticInstance::Floor {
+        pending.extend((0..=4).map(|x| StaticInstance::Floor {
             id: format!("chain-floor-{x}"), support: Cell { x, ..top },
         }));
-        assert_eq!(world.construction_support(&pending).unwrap(), vec!["chain-floor-3"]);
+        assert_eq!(world.construction_support(&pending).unwrap(), vec!["chain-floor-4"]);
     }
 
     #[test]
@@ -786,6 +789,74 @@ mod tests {
         world.advance(0.25).unwrap();
         assert_eq!(restored.facts().unwrap(), world.facts().unwrap());
 
+    }
+
+    #[test]
+    fn aperture_edge_controls_local_water_and_air_and_restores_open() {
+        let mut terrain = super::field_tests::terrain();
+        let (left_support, right_support) = (-20..20).find_map(|x| {
+            (-20..20).find_map(|z| {
+                let surfaces = terrain.surface_cells(&[(x, z), (x + 1, z)]).ok()?;
+                let [Some(left), Some(right)] = surfaces.as_slice() else { return None };
+                (left.cell.y == right.cell.y).then_some((left.cell, right.cell))
+            })
+        }).expect("fixture has adjacent equal-height terrain supports");
+        let left = Cell { y: left_support.y + 1, ..left_support };
+        let right = Cell { y: right_support.y + 1, ..right_support };
+        assert_eq!(right, Cell { x: left.x + 1, ..left });
+        let geometry = TerrainWaterGeometry::new(
+            "edge-aperture-water-air".into(), vec![left, right],
+            BTreeMap::from([
+                (0, MaterialWater::Open),
+                (1, MaterialWater::Closed),
+                (2, MaterialWater::Closed),
+            ]),
+            [1.0, 0.54, 1.0], 1.0, 0.1, WaterLimits::default(), 6,
+        ).unwrap();
+        let stock = |cell: Cell, level: u8| WaterStock {
+            id: format!("cell:{},{},{}", cell.x, cell.y, cell.z),
+            mass_kg: 540.0 * f64::from(level) / 7.0,
+        };
+        let mut world = TerrainWater::fresh(
+            geometry.clone(), terrain, &[stock(left, 7), stock(right, 0)],
+        ).unwrap();
+        let aperture = |open| StaticInstance::ApertureWall {
+            id: "water-door".into(),
+            edge: Face { cell: left, axis: crate::structure_geometry::FaceAxis::X },
+            height: 2, opening_bottom: 0, opening_height: 1, open,
+        };
+        let perimeter = || vec![
+            StaticInstance::Wall { id: "west".into(), edge: Face { cell: Cell { x: left.x - 1, ..left }, axis: crate::structure_geometry::FaceAxis::X }, height: 1 },
+            StaticInstance::Wall { id: "east".into(), edge: Face { cell: right, axis: crate::structure_geometry::FaceAxis::X }, height: 1 },
+            StaticInstance::Wall { id: "north-left".into(), edge: Face { cell: Cell { z: left.z - 1, ..left }, axis: crate::structure_geometry::FaceAxis::Z }, height: 1 },
+            StaticInstance::Wall { id: "north-right".into(), edge: Face { cell: Cell { z: right.z - 1, ..right }, axis: crate::structure_geometry::FaceAxis::Z }, height: 1 },
+            StaticInstance::Wall { id: "south-left".into(), edge: Face { cell: left, axis: crate::structure_geometry::FaceAxis::Z }, height: 1 },
+            StaticInstance::Wall { id: "south-right".into(), edge: Face { cell: right, axis: crate::structure_geometry::FaceAxis::Z }, height: 1 },
+        ];
+        let closed = world.prepare_structures(perimeter().into_iter().chain([aperture(false)]).collect()).unwrap().unwrap();
+        world.apply_structures(closed).unwrap();
+        assert!(!world.local_air(left).unwrap().neighbors.contains(&right));
+        let total = world.facts().unwrap().total_kg;
+        world.advance(0.25).unwrap();
+        let closed_facts = world.facts().unwrap();
+        assert_eq!(closed_facts.cells.iter().find(|fact| fact.at == coordinates(left).unwrap()).unwrap().level, 7);
+        assert_eq!(closed_facts.cells.iter().find(|fact| fact.at == coordinates(right).unwrap()).unwrap().level, 0);
+        assert_eq!(closed_facts.total_kg, total);
+
+        let opened = world.prepare_structures(perimeter().into_iter().chain([aperture(true)]).collect()).unwrap().unwrap();
+        world.apply_structures(opened).unwrap();
+        assert!(world.local_air(left).unwrap().neighbors.contains(&right));
+        let saved = world.save_records().unwrap();
+        let mut restored = TerrainWater::restore_records(
+            geometry, super::field_tests::terrain(), &saved,
+        ).unwrap();
+        assert!(restored.local_air(left).unwrap().neighbors.contains(&right));
+        restored.advance(0.25).unwrap();
+        let open_facts = restored.facts().unwrap();
+        assert_eq!(open_facts.cells.iter().find(|fact| fact.at == coordinates(left).unwrap()).unwrap().level, 6);
+        assert_eq!(open_facts.cells.iter().find(|fact| fact.at == coordinates(right).unwrap()).unwrap().level, 1);
+        assert_eq!(open_facts.total_kg, total);
+        assert!(open_facts.residual_kg.abs() < 1e-9);
     }
 
     #[test]

@@ -92,7 +92,7 @@ test("recipe footprints align every native bed and brewer facing", () => {
   for (const [type, placement] of [["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT]]) {
     for (const orientation of ["north", "east", "south", "west"]) {
       const catalog = type === "bed" ? "timber-bed" : "brew-station";
-      const [visual] = colonyConstructionVisuals({ query: () => [{ id: type, get: () => ({ catalog, x: 3, y: 14, z: -2, orientation, phase: "finished", seconds: 4 }) }] });
+      const [visual] = colonyConstructionVisuals({ query: () => [{ id: type, get: () => ({ catalog, targetKind: "cell", targetX: 3, targetY: 14, targetZ: -2, targetDirection: orientation, phase: "finished", seconds: 4 }) }] });
       const result = resolveWorldArtPlacement({
         subjectPlacement: visual.placement,
         artPlacement: placement,
@@ -108,7 +108,7 @@ test("recipe footprints align every native bed and brewer facing", () => {
 
 test("recipe stair endpoints align all four native directions", () => {
   for (const orientation of ["north", "east", "south", "west"]) {
-    const [visual] = colonyConstructionVisuals({ query: () => [{ id: "stair", get: () => ({ catalog: "timber-stair", x: 3, y: 14, z: -2, orientation, phase: "finished", seconds: 4 }) }] });
+    const [visual] = colonyConstructionVisuals({ query: () => [{ id: "stair", get: () => ({ catalog: "timber-stair", targetKind: "cell", targetX: 3, targetY: 14, targetZ: -2, targetDirection: orientation, phase: "finished", seconds: 4 }) }] });
     const result = resolveWorldArtPlacement({
       subjectPlacement: visual.placement,
       artPlacement: STAIR_PLACEMENT,
@@ -126,7 +126,7 @@ test("recipe stair endpoints align all four native directions", () => {
 test("canonical stair datum resolves to the native cardinal directions", () => {
   const expected = { north: [0, -2], east: [2, 0], south: [0, 2], west: [-2, 0] };
   for (const orientation of Object.keys(expected)) {
-    const [visual] = colonyConstructionVisuals({ query: () => [{ id: "stair", get: () => ({ catalog: "timber-stair", x: 3, y: 14, z: -2, orientation, phase: "finished", seconds: 4 }) }] });
+    const [visual] = colonyConstructionVisuals({ query: () => [{ id: "stair", get: () => ({ catalog: "timber-stair", targetKind: "cell", targetX: 3, targetY: 14, targetZ: -2, targetDirection: orientation, phase: "finished", seconds: 4 }) }] });
     const result = resolveWorldArtPlacement({ subjectPlacement: visual.placement, artPlacement: STAIR_PLACEMENT, orientation });
     assert.deepEqual([result.landing[0], result.landing[2]], expected[orientation]);
     assert.equal(result.landing[1], 2.16);

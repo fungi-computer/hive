@@ -395,6 +395,9 @@ impl GeometryProjection {
     pub fn is_fixture(&self, cell: Cell) -> bool { self.fixture_cells.contains(&cell) }
     pub fn blocks_traversal(&self, cell: Cell) -> bool { self.is_bulk_solid(cell) || self.is_fixture(cell) }
     pub fn traversal_blockers(&self) -> impl Iterator<Item = &Cell> { self.solids.iter().chain(self.fixture_cells.iter()) }
+    pub fn explicit_vertical_faces(&self) -> impl Iterator<Item = &Face> {
+        self.explicit_faces.iter().filter(|face| face.axis.is_vertical())
+    }
     /// A face is sealed when explicitly authored (floor/stair top) or when it
     /// touches a bulk structure cell. The latter keeps walls and stair bodies
     /// consistent without materializing six faces per solid cell.
@@ -419,10 +422,9 @@ impl GeometryProjection {
             else { (to, FaceAxis::Z) };
         Ok(self.is_face_sealed(Face { cell, axis }))
     }
-    /// Validate the swept boundary for one admitted terrain edge. Flat moves
-    /// cross at their shared support height; hops cross at the upper height on
-    /// ascent and the lower height on descent. Stair spans check every
-    /// horizontal face touched by their rising sweep.
+    /// Validate the occupied body layer above one admitted support edge.
+    /// Terrain routes store support cells; an edge wall begins in the first
+    /// open voxel above that support.
     pub fn blocks_swept_transition(&self, from: Cell, to: Cell, stairs: &[StairEdge]) -> Result<bool, String> {
         if let Some(stair) = stairs.iter().find(|stair| (stair.entrance == from && stair.landing == to) || (stair.entrance == to && stair.landing == from)) {
             let forward = stair.entrance == from;
@@ -440,7 +442,8 @@ impl GeometryProjection {
                 let y1 = start.y.checked_add(i32::try_from(((step + 1) * rise) / run).map_err(|_| "stair sweep y overflow")?).ok_or("stair sweep y overflow")?;
                 let low = y0.min(y1);
                 let high = y0.max(y1);
-                for y in low..=high {
+                for support_y in low..=high {
+                    let y = support_y.checked_add(1).ok_or("structure sweep height overflow")?;
                     if self.blocks_crossing(Cell { y, ..Cell { x, y: start.y, z } }, Cell { y, ..next })? { return Ok(true); }
                 }
             }
@@ -452,7 +455,8 @@ impl GeometryProjection {
         if dx.abs() + dz.abs() != 1 || dy.abs() > 1 { return Err("invalid swept terrain transition".into()); }
         let low = from.y.min(to.y);
         let high = from.y.max(to.y);
-        for y in low..=high {
+        for support_y in low..=high {
+            let y = support_y.checked_add(1).ok_or("structure sweep height overflow")?;
             if self.blocks_crossing(Cell { y, ..from }, Cell { y, ..to })? { return Ok(true); }
         }
         Ok(false)
@@ -464,6 +468,8 @@ impl GeometryProjection {
     pub fn blocks_direct_decomposition(&self, from: Cell, to: Cell) -> Result<bool, String> {
         if from == to { return Ok(false); }
         if from.y != to.y { return Err("direct structure transition changes height".into()); }
+        let from = Cell { y: from.y.checked_add(1).ok_or("direct structure height overflow")?, ..from };
+        let to = Cell { y: to.y.checked_add(1).ok_or("direct structure height overflow")?, ..to };
         if from.x != to.x && from.z != to.z {
             let via_x = Cell { x: to.x, ..from };
             let via_z = Cell { z: to.z, ..from };
@@ -804,15 +810,15 @@ mod tests {
         }]).unwrap().projection().unwrap();
         assert!(ascent.blocks_swept_transition(Cell { x: 0, y: 0, z: 0 }, Cell { x: 1, y: 1, z: 0 }, &[]).unwrap());
         let lower_ascent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: "lower-ascent".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1,
+            id: "lower-ascent".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
         }]).unwrap().projection().unwrap();
         assert!(lower_ascent.blocks_swept_transition(Cell { x: 0, y: 0, z: 0 }, Cell { x: 1, y: 1, z: 0 }, &[]).unwrap());
         let descent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: "lower".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1,
+            id: "lower".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
         }]).unwrap().projection().unwrap();
         assert!(descent.blocks_swept_transition(Cell { x: 1, y: 1, z: 0 }, Cell { x: 0, y: 0, z: 0 }, &[]).unwrap());
         let upper_descent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: "upper-descent".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
+            id: "upper-descent".into(), edge: Face { cell: Cell { x: 0, y: 2, z: 0 }, axis: FaceAxis::X }, height: 1,
         }]).unwrap().projection().unwrap();
         assert!(upper_descent.blocks_swept_transition(Cell { x: 1, y: 1, z: 0 }, Cell { x: 0, y: 0, z: 0 }, &[]).unwrap());
     }
@@ -820,7 +826,7 @@ mod tests {
     #[test]
     fn swept_stair_checks_each_rising_horizontal_face() {
         let projection = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: "stair-wall".into(), edge: Face { cell: Cell { x: 1, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
+            id: "stair-wall".into(), edge: Face { cell: Cell { x: 1, y: 2, z: 0 }, axis: FaceAxis::X }, height: 1,
         }]).unwrap().projection().unwrap();
         let stair = StairEdge { id: "stair".into(), entrance: Cell { x: 0, y: 0, z: 0 }, landing: Cell { x: 2, y: 2, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
         assert!(projection.blocks_swept_transition(stair.entrance, stair.landing, &[stair]).unwrap());
@@ -829,8 +835,8 @@ mod tests {
     #[test]
     fn direct_diagonal_requires_one_complete_open_cardinal_decomposition() {
         let projection = StaticGeometry::new(bounds(), vec![
-            StaticInstance::Wall { id: "x".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 1 }, axis: FaceAxis::X }, height: 1 },
-            StaticInstance::Wall { id: "z".into(), edge: Face { cell: Cell { x: 1, y: 0, z: 0 }, axis: FaceAxis::Z }, height: 1 },
+            StaticInstance::Wall { id: "x".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 1 }, axis: FaceAxis::X }, height: 1 },
+            StaticInstance::Wall { id: "z".into(), edge: Face { cell: Cell { x: 1, y: 1, z: 0 }, axis: FaceAxis::Z }, height: 1 },
         ]).unwrap().projection().unwrap();
         assert!(projection.blocks_direct_decomposition(Cell { x: 0, y: 0, z: 0 }, Cell { x: 1, y: 0, z: 1 }).unwrap());
     }

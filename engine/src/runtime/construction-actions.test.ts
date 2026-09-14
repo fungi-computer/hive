@@ -8,16 +8,19 @@ import { isReservedComponent } from "../contracts";
 
 test("construction authoring cannot choose earned effort, cost or embedded custody", () => {
   const site = entity("site.floor.1");
-  const request = planConstruction(site, "timber-floor", { x: -4, y: -12, z: 8 }, "west", entity("party"));
+  const request = planConstruction(site, "timber-floor", { kind: "cell", cell: { x: -4, y: -12, z: 8 }, orientation: "west" }, entity("party"));
   assert.deepEqual(checkedAction(request), request);
   assert.deepEqual(checkedAction(bindConstructionStage(site, { x: -3, y: -6.21, z: 8 })), {
     kind: "bind-construction-stage", site, contact: { x: -3, y: -6.21, z: 8, frame: null },
   });
   for (const invalid of [
     { ...request, seconds: 100 }, { ...request, materials: [] },
-    { ...request, phase: "finished" }, { ...request, x: 0.5 },
-    { ...request, x: Number.MAX_SAFE_INTEGER + 1 }, { ...request, y: 2147483648 },
-    { ...request, orientation: "diagonal" }, { ...request, contact: { x: 0, y: 0, z: 0, frame: "ship" } },
+    { ...request, phase: "finished" }, { ...request, target: { kind: "cell", cell: { x: 0.5, y: 0, z: 0 }, orientation: "north" } },
+    { ...request, target: { kind: "cell", cell: { x: Number.MAX_SAFE_INTEGER + 1, y: 0, z: 0 }, orientation: "north" } },
+    { ...request, target: { kind: "cell", cell: { x: 0, y: 2147483648, z: 0 }, orientation: "north" } },
+    { ...request, target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "diagonal" } },
+    { ...request, contact: { x: 0, y: 0, z: 0, frame: "ship" } },
+    { kind: "plan-construction", catalog: "timber-floor", site, party: entity("party"), x: 0, y: 0, z: 0, orientation: "north" },
   ]) assert.throws(() => checkedAction(invalid), /invalid action/);
 });
 

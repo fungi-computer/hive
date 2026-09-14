@@ -154,6 +154,9 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type EdgeTarget = { readonly cell: readonly [number, number, number]; readonly axis: "x" | "z" };
+export type ConstructionTarget =
+  | { readonly kind: "cell"; readonly cell: Vec3; readonly orientation: CardinalOrientation }
+  | { readonly kind: "edge"; readonly edge: { readonly cell: Vec3; readonly axis: "x" | "z" } };
 export type ActionRequest =
   | { readonly kind: "establish-party"; readonly bindingId: string; readonly expectedSequence: number; readonly records: readonly EntityRecord[] }
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
@@ -191,11 +194,7 @@ export type ActionRequest =
       readonly catalog: string;
       readonly site: EntityId;
       readonly party: EntityId;
-      readonly x: number;
-      readonly y: number;
-      readonly z: number;
-      readonly orientation: CardinalOrientation;
-      readonly edges?: readonly EdgeTarget[];
+      readonly target: ConstructionTarget;
     }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
@@ -549,6 +548,7 @@ export interface RenderFact {
     readonly lastProcessed: number;
     readonly speed: number;
     readonly blocked: readonly [number, number, number][];
+    readonly closedFaces: readonly { readonly cell: Vec3; readonly axis: "x" | "z" }[];
     readonly bounds: null | {
       readonly min_x: number;
       readonly max_x: number;
@@ -755,8 +755,8 @@ export type GameLocalBinding = Readonly<{
   /** Optional game-owned compact display detail; never used for admission. */
   readonly detail?: string;
   readonly selection?: "entities" | Readonly<{ readonly field: string; readonly cardinality: "one" }>;
-  readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
-  readonly designation?: readonly ("point" | "line" | "rectangle" | "entities")[];
+  readonly target?: "terrain-cell" | "terrain-area" | "world-surface" | "world-edge";
+  readonly designation?: readonly ("point" | "line" | "rectangle" | "edge-line" | "entities")[];
   /** Local placement in the persistent bottom action dock. */
   readonly placement?: "action-bar";
   readonly preset?: JsonValue;

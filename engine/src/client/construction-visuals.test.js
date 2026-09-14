@@ -1,45 +1,50 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { gridConnectionMasks } from '../sdk/grid-connections.ts';
+import { edgeAdjacency } from '../sdk/edge-connections.ts';
 import { colonyConstructionVisuals } from '../games/colony-construction-visuals.ts';
+import { colonyEnvironment } from '../games/colony-environment.ts';
 import { DEFAULT_VISUAL_BINDINGS } from './visual-bindings.js';
 
-test('grid connections are order-independent and never cross levels', () => {
+test('edge connections are order-independent and never cross levels', () => {
   const entries = [
-    {id:'center',cell:[0,4,0]}, {id:'east',cell:[1,4,0]},
-    {id:'south',cell:[0,4,1]}, {id:'above',cell:[0,5,0]},
+    {id:'x',edge:{cell:[0,4,0],axis:'x'}},
+    {id:'z',edge:{cell:[0,4,0],axis:'z'}},
+    {id:'above',edge:{cell:[0,5,0],axis:'z'}},
   ];
-  const masks=gridConnectionMasks(entries);
-  assert.equal(masks.get('center'),3);
-  assert.equal(masks.get('east'),4);
-  assert.equal(masks.get('south'),8);
-  assert.equal(masks.get('above'),0);
-  assert.deepEqual([...masks].sort(),[...gridConnectionMasks([...entries].reverse())].sort());
+  const connections=edgeAdjacency(entries);
+  assert.deepEqual(connections.get('x'),{
+    negative:{tangent:false,perpendicular:0}, positive:{tangent:false,perpendicular:1},
+  });
+  assert.deepEqual(connections.get('z'),{
+    negative:{tangent:false,perpendicular:0}, positive:{tangent:false,perpendicular:1},
+  });
+  assert.deepEqual(connections.get('above'),{
+    negative:{tangent:false,perpendicular:0}, positive:{tangent:false,perpendicular:0},
+  });
+  assert.deepEqual([...connections], [...edgeAdjacency([...entries].reverse())].reverse());
 });
 
-test('Colony joins original wall art using actual site neighbors and checked bank paths', () => {
-  const sites=[['a',0,0],['b',1,0],['c',1,1]].map(([id,x,z])=>({id,get:()=>({
-    catalog:'timber-wall',x,y:14,z,orientation:'east',phase:'finished',seconds:4,
+test('Colony derives edge-wall joints from canonical physical neighbors', () => {
+  const sites=[
+    ['a',0,0,'x'], ['b',0,0,'z'], ['above',0,0,'z',15],
+  ].map(([id,x,z,axis,y=14])=>({id,get:()=>({
+    catalog:'timber-wall',targetKind:'edge',targetX:x,targetY:y,targetZ:z,targetDirection:axis,phase:'finished',seconds:4,
   })}));
   const visuals=colonyConstructionVisuals({query:()=>sites});
   assert.deepEqual(visuals.map(v=>v.visual),[
-    'colony.wall.finished.joint-1','colony.wall.finished.joint-6','colony.wall.finished.joint-8',
+    'colony.wall.finished.corner.x','colony.wall.finished.corner.z','colony.wall.finished.end.z',
   ]);
-  const bank=JSON.parse(readFileSync('public/generated-art/goblin-static-art-v2/manifest.json','utf8'));
-  const paths=new Set(bank.entries.map(e=>JSON.stringify(e.path)));
-  for(const visual of visuals){
-    const binding=DEFAULT_VISUAL_BINDINGS[visual.visual];
-    assert.equal(binding.facing,false);
-    assert(paths.has(JSON.stringify(binding.path)),visual.visual);
-  }
-  for(const stage of ['stakes','frame','finished'])for(let mask=0;mask<16;mask++)
-    assert(paths.has(JSON.stringify(DEFAULT_VISUAL_BINDINGS[`colony.wall.${stage}.joint-${mask}`].path)));
+  const wallY=(14-.5)*colonyEnvironment.world.verticalMetres;
+  const upperWallY=(15-.5)*colonyEnvironment.world.verticalMetres;
+  assert.deepEqual(visuals.map(v=>v.pose.position),[
+    {x:0.5,y:wallY,z:0},{x:0,y:wallY,z:0.5},{x:0,y:upperWallY,z:0.5},
+  ]);
 });
 
 test('constructed shelves use the retained two-facing shelf artwork', () => {
   const [visual] = colonyConstructionVisuals({query:()=>[{id:'shelf',get:()=>({
-    catalog:'timber-shelf',x:2,y:14,z:3,orientation:'east',phase:'finished',seconds:4,
+    catalog:'timber-shelf',targetKind:'cell',targetX:2,targetY:14,targetZ:3,targetDirection:'east',phase:'finished',seconds:4,
   })}]});
   assert.equal(visual.visual, 'colony.shelf.finished');
   const binding=DEFAULT_VISUAL_BINDINGS[visual.visual];

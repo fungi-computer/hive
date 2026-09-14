@@ -77,8 +77,9 @@ impl Registry {
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.deconstruction-work", vec![("site", FieldType::Entity), ("contactX", FieldType::Number), ("contactY", FieldType::Number), ("contactZ", FieldType::Number), ("seconds", FieldType::Number), ("requiredSeconds", FieldType::Number)]),
             ("hive.construction-site", vec![
-                ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
-                ("orientation", FieldType::String),
+                ("catalog", FieldType::String), ("targetKind", FieldType::String),
+                ("targetX", FieldType::Number), ("targetY", FieldType::Number), ("targetZ", FieldType::Number),
+                ("targetDirection", FieldType::String),
                 ("seconds", FieldType::Number), ("phase", FieldType::String),
             ]),
             ("hive.floor-replacement", vec![("version", FieldType::Number), ("targetFloor", FieldType::Entity), ("expectedCatalog", FieldType::String), ("desiredCatalog", FieldType::String), ("supportX", FieldType::Number), ("supportY", FieldType::Number), ("supportZ", FieldType::Number), ("phase", FieldType::String)]),
@@ -175,7 +176,7 @@ impl Registry {
         ] {
             let schema = Schema {
                 id: name.into(),
-                version: 1,
+                version: if name == "hive.construction-site" { 2 } else { 1 },
                 fields: fields.into_iter().map(|(n, t)| (n.into(), t)).collect(),
             };
             if this.schemas.get(name).is_some_and(|s| s != &schema) {

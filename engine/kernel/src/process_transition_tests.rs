@@ -193,12 +193,11 @@ fn fixture(blocked_air: bool) -> Kernel {
             Container { capacity: 1 },
             SealedContainer {},
             ConstructionSite {
-                edge: None,
                 catalog: "brew-station".into(),
-                x: surface.x,
-                y: surface.y,
-                z: surface.z,
-                orientation: crate::structure_geometry::Cardinal::North,
+                target: ConstructionTarget::Cell {
+                    cell: crate::generation::Cell { x: surface.x, y: surface.y, z: surface.z },
+                    orientation: crate::structure_geometry::Cardinal::North,
+                },
                 seconds: 1.0,
                 phase: ConstructionPhase::Finished,
             },
