@@ -44,6 +44,7 @@ use serde::Serialize;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
+use sha2::{Digest, Sha256};
 use crate::terrain_water::WaterExchangeDirection;
 use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
 #[cfg(test)]
