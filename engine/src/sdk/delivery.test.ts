@@ -13,6 +13,7 @@ import {
   Surface,
 } from "./common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "./delivery";
+import { WorkParticipation } from "./work-control";
 
 const contactFields = () => ({ destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false });
 
@@ -767,7 +768,7 @@ function rejectedDeliveryFixture(initial: {
   material: string;
   quantity: number;
   phase: string;
-}, options: { readonly destinationGround?: boolean; readonly outcomes?: readonly unknown[] } = {}) {
+}, options: { readonly destinationGround?: boolean; readonly outcomes?: readonly unknown[]; readonly automatic?: boolean } = {}) {
   const task = entity("rejected.delivery");
   let state = initial;
   let lotContainer = initial.phase === "to-source" ? initial.source : initial.actor;
@@ -786,6 +787,7 @@ function rejectedDeliveryFixture(initial: {
     [DeliveryTask.id, [row(task, DeliveryTask, state)]],
     [GroundStock.id, options.destinationGround ? [row(ground, GroundStock, {})] : []],
     [DeliveryControl.id, [row(worker, DeliveryControl, { enabled: true, quantity: initial.quantity })]],
+    [WorkParticipation.id, [row(worker, WorkParticipation, { automatic: options.automatic ?? true })]],
     [Body.id, [row(worker, Body, { speed: 1 })]],
     [Container.id, [worker, initial.source, initial.destination, ground].map((id) => row(id, Container, { capacity: 8 }))],
     [Position.id, [...positions].map(([id, value]) => row(id, Position, value))],
@@ -834,7 +836,18 @@ test("rejected delivery move before pickup returns the task to idle without retr
   const lot = entity("rejected.lot.source");
   const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "to-source" }, {
     outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 0, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
-  });
+});
+
+test("manual participation leaves a ready delivery obligation unclaimed", () => {
+  const worker = entity("manual.worker");
+  const source = entity("manual.source");
+  const destination = entity("manual.destination");
+  const lot = entity("manual.lot");
+  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" }, { automatic: false });
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().actor, null);
+  assert.equal(fixture.state().phase, "idle");
+});
   deliverySystem.run(fixture.context);
   assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
   assert.equal(fixture.actions.length, 0);

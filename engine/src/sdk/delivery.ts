@@ -1,6 +1,7 @@
 import { component, query } from "./authoring";
 import { GroundStock } from "./ground-stock";
 import { ConstructionSite, SealedContainer } from "./construction";
+import { WorkParticipation } from "./work-control";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
   MaterialLot,
@@ -81,6 +82,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
     const materialFacts = ctx.workMaterialFacts();
     const sealed = new Set(materialFacts.containers.filter(row => row.sealed).map(row => row.id));
     const controls = ctx.query(query(DeliveryControl));
+    const manual = new Set(ctx.query(query(WorkParticipation)).filter(row => !row.get(WorkParticipation).automatic).map(row => row.id));
     const excavations = ctx.query(query(ExcavationWork));
     const positions = ctx.query(query(Position));
     const moving = new Set(ctx.query(query(Destination)).map(row => row.id));
@@ -181,6 +183,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       return task.actor !== null && task.phase !== "complete" ? [task.sourceLot] : [];
     }));
     const candidates = controls.flatMap((controlRow) => {
+      if (manual.has(controlRow.id)) return [];
       const control = controlRow.get(DeliveryControl);
       if (!control.enabled || sealed.has(controlRow.id)) return [];
       if (
