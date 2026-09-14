@@ -4028,12 +4028,18 @@ impl Kernel {
                             if self.ecs.get::<ExcavationWork>(entity).is_some() { self.ecs.entity_mut(entity).remove::<ExcavationWork>(); }
                         }
                         crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
-                            if let Ok(process_entity) = self.entity(&process) { if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() { if state.phase == ProcessPhase::Working { self.ecs.entity_mut(process_entity).insert(StagedProcess { phase: ProcessPhase::Waiting, ..state }); } } }
+                            if let Ok(process_entity) = self.entity(&process) { if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() { if state.phase == ProcessPhase::Working { self.ecs.entity_mut(process_entity).insert(StagedProcess { phase: ProcessPhase::Waiting, worker: None, ..state }); } } }
                         }
-                        // Construction progress and supplied materials are
-                        // domain-owned durable facts. Interrupting the
-                        // attempt releases labor only; the next attempt
-                        // resumes the existing site progress.
+                        crate::work_attempt::ActivityRef::Construction { site, .. } => {
+                            if let Ok(site_entity) = self.entity(&site) {
+                                if let Some(state) = self.ecs.get::<ConstructionSite>(site_entity).cloned() {
+                                    if state.phase == ConstructionPhase::Working { self.ecs.entity_mut(site_entity).insert(ConstructionSite { phase: ConstructionPhase::Planned, ..state }); }
+                                }
+                                if let Some(replacement) = self.ecs.get::<FloorReplacement>(site_entity).cloned() {
+                                    if replacement.phase == FloorReplacementPhase::Working { self.ecs.entity_mut(site_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Queued, ..replacement }); }
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }
