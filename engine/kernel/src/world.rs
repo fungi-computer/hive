@@ -366,6 +366,17 @@ mod process_attempt_tests {
         let attempt = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
         assert!(attempt.contains("worker:1"));
 
+        kernel.ecs.entity_mut(kernel.entity("worker:1").unwrap()).remove::<Body>();
+        kernel.advance_json(&json!({"delta":0.5,"writes":[],"actions":[]}).to_string()).unwrap();
+        let waiting = kernel.ecs.get::<StagedProcess>(kernel.entity(process).unwrap()).unwrap();
+        assert_eq!(waiting.phase, ProcessPhase::Waiting);
+        assert!(waiting.worker.is_none());
+        assert!(kernel.work_attempts_json(&format!("[\"{process}\"]")).unwrap().contains("workerUnavailable"));
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:1"},"request":{"kind":"acknowledge-work-attempt","task":process,"generation":1,"sequence":1}}]}).to_string()).unwrap();
+        kernel.ecs.entity_mut(kernel.entity("worker:1").unwrap()).insert(Body { speed: 1.0 });
+        let rebegin = kernel.advance_json(&begin.to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&rebegin).unwrap()["results"][0]["accepted"], true);
+
         let wrong_party = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:2"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&wrong_party).unwrap()["results"][0]["accepted"], false);
         let half = kernel.advance_json(&json!({"delta":0.5,"writes":[],"actions":[]}).to_string()).unwrap();
@@ -3231,6 +3242,16 @@ impl Kernel {
             let unavailable = self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || self.ecs.get::<Traversal>(worker_entity).is_none() || self.ecs.get::<Support>(worker_entity).is_some() || self.ecs.get::<Destination>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some();
             let access_lost = self.contact(worker_entity, station_entity).is_err();
             if unavailable || access_lost {
+                let process_entity = self.entity(&process)?;
+                if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() {
+                    if state.phase == ProcessPhase::Working && state.worker.as_deref() == Some(worker.as_str()) {
+                        let mut waiting = state;
+                        waiting.phase = ProcessPhase::Waiting;
+                        waiting.worker = None;
+                        waiting.blocked_reason.clear();
+                        self.ecs.entity_mut(process_entity).insert(waiting);
+                    }
+                }
                 let entity = *self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?;
                 let attempt = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
                 let operation = attempt.current_operation().cloned().ok_or("process attendance operation is missing")?;
