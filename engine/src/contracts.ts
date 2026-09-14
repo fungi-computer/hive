@@ -393,7 +393,7 @@ export type CommandScope =
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
   readonly scope: CommandScope;
-  readonly workAttempts?: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
+  readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
   readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
 };

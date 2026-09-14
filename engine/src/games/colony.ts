@@ -47,6 +47,7 @@ export const Guest = component<{ hungry: boolean }>("colony.guest", {
 const workerOne = entity("colony.worker.1");
 const workerTwo = entity("colony.worker.2");
 const workers = [workerOne, workerTwo] as const;
+const MAX_PARTY_SELECTION = 32;
 const workerVisuals = [
   { sprite: "colony.rowan", label: "Rowan" },
   { sprite: "colony.sedge", label: "Sedge" },
@@ -178,7 +179,7 @@ const colonyInitial = [
 type CommandContext = Pick<GameCommandContext, "query" | "scope" | "workAttempts" | "workAttemptForWorker">;
 
 const goInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
   destination: z.object({
     x: z.number().finite().min(-1_000_000).max(1_000_000), y: z.number().finite().min(-1_000_000).max(1_000_000), z: z.number().finite().min(-1_000_000).max(1_000_000),
     frame: z.string().transform(entity).nullable(),
@@ -198,10 +199,10 @@ function availableBrewStations(context: Pick<ReadContext, "query">) {
 }
 
 const workerSelectionInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
 }).strict();
 const deliveryInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
   quantity: z.number().int().positive().max(0xffffffff).optional(),
 }).strict();
 const pointInput = z.tuple([
@@ -214,7 +215,7 @@ const emptyInput = z.object({}).strict();
 const digInput = z.object({ area: areaInput }).strict();
 const treeSelectionInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(32) }).strict();
 const cancelDigInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length).optional(),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION).optional(),
   area: areaInput.optional(),
 }).strict().refine(value => value.entities !== undefined || value.area !== undefined, "cancel dig requires workers or an area");
 const depositInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).length(1) }).strict();
@@ -313,9 +314,10 @@ function deliveryWrites(
 
 function selectedDigWorker(context: CommandContext, input: z.infer<typeof depositInput>): EntityId {
   const worker = input.entities[0];
-  if (!workers.includes(worker)) throw new Error("selection must contain a colony worker");
-  const workerState = context.query(query(Worker)).find((row) => row.id === worker)?.get(Worker);
-  if (!workerState || workerState.guest) throw new Error("guests cannot act");
+  const row = context.query(query(Worker, PartyMember)).find((candidate) => candidate.id === worker);
+  const workerState = row?.get(Worker);
+  const member = row?.get(PartyMember);
+  if (!workerState || workerState.guest || !member || (context.scope.kind === "player" && member.party !== context.scope.party)) throw new Error("selection must contain an admitted colony worker");
   return worker;
 }
 
@@ -569,7 +571,7 @@ export const colonyPack: GamePack = {
     resumeWork: command({
       title: "Resume automatic work", category: "Colony", description: "Return selected workers to automatic work assignment.",
       localPresentation: { bindings: [{ id: "resume-work", label: "Resume work", selection: "entities" }] },
-      subjects: () => workers,
+      subjects: context => context.query(query(Worker, PartyMember)).map(row => row.id),
       input: workerSelectionInput,
       reads: [Worker, PartyMember, WorkParticipation],
       writes: [WorkParticipation],
@@ -649,7 +651,7 @@ export const colonyPack: GamePack = {
     deposit: command({
       title: "Deposit carried goods", category: "Colony", description: "Deposit carried materials into their assigned destination.",
       localPresentation: { bindings: [{ id: "deposit", label: "Deposit carried goods", selection: "entities" }] },
-      subjects: () => workers,
+      subjects: context => context.query(query(Worker, PartyMember)).map(row => row.id),
       input: depositInput,
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
       writes: [],
