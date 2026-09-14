@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl } from "./build-placement.js";
+import { buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl, structureSurfaceFromSprite } from "./build-placement.js";
 
 const controls = [
   { id: "floor", command: "build", target: "world-surface", input: { catalog: "timber-floor" }, designation: ["point", "rectangle"] },
@@ -40,4 +40,22 @@ test("placement hint distinguishes a usable preview, waiting admission, and reje
   assert.equal(placementHint({ ...floor, availability: { status: "unavailable", reason: "No support" } }), "Waiting: No support");
   assert.equal(placementHint(floor, { area: { value: "dragging", rejection: "Selection exceeds the visible world" } }), "Rejected: Selection exceeds the visible world");
   assert.equal(placementHint(floor, { area: { value: "dragging", rejection: null } }), "Preview: 0 cells · release to place");
+});
+
+const frame = (cells) => ({ verticalMetres: 0.54, structureSurfaces: cells.map(cell => ({ cell })) });
+const subject = (placement, x = 4, y = 13.5 * 0.54, z = 4) => ({ id: "site", x, y, z, placement });
+const node = { id: "site", target: "site", role: "structure" };
+const project = (x, y, z) => ({ x, y: z });
+
+test("ordered structure hit resolves bed, rotated brewer, and stair canonical support cells", () => {
+  assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" }), { x: 4, y: 4 }, frame([[4, 13, 4], [4, 13, 5]]), project).cell, [4, 13, 4]);
+  assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "footprint", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]], orientation: "east" }), { x: 4, y: 4 }, frame([[4, 13, 4], [4, 13, 5], [3, 13, 4], [3, 13, 5]]), project).cell, [4, 13, 4]);
+  assert.deepEqual(structureSurfaceFromSprite(node, subject({ kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation: "south" }), { x: 4, y: 4 }, frame([[4, 13, 4]]), project).cell, [4, 13, 4]);
+});
+
+test("structure surface resolution is null without a match and stable on ties", () => {
+  const bed = subject({ kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" });
+  assert.equal(structureSurfaceFromSprite(node, bed, { x: 4, y: 4 }, frame([[9, 13, 9]]), project), null);
+  const tied = structureSurfaceFromSprite(node, subject({ kind: "footprint", footprint: [[0, 0], [1, 0]], orientation: "north" }), { x: 4.5, y: 4 }, frame([[4, 13, 4], [5, 13, 4]]), project);
+  assert.deepEqual(tied.cell, [4, 13, 4]);
 });

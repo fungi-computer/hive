@@ -2,7 +2,7 @@ import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
 import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
-import { resolveWorldArtPlacement, rotatePlacementPoint } from "./art-placement.js";
+import { resolveWorldArtPlacement } from "./art-placement.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -45,7 +45,7 @@ import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrai
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
-import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl } from "./build-placement.js";
+import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromSprite } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { colonyPack } from "../games/colony.ts";
 import { survivalPack } from "../games/survival.ts";
@@ -1099,31 +1099,6 @@ export function createHiveClient({
     const rect = app.canvas.getBoundingClientRect();
     return { x: event.clientX - rect.left, y: event.clientY - rect.top };
   }
-  function structureSurfaceFromSprite(node, point, displayed) {
-    if (!node?.target || node.role !== "structure" || !displayed?.structureSurfaces) return null;
-    const subject = state.subjects.find(candidate => candidate.id === node.target);
-    if (!subject?.placement) return null;
-    const orientation = subject.placement.orientation;
-    const supportLevel = subject.placement.kind === "stair"
-      ? Math.round(subject.y / displayed.verticalMetres - 0.5)
-      : Math.round(subject.y / displayed.verticalMetres + 0.5);
-    const localCells = subject.placement.kind === "footprint"
-      ? subject.placement.footprint
-      : [[subject.placement.entrance[0], subject.placement.entrance[2]]];
-    const cells = localCells.map(([x, z]) => {
-      const rotated = rotatePlacementPoint([x, z], orientation);
-      return [Math.round(subject.x + rotated[0]), supportLevel, Math.round(subject.z + rotated[1])];
-    });
-    const surfaces = cells.flatMap(cell => displayed.structureSurfaces.filter(surface => surface.cell.every((value, index) => value === cell[index])));
-    if (!surfaces.length) return null;
-    return surfaces
-      .map(surface => {
-        const [x, y, z] = surface.cell;
-        const projected = project(x, (y + 0.5) * displayed.verticalMetres, z);
-        return { surface, distance: (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2 };
-      })
-      .sort((left, right) => left.distance - right.distance || left.surface.cell.join(",").localeCompare(right.surface.cell.join(",")))[0].surface;
-  }
   function pointerDown(event) {
     if (isTypingTarget(event.target) || event.button !== 0) return;
     app.canvas.focus();
@@ -1143,7 +1118,7 @@ export function createHiveClient({
       const spriteCandidates = orderedSprites.filter(candidate => candidate.contains?.(at) === true);
       const spriteHit = pickFromOrdered(orderedSprites, spriteCandidates);
       const structurePoint = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const spriteSurface = spriteHit?.target && displayed ? structureSurfaceFromSprite(spriteHit.node, structurePoint, displayed) : null;
+      const spriteSurface = spriteHit?.target && displayed ? structureSurfaceFromSprite(spriteHit.node, state.subjects.find(candidate => candidate.id === spriteHit.target), structurePoint, displayed, project) : null;
       const hit = spriteSurface
         ? { kind: "structure-top", surface: spriteSurface }
         : displayed && displayedTerrainHit(localPoint.x, localPoint.y, displayed);
