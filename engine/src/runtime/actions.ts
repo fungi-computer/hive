@@ -36,6 +36,10 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "establish-party":
+      keys = ["kind", "bindingId", "player", "party", "records"];
+      valid = id(action.bindingId) && id(action.player) && id(action.party) && Array.isArray(action.records) && action.records.length > 0 && action.records.length <= 32;
+      break;
     case "begin-work-attempt":
       keys = ["kind", "task", "worker", "party", "operation"];
       valid = id(action.task) && id(action.worker) && id(action.party) && !!action.operation && typeof action.operation === "object" && !Array.isArray(action.operation) && (action.operation as Record<string, unknown>).kind === "route" && Object.keys(action.operation as object).length === 2 && !!(action.operation as Record<string, unknown>).destination;

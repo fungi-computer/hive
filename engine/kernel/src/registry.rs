@@ -38,6 +38,10 @@ impl Registry {
             }
         }
         for (name, fields) in [
+            ("hive.party", vec![("ownerPlayer", FieldType::String)]),
+            ("hive.party-member", vec![("party", FieldType::Entity)]),
+            ("hive.owned-by-party", vec![("party", FieldType::Entity)]),
+            ("hive.party-receipt", vec![("bindingId", FieldType::String), ("player", FieldType::String), ("party", FieldType::Entity), ("digest", FieldType::String)]),
             (
                 "hive.position",
                 vec![
@@ -208,6 +212,10 @@ impl Registry {
                 "hive.emitter" => world.register_component::<Emitter>(),
                 "hive.projectile" => world.register_component::<Projectile>(),
                 "hive.visual" => world.register_component::<Visual>(),
+                "hive.party" => world.register_component::<Party>(),
+                "hive.party-member" => world.register_component::<PartyMember>(),
+                "hive.owned-by-party" => world.register_component::<OwnedByParty>(),
+                "hive.party-receipt" => world.register_component::<PartyReceipt>(),
                 _ => {
                     // All dynamic insertions use AuthoredRecord, a Send+Sync
                     // layout. The destructor matches exactly; no relationships.
@@ -569,6 +577,10 @@ impl Registry {
             "hive.visual" => {
                 world.entity_mut(entity).insert(decode::<Visual>(value)?);
             }
+            "hive.party" => { world.entity_mut(entity).insert(decode::<Party>(value)?); }
+            "hive.party-member" => { world.entity_mut(entity).insert(decode::<PartyMember>(value)?); }
+            "hive.owned-by-party" => { world.entity_mut(entity).insert(decode::<OwnedByParty>(value)?); }
+            "hive.party-receipt" => { world.entity_mut(entity).insert(decode::<PartyReceipt>(value)?); }
             _ => {
                 let id = *self.ids.get(name).ok_or("unknown component")?;
                 OwningPtr::make(AuthoredRecord(value.clone()), |ptr| {
@@ -583,6 +595,10 @@ impl Registry {
     }
     pub fn read(&self, world: &World, entity: Entity, name: &str) -> Option<Record> {
         match name {
+            "hive.party" => world.get::<Party>(entity).map(record),
+            "hive.party-member" => world.get::<PartyMember>(entity).map(record),
+            "hive.owned-by-party" => world.get::<OwnedByParty>(entity).map(record),
+            "hive.party-receipt" => world.get::<PartyReceipt>(entity).map(record),
             "hive.position" => world.get::<Position>(entity).map(record),
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),

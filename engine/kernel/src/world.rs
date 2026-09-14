@@ -46,6 +46,9 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 use crate::terrain_water::WaterExchangeDirection;
 use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
+#[cfg(test)]
+#[path = "party_tests.rs"]
+mod party_tests;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -3279,8 +3282,33 @@ impl Kernel {
         if let Some(worker) = worker { self.attempts_by_worker.remove(&worker); }
         Ok(())
     }
+    fn establish_party(&mut self, binding_id: String, player: String, party: String, records: Vec<EntityRecord>) -> Result<String> {
+        if !valid_id(&binding_id) || !valid_id(&player) || !valid_id(&party) || records.is_empty() || records.len() > 32 { return Err("invalid prepared party plan".into()); }
+        let digest = format!("{:x}", Sha256::digest(serde_json::to_vec(&records).map_err(|_| "invalid party plan encoding")?));
+        if let Some(existing) = self.ids.get(&party).copied() { if let Some(receipt) = self.ecs.get::<PartyReceipt>(existing) { if receipt.binding_id == binding_id && receipt.player == player && receipt.party == party && receipt.digest == digest { return Ok(party); } } return Err("party binding replay mismatch".into()); }
+        let mut ids = BTreeSet::new();
+        for record in &records { if !valid_id(&record.id) || !ids.insert(record.id.clone()) || self.ids.contains_key(&record.id) { return Err("party plan identity conflict".into()); } }
+        if !ids.contains(&party) { return Err("party plan lacks party entity".into()); }
+        let mut known = self.known.clone(); known.extend(ids.iter().cloned());
+        for record in &records { for (name, value) in &record.components { self.registry.validate(name, value, &known)?; } }
+        let party_record = records.iter().find(|record| record.id == party).ok_or("party plan lacks party entity")?;
+        if party_record.components.get("hive.party").and_then(|v| v.get("ownerPlayer")).and_then(|v| v.as_str()) != Some(player.as_str()) { return Err("party owner mismatch".into()); }
+        let mut positions = Vec::new();
+        for record in &records {
+            if let Some(owner) = record.components.get("hive.party-member").and_then(|v| v.get("party")).and_then(|v| v.as_str()).or_else(|| record.components.get("hive.owned-by-party").and_then(|v| v.get("party")).and_then(|v| v.as_str())) { if owner != party { return Err("party ownership mismatch".into()); } }
+            if let Some(p) = record.components.get("hive.position") { let x=p.get("x").and_then(|v|v.as_f64()).ok_or("invalid party position")?; let z=p.get("z").and_then(|v|v.as_f64()).ok_or("invalid party position")?; if positions.iter().any(|(a,b):&(f64,f64)| (a-x).abs()<0.75 && (b-z).abs()<0.75) { return Err("party plan positions collide".into()); } for existing in self.ecs.query::<&Position>().iter(&self.ecs) { if (existing.x-x).abs()<0.75 && (existing.z-z).abs()<0.75 { return Err("party position occupied".into()); } } positions.push((x,z)); }
+        }
+        let mut handles = Vec::new();
+        for record in records { let id = record.id; let entity = self.ecs.spawn(ExternalId(id.clone())).id(); for (name, value) in record.components { self.registry.insert(&mut self.ecs, entity, &name, &value)?; } handles.push((id, entity)); }
+        let party_entity = handles.iter().find(|(id, _)| id == &party).map(|(_, entity)| *entity).ok_or("party entity missing")?;
+        self.ecs.entity_mut(party_entity).insert(PartyReceipt { binding_id, player, party: party.clone(), digest });
+        for (id, entity) in handles { self.ids.insert(id.clone(), entity); self.known.insert(id); }
+        self.refresh_state_weight(); Ok(party)
+    }
+
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
+            Action::EstablishParty { binding_id, player, party, records } => self.establish_party(binding_id, player, party, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
