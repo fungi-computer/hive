@@ -101,15 +101,18 @@ const waitForReady = async (page) => {
 const resizeAndResetCamera = async (page) => {
   const viewport = await page.viewportSize();
   assert(viewport, "browser viewport is unavailable");
+  const before = await canvasBox(page);
   await page.setViewportSize({ width: viewport.width + 1, height: viewport.height });
   await page.waitForTimeout(350);
   const box = await canvasBox(page);
-  assert.equal(box.width, viewport.width + 1, "ordinary resize did not reach the clearing canvas");
+  assert(box.width > 0 && box.height > 0, "ordinary resize left the clearing canvas without a layout");
+  assert(
+    box.width !== before.width || box.height !== before.height || box.x !== before.x || box.y !== before.y,
+    "ordinary resize did not reach the clearing app layout",
+  );
   return box;
 };
 const commandName = (body) => body?.command?.kind === "command" ? body.command.name : body?.command?.kind;
-const latestSurface = (observation) => observation?.observation?.terrain?.surfaces?.find(surface => surface.material === 1)
-  ?? observation?.observation?.terrain?.surfaces?.[0];
 
 await mkdir(output, { recursive: true });
 for (const relative of sourceInventory) {
@@ -216,9 +219,32 @@ try {
     assert.equal(response.value?.status, "applied", `${label} was rejected: ${JSON.stringify(response.value)}`);
     return command;
   };
-  const visibleSurface = () => latestSurface(latestObservation);
-  const sameLevelNeighbor = (surface) => latestObservation.observation.terrain.surfaces.find(candidate =>
-    candidate.cell[1] === surface.cell[1] && Math.abs(candidate.cell[0] - surface.cell[0]) + Math.abs(candidate.cell[2] - surface.cell[2]) === 1) ?? surface;
+  const cellKey = (cell) => cell.join(",");
+  const occupiedWorldCells = () => {
+    const facts = latestObservation?.observation?.facts ?? [];
+    const occupied = new Set(facts.flatMap(fact => fact.pose?.position
+      ? [`${Math.round(fact.pose.position.x)},${Math.round(fact.pose.position.z)}`]
+      : []));
+    for (const surface of latestObservation?.observation?.terrain?.structureSurfaces ?? [])
+      occupied.add(`${surface.cell[0]},${surface.cell[2]}`);
+    return occupied;
+  };
+  const reservedSurfaceCells = new Set();
+  const freeSurface = ({ level, adjacentTo } = {}) => {
+    const terrain = latestObservation?.observation?.terrain;
+    const occupied = occupiedWorldCells();
+    const candidate = terrain?.surfaces?.find(surface => {
+      const cell = surface.cell;
+      if (surface.material !== 1 || reservedSurfaceCells.has(cellKey(cell))) return false;
+      if (level !== undefined && cell[1] !== level) return false;
+      if (occupied.has(`${cell[0]},${cell[2]}`)) return false;
+      if (adjacentTo && Math.abs(cell[0] - adjacentTo[0]) + Math.abs(cell[2] - adjacentTo[2]) !== 1) return false;
+      return true;
+    });
+    assert(candidate, `no unoccupied material-1 terrain surface${level === undefined ? "" : ` at level ${level}`}`);
+    reservedSurfaceCells.add(cellKey(candidate.cell));
+    return candidate;
+  };
   await (await waitForVisible(page, "Select Rowan")).click();
   await page.getByText("Rowan", { exact: true }).waitFor({ state: "visible" });
   const afterSelection = commandCount();
@@ -228,7 +254,7 @@ try {
 
   const canvas = resetCanvas;
   const beforeDraft = commandCount();
-  const noDraftTarget = visibleSurface();
+  const noDraftTarget = freeSurface();
   const noDraftPoint = projectedCell(noDraftTarget.cell, latestObservation.observation.terrain.verticalMetres, canvas);
   await page.mouse.click(noDraftPoint.x, noDraftPoint.y, { button: "right" });
   const preDraftResult = await waitCommandResponse(beforeDraft, "pre-Draft Go");
@@ -246,7 +272,7 @@ try {
   record("Draft appears in the persistent action dock");
   await screenshot(page, "desktop-02-drafted.png");
   const beforeGo = commandCount();
-  const goTarget = sameLevelNeighbor(noDraftTarget);
+  const goTarget = freeSurface({ level: noDraftTarget.cell[1], adjacentTo: noDraftTarget.cell });
   const goPoint = projectedCell(goTarget.cell, latestObservation.observation.terrain.verticalMetres, canvas);
   await page.mouse.click(goPoint.x, goPoint.y, { button: "right" });
   const draftedGo = await waitCommandAccepted(beforeGo, "Drafted Go");
@@ -255,8 +281,8 @@ try {
 
   await (await waitForVisible(page, "Orders / Work")).click();
   await (await waitForVisible(page, "Dig area")).click();
-  const digSurface = visibleSurface();
-  const digNeighbor = sameLevelNeighbor(digSurface);
+  const digSurface = freeSurface();
+  const digNeighbor = freeSurface({ level: digSurface.cell[1], adjacentTo: digSurface.cell });
   const digStart = projectedCell(digSurface.cell, latestObservation.observation.terrain.verticalMetres, canvas);
   const digEnd = projectedCell(digNeighbor.cell, latestObservation.observation.terrain.verticalMetres, canvas);
   const beforeDig = commandCount();
@@ -382,21 +408,20 @@ try {
     assert.equal(submitted.name, "build", `${label} submitted ${submitted.name}`);
     return submitted;
   }
-  const floorCell = visibleSurface().cell;
-  const floorNeighbor = sameLevelNeighbor(visibleSurface());
-  const wallCell = latestObservation.observation.terrain.surfaces.find(surface =>
-    surface.cell[1] === floorCell[1] && Math.abs(surface.cell[0] - floorCell[0]) + Math.abs(surface.cell[2] - floorCell[2]) === 2) ?? floorNeighbor;
-  const wallEnd = sameLevelNeighbor(wallCell);
-  const wallBuild = await buildLine("Build wall", wallCell.cell, wallEnd.cell);
-  const firstFloorBuild = await buildPoint("Build floor", floorCell);
-  const brewerFloorBuild = await buildPoint("Build floor", floorNeighbor.cell);
+  const floorSupport = freeSurface();
+  const floorNeighborSupport = freeSurface({ level: floorSupport.cell[1], adjacentTo: floorSupport.cell });
+  const firstFloorBuild = await buildPoint("Build floor", floorSupport.cell);
+  const brewerFloorBuild = await buildPoint("Build floor", floorNeighborSupport.cell);
   await waitForObservation(() => latestObservation.observation.terrain?.structureSurfaces?.length, "floor support surfaces");
   await waitForObservation(() => structureFact("colony.floor.finished"), "finished floor visual");
   const originalFloorId = structureFact("colony.floor")?.id;
   assert(originalFloorId, "finished floor has no stable render identity");
-  const bedBuild = await buildPoint("Build bed", floorCell);
-  const brewerBuild = await buildPoint("Build brew-station", floorNeighbor.cell);
+  const bedBuild = await buildPoint("Build bed", floorSupport.cell);
+  const brewerBuild = await buildPoint("Build brew-station", floorNeighborSupport.cell);
   await waitForObservation(() => structureFact("colony.bed.finished") && structureFact("colony.brew-station.profile"), "finished bed and brewer", 30_000);
+  const wallSupport = freeSurface();
+  const wallEndSupport = freeSurface({ level: wallSupport.cell[1], adjacentTo: wallSupport.cell });
+  const wallBuild = await buildLine("Build wall", wallSupport.cell, wallEndSupport.cell);
   assert.deepEqual(bedBuild.command.input.target.cell, firstFloorBuild.command.input.target.cell,
     "bed placement did not retain the authoritative floor support cell");
   assert.deepEqual(brewerBuild.command.input.target.cell, brewerFloorBuild.command.input.target.cell,
@@ -436,7 +461,7 @@ try {
     brewerArtHit: brewerSurface.art,
     limit: "The bounded browser proof observes command admission and identity; native completion remains covered by the joined construction laws.",
   });
-  await buildPoint("Stair north", sameLevelNeighbor(wallEnd).cell);
+  await buildPoint("Stair north", freeSurface().cell);
   await waitForVisible(page, "Higher voxel layer");
   await (await waitForVisible(page, "Higher voxel layer")).click();
   await page.getByText(/Voxel layer 1/).waitFor({ state: "visible", timeout: 10_000 });

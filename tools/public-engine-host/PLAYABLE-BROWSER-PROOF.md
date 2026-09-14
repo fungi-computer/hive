@@ -37,7 +37,14 @@ initial camera focus was centered. Structure clicks use the public static-art
 manifest's placement, anchor, silhouette, and the client's shared
 `resolveWorldArtPlacement` datum. They choose an opaque manifest pixel, rather
 than clicking a raw pose center. Command assertions associate the first
-request after each recorded boundary with its response ID.
+ request after each recorded boundary with its response ID.
+
+Terrain gestures choose distinct material-1 surfaces from the current
+authoritative observation, excluding current fact positions, structure surfaces,
+and already reserved cells. Dig endpoints and wall strokes are same-level
+neighbors; floors and furniture use two other same-level supports. The wall is
+queued after the two floors and furniture so this bounded proof does not spend
+starter materials before the required support and replacement checks.
 
 The exact source inventory is embedded in
 `tools/public-engine-host/playable-browser-proof.mjs` and includes the driver,
