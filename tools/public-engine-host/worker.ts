@@ -645,7 +645,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           throw new Error("public-invite-forbidden");
         if (!world) this.owner.sql.exec("INSERT INTO hive_public_world VALUES (1,?,?,?)", this.worldHandle!, "colony", inviteHash);
         const existing = this.participant(credentialHash);
-        if (existing) return existing;
+        if (existing) return { binding: existing, created: false };
         const player = `player-${credentialHash.slice(0, 24)}`;
         const party = entity(`party-${credentialHash.slice(0, 24)}`);
         const plan = createColonyPartyPlan(player, party, { x: 0, y: 0, z: 0 });
@@ -653,11 +653,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         this.resident.begin(this.region.readCommitted().revision, this.region.readCommitted().state, this.residentRecords(this.region.readCommitted().revision));
         this.region.dispatch("colony-host", command);
         this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, principal, player, party);
-        return { credential_hash: credentialHash, principal, player_id: player, party_id: party } satisfies ParticipantRow;
+        return { binding: { credential_hash: credentialHash, principal, player_id: player, party_id: party } satisfies ParticipantRow, created: true };
       });
-      this.resident.accept(this.region.readCommitted().revision);
+      if (result.created) this.resident.accept(this.region.readCommitted().revision);
       await this.renewLeaseExclusive(now);
-      return { player: result.player_id, party: result.party_id, people: [ `${result.party_id}.person.0`, `${result.party_id}.person.1` ] };
+      return { player: result.binding.player_id, party: result.binding.party_id, people: [ `${result.binding.party_id}.person.0`, `${result.binding.party_id}.person.1` ] };
       } catch (error) {
         try { this.resident.discard(); } catch { /* preserve transaction failure */ }
         throw error;
