@@ -356,6 +356,9 @@ export interface ReadContext {
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   routeToAny(request: RouteToAnyRequest): RouteToAnyResult;
+  transferContacts(request: { readonly worker: EntityId; readonly container: EntityId }):
+    | { readonly kind: "ready"; readonly targets: readonly MoveDestination[] }
+    | { readonly kind: "blocked"; readonly reason: "sealed" | "unavailable-frame" | "no-contact" };
   physicalContacts(
     cells: readonly [number, number, number][],
   ): readonly PhysicalContact[];
