@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { isTypingTarget, selectionFromSubjects } from "./controls.js";
 import {
+  CANNON_VISUAL_BINDINGS,
+  COLONY_VISUAL_BINDINGS,
   DEFAULT_VISUAL_BINDINGS,
   PIRATE_VISUAL_BINDINGS,
 } from "./visual-bindings.js";
@@ -72,6 +74,7 @@ test("content visual bindings keep pirate art out of the renderer defaults", () 
     path: ["props", "barrel"],
     facing: false,
     anchor: "propAnchor",
+    worldRole: "structure",
   });
   assert.deepEqual(PIRATE_VISUAL_BINDINGS["pirate.ship"].path, ["vehicles", "ship"]);
 });
@@ -82,6 +85,7 @@ test("clearing retains scenery and cat bindings without granting physical identi
     path: ["tree", "standing"],
     facing: false,
     anchor: "propAnchor",
+    worldRole: "structure",
   });
   assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.notched"].path[1], "notched");
   assert.equal(DEFAULT_VISUAL_BINDINGS["colony.tree.felled"].path[1], "felled");
@@ -89,6 +93,18 @@ test("clearing retains scenery and cat bindings without granting physical identi
   assert.deepEqual(DEFAULT_VISUAL_BINDINGS["colony.cat"], {
     kind: "figure",
     key: "cat",
+    worldRole: "actor",
     motion: { kind: "foot", stride: 0.42 },
   });
+});
+
+test("every shipped visual declares its shared world depth role", () => {
+  const roles = new Set(["floor", "structure", "actor", "item"]);
+  for (const bindings of [
+    DEFAULT_VISUAL_BINDINGS,
+    COLONY_VISUAL_BINDINGS,
+    PIRATE_VISUAL_BINDINGS,
+    CANNON_VISUAL_BINDINGS,
+  ]) for (const [id, binding] of Object.entries(bindings))
+    assert(roles.has(binding.worldRole), `${id} has no valid world depth role`);
 });
