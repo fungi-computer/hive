@@ -26,7 +26,7 @@ function readToken(storage, mode, cryptoSource) {
 function invitationToken(locationSource) {
   const hash = typeof locationSource?.hash === "string" ? locationSource.hash : "";
   const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
-  const supplied = params.get("world");
+  const supplied = params.get("invite") ?? params.get("world");
   if (supplied === null) return undefined;
   const parsed = tokenSchema.safeParse(supplied);
   if (!parsed.success) throw new Error("This invitation link has an invalid world token");
@@ -43,6 +43,10 @@ function invitationUrl(locationSource, mode, token) {
   params.set("game", mode);
   params.delete("runtime");
   url.search = params.toString();
+  // The invitation remains a fragment value so it is never sent in HTTP
+  // referrers or socket URLs. The client submits it once in the join body.
+  // Keep the established fragment key while treating its value as the join
+  // invitation (the world handle is derived from it by the v2 client).
   url.hash = `world=${token}`;
   return url.toString();
 }
@@ -119,8 +123,13 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
     const next = connectRemote({
       endpoint,
       game: mode,
-      fetch: authorizedFetch(fetchImpl, nextToken),
+      // Colony v2 owns the participant bearer. The invitation is not an
+      // identity and must never be captured by an auth wrapper.
+      fetch: mode === "colony" && invitedToken !== undefined
+        ? fetchImpl
+        : authorizedFetch(fetchImpl, nextToken),
       token: nextToken,
+      ...(mode === "colony" && invitedToken !== undefined ? { invite: invitedToken, storage, cryptoSource } : {}),
     });
     let nextUnsubscribe;
     try {
