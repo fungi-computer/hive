@@ -221,6 +221,36 @@ executeAttempt derives party from canonical attempt instead of accepting another
 party in the inner action. Update contracts/actions/record codecs and fixtures in
 one joined change; no optional absent-scope privilege.
 
+### Scoped authored creation
+
+The joined candidate exposed a related boundary defect: game commands and systems
+currently place `OwnedByParty` inside an authored `EntityRecord`, while the session
+correctly rejects every reserved physical component in authored records. Do not
+weaken that rejection or special-case Colony order names.
+
+Represent pending creation as a scoped record owned by the same session boundary:
+
+```ts
+type ScopedCreate = {
+  scope: { kind: "host" } | { kind: "party"; party: EntityId };
+  record: EntityRecord; // authored components only
+};
+```
+
+A player command's returned creations are tagged with its authenticated party by
+`GameSession`; the command cannot supply or override that tag. A simulation system
+must call the maintained creation operation with the party derived from its source
+order/attempt. Host creation is limited to explicit host lifecycle operations. The
+native batch validates that the party exists, validates every authored component and
+reference, creates the record, and attaches the canonical `OwnedByParty` component
+atomically. Raw authored records containing any reserved component still reject.
+
+Persist `ScopedCreate` in the current Session format alongside `ScopedAction` so a
+save/reload cannot erase or change ownership before admission. Initial definitions
+and the bounded host-only party establishment remain their existing separately
+validated paths. Migrate every current order/follow-up creator together and delete
+all spreading of `[OwnedByParty.id]` into authored component maps.
+
 
 World creation/routing is deterministic: for this invite-based demo generate a
 32-byte invite secret client-side and set worldHandle=SHA-256(invite). Route the

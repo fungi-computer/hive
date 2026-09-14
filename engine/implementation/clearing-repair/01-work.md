@@ -108,6 +108,49 @@ The outcome has typed reasons: access lost, missing inputs, capacity unavailable
 unsupported structure, worker unavailable. Programmer/schema/custody defects stay
 errors and invalidate the detached resident on failed commit.
 
+### Closed physical-operation set
+
+The joined source audit found that `ActivityRef` currently implements only route
+and construction, while every other provider still correlates raw action outcomes.
+Complete the owner with one exhaustive native operation union rather than a generic
+embedded `ActionRequest`:
+
+```text
+route(destination)
+construction(site, contact, bind | work)
+excavation(cell, expectedMaterial, replacementMaterial)
+deconstruction(site, contact)
+processAttendance(process)
+materialTransfer(lot, from, to, quantity)
+materialDrop(lot)
+resourceEstablish(site, definition, cell)
+resourceTend(site, vessel)
+resourceExtract(source)
+fieldWater(vessel, cell, withdraw | deposit, portions)
+```
+
+Every variant carries stable entity/cell/value inputs sufficient for its existing
+physical owner to revalidate. It does not carry a callback, arbitrary action, party
+claim or provider name. The outer attempt supplies the worker and derives its party;
+the inner operation cannot replace either. Existing physical modules continue to
+own quantities, progress, target geometry and final effects.
+
+`continueAttempt` applies a synchronous physical operation and records its exact
+terminal outcome in the same native candidate. For excavation, construction and
+other genuinely long-running native work, it installs the domain activity and keeps
+the attempt executing; the native advancement that removes/completes that exact
+activity also settles the attempt. A domain availability result becomes a typed
+blocked outcome. Invalid schema, stale identity, impossible ownership and broken
+references remain transition errors and roll back the candidate. Providers never
+recover these by scanning the following tick's generic `ActionOutcome[]`.
+
+Provider components may retain domain phase and earned progress, but not the labor
+association. They derive the current worker and operation solely from WorkAttempt.
+An acknowledged outcome and the corresponding domain phase/write happen in one
+candidate. After migration, source audit must find no provider `actor` field,
+coordinate-matched rejected move, provider retry counter used as operation identity,
+or independent active claim.
+
 ## Scheduling and retries
 
 Recut PreparedWorkProvider into explicit stages, hiding provider representation:
