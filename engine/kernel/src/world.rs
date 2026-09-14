@@ -140,6 +140,21 @@ mod work_attempt_laws {
     }
 
     #[test]
+    fn restore_rejects_attempts_without_task_ownership_or_valid_frames() {
+        let mut kernel = world();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
+
+        let mut unowned: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+        unowned.scene.initial.iter_mut().find(|record| record.id == "task").unwrap().components.remove("hive.owned-by-party");
+        assert_eq!(Kernel::new().restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap_err(), "work attempt reference is outside party");
+
+        let mut missing_frame: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+        let AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { destination }, .. } = &mut missing_frame.work_attempts[0].phase else { panic!("expected route attempt") };
+        destination.frame = Some("missing-frame".into());
+        assert_eq!(Kernel::new().restore_json(&serde_json::to_string(&missing_frame).unwrap()).unwrap_err(), "unknown entity missing-frame");
+    }
+
+    #[test]
     fn interrupt_clears_owned_route_and_releases_worker_without_ack() {
         let mut kernel = world();
         let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":10.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
@@ -3152,6 +3167,7 @@ impl Kernel {
         candidate.projectile_count = candidate.ids.values().filter(|entity| candidate.ecs.get::<Projectile>(**entity).is_some_and(|p| p.state == "flying" || p.state == "rolling")).count();
         candidate.ground_stock_cleanup_pending = true;
         candidate.validate_party_relations()?;
+        candidate.validate_work_attempt_relations()?;
         *self = candidate;
         Ok(())
     }
@@ -3171,6 +3187,81 @@ impl Kernel {
                 let record = self.ecs.get::<Party>(party).ok_or("party receipt references a non-party")?;
                 if record.owner_player != receipt.player { return Err("party receipt player mismatch".into()); }
                 if receipt.binding_id.is_empty() || receipt.digest.is_empty() { return Err("party receipt is incomplete".into()); }
+            }
+        }
+        Ok(())
+    }
+    fn validate_work_attempt_relations(&self) -> Result<()> {
+        let owned_by_attempt_party = |id: &str, party: &str| -> Result<Entity> {
+            let entity = self.entity(id)?;
+            if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) {
+                return Err("work attempt reference is outside party".into());
+            }
+            Ok(entity)
+        };
+        let valid_point = |point: &Point| -> Result<()> {
+            if !point.x.is_finite() || !point.y.is_finite() || !point.z.is_finite() {
+                return Err("work attempt point is invalid".into());
+            }
+            if let Some(frame) = point.frame.as_deref() { self.entity(frame)?; }
+            Ok(())
+        };
+        for (task, attempt_entity) in &self.work_attempts {
+            let attempt = self.ecs.get::<WorkAttempt>(*attempt_entity).ok_or("work attempt index references missing component")?;
+            if attempt.key.task != *task { return Err("work attempt task index mismatch".into()); }
+            let party = self.entity(&attempt.party)?;
+            if self.ecs.get::<Party>(party).is_none() { return Err("work attempt party is not a party".into()); }
+            let worker = self.entity(&attempt.worker)?;
+            if self.ecs.get::<PartyMember>(worker).map(|member| member.party.as_str()) != Some(attempt.party.as_str()) {
+                return Err("work attempt worker is outside party".into());
+            }
+            owned_by_attempt_party(task, &attempt.party)?;
+            let activity = match &attempt.phase {
+                AttemptPhase::Executing { activity, .. } | AttemptPhase::Outcome { activity, .. } => activity,
+                AttemptPhase::Ready | AttemptPhase::Settling { .. } => return Err("work attempt has no recoverable activity".into()),
+            };
+            match activity {
+                crate::work_attempt::ActivityRef::Route { destination } => valid_point(destination)?,
+                crate::work_attempt::ActivityRef::Construction { site, contact, .. } => {
+                    if site != task { return Err("construction attempt task mismatch".into()); }
+                    owned_by_attempt_party(site, &attempt.party)?;
+                    valid_point(contact)?;
+                }
+                crate::work_attempt::ActivityRef::Excavation { .. } => {}
+                crate::work_attempt::ActivityRef::Deconstruction { site, contact } => {
+                    owned_by_attempt_party(site, &attempt.party)?;
+                    valid_point(contact)?;
+                }
+                crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
+                    if process != task { return Err("process attendance task mismatch".into()); }
+                    let entity = owned_by_attempt_party(process, &attempt.party)?;
+                    if self.ecs.get::<StagedProcess>(entity).is_none() { return Err("process attendance references non-process task".into()); }
+                }
+                crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } => {
+                    if *quantity == 0 { return Err("invalid saved material transfer quantity".into()); }
+                    let lot_entity = owned_by_attempt_party(lot, &attempt.party)?;
+                    if self.ecs.get::<Lot>(lot_entity).is_none() { return Err("material transfer references non-lot".into()); }
+                    for endpoint in [from, to] {
+                        let entity = self.entity(endpoint)?;
+                        let party_owned = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(attempt.party.as_str());
+                        let attempt_worker = endpoint == &attempt.worker && self.ecs.get::<PartyMember>(entity).map(|member| member.party.as_str()) == Some(attempt.party.as_str());
+                        if !party_owned && !attempt_worker { return Err("material transfer endpoint is outside party".into()); }
+                    }
+                }
+                crate::work_attempt::ActivityRef::MaterialDrop { lot } => {
+                    let entity = owned_by_attempt_party(lot, &attempt.party)?;
+                    if self.ecs.get::<Lot>(entity).is_none() { return Err("material drop references non-lot".into()); }
+                }
+                crate::work_attempt::ActivityRef::ResourceEstablish { site, .. } => { self.entity(site)?; }
+                crate::work_attempt::ActivityRef::ResourceTend { site, vessel } => {
+                    self.entity(site)?;
+                    self.entity(vessel)?;
+                }
+                crate::work_attempt::ActivityRef::ResourceExtract { source } => { self.entity(source)?; }
+                crate::work_attempt::ActivityRef::FieldWater { vessel, portions, .. } => {
+                    self.entity(vessel)?;
+                    if *portions == 0 { return Err("saved field water portions must be positive".into()); }
+                }
             }
         }
         Ok(())
