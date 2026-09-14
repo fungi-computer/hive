@@ -2955,6 +2955,7 @@ impl Kernel {
             return Err("saved terrain route witness is stale".into());
         }
         candidate.validate_excavation_work()?;
+        candidate.validate_deconstruction_work()?;
         candidate.ground_stock_cleanup_pending = true;
         *self = candidate;
         Ok(())
