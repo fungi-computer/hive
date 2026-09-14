@@ -2,11 +2,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";
-import { Body, MaterialLot, Position, ResourceSite } from "../sdk/common";
+import { Body, Container, FiniteResource, MaterialLot, Position, ResourceSite } from "../sdk/common";
 import { GroundStock } from "../sdk/ground-stock";
 import { query } from "../sdk/authoring";
 import { colonyPack } from "./colony";
-import { ColonyResourceOrder, resourceWorkProvider } from "./colony-work";
+import { ColonyDigOrder, ColonyResourceOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, digProvider, resourceWorkProvider, treeWorkProvider } from "./colony-work";
+import { OwnedByParty, PartyMember } from "../sdk/party";
 import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { ConstructionSite } from "../sdk/construction";
@@ -16,6 +17,34 @@ import { StagedProcess } from "../sdk/process-supply";
 const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
 const clock = { now: 20, delta: 0.25, tick: 80 };
+
+function reconciliationContext(kind: "dig" | "tree", attempt: any, stateOverride: any = {}) {
+  const task = id(kind === "dig" ? "dig-order" : "tree-order"), worker = id("worker"), tree = id("tree");
+  const state = kind === "dig"
+    ? { cellX: 1, cellY: 1, cellZ: 1, expected: 2, status: "queued", reason: "" }
+    : { tree, phase: "queued", stage: "chop", seconds: 0, reason: "" };
+  Object.assign(state, stateOverride);
+  const records: any[] = [
+    row(task as string, new Map([[kind === "dig" ? ColonyDigOrder : ColonyTreeOrder, state], [OwnedByParty, { party: id("party") }]])),
+    row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 1, z: 0, facing: 0 }], [PartyMember, { party: id("party") }]])),
+  ];
+  if (kind === "tree") records.push(
+    row("tree", new Map([[ColonyTree, { phase: "felled" }], [ColonyTreePolicy, { designated: true }], [Position, { x: 1, y: 1, z: 1 }], [Container, { capacity: 6 }], [FiniteResource, { kind: "wood", quantity: 6 }], [OwnedByParty, { party: id("party") }]])),
+  );
+  const writes: any[] = [], actions: any[] = [], removed: any[] = [];
+  const context: any = {
+    clock, query: (spec: any) => records.filter(record => spec.components.every((component: any) => record.get(component) !== undefined)),
+    workAttempts: () => attempt ? [attempt] : [],
+    worldPoses: () => [{ id: worker, local: { x: 0, y: 1, z: 0, facing: 0 }, world: { x: 0, y: 1, z: 0, facing: 0 }, support: null, surface: null }],
+    terrainMaterials: () => [2], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }),
+    action: (action: any) => actions.push(action), write: (definition: any, entity: any, value: any) => writes.push([definition, entity, value]),
+    removeAuthoredEntity: (entity: any) => removed.push(entity),
+  };
+  return { context, task, worker, tree, writes, actions, removed, state };
+}
+function outcome(task: any, worker: any, activity: any, result: any = { kind: "completed" }) {
+  return { key: { task, generation: 1 }, worker, party: id("party"), phase: { kind: "outcome", operation: { attempt: { task, generation: 1 }, sequence: 1 }, activity, result } };
+}
 
 function providerContext(order: unknown, site: unknown, lots: unknown[] = [], outcomes: unknown[] = []) {
   const writes: unknown[] = [], created: unknown[] = [], removed: string[] = [], actions: unknown[] = [];
@@ -91,6 +120,50 @@ test("blocked resource work remains a retryable domain state without authored ac
   const result = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 99 }, [], []);
   resourceWorkProvider(result.context, new Set());
   assert.deepEqual(result.writes, []);
+});
+
+test("drafted dig route releases the claim and is eligible again after undraft", () => {
+  const first = reconciliationContext("dig", outcome(id("dig-order"), id("worker"), { kind: "route", destination: { x: 1, y: 1.5, z: 1, frame: null } }));
+  digProvider(first.context, new Set([first.worker])).progress();
+  assert.equal(first.state.status, "queued");
+  assert.equal(first.actions.length, 1);
+  const retry = reconciliationContext("dig", null, first.state);
+  assert.equal(digProvider(retry.context, new Set()).candidates.length, 1);
+});
+
+test("drafted executing dig and tree attempts emit the exact native interrupt", () => {
+  for (const kind of ["dig", "tree"] as const) {
+    const fixture = reconciliationContext(kind, {
+      key: { task: id(kind === "dig" ? "dig-order" : "tree-order"), generation: 4 },
+      worker: id("worker"), party: id("party"),
+      phase: { kind: "executing", operation: { attempt: { task: id(kind === "dig" ? "dig-order" : "tree-order"), generation: 4 }, sequence: 9 }, activity: { kind: "route", destination: { x: 1, y: 1.5, z: 1, frame: null } } },
+    });
+    (kind === "dig" ? digProvider(fixture.context, new Set([fixture.worker])) : treeWorkProvider(fixture.context, new Set([fixture.worker]))).progress();
+    assert.deepEqual(fixture.actions, [{ kind: "interrupt-work-attempt", task: fixture.task, generation: 4, sequence: 9, cause: "workerUnavailable" }]);
+  }
+});
+
+test("drafted dig interruption blocks and acknowledges, while committed excavation is removed once", () => {
+  const interrupted = reconciliationContext("dig", outcome(id("dig-order"), id("worker"), { kind: "route", destination: { x: 1, y: 1.5, z: 1, frame: null } }, { kind: "interrupted", cause: "workerUnavailable" }));
+  digProvider(interrupted.context, new Set([interrupted.worker])).progress();
+  assert.equal(interrupted.writes[0][2].status, "blocked");
+  assert.equal(interrupted.actions.length, 1);
+  const physical = reconciliationContext("dig", outcome(id("dig-order"), id("worker"), { kind: "excavation", cell: [1, 1, 1], expectedMaterial: 2, replacementMaterial: 0 }));
+  digProvider(physical.context, new Set([physical.worker])).progress();
+  assert.deepEqual(physical.removed, [physical.task]);
+  assert.equal(physical.actions.length, 1);
+});
+
+test("drafted tree route remains queued, then committed extraction completes exactly once", () => {
+  const route = reconciliationContext("tree", outcome(id("tree-order"), id("worker"), { kind: "route", destination: { x: 1, y: 1, z: 1, frame: null } }));
+  treeWorkProvider(route.context, new Set([route.worker])).progress();
+  assert.equal(route.writes[0][2].phase, "queued");
+  assert.equal(route.actions.length, 1);
+  const physical = reconciliationContext("tree", outcome(id("tree-order"), id("worker"), { kind: "resource-extract", source: route.tree }));
+  treeWorkProvider(physical.context, new Set([physical.worker])).progress();
+  assert.equal(physical.writes.filter(write => write[0] === ColonyTree).length, 1);
+  assert.equal(physical.writes[1][2].phase, "complete");
+  assert.equal(physical.actions.length, 1);
 });
 
 test("GameSession preserves a finite mugwort harvest through extraction and reload", async (t) => {
