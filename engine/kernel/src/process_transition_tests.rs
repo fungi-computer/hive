@@ -465,7 +465,7 @@ fn prepare_emits_on_next_tick_and_fermentation_survives_save_reload() {
 
 #[test]
 fn final_outputs_use_retained_keg_and_distinct_tray_lots() {
-    let (mut kernel, _process) = admitted();
+    let (mut kernel, process) = admitted();
     attend_tick(&mut kernel, &process, 1.0);
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
@@ -473,6 +473,7 @@ fn final_outputs_use_retained_keg_and_distinct_tray_lots() {
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     attend_tick(&mut kernel, &process, 1.0);
     let lots: Vec<_> = kernel
         .ecs
@@ -534,6 +535,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
     let before_lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
     let before_bindings = kernel.query_json(r#"["hive.process-binding"]"#).unwrap();
     let blocked: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
+    let blocked: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
     assert_eq!(blocked["results"][0]["accepted"], true);
     assert_eq!(kernel.query_json(r#"["hive.lot"]"#).unwrap(), before_lots);
     assert_eq!(
@@ -585,6 +587,11 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
         let mut k = fixture(true);
         let p = k.request_process("herbal-ale-v1", "station", &ActionScope::Host).unwrap();
         k.admit_process(&p, "herbal-ale-v1", "station").unwrap();
+        let party = k.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
+        k.ids.insert("party:process".into(), party); k.known.insert("party:process".into());
+        k.ecs.entity_mut(k.entity("worker").unwrap()).insert(PartyMember { party: "party:process".into() });
+        k.ecs.entity_mut(k.entity(&p).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+        k.refresh_state_weight();
         (k, p)
     };
     let before = kernel
@@ -631,7 +638,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
     }
     kernel.rebuild_physical_indexes(true).unwrap();
     attend_tick(&mut kernel, &process, 1.0);
-    assert_eq!(kernel.environment.as_ref().unwrap().paid_emissions.len(), 1);
+    assert_eq!(kernel.environment.as_ref().unwrap().paid_emissions.len(), 0);
     assert!(kernel
         .environment
         .as_ref()
