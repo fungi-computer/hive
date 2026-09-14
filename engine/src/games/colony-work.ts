@@ -31,8 +31,6 @@ import {
   Surface,
   Traversal,
   extractResource,
-  establishResourceSite,
-  tendResourceSite,
   move,
   cancelWork,
 } from "../sdk/common";
@@ -58,49 +56,6 @@ type ResourceCandidate = {
   readonly vessel?: EntityId;
   readonly approaches: readonly { readonly x: number; readonly y: number; readonly z: number; readonly frame: EntityId | null }[];
 };
-
-function reconcileResourceOutcomes(ctx: WriteContext, orders: readonly ResourceOrderRow[]): void {
-  for (const row of orders) {
-    const state = row.get(ColonyResourceOrder);
-    if (state.actor && ["sow", "tend", "harvest"].includes(state.phase)) {
-      const failedMove = ctx.outcomes.find(outcome => outcome.action.kind === "move" && outcome.action.entity === state.actor && !outcome.result.accepted && outcome.action.destination.x === state.approachX && outcome.action.destination.y === state.approachY && outcome.action.destination.z === state.approachZ);
-      if (failedMove) { ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, workSeconds: 0, reason: failedMove.result.reason ?? "resource approach rejected" }); continue; }
-    }
-    if (!state.phase.startsWith("submitting-")) continue;
-    const kind = state.phase === "submitting-sow" ? "establish-resource-site" : state.phase === "submitting-tend" ? "tend-resource-site" : "extract-resource";
-    const outcome = ctx.outcomes.find(candidate => candidate.action.kind === kind && (candidate.action.kind === "extract-resource"
-      ? candidate.action.source === state.site
-      : candidate.action.site === state.site && candidate.action.operation === state.operation));
-    if (!outcome) continue;
-    if (!outcome.result.accepted) {
-      const phase = state.phase === "submitting-sow" ? "sow" : state.phase === "submitting-tend" ? "tend" : "harvest";
-      ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, phase, reason: outcome.result.reason ?? "physical action rejected", workSeconds: 0 });
-    } else if (state.phase === "submitting-harvest") {
-      ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, phase: "complete", reason: "", workSeconds: 0 });
-    } else {
-      ctx.write(ColonyResourceOrder, row.id, { ...state, actor: null, vessel: null, phase: "waiting", reason: "", workSeconds: 0 });
-    }
-  }
-}
-
-function advanceResourceAtContact(ctx: WriteContext, row: ResourceOrderRow, state: ColonyResourceOrderState, definition: ResourceDefinition, worker: EntityId, vessel: EntityId | null): void {
-  const workSeconds = state.workSeconds + ctx.clock.delta;
-  if (state.phase === "sow" && workSeconds >= definition.sowSeconds) {
-    const operation = `${row.id}:sow:${state.attempt + 1}`;
-    ctx.action(establishResourceSite(operation, worker, state.site, state.definition, { x: state.cellX, y: state.cellY, z: state.cellZ }));
-    ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, phase: "submitting-sow", workSeconds, reason: "", attempt: state.attempt + 1 });
-  } else if (state.phase === "tend" && workSeconds >= definition.tendSeconds && vessel) {
-    const operation = `${row.id}:tend:${state.attempt + 1}`;
-    ctx.action(tendResourceSite(operation, worker, state.site, vessel));
-    ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, vessel, phase: "submitting-tend", workSeconds, reason: "", attempt: state.attempt + 1 });
-  } else if (state.phase === "harvest" && workSeconds >= definition.harvestSeconds) {
-    const operation = `${row.id}:harvest:${state.attempt + 1}`;
-    ctx.action(extractResource(operation, worker, state.site));
-    ctx.write(ColonyResourceOrder, row.id, { ...state, operation, actor: worker, phase: "submitting-harvest", workSeconds, reason: "", attempt: state.attempt + 1 });
-  } else {
-    ctx.write(ColonyResourceOrder, row.id, { ...state, actor: worker, ...(state.phase === "tend" ? { vessel } : {}), workSeconds });
-  }
-}
 
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
 export function resourceWorkProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<ResourceCandidate> {
