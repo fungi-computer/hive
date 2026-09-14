@@ -67,6 +67,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
     if (!isDeliveryCustody(state.custody)) throw new Error("invalid delivery custody");
     if (state.custody === "delivered" || workAttempt(ctx, id)) continue;
     const lot = lots.get(state.sourceLot); if (!lot || lot.kind !== state.material || lot.quantity < state.quantity) continue;
+    if (state.source === state.destination || state.quantity <= 0 || !Number.isSafeInteger(state.quantity) || !state.party) continue;
     const source = positionForContainer(lot.container); const destination = poses.get(state.destination); if (!source || !destination) continue;
     if (sealed.has(lot.container) || sealed.has(state.destination) || !hasCapacity(state.destination, state.quantity)) continue;
     for (const [worker, control] of controls) {
