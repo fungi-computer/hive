@@ -130,7 +130,7 @@ export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orien
   if (subjectPlacement.kind === "edge") {
     const axis = subjectPlacement.edge?.axis;
     if (axis !== "x" && axis !== "z") throw new Error("invalid edge art placement axis");
-    const endpoints = axis === "x" ? [[-0.5, 0], [0.5, 0]] : [[0, -0.5], [0, 0.5]];
+    const endpoints = axis === "x" ? [[0, -0.5], [0, 0.5]] : [[-0.5, 0], [0.5, 0]];
     return Object.freeze({
       kind: "edge",
       axis,
