@@ -37,9 +37,8 @@ export const PartyReceipt = component<{
 
 export function establishParty(
   bindingId: string,
-  player: string,
-  party: EntityId,
+  expectedSequence: number,
   records: readonly EntityRecord[],
 ): ActionRequest {
-  return { kind: "establish-party", bindingId, player, party, records };
+  return { kind: "establish-party", bindingId, expectedSequence, records };
 }

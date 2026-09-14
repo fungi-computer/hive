@@ -37,8 +37,8 @@ export function checkedAction(value: unknown): ActionRequest {
   let valid = false;
   switch (action.kind) {
     case "establish-party":
-      keys = ["kind", "bindingId", "player", "party", "records"];
-      valid = id(action.bindingId) && id(action.player) && id(action.party) && Array.isArray(action.records) && action.records.length > 0 && action.records.length <= 32;
+      keys = ["kind", "bindingId", "expectedSequence", "records"];
+      valid = id(action.bindingId) && typeof action.expectedSequence === "number" && Number.isSafeInteger(action.expectedSequence) && action.expectedSequence > 0 && Array.isArray(action.records) && action.records.length > 0 && action.records.length <= 32;
       break;
     case "begin-work-attempt":
       keys = ["kind", "task", "worker", "party", "operation"];

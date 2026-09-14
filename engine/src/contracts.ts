@@ -153,7 +153,7 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
-  | { readonly kind: "establish-party"; readonly bindingId: string; readonly player: string; readonly party: EntityId; readonly records: readonly EntityRecord[] }
+  | { readonly kind: "establish-party"; readonly bindingId: string; readonly expectedSequence: number; readonly records: readonly EntityRecord[] }
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
   | { readonly kind: "retarget-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly destination: MoveDestination }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
@@ -398,6 +398,16 @@ export interface ReadContext {
 export type CommandScope =
   | { readonly kind: "host" }
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
+export type PartyJoinIdentity = Readonly<{
+  readonly status: "existing" | "available";
+  readonly sequence: number;
+  readonly player: string;
+  readonly party: EntityId;
+}>;
+export type PartyJoinCapability = Readonly<{
+  readonly footprint: readonly (readonly [number, number])[];
+  readonly prepare: (player: string, party: EntityId, spawn: Vec3) => readonly EntityRecord[];
+}>;
 export type ActionScope =
   | { readonly kind: "host" }
   | { readonly kind: "party"; readonly party: EntityId };
@@ -594,6 +604,7 @@ export type TerrainChangeSet =
       readonly reason: "history" | "restored" | "stale";
     };
 export interface KernelPort {
+  readonly partyJoinIdentity: (bindingId: string) => PartyJoinIdentity;
   readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
   readonly transferContacts: (request: { readonly worker: EntityId; readonly container: EntityId }) =>
     | { readonly kind: "ready"; readonly targets: readonly MoveDestination[] }
@@ -672,6 +683,7 @@ export interface GamePack {
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: GamePresentation;
   readonly initialActions?: readonly ActionRequest[];
+  readonly partyJoin?: PartyJoinCapability;
   /** Heterogeneous command inputs are erased at the pack registry boundary. */
   readonly commands?: Readonly<Record<string, GameCommandDefinition>>;
 }

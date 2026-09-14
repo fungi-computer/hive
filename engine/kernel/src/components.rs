@@ -304,6 +304,7 @@ pub struct Snapshot {
     pub direct: Vec<DirectSnapshot>,
     pub projectile_contacts: Vec<ProjectileContactsSnapshot>,
     pub next_work_generation: u64,
+    pub next_party_sequence: u64,
     pub work_attempts: Vec<crate::work_attempt::WorkAttempt>,
 }
 #[derive(Clone, Serialize, Deserialize)]
@@ -373,7 +374,7 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
-    EstablishParty { #[serde(rename = "bindingId")] binding_id: String, player: String, party: String, records: Vec<EntityRecord> },
+    EstablishParty { #[serde(rename = "bindingId")] binding_id: String, #[serde(rename = "expectedSequence")] expected_sequence: u64, records: Vec<EntityRecord> },
     BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
     RetargetWorkAttempt { task: String, generation: u64, sequence: u32, destination: Point },
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },

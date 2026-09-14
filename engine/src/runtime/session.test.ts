@@ -46,6 +46,7 @@ const definition = new TextEncoder().encode(
 );
 
 class TestPort implements KernelPort {
+  partyJoinIdentity() { return { status: "available" as const, sequence: 1, player: "player:1", party: "party:1" as import("../contracts").EntityId }; }
   processRequirements(): import("../contracts").ProcessRequirements {
     throw new Error("unexpected process requirements query");
   }
@@ -66,7 +67,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
-    version: 8,
+    version: 9,
     revision: 0,
     time: 0,
     scene: {

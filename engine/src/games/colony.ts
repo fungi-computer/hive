@@ -345,6 +345,10 @@ export const colonyPack: GamePack = {
   localScope: { kind: "player", player: "local", party: entity("colony.local-party") },
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
+  partyJoin: Object.freeze({
+    footprint: Object.freeze([[0, 0], [2, 0], [0, 2]] as const),
+    prepare: (player, party, spawn) => createColonyPartyPlan(player, party, spawn).records,
+  }),
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,

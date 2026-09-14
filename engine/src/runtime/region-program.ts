@@ -6,6 +6,7 @@ import { checkedAction } from "./actions";
 import { checkedStoredSession, storeSession, hydrateSession, changedSessionRecords, type StoredSession } from "./session-record-store";
 
 const commandSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("join-party"), credentialBindingId: z.string().min(1).max(160) }).strict(),
   z.object({ kind: z.literal("action"), action: z.unknown() }).strict(),
   z
     .object({
@@ -59,6 +60,20 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
       // native group in this same Region candidate and receipt.
       return command.action.kind === "establish-party" ? session.step(0) : [];
     case "command": session.command(command.name, command.input, scope); return [];
+    case "join-party": {
+      if (scope.kind !== "host") throw new Error("party join requires host scope");
+      const capability = session.pack.partyJoin;
+      if (!capability) throw new Error("party join is unavailable for this pack");
+      const identity = session.partyJoinIdentity(command.credentialBindingId);
+      if (identity.status === "existing") return { player: identity.player, party: identity.party, people: [`${identity.party}.person.0`, `${identity.party}.person.1`] };
+      const spawn = session.findSafeSpawn(capability.footprint);
+      if (!spawn) throw new Error("spawn-unavailable");
+      const records = capability.prepare(identity.player, identity.party, spawn);
+      session.request({ kind: "establish-party", bindingId: command.credentialBindingId, expectedSequence: identity.sequence, records });
+      const result = session.step(0)[0];
+      if (!result?.accepted || result.entityId !== identity.party) throw new Error(result?.reason ?? "party join rejected");
+      return { player: identity.player, party: identity.party, people: [`${identity.party}.person.0`, `${identity.party}.person.1`] };
+    }
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];
     case "resume": session.resume(); return [];
@@ -265,7 +280,7 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
     authorize(principal, command) {
       const scope = options.scopeForPrincipal(principal);
       if (!scope) return false;
-      if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action")
+      if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action" || command.kind === "join-party")
         return scope.kind === "host";
       return scope.kind === "host" || scope.kind === "player";
     },
@@ -285,6 +300,7 @@ export function createSessionRegionRuntime(options: SessionResidentOptions) {
     systems: Object.freeze(options.pack.systems.map(system => Object.freeze({ ...system, reads: Object.freeze([...system.reads]), writes: Object.freeze([...system.writes]) }))),
     commands: Object.freeze(Object.fromEntries(Object.entries(options.pack.commands ?? {}).map(([name, command]) => [name, Object.freeze({ ...command, lifecycle: Object.freeze([...(command.lifecycle ?? [])]), reads: Object.freeze([...(command.reads ?? [])]), writes: Object.freeze([...command.writes]) })]))),
     initialActions: options.pack.initialActions ? structuredClone(options.pack.initialActions) : undefined,
+    partyJoin: options.pack.partyJoin ? Object.freeze({ footprint: Object.freeze(options.pack.partyJoin.footprint.map(cell => Object.freeze([...cell] as [number, number]))), prepare: options.pack.partyJoin.prepare }) : undefined,
   });
   const frozenOptions = Object.freeze({ ...options, pack });
   const resident = createSessionResident(frozenOptions);

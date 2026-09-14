@@ -15,7 +15,7 @@ export interface NativeRecordBinding {
 
 export interface KernelEntitySnapshot {
   readonly format: "hive-kernel";
-  readonly version: 8;
+  readonly version: 9;
   readonly revision: number;
   readonly time: number;
   readonly scene: {
@@ -96,7 +96,7 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
   try { parsed = JSON.parse(text); } catch { throw new Error("entity records are not JSON"); }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("entity records are not an object");
   const value = parsed as Partial<KernelEntitySnapshot>;
-  if (value.format !== "hive-kernel" || value.version !== 8 || !isSafeRevision(value.revision) || !isFiniteTime(value.time) || !value.scene || value.scene.format !== "hive-game" || value.scene.version !== 1 || typeof value.scene.game !== "string" || !Array.isArray(value.scene.components) || !Array.isArray(value.scene.initial)) throw new Error("unsupported kernel entity snapshot");
+  if (value.format !== "hive-kernel" || value.version !== 9 || !isSafeRevision(value.revision) || !isFiniteTime(value.time) || !value.scene || value.scene.format !== "hive-game" || value.scene.version !== 1 || typeof value.scene.game !== "string" || !Array.isArray(value.scene.components) || !Array.isArray(value.scene.initial)) throw new Error("unsupported kernel entity snapshot");
   return { text, parsed: value as KernelEntitySnapshot };
 }
 
