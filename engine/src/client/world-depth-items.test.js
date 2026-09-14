@@ -21,7 +21,7 @@ function fixture(overrides = {}) {
 
 test("subject projection preserves the exact paired atlas frame and world origin", () => {
   const value = fixture();
-  const item = subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 2 });
+  const item = subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 2, physicalRole: "actor" });
   assert.deepEqual(item.colorFrame, { frame: { x: 4, y: 6, width: 8, height: 10 }, atlasWidth: 64, atlasHeight: 32 });
   assert.equal(item.depthFrame, value.depth);
   assert.equal(item.depthTexture, value.depthTexture);
@@ -29,23 +29,20 @@ test("subject projection preserves the exact paired atlas frame and world origin
   assert.deepEqual(item.screenTransform, { x: 40, y: 50, scale: 2 });
 });
 
-test("physical role comes from world facts rather than a sprite-name branch", () => {
-  for (const [subject, expected] of [
-    [{}, "actor"],
-    [{ visualRole: "item" }, "item"],
-    [{ surface: { height: 0 } }, "structure"],
-    [{ visualRole: "floor" }, "floor"],
-  ]) {
-    const value = fixture(subject);
-    assert.equal(subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 1 }).physicalRole, expected);
+test("physical role is explicit content data rather than a sprite-name branch", () => {
+  for (const physicalRole of ["floor", "structure", "actor", "item"]) {
+    const value = fixture();
+    assert.equal(subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 1, physicalRole }).physicalRole, physicalRole);
   }
+  const value = fixture();
+  assert.throws(() => subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 1 }), /subject role/);
 });
 
 test("missing paired depth is an explicit renderer failure", () => {
   const value = fixture();
   value.art.depthByTexture.clear();
   assert.throws(
-    () => subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 1 }),
+    () => subjectWorldDepthItem({ ...value, anchor: { x: 0.5, y: 1 }, scale: 1, physicalRole: "actor" }),
     /visual depth unavailable/,
   );
 });

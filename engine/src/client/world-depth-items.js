@@ -25,7 +25,7 @@ function atlasFrame(texture) {
  * Project one resolved original-art frame into the shared opaque world pass.
  * The art bank owns depth pixels; this projection owns no texture lifetime.
  */
-export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, visualPartId = "body" }) {
+export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, physicalRole, visualPartId = "body" }) {
   if (!subject || typeof subject.id !== "string" || subject.id.length === 0)
     throw new Error("invalid world depth subject identity");
   if (!texture || !art?.depthByTexture)
@@ -35,19 +35,13 @@ export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, vi
     throw new Error(`visual depth unavailable for ${subject.id}`);
   if (!anchor || !Number.isFinite(anchor.x) || !Number.isFinite(anchor.y))
     throw new Error("invalid world depth subject anchor");
+  if (!["floor", "structure", "actor", "item"].includes(physicalRole))
+    throw new Error("invalid world depth subject role");
 
   return Object.freeze({
     entityId: subject.id,
     visualPartId,
-    physicalRole: subject.visualRole === "floor"
-      ? "floor"
-      : subject.visualRole === "structure" || subject.surface
-        ? "structure"
-        : subject.visualRole === "terrain"
-          ? "terrain"
-          : subject.visualRole === "item"
-            ? "item"
-            : "actor",
+    physicalRole,
     colorTexture: texture,
     colorFrame: atlasFrame(texture),
     depthTexture: depth.texture,
