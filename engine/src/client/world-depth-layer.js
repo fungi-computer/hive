@@ -58,6 +58,51 @@ void main() {
   finalColor = color * vColor;
 }`;
 
+export const TRANSPARENT_WORLD_FRAGMENT = `#version 300 es
+in vec2 vUV;
+in vec2 vDepthUV;
+in vec4 vColor;
+out vec4 finalColor;
+uniform sampler2D uColorTexture;
+uniform sampler2D uDepthTexture;
+uniform float uOriginDepth;
+uniform float uLocalMin;
+uniform float uLocalMax;
+uniform float uNearDepth;
+uniform float uFarDepth;
+uniform float uAlpha;
+float decodeDepth24(vec3 encoded) {
+  return dot(encoded, vec3(65536.0, 256.0, 1.0)) / 65793.0;
+}
+void main() {
+  vec4 color = texture(uColorTexture, vUV);
+  if (color.a <= 0.001) discard;
+  float localDepth = mix(uLocalMin, uLocalMax, decodeDepth24(texture(uDepthTexture, vDepthUV).rgb));
+  float worldDepth = uOriginDepth + localDepth;
+  gl_FragDepth = (uNearDepth - worldDepth) / (uNearDepth - uFarDepth);
+  finalColor = vec4(color.rgb * vColor.rgb, color.a * vColor.a * uAlpha);
+}`;
+
+export const TRANSPARENT_WORLD_STATE = Object.freeze({
+  depthTest: true,
+  depthMask: false,
+  blend: true,
+});
+
+export function transparentWorldComposition(items, roleOrder) {
+  if (!Array.isArray(items) || items.length > 256)
+    throw new Error("transparent world input exceeds bound");
+  return Object.freeze(items.map((item) => {
+    if (item.pickable) throw new Error("transparent world item is pickable");
+    const alpha = item.alpha ?? 1;
+    if (!Number.isFinite(alpha) || alpha < 0 || alpha > 1)
+      throw new Error("transparent world alpha out of range");
+    return Object.freeze({ ...item, alpha, pickable: false });
+  }).sort((left, right) =>
+    (left.order ?? 100) - (right.order ?? 100) ||
+    compareWorldDepthItems(left, right, roleOrder)));
+}
+
 function finite(value, name) {
   if (!Number.isFinite(value)) throw new Error(`invalid world depth ${name}`);
   return value;
@@ -156,11 +201,13 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
   const picker = createWorldDepthPicker({ roleOrder });
   const records = new Map();
   let disposed = false;
+  let activeBounds = null;
 
   function update(items, towardCamera) {
     if (disposed) throw new Error("world depth layer is disposed");
     const visible = items.filter((item) => item.visible !== false);
     const bounds = worldDepthBounds(visible, towardCamera);
+    activeBounds = bounds;
     const basis = worldDepthBasis(towardCamera);
     picker.update(items, basis);
     const active = new Set();
@@ -200,6 +247,56 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
     render(renderer, clearColor = [0, 0, 0, 0]) {
       if (renderer?.name !== "webgl" || renderer.context?.webGLVersion !== 2) throw new Error("world-depth-requires-webgl2");
       renderer.render({ target, container, clear: true, clearColor });
+    },
+    /** Compose translucent terrain water against the already populated depth
+     * attachment. It is submitted after the opaque pass and never writes it. */
+    renderTransparent(renderer, items = []) {
+      if (disposed) throw new Error("world depth layer is disposed");
+      if (renderer?.name !== "webgl" || renderer.context?.webGLVersion !== 2)
+        throw new Error("world-depth-requires-webgl2");
+      if (!activeBounds) throw new Error("transparent world requires opaque pass");
+      // Terrain owns the projected water geometry; the depth owner owns its
+      // composition. A container is accepted only for that one bounded caller
+      // and is still rendered into this target with depth writes disabled.
+      if (items instanceof Container) {
+        const state = State.for2d();
+        Object.assign(state, TRANSPARENT_WORLD_STATE);
+        items.state = state;
+        for (const child of items.children) {
+          const childState = State.for2d();
+          Object.assign(childState, TRANSPARENT_WORLD_STATE);
+          child.state = childState;
+        }
+        renderer.render({ target, container: items, clear: false });
+        return;
+      }
+      const ordered = transparentWorldComposition(items, roleOrder);
+      const layer = new Container();
+      for (const item of ordered) {
+        if (!item.colorTexture || !item.depthTexture)
+          throw new Error("transparent world item requires paired textures");
+        const geometry = makeGeometry(item);
+        geometry.batchMode = "no-batch";
+        const shader = Shader.from({ gl: { name: "hive-transparent-world", vertex: WORLD_DEPTH_VERTEX, fragment: TRANSPARENT_WORLD_FRAGMENT }, resources: {
+          uColorTexture: item.colorTexture.source,
+          uDepthTexture: item.depthTexture.source,
+          depthUniforms: {
+            uOriginDepth: { value: originDepth(item, activeBounds.basis), type: "f32" },
+            uLocalMin: { value: item.depthFrame.depthRange.min, type: "f32" },
+            uLocalMax: { value: item.depthFrame.depthRange.max, type: "f32" },
+            uNearDepth: { value: activeBounds.nearDepth, type: "f32" },
+            uFarDepth: { value: activeBounds.farDepth, type: "f32" },
+            uAlpha: { value: item.alpha, type: "f32" },
+          },
+        } });
+        const state = State.for2d();
+        Object.assign(state, TRANSPARENT_WORLD_STATE);
+        const mesh = new Mesh({ geometry, shader, state });
+        setTransform(mesh, item.screenTransform);
+        layer.addChild(mesh);
+      }
+      renderer.render({ target, container: layer, clear: false });
+      layer.destroy({ children: true });
     },
     resize(nextWidth, nextHeight) {
       if (!Number.isSafeInteger(nextWidth) || !Number.isSafeInteger(nextHeight) || nextWidth <= 0 || nextHeight <= 0) throw new Error("invalid world depth resize");

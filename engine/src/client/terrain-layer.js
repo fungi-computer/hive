@@ -243,7 +243,7 @@ export function createTerrainLayer() {
       }
       revision = frame.revision;
       projectionKey = nextProjectionKey;
-      if (!water.parent) container.addChild(water);
+      // Water is composed by the shared world-depth owner after opaque terrain.
       water.clear();
       for (const cell of frame.water) {
         if (cell.liquidVolumeM3 <= 0) continue;
@@ -268,6 +268,7 @@ export function createTerrainLayer() {
       if (drawItem) drawItem.screenTransform = screenTransform;
     },
     get drawItem() { return drawItem; },
+    get transparentContainer() { return water; },
     dispose() {
       clear();
       renderer?.dispose();

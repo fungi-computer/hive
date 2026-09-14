@@ -6,6 +6,10 @@ import {
   createWorldDepthPicker,
   worldDepthBounds,
 } from "./world-depth.js";
+import {
+  transparentWorldComposition,
+  TRANSPARENT_WORLD_STATE,
+} from "./world-depth-layer.js";
 
 function depthFrame(value, alpha = 255) {
   const pixels = new Uint8Array(4);
@@ -85,4 +89,13 @@ test("screen buckets preserve scaled pixels and permutation-stable winners", () 
     assert.equal(picker.pick({ x: 140, y: 90 }).target, "near");
     assert.equal(picker.pick({ x: 100, y: 90 }), null);
   }
+});
+
+test("transparent water is bounded, deterministic, alpha checked, and non-pickable", () => {
+  const water = (id, order = 1) => ({ entityId: id, visualPartId: "surface", physicalRole: "water", order, alpha: 0.7, pickable: false });
+  assert.deepEqual(transparentWorldComposition([water("b"), water("a")]).map(item => item.entityId), ["a", "b"]);
+  assert.deepEqual(TRANSPARENT_WORLD_STATE, { depthTest: true, depthMask: false, blend: true });
+  assert.throws(() => transparentWorldComposition([{ ...water("bad"), pickable: true }]), /pickable/);
+  assert.throws(() => transparentWorldComposition([{ ...water("bad"), alpha: 2 }]), /alpha/);
+  assert.throws(() => transparentWorldComposition(Array.from({ length: 257 }, (_, i) => water(String(i)))), /bound/);
 });
