@@ -954,7 +954,9 @@ export function createHiveClient({
         ] };
       }
       entry.sprite.texture = texture ?? Texture.EMPTY;
-      if (texture) {
+      const canSort = Boolean(terrainFrame || Number.isFinite(subject.support?.level) || Number.isFinite(subject.surface?.level));
+      entry.sprite.visible = canSort;
+      if (texture && canSort) {
         entry.sprite.anchor.set(anchor.x, anchor.y);
         entry.sprite.scale.set(camera.zoom);
         entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);

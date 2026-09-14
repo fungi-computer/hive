@@ -1,14 +1,17 @@
-import { affectedTerrainColumns, changedTerrainColumns } from "../../../src/art/terrain-faces.js";
+import { affectedTerrainColumns, changedTerrainColumns, terrainColumnMap } from "../../../src/art/terrain-faces.js";
 
 export function planTerrainBandUpdates(previous = [], current = []) {
   const previousLevels = new Set(previous.map((surface) => surface.cell[1]));
   const currentLevels = new Set(current.map((surface) => surface.cell[1]));
+  const beforeByColumn = terrainColumnMap(previous);
+  const afterByColumn = terrainColumnMap(current);
   const changed = changedTerrainColumns(previous, current);
   const affected = affectedTerrainColumns(changed);
   const rebuildLevels = new Set();
   for (const { x, z } of affected) {
-    const before = previous.find((surface) => surface.cell[0] === x && surface.cell[2] === z);
-    const after = current.find((surface) => surface.cell[0] === x && surface.cell[2] === z);
+    const key = `${x},${z}`;
+    const before = beforeByColumn.get(key);
+    const after = afterByColumn.get(key);
     if (before) rebuildLevels.add(before.cell[1]);
     if (after) rebuildLevels.add(after.cell[1]);
   }

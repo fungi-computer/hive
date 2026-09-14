@@ -66,18 +66,20 @@ function projectedPoint(camera, x, y, z) {
 export function createTerrainLayer() {
   const container = new Container();
   container.eventMode = "none";
+  container.sortableChildren = true;
   let renderer;
   const bandCache = new Map();
   let waterItems = [], sortableItems = [], terrainSurfaces = [], previousSurfaces = [];
   const waterTile = createWaterTile();
   let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
-  let canonicalCamera;
+  let canonicalCamera, cachedVerticalMetres;
   let revision, epoch, projectionKey;
 
   function clear() {
     for (const { sprite } of bandCache.values()) sprite.destroy({ children: true, texture: true, textureSource: true });
     bandCache.clear();
     canonicalCamera = undefined;
+    cachedVerticalMetres = undefined;
     revision = undefined;
     for (const item of waterItems) item.destroy();
     waterItems = [];
@@ -89,6 +91,7 @@ export function createTerrainLayer() {
 
   function fullBake(frame, rebuildLevels = null, removedLevels = []) {
     canonicalCamera = artCamera(WIDTH, HEIGHT, 1.03, 256);
+    cachedVerticalMetres = frame.verticalMetres;
     if (!rebuildLevels) {
       for (const { sprite } of bandCache.values()) sprite.destroy({ children: true, texture: true, textureSource: true });
       bandCache.clear();
@@ -105,7 +108,9 @@ export function createTerrainLayer() {
       const prior = bandCache.get(level);
       prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
       const raw = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
-      const bounds = raw && { left: Math.max(0, Math.floor(raw.left) - 3), top: Math.max(0, Math.floor(raw.top) - 3), right: Math.min(WIDTH, Math.ceil(raw.right) + 3), bottom: Math.min(HEIGHT, Math.ceil(raw.bottom) + 3) };
+      const detail = Math.abs(projectedPoint(canonicalCamera, 0, TERRAIN_DETAIL_HEIGHT, 0).y - projectedPoint(canonicalCamera, 0, 0, 0).y);
+      const padding = Math.ceil(detail) + 2;
+      const bounds = raw && { left: Math.max(0, Math.floor(raw.left) - padding), top: Math.max(0, Math.floor(raw.top) - padding), right: Math.min(WIDTH, Math.ceil(raw.right) + padding), bottom: Math.min(HEIGHT, Math.ceil(raw.bottom) + padding) };
       if (!bounds) continue;
       const bandCamera = canonicalCamera.clone();
       bandCamera.setViewOffset(WIDTH, HEIGHT, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);

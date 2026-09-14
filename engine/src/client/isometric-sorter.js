@@ -73,6 +73,13 @@ function lineYAt(line, x) {
 function relationByFootprints(left, right, camera) {
   const a = left.footprint.map((value) => sortPoint(value, camera, `${stableKey(left)} footprint`));
   const b = right.footprint.map((value) => sortPoint(value, camera, `${stableKey(right)} footprint`));
+  if (a.length > 2 || b.length > 2) {
+    const aMin = Math.min(...a.map((value) => value.y)), aMax = Math.max(...a.map((value) => value.y));
+    const bMin = Math.min(...b.map((value) => value.y)), bMax = Math.max(...b.map((value) => value.y));
+    if (aMax < bMin - EPSILON) return [left, right];
+    if (bMax < aMin - EPSILON) return [right, left];
+    return null;
+  }
   if (a.length === 1 && b.length === 1)
     return a[0].y < b[0].y - EPSILON ? [left, right] : b[0].y < a[0].y - EPSILON ? [right, left] : null;
   if (a.length === 1 || b.length === 1) {
@@ -119,9 +126,7 @@ function normalizeFootprint(values, name) {
     }
     return [first, last];
   }
-  const xs = unique.map((p) => p.x), zs = unique.map((p) => p.z);
-  const y = unique.reduce((sum, p) => sum + p.y, 0) / unique.length;
-  return [{ x: Math.min(...xs), y, z: Math.min(...zs) }, { x: Math.max(...xs), y, z: Math.max(...zs) }];
+  return unique.sort((left, right) => left.x - right.x || left.z - right.z || left.y - right.y);
 }
 
 function validateNode(input) {
