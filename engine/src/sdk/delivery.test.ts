@@ -308,7 +308,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
         throw new Error("unexpected route query");
       },
       routeToAny: () => {
-        throw new Error("unexpected route query");
+        return { actor: entity("batch.worker"), status: "reachable" as const, targetIndex: 0, cost: 0 };
       },
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
@@ -392,6 +392,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
   const task = entity("delivery");
   for (const scenario of ["blocked", "deposited", "departed-source"] as const) {
     const state = {
+      ...contactFields(),
       actor: worker,
       sourceLot: lot,
       source,
@@ -460,9 +461,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
       routeCosts: () => {
         throw new Error("claimed delivery must not search a new route");
       },
-      routeToAny: () => {
-        throw new Error("unexpected route query");
-      },
+      routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 0 }),
       assign: () => {
         throw new Error("claimed delivery must not be reassigned");
       },
@@ -527,6 +526,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
   const task = entity("task"),
     lot = entity("lot");
   const state = {
+    ...contactFields(),
     actor: null,
     sourceLot: lot,
     source,
@@ -583,9 +583,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
         status: "reachable",
         cost: 1,
       })),
-    routeToAny: () => {
-      throw new Error("unexpected route query");
-    },
+    routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 1 }),
     assign: (candidates) => {
       assert.equal(candidates.length, 1);
       return [{ worker, task, cost: 1 }];
@@ -620,7 +618,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     [
       DeliveryTask,
       task,
-      { ...state, actor: worker, quantity: 1, phase: "to-source" },
+      { ...state, actor: worker, quantity: 1, phase: "to-source", destinationContactSet: true },
     ],
   ]);
 });
@@ -695,9 +693,7 @@ test("full destination puts held goods down before releasing the worker", () => 
       routeCosts: () => {
         throw new Error("full storage cannot request a path");
       },
-      routeToAny: () => {
-        throw new Error("unexpected route query");
-      },
+      routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 0 }),
       assign: () => {
         throw new Error("full storage cannot claim a worker");
       },
@@ -808,7 +804,7 @@ function rejectedDeliveryFixture(initial: {
     write: (_definition: unknown, id: unknown, value: unknown) => { assert.equal(id, task); state = value as typeof state; writes.push([id, value]); },
     action: (value: unknown) => actions.push(value),
   } as never;
-  return { task, worker, ground, state: () => state, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, setContactsReady: (value: boolean) => { contactsReady = value; }, setContactX: (value: number) => { contactX = value; }, writes, actions, context };
+  return { task, worker, ground, state: () => state, setState: (value: typeof state) => { state = value; }, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, setContactsReady: (value: boolean) => { contactsReady = value; }, setContactX: (value: number) => { contactX = value; }, writes, actions, context };
 }
 
 test("lost selected contact releases labor while preserving carried cargo and obligation", () => {
@@ -816,7 +812,7 @@ test("lost selected contact releases labor while preserving carried cargo and ob
   const source = entity("j2.source");
   const destination = entity("j2.destination");
   const lot = entity("j2.lot");
-  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination", destinationContactSet: true, destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null } as never);
+  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination", destinationContactSet: true, destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null } as never, { destinationGround: true });
   fixture.setContactX(1);
   deliverySystem.run(fixture.context);
   assert.equal(fixture.state().phase, "putting-down");
@@ -838,7 +834,7 @@ test("rejected delivery move before pickup returns the task to idle without retr
     outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 0, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
   });
   deliverySystem.run(fixture.context);
-  assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
+  assert.deepEqual(fixture.state(), { ...contactFields(), actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
   assert.equal(fixture.actions.length, 0);
 });
 
@@ -848,6 +844,7 @@ test("manual participation leaves a ready delivery obligation unclaimed", () => 
   const destination = entity("manual.destination");
   const lot = entity("manual.lot");
   const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" }, { automatic: false });
+  fixture.setState({ ...fixture.state(), actor: null } as never);
   deliverySystem.run(fixture.context);
   assert.equal(fixture.state().actor, null);
   assert.equal(fixture.state().phase, "idle");
