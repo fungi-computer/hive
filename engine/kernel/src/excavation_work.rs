@@ -37,37 +37,16 @@ impl Kernel {
             .any(|route| !route.suspended && route.path.contains(&target))
     }
 
-    pub(super) fn request_excavation(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
-        self.request_excavation_internal(id, work, false)
-    }
-
     pub(super) fn request_excavation_for_attempt(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
-        self.request_excavation_internal(id, work, true)
-    }
-
-    fn request_excavation_internal(&mut self, id: &str, work: ExcavationWork, admitted_attempt: bool) -> Result<()> {
         let task_entity = self.entity(id)?;
-            let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) else { continue; };
-            let actor_id = attempt.worker.clone();
-        let actor = self.entity(&actor_id)?;
-        if self.ecs.get::<Body>(actor).is_none() {
-            return Err("excavation needs a worker body".into());
-        }
-        if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor)
-            || (!admitted_attempt && self.attempts_by_worker.contains_key(id)) {
-            return Err("excavation requires terrain contact".into());
-        }
-        if self.terrain_support_occupied(cell(work))? {
-            return Err("excavation target supports a standing actor".into());
-        }
+        let attempt = self.ecs.get::<WorkAttempt>(task_entity).ok_or("excavation requires a work attempt")?;
+        let actor = self.entity(&attempt.worker)?;
+        if self.ecs.get::<Body>(actor).is_none() { return Err("excavation needs a worker body".into()); }
+        if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor) { return Err("excavation requires terrain contact".into()); }
+        if self.terrain_support_occupied(cell(work))? { return Err("excavation target supports a standing actor".into()); }
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
-        if !environment.excavation_rules.contains_key(&work.expected) || !environment.world.is_open_material(work.replacement) || work.expected == work.replacement
-            || environment.world.material(cell(work))? != work.expected {
-            return Err("excavation target is unavailable".into());
-        }
-        if let Some(existing) = self.ecs.get::<ExcavationWork>(task_entity) {
-            return if same_target(*existing, work) { Ok(()) } else { Err("worker already has excavation work".into()) };
-        }
+        if !environment.excavation_rules.contains_key(&work.expected) || !environment.world.is_open_material(work.replacement) || work.expected == work.replacement || environment.world.material(cell(work))? != work.expected { return Err("excavation target is unavailable".into()); }
+        if let Some(existing) = self.ecs.get::<ExcavationWork>(task_entity) { return if same_target(*existing, work) { Ok(()) } else { Err("task already has different excavation work".into()) }; }
         let added = self.registry.weight("hive.excavation-work", &record(&work));
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         self.ecs.entity_mut(task_entity).insert(work);
@@ -109,10 +88,9 @@ impl Kernel {
         pending.sort_by(|a, b| a.0.cmp(&b.0));
         for (id, mut work) in pending {
             let task_entity = self.entity(&id)?;
-            if let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) {
-                if !matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Excavation { .. }, .. }) { continue; }
-            }
-            let actor_id = self.ecs.get::<WorkAttempt>(task_entity).map(|attempt| attempt.worker.clone()).unwrap_or(id.clone());
+            let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) else { continue; };
+            if !matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Excavation { .. }, .. }) { continue; }
+            let actor_id = attempt.worker.clone();
             let actor = self.entity(&actor_id)?;
             // Routing retains saved work but earns no effort while travelling.
             if self.direct.contains_key(&actor) || self.ecs.get::<Destination>(actor).is_some() { continue; }
@@ -161,9 +139,11 @@ mod tests {
     use super::*;
     fn fixture() -> (Kernel, ExcavationWork) {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"work-test","components":[],"initial":[{"id":"worker","components":{
-            "hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1},"hive.container":{"capacity":10}
-        }}]}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"work-test","components":[],"initial":[
+            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"worker","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1},"hive.container":{"capacity":10},"hive.party-member":{"party":"party"}}}
+        ]}).to_string()).unwrap();
         let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("timed-work")).unwrap();
         for material in definition["materials"].as_array_mut().unwrap() {
             if material["diggable"] == true { material["excavation"] = json!({"workSeconds":2,"outputKind":"spoil","unitsPerCell":3}); }
@@ -176,81 +156,35 @@ mod tests {
         kernel.ecs.entity_mut(actor).insert(Position{x:f64::from(work.x)*spacing[0]+1.0,y:f64::from(work.y)*spacing[1],z:f64::from(work.z)*spacing[2],facing:0.0});
         (kernel,work)
     }
-    #[test]
-    fn repeated_requests_do_not_multiply_work_and_progress_recovers() {
-        let (mut kernel,work)=fixture();
-        let action=json!({"scope":{"kind":"host"},"request":{"kind":"excavate","entity":"worker","x":work.x,"y":work.y,"z":work.z,"expected":work.expected,"replacement":0}});
-        kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[action.clone(),action.clone(),action]}).to_string()).unwrap();
-        let actor=kernel.entity("worker").unwrap();
-        assert_eq!(kernel.ecs.get::<ExcavationWork>(actor).unwrap().seconds,1.0);
-        let records=kernel.save_records().unwrap();
-        let mut recovered=Kernel::new(); recovered.restore_records(&records).unwrap();
-        recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
-        assert_eq!(recovered.environment.as_mut().unwrap().world.material(cell(work)).unwrap(),0);
-        assert_eq!(recovered.quantity("worker"),0);
-        let ground = recovered.ecs.query::<(&GroundStock, &ExternalId)>().iter(&recovered.ecs).map(|(_, id)| id.0.clone()).collect::<Vec<_>>();
-        assert_eq!(ground.len(), 1);
-        assert_eq!(recovered.quantity(&ground[0]), 3);
-        assert!(recovered.ecs.get::<ExcavationWork>(recovered.entity("worker").unwrap()).is_none());
-        recovered.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
-        assert_eq!(recovered.quantity("worker"),0);
-        let ground = recovered.ecs.query::<(&GroundStock, &ExternalId)>().iter(&recovered.ecs).map(|(_, id)| id.0.clone()).collect::<Vec<_>>();
-        assert_eq!(ground.len(), 1);
-        assert_eq!(recovered.quantity(&ground[0]), 3);
+    fn begin_excavation(kernel: &mut Kernel, work: ExcavationWork) {
+        let position = *kernel.ecs.get::<Position>(kernel.entity("worker").unwrap()).unwrap();
+        let key = kernel.begin_work_attempt("task".into(), "worker".into(), "party".into(), crate::work_attempt::ActivityRef::Route { destination: Point { x: position.x, y: position.y, z: position.z, frame: None } }).unwrap();
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#).unwrap();
+        kernel.continue_work_attempt("task".into(), key.generation, 1, crate::work_attempt::ActivityRef::Excavation { cell: [work.x, work.y, work.z], expected_material: work.expected, replacement_material: work.replacement }).unwrap();
     }
+
     #[test]
-    fn full_worker_digs_to_ground_and_ground_stock_recovers() {
+    fn task_owned_excavation_progress_is_unique_and_survives_save() {
         let (mut kernel, work) = fixture();
-        let actor = kernel.entity("worker").unwrap();
-        kernel.ecs.get_mut::<Container>(actor).unwrap().capacity = 0;
-        kernel.request_excavation("worker", work).unwrap();
-        for _ in 0..2 { kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap(); }
-        assert!(kernel.ecs.get::<ExcavationWork>(actor).is_none());
-        assert_eq!(kernel.quantity("worker"), 0);
+        begin_excavation(&mut kernel, work);
+        kernel.advance_excavation(1.0).unwrap();
+        let task = kernel.entity("task").unwrap();
+        assert_eq!(kernel.ecs.get::<ExcavationWork>(task).unwrap().seconds, 1.0);
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
-        let piles = restored.ecs.query::<(&GroundStock, &ExternalId, &Position)>().iter(&restored.ecs).map(|(_, id, p)| (id.0.clone(), *p)).collect::<Vec<_>>();
-        assert_eq!(piles.len(), 1);
-        assert_eq!(restored.quantity(&piles[0].0), 3);
-        assert_eq!(piles[0].1.x, kernel.ecs.get::<Position>(actor).unwrap().x);
-        for _ in 0..2 { restored.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap(); }
-        assert_eq!(restored.quantity(&piles[0].0), 3);
-    }
-    #[test]
-    fn work_blocks_direct_control_and_cancel_preserves_material() {
-        let (mut kernel, work) = fixture();
-        kernel.request_excavation("worker", work).unwrap();
-        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-direct","entity":"worker","stream":"keys"}}]}"#).unwrap()).unwrap();
-        assert_eq!(result["results"][0]["accepted"], false);
-        assert_eq!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).unwrap().seconds, 0.0);
-        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"cancel-work","entity":"worker"}}]}"#).unwrap();
-        assert_eq!(kernel.quantity("worker"), 0);
-        assert_eq!(kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap(), work.expected);
-        assert!(kernel.ecs.get::<ExcavationWork>(kernel.entity("worker").unwrap()).is_none());
+        assert_eq!(restored.ecs.get::<ExcavationWork>(restored.entity("task").unwrap()).unwrap().seconds, 1.0);
     }
 
     #[test]
-    fn admitted_excavation_waits_for_an_active_terrain_route_to_release_its_support() {
+    fn task_without_attempt_does_not_advance_or_mutate_terrain() {
         let (mut kernel, work) = fixture();
-        let actor = kernel.entity("worker").unwrap();
-        let position = *kernel.ecs.get::<Position>(actor).unwrap();
-        kernel.terrain_routes.insert(actor, TerrainRouteState {
-            path: vec![cell(work)],
-            revision: None,
-            waiting: false,
-            suspended: false,
-            origin: navigation::point(position),
-            target: None,
-        });
-
-        kernel.request_excavation("worker", work).unwrap();
-        kernel.advance_excavation(1.0).unwrap();
-        assert_eq!(kernel.ecs.get::<ExcavationWork>(actor).unwrap().seconds, 0.0);
-
-        kernel.terrain_routes.remove(&actor);
-        kernel.advance_excavation(1.0).unwrap();
-        assert_eq!(kernel.ecs.get::<ExcavationWork>(actor).unwrap().seconds, 1.0);
+        let task = kernel.entity("task").unwrap();
+        kernel.ecs.entity_mut(task).insert(work);
+        let before = kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap();
+        kernel.advance_excavation(10.0).unwrap();
+        assert_eq!(kernel.ecs.get::<ExcavationWork>(task).unwrap().seconds, 0.0);
+        assert_eq!(kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap(), before);
     }
 
 }

@@ -168,10 +168,4 @@ export const ExcavationWork = component<{
   version: 1,
   fields: { x: "number", y: "number", z: "number", expected: "number", replacement: "number", seconds: "number" },
 });
-export const excavate = (
-  entity: EntityId,
-  cell: { readonly x: number; readonly y: number; readonly z: number },
-  expected: number,
-  replacement: number,
-): ActionRequest => ({ kind: "excavate", entity, ...cell, expected, replacement });
 export const cancelWork = (entity: EntityId): ActionRequest => ({ kind: "cancel-work", entity });

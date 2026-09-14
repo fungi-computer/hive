@@ -385,7 +385,6 @@ pub enum Action {
     ExchangeFieldWater { operation: String, worker: String, vessel: String, x: i32, y: i32, z: i32, direction: crate::terrain_water::WaterExchangeDirection, portions: u8 },
     DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
     UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
-    Excavate { entity: String, x: i32, y: i32, z: i32, expected: u16, replacement: u16 },
     CancelWork { entity: String },
     Deconstruct { worker: String, site: String },
     PlanConstruction {

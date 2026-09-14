@@ -196,15 +196,6 @@ export type ActionRequest =
     }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
-  | {
-      readonly kind: "excavate";
-      readonly entity: EntityId;
-      readonly x: number;
-      readonly y: number;
-      readonly z: number;
-      readonly expected: number;
-      readonly replacement: number;
-    }
   | { readonly kind: "cancel-work"; readonly entity: EntityId }
   | {
       readonly kind: "begin-direct";

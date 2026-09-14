@@ -338,6 +338,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.waterContacts(centers);
   }
+  workAttempts(taskIds: readonly EntityId[]) {
+    this.ensureLive();
+    return this.port.workAttempts(taskIds);
+  }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
     return this.port.query(spec);

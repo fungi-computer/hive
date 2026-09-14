@@ -4254,29 +4254,11 @@ impl Kernel {
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station, scope).map(ActionEffect::Entity),
             Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
             Action::AttendProcess { worker, process } => { self.attend_process(&worker, &process, delta)?; Ok(ActionEffect::None) },
-            Action::Excavate { entity, x, y, z, expected, replacement } => {
-                self.request_excavation(&entity, ExcavationWork { x, y, z, expected, replacement, seconds: 0.0 })?;
-                Ok(ActionEffect::None)
-            }
             Action::CancelWork { entity } => {
-                let actor = self.entity(&entity)?;
-                if self.ecs.get::<ExcavationWork>(actor).is_some() {
-                    self.ecs.entity_mut(actor).remove::<ExcavationWork>();
-                } else {
                 if let Some(key) = self.attempts_by_worker.get(&entity).cloned() {
                         let sequence = self.work_attempts.get(&key.task).and_then(|attempt| self.ecs.get::<WorkAttempt>(*attempt)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("worker attempt has no active operation")?;
                         self.interrupt_work_attempt(key.task.clone(), key.generation, sequence, InterruptCause::Cancelled)?;
-                        if let Some(replacement) = self.ecs.get::<FloorReplacement>(self.entity(&key.task)?).cloned() {
-                            self.ecs.entity_mut(self.entity(&key.task)?).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
-                        }
                     }
-                }
-                if let Some((task, _)) = self.work_attempts.iter().find(|(_, attempt_entity)| self.ecs.get::<WorkAttempt>(**attempt_entity).is_some_and(|attempt| attempt.worker == entity)) {
-                    if let Some(replacement) = self.ecs.get::<FloorReplacement>(self.entity(task)?).cloned() {
-                        self.ecs.entity_mut(self.entity(task)?).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
-                    }
-                }
-                self.refresh_state_weight();
                 Ok(ActionEffect::None)
             }
             Action::PlanConstruction { catalog, site, party, x, y, z, orientation } => {
@@ -4482,7 +4464,7 @@ impl Kernel {
             Action::AttendProcess { worker, process } => { targets.push(worker.as_str()); targets.push(process.as_str()); }
             Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
             Action::DesignateStockpile { zone, .. } | Action::UpdateStockpile { zone, .. } => targets.push(zone.as_str()),
-            Action::Excavate { entity, .. } | Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
+            Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
             Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
             Action::PlanConstruction { site, party: action_party, .. } => { if action_party != party { return Err("scoped action party mismatch".into()); } targets.push(site.as_str()); }
             Action::ReplaceFloor { order_id, existing_floor_id, .. } => { targets.push(order_id.as_str()); targets.push(existing_floor_id.as_str()); }

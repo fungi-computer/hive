@@ -122,12 +122,6 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "worker", "site"];
       valid = id(action.worker) && id(action.site);
       break;
-    case "excavate":
-      keys = ["kind", "entity", "x", "y", "z", "expected", "replacement"];
-      valid = id(action.entity) && [action.x, action.y, action.z].every(value => coordinate(value) && Number.isInteger(value)) &&
-        [action.expected, action.replacement].every(value => typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 65535) &&
-        action.expected !== action.replacement;
-      break;
     case "cancel-work":
       keys = ["kind", "entity"];
       valid = id(action.entity);

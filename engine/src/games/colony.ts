@@ -328,7 +328,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
     if (existing.has(id)) continue;
     creates.push({ id, components: { [ColonyDigOrder.id]: {
       cellX: x, cellY: y, cellZ: z, expected: -1,
-      actor: null, phase: "queued", reason: "", approachX: 0, approachY: 0, approachZ: 0,
+      status: "queued", reason: "",
     }}});
   }
   if (existing.size + creates.length > 256) throw new Error("Finish or cancel existing dig orders before adding more than 256");
@@ -472,7 +472,7 @@ export const colonyPack: GamePack = {
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        const actions = selected.flatMap(worker => {
+        const actions: ActionRequest[] = selected.flatMap((worker): ActionRequest[] => {
           const attempt = attemptForWorker(context, worker);
           if (!attempt || attempt.worker !== worker || attempt.party !== admittedParty(context, worker)) return [];
           return attempt.phase.kind === "executing" ? [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }] : [];
@@ -488,7 +488,7 @@ export const colonyPack: GamePack = {
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        const actions = selected.flatMap(worker => {
+        const actions: ActionRequest[] = selected.flatMap((worker): ActionRequest[] => {
           const attempt = attemptForWorker(context, worker);
           if (!attempt || attempt.key.task !== worker || attempt.party !== admittedParty(context, worker)) return [];
           if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" as const }];
@@ -571,15 +571,21 @@ export const colonyPack: GamePack = {
         }
         if (selected === null && area === null) throw new Error("cancel dig requires workers or an area");
         const orders = context.query(query(ColonyDigOrder));
-        const work = new Set(context.query(query(ExcavationWork)).map((row) => row.id));
+        const attempts = new Map((context.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
         const removes = orders.filter((row) => {
           const state = row.get(ColonyDigOrder);
-          const byWorker = selected !== null && state.actor !== null && selected.has(state.actor);
+          const attempt = attempts.get(row.id);
+          const byWorker = selected !== null && attempt !== undefined && selected.has(attempt.worker);
           const byArea = area !== null && state.cellY === area.y && state.cellX >= area.minX && state.cellX <= area.maxX && state.cellZ >= area.minZ && state.cellZ <= area.maxZ;
           return byWorker || byArea;
         }).map((row) => row.id);
         if (!removes.length) throw new Error("no matching excavation order");
-        const actions = orders.filter((row) => removes.includes(row.id) && row.get(ColonyDigOrder).actor && work.has(row.get(ColonyDigOrder).actor as EntityId)).map((row) => cancelWork(row.get(ColonyDigOrder).actor as EntityId));
+        const actions: ActionRequest[] = orders.flatMap((row) => {
+          const attempt = attempts.get(row.id);
+          return removes.includes(row.id) && attempt && attempt.phase.kind === "executing"
+            ? [{ kind: "interrupt-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" }]
+            : [];
+        });
         return { actions, writes: [], removes };
       },
     }),
@@ -603,10 +609,12 @@ export const colonyPack: GamePack = {
           ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const, progress: treeWorkProgress(order) }]
           : [];
       });
+      const excavationAttempts = new Map((context.workAttempts?.(context.query(query(ExcavationWork)).map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt.worker]));
       const excavation = context.query(query(ExcavationWork)).flatMap(row => {
         const work = row.get(ExcavationWork);
         const definition = colonyEnvironment.materials.find(slot => slot.slot === work.expected)?.excavation;
-        return definition ? [{ actor: row.id, kind: "dig" as const, target: [work.x, work.z] as const, progress: Math.max(0, Math.min(1, work.seconds / definition.workSeconds)) }] : [];
+        const actor = excavationAttempts.get(row.id);
+        return definition && actor ? [{ actor, kind: "dig" as const, target: [work.x, work.z] as const, progress: Math.max(0, Math.min(1, work.seconds / definition.workSeconds)) }] : [];
       });
       const construction = context.query(query(ConstructionSite)).flatMap(row => {
         const site = row.get(ConstructionSite);
@@ -656,8 +664,9 @@ export const colonyPack: GamePack = {
     terrainMarks: context => [
       ...context.query(query(ColonyDigOrder)).map(row => {
       const order = row.get(ColonyDigOrder);
+      const attempt = context.workAttempts?.([row.id])[0];
       return { id: row.id, cell: [order.cellX, order.cellY, order.cellZ] as const,
-        status: order.phase === "blocked" ? "blocked" as const : order.actor ? "working" as const : "queued" as const };
+        status: order.status === "blocked" ? "blocked" as const : attempt ? "working" as const : "queued" as const };
       }),
       ...context.query(query(StockpileCell, Position)).map(row => ({
         id: `stockpile-mark-${row.id}`, cell: [Math.round(row.get(Position).x), Math.floor(row.get(Position).y / colonyEnvironment.world.verticalMetres), Math.round(row.get(Position).z)] as const,
@@ -772,7 +781,7 @@ export const colonyPack: GamePack = {
           }, 0);
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
-        { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
+        { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).status === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
         ...taskRows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).custody })),
       ];
     },

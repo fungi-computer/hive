@@ -227,33 +227,23 @@ export const ColonyTreePolicy = component<{ designated: boolean }>(
   { version: 1, fields: { designated: "boolean" } },
 );
 
-export type ColonyDigPhase =
-  "queued" | "approaching" | "excavating" | "blocked";
 type DigOrder = {
   cellX: number;
   cellY: number;
   cellZ: number;
   expected: number;
-  actor: EntityId | null;
-  phase: string;
+  status: "queued" | "blocked";
   reason: string;
-  approachX: number;
-  approachY: number;
-  approachZ: number;
 };
 export const ColonyDigOrder = component<DigOrder>("colony.dig-order", {
-  version: 1,
+  version: 2,
   fields: {
     cellX: "number",
     cellY: "number",
     cellZ: "number",
     expected: "number",
-    actor: "nullable-entity",
-    phase: "string",
+    status: "string",
     reason: "string",
-    approachX: "number",
-    approachY: "number",
-    approachZ: "number",
   },
 });
 
@@ -288,19 +278,6 @@ const colonyStockpileProfiles: Readonly<
 };
 const distance = (a: Vec3, b: Vec3) =>
   Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
-
-function orderPoint(order: {
-  approachX: number;
-  approachY: number;
-  approachZ: number;
-}) {
-  return {
-    x: order.approachX,
-    y: order.approachY,
-    z: order.approachZ,
-    frame: null as null,
-  };
-}
 
 type TreeCandidate = {
   readonly worker: EntityId;
@@ -635,7 +612,7 @@ function candidatesForDigOrder(
 ): readonly DigCandidate[] {
   const cellKey = `${state.cellX},${state.cellY},${state.cellZ}`;
   if (
-    state.actor !== null ||
+    (state.status === "blocked" && (state.reason !== "Someone is standing on this tile" || facts.standingCells.has(cellKey))) ||
     facts.standingCells.has(cellKey) ||
     material === undefined ||
     material === air
@@ -698,7 +675,7 @@ function digProvider(
   const obstructed = (state: { cellX: number; cellY: number; cellZ: number }) =>
     standingCells.has(`${state.cellX},${state.cellY},${state.cellZ}`);
   const excavating = new Set(
-    ctx.query(query(ExcavationWork)).map((row) => row.id),
+    [...attempts.values()].map((attempt) => attempt.worker),
   );
   const deliveries = ctx
     .query(query(DeliveryTask))
@@ -817,7 +794,7 @@ function digProvider(
         if (!state) continue;
         const party = orderOwners.get(candidate.order);
         if (!party) continue;
-        ctx.write(ColonyDigOrder, candidate.order, { ...state, expected: candidate.expected, approachX: approach.x, approachY: approach.y, approachZ: approach.z, reason: "" });
+        ctx.write(ColonyDigOrder, candidate.order, { ...state, expected: candidate.expected, status: "queued", reason: "" });
         beginRouteWorkAttempt(ctx, candidate.order, candidate.worker, party, approach);
       }
     },
@@ -825,30 +802,33 @@ function digProvider(
       for (const row of activeOrders) {
         const state = row.get(ColonyDigOrder);
         const owner = orderOwners.get(row.id);
-        if (owner && state.actor !== null && memberships.get(state.actor) !== owner) continue;
-        if (state.actor !== null && suspendedActors.has(state.actor)) continue;
+        const attempt = attempts.get(row.id);
+        if (owner && attempt && memberships.get(attempt.worker) !== owner) continue;
+        if (attempt && suspendedActors.has(attempt.worker)) continue;
         if (obstructed(state)) {
-          if (state.actor && excavating.has(state.actor))
-            ctx.action(cancelWork(state.actor));
-          if (
-            state.actor !== null ||
-            state.phase !== "blocked" ||
-            state.reason !== "Someone is standing on this tile"
-          ) {
+          if (state.status !== "blocked" || state.reason !== "Someone is standing on this tile") {
             ctx.write(ColonyDigOrder, row.id, {
               ...state,
-              actor: null,
-              phase: "blocked",
+              status: "blocked",
               reason: "Someone is standing on this tile",
             });
           }
           continue;
         }
         if (assigned.has(row.id)) continue;
-        const attempt = attempts.get(row.id);
         if (!attempt || attempt.phase.kind !== "outcome") continue;
         const phase = attempt.phase;
-        if (phase.result.kind !== "completed") { acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; }
+        if (phase.result.kind !== "completed") {
+          ctx.write(ColonyDigOrder, row.id, {
+            ...state,
+            status: "blocked",
+            reason: phase.result.kind === "blocked"
+              ? phase.result.reason
+              : `interrupted:${phase.result.cause}`,
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
         if (phase.activity.kind === "route") continueExcavationWorkAttempt(ctx, attempt.key, phase.operation.sequence, [state.cellX, state.cellY, state.cellZ], state.expected, air);
         else if (phase.activity.kind === "excavation") { ctx.removeAuthoredEntity(row.id); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); }
       }

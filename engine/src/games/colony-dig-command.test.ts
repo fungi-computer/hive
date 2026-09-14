@@ -65,8 +65,7 @@ test("Colony dig creates an unassigned area order without requiring a worker", (
     id: "colony.dig.0.12.0",
     components: { [ColonyDigOrder.id]: {
       cellX: 0, cellY: 12, cellZ: 0, expected: -1,
-      actor: null, phase: "queued", reason: "",
-      approachX: 0, approachY: 0, approachZ: 0,
+      status: "queued", reason: "",
     } },
   }]);
 });
@@ -115,12 +114,11 @@ test("Colony cancelDig removes designated orders and cancels only their active w
   });
   const order = row(entity("colony.dig.0.12.0"), ColonyDigOrder, {
     cellX: 0, cellY: 12, cellZ: 0, expected: 1,
-    actor: worker, phase: "working", reason: "",
-    approachX: 0, approachY: 0, approachZ: 0,
+    status: "queued", reason: "",
   });
   const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order] }), { entities: [worker] });
   assert.deepEqual(result, {
-    actions: [{ kind: "cancel-work", entity: worker }],
+    actions: [],
     writes: [],
     removes: [order.id],
   });
@@ -130,7 +128,7 @@ test("Colony cancelDig removes designated orders and cancels only their active w
   });
   assert.deepEqual(
     colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { entities: [worker] }),
-    { actions: [{ kind: "cancel-work", entity: worker }], writes: [], removes: [order.id] },
+    { actions: [], writes: [], removes: [order.id] },
   );
   assert.throws(() => colonyPack.commands!.cancelDig.invoke(context(), { entities: [worker] }), /no matching excavation order/);
 });
