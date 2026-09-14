@@ -112,10 +112,6 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "worker", "site", "open"];
       valid = id(action.worker) && id(action.site) && typeof action.open === "boolean";
       break;
-    case "attend-construction":
-      keys = ["kind", "worker", "site", "contact"];
-      valid = id(action.worker) && id(action.site) && terrainContact(action.contact);
-      break;
     case "deconstruct":
       keys = ["kind", "worker", "site"];
       valid = id(action.worker) && id(action.site);

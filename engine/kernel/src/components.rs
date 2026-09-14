@@ -398,7 +398,6 @@ pub enum Action {
     },
     ReplaceFloor { #[serde(rename = "orderId")] order_id: String, #[serde(rename = "existingFloorId")] existing_floor_id: String, #[serde(rename = "desiredCatalog")] desired_catalog: String },
     BindConstructionStage { site: String, contact: Point },
-    AttendConstruction { worker: String, site: String, contact: Point },
     Move {
         entity: String,
         destination: Point,

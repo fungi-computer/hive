@@ -3,7 +3,7 @@ import test from "node:test";
 import { checkedAction } from "./actions";
 import { entity } from "../sdk/authoring";
 import { encodeDefinition } from "../sdk/common";
-import { planConstruction, attendConstruction, bindConstructionStage, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
+import { planConstruction, bindConstructionStage, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
 import { isReservedComponent } from "../contracts";
 
 test("construction authoring cannot choose earned effort, cost or embedded custody", () => {
@@ -12,9 +12,6 @@ test("construction authoring cannot choose earned effort, cost or embedded custo
   assert.deepEqual(checkedAction(request), request);
   assert.deepEqual(checkedAction(bindConstructionStage(site, { x: -3, y: -6.21, z: 8 })), {
     kind: "bind-construction-stage", site, contact: { x: -3, y: -6.21, z: 8, frame: null },
-  });
-  assert.deepEqual(checkedAction(attendConstruction(entity("worker"), site, { x: -3, y: -6.21, z: 8 })), {
-    kind: "attend-construction", worker: "worker", site, contact: { x: -3, y: -6.21, z: 8, frame: null },
   });
   for (const invalid of [
     { ...request, seconds: 100 }, { ...request, materials: [] },

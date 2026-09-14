@@ -194,12 +194,6 @@ export type ActionRequest =
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
   | {
-      readonly kind: "attend-construction";
-      readonly worker: EntityId;
-      readonly site: EntityId;
-      readonly contact: Vec3 & { readonly frame: null };
-    }
-  | {
       readonly kind: "excavate";
       readonly entity: EntityId;
       readonly x: number;

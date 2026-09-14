@@ -460,55 +460,6 @@ impl Kernel {
         Ok(())
     }
 
-    // Deliberately retained as a low-level native fixture/authoring seam for
-    // already-at-contact callers. The SDK construction provider never uses
-    // this shortcut: it owns the route -> continue -> acknowledge lifecycle.
-    pub(super) fn attend_construction(&mut self, worker: &str, site: &str, contact: Point) -> Result<()> {
-        if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
-        let worker_entity = self.entity(worker)?;
-        let site_entity = self.entity(site)?;
-        let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
-        let owner = self.ecs.get::<OwnedByParty>(site_entity).cloned().ok_or("construction site has no party owner")?;
-        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(owner.party.as_str()) { return Err("construction worker is outside site party".into()); }
-        if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction stage is not bound".into()); }
-        if self.ecs.get::<SealedContainer>(site_entity).is_some() || state.phase == ConstructionPhase::Finished { return Err("construction site is finished".into()); }
-        if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || self.ecs.get::<Traversal>(worker_entity).is_none() || self.ecs.get::<Support>(worker_entity).is_some()
-            || self.direct.contains_key(&worker_entity) || self.ecs.get::<Destination>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some() {
-            return Err("worker cannot attend construction from current state".into());
-        }
-        let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
-        let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
-        let position = self.world_pose(worker)?;
-        if !self.contact_is_valid(&state, &definition, [contact.x, contact.y, contact.z], spacing)? { return Err("construction contact is not adjacent to footprint".into()); }
-        if [position.x, position.y, position.z] != [contact.x, contact.y, contact.z] { return Err("worker is not at construction contact".into()); }
-        if let Some(existing) = self.work_attempts.get(site).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).cloned() {
-            if let Some(operation) = existing.current_operation() {
-                if matches!(existing.phase, crate::work_attempt::AttemptPhase::Outcome { .. }) { self.acknowledge_work_attempt(site.into(), existing.key.generation, operation.sequence)?; }
-                else { return Err("construction work attempt is already owned".into()); }
-            }
-        }
-        if let Some(existing_key) = self.attempts_by_worker.get(worker).cloned() {
-            let finished = self.entity(&existing_key.task).ok().and_then(|entity| self.ecs.get::<ConstructionSite>(entity)).is_some_and(|site| site.phase == ConstructionPhase::Finished);
-            if !finished { return Err("construction work attempt is already owned".into()); }
-            let sequence = self.work_attempts.get(&existing_key.task).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("finished construction attempt has no operation")?;
-            self.interrupt_work_attempt(existing_key.task.clone(), existing_key.generation, sequence, InterruptCause::Cancelled)?;
-            self.acknowledge_work_attempt(existing_key.task.clone(), existing_key.generation, sequence)?;
-        }
-        let generation = self.next_work_generation;
-        self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
-        let key = crate::work_attempt::AttemptKey { task: site.into(), generation };
-        let operation = crate::work_attempt::OperationKey { attempt: key.clone(), sequence: 1 };
-        self.ecs.entity_mut(site_entity).insert(crate::work_attempt::WorkAttempt { key: key.clone(), worker: worker.into(), party: owner.party.clone(), phase: crate::work_attempt::AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site: site.into(), contact: contact.clone(), mode: crate::work_attempt::ConstructionMode::Work } } });
-        self.work_attempts.insert(site.into(), site_entity);
-        self.attempts_by_worker.insert(worker.into(), key);
-        state.phase = ConstructionPhase::Working;
-        let old_weight = self.registry.weight("hive.construction-site", &record(self.ecs.get::<ConstructionSite>(site_entity).ok_or("not a construction site")?));
-        let new_weight = self.registry.weight("hive.construction-site", &record(&state));
-        if self.state_weight.saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        self.ecs.entity_mut(site_entity).insert(state);
-        if let Some(replacement) = self.ecs.get::<FloorReplacement>(site_entity).cloned() { self.ecs.entity_mut(site_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Working, ..replacement }); }
-        self.refresh_state_weight(); Ok(())
-    }
     fn construction_materials_ready(&self, site: &str, definition: &crate::environment_definition::StructureDefinition) -> bool {
         definition.materials.iter().all(|(kind, required)| {
             self.contents.get(site).into_iter().flatten().filter_map(|entity| {

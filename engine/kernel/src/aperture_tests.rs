@@ -63,7 +63,6 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
         {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north"},
         {"kind":"bind-construction-stage","site":"door","contact":contact},
         {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1},
-        {"kind":"attend-construction","worker":"worker","site":"door","contact":contact}
     ]});
     let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&setup.to_string()).unwrap()).unwrap();
     assert!(result["results"].as_array().unwrap().iter().all(|r| r["accepted"] == true));

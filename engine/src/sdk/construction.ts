@@ -46,11 +46,6 @@ export const bindConstructionStage = (site: EntityId, contact: Vec3): ActionRequ
   contact: { x: contact.x, y: contact.y, z: contact.z, frame: null },
 });
 
-export const attendConstruction = (worker: EntityId, site: EntityId, contact: Vec3): ActionRequest => ({
-  kind: "attend-construction", worker, site,
-  contact: { x: contact.x, y: contact.y, z: contact.z, frame: null },
-});
-
 /** Request a desired aperture state; native contact and physical admission decide. */
 export const setStructureOpen = (worker: EntityId, site: EntityId, open: boolean): ActionRequest => ({
   kind: "set-structure-open", worker, site, open,
