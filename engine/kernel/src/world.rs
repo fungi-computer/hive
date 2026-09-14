@@ -1398,6 +1398,22 @@ mod construction_tests {
     }
 
     #[test]
+    fn conflicting_plan_creates_no_site_or_container() {
+        let (mut kernel, surface, _) = world();
+        let plan = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}}]});
+        let accepted: serde_json::Value = serde_json::from_str(&kernel.advance_json(&plan.to_string()).unwrap()).unwrap();
+        assert_eq!(accepted["results"][0]["accepted"], true);
+        let before_sites = kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap();
+        let conflict = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-2","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}}]});
+        let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&conflict.to_string()).unwrap()).unwrap();
+        assert_eq!(rejected["results"][0]["accepted"], false);
+        assert_eq!(kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap(), before_sites);
+        assert!(!kernel.known.contains("site-2"));
+    }
+
+    #[test]
     fn standing_wall_obstruction_preserves_progress_and_material() {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
