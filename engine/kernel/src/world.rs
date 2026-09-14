@@ -75,10 +75,27 @@ mod work_attempt_laws {
 
     fn world() -> Kernel {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[
+            {"id":"game.task-state","version":1,"fields":{"phase":"string"}}
+        ],"initial":[
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"game.task-state":{"phase":"queued"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
         ]}).to_string()).unwrap();
         kernel
+    }
+
+    #[test]
+    fn invalid_attempt_transition_rolls_back_its_authored_task_transition() {
+        let mut kernel = world();
+        let before = kernel.snapshot_json().unwrap();
+        let result = kernel.advance_json(&json!({
+            "delta": 0,
+            "writes": [{"component":"game.task-state","entity":"task","value":{"phase":"cancelled"}}],
+            "actions": [{"scope":{"kind":"host"},"request":{
+                "kind":"acknowledge-work-attempt","task":"task","generation":1,"sequence":1
+            }}]
+        }).to_string());
+        assert_eq!(result.unwrap_err(), "work attempt is not current");
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
     }
 
     #[test]
@@ -90,9 +107,8 @@ mod work_attempt_laws {
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"other","components":{"hive.party":{"ownerPlayer":"other-player"}}}
         ]}).to_string()).unwrap();
-        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
-        assert_eq!(result["results"][0]["accepted"], false);
-        assert_eq!(result["results"][0]["reason"], "work attempt task is outside party");
+        let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string());
+        assert_eq!(result.unwrap_err(), "work attempt task is outside party");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), "[]");
         assert_eq!(kernel.query_json("[\"hive.destination\"]").unwrap(), "[]");
     }
@@ -117,10 +133,8 @@ mod work_attempt_laws {
         let replacement = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
         let new_generation = serde_json::from_str::<Value>(&replacement).unwrap()["results"][0]["attempt"]["generation"].as_u64().unwrap();
         assert!(new_generation > key["generation"].as_u64().unwrap());
-        let stale = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task","generation":key["generation"],"sequence":1,"cause":"cancelled"}}]}).to_string()).unwrap();
-        assert_eq!(serde_json::from_str::<Value>(&stale).unwrap()["results"][0]["accepted"], false);
-        let stale_ack = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"task","generation":key["generation"],"sequence":1}}]}).to_string()).unwrap();
-        assert_eq!(serde_json::from_str::<Value>(&stale_ack).unwrap()["results"][0]["accepted"], false);
+        assert!(restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task","generation":key["generation"],"sequence":1,"cause":"cancelled"}}]}).to_string()).is_err());
+        assert!(restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"task","generation":key["generation"],"sequence":1}}]}).to_string()).is_err());
         assert_eq!(restored.work_attempts_json("[\"task\"]").unwrap().contains(&new_generation.to_string()), true);
     }
 
@@ -161,10 +175,13 @@ mod work_attempt_laws {
         for (capacity, destination_x, quantity, requested, reason) in [(0_u32, 0.0, 2_u32, 2_u32, "capacityUnavailable"), (8, 0.0, 1, 2, "missingInputs"), (8, 99.0, 2, 1, "accessLost"), (8, 0.0, 0, 0, "invalid")] {
             let (mut kernel, generation) = material_kernel(capacity, destination_x, quantity);
             let before = kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().clone();
-            let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":requested}}}]}).to_string()).unwrap();
-            let value: Value = serde_json::from_str(&result).unwrap();
-            assert_eq!(value["results"][0]["accepted"], reason != "invalid", "{value}");
-            if reason != "invalid" { assert!(kernel.work_attempts_json("[\"task\"]").unwrap().contains(reason), "reason={reason} attempt={}", kernel.work_attempts_json("[\"task\"]").unwrap()); }
+            let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":requested}}}]}).to_string());
+            if reason == "invalid" { assert_eq!(result.unwrap_err(), "invalid material transfer quantity"); }
+            else {
+                let value: Value = serde_json::from_str(&result.unwrap()).unwrap();
+                assert_eq!(value["results"][0]["accepted"], true, "{value}");
+                assert!(kernel.work_attempts_json("[\"task\"]").unwrap().contains(reason), "reason={reason} attempt={}", kernel.work_attempts_json("[\"task\"]").unwrap());
+            }
             assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, before.container);
             assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().quantity, before.quantity);
         }
@@ -187,8 +204,7 @@ mod work_attempt_laws {
         let transfer = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]}).to_string()).unwrap();
         assert!(serde_json::from_str::<Value>(&transfer).unwrap()["results"][0]["accepted"].as_bool().unwrap(), "{transfer}");
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "destination");
-        let duplicate = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]}).to_string()).unwrap();
-        assert_eq!(serde_json::from_str::<Value>(&duplicate).unwrap()["results"][0]["accepted"], false);
+        assert!(kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]}).to_string()).is_err());
     }
 
     #[test]
@@ -199,8 +215,7 @@ mod work_attempt_laws {
         assert_eq!(value["results"][0]["accepted"], true, "{value}");
         let lot = kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap();
         assert!(lot.container.starts_with("ground."));
-        let duplicate = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-drop","lot":"lot"}}}]}).to_string()).unwrap();
-        assert_eq!(serde_json::from_str::<Value>(&duplicate).unwrap()["results"][0]["accepted"], false);
+        assert!(kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-drop","lot":"lot"}}}]}).to_string()).is_err());
     }
 
     #[test]
@@ -3096,7 +3111,14 @@ impl Kernel {
             let entity = candidate.entity(&task)?;
             candidate.ecs.entity_mut(entity).insert(attempt.clone());
             candidate.work_attempts.insert(task, entity);
-            if candidate.attempts_by_worker.insert(attempt.worker.clone(), attempt.key.clone()).is_some() { return Err("competing work attempt workers".into()); }
+            // A retained terminal outcome no longer owns its worker. Providers
+            // may acknowledge it after that worker has started unrelated work;
+            // restore must rebuild the same active-only ownership index.
+            if !matches!(attempt.phase, AttemptPhase::Outcome { .. })
+                && candidate.attempts_by_worker.insert(attempt.worker.clone(), attempt.key.clone()).is_some()
+            {
+                return Err("competing work attempt workers".into());
+            }
         }
         for id in candidate.ids.keys() {
             if let Some(sequence) = id.strip_prefix("shot.").and_then(|value| value.parse::<u64>().ok()) {
@@ -3244,6 +3266,7 @@ impl Kernel {
                 let action = &action.request;
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
+                    | Action::ContinueWorkAttempt { .. } | Action::CancelWork { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
@@ -3295,10 +3318,27 @@ impl Kernel {
         let results = batch
             .actions
             .into_iter()
-            .map(|action| {
+            .map(|action| -> Result<ActionResult> {
                 let ScopedAction { scope, request } = action;
+                let is_work_attempt_transition = matches!(
+                    &request,
+                    Action::BeginWorkAttempt { .. }
+                        | Action::RetargetWorkAttempt { .. }
+                        | Action::InterruptWorkAttempt { .. }
+                        | Action::AcknowledgeWorkAttempt { .. }
+                        | Action::ContinueWorkAttempt { .. }
+                        | Action::CancelWork { .. }
+                );
                 let result = self.validate_action_scope(&scope, &request).and_then(|()| self.apply_action(request, batch.delta, &scope));
-                ActionResult {
+                // WorkAttempt transitions coordinate authored task state with a
+                // native physical operation. A stale or invalid transition is a
+                // broken candidate, not an ordinary rejected player action: let
+                // advance_json restore the staged world instead of publishing a
+                // task write whose matching attempt transition never happened.
+                if is_work_attempt_transition {
+                    if let Err(reason) = &result { return Err(reason.clone()); }
+                }
+                Ok(ActionResult {
                     accepted: result.is_ok(),
                     projectile_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(id, _) => Some(id.clone()), _ => None }),
                     launch_point: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(_, point) => Some(*point), _ => None }),
@@ -3306,9 +3346,9 @@ impl Kernel {
                     attempt: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Attempt(key) => Some(key.clone()), _ => None }),
                     reason: result.err(),
                     revision: self.revision,
-                }
+                })
             })
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>>>()?;
         let impacts = self.advance_projectiles(batch.delta)?;
         self.advance_direct(batch.delta)?;
         if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("region canonical state capacity".into()); }
