@@ -117,3 +117,59 @@ Verify one actual hosted world join/command path uses Rust/DO, two distinct
 participants and correct art bank; localhost success alone isn't hosted parity.
 Return playable link and what remains unproved. The goal completes only when all
 explicit requirements and acceptance IDs have authoritative evidence.
+
+### Exact Clearing preview commands
+
+The backend and frontend use different Wrangler operations. Do not substitute one
+for the other.
+
+Freeze and build from the accepted worktree. The root build runs first; the engine
+build adds the real `/engine/colony` entry afterward. Both builds receive the
+public DO host at compile time:
+
+```sh
+VITE_HIVE_PUBLIC_HOST=https://hive-public-engine-demo.levi-fe0.workers.dev pnpm build
+VITE_HIVE_PUBLIC_HOST=https://hive-public-engine-demo.levi-fe0.workers.dev ./node_modules/.bin/vite build --config engine/vite.config.js
+```
+
+Prepare and deploy the DO backend with its generated configuration. The prepare
+step binds the exact frontend origin and hashes the authoritative program. This is
+an ordinary backend deployment, so it uses `wrangler deploy`:
+
+```sh
+node tools/public-engine-host/prepare.mjs \
+  .botanical/clearing-repair/RELEASE/backend \
+  https://clearing-garden-fungi-goblin-bnb.levi-fe0.workers.dev
+./node_modules/.bin/wrangler deploy \
+  --config .botanical/clearing-repair/RELEASE/backend/wrangler.json \
+  --env-file /home/levi/src/Botanical-next/.botanical/credentials/cloudflare.env
+```
+
+The frontend is a named preview alias. `wrangler deploy` only creates an unattached
+version for this `workers_dev: false` project and prints `No targets deployed`.
+That output is a failed publication. Publish the accepted static bytes with the
+alias operation instead:
+
+```sh
+./node_modules/.bin/wrangler versions upload \
+  --preview-alias clearing-garden \
+  --config wrangler.jsonc \
+  --env-file /home/levi/src/Botanical-next/.botanical/credentials/cloudflare.env
+```
+
+Record both the immutable `Version Preview URL` and `Version Preview Alias URL`.
+An exit-zero upload does not prove that the alias serves the new bytes. Verify the
+entire frozen directory through the alias before running a browser witness:
+
+```sh
+node engine/scripts/verify-static-preview.mjs \
+  dist \
+  https://clearing-garden-fungi-goblin-bnb.levi-fe0.workers.dev \
+  .botanical/clearing-repair/RELEASE/http-readback.json
+```
+
+Any mismatch stops the release. In particular, compare the asset names referenced
+by local and served `dist/engine/colony.html`; a version-specific URL serving new
+assets while the alias serves old assets is not hosted parity. Never rerun the
+playable browser proof against that stale alias. Keep the previous frontend and
+backend version IDs as the rollback pair before changing either host.

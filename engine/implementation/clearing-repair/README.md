@@ -1,7 +1,7 @@
 # Clearing repair implementation packet
 
 Status: active integration on `engine/clearing-repair-acceptance-20260914`.
-The clean remotely backed acceptance branch is currently pinned at `0de1d1f`.
+The accepted runtime source is pinned at `d67e28ac`.
 Historical branches and receipts remain evidence; they are not the active queue.
 
 The joined source now contains the native WorkAttempt identity/lifecycle owner,
@@ -14,22 +14,22 @@ rather than synthesizing names in the host. Draft and Undraft use the persistent
 bottom action dock; unavailable actions remain visible with their reason, while
 selection stays UI state and server admission remains authoritative.
 
-Original retained art placement metadata is now owned beside the bed, brewer and
-stair recipes and survives the v4 static pack. The client resolves that metadata
-through the shared world-depth draw/pick owner. Terrain water no longer uses the
-ordinary Pixi Graphics compatibility overlay: the terrain layer emits bounded
-nonpickable transparent paired depth items from one cached 32×16 metric water tile,
-with its inverse projection derived from the shared camera. The executable retained
-art fixture is source-prepared for real terrain, bed/person/stair overlap, cutaway,
-nonpickable occlusion, permutation stability and water depth.
+Original retained art placement metadata is owned beside the bed, brewer and stair
+recipes and survives the v5 static pack. The client converts canonical point and
+multi-cell footprint facts into projected bounds, compares only overlapping nearby
+sprites, caches static relationships and gives ordinary Pixi sprites deterministic
+`zIndex` values. Picking walks that same front-to-back order and then applies the
+existing alpha silhouette. The superseded per-pixel depth renderer is deleted.
+Terrain and water occupy explicit storey bands rather than pretending to be
+physical sprites.
 
-These are accepted source checkpoints, not a playable release claim. The generated
-WASM has not yet been rebuilt against the joined source. The canonical DeliveryTask
-clean break and the remaining work providers are still being migrated to exact
-WorkAttempt operations; old actor/phase/coordinate-outcome logic is not accepted as
-the finished system. The two-participant SQLite/DO witness, interrupted-cargo
-recovery, actual WebGL2 D3-D5 run, joined strict checks, build and preview deployment
-remain open. No current public world has been reset or silently migrated.
+The current root and engine builds pass, drawing laws pass 46/46, party laws pass
+70/70, and the immutable frontend version `2b0f54e3` matches all 176 frozen files.
+The DO backend version `ff3a9d97` is live with the Clearing preview origin. Hosted
+playability remains open because Cloudflare's `clearing-garden` alias still serves
+the older `c4393a6f` HTML even though the current uploaded version records that
+alias. Do not treat the immutable version proof as alias parity and do not rerun the
+browser witness until the exact public URL serves the accepted bytes.
 
 ## Outcome
 
@@ -61,10 +61,9 @@ Rust physical ownership, DO durability and existing assignment performance remai
   no participant database outside that owner, no auth service or global user ID.
 - Explicit Draft/Undraft. A click to select does not change work mode. In this
   Colony slice manual Go requires Draft; normal contextual work remains an order.
-- Opaque sprite depth is a visual fact baked from original geometry, not physical
-  occupancy. Use per-pixel depth for intersecting long artwork instead of hiding
-  an unsatisfiable whole-sprite sort behind offsets. See the bounded feasibility
-  step in drawing; do it before re-exporting the whole bank.
+- Draw order derives from canonical point or multi-cell footprint facts, projected
+  through the shared camera. It never derives physical occupancy from opaque sprite
+  pixels. Alpha silhouettes refine selection only after deterministic ordering.
 - No automatic old-save migration or reset. Preserve old bytes and clearly reject
   unsupported formats. Existing-world continuity and any upgrade disposition are
   explicit release checks; a successful fresh-world test cannot prove continuity.
