@@ -19,6 +19,7 @@ pub(super) struct PreparedGroundStock {
     pub id: String,
     pub position: crate::components::Position,
     pub capacity: u32,
+    pub owner_party: Option<String>,
 }
 
 pub(super) struct PreparedMaterialOutput {

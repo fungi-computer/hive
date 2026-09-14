@@ -3162,7 +3162,7 @@ impl Kernel {
         )?;
         Ok(prepared)
     }
-    fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>) -> Result<PreparedMaterialOutput> {
+    fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>, owner_party: Option<String>) -> Result<PreparedMaterialOutput> {
         self.ensure_ready()?;
         if self.ids.len() + 2 > 16384 { return Err("region entity capacity".into()); }
         if ![position.x, position.y, position.z, position.facing].iter().all(|v| v.is_finite()) {
@@ -3181,7 +3181,7 @@ impl Kernel {
         let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
             self.revision, self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")),
             quantity, 0, self.state_weight, added, STATE_BYTES)?;
-        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity });
+        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity, owner_party });
         Ok(output)
     }
     // Private tokens are prepared and consumed within one synchronous Kernel
@@ -3189,6 +3189,7 @@ impl Kernel {
     fn publish_material_output(&mut self, prepared: PreparedMaterialOutput) -> String {
         if let Some(ground) = prepared.ground {
             let entity = self.ecs.spawn((ExternalId(ground.id.clone()), ground.position, Container { capacity: ground.capacity }, GroundStock {})).id();
+            if let Some(party) = ground.owner_party { self.ecs.entity_mut(entity).insert(OwnedByParty { party }); }
             self.ids.insert(ground.id.clone(), entity);
             self.known.insert(ground.id.clone());
             self.contents.entry(ground.id).or_default();
@@ -3224,7 +3225,7 @@ impl Kernel {
         let water_kg = (excavation.water_kg() > 0.0).then_some(excavation.water_kg());
         let output = match location {
             material_output::MaterialOutputLocation::Container(container) => self.prepare_material_output(MaterialOutputSpec { container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg })?,
-            material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg)?,
+            material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg, None)?,
         };
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.apply_excavation(excavation)?;
@@ -3398,7 +3399,8 @@ impl Kernel {
         let resource = self.ecs.get::<FiniteResource>(source).cloned().ok_or("not a finite resource")?;
         if resource.quantity == 0 { return Err("finite resource is exhausted".into()); }
         let position = *self.ecs.get::<Position>(source).ok_or("finite resource has no physical position")?;
-        let prepared = self.prepare_ground_output(position, resource.kind, resource.quantity, None)?;
+        let owner_party = self.ecs.get::<OwnedByParty>(worker).map(|owner| owner.party.clone());
+        let prepared = self.prepare_ground_output(position, resource.kind, resource.quantity, None, owner_party)?;
         self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
         Ok(self.publish_material_output(prepared))
     }
@@ -4426,6 +4428,7 @@ impl Kernel {
         // Admission above is complete. Move the same lot and its water, never
         // create a replacement lot or consume a delivery's stock.
         let ground = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity }, GroundStock {})).id();
+        if let Some(owner) = self.ecs.get::<OwnedByParty>(actor).cloned() { self.ecs.entity_mut(ground).insert(owner); }
         if let Some(support) = support { self.ecs.entity_mut(ground).insert(support); }
         self.ids.insert(id.clone(), ground);
         self.known.insert(id.clone());
