@@ -524,8 +524,13 @@ export function createHiveClient({
           key: control.id,
           size: "sm",
           variant: "outline",
-          disabled: !state.ready,
-          title: control.detail,
+          disabled: !state.ready || control.availability?.status === "unavailable",
+          title: control.availability?.status === "unavailable"
+            ? control.availability.reason
+            : control.detail,
+          "aria-label": control.availability?.status === "unavailable"
+            ? `${control.label}: ${control.availability.reason}`
+            : control.label,
           onClick: () => executeWhistle(control, bindingCommand(control, state.selectedIds).input),
         }, control.label)),
       ) : null;

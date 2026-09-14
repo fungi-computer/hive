@@ -27,8 +27,20 @@ test("draft controls use the persistent action dock without changing selection",
   assert.deepEqual(selectedActionBarControls(controls, ["party/1/person/0"]).map(({ id }) => id), ["draft", "undraft"]);
 });
 
-test("unavailable action-dock controls stay hidden while the server remains authoritative", () => {
-  assert.deepEqual(selectedActionBarControls([
+test("unavailable action-dock controls remain visible with their server reason", () => {
+  const controls = selectedActionBarControls([
     { id: "draft", placement: "action-bar", selection: "entities", availability: { status: "unavailable", reason: "already drafted" } },
-  ], ["worker"]), []);
+    { id: "undraft", placement: "action-bar", selection: "entities" },
+  ], ["worker"]);
+  assert.deepEqual(controls.map(({ id }) => id), ["draft", "undraft"]);
+  assert.equal(controls[0].availability.reason, "already drafted");
+});
+
+test("ordinary selection only changes the selected IDs supplied to the dock", () => {
+  const controls = [
+    { id: "draft", placement: "action-bar", selection: "entities" },
+    { id: "undraft", placement: "action-bar", selection: "entities" },
+  ];
+  assert.deepEqual(selectedActionBarControls(controls, ["worker-a"]).map(({ id }) => id), ["draft", "undraft"]);
+  assert.deepEqual(selectedActionBarControls(controls, ["worker-b"]).map(({ id }) => id), ["draft", "undraft"]);
 });

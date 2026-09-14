@@ -17,14 +17,14 @@ export function toggleActionCategory(current, next) {
 
 /**
  * Controls explicitly owned by the persistent action dock. Selection remains
- * ordinary client state; the dock only becomes actionable once something is
- * selected and still submits the owning semantic command.
+ * ordinary client state; the dock only becomes visible once something is
+ * selected. Unavailable controls remain visible so the server's reason is
+ * legible; dispatch still rechecks admission at the command boundary.
  */
 export function selectedActionBarControls(controls, selectedIds) {
   if (!Array.isArray(selectedIds) || selectedIds.length === 0) return [];
   return (controls ?? []).filter((control) =>
     control.placement === "action-bar" &&
-    control.selection === "entities" &&
-    control.availability?.status !== "unavailable",
+    control.selection === "entities",
   );
 }
