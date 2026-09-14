@@ -30,7 +30,7 @@ import {
   readSocketMessage,
   socketHandleFromPath,
 } from "./protocol";
-import { createColonyPartyPlan } from "../../engine/src/games/colony-party";
+import { createColonyPartyPlan, colonyPartyFootprint } from "../../engine/src/games/colony-party";
 import { entity } from "../../engine/src/sdk/authoring";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
@@ -650,7 +650,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const player = `player-${credentialHash.slice(0, 24)}`;
         const party = entity(`party-${credentialHash.slice(0, 24)}`);
         const committed = this.region.readCommitted();
-        const spawn = this.resident.findSafeSpawn(committed.revision, committed.state, this.residentRecords(committed.revision));
+        const spawn = this.resident.findSafeSpawn(committed.revision, committed.state, this.residentRecords(committed.revision), colonyPartyFootprint);
         if (!spawn) throw new Error("spawn-unavailable");
         const plan = createColonyPartyPlan(player, party, spawn);
         const command = { id: `join:${credentialHash}`, command: { kind: "action", action: { kind: "establish-party", bindingId: credentialHash.slice(0, 96), player, party, records: plan.records } } };

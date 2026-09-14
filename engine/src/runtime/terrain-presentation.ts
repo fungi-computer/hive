@@ -111,6 +111,7 @@ function validateDefinition(definition: EnvironmentDefinition, configured?: { mi
 
 /** Cached exterior terrain/water projection for trusted host presentation. */
 export class TerrainPresentationOwner {
+  verticalMetres(): number { return this.definition.world.verticalMetres; }
   private cached: CachedSurfaces | undefined;
 
   constructor(

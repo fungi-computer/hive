@@ -42,7 +42,7 @@ export type SessionResidentOptions = {
 };
 
 export interface SessionResident {
-  readonly findSafeSpawn: (revision: number, state: SessionRegionState, records: RegionRecordReader) => { readonly x: number; readonly y: number; readonly z: number } | null;
+  readonly findSafeSpawn: (revision: number, state: SessionRegionState, records: RegionRecordReader, offsets?: readonly (readonly [number, number])[]) => { readonly x: number; readonly y: number; readonly z: number } | null;
   readonly begin: (revision: number, state: SessionRegionState, records: RegionRecordReader) => void;
   readonly execute: (candidate: SessionRegionState, command: RegionCommand, records: RegionRecordReader, baseRevision: number, context: RegionExecutionContext) => RegionTransition;
   readonly accept: (revision: number) => void;
@@ -196,8 +196,8 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         throw error;
       }
     },
-    findSafeSpawn(revision, state, records) {
-      return this.observe(revision, state, records, session => session.findSafeSpawn());
+    findSafeSpawn(revision, state, records, offsets) {
+      return this.observe(revision, state, records, session => session.findSafeSpawn(offsets));
     },
   };
 }

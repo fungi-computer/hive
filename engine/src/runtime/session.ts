@@ -298,18 +298,27 @@ export class GameSession {
     return this.port.terrainSurfaces(columns);
   }
   /** Bounded host-owned spawn projection; callers must still validate the full plan. */
-  findSafeSpawn(): { readonly x: number; readonly y: number; readonly z: number } | null {
+  findSafeSpawn(offsets: readonly (readonly [number, number])[] = [[0,0]]): { readonly x: number; readonly y: number; readonly z: number } | null {
     this.ensureLive();
     const candidates: readonly [number, number][] = [[0,0],[2,0],[-2,0],[0,2],[0,-2],[2,2],[-2,2],[2,-2],[-2,-2]];
+    if (offsets.length < 1 || offsets.length > 16) throw new Error("spawn-footprint-limit");
+    if (!this.terrainPresentation && this.pack.environmentDefinition) {
+      const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
+      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
+    }
+    const vertical = this.terrainPresentation?.verticalMetres() ?? null;
+    if (!vertical) return null;
     for (const [x, z] of candidates) {
-      const surface = this.port.terrainSurfaces([[x, z]])[0];
+      if (offsets.some(([ox, oz]) => !Number.isSafeInteger(ox) || !Number.isSafeInteger(oz) || Math.abs(ox) > 8 || Math.abs(oz) > 8)) throw new Error("spawn-footprint-invalid");
+      const cells = offsets.map(([ox, oz]) => [x + ox, 0, z + oz] as [number, number, number]);
+      const surfaces = this.port.terrainSurfaces(cells.map(([cx,,cz]) => [cx,cz] as [number,number]));
+      const surface = surfaces[0];
       if (!surface) continue;
-      const [sx, sy, sz] = surface.cell;
-      const contacts = this.port.physicalContacts([[sx, sy, sz], [sx, sy + 1, sz]]);
-      const support = contacts[0];
-      const standing = contacts[1];
-      if (support?.solid && !support.sealedTop && standing && !standing.solid && !standing.sealedTop)
-        return { x, y: surface.cell[1], z };
+      const points = surfaces.map((s, i) => s ? [s.cell, [s.cell[0], s.cell[1] + 1, s.cell[2]]] : null).filter(Boolean).flat() as [number,number,number][];
+      if (surfaces.some(s => !s)) continue;
+      const contacts = this.port.physicalContacts(points);
+      if (contacts.every((c, i) => i % 2 === 0 ? c.solid && !c.sealedTop : !c.solid && !c.sealedTop))
+        return { x, y: (surface.cell[1] + 0.5) * vertical, z };
     }
     return null;
   }
