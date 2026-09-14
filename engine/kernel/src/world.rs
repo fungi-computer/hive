@@ -19,6 +19,8 @@ mod initial_placement;
 mod authored_entities;
 #[path = "structure_contact.rs"]
 mod structure_contact;
+#[path = "interaction_contact.rs"]
+mod interaction_contact;
 #[cfg(test)]
 #[path = "aperture_tests.rs"]
 mod aperture_tests;
@@ -2838,7 +2840,7 @@ impl Kernel {
     fn contact(&self, a: Entity, b: Entity) -> Result<()> {
         let a = self.contact_pose(a)?;
         let b = self.world_pose_entity(b, 0)?;
-        if navigation::distance(navigation::point(a), navigation::point(b)) > 1.5 {
+        if !interaction_contact::within_transfer_reach(navigation::point(a), navigation::point(b)) {
             return Err("out of reach".into());
         }
         Ok(())
