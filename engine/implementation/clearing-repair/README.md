@@ -3,7 +3,7 @@
 Status: active implementation over source baseline `ab58104` in
 `/mnt/fungi-data/botanical-work/pathfinding-clean`. Integrator remains on
 `engine/pathfinding-clean-20260913`; use separate worktrees for each writer.
-Accepted through `b12cfdb`: the native WorkAttempt owner retains exact
+Accepted through `1f56598`: the native WorkAttempt owner retains exact
 generation/sequence and now rejects worker/task/party ownership mismatches; the
 shared native transfer-contact query follows portable custody, enumerates lawful
 three-dimensional terrain contacts, and shares its metric reach predicate with
@@ -12,8 +12,11 @@ rebuilt Colony contact consumer and delivery laws pass 11/11. Native floor finis
 replacement now preserves the supporting floor identity and geometry beneath a
 completed 2x2 brewer, including its kettle port and live contents; cancellation
 leaves staged material recoverable, target mutation cannot publish, current-format
-save/reload passes, and the 24 affected floor laws pass. Shared-party hosting,
-complete provider migration, the real Colony floor consumer, and per-pixel drawing
+save/reload passes, and the 24 affected floor laws pass. Construction now uses
+the WorkAttempt owner exclusively: the direct `AttendConstruction` path and the
+site-local worker claim are deleted, terminal success or blockage is explicit,
+and acknowledgement releases the worker. Shared-party hosting, complete migration
+of the other providers, the real Colony floor consumer, and live per-pixel drawing
 remain review work rather than accepted behavior. The bounded WebGL2 depth
 feasibility checkpoint at `6bc00a3` is accepted: the retained actual-art capture
 uses terrain, the retained bed and Rowan; all 460 overlapping proof pixels agree
@@ -34,10 +37,10 @@ the world invite out of HTTP routing and keep a persisted participant credential
 out of URLs. Its 18 remote-runtime and 17 choice/protocol laws plus strict types
 pass. The DO transaction, canonical player/party spawn, principal propagation and
 two-player witness remain unfinished, so this is not yet playable multiplayer.
-The construction provider cutover is still under review: its site-local worker
-field is removed, but the reviewed candidate failed to release the WorkAttempt
-after successful completion. Do not integrate or describe that candidate as the
-trapped-worker fix until its terminal-result law passes.
+The first construction cutover defect (success leaving an executing attempt) is
+superseded by `1f56598`; 29 construction laws, three attempt laws and strict types
+passed in `run-u7288`. This is one provider acceptance, not yet proof that hauling,
+brewing, planting, digging, water work and deconstruction cannot trap workers.
 This packet refines the September 14 sections of
 [the owning sprint](../../CLEARING-CONSOLIDATION-PLAN.md). Later direct Levi
 instructions supersede it. Do not revive historical queues elsewhere in that file.
