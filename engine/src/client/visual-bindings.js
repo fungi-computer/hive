@@ -5,11 +5,14 @@ const constructionBindings = Object.fromEntries(["floor", "wall", "stair", "roof
     facing: type === "stair" || type === "bed" || type === "roof" || type === "shelf", anchor: "propAnchor",
     worldRole: type === "floor" ? "floor" : "structure",
   })])));
-const edgeWallBindings = Object.fromEntries(["stakes", "frame", "finished"].flatMap(stage =>
-  ["end", "straight", "corner", "t", "cross"].flatMap(variant =>
-    [["x", 0], ["z", 1]].map(([axis, facing]) => [`colony.wall.${stage}.${variant}.${axis}`, Object.freeze({
-      kind: "static", path: ["edgeWalls", stage, variant, facing], facing: false, anchor: "propAnchor", worldRole: "structure",
-    })]))));
+const edgeWallBindings = Object.fromEntries(["stakes", "frame", "finished"].flatMap(stage => [
+  ...[["x", 0], ["z", 1]].map(([axis, facing]) => [`colony.wall.segment.${stage}.${axis}`, Object.freeze({
+    kind: "static", path: ["edgeWalls", "segment", stage, facing], facing: false, anchor: "propAnchor", worldRole: "structure",
+  })]),
+  ...Array.from({ length: 15 }, (_, index) => index + 1).map(mask => [`colony.wall.junction.${stage}.${mask}`, Object.freeze({
+    kind: "static", path: ["edgeWalls", "junction", stage, mask], facing: false, anchor: "propAnchor", worldRole: "structure",
+  })]),
+]));
 const brewStationProfileBindings = Object.fromEntries([
   "empty", "stock-w0-b0-k0", "stock-w1-b0-k0", "stock-w0-b1-k0",
   "stock-w1-b1-k0", "stock-w0-b0-k1", "stock-w1-b0-k1", "stock-w0-b1-k1",

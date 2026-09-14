@@ -270,6 +270,17 @@ and one visual owner so neighboring segments do not double-render it. Posts gran
 no new structural support. Do not retain cell-neighbor masks that connect parallel
 but physically unrelated edges. Test different finishes on opposite sides.
 
+Do not collapse a whole segment to one of five labels such as `corner` or `t`.
+That loses which endpoint owns the junction and which cardinal directions meet
+there. The accepted presentation shape is one stage/axis segment sprite per
+physical wall plus exactly one derived junction sprite per occupied grid vertex.
+The junction key is the exact four-bit `+x,+z,-x,-z` incident-edge mask. Its
+stable derived ID and position come from the canonical vertex; it is nonphysical
+and non-pickable, and it grants no seal, support, occupancy or authority. Choose
+its visible construction stage deterministically from its incident sites. This
+requires six segment bakes and forty-five junction bakes, rather than hundreds of
+whole-segment combinations, and neighboring walls cannot double-render a post.
+
 ## E. Saves, authority and release
 
 The wall representation change is a breaking physical format change. Version it

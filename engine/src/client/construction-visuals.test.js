@@ -1,28 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { edgeAdjacency } from '../sdk/edge-connections.ts';
+import { edgeJunctions } from '../sdk/edge-connections.ts';
 import { colonyConstructionVisuals } from '../games/colony-construction-visuals.ts';
 import { colonyEnvironment } from '../games/colony-environment.ts';
 import { DEFAULT_VISUAL_BINDINGS } from './visual-bindings.js';
 
-test('edge connections are order-independent and never cross levels', () => {
+test('edge junctions retain exact directions, are order-independent, and never cross levels', () => {
   const entries = [
     {id:'x',edge:{cell:[0,4,0],axis:'x'}},
     {id:'z',edge:{cell:[0,4,0],axis:'z'}},
     {id:'above',edge:{cell:[0,5,0],axis:'z'}},
   ];
-  const connections=edgeAdjacency(entries);
-  assert.deepEqual(connections.get('x'),{
-    negative:{tangent:false,perpendicular:0}, positive:{tangent:false,perpendicular:1},
-  });
-  assert.deepEqual(connections.get('z'),{
-    negative:{tangent:false,perpendicular:0}, positive:{tangent:false,perpendicular:1},
-  });
-  assert.deepEqual(connections.get('above'),{
-    negative:{tangent:false,perpendicular:0}, positive:{tangent:false,perpendicular:0},
-  });
-  assert.deepEqual([...connections], [...edgeAdjacency([...entries].reverse())].reverse());
+  const normalize=(values)=>values.map(({point,mask,incident})=>({point,mask,incident})).sort((left,right)=>JSON.stringify(left.point).localeCompare(JSON.stringify(right.point)));
+  assert.deepEqual(normalize(edgeJunctions(entries)),normalize([
+    {point:[0.5,4,-0.5],mask:2,incident:['x']},
+    {point:[0.5,4,0.5],mask:12,incident:['x','z']},
+    {point:[-0.5,4,0.5],mask:1,incident:['z']},
+    {point:[0.5,5,0.5],mask:4,incident:['above']},
+    {point:[-0.5,5,0.5],mask:1,incident:['above']},
+  ]));
+  assert.deepEqual(edgeJunctions(entries), edgeJunctions([...entries].reverse()));
 });
 
 test('Colony derives edge-wall joints from canonical physical neighbors', () => {
@@ -32,14 +30,16 @@ test('Colony derives edge-wall joints from canonical physical neighbors', () => 
     catalog:'timber-wall',targetKind:'edge',targetX:x,targetY:y,targetZ:z,targetDirection:axis,phase:'finished',seconds:4,
   })}));
   const visuals=colonyConstructionVisuals({query:()=>sites});
-  assert.deepEqual(visuals.map(v=>v.visual),[
-    'colony.wall.finished.corner.x','colony.wall.finished.corner.z','colony.wall.finished.end.z',
+  assert.deepEqual(visuals.slice(0,3).map(v=>v.visual),[
+    'colony.wall.segment.finished.x','colony.wall.segment.finished.z','colony.wall.segment.finished.z',
   ]);
   const wallY=(14-.5)*colonyEnvironment.world.verticalMetres;
   const upperWallY=(15-.5)*colonyEnvironment.world.verticalMetres;
-  assert.deepEqual(visuals.map(v=>v.pose.position),[
+  assert.deepEqual(visuals.slice(0,3).map(v=>v.pose.position),[
     {x:0.5,y:wallY,z:0},{x:0,y:wallY,z:0.5},{x:0,y:upperWallY,z:0.5},
   ]);
+  assert.equal(visuals.filter(v=>v.visual.includes('.junction.')).length,5);
+  assert.equal(visuals.find(v=>v.visual==='colony.wall.junction.finished.12')?.pickable,false);
 });
 
 test('constructed shelves use the retained two-facing shelf artwork', () => {
