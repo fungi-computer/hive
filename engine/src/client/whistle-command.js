@@ -189,6 +189,10 @@ export function buildPlacementCommand(control, selected, designation) {
     throw new Error("build designation has no cells");
   if (designation.mode && !control.designation?.includes(designation.mode))
     throw new Error("build designation mode is not supported by this binding");
+  if (designation.edges) {
+    if (!control.designation?.includes("edge-line")) throw new Error("edge designation is not supported by this binding");
+    return { ...bindingCommand(control, selected), input: JSON.stringify({ ...(bindingCommand(control, selected).input ?? {}), target: { edges: designation.edges } }) };
+  }
   if (designation.cells.length === 1)
     return terrainCellCommand(control, selected, {
       cell: designation.cells[0],
