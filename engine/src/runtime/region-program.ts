@@ -52,7 +52,11 @@ export interface SessionResident {
 
 function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope): unknown {
   switch (command.kind) {
-    case "action": session.request(command.action); return [];
+    case "action":
+      session.request(command.action);
+      // Party establishment is a host-only composite: settle its prepared
+      // native group in this same Region candidate and receipt.
+      return command.action.kind === "establish-party" ? session.step(0) : [];
     case "command": session.command(command.name, command.input, scope); return [];
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];

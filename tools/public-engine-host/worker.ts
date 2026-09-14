@@ -55,7 +55,8 @@ type HostRow = {
 type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: string };
 type SocketAttachment = {
   readonly pack: PublicPack;
-  readonly tokenHash: string;
+  readonly worldHandle: string;
+  readonly principal: string;
   readonly authenticated: boolean;
   readonly authDeadline: number | null;
   readonly retired?: boolean;
@@ -266,7 +267,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       hostPrincipal,
       seed: 17,
       scopeForPrincipal: (principal) => {
-        if (principal === hostPrincipal || principal === playerPrincipal) return { kind: "host" };
+        if (principal === hostPrincipal) return { kind: "host" };
         const participant = this.owner.sql.exec<ParticipantRow>("SELECT player_id,party_id FROM hive_public_participants WHERE principal=?", principal).toArray()[0];
         return participant ? { kind: "player", player: participant.player_id, party: participant.party_id as any } : null;
       },
@@ -537,7 +538,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       let failed = false;
       for (const socket of this.state.getWebSockets()) {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-        if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
+        if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== this.worldHandle) continue;
         if (!this.sendObservation(socket, payload, attachment)) failed = true;
       }
       if (failed) throw new Error("observation publication failed");
@@ -548,7 +549,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     console.error("public observation publication failed", error);
     for (const socket of this.state.getWebSockets()) {
       const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.tokenHash !== this.tokenHash) continue;
+      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== this.worldHandle) continue;
       try { socket.send(JSON.stringify({ type: "error", error: "observation-publication-failed" })); } catch {}
     }
   }
@@ -621,6 +622,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const credentialHash = await sha256Hex(credential);
     const principal = `participant:${credentialHash}`;
     return this.serial(async () => {
+      try {
       const result = await this.inTransaction(async () => {
         const world = this.owner.sql.exec<{ world_handle: string; pack: string; invite_hash: string }>(
           "SELECT world_handle,pack,invite_hash FROM hive_public_world WHERE singleton=1",
@@ -632,20 +634,21 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const existing = this.participant(credentialHash);
         if (existing) return existing;
         const player = `player-${credentialHash.slice(0, 24)}`;
-        const party = `party/${player}` as any;
+        const party = `party-${credentialHash.slice(0, 24)}` as import("../../engine/src/contracts").EntityId;
         const plan = createColonyPartyPlan(player, party, { x: 0, y: 0, z: 0 });
         const command = { id: `join:${credentialHash}`, command: { kind: "action", action: { kind: "establish-party", bindingId: credentialHash.slice(0, 96), player, party, records: plan.records } } };
         this.resident.begin(this.region.readCommitted().revision, this.region.readCommitted().state, this.residentRecords(this.region.readCommitted().revision));
         this.region.dispatch("colony-host", command);
-        // The native action boundary settles the prepared group on the same
-        // durable candidate; zero time keeps join from advancing the clock.
-        this.region.dispatch("colony-host", { id: `join-step:${credentialHash}`, command: { kind: "step", delta: 0 } });
         this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, principal, player, party);
         return { credential_hash: credentialHash, principal, player_id: player, party_id: party } satisfies ParticipantRow;
       });
       this.resident.accept(this.region.readCommitted().revision);
       await this.renewLeaseExclusive(now);
       return { player: result.player_id, party: result.party_id, people: [ `${result.party_id}.person.0`, `${result.party_id}.person.1` ] };
+      } catch (error) {
+        try { this.resident.discard(); } catch { /* preserve transaction failure */ }
+        throw error;
+      }
     });
   }
 
@@ -820,7 +823,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         // credential is checked above and is never placed in the URL.
         await this.initialize("colony", this.worldHandle!);
       } else await this.initialize(attachment.pack, tokenHash);
-      socket.serializeAttachment({ pack: attachment.pack, tokenHash, authenticated: true, authDeadline: null } satisfies SocketAttachment);
+      const principal = attachment.pack === "colony" ? `participant:${tokenHash}` : `${attachment.pack}-player`;
+      socket.serializeAttachment({ pack: attachment.pack, worldHandle: this.worldHandle ?? this.tokenHash, principal, authenticated: true, authDeadline: null } satisfies SocketAttachment);
       await this.renewLease(Date.now());
       socket.send(JSON.stringify({ type: "ready", game: attachment.pack }));
       const authenticated = socket.deserializeAttachment() as SocketAttachment;
@@ -867,7 +871,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           const sockets = this.state.getWebSockets();
           if (sockets.length >= 64 || sockets.filter((s) => !(s.deserializeAttachment() as SocketAttachment | null)?.authenticated).length >= 32)
             return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
-          server.serializeAttachment({ pack: "colony", tokenHash: "", authenticated: false, authDeadline: Date.now() + 5_000 } satisfies SocketAttachment);
+          server.serializeAttachment({ pack: "colony", worldHandle: colonyRoute.world, principal: "", authenticated: false, authDeadline: Date.now() + 5_000 } satisfies SocketAttachment);
           this.state.acceptWebSocket(server);
           return new Response(null, { status: 101, webSocket: pair[0] });
         }
@@ -895,7 +899,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         });
         if (sockets.length >= 64 || unauthenticated.length >= 32) return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
         const deadline = Date.now() + 5_000;
-        server.serializeAttachment({ pack, tokenHash: "", authenticated: false, authDeadline: deadline } satisfies SocketAttachment);
+        server.serializeAttachment({ pack, worldHandle: tokenHash, principal: "", authenticated: false, authDeadline: deadline } satisfies SocketAttachment);
         this.state.acceptWebSocket(server);
         const row = this.hasHostTable() ? this.hostRow() : undefined;
         if (row) await this.arm(row);
