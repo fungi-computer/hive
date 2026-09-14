@@ -3,6 +3,7 @@ import { WORLD_TOWARD_CAMERA } from "../../../engine/src/client/geometry.js";
 import { resolveWorldArtPlacement } from "../../../engine/src/client/art-placement.js";
 import { subjectWorldDepthItem } from "../../../engine/src/client/world-depth-items.js";
 import { createWorldDepthLayer } from "../../../engine/src/client/world-depth-layer.js";
+import { createTerrainLayer } from "../../../engine/src/client/terrain-layer.js";
 
 function pathValue(root, path) {
   return path.reduce((value, segment) => value?.[segment], root);
@@ -36,27 +37,6 @@ function item(art, id, path, world, screen, role, subjectPlacement = null, orien
   });
 }
 
-function terrainItem(art, entityId, worldOrigin, alpha = 1) {
-  const colorTexture = art.ground;
-  const depthFrame = art.depthByTexture?.get(colorTexture);
-  if (!depthFrame) throw new Error("retained depth fixture missing terrain pair");
-  return {
-    entityId,
-    visualPartId: "opaque",
-    physicalRole: "terrain",
-    colorTexture,
-    depthTexture: depthFrame.texture,
-    colorFrame: { frame: { x: 0, y: 0, width: colorTexture.source.width, height: colorTexture.source.height } },
-    depthFrame,
-    worldOrigin,
-    screenTransform: { x: 0, y: 0, scale: 1 },
-    anchor: { x: 0, y: 0 },
-    visible: true,
-    pickable: false,
-    alpha,
-  };
-}
-
 /**
  * Browser/WebGL2-only D3–D5 fixture. It loads the retained v4 bank, creates
  * the real paired DrawItems used by the world-depth owner, and returns the
@@ -67,10 +47,21 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
     throw new Error("retained-world-depth-acceptance-requires-webgl2");
   const loaded = await load();
   const { art, manifest, dispose } = loaded;
+  const terrainLayer = createTerrainLayer();
+  terrainLayer.update({
+    revision: 1,
+    verticalMetres: 1,
+    surfaces: [{ cell: [0, 0, 0], material: 1, generatedTop: 0 }],
+    structureSurfaces: [],
+    water: [{ at: [0, 0, 0], level: 7, liquidVolumeM3: 1 }],
+  }, 1, "full");
+  terrainLayer.position({ x: 0, y: 0, zoom: 1 });
+  const terrain = terrainLayer.drawItem;
+  const [water] = terrainLayer.transparentItems;
+  if (!terrain || !water) throw new Error("retained depth fixture missing terrain producer items");
   const layer = createWorldDepthLayer({ width, height });
   const center = { x: width / 2, y: height / 2 };
   const sign = WORLD_TOWARD_CAMERA[0] >= 0 ? 1 : -1;
-  const terrain = terrainItem(art, "terrain", { x: -30 * sign, y: 0, z: 0 });
   const items = [
     terrain,
     item(art, "bed", ["buildings", "bed", "finished", 0], { x: 0, y: 0, z: 0 }, center, "structure", { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" }),
@@ -104,8 +95,8 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
     layer.update(order, WORLD_TOWARD_CAMERA);
     layer.render(renderer);
     const beforeWater = renderer.extract.canvas(layer.texture).getContext("2d").getImageData(0, 0, width, height).data;
-    const waterBehind = terrainItem(art, "water-behind", { x: -10 * sign, y: 0, z: 0 }, 0.35);
-    const waterFront = terrainItem(art, "water-front", { x: 10 * sign, y: 0, z: 0 }, 0.35);
+    const waterBehind = { ...water, entityId: "water-behind", worldOrigin: { ...water.worldOrigin, z: water.worldOrigin.z - 0.5 * sign } };
+    const waterFront = { ...water, entityId: "water-front", worldOrigin: { ...water.worldOrigin, z: water.worldOrigin.z + 0.5 * sign } };
     layer.renderTransparent(renderer, [waterBehind, waterFront]);
     outputs.push(layer.picker.pick(center));
     const canvas = renderer.extract.canvas(layer.texture);
@@ -157,6 +148,7 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
   if (!result.permutationStable || result.pointPicks.bed.entityId !== "bed" || result.pointPicks.person.entityId !== "person-front" || result.pointPicks.bottom.entityId !== "stair-bottom" || result.pointPicks.mid.entityId !== "stair-mid" || result.pointPicks.landing.entityId !== "stair-landing" || result.pointPicks.opaque.entityId !== "opaque-wall" || result.pointPicks.opaque.target !== null || cutawayPick?.entityId !== "bed" || result.waterFrontChanged <= result.waterBehindChanged)
     throw new Error(`retained-world-depth-acceptance-failed:${JSON.stringify(result)}`);
   layer.dispose();
+  terrainLayer.dispose();
   dispose();
   return result;
 }

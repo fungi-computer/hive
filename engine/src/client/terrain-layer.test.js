@@ -5,7 +5,22 @@ import { copyTerrainDepthPixels, createTerrainLayer, terrainScreenTransform } fr
 test("terrain layer has no opaque sprite owner and disposal is repeatable", () => {
   const layer = createTerrainLayer();
   assert.equal(layer.drawItem, undefined);
+  assert.strictEqual(layer.waterTile, layer.waterTile);
+  assert.equal(layer.waterTile.colorTexture.source.width, 32);
+  assert.equal(layer.waterTile.colorTexture.source.height, 16);
+  assert.equal(layer.waterTile.depthPixels.length, 32 * 16 * 4);
+  assert.ok(layer.waterTile.depthPixels.every((value) => Number.isInteger(value) && value >= 0 && value <= 255));
   layer.dispose();
+  layer.dispose();
+});
+
+test("water tile keeps a bounded diamond alpha and paired metric bytes", () => {
+  const layer = createTerrainLayer();
+  const color = layer.waterTile.colorTexture.source.resource;
+  const opaque = [...color].filter((value, index) => index % 4 === 3 && value > 0).length;
+  assert.ok(opaque > 0 && opaque < 32 * 16);
+  assert.equal(layer.waterTile.depthTexture.source.resource.length, layer.waterTile.depthPixels.length);
+  assert.ok(new Set(layer.waterTile.depthPixels.filter((_, index) => index % 4 === 0)).size > 1);
   layer.dispose();
 });
 
