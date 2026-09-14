@@ -403,10 +403,14 @@ export type PartyJoinIdentity = Readonly<{
   readonly sequence: number;
   readonly player: string;
   readonly party: EntityId;
+  readonly people: readonly EntityId[];
 }>;
 export type PartyJoinCapability = Readonly<{
   readonly footprint: readonly (readonly [number, number])[];
-  readonly prepare: (player: string, party: EntityId, spawn: Vec3) => readonly EntityRecord[];
+  readonly prepare: (player: string, party: EntityId, spawn: Vec3) => Readonly<{
+    readonly records: readonly EntityRecord[];
+    readonly people: readonly EntityId[];
+  }>;
 }>;
 export type ActionScope =
   | { readonly kind: "host" }

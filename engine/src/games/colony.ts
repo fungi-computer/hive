@@ -347,7 +347,10 @@ export const colonyPack: GamePack = {
   systems: [colonyWorkSystem, colonyCatSystem],
   partyJoin: Object.freeze({
     footprint: Object.freeze([[0, 0], [2, 0], [0, 2]] as const),
-    prepare: (player, party, spawn) => createColonyPartyPlan(player, party, spawn).records,
+    prepare: (player, party, spawn) => {
+      const plan = createColonyPartyPlan(player, party, spawn);
+      return Object.freeze({ records: plan.records, people: plan.people });
+    },
   }),
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {

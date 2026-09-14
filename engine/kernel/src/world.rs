@@ -3752,8 +3752,15 @@ impl Kernel {
                 found = Some((sequence, receipt.player.clone(), receipt.party.clone()));
             }
         }
-        if let Some((sequence, player, party)) = found { return serde_json::to_string(&serde_json::json!({"status":"existing","sequence":sequence,"player":player,"party":party})).map_err(|e| e.to_string()); }
-        serde_json::to_string(&serde_json::json!({"status":"available","sequence":self.next_party_sequence,"player":format!("player:{}", self.next_party_sequence),"party":format!("party:{}", self.next_party_sequence)})).map_err(|e| e.to_string())
+        if let Some((sequence, player, party)) = found {
+            let mut people = self.ids.iter().filter_map(|(id, entity)| {
+                self.ecs.get::<PartyMember>(*entity).filter(|member| member.party == party).map(|_| id.clone())
+            }).collect::<Vec<_>>();
+            if people.len() > 32 { return Err("party join people projection is too large".into()); }
+            people.sort();
+            return serde_json::to_string(&serde_json::json!({"status":"existing","sequence":sequence,"player":player,"party":party,"people":people})).map_err(|e| e.to_string());
+        }
+        serde_json::to_string(&serde_json::json!({"status":"available","sequence":self.next_party_sequence,"player":format!("player:{}", self.next_party_sequence),"party":format!("party:{}", self.next_party_sequence),"people":[]})).map_err(|e| e.to_string())
     }
     fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
         if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }

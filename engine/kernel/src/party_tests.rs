@@ -2,11 +2,16 @@ use super::*;
 use serde_json::{json, Value};
 
 fn plan() -> Value {
+    plan_for(1, "party:1:rowan", "party:1:sedge")
+}
+fn plan_for(sequence: u64, first: &str, second: &str) -> Value {
+    let party = format!("party:{sequence}");
+    let player = format!("player:{sequence}");
     json!([
- {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
- {"id":"party:1:person:0","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":"party:1"}}},
- {"id":"party:1:person:1","components":{"hive.position":{"x":2.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":"party:1"}}},
- {"id":"party:1:storage","components":{"hive.position":{"x":0.0,"y":0.0,"z":2.0,"facing":0.0},"hive.container":{"capacity":8},"hive.owned-by-party":{"party":"party:1"}}}
+ {"id":party,"components":{"hive.party":{"ownerPlayer":player}}},
+ {"id":first,"components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
+ {"id":second,"components":{"hive.position":{"x":2.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
+ {"id":format!("{party}:storage"),"components":{"hive.position":{"x":0.0,"y":0.0,"z":2.0,"facing":0.0},"hive.container":{"capacity":8},"hive.owned-by-party":{"party":party}}}
     ])
 }
 fn request(binding: &str, records: Value) -> Value {
@@ -37,12 +42,19 @@ fn party_join_identity_is_native_and_replay_stable() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":1,"game":"party-query","components":[],"initial":[]}).to_string()).unwrap();
     let available: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
-    assert_eq!((available["status"].as_str(), available["sequence"].as_u64(), available["player"].as_str(), available["party"].as_str()), (Some("available"), Some(1), Some("player:1"), Some("party:1")));
+    assert_eq!((available["status"].as_str(), available["sequence"].as_u64(), available["player"].as_str(), available["party"].as_str(), available["people"].as_array().map(Vec::len)), (Some("available"), Some(1), Some("player:1"), Some("party:1"), Some(0)));
     assert!(accepted(&mut kernel, request("binding:a", plan())));
     let existing: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
     assert_eq!((existing["status"].as_str(), existing["sequence"].as_u64(), existing["player"].as_str(), existing["party"].as_str()), (Some("existing"), Some(1), Some("player:1"), Some("party:1")));
+    assert_eq!(existing["people"], json!(["party:1:rowan", "party:1:sedge"]));
+    let reconnect: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
+    assert_eq!(reconnect["people"], existing["people"]);
     let next: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:b\"").unwrap()).unwrap();
     assert_eq!((next["status"].as_str(), next["sequence"].as_u64(), next["player"].as_str(), next["party"].as_str()), (Some("available"), Some(2), Some("player:2"), Some("party:2")));
+    assert_eq!(next["people"], json!([]));
+    assert!(accepted(&mut kernel, request_sequence("binding:b", 2, plan_for(2, "party:2:ember", "party:2:willow"))));
+    let second: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:b\"").unwrap()).unwrap();
+    assert_eq!(second["people"], json!(["party:2:ember", "party:2:willow"]));
 }
 fn accepted(kernel: &mut Kernel, input: Value) -> bool {
     serde_json::from_str::<Value>(&kernel.advance_json(&input.to_string()).unwrap()).unwrap()["results"][0]["accepted"] == true
