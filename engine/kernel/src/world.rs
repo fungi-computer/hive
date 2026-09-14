@@ -1793,7 +1793,6 @@ impl Kernel {
             if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
             if id != &format!("process:{}:{}", process.station, process.definition) { return Err("saved process identity is invalid".into()); }
             let bindings = bindings_by_process.remove(id).unwrap_or_default();
-            if matches!(process.phase, ProcessPhase::Working | ProcessPhase::Blocked) && bindings.is_empty() { return Err("active process has no bindings".into()); }
             if process.phase == ProcessPhase::Complete && !bindings.is_empty() { return Err("completed process retains input bindings".into()); }
             let attendance = self.work_attempts.get(id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity));
             let executing_attendance = attendance.and_then(|attempt| match &attempt.phase {
@@ -1807,9 +1806,10 @@ impl Kernel {
             } else if executing_attendance.is_some() {
                 return Err("non-working process retains executing attendance attempt".into());
             }
-            if !bindings.is_empty() {
-                crate::staged_process::validate_bindings(
-                    definition, id, &process.station, &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
+            if process.phase != ProcessPhase::Complete {
+                crate::staged_process::validate_bindings_at_stage(
+                    definition, usize::from(process.stage_index), id, &process.station,
+                    &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
                     &|lot_id| self.ids.get(lot_id).and_then(|entity| self.ecs.get::<Lot>(*entity).cloned()),
                 )?;
             }
@@ -3517,7 +3517,18 @@ impl Kernel {
                 let entity = *self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?;
                 let attempt = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
                 let operation = attempt.current_operation().cloned().ok_or("process attendance operation is missing")?;
-                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, result: WorkOutcome::Completed })?;
+                let result = if state.phase == ProcessPhase::Blocked {
+                    let reason = match state.blocked_reason.as_str() {
+                        "process-binding-missing" => WorkBlockReason::MissingInputs,
+                        "process-output-full" | "process-emission-blocked" | "process-state-capacity" => WorkBlockReason::CapacityUnavailable,
+                        "process-air-unavailable" => WorkBlockReason::AccessLost,
+                        _ => WorkBlockReason::UnsupportedStructure,
+                    };
+                    WorkOutcome::Blocked { reason }
+                } else {
+                    WorkOutcome::Completed
+                };
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, result })?;
             }
         }
         Ok(())
@@ -4041,7 +4052,12 @@ impl Kernel {
         if let Some(existing) = self.attempts_by_worker.get(worker_id) && existing.task != process_id { return Err("worker already attends process".into()); }
         self.contact(worker, self.entity(&state.station)?)?;
         state.phase = ProcessPhase::Working; state.blocked_reason.clear();
-        if delta > 0.0 { state.progress_seconds = crate::world::earned_work_seconds(state.progress_seconds, delta, stage.duration_seconds)?; }
+        if delta == 0.0 {
+            self.ecs.entity_mut(process_entity).insert(state);
+            self.refresh_state_weight();
+            return Ok(());
+        }
+        state.progress_seconds = crate::world::earned_work_seconds(state.progress_seconds, delta, stage.duration_seconds)?;
         self.finish_process_stage(process_id, state, &definition)
     }
 

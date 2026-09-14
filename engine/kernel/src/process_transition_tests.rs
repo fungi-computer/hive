@@ -1,12 +1,11 @@
 use super::*;
-use crate::emission_definition::{EmissionCatalog, EmissionDefinition};
-use crate::environment_definition::{CompletionRecipe, PortDefinition, StructureDefinition};
+use crate::emission_definition::EmissionDefinition;
 use crate::staged_process::{
     InputDisposition, InputPolicy, OutputDestination, ProcessDefinition, ProcessEmission,
     ProcessInput, ProcessOutput, ProcessPhase, ProcessStage, ProcessTransition, StageMode,
     StagedProcess,
 };
-use crate::terrain_atmosphere::{ExteriorPolicy, TerrainAtmosphere, TerrainAtmosphereConfig};
+use crate::terrain_atmosphere::{ExteriorPolicy, TerrainAtmosphereConfig};
 use serde_json::json;
 
 fn herbal_definition() -> ProcessDefinition {
@@ -127,53 +126,14 @@ fn herbal_definition() -> ProcessDefinition {
 fn fixture(blocked_air: bool) -> Kernel {
     let mut kernel = Kernel::new();
     kernel.load(r#"{"format":"hive-game","version":1,"game":"process-transition-laws","components":[],"initial":[]}"#).unwrap();
-    kernel
-        .load_environment(&crate::environment_definition::tests::fixture(
-            "process-transition-laws",
-        ))
-        .unwrap();
-    let ports = ["kettle", "hearth", "barm", "keg", "tray"]
-        .into_iter()
-        .map(|key| PortDefinition {
-            key: key.into(),
-            components: vec![(
-                "hive.container".into(),
-                [("capacity".into(), json!(16))].into_iter().collect(),
-            )],
-            at_site_contact: false,
-        })
-        .collect();
-    let station_def = StructureDefinition {
-        id: "brew-station".into(),
-        shape: crate::environment_definition::StructureShape::Floor,
-        materials: BTreeMap::new(),
-        work_seconds: 1.0,
-        work_reach_below_cells: 0,
-        on_complete: CompletionRecipe {
-            components: vec![],
-            ports,
-        },
-        on_remove: Default::default(),
-    };
-    let environment = kernel.environment.as_mut().unwrap();
-    environment
-        .structures
-        .insert("brew-station".into(), station_def);
-    environment.emissions = EmissionCatalog::from_definitions(vec![EmissionDefinition {
+    let emission = EmissionDefinition {
         id: "wood-hearth".into(),
         material_kind: "wood".into(),
         quantity: 1,
         duration_s: 3.0,
         smoke_kg: 0.03,
         heat_j: 30_000.0,
-    }])
-    .unwrap();
-    environment.processes = crate::staged_process::ProcessCatalog::from_definitions(
-        vec![herbal_definition()],
-        &environment.structures,
-        &environment.emissions,
-    )
-    .unwrap();
+    };
     let config = TerrainAtmosphereConfig {
         region_id: "brew-air".into(),
         min: crate::generation::Cell {
@@ -194,28 +154,51 @@ fn fixture(blocked_air: bool) -> Kernel {
         outdoor_loss_per_second: 0.0,
         heat_capacity_j_per_m3_k: 1200.0,
     };
-    environment.atmosphere =
-        Some(TerrainAtmosphere::fresh(&mut environment.world, config).unwrap());
-    let y = if blocked_air { 0.0 } else { 20.0 };
+    let mut definition: serde_json::Value = serde_json::from_str(
+        &crate::environment_definition::tests::fixture("process-transition-laws"),
+    ).unwrap();
+    definition["atmosphere"] = serde_json::to_value(&config).unwrap();
+    definition["emissions"] = serde_json::to_value([emission]).unwrap();
+    definition["processes"] = serde_json::to_value([herbal_definition()]).unwrap();
+    let ports = ["kettle", "hearth", "barm", "keg", "tray"].into_iter()
+        .map(|key| json!({"key":key,"components":[{"name":"hive.container","value":{"capacity":16}}]}))
+        .collect::<Vec<_>>();
+    definition["structures"]["catalog"] = json!([{
+        "id":"brew-station", "shape":{"kind":"floor"},
+        "materials":[{"kind":"stone-spoil","quantity":1}],
+        "workSeconds":1.0, "workReachBelowCells":0,
+        "onComplete":{"ports":ports}
+    }]);
+    kernel.load_environment(&definition.to_string()).unwrap();
+    let surface = kernel.environment.as_mut().unwrap().world
+        .surface_cells(&[(0, 0)]).unwrap()[0].as_ref().unwrap().cell;
+    let prepared = kernel.environment.as_mut().unwrap().world
+        .prepare_structures(vec![crate::structure_geometry::StaticInstance::Floor {
+            id: "station".into(), support: surface,
+        }]).unwrap().unwrap();
+    kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+    let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+    let station_position = Position {
+        x: (surface.x as f64 + 1.0) * spacing[0],
+        y: (f64::from(surface.y) + 0.5) * spacing[1],
+        z: surface.z as f64 * spacing[2],
+        facing: 0.0,
+    };
+    let port_y = if blocked_air { f64::from(surface.y) * spacing[1] } else { 20.0 };
     let station = kernel
         .ecs
         .spawn((
             ExternalId("station".into()),
-            Position {
-                x: 0.0,
-                y,
-                z: 0.0,
-                facing: 0.0,
-            },
-            Container { capacity: 16 },
+            station_position.clone(),
+            Container { capacity: 1 },
             SealedContainer {},
             ConstructionSite {
                 catalog: "brew-station".into(),
-                x: 0,
-                y: y as i32,
-                z: 0,
+                x: surface.x,
+                y: surface.y,
+                z: surface.z,
                 orientation: crate::structure_geometry::Cardinal::North,
-                seconds: 0.0,
+                seconds: 1.0,
                 phase: ConstructionPhase::Finished,
             },
         ))
@@ -230,7 +213,7 @@ fn fixture(blocked_air: bool) -> Kernel {
                 ExternalId(id.clone()),
                 Position {
                     x: 0.0,
-                    y,
+                    y: port_y,
                     z: 0.0,
                     facing: 0.0,
                 },
@@ -251,12 +234,7 @@ fn fixture(blocked_air: bool) -> Kernel {
         .ecs
         .spawn((
             ExternalId("worker".into()),
-            Position {
-                x: 0.0,
-                y,
-                z: 0.0,
-                facing: 0.0,
-            },
+            station_position,
             Body { speed: 1.0 },
             Traversal {
                 clearance_cells: 1,
@@ -294,7 +272,7 @@ fn fixture(blocked_air: bool) -> Kernel {
                     Container { capacity: 16 },
                     Position {
                         x: 0.0,
-                        y,
+                        y: port_y,
                         z: 0.0,
                         facing: 0.0,
                     },
@@ -534,7 +512,9 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .unwrap();
     let before_lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
     let before_bindings = kernel.query_json(r#"["hive.process-binding"]"#).unwrap();
-    let blocked: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
+    // Release the completed preparation attendance, then start the final
+    // attendance as a distinct durable generation.
+    attend_tick(&mut kernel, &process, 0.0);
     let blocked: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
     assert_eq!(blocked["results"][0]["accepted"], true);
     assert_eq!(kernel.query_json(r#"["hive.lot"]"#).unwrap(), before_lots);
@@ -552,6 +532,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .entity_mut(tray)
         .insert(Container { capacity: 16 });
     kernel.refresh_state_weight();
+    attend_tick(&mut kernel, &process, 0.0);
     attend_tick(&mut kernel, &process, 1.0);
     let ale_count = kernel
         .ecs
@@ -559,8 +540,11 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .iter(&kernel.ecs)
         .filter(|lot| lot.kind == "ale")
         .count();
-    let repeated: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
-    assert_eq!(repeated["results"][0]["accepted"], false);
+    attend_tick(&mut kernel, &process, 0.0);
+    let before_replay = kernel.save_records().unwrap();
+    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process}}}]}).to_string());
+    assert_eq!(repeated.unwrap_err(), "process is complete");
+    assert_eq!(kernel.save_records().unwrap().entities, before_replay.entities);
     assert_eq!(
         kernel
             .ecs
@@ -570,15 +554,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
             .count(),
         ale_count
     );
-    assert_eq!(
-        kernel
-            .ecs
-            .query::<&Lot>()
-            .iter(&kernel.ecs)
-            .filter(|lot| lot.kind == "ale")
-            .count(),
-        1
-    );
+    assert_eq!(kernel.ecs.query::<&Lot>().iter(&kernel.ecs).filter(|lot| lot.kind == "ale").count(), 1);
 }
 
 #[test]
@@ -618,13 +594,11 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
         .paid_emissions
         .is_empty());
     for id in [
-        "station",
         "station:kettle",
         "station:hearth",
         "station:barm",
         "station:keg",
         "station:tray",
-        "worker",
     ] {
         kernel
             .ecs
@@ -637,8 +611,9 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
             });
     }
     kernel.rebuild_physical_indexes(true).unwrap();
+    attend_tick(&mut kernel, &process, 0.0);
     attend_tick(&mut kernel, &process, 1.0);
-    assert_eq!(kernel.environment.as_ref().unwrap().paid_emissions.len(), 0);
+    assert_eq!(kernel.environment.as_ref().unwrap().paid_emissions.len(), 1);
     assert!(kernel
         .environment
         .as_ref()
