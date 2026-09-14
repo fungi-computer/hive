@@ -11,9 +11,11 @@ const cell = z.tuple([
   z.number().int().min(-1_000_000).max(1_000_000),
 ]);
 const area = z.object({ start: cell, end: cell }).strict();
+const edge = z.object({ cell, axis: z.enum(["x", "z"]) }).strict();
 const target = z.union([
   z.object({ cell }).strict(),
   z.object({ area }).strict(),
+  z.object({ edges: z.array(edge).min(1).max(256) }).strict(),
 ]);
 const buildInput = z.object({
   catalog: z.string().min(1).max(128),
@@ -56,8 +58,8 @@ export const colonyBuildCommand = command({
   title: "Build structure", category: "Construction", description: "Place a construction plan on a visible world surface.",
   localPresentation: { bindings: [
     ...["timber-floor", "timber-wall", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
-      id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: "world-surface" as const,
-      designation: (catalog === "timber-wall" ? ["point", "line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "line" | "rectangle")[],
+      id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: (catalog === "timber-wall" ? "world-edge" : "world-surface") as "world-edge" | "world-surface",
+      designation: (catalog === "timber-wall" ? ["edge-line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "rectangle" | "edge-line")[],
       detail: colonyBuildBindingDetail(catalog, catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? "north" : undefined),
       preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? { orientation: "north" } : {}) },
     })),
@@ -72,6 +74,26 @@ export const colonyBuildCommand = command({
     if (!definition) throw new Error("Unknown building");
     const sites = context.query(query(ConstructionSite));
     const replacements = context.query(query(FloorReplacement));
+    if ("edges" in input.target) {
+      if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture") throw new Error("Only walls accept edge placement");
+      const edges = [...new Map(input.target.edges.map(edge => [
+        `${edge.cell[0]}:${edge.cell[1]}:${edge.cell[2]}:${edge.axis}`,
+        edge,
+      ])).values()].sort((left, right) =>
+        left.cell[0] - right.cell[0]
+        || left.cell[1] - right.cell[1]
+        || left.cell[2] - right.cell[2]
+        || left.axis.localeCompare(right.axis));
+      if (sites.length + edges.length > 128) throw new Error("Construction site limit reached");
+      const actions = edges.map(({ cell: [x, y, z], axis }) => {
+        const targetY = y + 1;
+        if (!Number.isSafeInteger(targetY)) throw new Error("Wall edge height exceeds bounds");
+        const id = entity(`colony.build.${definition.id}.edge.${x}.${targetY}.${z}.${axis}`);
+        return planConstruction(id, definition.id, { kind: "edge", edge: { cell: { x, y: targetY, z }, axis } }, context.scope.party);
+      });
+      return { writes: [], actions: actions.filter(action => !sites.some(site => site.id === action.site)) };
+    }
+    if (definition.shape.kind === "wall" || definition.shape.kind === "aperture") throw new Error("Walls require edge placement");
     const area = "area" in input.target ? input.target.area : undefined;
     const cells = "area" in input.target
       ? areaCells(input.target.area)
@@ -95,7 +117,7 @@ export const colonyBuildCommand = command({
       }
       const id = entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`);
       if (sites.some(site => site.id === id)) continue;
-      actions.push(planConstruction(id, definition.id, { x, y, z }, orientation, context.scope.party));
+      actions.push(planConstruction(id, definition.id, { kind: "cell", cell: { x, y, z }, orientation }, context.scope.party));
     }
     return { writes: [], actions };
   },

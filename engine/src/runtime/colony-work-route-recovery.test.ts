@@ -27,7 +27,7 @@ test("Colony digging then supplied building does not strand an existing delivery
     for (let tick = 0; tick < 240 && (tick === 0 || session.query(query(ColonyDigOrder)).length); tick++) step();
     assert.equal(session.query(query(ColonyDigOrder)).length, 0, "both designated cuts must complete");
     assert.deepEqual(port.terrainMaterials([[1,13,0],[2,13,0]]), [0,0]);
-    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: [2,13,2] } });
+    session.command("build", { catalog: "timber-wall", target: { edges: [{ cell: [2, 13, 2], axis: "z" }] } });
     for (let tick = 0; tick < 700; tick++) step();
     assert.deepEqual(rejected, [], "ordinary joined work must not repeatedly submit impossible actions");
     const sites = session.query(query(ConstructionSite));

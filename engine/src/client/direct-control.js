@@ -20,7 +20,7 @@ export function createDirectControl({ entity, send, predict, makeStream = () => 
   function replay() {
     if (!base?.direct || base.direct.stream !== stream) { predicted = undefined; return; }
     const local = base.local ?? base.pose;
-    const result = predict({ position: { ...local.position, facing: local.facing }, speed: base.direct.speed, blocked: base.direct.blocked, bounds: base.direct.bounds, inputs: pending });
+    const result = predict({ position: { ...local.position, facing: local.facing }, speed: base.direct.speed, blocked: base.direct.blocked, closedFaces: base.direct.closedFaces, bounds: base.direct.bounds, inputs: pending });
     predicted = { ...base, local: { position: { x: result.position.x, y: result.position.y, z: result.position.z }, facing: result.position.facing }, pose: { position: { x: result.position.x, y: result.position.y, z: result.position.z }, facing: result.position.facing } };
   }
   function observe(facts) {

@@ -1,24 +1,44 @@
 import { component } from "./authoring";
-import type { ActionRequest, CardinalOrientation, EntityId, Vec3 } from "../contracts";
+import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, Vec3 } from "../contracts";
 
 /** Native custody is observable; authored writes cannot lock or unlock goods. */
 export const SealedContainer = component<Record<string, never>>("hive.sealed-container", {
   version: 1, fields: {},
 });
 
-/** The site owns earned effort; active worker ownership lives in WorkAttempt. */
-export const ConstructionSite = component<{
-  catalog: string; x: number; y: number; z: number;
-  orientation: CardinalOrientation;
+export interface ConstructionSiteState {
+  catalog: string;
+  targetKind: "cell" | "edge";
+  targetX: number; targetY: number; targetZ: number;
+  targetDirection: CardinalOrientation | "x" | "z";
   seconds: number;
   phase: "planned" | "working" | "finished";
-}>("hive.construction-site", {
-  version: 1,
+}
+
+/** The site owns earned effort; active worker ownership lives in WorkAttempt. */
+export const ConstructionSite = component<ConstructionSiteState>("hive.construction-site", {
+  version: 2,
   fields: {
-    catalog: "string", x: "number", y: "number", z: "number", orientation: "string",
+    catalog: "string", targetKind: "string", targetX: "number", targetY: "number", targetZ: "number", targetDirection: "string",
     seconds: "number", phase: "string",
   },
 });
+
+/** Decode the native flat component wire into its exhaustive physical target. */
+export function constructionTarget(site: ConstructionSiteState): ConstructionTarget {
+  const cell = { x: site.targetX, y: site.targetY, z: site.targetZ };
+  if (site.targetKind === "edge" && (site.targetDirection === "x" || site.targetDirection === "z"))
+    return { kind: "edge", edge: { cell, axis: site.targetDirection } };
+  if (site.targetKind === "cell" && (site.targetDirection === "north" || site.targetDirection === "east"
+    || site.targetDirection === "south" || site.targetDirection === "west"))
+    return { kind: "cell", cell, orientation: site.targetDirection };
+  throw new Error("Invalid native construction target");
+}
+
+export function constructionCell(site: ConstructionSiteState): Vec3 {
+  const target = constructionTarget(site);
+  return target.kind === "cell" ? target.cell : target.edge.cell;
+}
 export const FloorReplacement = component<{
   version: number; targetFloor: EntityId; expectedCatalog: string; desiredCatalog: string;
   supportX: number; supportY: number; supportZ: number;
@@ -33,12 +53,10 @@ export const replaceFloor = (orderId: EntityId, existingFloorId: EntityId, desir
 export const planConstruction = (
   site: EntityId,
   catalog: string,
-  cell: Vec3,
-  orientation: CardinalOrientation,
+  target: ConstructionTarget,
   party: EntityId,
 ): ActionRequest => ({
-  kind: "plan-construction", site, party, catalog,
-  x: cell.x, y: cell.y, z: cell.z, orientation,
+  kind: "plan-construction", site, party, catalog, target,
 });
 
 export const bindConstructionStage = (site: EntityId, contact: Vec3): ActionRequest => ({

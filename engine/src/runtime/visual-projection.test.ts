@@ -31,9 +31,9 @@ test("projection preserves explicit pickability for real projected entities", ()
 
 test("construction placement survives projection for fixture and stair art", () => {
   const states = [
-    [entity("colony.build.timber-bed"), { catalog: "timber-bed", x: 1, y: 13, z: 1, orientation: "north", phase: "finished", seconds: 0 }],
-    [entity("colony.build.brew-station"), { catalog: "brew-station", x: 3, y: 13, z: 1, orientation: "east", phase: "working", seconds: 1 }],
-    [entity("colony.build.timber-stair"), { catalog: "timber-stair", x: 5, y: 13, z: 1, orientation: "south", phase: "planned", seconds: 0 }],
+    [entity("colony.build.timber-bed"), { catalog: "timber-bed", targetKind: "cell", targetX: 1, targetY: 13, targetZ: 1, targetDirection: "north", phase: "finished", seconds: 0 }],
+    [entity("colony.build.brew-station"), { catalog: "brew-station", targetKind: "cell", targetX: 3, targetY: 13, targetZ: 1, targetDirection: "east", phase: "working", seconds: 1 }],
+    [entity("colony.build.timber-stair"), { catalog: "timber-stair", targetKind: "cell", targetX: 5, targetY: 13, targetZ: 1, targetDirection: "south", phase: "planned", seconds: 0 }],
   ] as const;
   const rows = states.map(([id, state]) => ({ id, get: () => state }));
   const projections = colonyConstructionVisuals({ query: () => rows as never });

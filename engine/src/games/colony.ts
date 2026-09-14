@@ -1,6 +1,6 @@
 import { colonyConstructionVisuals } from "./colony-construction-visuals";
 import { colonyBrewStationProfiles } from "./colony-brewing-presentation";
-import { ConstructionSite } from "../sdk/construction";
+import { ConstructionSite, constructionCell } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
 import { DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
 import { command, component, entity, query } from "../sdk/authoring";
@@ -432,7 +432,8 @@ export const colonyPack: GamePack = {
         const occupiedResource = context.query(query(ResourceSite)).some(row => row.id === id);
         const occupiedStructure = context.query(query(ConstructionSite)).some(row => {
           const site = row.get(ConstructionSite);
-          return site.x === x && site.y === y && site.z === z;
+          const at = constructionCell(site);
+          return at.x === x && at.y === y && at.z === z;
         });
         if (occupiedOrder || occupiedResource || occupiedStructure)
           throw new Error("mugwort cell already has an active designation");
@@ -677,7 +678,8 @@ export const colonyPack: GamePack = {
         const attempt = constructionAttempts.get(row.id);
         if (site.phase !== "working" || attempt?.phase.kind !== "executing" || attempt.phase.activity.kind !== "construction") return [];
         const definition = colonyEnvironment.structures.catalog.find(item => item.id === site.catalog);
-        return definition ? [{ actor: attempt.worker, kind: "build" as const, target: [site.x, site.z] as const, progress: Math.max(0, Math.min(1, site.seconds / definition.workSeconds)) }] : [];
+        const at = constructionCell(site);
+        return definition ? [{ actor: attempt.worker, kind: "build" as const, target: [at.x, at.z] as const, progress: Math.max(0, Math.min(1, site.seconds / definition.workSeconds)) }] : [];
       });
       return [...trees, ...excavation, ...construction];
     },
@@ -769,11 +771,12 @@ export const colonyPack: GamePack = {
         .slice(0, 8)
         .flatMap((site) => {
           const hearth = entity(`${site.id}:hearth`);
+          const at = constructionCell(site.get(ConstructionSite));
           const stationAir = context.atmosphereSamples([
             [
-              Math.floor(site.get(ConstructionSite).x + 0.5),
-              site.get(ConstructionSite).y + 1,
-              Math.floor(site.get(ConstructionSite).z + 0.5),
+              Math.floor(at.x + 0.5),
+              at.y + 1,
+              Math.floor(at.z + 0.5),
             ],
           ]).samples[0];
           const process = context

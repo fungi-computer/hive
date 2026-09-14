@@ -33,7 +33,7 @@ pub use world::Kernel;
 #[serde(deny_unknown_fields)]
 struct DirectPredictionRequest {
     position: components::Position, speed: f64, blocked: Vec<[i32; 3]>, bounds: Option<DirectBounds>, inputs: Vec<components::DirectInput>,
-    #[serde(default)] closed_faces: Vec<[i64; 4]>,
+    #[serde(default, rename = "closedFaces")] closed_faces: Vec<structure_geometry::Face>,
 }
 #[derive(Deserialize)] #[serde(deny_unknown_fields)] struct DirectBounds { min_x: f64, max_x: f64, min_z: f64, max_z: f64 }
 #[derive(Serialize)] struct DirectPredictionResponse { position: components::Position }
@@ -324,14 +324,17 @@ impl WasmKernel {
 #[wasm_bindgen]
 pub fn predict_direct(json: &str) -> Result<String, JsValue> {
     let request: DirectPredictionRequest = serde_json::from_str(json).map_err(|e| js_error(e.to_string()))?;
-    if request.inputs.len() > navigation::MAX_DIRECT_INPUTS || request.blocked.len() > 4096 || request.closed_faces.len() > 4096 { return Err(js_error("direct prediction input exceeds bounds".into())); }
-    let blocked = request.blocked.into_iter().collect::<BTreeSet<_>>();
+    if request.inputs.len() > navigation::MAX_DIRECT_INPUTS || request.blocked.len() > 4096 || request.closed_faces.len() > 4096
+        || request.closed_faces.iter().any(|face| !face.axis.is_vertical())
+    { return Err(js_error("direct prediction input exceeds bounds".into())); }
+    let blocked = request.blocked.into_iter().map(|[x, y, z]| (x, y, z)).collect::<BTreeSet<_>>();
     let closed = request.closed_faces;
     let bounds = request.bounds.map(|b| navigation::Bounds { min_x: b.min_x, max_x: b.max_x, min_z: b.min_z, max_z: b.max_z });
     let crossing = |fx: f64, fz: f64, tx: f64, tz: f64, y: i32| {
         let from = (fx.round() as i64, y, fz.round() as i64); let to = (tx.round() as i64, y, tz.round() as i64);
         let (x, z, axis) = if from.0 != to.0 { (from.0.min(to.0), from.2, 0) } else { (from.0, from.2.min(to.2), 1) };
-        closed.iter().any(|face| face[0] == x && face[1] == i64::from(y) && face[2] == z && face[3] == axis)
+        let axis = if axis == 0 { structure_geometry::FaceAxis::X } else { structure_geometry::FaceAxis::Z };
+        closed.contains(&structure_geometry::Face { cell: generation::Cell { x, y, z }, axis })
     };
     let mut position = navigation::direct_step_with_crossings(request.position, 0.0, 0.0, request.speed, &blocked, bounds, &crossing).map_err(js_error)?;
     for input in request.inputs { position = navigation::direct_step_with_crossings(position, input.x, input.z, request.speed, &blocked, bounds, &crossing).map_err(js_error)?; }

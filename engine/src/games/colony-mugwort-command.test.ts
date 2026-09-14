@@ -78,7 +78,7 @@ test("sow mugwort rejects an existing active designation", () => {
 
 test("sow mugwort rejects an occupied construction cell", () => {
   const structure = row("colony.build.timber-floor.0.13.0.north", new Map([[ConstructionSite.id, {
-    catalog: "timber-floor", x: 0, y: 13, z: 0, orientation: "north", worker: null, seconds: 0, phase: "planned",
+    catalog: "timber-floor", targetKind: "cell", targetX: 0, targetY: 13, targetZ: 0, targetDirection: "north", seconds: 0, phase: "planned",
   }]]));
   assert.throws(
     () => colonyPack.commands!.sowMugwort.invoke(context({ structures: [structure] }), { target: { cell, material: 1 } }),

@@ -127,18 +127,106 @@ pub struct DeconstructionWork {
     pub seconds: f64,
     pub required_seconds: f64,
 }
-#[derive(Component, Clone, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum ConstructionTarget {
+    Cell {
+        cell: crate::generation::Cell,
+        orientation: Cardinal,
+    },
+    Edge {
+        edge: crate::structure_geometry::Face,
+    },
+}
+
+impl ConstructionTarget {
+    pub const fn cell(self) -> crate::generation::Cell {
+        match self {
+            Self::Cell { cell, .. } => cell,
+            Self::Edge { edge } => edge.cell,
+        }
+    }
+
+}
+
+#[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ConstructionSiteWire {
+    catalog: String,
+    target_kind: String,
+    target_x: i64,
+    target_y: i32,
+    target_z: i64,
+    target_direction: String,
+    seconds: f64,
+    phase: ConstructionPhase,
+}
+
+#[derive(Component, Clone)]
 pub struct ConstructionSite {
     pub catalog: String,
-    pub x: i64,
-    pub y: i32,
-    pub z: i64,
-    pub orientation: Cardinal,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub edge: Option<crate::structure_geometry::Face>,
+    pub target: ConstructionTarget,
     pub seconds: f64,
     pub phase: ConstructionPhase,
+}
+
+impl Serialize for ConstructionSite {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let cell = self.target.cell();
+        let (target_kind, target_direction) = match self.target {
+            ConstructionTarget::Cell { orientation, .. } => (
+                "cell",
+                match orientation {
+                    Cardinal::North => "north",
+                    Cardinal::East => "east",
+                    Cardinal::South => "south",
+                    Cardinal::West => "west",
+                },
+            ),
+            ConstructionTarget::Edge { edge } => (
+                "edge",
+                match edge.axis {
+                    crate::structure_geometry::FaceAxis::X => "x",
+                    crate::structure_geometry::FaceAxis::Z => "z",
+                    crate::structure_geometry::FaceAxis::Y => return Err(serde::ser::Error::custom("construction edge must be vertical")),
+                },
+            ),
+        };
+        ConstructionSiteWire {
+            catalog: self.catalog.clone(),
+            target_kind: target_kind.into(),
+            target_x: cell.x,
+            target_y: cell.y,
+            target_z: cell.z,
+            target_direction: target_direction.into(),
+            seconds: self.seconds,
+            phase: self.phase,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for ConstructionSite {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let wire = ConstructionSiteWire::deserialize(deserializer)?;
+        let cell = crate::generation::Cell { x: wire.target_x, y: wire.target_y, z: wire.target_z };
+        let target = match (wire.target_kind.as_str(), wire.target_direction.as_str()) {
+            ("cell", "north") => ConstructionTarget::Cell { cell, orientation: Cardinal::North },
+            ("cell", "east") => ConstructionTarget::Cell { cell, orientation: Cardinal::East },
+            ("cell", "south") => ConstructionTarget::Cell { cell, orientation: Cardinal::South },
+            ("cell", "west") => ConstructionTarget::Cell { cell, orientation: Cardinal::West },
+            ("edge", "x") => ConstructionTarget::Edge { edge: crate::structure_geometry::Face { cell, axis: crate::structure_geometry::FaceAxis::X } },
+            ("edge", "z") => ConstructionTarget::Edge { edge: crate::structure_geometry::Face { cell, axis: crate::structure_geometry::FaceAxis::Z } },
+            _ => return Err(serde::de::Error::custom("invalid construction target")),
+        };
+        Ok(Self { catalog: wire.catalog, target, seconds: wire.seconds, phase: wire.phase })
+    }
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -404,10 +492,7 @@ pub enum Action {
         catalog: String,
         site: String,
         party: String,
-        x: i64,
-        y: i32,
-        z: i64,
-        orientation: Cardinal,
+        target: ConstructionTarget,
     },
     ReplaceFloor { #[serde(rename = "orderId")] order_id: String, #[serde(rename = "existingFloorId")] existing_floor_id: String, #[serde(rename = "desiredCatalog")] desired_catalog: String },
     BindConstructionStage { site: String, contact: Point },

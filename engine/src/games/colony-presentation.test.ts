@@ -24,7 +24,7 @@ test("committed dig and build seconds project bounded progress and disappear whe
       { id: builder, get: () => ({ x: 2, y: 0, z: 2, facing: 0 }) },
     ]],
     [ExcavationWork.id, [{ id: digger, get: () => ({ x: 1, y: 0, z: 1, expected: 1, replacement: 0, seconds: 1 }) }]],
-    [ConstructionSite.id, [{ id: "progress.site", get: () => ({ catalog: "timber-floor", x: 2, y: 0, z: 2, worker: builder, phase: "working", seconds: 1 }) }]],
+    [ConstructionSite.id, [{ id: "progress.site", get: () => ({ catalog: "timber-floor", targetKind: "cell", targetX: 2, targetY: 0, targetZ: 2, targetDirection: "north", phase: "working", seconds: 1 }) }]],
   ]);
   const context = { query: ((spec: { components: readonly { id: string }[] }) => {
     const matching = spec.components.map(component => rows.get(component.id) ?? []);

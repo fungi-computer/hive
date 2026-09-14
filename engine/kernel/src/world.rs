@@ -374,7 +374,7 @@ mod process_request_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
-        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, edge: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
+        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), target: ConstructionTarget::Cell { cell: crate::generation::Cell { x: 0, y: 0, z: 0 }, orientation: crate::structure_geometry::Cardinal::North }, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
         kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
         let structure = kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap();
         structure.on_complete = CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "input".into(), components: vec![("hive.container".into(), record(&Container { capacity: 4 }))], at_site_contact: false }] };
@@ -704,7 +704,7 @@ mod construction_tests {
 
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-1","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1}
         }]});
@@ -767,7 +767,7 @@ mod construction_tests {
 
     fn finish_test_structure(kernel: &mut Kernel, site: &str, catalog: &str, at: crate::generation::Cell, worker: &str) {
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
-            "kind":"plan-construction","party":"party","catalog":catalog,"site":site,"x":at.x,"y":at.y,"z":at.z,"orientation":"north"
+            "kind":"plan-construction","party":"party","catalog":catalog,"site":site,"target":{"kind":"cell","cell":{"x":at.x,"y":at.y,"z":at.z},"orientation":"north"}
         }}]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true, "{planned}");
         let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(&serde_json::to_string(&[site]).unwrap()).unwrap()).unwrap();
@@ -999,7 +999,7 @@ mod construction_tests {
         }
         let replaced = kernel.ecs.get::<ConstructionSite>(kernel.entity("floor-brew-0").unwrap()).unwrap();
         assert_eq!(replaced.catalog, "floor-alt");
-        assert_eq!((replaced.x, replaced.y, replaced.z, replaced.orientation, replaced.seconds, replaced.phase), (floor_before.x, floor_before.y, floor_before.z, floor_before.orientation, floor_before.seconds, floor_before.phase));
+        assert_eq!((replaced.target, replaced.seconds, replaced.phase), (floor_before.target, floor_before.seconds, floor_before.phase));
         let replacement = kernel.ecs.get::<FloorReplacement>(kernel.entity("replace-1").unwrap()).unwrap();
         assert!(replacement.phase == FloorReplacementPhase::Completed);
         assert_eq!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Floor { id, support } if id == "floor-brew-0" && *support == brew_support)).count(), 1);
@@ -1089,7 +1089,7 @@ mod construction_tests {
         let replaced = kernel.ecs.get::<ConstructionSite>(kernel.entity(floor_id).unwrap()).unwrap();
         let resumed_bed_entity = kernel.entity("bed-1").unwrap();
         assert_eq!(replaced.catalog, "floor-alt");
-        assert_eq!((replaced.x, replaced.y, replaced.z, replaced.orientation), (original_floor.x, original_floor.y, original_floor.z, original_floor.orientation));
+        assert_eq!(replaced.target, original_floor.target);
         assert_eq!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Floor { id, support: actual } if id == floor_id && *actual == support)).count(), 1);
         assert_eq!(record(kernel.ecs.get::<ConstructionSite>(resumed_bed_entity).unwrap()), bed_before);
         assert_eq!(record(kernel.ecs.get::<Position>(resumed_bed_entity).unwrap()), position_before);
@@ -1154,7 +1154,7 @@ mod construction_tests {
     #[test]
     fn deconstruction_rejects_removing_a_supporting_wall_without_mutation() {
         use crate::environment_definition::{RemovalRecipe, StructureDefinition, StructureShape};
-        use crate::structure_geometry::{Cardinal, StaticInstance};
+        use crate::structure_geometry::StaticInstance;
         let (mut kernel, surface, contact) = world();
         kernel.environment.as_mut().unwrap().structures.insert("wall".into(), StructureDefinition {
             id: "wall".into(), shape: StructureShape::Wall { height: 4 },
@@ -1174,9 +1174,9 @@ mod construction_tests {
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
         let state = ConstructionSite {
-            catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z,
-            orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished,
-            edge: None,
+            catalog: "wall".into(),
+            target: ConstructionTarget::Edge { edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X } },
+            seconds: 1.0, phase: ConstructionPhase::Finished,
         };
         let entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state,
             Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
@@ -1231,7 +1231,7 @@ mod construction_tests {
     #[test]
     fn deconstruction_access_reports_dependent_floor_structural_dependency() {
         use crate::environment_definition::{RemovalRecipe, StructureDefinition, StructureShape};
-        use crate::structure_geometry::{Cardinal, StaticInstance};
+        use crate::structure_geometry::StaticInstance;
         let (mut kernel, surface, contact) = world();
         kernel.environment.as_mut().unwrap().structures.insert("wall".into(), StructureDefinition {
             id: "wall".into(), shape: StructureShape::Wall { height: 4 }, materials: BTreeMap::new(), work_seconds: 1.0,
@@ -1241,7 +1241,7 @@ mod construction_tests {
         let upper = StaticInstance::Floor { id: "dependent-floor".into(), support: crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z } };
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
-        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, edge: None, seconds: 1.0, phase: ConstructionPhase::Finished };
+        let state = ConstructionSite { catalog: "wall".into(), target: ConstructionTarget::Edge { edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X } }, seconds: 1.0, phase: ConstructionPhase::Finished };
         let wall_entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state, Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
         kernel.ids.insert("support-wall".into(), wall_entity); kernel.known.insert("support-wall".into()); kernel.contents.insert("support-wall".into(), BTreeSet::new());
         let dependent_entity = kernel.ecs.spawn((ExternalId("dependent-floor".into()), Support { entity: "support-wall".into() })).id();
@@ -1386,7 +1386,7 @@ mod construction_tests {
     fn construction_waits_without_staged_material_and_repeated_attend_is_idempotent() {
         let (mut kernel, surface, contact) = world();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-1","contact":contact}},
         ]}).to_string()).unwrap()).unwrap();
         assert_eq!(response["results"].as_array().unwrap().len(), 2);
@@ -1403,10 +1403,10 @@ mod construction_tests {
         wall_catalog(&mut kernel);
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let bystander = kernel.entity("worker-2").unwrap();
-        kernel.ecs.entity_mut(bystander).insert(Position { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 });
+        kernel.ecs.entity_mut(bystander).insert(Position { x: (surface.x as f64 + 0.5) * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 });
         kernel.rebuild_physical_indexes(true).unwrap();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-wall","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1}},
         ]}).to_string()).unwrap()).unwrap();
@@ -1469,7 +1469,7 @@ mod construction_tests {
         environment.definition = definition.to_string();
 
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-air-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-air-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-air-wall","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-air-wall","quantity":1}},
         ]}).to_string()).unwrap()).unwrap();
@@ -1493,7 +1493,7 @@ mod construction_tests {
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let target = Point { x: contact.x - 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-edge","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-edge","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-edge","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-edge","quantity":1}},{"scope":{"kind":"host"},"request":
             {"kind":"move","entity":"worker-2","destination":target}
@@ -1515,7 +1515,7 @@ mod construction_tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-future","target":{"kind":"edge","edge":{"cell":{"x":surface.x+1,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-future","contact":next_contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1}},{"scope":{"kind":"host"},"request":
             {"kind":"move","entity":"worker-2","destination":target}
@@ -1533,7 +1533,7 @@ mod construction_tests {
         let mut records = kernel.save_records().unwrap();
         let mut entities: serde_json::Value = serde_json::from_str(&records.entities).unwrap();
         let site = entities["scene"]["initial"].as_array_mut().unwrap().iter_mut().find(|entity| entity["id"] == "site-1").unwrap();
-        site["components"]["hive.construction-site"]["x"] = serde_json::Value::from(i64::MAX);
+        site["components"]["hive.construction-site"]["targetX"] = serde_json::Value::from(i64::MAX);
         records.entities = serde_json::to_string(&entities).unwrap();
         let mut restored = Kernel::new();
         assert!(restored.restore_records(&records).is_err());
@@ -1544,7 +1544,7 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"access-wall","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"north"}
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"access-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}
         }]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true);
         let site_entity = kernel.entity("access-wall").unwrap();
@@ -1553,10 +1553,8 @@ mod construction_tests {
         assert_eq!(rows[0]["support"], "ready");
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         assert_eq!(rows[0]["contacts"], json!([
-            {"x":(surface.x as f64 - 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"},
-            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":(surface.z as f64 - 1.0) * spacing[2], "frame":null, "kind":"origin"},
-            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":(surface.z as f64 + 1.0) * spacing[2], "frame":null, "kind":"origin"},
-            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}
+            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"edge"},
+            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"edge"}
         ]));
         let bad = Point { x: contact.x + 0.25, ..contact.clone() };
         let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"bind-construction-stage","site":"access-wall","contact":bad}}]}).to_string()).unwrap()).unwrap();
@@ -1565,6 +1563,16 @@ mod construction_tests {
         let bound: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"bind-construction-stage","site":"access-wall","contact":contact}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(bound["results"][0]["accepted"], true);
         let saved = kernel.save_records().unwrap();
+        let saved_entities: serde_json::Value = serde_json::from_str(&saved.entities).unwrap();
+        let saved_site = saved_entities["scene"]["initial"].as_array().unwrap().iter()
+            .find(|entity| entity["id"] == "access-wall").unwrap();
+        let saved_target = &saved_site["components"]["hive.construction-site"];
+        assert_eq!(saved_target["targetKind"], "edge");
+        assert_eq!(saved_target["targetX"], surface.x);
+        assert_eq!(saved_target["targetY"], surface.y + 1);
+        assert_eq!(saved_target["targetZ"], surface.z);
+        assert_eq!(saved_target["targetDirection"], "x");
+        assert!(saved_target.get("orientation").is_none());
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
         assert_eq!(restored.save_records().unwrap().entities, saved.entities);
@@ -1578,7 +1586,7 @@ mod construction_tests {
     fn construction_access_attendance_can_choose_other_contact() {
         let (mut kernel, surface, contact) = world();
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"access-floor","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"access-floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"access-floor","contact":contact}
         }]}).to_string()).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
@@ -1607,7 +1615,7 @@ mod construction_tests {
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
             "delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
                 "kind":"plan-construction","party":"party","catalog":"floor","site":"wall-top-floor",
-                "x":surface.x,"y":floor_y,"z":surface.z,"orientation":"north"
+                "target":{"kind":"cell","cell":{"x":surface.x,"y":floor_y,"z":surface.z},"orientation":"north"}
             }}]
         }).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true);
@@ -1635,6 +1643,7 @@ mod construction_tests {
         assert_eq!(contacts, &vec![
             json!({"x":(surface.x as f64 - 1.0) * spacing[0], "y":ground_y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}),
             json!({"x":surface.x as f64 * spacing[0], "y":ground_y, "z":(surface.z as f64 - 1.0) * spacing[2], "frame":null, "kind":"origin"}),
+            json!({"x":surface.x as f64 * spacing[0], "y":ground_y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}),
             json!({"x":surface.x as f64 * spacing[0], "y":ground_y, "z":(surface.z as f64 + 1.0) * spacing[2], "frame":null, "kind":"origin"}),
             json!({"x":(surface.x as f64 + 1.0) * spacing[0], "y":ground_y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}),
         ]);
@@ -1664,7 +1673,7 @@ mod construction_tests {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
             materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-construction","party":"party","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-construction","party":"party","catalog":"stair","site":"access-stair","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"east"}}}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
         let contacts = rows[0]["contacts"].as_array().unwrap();
         assert_eq!(contacts.len(), 4);
@@ -1678,7 +1687,7 @@ mod construction_tests {
             id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
             materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-construction","party":"party","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-construction","party":"party","catalog":"bed","site":"access-bed","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"orientation":"east"}}}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let occupied = [
@@ -1707,7 +1716,12 @@ mod construction_tests {
             [surface.x + 1, surface.y + 1, surface.z], [surface.x, surface.y + 1, surface.z], [outside, surface.y, surface.z]
         ]).to_string()).unwrap()).unwrap();
         assert_eq!(facts[0], json!({"solid":false,"sealedTop":true,"outside":false}));
-        assert_eq!(facts[1], json!({"solid":true,"sealedTop":true,"outside":false}));
+        assert_eq!(facts[1], json!({"solid":false,"sealedTop":false,"outside":false}));
+        let projection = kernel.environment.as_ref().unwrap().world.structure_projection_snapshot();
+        assert!(projection.blocks_crossing(
+            crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z },
+            crate::generation::Cell { x: surface.x + 1, y: surface.y + 1, z: surface.z },
+        ).unwrap());
         assert_eq!(facts[2], json!({"solid":false,"sealedTop":false,"outside":true}));
         assert!(kernel.physical_contacts_json(&json!([[surface.x, i64::from(i32::MAX) + 1, surface.z]]).to_string()).is_err());
     }
@@ -3180,7 +3194,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 9,
+            version: 10,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -3212,7 +3226,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 9
+            || state.version != 10
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -3438,6 +3452,10 @@ impl Kernel {
     }
     pub fn render_json(&self) -> Result<String> {
         self.ensure_ready()?;
+        let closed_faces = self.environment.as_ref().map(|environment| environment.world.structure_vertical_faces()
+            .map(|face| json!({"cell":{"x":face.cell.x,"y":face.cell.y,"z":face.cell.z},"axis":face.axis}))
+            .collect::<Vec<_>>()).unwrap_or_default();
+        if closed_faces.len() > 4096 { return Err("direct structure face projection exceeds bounds".into()); }
         let mut facts = Vec::new();
         for (id, e) in &self.ids {
             let Some(local) = self.ecs.get::<Position>(*e) else {
@@ -3499,6 +3517,7 @@ impl Kernel {
                     "lastProcessed": state.last_processed,
                     "speed": self.ecs.get::<Body>(*e).map(|body| body.speed),
                     "blocked": self.blocked_by_frame.get(&None).into_iter().flatten().map(|(x,y,z)| json!([x,y,z])).collect::<Vec<_>>(),
+                    "closedFaces": &closed_faces,
                     "bounds": self.frame_bounds(None).ok().flatten().map(|b| json!({"min_x":b.min_x,"max_x":b.max_x,"min_z":b.min_z,"max_z":b.max_z})),
                 }))
             }));
@@ -4682,8 +4701,8 @@ impl Kernel {
                     }
                 Ok(ActionEffect::None)
             }
-            Action::PlanConstruction { catalog, site, party, x, y, z, orientation } => {
-                self.plan_construction(catalog, site, party, x, y, z, orientation)?;
+            Action::PlanConstruction { catalog, site, party, target } => {
+                self.plan_construction(catalog, site, party, target)?;
                 Ok(ActionEffect::None)
             }
             Action::ReplaceFloor { order_id, existing_floor_id, desired_catalog } => {

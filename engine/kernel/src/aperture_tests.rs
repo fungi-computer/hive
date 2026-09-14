@@ -59,7 +59,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     kernel.rebuild_physical_indexes(true).unwrap();
     let site_surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 1, surface.z)]).unwrap().into_iter().next().flatten().unwrap().cell;
     let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-        {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north"}},{"scope":{"kind":"host"},"request":
+        {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
         {"kind":"bind-construction-stage","site":"door","contact":contact}},{"scope":{"kind":"host"},"request":
         {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1}},
     ]});
@@ -98,6 +98,18 @@ fn native_aperture_toggle_is_idempotent_and_close_rejects_occupied_worker() {
     let second_current = *kernel.ecs.get::<Position>(second).unwrap();
     kernel.ecs.entity_mut(second).insert(Position { x: surface.x as f64 * spacing[0], y: (surface.y as f64 + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], ..second_current });
     kernel.rebuild_physical_indexes(true).unwrap();
+    let crossing = Point {
+        x: (surface.x as f64 - 2.0) * spacing[0],
+        y: (surface.y as f64 + 0.5) * spacing[1],
+        z: surface.z as f64 * spacing[2],
+        frame: None,
+    };
+    let moving: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({
+        "delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
+            "kind":"move","entity":"worker.2","destination":crossing
+        }}]
+    }).to_string()).unwrap()).unwrap();
+    assert_eq!(moving["results"][0]["accepted"], true, "{moving}");
     let closed = aperture_action(&mut kernel, false);
     assert_eq!(closed["results"][0]["accepted"], false);
     assert_eq!(closed["results"][0]["reason"], "aperture change would obstruct an actor");

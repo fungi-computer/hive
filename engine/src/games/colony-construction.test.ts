@@ -5,7 +5,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { entity, query } from "../sdk/authoring";
-import { ConstructionSite, SealedContainer } from "../sdk/construction";
+import { ConstructionSite, SealedContainer, constructionCell } from "../sdk/construction";
 import { DeconstructionOrder } from "../sdk/deconstruction-work";
 import { Container, Emitter, MaterialLot } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
@@ -35,8 +35,8 @@ function buildBrewStation(session: GameSession, cell: readonly [number, number, 
   const stations = finishedBrewStations(session);
   assert.equal(stations.length, expected, "brew station must finish");
   const site = stations.find((row) => {
-    const state = row.get(ConstructionSite);
-    return state.x === cell[0] && state.z === cell[2];
+    const at = constructionCell(row.get(ConstructionSite));
+    return at.x === cell[0] && at.z === cell[2];
   });
   assert(site, "finished brew station must retain its requested cell");
   return site;
@@ -138,7 +138,10 @@ test("Colony floor designation preserves finished brewer and bed callers and the
     assert(surfaces.every((rows, index) => rows.some(surface => surface.cell[1] === 13 && surface.cell[0] === supportCells[index][0] && surface.cell[2] === supportCells[index][1])), "every fixture footprint support cell must have a finished floor");
     const finishedFloors = session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite)).filter(site => site.catalog === "timber-floor" && site.phase === "finished");
     assert.equal(finishedFloors.length, supportCells.length, "each designated support cell must have one finished Colony floor");
-    for (const [x, z] of supportCells) assert(finishedFloors.some(site => site.x === x && site.y === 13 && site.z === z), `finished timber floor missing at ${x},13,${z}`);
+    for (const [x, z] of supportCells) assert(finishedFloors.some(site => {
+      const at = constructionCell(site);
+      return at.x === x && at.y === 13 && at.z === z;
+    }), `finished timber floor missing at ${x},13,${z}`);
     assert.deepEqual(session.renderFacts().filter(fact => fact.id === brewer.id || fact.id === bed.id), beforeFurniture);
     assert(session.query(query(ConstructionSite)).some(row => row.id === brewer.id && row.get(ConstructionSite).phase === "finished"));
     assert(session.query(query(ConstructionSite)).some(row => row.id === bed.id && row.get(ConstructionSite).phase === "finished"));
@@ -297,7 +300,7 @@ test("actual Colony queues an upper floor before its timber wall and waits for s
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
-    session.command("build", { catalog: "timber-wall", target: { cell: [1, 13, 0] } });
+    session.command("build", { catalog: "timber-wall", target: { edges: [{ cell: [1, 13, 0], axis: "z" }] } });
     session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 17, 0] } });
     session.step(0.01);
     const sites = session.query(query(ConstructionSite));
