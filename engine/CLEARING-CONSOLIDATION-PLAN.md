@@ -1746,6 +1746,59 @@ co-op delegation and revocation, and reconnect retaining each player's scope.
 This records the architecture constraint; account/App admission remains an
 explicit unfinished dependency, not permission for a new backend identity lane.
 
+### First playable party multiplayer — Levi's join/presence decision
+
+For the current demo, each **new player** joining a shared world receives one
+new party with two people. The world invite identifies the shared world, not a
+shared controlling principal. A persistent anonymous player credential is the
+interim identity proposal; account integration must remain a separable future
+binding through the existing public App authority contract. Do not introduce a
+second account database. Credentials are capabilities, kept out of public
+observations, source, logs and share links. Server admission establishes the
+player/party relationship; client-supplied party IDs do not grant authority.
+
+The party belongs to the world, **not to its connection**. Creating it is a
+durable, idempotent join operation. Repeated or concurrent joins and a lost join
+response cannot create duplicate people, parties or starter supplies. Retain
+the player's world association across ordinary reload/reconnect; multiple tabs
+using the same credential are one player. A genuinely new player gets a distinct
+party in that same world. Spawn both people on valid, reachable safe ground;
+if no suitable spawn/capacity exists, reject admission clearly without a partial
+party. Use actual game definitions for starter supplies, with one creation owner.
+
+Disconnect does not despawn people, pause their jobs, erase their orders or
+release their ownership. While the Region advances, **all resident parties'
+people continue their normal work**, including parties with no connected owner.
+Another player remaining online therefore keeps the absent player's people
+working too. Reconnection merely restores the observation/control connection to
+those existing people; it does not recreate or resume a paused party. Preserve
+explicit drafted state rather than silently undrafting on disconnect.
+
+Connection presence, authorization, party membership and simulation activation
+are separate facts. When nobody is connected, the existing Region wake/sleep
+policy owns whether simulation continues; this decision does not require every
+world to tick forever or introduce offline catch-up. Do not suspend one party
+solely because its owning socket closes while the Region is running.
+
+First-demo permissions are private party control: observe the other parties,
+but command only your own people/orders and use only authorized party supplies.
+Shared terrain edits remain world physical changes subject to ordinary admission;
+party ownership must not accidentally privatize the entire terrain. Cross-party
+co-op delegation remains an extension, not implicitly granted by sharing a world
+invite. Scope command availability and fresh admission, work discovery/assignment,
+material reservations/transfers, and inspect projections consistently. No global
+pause/reset power should be accidentally granted to each joining player.
+
+Required joined witness: two distinct player credentials in one actual DO world;
+exactly two people per first join; duplicate/concurrent join and lost-response
+retry create no extras; commands and materials cannot cross party permissions;
+disconnect player A while B stays connected and observe A's queued building work
+continue; reconnect A and recover control of the same entity IDs and progress.
+Also prove current-format reload/restart retains memberships and physical custody.
+Combine this with the jobs and drawing repair's focused proof, not a new demo or
+historical browser matrix. Explicitly report any unresolved saved-format/identity
+transition before release; never reset existing worlds silently.
+
 ### 2. Shared height- and footprint-aware draw ordering
 
 Source findings:
