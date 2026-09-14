@@ -32,7 +32,12 @@ export function colonyConstructionVisuals(context: Pick<ReadContext, "query">) {
     const geometry = visualGeometry(shape, site.y);
     const mask = masks.get(id) || (site.orientation === "east" || site.orientation === "west" ? 5 : 10);
     const visual = shape.kind === "wall" ? `colony.wall.${stage}.joint-${mask}` : colonyPlacement[site.catalog].visual.replace(".finished", `.${stage}`);
-    return { id, cutawayTop: geometry.top, visual, label: `${site.catalog} · ${site.phase}`,
+    const placement = shape.kind === "fixture"
+      ? { kind: "footprint" as const, footprint: shape.footprint, orientation: site.orientation }
+      : shape.kind === "stair"
+        ? { kind: "stair" as const, entrance: [0, 0, 0] as const, landing: [0, shape.rise * colonyEnvironment.world.verticalMetres, shape.run] as const, orientation: site.orientation }
+        : undefined;
+    return { id, cutawayTop: geometry.top, visual, label: `${site.catalog} · ${site.phase}`, ...(placement ? { placement } : {}),
       pose: { position: { x: site.x, y: geometry.surface * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
   });
 }

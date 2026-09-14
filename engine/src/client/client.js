@@ -3,6 +3,7 @@ import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker, WORLD_TOWARD_CAMERA } from "./geometry.js";
 import { createWorldDepthLayer } from "./world-depth-layer.js";
 import { subjectWorldDepthItem } from "./world-depth-items.js";
+import { resolveWorldArtPlacement } from "./art-placement.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -785,6 +786,7 @@ export function createHiveClient({
         inventory: fact.inventory,
         activity: fact.activity,
         pose: fact.pose,
+        placement: fact.placement,
         screen: { x: 0, y: 0 },
         hitZoom: camera.zoom,
         pickable: projectWorldFact(fact, state.view).pickable,
@@ -915,6 +917,22 @@ export function createHiveClient({
       subject.hitArea = texture
         ? visibleHitAreaFor(texture, anchor)
         : undefined;
+      let placement;
+      if (texture && isStatic && subject.placement) {
+        const decodedDepth = art.depthByTexture?.get(texture);
+        const resolved = resolveWorldArtPlacement({
+          subjectPlacement: subject.placement,
+          artPlacement: decodedDepth?.placement,
+          orientation: subject.placement.orientation,
+          decodedDepth,
+        });
+        const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);
+        const base = project(subject.x, subject.y, subject.z);
+        placement = { offset: resolved.offset, screenOffset: {
+          x: (shifted.x - base.x) * camera.zoom,
+          y: (shifted.y - base.y) * camera.zoom,
+        } };
+      }
       if (texture) opaqueItems.push(subjectWorldDepthItem({
         subject,
         texture,
@@ -922,6 +940,7 @@ export function createHiveClient({
         art,
         scale: camera.zoom,
         physicalRole: binding.worldRole,
+        placement,
       }));
       entry.label.text = subject.name;
       entry.label.anchor.set(0.5, 1);
