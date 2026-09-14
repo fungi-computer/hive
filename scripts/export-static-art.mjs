@@ -82,8 +82,8 @@ try {
     [
       generated.draft.ground.file,
       generated.draft.groundDepth.file,
-      generated.draft.depth.file,
       ...generated.draft.pages.map((page) => page.file),
+      ...generated.draft.depthPages.map((page) => page.file),
     ].sort(),
     "Static art file inventory differs from its draft",
   );

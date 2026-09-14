@@ -20,11 +20,13 @@ uses terrain, the retained bed and Rowan; all 460 overlapping proof pixels agree
 with the CPU depth winner and reversed submission is byte-identical. This proves
 the chosen per-pixel technique only. The static-art format is now explicitly v4
 and carries checked ground/frame depth ranges, visual bounds and decoded CPU
-depth bytes through the maintained pack owner. Its 13 manifest laws, formatting
-and strict types pass. The v4 exported byte bank, reusable world-depth caller,
-cutaways and game picking remain unfinished; the first exporter run stopped
-before output because the provisioned Chromium environment lacks
-libcups/cairo/pango.
+depth bytes through the maintained pack owner. The source-owned v4 bank now
+contains 1,781 original textures across four paired color/depth pages; all ten
+image output hashes and 45 source hashes match its manifest. Its 13 manifest
+laws, strict types and an actual browser load of all 1,781 depth bindings pass.
+The reusable world-depth caller, cutaways and exact game picking remain
+unfinished; the first single-depth-page draft was rejected when the actual bank
+proved that it spans four color pages.
 
 The Colony v2 browser/protocol slice is integrated through `73c0b6c`: fresh and
 invited Colony worlds both use exact `/v2/colony/worlds/:world/...` routes, keep

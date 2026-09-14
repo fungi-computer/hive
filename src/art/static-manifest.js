@@ -235,15 +235,19 @@ function page(value, index) {
   });
 }
 
-function depth(value) {
-  keys(value, ["file", "sha256", "width", "height"], "depth");
+function depth(
+  value,
+  at = "depth",
+  fields = ["file", "sha256", "width", "height"],
+) {
+  keys(value, fields, at);
   return Object.freeze({
-    file: file(value.file, "depth.file"),
-    sha256: sha256(value.sha256, "depth.sha256"),
-    width: integer(value.width, "depth.width", 1, STATIC_ART_LIMITS.pageSide),
+    file: file(value.file, `${at}.file`),
+    sha256: sha256(value.sha256, `${at}.sha256`),
+    width: integer(value.width, `${at}.width`, 1, STATIC_ART_LIMITS.pageSide),
     height: integer(
       value.height,
-      "depth.height",
+      `${at}.height`,
       1,
       STATIC_ART_LIMITS.pageSide,
     ),
@@ -309,7 +313,7 @@ function path(value, at) {
   return Object.freeze(result);
 }
 
-function entry(value, index, pages, depthAtlas) {
+function entry(value, index, pages, depthPages) {
   const at = `entries[${index}]`;
   keys(
     value,
@@ -330,6 +334,8 @@ function entry(value, index, pages, depthAtlas) {
   const pageId = string(value.page, `${at}.page`, /^atlas-[0-7]$/, 16);
   const owner = pages.get(pageId);
   if (!owner) problem(`${at}.page`, "unknown-page");
+  const depthAtlas = depthPages.get(pageId);
+  if (!depthAtlas) problem(`${at}.page`, "missing-depth-page");
   const width = integer(
     value.width,
     `${at}.width`,
@@ -504,7 +510,7 @@ export function parseStaticArtManifest(input) {
       "groundDepth",
       "groundDepthRange",
       "groundVisualBounds",
-      "depth",
+      "depthPages",
       "pages",
       "entries",
       "provenance",
@@ -519,40 +525,56 @@ export function parseStaticArtManifest(input) {
   }).map(page);
   const pageIds = new Map();
   const pageFiles = new Set(["ground.png"]);
-  const checkedDepth = depth(input.depth);
-  const checkedGroundDepth = depth(input.groundDepth);
+  const checkedGroundDepth = depth(input.groundDepth, "groundDepth");
   if (
     checkedGroundDepth.width !== STATIC_ART_RENDER.ground.width ||
     checkedGroundDepth.height !== STATIC_ART_RENDER.ground.height
   )
     problem("groundDepth", "unexpected-size");
-  if (
-    checkedGroundDepth.file === "ground.png" ||
-    checkedGroundDepth.file === checkedDepth.file
-  )
+  if (checkedGroundDepth.file === "ground.png")
     problem("groundDepth.file", "duplicate-file");
-  if (pageFiles.has(checkedDepth.file)) problem("depth.file", "duplicate-file");
-  pageFiles.add(checkedDepth.file);
-  let pagePixels = 0;
+  pageFiles.add(checkedGroundDepth.file);
+  let colorPagePixels = 0;
   for (const current of checkedPages) {
     if (pageIds.has(current.id) || pageFiles.has(current.file))
       problem("pages", "duplicate-id-or-file");
     pageIds.set(current.id, current);
     pageFiles.add(current.file);
-    pagePixels += current.width * current.height;
+    colorPagePixels += current.width * current.height;
   }
-  for (const current of checkedPages)
-    if (
-      current.width !== checkedDepth.width ||
-      current.height !== checkedDepth.height
-    )
-      problem("depth", "atlas-size-mismatch");
-  if (pagePixels > STATIC_ART_LIMITS.pagePixels)
+  const checkedDepthPages = array(input.depthPages, "depthPages", {
+    min: 1,
+    max: STATIC_ART_LIMITS.pages,
+  }).map((value, index) => {
+    const at = `depthPages[${index}]`;
+    return Object.freeze({
+      id: string(value.id, `${at}.id`, /^atlas-[0-7]$/, 16),
+      ...depth(value, at, ["id", "file", "sha256", "width", "height"]),
+    });
+  });
+  const depthPageIds = new Map();
+  let depthPagePixels = 0;
+  for (const current of checkedDepthPages) {
+    const color = pageIds.get(current.id);
+    if (!color) problem("depthPages", "unmatched-page");
+    if (depthPageIds.has(current.id)) problem("depthPages", "duplicate-id");
+    if (pageFiles.has(current.file)) problem("depthPages", "duplicate-file");
+    if (current.width !== color.width || current.height !== color.height)
+      problem("depthPages", "atlas-size-mismatch");
+    depthPageIds.set(current.id, current);
+    pageFiles.add(current.file);
+    depthPagePixels += current.width * current.height;
+  }
+  if (depthPageIds.size !== pageIds.size) problem("depthPages", "missing-page");
+  if (
+    colorPagePixels > STATIC_ART_LIMITS.pagePixels ||
+    depthPagePixels > STATIC_ART_LIMITS.pagePixels
+  )
     problem("pages", "pixel-budget");
   const checkedEntries = array(input.entries, "entries", {
     min: 1,
     max: STATIC_ART_LIMITS.textures - 1,
-  }).map((value, index) => entry(value, index, pageIds, checkedDepth));
+  }).map((value, index) => entry(value, index, pageIds, depthPageIds));
   const textureCount = integer(
     input.textureCount,
     "textureCount",
@@ -587,8 +609,8 @@ export function parseStaticArtManifest(input) {
       input.groundVisualBounds,
       "groundVisualBounds",
     ),
-    depth: checkedDepth,
     pages: Object.freeze(checkedPages),
+    depthPages: Object.freeze(checkedDepthPages),
     entries: Object.freeze(checkedEntries),
     provenance: provenance(input.provenance),
   });
@@ -618,8 +640,11 @@ export function completeStaticArtManifest(draft, fileSha256, sources) {
     },
     groundDepthRange: draft.groundDepthRange,
     groundVisualBounds: draft.groundVisualBounds,
-    depth: { ...draft.depth, sha256: hashes[draft.depth.file] },
     pages: draft.pages.map((page) => ({
+      ...page,
+      sha256: hashes[page.file],
+    })),
+    depthPages: draft.depthPages.map((page) => ({
       ...page,
       sha256: hashes[page.file],
     })),

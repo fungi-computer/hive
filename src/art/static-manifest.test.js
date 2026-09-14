@@ -61,11 +61,19 @@ function manifest() {
       maxY: 2,
       maxZ: 8,
     },
-    depth: { file: "depth.png", sha256: HASH, width: 16, height: 16 },
     pages: [
       {
         id: "atlas-0",
         file: "atlas-0.png",
+        sha256: HASH,
+        width: 16,
+        height: 16,
+      },
+    ],
+    depthPages: [
+      {
+        id: "atlas-0",
+        file: "depth-atlas-0.png",
         sha256: HASH,
         width: 16,
         height: 16,
@@ -131,7 +139,9 @@ test("manifest completion binds output and source byte identities", () => {
   const draft = {
     ...input,
     ground: (({ sha256, ...ground }) => ground)(input.ground),
+    groundDepth: (({ sha256, ...depth }) => depth)(input.groundDepth),
     pages: input.pages.map(({ sha256, ...page }) => page),
+    depthPages: input.depthPages.map(({ sha256, ...page }) => page),
     provenance: (({ sources, ...provenance }) => provenance)(input.provenance),
   };
   const parsed = completeStaticArtManifest(
@@ -140,12 +150,13 @@ test("manifest completion binds output and source byte identities", () => {
       "ground.png": HASH,
       "ground-depth.png": HASH,
       "atlas-0.png": HASH,
-      "depth.png": HASH,
+      "depth-atlas-0.png": HASH,
     },
     input.provenance.sources,
   );
   assert.equal(parsed.ground.sha256, HASH);
   assert.equal(parsed.pages[0].sha256, HASH);
+  assert.equal(parsed.depthPages[0].sha256, HASH);
   assert.deepEqual(parsed.provenance.sources, input.provenance.sources);
 });
 
@@ -169,16 +180,19 @@ test("static art manifest rejects unknown data and malformed finite bounds", () 
   assert.throws(() => parseStaticArtManifest(getter), /plain-data-required/);
 });
 
-test("static art depth bank is a required matched atlas with its own identity", () => {
+test("static art depth pages are required matched atlases with their own identities", () => {
   const missing = manifest();
-  delete missing.depth;
+  delete missing.depthPages;
   assert.throws(() => parseStaticArtManifest(missing), /unexpected-fields/);
   const mismatch = manifest();
-  mismatch.depth.width = 15;
+  mismatch.depthPages[0].width = 15;
   assert.throws(() => parseStaticArtManifest(mismatch), /atlas-size-mismatch/);
   const alias = manifest();
-  alias.depth.file = "ground.png";
+  alias.depthPages[0].file = "ground.png";
   assert.throws(() => parseStaticArtManifest(alias), /duplicate-file/);
+  const unmatched = manifest();
+  unmatched.depthPages[0].id = "atlas-1";
+  assert.throws(() => parseStaticArtManifest(unmatched), /unmatched-page/);
   const missingGroundRange = manifest();
   delete missingGroundRange.groundDepthRange;
   assert.throws(
@@ -283,7 +297,7 @@ test("manifest completion preserves actual camelCase art paths", () => {
       "ground.png": HASH,
       "ground-depth.png": HASH,
       "atlas-0.png": HASH,
-      "depth.png": HASH,
+      "depth-atlas-0.png": HASH,
     },
     input.provenance.sources,
   );

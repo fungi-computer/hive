@@ -130,8 +130,8 @@ export async function loadStaticArtPack({
   const definitions = [
     manifest.ground,
     manifest.groundDepth,
-    manifest.depth,
     ...manifest.pages,
+    ...manifest.depthPages,
   ];
   onProgress({ detail: "Loading the clearing art", completedTextures: 0 });
   const loaded = await Promise.allSettled(
@@ -164,13 +164,9 @@ export async function loadStaticArtPack({
     const groundDepthPixels = decodeDepthPixels
       ? await decodeDepthPixels(bitmaps[1])
       : null;
-    const depthPixels = decodeDepthPixels
-      ? await decodeDepthPixels(bitmaps[2])
-      : null;
     const ground = textureFromBitmap(bitmaps[0]);
     const groundDepth = textureFromBitmap(bitmaps[1]);
-    const depth = textureFromBitmap(bitmaps[2]);
-    ownerTextures.push(ground, groundDepth, depth);
+    ownerTextures.push(ground, groundDepth);
     registerVisibleSilhouette(ground, {
       width: manifest.ground.width,
       height: manifest.ground.height,
@@ -178,14 +174,25 @@ export async function loadStaticArtPack({
     });
     const pageTextures = new Map();
     manifest.pages.forEach((page, index) => {
-      const texture = textureFromBitmap(bitmaps[index + 3]);
-      ownerTextures.push(texture);
-      pageTextures.set(page.id, texture);
+      const color = textureFromBitmap(bitmaps[index + 2]);
+      ownerTextures.push(color);
+      pageTextures.set(page.id, { color });
     });
+    const depthOffset = 2 + manifest.pages.length;
+    for (const [index, page] of manifest.depthPages.entries()) {
+      const bitmap = bitmaps[depthOffset + index];
+      const texture = textureFromBitmap(bitmap);
+      const pixels = decodeDepthPixels ? await decodeDepthPixels(bitmap) : null;
+      ownerTextures.push(texture);
+      Object.assign(pageTextures.get(page.id), {
+        depth: texture,
+        depthPixels: pixels,
+        depthDefinition: page,
+      });
+    }
     const art = {
       ground,
       groundDepth,
-      depth,
       pawnAnchor: { ...manifest.anchors.pawn },
       propAnchor: { ...manifest.anchors.prop },
       vehicleAnchor: { ...manifest.anchors.vehicle },
@@ -209,7 +216,8 @@ export async function loadStaticArtPack({
       }),
     );
     for (const entry of manifest.entries) {
-      const source = pageTextures.get(entry.page).source;
+      const page = pageTextures.get(entry.page);
+      const source = page.color.source;
       const texture = new Texture({
         source,
         frame: new Rectangle(entry.x, entry.y, entry.width, entry.height),
@@ -223,10 +231,10 @@ export async function loadStaticArtPack({
       depthByTexture.set(
         texture,
         Object.freeze({
-          texture: depth,
-          pixels: depthPixels,
-          atlasWidth: manifest.depth.width,
-          atlasHeight: manifest.depth.height,
+          texture: page.depth,
+          pixels: page.depthPixels,
+          atlasWidth: page.depthDefinition.width,
+          atlasHeight: page.depthDefinition.height,
           frame: entry.depth,
           depthRange: entry.depthRange,
           visualBounds: entry.visualBounds,
@@ -242,7 +250,7 @@ export async function loadStaticArtPack({
       detail: "Clearing art ready",
       completedTextures: manifest.textureCount,
     });
-    return { art, depthPixels, manifest, dispose };
+    return { art, manifest, dispose };
   } catch (error) {
     dispose();
     throw new Error("The checked static art pack could not assemble", {

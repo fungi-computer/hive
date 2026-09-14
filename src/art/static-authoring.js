@@ -136,7 +136,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
     }
 
     const atlases = [page(0)],
-      depthAtlas = page(0),
+      depthAtlases = [page(0)],
       entries = [];
     for (const item of textures.filter(({ path }) => path[0] !== "ground")) {
       const canvas = textureCanvas(item.texture, JSON.stringify(item.path));
@@ -145,6 +145,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       if (!at) {
         owner = page(atlases.length);
         atlases.push(owner);
+        depthAtlases.push(page(depthAtlases.length));
         at = place(owner, canvas.width, canvas.height);
       }
       if (!at) throw new Error("Static art frame exceeds an atlas page");
@@ -158,7 +159,8 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         depthBake.texture,
         `${JSON.stringify(item.path)} depth`,
       );
-      depthAtlas.context.drawImage(depthCanvas, at.x, at.y);
+      const ownerIndex = atlases.length - 1;
+      depthAtlases[ownerIndex].context.drawImage(depthCanvas, at.x, at.y);
       entries.push({
         path: item.path,
         page: owner.id,
@@ -176,8 +178,6 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         ),
       });
     }
-    if (atlases.length !== 1)
-      throw new Error("Static depth atlas requires a single color atlas page");
     const draft = {
       schema: STATIC_ART_SCHEMA,
       textureCount: textures.length,
@@ -203,14 +203,15 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       },
       groundDepthRange: groundDepthBake.depthRange,
       groundVisualBounds: groundDepthBake.visualBounds,
-      depth: {
-        file: "depth.png",
-        width: depthAtlas.width,
-        height: depthAtlas.height,
-      },
       pages: atlases.map(({ id, file, width, height }) => ({
         id,
         file,
+        width,
+        height,
+      })),
+      depthPages: depthAtlases.map(({ id, width, height }) => ({
+        id,
+        file: `depth-${id}.png`,
         width,
         height,
       })),
@@ -228,8 +229,8 @@ export async function createStaticArtDraft(onProgress = () => {}) {
           "ground-depth.png",
           textureCanvas(groundDepthBake.texture, "ground depth"),
         ],
-        ["depth.png", depthAtlas.canvas],
         ...atlases.map(({ file, canvas }) => [file, canvas]),
+        ...depthAtlases.map(({ id, canvas }) => [`depth-${id}.png`, canvas]),
       ]),
       dispose: art.dispose,
     };
