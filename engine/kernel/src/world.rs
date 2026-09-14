@@ -4030,6 +4030,13 @@ impl Kernel {
                         crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
                             if let Ok(process_entity) = self.entity(&process) { if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() { if state.phase == ProcessPhase::Working { self.ecs.entity_mut(process_entity).insert(StagedProcess { phase: ProcessPhase::Waiting, ..state }); } } }
                         }
+                        crate::work_attempt::ActivityRef::Construction { site, .. } => {
+                            if let Ok(site_entity) = self.entity(&site) {
+                                if let Some(state) = self.ecs.get::<ConstructionSite>(site_entity).cloned() {
+                                    if state.phase == ConstructionPhase::Working { self.ecs.entity_mut(site_entity).insert(ConstructionSite { phase: ConstructionPhase::Planned, seconds: 0.0, ..state }); }
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }
