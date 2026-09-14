@@ -163,7 +163,6 @@ export type ActionRequest =
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
   | { readonly kind: "admit-process"; readonly process: EntityId; readonly definition: string; readonly station: EntityId }
-  | { readonly kind: "attend-process"; readonly worker: EntityId; readonly process: EntityId }
   | {
       readonly kind: "designate-stockpile";
       readonly zone: EntityId;

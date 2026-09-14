@@ -3374,7 +3374,7 @@ impl Kernel {
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
                     | Action::ReplaceFloor { .. }
-                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::AttendProcess { .. } | Action::ExchangeFieldWater { .. })
+                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -4069,7 +4069,7 @@ impl Kernel {
             let entity = self.entity(&id)?; let Some(mut state) = self.ecs.get::<StagedProcess>(entity).cloned() else { continue; };
             if state.phase == ProcessPhase::Complete { continue; }
             if state.phase == ProcessPhase::Working {
-                let valid = self.work_attempts.get(&id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity)).is_some_and(|attempt| matches!(attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, .. } if process == id));
+                let valid = self.work_attempts.get(&id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity)).is_some_and(|attempt| matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, .. } if process == &id));
                 if !valid { return Err("working process has no executing attendance attempt".into()); }
                 continue;
             }
@@ -4408,7 +4408,6 @@ impl Kernel {
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station, scope).map(ActionEffect::Entity),
             Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
-            Action::AttendProcess { worker, process } => { self.attend_process(&worker, &process, delta)?; Ok(ActionEffect::None) },
             Action::CancelWork { entity } => {
                 if let Some(key) = self.attempts_by_worker.get(&entity).cloned() {
                         let sequence = self.work_attempts.get(&key.task).and_then(|attempt| self.ecs.get::<WorkAttempt>(*attempt)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("worker attempt has no active operation")?;
@@ -4616,7 +4615,6 @@ impl Kernel {
             }
             Action::RequestProcess { station, .. } => targets.push(station.as_str()),
             Action::AdmitProcess { process, station, .. } => { targets.push(process.as_str()); targets.push(station.as_str()); }
-            Action::AttendProcess { worker, process } => { targets.push(worker.as_str()); targets.push(process.as_str()); }
             Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
             Action::DesignateStockpile { zone, .. } | Action::UpdateStockpile { zone, .. } => targets.push(zone.as_str()),
             Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),

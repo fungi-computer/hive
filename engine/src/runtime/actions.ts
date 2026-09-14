@@ -76,10 +76,6 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "definition", "station"];
       valid = id(action.definition) && id(action.station);
       break;
-    case "attend-process":
-      keys = ["kind", "worker", "process"];
-      valid = id(action.worker) && id(action.process);
-      break;
     case "admit-process":
       keys = ["kind", "process", "definition", "station"];
       valid = id(action.process) && id(action.definition) && id(action.station);
