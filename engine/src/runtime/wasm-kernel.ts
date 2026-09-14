@@ -46,6 +46,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   construction_access(json: string): string;
   deconstruction_access(json: string): string;
   physical_contacts(json: string): string;
+  transfer_contacts(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
   water_contacts(json: string): string;
@@ -300,6 +301,14 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         (json) => binding.physical_contacts(json),
         cells,
       );
+    },
+    transferContacts(request) {
+      const value: unknown = JSON.parse(binding.transfer_contacts(JSON.stringify(request)));
+      const result = z.discriminatedUnion("kind", [
+        z.object({ kind: z.literal("ready"), targets: z.array(z.object({ x: z.number().finite(), y: z.number().finite(), z: z.number().finite(), frame: z.null() }).strict()).min(1).max(32) }).strict(),
+        z.object({ kind: z.literal("blocked"), reason: z.enum(["sealed", "unavailable-frame", "no-contact"]) }).strict(),
+      ]).parse(value);
+      return result;
     },
     terrainMaterials(cells) {
       if (

@@ -2145,6 +2145,24 @@ impl Kernel {
         }).collect::<Result<_>>()?;
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
+    /// Return the bounded standing target for a worker/container interaction.
+    /// The target is the container's immutable physical pose; final admission
+    /// uses the same shared reach predicate in `contact`.
+    pub fn transfer_contacts_json(&mut self, input: &str) -> Result<String> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Request { worker: String, container: String }
+        let request: Request = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        let worker = self.entity(&request.worker)?;
+        let container = self.entity(&request.container)?;
+        if self.ecs.get::<SealedContainer>(container).is_some() {
+            return serde_json::to_string(&json!({"kind":"blocked","reason":"sealed"})).map_err(|error| error.to_string());
+        }
+        self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
+        let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
+        let targets = vec![json!({"x":container_pose.x,"y":container_pose.y,"z":container_pose.z,"frame":null})];
+        serde_json::to_string(&json!({"kind":"ready","targets":targets})).map_err(|error| error.to_string())
+    }
     /// Bounded read-only route costs. Preparation uses the same route owner as
     /// movement but never installs a destination or mutates canonical state.
     pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
