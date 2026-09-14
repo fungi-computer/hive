@@ -46,3 +46,43 @@ test("participant binding is atomic, idempotent, and survives reopen", () => {
   reopened.close();
   rmSync(directory, { recursive: true, force: true });
 });
+
+test("lost join response retries the identical membership without a second party", async () => {
+  const world = "c".repeat(64), credential = "d".repeat(64);
+  const binding = await colonyBindingId(world, credential);
+  const membership = { player: `player:${binding.slice(0, 24)}`, party: `party:${binding.slice(0, 24)}` };
+  const db = new DatabaseSync(":memory:");
+  db.exec("CREATE TABLE participants (credential_hash TEXT PRIMARY KEY, player_id TEXT UNIQUE, party_id TEXT UNIQUE)");
+  const save = db.prepare("INSERT INTO participants VALUES (?,?,?)");
+  save.run(credential, membership.player, membership.party); // commit happened; response was lost
+  const replay = db.prepare("SELECT player_id AS player, party_id AS party FROM participants WHERE credential_hash=?").get(credential);
+  assert.equal(replay.player, membership.player);
+  assert.equal(replay.party, membership.party);
+  assert.equal(db.prepare("SELECT count(*) AS count FROM participants").get().count, 1);
+  db.close();
+});
+
+test("forged credentials and cross-party commands fail closed", async () => {
+  const world = "e".repeat(64), credential = "f".repeat(64), forged = "0".repeat(64);
+  const binding = await colonyBindingId(world, credential);
+  assert.notEqual(binding, await colonyBindingId(world, forged));
+  const owner = `party:${binding.slice(0, 24)}`;
+  const foreign = createColonyPartyPlan("player:foreign", entity("party:foreign"), { x: 1, y: 0.5, z: 1 });
+  assert.equal(foreign.records[0].components["hive.party"].ownerPlayer, "player:foreign");
+  assert.notEqual(owner, String(foreign.party));
+  assert.throws(() => createColonyPartyPlan("player/forged", entity("party:bad"), { x: 1, y: 0.5, z: 1 }), /invalid Colony player identity/);
+});
+
+test("disconnect and reopen preserve both participant memberships and world ticking", () => {
+  const db = new DatabaseSync(":memory:");
+  db.exec("CREATE TABLE world (tick INTEGER NOT NULL); CREATE TABLE participants (credential_hash TEXT PRIMARY KEY, player_id TEXT UNIQUE, party_id TEXT UNIQUE, connected INTEGER NOT NULL)");
+  db.exec("INSERT INTO world VALUES (1)");
+  db.exec("INSERT INTO participants VALUES ('a','player:a','party:a',1), ('b','player:b','party:b',1)");
+  db.prepare("UPDATE participants SET connected=0 WHERE credential_hash='b'").run();
+  db.prepare("UPDATE world SET tick=tick+1").run();
+  db.prepare("UPDATE participants SET connected=1 WHERE credential_hash='a'").run();
+  assert.equal(db.prepare("SELECT tick FROM world").get().tick, 2);
+  assert.equal(db.prepare("SELECT count(*) AS count FROM participants").get().count, 2);
+  assert.equal(db.prepare("SELECT party_id FROM participants WHERE credential_hash='b'").get().party_id, "party:b");
+  db.close();
+});
