@@ -55,7 +55,7 @@ import { piratesPack } from "../games/pirates.ts";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
-import { actionBarGroups } from "./action-bar.js";
+import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
 import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -466,6 +466,7 @@ export function createHiveClient({
         ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
       ],
     });
+    const selectedActionControls = selectedActionBarControls(localControls(), state.selectedIds);
     // Only world-scoped commands belong in the global dock. Selection-scoped
     // work remains on the selected person/object card.
     const actionGroups = actionBarGroups(contextualPresentation.world.controls, buildIds);
@@ -517,6 +518,17 @@ export function createHiveClient({
     const renderZonesPalette = () => actionBarState.get() === "zones" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Zones palette" },
       ...actionGroups.zones.map(renderWorldControl),
     ) : null;
+    const renderSelectedActionPalette = () => selectedActionControls.length
+      ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Selected people actions" },
+        selectedActionControls.map((control) => React.createElement(Button, {
+          key: control.id,
+          size: "sm",
+          variant: "outline",
+          disabled: !state.ready,
+          title: control.detail,
+          onClick: () => executeWhistle(control, bindingCommand(control, state.selectedIds).input),
+        }, control.label)),
+      ) : null;
     const renderActiveTool = () => activeControl ? React.createElement("section", { className: "hive-active-tool", "aria-label": "Active tool" },
       React.createElement("strong", null, activeControl.label),
       activeControl.detail ? React.createElement("small", null, activeControl.detail) : null,
@@ -525,7 +537,7 @@ export function createHiveClient({
       React.createElement(Button, { size: "sm", variant: "primary", onClick: cancelPlacement }, "Done / cancel"),
     ) : null;
     const renderActionDock = () => React.createElement(React.Fragment, null,
-      renderBuildPalette(), renderOrdersPalette(), renderZonesPalette(), renderActiveTool(),
+      renderBuildPalette(), renderOrdersPalette(), renderZonesPalette(), renderSelectedActionPalette(), renderActiveTool(),
       React.createElement("div", { className: "hive-action-bar", role: "toolbar", "aria-label": "World actions" },
         buildGroups.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "build" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "build", onClick: () => { actionBarState.toggle("build"); renderHud(); } }, "Build") : null,
         actionGroups.work.length ? React.createElement(Button, { size: "sm", variant: actionBarState.get() === "orders" ? "secondary" : "outline", "aria-expanded": actionBarState.get() === "orders", onClick: () => { actionBarState.toggle("orders"); renderHud(); } }, "Orders / Work") : null,

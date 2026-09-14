@@ -477,7 +477,7 @@ export const colonyPack: GamePack = {
     }),
     draft: command({
       title: "Draft workers", category: "Colony", description: "Draft selected workers for manual control.",
-      localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities" }] },
+      localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities", placement: "action-bar" }] },
       input: workerSelectionInput,
       reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
@@ -493,7 +493,7 @@ export const colonyPack: GamePack = {
     }),
     undraft: command({
       title: "Undraft workers", category: "Colony", description: "Return selected workers to automatic work.",
-      localPresentation: { bindings: [{ id: "undraft", label: "Undraft", selection: "entities" }] },
+      localPresentation: { bindings: [{ id: "undraft", label: "Undraft", selection: "entities", placement: "action-bar" }] },
       input: workerSelectionInput,
       reads: [Worker, PartyMember, WorkParticipation],
       writes: [WorkParticipation],

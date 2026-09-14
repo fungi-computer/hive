@@ -14,3 +14,17 @@ export function actionBarGroups(controls, buildIds) {
 export function toggleActionCategory(current, next) {
   return current === next ? null : next;
 }
+
+/**
+ * Controls explicitly owned by the persistent action dock. Selection remains
+ * ordinary client state; the dock only becomes actionable once something is
+ * selected and still submits the owning semantic command.
+ */
+export function selectedActionBarControls(controls, selectedIds) {
+  if (!Array.isArray(selectedIds) || selectedIds.length === 0) return [];
+  return (controls ?? []).filter((control) =>
+    control.placement === "action-bar" &&
+    control.selection === "entities" &&
+    control.availability?.status !== "unavailable",
+  );
+}
