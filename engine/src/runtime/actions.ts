@@ -94,6 +94,10 @@ export function checkedAction(value: unknown): ActionRequest {
         && ["north", "east", "south", "west"].includes(action.orientation as string);
       break;
     }
+    case "replace-floor":
+      keys = ["kind", "orderId", "existingFloorId", "desiredCatalog"];
+      valid = id(action.orderId) && id(action.existingFloorId) && id(action.desiredCatalog);
+      break;
     case "bind-construction-stage":
       keys = ["kind", "site", "contact"];
       valid = id(action.site) && terrainContact(action.contact);

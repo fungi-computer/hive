@@ -394,9 +394,10 @@ mod construction_tests {
             "components":[], "initial":[
                 {"id":"worker-1","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
                 {"id":"worker-2","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
+                {"id":"worker-3","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
                 {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":10}}},
                 {"id":"lot.1","components":{"hive.lot":{"kind":"stone-spoil","quantity":1,"container":"source"}}},
-                {"id":"lot.2","components":{"hive.lot":{"kind":"stone-spoil","quantity":4,"container":"source"}}}
+                {"id":"lot.2","components":{"hive.lot":{"kind":"stone-spoil","quantity":10,"container":"source"}}}
             ]
         }).to_string().as_str()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
@@ -413,7 +414,7 @@ mod construction_tests {
 
     #[test]
     fn water_contacts_are_bounded_three_dimensional_and_stable() {
-        let (kernel, _, _) = world();
+        let (mut kernel, _, _) = world();
         assert!(kernel.water_contacts_json("[]").is_err());
         let too_many = serde_json::to_string(&vec![[0.0_f64, 0.0, 0.0]; 17]).unwrap();
         assert!(kernel.water_contacts_json(&too_many).is_err());
@@ -442,6 +443,40 @@ mod construction_tests {
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
     }
 
+    fn install_floor_alt_and_furniture(kernel: &mut Kernel) {
+        use crate::environment_definition::{CompletionRecipe, PortDefinition, StructureDefinition, StructureShape};
+        let base = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        let bed = StructureDefinition { id: "timber-bed".into(), shape: StructureShape::Fixture { footprint: vec![(0, 0), (0, 1)] }, on_complete: CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "sleep".into(), components: vec![("hive.container".into(), record(&Container { capacity: 1 }))], at_site_contact: true }] }, ..base.clone() };
+        let brewer = StructureDefinition { id: "brew-station".into(), shape: StructureShape::Fixture { footprint: vec![(0, 0), (1, 0), (0, 1), (1, 1)] }, on_complete: CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "kettle".into(), components: vec![("hive.container".into(), record(&Container { capacity: 2 }))], at_site_contact: true }] }, ..base.clone() };
+        let alt = StructureDefinition { id: "floor-alt".into(), ..base };
+        let environment = kernel.environment.as_mut().unwrap();
+        environment.structures.insert("floor-alt".into(), alt);
+        environment.structures.insert("timber-bed".into(), bed);
+        environment.structures.insert("brew-station".into(), brewer);
+    }
+
+    fn construct_fixture_pair(kernel: &mut Kernel, surface: crate::generation::Cell) {
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        for (site, x, worker) in [("floor-bed", surface.x + 2, "worker-2"), ("floor-brew", surface.x + 4, "worker-3")] {
+            let c = Point { x: (x + 1) as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], frame: None };
+            kernel.ecs.entity_mut(kernel.entity(worker).unwrap()).insert(Position { x: c.x, y: c.y, z: c.z, facing: 0.0 });
+            let batch = json!({"delta":0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"floor","site":site,"x":x,"y":surface.y,"z":surface.z,"orientation":"north"},{"kind":"bind-construction-stage","site":site,"contact":c},{"kind":"transfer","lot":"lot.2","from":"source","to":site,"quantity":1},{"kind":"attend-construction","worker":worker,"site":site,"contact":c}]});
+            let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch.to_string()).unwrap()).unwrap();
+            assert!(result["results"].as_array().unwrap().iter().all(|entry| entry["accepted"] == true));
+            kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        }
+        for (worker, x) in [("worker-2", surface.x + 2), ("worker-3", surface.x + 4)] {
+            kernel.ecs.entity_mut(kernel.entity(worker).unwrap()).insert(Position { x: (x + 1) as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 });
+        }
+        for (site, catalog, x, worker) in [("bed-1", "timber-bed", surface.x + 2, "worker-2"), ("brew-1", "brew-station", surface.x + 4, "worker-3")] {
+            let c = Point { x: (x + 1) as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], frame: None };
+            let batch = json!({"delta":0,"writes":[],"actions":[{"kind":"plan-construction","catalog":catalog,"site":site,"x":x,"y":surface.y+1,"z":surface.z,"orientation":"north"},{"kind":"bind-construction-stage","site":site,"contact":c},{"kind":"transfer","lot":"lot.2","from":"source","to":site,"quantity":1},{"kind":"attend-construction","worker":worker,"site":site,"contact":c}]});
+            kernel.advance_json(&batch.to_string()).unwrap();
+            kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        }
+        kernel.complete_material_output(MaterialOutputSpec { container: "brew-1:kettle".into(), kind: "stone-spoil".into(), quantity: 1, water_kg: None }).unwrap();
+    }
+
     fn install_floor_storage_recipe(kernel: &mut Kernel) {
         use crate::environment_definition::{CompletionRecipe, PortDefinition};
         let environment = kernel.environment.as_mut().unwrap();
@@ -467,6 +502,101 @@ mod construction_tests {
             ]}]
         });
         environment.definition = definition.to_string();
+    }
+
+    #[test]
+    fn floor_operation_query_reports_invalid_and_waiting_without_inventing_support() {
+        let (mut kernel, surface, contact) = world();
+        install_floor_alt_and_furniture(&mut kernel);
+        let invalid: serde_json::Value = serde_json::from_str(&kernel.floor_operations_json(r#"[{"cell":[0,0,0],"desiredCatalog":"missing"}]"#).unwrap()).unwrap();
+        assert_eq!(invalid[0]["kind"], "invalid");
+        let far = json!([{"cell":[31,39,31],"desiredCatalog":"floor"}]).to_string();
+        let waiting: serde_json::Value = serde_json::from_str(&kernel.floor_operations_json(&far).unwrap()).unwrap();
+        assert_eq!(waiting[0]["kind"], "waiting-for-support");
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        for (worker, x) in [("worker-2", surface.x + 2_i64), ("worker-3", surface.x + 4_i64)] {
+            let position = Position { x: (x + 1) as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 };
+            kernel.ecs.entity_mut(kernel.entity(worker).unwrap()).insert(position);
+        }
+        let furniture = json!({"delta":0,"writes":[],"actions":[
+            {"kind":"plan-construction","catalog":"timber-bed","site":"bed-1","x":surface.x+2,"y":surface.y+1,"z":surface.z,"orientation":"north"},
+            {"kind":"bind-construction-stage","site":"bed-1","contact":{"x":(surface.x+3) as f64 * spacing[0],"y":(f64::from(surface.y)+0.5)*spacing[1],"z":surface.z as f64*spacing[2],"frame":null}},
+            {"kind":"transfer","lot":"lot.2","from":"source","to":"bed-1","quantity":1},
+            {"kind":"attend-construction","worker":"worker-2","site":"bed-1","contact":{"x":(surface.x+3) as f64 * spacing[0],"y":(f64::from(surface.y)+0.5)*spacing[1],"z":surface.z as f64*spacing[2],"frame":null}}
+        ]});
+        kernel.advance_json(&furniture.to_string()).unwrap();
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let brewer = json!({"delta":0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"brew-station","site":"brew-1","x":surface.x+4,"y":surface.y+1,"z":surface.z,"orientation":"north"},{"kind":"bind-construction-stage","site":"brew-1","contact":{"x":(surface.x+5) as f64 * spacing[0],"y":(f64::from(surface.y)+0.5)*spacing[1],"z":surface.z as f64*spacing[2],"frame":null}},{"kind":"transfer","lot":"lot.2","from":"source","to":"brew-1","quantity":1},{"kind":"attend-construction","worker":"worker-3","site":"brew-1","contact":{"x":(surface.x+5) as f64 * spacing[0],"y":(f64::from(surface.y)+0.5)*spacing[1],"z":surface.z as f64*spacing[2],"frame":null}}]});
+        kernel.advance_json(&brewer.to_string()).unwrap();
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        kernel.complete_material_output(MaterialOutputSpec { container: "brew-1:kettle".into(), kind: "stone-spoil".into(), quantity: 1, water_kg: None }).unwrap();
+        let same: serde_json::Value = serde_json::from_str(&kernel.floor_operations_json(&json!([{"cell":[surface.x,surface.y,surface.z],"desiredCatalog":"floor"}]).to_string()).unwrap()).unwrap();
+        assert_eq!(same[0]["kind"], "unchanged");
+    }
+
+    #[test]
+    fn floor_same_finish_is_explicitly_unchanged_and_conflicting_designation_is_reported() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let request = json!([{"cell":[surface.x,surface.y,surface.z],"desiredCatalog":"floor"}]).to_string();
+        let result: serde_json::Value = serde_json::from_str(&kernel.floor_operations_json(&request).unwrap()).unwrap();
+        assert_eq!(result[0]["kind"], "unchanged");
+        let alternate = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        kernel.environment.as_mut().unwrap().structures.insert("floor-alt".into(), crate::environment_definition::StructureDefinition { id: "floor-alt".into(), ..alternate });
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"replace-floor","orderId":"replace-conflict","existingFloorId":"site-1","desiredCatalog":"floor-alt"}]}"#).unwrap();
+        let conflict: serde_json::Value = serde_json::from_str(&kernel.floor_operations_json(r#"[{"cell":[0,0,0],"desiredCatalog":"floor-alt"}]"#).unwrap()).unwrap();
+        assert_eq!(conflict[0]["kind"], "conflict");
+    }
+
+    #[test]
+    fn floor_replacement_cancel_and_target_mutation_are_terminal_without_publication() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let alternate = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        kernel.environment.as_mut().unwrap().structures.insert("floor-alt".into(), crate::environment_definition::StructureDefinition { id: "floor-alt".into(), ..alternate });
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"replace-floor","orderId":"replace-cancel","existingFloorId":"site-1","desiredCatalog":"floor-alt"}]}"#).unwrap();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-cancel","contact":contact},{"kind":"transfer","lot":"lot.2","from":"source","to":"replace-cancel","quantity":1},{"kind":"attend-construction","worker":"worker-2","site":"replace-cancel","contact":contact}]}).to_string()).unwrap();
+        let target_entity = kernel.entity("site-1").unwrap();
+        let mut target_state = kernel.ecs.get::<ConstructionSite>(target_entity).unwrap().clone();
+        target_state.catalog = "floor-alt".into();
+        kernel.ecs.entity_mut(target_entity).insert(target_state);
+        let rejected = kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#);
+        assert!(rejected.is_err());
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"cancel-work","entity":"worker-2"}]}"#).unwrap();
+        assert!(kernel.query_json(r#"["hive.floor-replacement"]"#).unwrap().contains("cancelled"));
+        assert!(kernel.query_json(r#"["hive.lot"]"#).unwrap().contains("replace-cancel"));
+    }
+
+    #[test]
+    fn floor_replacement_preserves_brewer_bed_identity_ports_contents_and_support() {
+        let (mut kernel, surface, contact) = world();
+        install_floor_alt_and_furniture(&mut kernel);
+        setup(&mut kernel, surface, &contact);
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        construct_fixture_pair(&mut kernel, surface);
+        let bed_contact = Point { x: (surface.x + 3) as f64 * kernel.environment.as_ref().unwrap().world.cell_spacing_m()[0], y: contact.y, z: contact.z, frame: None };
+        let alternate = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        kernel.environment.as_mut().unwrap().structures.insert("floor-alt".into(), crate::environment_definition::StructureDefinition { id: "floor-alt".into(), ..alternate });
+        let queued: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"replace-floor","orderId":"replace-1","existingFloorId":"floor-bed","desiredCatalog":"floor-alt"}]}"#).unwrap()).unwrap();
+        assert_eq!(queued["results"][0]["accepted"], true);
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-1","contact":bed_contact},{"kind":"transfer","lot":"lot.2","from":"source","to":"replace-1","quantity":1},{"kind":"attend-construction","worker":"worker-2","site":"replace-1","contact":bed_contact}]}).to_string()).unwrap();
+        let staged_lots: serde_json::Value = serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap();
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        let after = kernel.query_json(r#"["hive.construction-site","hive.sealed-container","hive.floor-replacement"]"#).unwrap();
+        assert!(after.contains("floor-alt"));
+        assert!(after.contains("completed"));
+        assert_eq!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().filter(|instance| matches!(instance, StaticInstance::Floor { id, support } if id == "site-1" && *support == surface)).count(), 1);
+        let finished_lots: serde_json::Value = serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap();
+        assert!(finished_lots != staged_lots);
+        let second: serde_json::Value = serde_json::from_str(&kernel.floor_operations_json(r#"[{"cell":[0,0,0],"desiredCatalog":"floor-alt"}]"#).unwrap()).unwrap();
+        assert_eq!(second[0]["kind"], "unchanged");
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.query_json(r#"["hive.floor-replacement"]"#).unwrap(), kernel.query_json(r#"["hive.floor-replacement"]"#).unwrap());
     }
 
     #[test]
@@ -2234,6 +2364,32 @@ impl Kernel {
         let targets = vec![json!({"x":container_pose.x,"y":container_pose.y,"z":container_pose.z,"frame":null})];
         serde_json::to_string(&json!({"kind":"ready","targets":targets})).map_err(|error| error.to_string())
     }
+    pub fn floor_operations_json(&mut self, input: &str) -> Result<String> {
+        #[derive(serde::Deserialize)] struct Request { cell: [i64; 3], #[serde(rename="desiredCatalog")] desired_catalog: String }
+        let requests: Vec<Request> = serde_json::from_str(input).map_err(|e| e.to_string())?;
+        if requests.is_empty() || requests.len() > 128 { return Err("floor operation query exceeds request budget".into()); }
+        let mut results = Vec::with_capacity(requests.len());
+        for request in requests {
+            let environment = self.environment.as_ref().ok_or("world has no environment")?;
+            if request.cell[1] < i64::from(i32::MIN) || request.cell[1] > i64::from(i32::MAX) { results.push(json!({"kind":"invalid","reason":"floor support height out of range"})); continue; }
+            let Some(definition) = environment.structures.get(&request.desired_catalog) else { results.push(json!({"kind":"invalid","reason":"unknown floor catalog"})); continue; };
+            if !matches!(definition.shape, crate::environment_definition::StructureShape::Floor) { results.push(json!({"kind":"invalid","reason":"replacement catalog must be a floor"})); continue; }
+            if let Some((id, _)) = self.ids.iter().find(|(_, entity)| self.ecs.get::<FloorReplacement>(**entity).is_some_and(|replacement| replacement.support_x == request.cell[0] && replacement.support_y == request.cell[1] && replacement.support_z == request.cell[2] && matches!(replacement.phase, FloorReplacementPhase::Queued | FloorReplacementPhase::Working))) { results.push(json!({"kind":"conflict","floor":id})); continue; }
+            let mut found = None;
+            for instance in environment.world.structure_instances() {
+                if let crate::structure_geometry::StaticInstance::Floor { id, support } = instance && [support.x, support.y, support.z] == request.cell { found = Some(id); break; }
+            }
+            if let Some(floor) = found {
+                let current = self.ids.get(&floor).and_then(|e| self.ecs.get::<ConstructionSite>(*e)).map(|s| s.catalog.clone());
+                results.push(match current { Some(catalog) if catalog == request.desired_catalog => json!({"kind":"unchanged","floor":floor}), Some(_) => json!({"kind":"replace","floor":floor}), None => json!({"kind":"invalid","reason":"floor identity is missing"}) });
+            } else {
+                let candidate = crate::structure_geometry::StaticInstance::Floor { id: format!("floor-query-{}-{}-{}", request.cell[0], request.cell[1], request.cell[2]), support: crate::generation::Cell { x: request.cell[0], y: request.cell[1] as i32, z: request.cell[2] } };
+                let unsupported = self.environment.as_mut().ok_or("world has no environment")?.world.construction_support(&[candidate])?;
+                if unsupported.is_empty() { results.push(json!({"kind":"build"})); } else { results.push(json!({"kind":"waiting-for-support"})); }
+            }
+        }
+        serde_json::to_string(&results).map_err(|e| e.to_string())
+    }
     /// Bounded read-only route costs. Preparation uses the same route owner as
     /// movement but never installs a destination or mutates canonical state.
     pub fn route_costs_json(&mut self, input: &str) -> Result<String> {
@@ -2618,6 +2774,7 @@ impl Kernel {
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
+                    | Action::ReplaceFloor { .. }
                     | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::AttendProcess { .. } | Action::ExchangeFieldWater { .. })
             });
         if needs_staging {
@@ -3354,6 +3511,9 @@ impl Kernel {
                     let sites: Vec<_> = self.ids.values().copied().filter(|site| self.ecs.get::<ConstructionSite>(*site).is_some_and(|state| state.worker.as_deref() == Some(entity.as_str()))).collect();
                     for site in sites {
                         if let Some(mut state) = self.ecs.get::<ConstructionSite>(site).cloned() {
+                            if let Some(replacement) = self.ecs.get::<FloorReplacement>(site).cloned() {
+                                self.ecs.entity_mut(site).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
+                            }
                             state.worker = None;
                             if state.phase == ConstructionPhase::Working { state.phase = ConstructionPhase::Planned; }
                             self.ecs.entity_mut(site).insert(state);
@@ -3365,6 +3525,10 @@ impl Kernel {
             }
             Action::PlanConstruction { catalog, site, x, y, z, orientation } => {
                 self.plan_construction(catalog, site, x, y, z, orientation)?;
+                Ok(ActionEffect::None)
+            }
+            Action::ReplaceFloor { order_id, existing_floor_id, desired_catalog } => {
+                self.replace_floor(order_id, existing_floor_id, desired_catalog)?;
                 Ok(ActionEffect::None)
             }
             Action::Deconstruct { worker, site } => {

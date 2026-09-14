@@ -48,6 +48,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   deconstruction_access(json: string): string;
   physical_contacts(json: string): string;
   transfer_contacts(json: string): string;
+  floor_operations(json: string): string;
   terrain_materials(json: string): string;
   terrain_surfaces(json: string): string;
   water_contacts(json: string): string;
@@ -90,6 +91,14 @@ const routeToAnyResultSchema = z.discriminatedUnion("status", [
       reason: z.string(),
     })
     .strict(),
+]);
+const floorOperationSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("build") }).strict(),
+  z.object({ kind: z.literal("unchanged"), floor: entityIdWireSchema }).strict(),
+  z.object({ kind: z.literal("replace"), floor: entityIdWireSchema }).strict(),
+  z.object({ kind: z.literal("conflict"), floor: entityIdWireSchema }).strict(),
+  z.object({ kind: z.literal("waiting-for-support") }).strict(),
+  z.object({ kind: z.literal("invalid"), reason: z.string().min(1) }).strict(),
 ]);
 const processRequirementsSchema = z.object({
   definition: entityIdWireSchema,
@@ -311,6 +320,11 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         z.object({ kind: z.literal("blocked"), reason: z.enum(["sealed", "unavailable-frame", "no-contact"]) }).strict(),
       ]).parse(value);
       return result;
+    },
+    floorOperations(requests) {
+      const value: unknown = JSON.parse(binding.floor_operations(JSON.stringify(requests)));
+      if (!Array.isArray(value) || value.length !== requests.length) throw new Error("invalid floor operation result");
+      return value.map(entry => floorOperationSchema.parse(entry));
     },
     terrainMaterials(cells) {
       if (

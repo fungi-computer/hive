@@ -20,6 +20,7 @@ export const RESERVED_COMPONENTS = [
   "hive.sealed-container",
   "hive.ground-stock",
   "hive.construction-site",
+  "hive.floor-replacement",
   "hive.lot",
   "hive.lot-water",
   "hive.process-binding",
@@ -188,6 +189,7 @@ export type ActionRequest =
       readonly z: number;
       readonly orientation: CardinalOrientation;
     }
+  | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
   | {
       readonly kind: "attend-construction";
@@ -394,6 +396,7 @@ export type CommandScope =
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
   readonly scope: CommandScope;
+  readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
 };
 export interface WriteContext extends ReadContext {
   write<T extends object>(
@@ -554,6 +557,14 @@ export type TerrainSurface = z.infer<typeof terrainSurfaceSchema>;
 export type StructureSurface = {
   readonly cell: readonly [number, number, number];
 };
+export type FloorOperation =
+  | { readonly kind: "build" }
+  | { readonly kind: "unchanged"; readonly floor: EntityId }
+  | { readonly kind: "replace"; readonly floor: EntityId }
+  | { readonly kind: "conflict"; readonly floor: EntityId }
+  | { readonly kind: "waiting-for-support" }
+  | { readonly kind: "invalid"; readonly reason: string };
+export type FloorOperationRequest = { readonly cell: readonly [number, number, number]; readonly desiredCatalog: string };
 export type TerrainChangeSet =
   | {
       readonly kind: "changed-columns";
@@ -566,6 +577,7 @@ export type TerrainChangeSet =
       readonly reason: "history" | "restored" | "stale";
     };
 export interface KernelPort {
+  readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
   readonly transferContacts: (request: { readonly worker: EntityId; readonly container: EntityId }) =>
     | { readonly kind: "ready"; readonly targets: readonly MoveDestination[] }
     | { readonly kind: "blocked"; readonly reason: "sealed" | "unavailable-frame" | "no-contact" };

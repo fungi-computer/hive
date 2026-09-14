@@ -1,5 +1,5 @@
 import { command, entity, query } from "../sdk/authoring";
-import { ConstructionSite, planConstruction } from "../sdk/construction";
+import { ConstructionSite, planConstruction, replaceFloor } from "../sdk/construction";
 import { placementOrientation, structureOriginCell } from "../sdk/placement";
 import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";
@@ -64,11 +64,12 @@ export const colonyBuildCommand = command({
     ...["north", "east", "south", "west"].map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface" as const, designation: ["point"] as const, detail: colonyBuildBindingDetail("timber-stair", orientation), preset: { catalog: "timber-stair", orientation } })),
   ] },
   input: buildInput,
-  reads: [ConstructionSite], writes: [],
+  reads: [ConstructionSite, FloorReplacement], writes: [],
   run(context, input) {
     const definition = colonyEnvironment.structures.catalog.find(item => item.id === input.catalog);
     if (!definition) throw new Error("Unknown building");
     const sites = context.query(query(ConstructionSite));
+    const replacements = context.query(query(FloorReplacement));
     const area = "area" in input.target ? input.target.area : undefined;
     const cells = "area" in input.target
       ? areaCells(input.target.area)
@@ -79,6 +80,17 @@ export const colonyBuildCommand = command({
       const orientation = placementOrientation(colonyPlacement[input.catalog]?.alignment ?? "fixed", area, input.orientation);
       if (!["north", "east", "south", "west"].includes(orientation)) throw new Error("Choose a cardinal building orientation");
       const [x, y, z] = structureOriginCell(definition.shape, cell);
+      if (definition.shape.kind === "floor") {
+        const operation = context.floorOperations([{ cell, desiredCatalog: definition.id }])[0];
+        if (operation.kind === "unchanged") continue;
+        if (operation.kind === "conflict") throw new Error(`floor replacement conflicts with ${operation.floor}`);
+        if (operation.kind === "invalid") throw new Error(operation.reason);
+        if (operation.kind === "replace") {
+          const generation = replacements.filter(candidate => candidate.get(FloorReplacement).targetFloor === operation.floor).length + 1;
+          actions.push(replaceFloor(entity(`colony.replace.${operation.floor}.${generation}`), operation.floor, definition.id));
+          continue;
+        }
+      }
       const id = entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`);
       if (sites.some(site => site.id === id)) continue;
       actions.push(planConstruction(id, definition.id, { x, y, z }, orientation));

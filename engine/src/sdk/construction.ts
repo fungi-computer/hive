@@ -19,6 +19,15 @@ export const ConstructionSite = component<{
     worker: "nullable-entity", seconds: "number", phase: "string",
   },
 });
+export const FloorReplacement = component<{
+  version: number; targetFloor: EntityId; expectedCatalog: string; desiredCatalog: string;
+  supportX: number; supportY: number; supportZ: number;
+  phase: "queued" | "working" | "completed" | "cancelled";
+}>("hive.floor-replacement", { version: 1, fields: { version: "number", targetFloor: "entity", expectedCatalog: "string", desiredCatalog: "string", supportX: "number", supportY: "number", supportZ: "number", phase: "string" } });
+
+export const replaceFloor = (orderId: EntityId, existingFloorId: EntityId, desiredCatalog: string): ActionRequest => ({
+  kind: "replace-floor", orderId, existingFloorId, desiredCatalog,
+});
 
 /** Select authored content; the native catalog owns cost, effort and geometry. */
 export const planConstruction = (

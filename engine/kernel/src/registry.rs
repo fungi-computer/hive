@@ -81,6 +81,7 @@ impl Registry {
                 ("orientation", FieldType::String),
                 ("worker", FieldType::NullableEntity), ("seconds", FieldType::Number), ("phase", FieldType::String),
             ]),
+            ("hive.floor-replacement", vec![("version", FieldType::Number), ("targetFloor", FieldType::Entity), ("expectedCatalog", FieldType::String), ("desiredCatalog", FieldType::String), ("supportX", FieldType::Number), ("supportY", FieldType::Number), ("supportZ", FieldType::Number), ("phase", FieldType::String)]),
             (
                 "hive.destination",
                 vec![
@@ -202,6 +203,7 @@ impl Registry {
                 "hive.resource-site" => world.register_component::<ResourceSite>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.construction-site" => world.register_component::<ConstructionSite>(),
+                "hive.floor-replacement" => world.register_component::<FloorReplacement>(),
                 "hive.destination" => world.register_component::<Destination>(),
                 "hive.support" => world.register_component::<Support>(),
                 "hive.surface" => world.register_component::<Surface>(),
@@ -255,6 +257,7 @@ impl Registry {
                 | "hive.resource-site"
                 | "hive.excavation-work"
                 | "hive.construction-site"
+                | "hive.floor-replacement"
                 | "hive.destination"
                 | "hive.support"
                 | "hive.surface"
@@ -349,6 +352,7 @@ impl Registry {
                     return Err("invalid construction site".into());
                 }
             }
+            "hive.floor-replacement" => { let replacement: FloorReplacement = decode(value)?; if replacement.version != 1 || !valid_id(&replacement.target_floor) || !valid_id(&replacement.expected_catalog) || !valid_id(&replacement.desired_catalog) { return Err("invalid floor replacement".into()); } }
             "hive.lot-water" => {
                 let water: LotWater = decode(value)?;
                 if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
@@ -533,6 +537,7 @@ impl Registry {
             "hive.construction-site" => {
                 world.entity_mut(entity).insert(decode::<ConstructionSite>(value)?);
             }
+            "hive.floor-replacement" => { world.entity_mut(entity).insert(decode::<FloorReplacement>(value)?); }
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
@@ -614,6 +619,7 @@ impl Registry {
             "hive.resource-site" => world.get::<ResourceSite>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
             "hive.construction-site" => world.get::<ConstructionSite>(entity).map(record),
+            "hive.floor-replacement" => world.get::<FloorReplacement>(entity).map(record),
             "hive.destination" => world.get::<Destination>(entity).map(record),
             "hive.support" => world.get::<Support>(entity).map(record),
             "hive.surface" => world.get::<Surface>(entity).map(record),

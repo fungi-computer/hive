@@ -429,6 +429,23 @@ impl Kernel {
         self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site, BTreeSet::new()); self.state_weight += added;
         Ok(())
     }
+
+    pub(super) fn replace_floor(&mut self, order_id: String, existing_id: String, desired_catalog: String) -> Result<()> {
+        if !crate::components::valid_id(&order_id) || self.known.contains(&order_id) { return Err("invalid or duplicate floor replacement order".into()); }
+        let target_entity = self.entity(&existing_id)?;
+        let target = self.ecs.get::<ConstructionSite>(target_entity).cloned().ok_or("existing floor is not a construction site")?;
+        if target.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(target_entity).is_none() { return Err("floor replacement requires a finished floor".into()); }
+        let desired = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&desired_catalog).ok_or("unknown replacement catalog")?;
+        if !matches!(desired.shape, crate::environment_definition::StructureShape::Floor) { return Err("replacement catalog must be a floor".into()); }
+        if target.catalog == desired_catalog { return Ok(()); }
+        if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
+        let staged = ConstructionSite { catalog: desired_catalog.clone(), x: target.x, y: target.y, z: target.z, orientation: target.orientation, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
+        let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
+        let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: target.x, support_y: i64::from(target.y), support_z: target.z, phase: FloorReplacementPhase::Queued })).id();
+        self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id, BTreeSet::new());
+        self.refresh_state_weight();
+        Ok(())
+    }
     pub(super) fn bind_construction_stage(&mut self, site: &str, contact: Point) -> Result<()> {
         if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
         let site_entity = self.entity(site)?;
@@ -470,7 +487,9 @@ impl Kernel {
         let old_weight = self.registry.weight("hive.construction-site", &record(self.ecs.get::<ConstructionSite>(site_entity).ok_or("not a construction site")?));
         let new_weight = self.registry.weight("hive.construction-site", &record(&state));
         if self.state_weight.saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        self.ecs.entity_mut(site_entity).insert(state); self.refresh_state_weight(); Ok(())
+        self.ecs.entity_mut(site_entity).insert(state);
+        if let Some(replacement) = self.ecs.get::<FloorReplacement>(site_entity).cloned() { self.ecs.entity_mut(site_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Working, ..replacement }); }
+        self.refresh_state_weight(); Ok(())
     }
     fn construction_materials_ready(&self, site: &str, definition: &crate::environment_definition::StructureDefinition) -> bool {
         definition.materials.iter().all(|(kind, required)| {
@@ -489,6 +508,7 @@ impl Kernel {
         Ok(())
     }
     fn complete_construction(&mut self, site_id: &str, state: &ConstructionSite) -> Result<bool> {
+        if self.ecs.get::<FloorReplacement>(self.entity(site_id)?).is_some() { return self.complete_floor_replacement(site_id, state); }
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let instance = self.construction_instance(site_id, &definition, state.x, state.y, state.z, state.orientation);
         let prepared = {
@@ -546,6 +566,48 @@ impl Kernel {
             if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
             if self.ecs.get::<Container>(entity).is_some() { self.contents.insert(id, BTreeSet::new()); }
         }
+        self.refresh_state_weight();
+        Ok(true)
+    }
+
+    fn complete_floor_replacement(&mut self, order_id: &str, state: &ConstructionSite) -> Result<bool> {
+        let order_entity = self.entity(order_id)?;
+        let replacement = self.ecs.get::<FloorReplacement>(order_entity).cloned().ok_or("replacement record missing")?;
+        let target_id = replacement.target_floor.as_str();
+        let target_entity = self.entity(target_id)?;
+        let target = self.ecs.get::<ConstructionSite>(target_entity).cloned().ok_or("replacement target missing")?;
+        if target.phase != ConstructionPhase::Finished || target.catalog != replacement.expected_catalog || self.ecs.get::<SealedContainer>(target_entity).is_none() { return Err("floor replacement target changed".into()); }
+        let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("replacement catalog missing")?.clone();
+        let prepared = {
+            let environment = self.environment.as_mut().ok_or("construction needs environment")?;
+            let replacement = crate::structure_geometry::StaticInstance::Floor { id: target_id.to_owned(), support: crate::generation::Cell { x: target.x, y: target.y, z: target.z } };
+            let instances = environment.world.structure_instances().into_iter().map(|instance| match instance {
+                crate::structure_geometry::StaticInstance::Floor { id, .. } if id == target_id => replacement.clone(),
+                other => other,
+            }).collect();
+            match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Ok(false) }
+        };
+        if self.structure_contact_problem(&prepared)?.is_some() { return Ok(false); }
+        let mut portions = Vec::new();
+        for (kind, required) in &definition.materials {
+            let mut remaining = *required;
+            let lots: Vec<(String, u32)> = self.ids.iter().filter_map(|(id, entity)| { let lot = self.ecs.get::<Lot>(*entity)?; (lot.container == order_id && lot.kind == *kind && self.ecs.get::<LotWater>(*entity).map_or(true, |water| water.water_kg == 0.0)).then_some((id.clone(), lot.quantity)) }).collect();
+            for (lot, quantity) in lots { if remaining == 0 { break; } let take = remaining.min(quantity); if take > 0 { portions.push(MaterialPortion { lot, quantity: take }); remaining -= take; } }
+            if remaining != 0 { return Ok(false); }
+        }
+        let consumed = self.prepare_material_consumption(&portions)?;
+        self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
+        self.publish_material_consumption(consumed)?;
+        let mut finished = target;
+        finished.catalog = state.catalog.clone();
+        self.ecs.entity_mut(target_entity).insert(finished);
+        let order_entity = self.entity(order_id)?;
+        let lots = self.contents.remove(order_id).unwrap_or_default();
+        for lot_entity in lots { if let Some(id) = self.ecs.get::<ExternalId>(lot_entity).map(|v| v.0.clone()) { self.ids.remove(&id); self.known.remove(&id); } self.ecs.despawn(lot_entity); }
+        self.ecs.entity_mut(order_entity).remove::<ConstructionSite>();
+        self.ecs.entity_mut(order_entity).remove::<Container>();
+        self.ecs.entity_mut(order_entity).remove::<Position>();
+        self.ecs.entity_mut(order_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Completed, ..replacement });
         self.refresh_state_weight();
         Ok(true)
     }

@@ -8,7 +8,7 @@ import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
 import { ProcessAttendanceWork, processAttendanceProvider } from "../sdk/process-attendance";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
-import { ConstructionSite, SealedContainer } from "../sdk/construction";
+import { ConstructionSite, FloorReplacement, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
   createWorkSystem,
@@ -1078,6 +1078,7 @@ export const colonyWorkSystem = createWorkSystem({
     Container,
     SealedContainer,
     ConstructionSite,
+    FloorReplacement,
     ConstructionApproach,
     DeconstructionApproach,
     DeconstructionOrder,
