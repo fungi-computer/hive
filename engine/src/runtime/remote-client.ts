@@ -14,6 +14,16 @@ import { WebSocket as PartySocket } from "partysocket";
 import { z } from "zod";
 
 const rejectionReasonSchema = z.object({ reason: z.string().min(1) });
+const partyJoinSchema = z.object({
+  accepted: z.literal(true),
+  created: z.boolean(),
+  player: z.string().regex(/^[A-Za-z0-9._:-]{1,128}$/),
+  party: z.string().regex(/^[A-Za-z0-9._:-]{1,128}$/),
+  people: z.tuple([
+    z.string().regex(/^[A-Za-z0-9._:-]{1,128}$/),
+    z.string().regex(/^[A-Za-z0-9._:-]{1,128}$/),
+  ]),
+}).strict();
 
 type AuthorizedFetch = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 type SocketLike = {
@@ -422,12 +432,14 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       // or a second tab must retry with the same participant identity.
       storage.setItem(key, sharedCredential);
     }
-    const response = await options.fetch(sharedBase()("join"), {
+    const joined = await requestJson(options.fetch, sharedBase()("join"), {
       method: "POST",
       headers: { Authorization: `Bearer ${sharedCredential}`, "Content-Type": "application/json" },
       body: JSON.stringify({ invite: options.invite }),
-    });
-    if (!response.ok) throw new Error("shared Colony join failed");
+    }, abort.signal, 16 * 1024, requestTimeoutMs);
+    if (!joined.response.ok) throw new Error("shared Colony join failed");
+    const party = partyJoinSchema.parse(joined.value);
+    emit({ type: "party", player: party.player, party: party.party, people: party.people });
     sharedPrepared = true;
   };
 

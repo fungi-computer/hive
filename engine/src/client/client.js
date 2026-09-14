@@ -82,6 +82,7 @@ export function createHiveClient({
   let directControl;
   let nativeBinding;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
+  let activeSelectionShortcuts = [...selectionShortcuts];
   const state = {
     ready: false,
     connection: { status: "online", pending: 0 },
@@ -614,7 +615,7 @@ export function createHiveClient({
                 }, isAiming() ? "Exit aim" : "Aim cannon")
               : null,
             directControl ? React.createElement(Button, { size: "sm", variant: "outline", onClick: () => { directControl.setPrediction(!directControl.predictionEnabled); app.canvas?.focus(); renderHud(); } }, directControl.predictionEnabled ? "Prediction on" : "Prediction off") : null,
-            ...selectionShortcuts.map(({ id, label }) => React.createElement(
+            ...activeSelectionShortcuts.map(({ id, label }) => React.createElement(
               Button,
               { key: id, size: "sm", variant: "outline",
                 // Eligibility follows the accepted world, even before the next drawing frame.
@@ -1553,7 +1554,7 @@ export function createHiveClient({
           if (terrainChanged) {
             const publishedById = new Map(event.facts.map((fact) => [fact.id, fact]));
             const actor = state.selectedIds.map((id) => publishedById.get(id)).find((fact) => fact?.pose?.position)
-              ?? selectionShortcuts.map(({ id }) => publishedById.get(id)).find((fact) => fact?.pose?.position);
+              ?? activeSelectionShortcuts.map(({ id }) => publishedById.get(id)).find((fact) => fact?.pose?.position);
             const observedRange = terrainLevelRange(terrainFrame);
             const range = newEpoch ? observedRange : {
               min: Math.min(state.view.range.min, observedRange.min),
@@ -1591,6 +1592,13 @@ export function createHiveClient({
         state.presentationFacts = event.facts;
         state.terrainMarks = event.terrainMarks;
         state.environmentVisuals = event.environmentVisuals;
+        renderHud();
+      }
+      if (event.type === "party") {
+        activeSelectionShortcuts = event.people.map((id, index) => ({
+          id,
+          label: selectionShortcuts[index]?.label ?? `Select person ${index + 1}`,
+        }));
         renderHud();
       }
       if (event.type === "whistle") {

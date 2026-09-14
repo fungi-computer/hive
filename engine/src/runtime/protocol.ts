@@ -17,6 +17,7 @@ export type WorkerCommand =
 
 type WorkerEventBase =
   | { readonly type: "ready"; readonly game: string }
+  | { readonly type: "party"; readonly player: string; readonly party: string; readonly people: readonly [string, string] }
   | { readonly type: "connection"; readonly status: "online" | "recovering" | "unavailable"; readonly pending: number }
   | { readonly type: "restored" }
   | { readonly type: "state"; readonly paused: boolean }

@@ -73,6 +73,13 @@ test("Colony v2 persists the participant credential before join and keeps it out
     cryptoSource: { getRandomValues(bytes: Uint8Array) { bytes.fill(7); return bytes; }, subtle: crypto.subtle } as Crypto,
     fetch: async (input, init) => {
       calls.push({ url: String(input), init });
+      if (String(input).endsWith("/join")) return Response.json({
+        accepted: true,
+        created: true,
+        player: "player:1",
+        party: "party:1",
+        people: ["party:1.person.0", "party:1.person.1"],
+      });
       if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
       const body = JSON.parse(String(init?.body));
       return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
@@ -80,6 +87,8 @@ test("Colony v2 persists the participant credential before join and keeps it out
     createSocket: (url) => { calls.push({ url }); queueMicrotask(() => socket.emit("open", {})); return socket; },
     createCommandId: () => "colony-command-1",
   });
+  const events: WorkerEvent[] = [];
+  runtime.subscribe((event) => events.push(event));
   runtime.send({ type: "start", game: "colony" });
   await waitFor(() => calls.some((call) => call.url.includes("/socket/")));
   const join = calls.find((call) => call.url.endsWith("/join"));
@@ -89,6 +98,13 @@ test("Colony v2 persists the participant credential before join and keeps it out
   assert.match(credential ?? "", /^[0-9a-f]{64}$/);
   assert.equal(storage.getItem(`hive:colony-v2:credential:${await crypto.subtle.digest("SHA-256", new TextEncoder().encode(invite)).then(bytes => [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, "0")).join(""))}`), credential);
   assert.equal(JSON.parse(String(join.init?.body)).invite, invite);
+  const party = events.find((event) => event.type === "party");
+  assert.deepEqual(party, {
+    type: "party",
+    player: "player:1",
+    party: "party:1",
+    people: ["party:1.person.0", "party:1.person.1"],
+  });
   const socketUrl = calls.find((call) => call.url.includes("/socket/"))?.url ?? "";
   assert.equal(socketUrl, `wss://hive.test/arena/v2/colony/worlds/${await crypto.subtle.digest("SHA-256", new TextEncoder().encode(invite)).then(bytes => [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, "0")).join(""))}/socket/opaque`);
   assert.equal(socketUrl.includes(credential!), false);
