@@ -132,6 +132,6 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
 
 export const deliverySystem = createWorkSystem({
   id: "hive.delivery", version: 2,
-  reads: [DeliveryTask, GroundStock, Position, Destination, Body, Container, SealedContainer, ConstructionSite, MaterialLot, DeliveryControl, OwnedByParty, PartyMember, WorkParticipation, ExcavationWork],
+  reads: [DeliveryTask, GroundStock, Position, Destination, Body, Container, SealedContainer, ConstructionSite, MaterialLot, DeliveryControl, PartyMember, WorkParticipation, ExcavationWork],
   writes: [DeliveryTask], providers: [deliveryProvider],
 });
