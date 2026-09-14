@@ -19,7 +19,7 @@ origin compiled into `VITE_HIVE_PUBLIC_HOST`:
 browser proofs. The driver creates a fresh invitation token and browser
 context, observes the real two-person party join, and records HTTP command
 receipts while using the public UI. It checks selection/Draft/Undraft/Go,
-rectangle digging, shared floor/wall/furniture placement, a floor replacement
+rectangle digging, shared floor/wall/door/furniture placement, a floor replacement
 attempt on an occupied support, stair and voxel-layer controls, and desktop plus
 390px screenshots. It records `REPORT.json` and `source-inventory.json` under
 the supplied output directory.
@@ -42,12 +42,15 @@ than clicking a raw pose center. Command assertions associate the first
 Terrain gestures choose distinct material-1 surfaces from the current
 authoritative observation, excluding current fact positions, structure surfaces,
 already reserved cells, and projected outside the current canvas/action-dock
-safe area. Dig endpoints and wall strokes are same-level
-neighbors. Before construction it finds one clear same-level 3x2 rectangle,
+safe area. Dig endpoints are same-level neighbors. Wall and door strokes begin
+on projected physical edge midpoints and follow their locked grid lines. Before
+construction it finds one clear same-level 3x2 rectangle,
 whose six cells all pass that visibility check, places six floors with ordinary Build floor gestures, then places the north
 2x2 brewer and north 1x2 bed on separate origins in that rectangle. The wall
-is queued after those floors and fixtures so this bounded proof does not spend
-starter materials before the required support and replacement checks.
+and one-edge door are queued after those floors and fixtures so this bounded
+proof does not spend starter materials before the required support and
+replacement checks. Their command receipts must contain canonical `target.edges`;
+the door edge is distinct from the wall stroke.
 
 The exact source inventory is embedded in
 `tools/public-engine-host/playable-browser-proof.mjs` and includes the driver,
