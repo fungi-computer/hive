@@ -3,7 +3,7 @@
 Status: active implementation over source baseline `ab58104` in
 `/mnt/fungi-data/botanical-work/pathfinding-clean`. Integrator remains on
 `engine/pathfinding-clean-20260913`; use separate worktrees for each writer.
-Accepted through `1f56598`: the native WorkAttempt owner retains exact
+Accepted through `65deaa2`: the native WorkAttempt owner retains exact
 generation/sequence and now rejects worker/task/party ownership mismatches; the
 shared native transfer-contact query follows portable custody, enumerates lawful
 three-dimensional terrain contacts, and shares its metric reach predicate with
@@ -38,9 +38,14 @@ out of URLs. Its 18 remote-runtime and 17 choice/protocol laws plus strict types
 pass. The DO transaction, canonical player/party spawn, principal propagation and
 two-player witness remain unfinished, so this is not yet playable multiplayer.
 The first construction cutover defect (success leaving an executing attempt) is
-superseded by `1f56598`; 29 construction laws, three attempt laws and strict types
-passed in `run-u7288`. This is one provider acceptance, not yet proof that hauling,
-brewing, planting, digging, water work and deconstruction cannot trap workers.
+superseded by `1f56598`. The earlier 29-construction-law acceptance from
+`run-u7288` is withdrawn because it used stale generated WASM. A fresh Rust build
+completed in `run-u7296`; the resulting joined Colony run exposed missing party
+ownership across starter state and authored work, with 17/25 construction laws
+passing. `65deaa2` fixes undeclared reads and empty-batch native queries, but it
+does not make the joined game green. Construction, hauling, brewing, planting,
+digging, water work and deconstruction remain unaccepted until the neutral server
+pack and complete party/custody propagation pass against freshly generated WASM.
 This packet refines the September 14 sections of
 [the owning sprint](../../CLEARING-CONSOLIDATION-PLAN.md). Later direct Levi
 instructions supersede it. Do not revive historical queues elsewhere in that file.
