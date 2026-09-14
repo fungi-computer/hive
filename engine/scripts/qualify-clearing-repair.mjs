@@ -75,6 +75,7 @@ const groups = Object.freeze({
     "engine/src/client/build-placement.test.js",
     "engine/src/client/construction-visuals.test.js",
     "engine/src/client/edge-gesture.test.js",
+    "engine/src/client/edge-wall-presentation.test.js",
     "engine/src/client/geometry.test.js",
     "engine/src/client/isometric-sorter.test.js",
     "engine/src/client/multipart-visual-owner.test.js",

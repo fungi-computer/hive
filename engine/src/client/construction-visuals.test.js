@@ -38,8 +38,11 @@ test('Colony derives edge-wall joints from canonical physical neighbors', () => 
   assert.deepEqual(visuals.slice(0,3).map(v=>v.pose.position),[
     {x:0.5,y:wallY,z:0},{x:0,y:wallY,z:0.5},{x:0,y:upperWallY,z:0.5},
   ]);
-  assert.equal(visuals.filter(v=>v.visual.includes('.junction.')).length,5);
-  assert.equal(visuals.find(v=>v.visual==='colony.wall.junction.finished.12')?.pickable,false);
+  assert.deepEqual(visuals.map(v=>v.placement),[
+    {kind:'edge',edge:{cell:[0,14,0],axis:'x'}},
+    {kind:'edge',edge:{cell:[0,14,0],axis:'z'}},
+    {kind:'edge',edge:{cell:[0,15,0],axis:'z'}},
+  ]);
 });
 
 test('constructed shelves use the retained two-facing shelf artwork', () => {

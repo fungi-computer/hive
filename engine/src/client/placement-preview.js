@@ -26,17 +26,20 @@ export function placementVisualSpec(control, cells, placementVisuals, area) {
 
 /** Reuse bounded sprites and destroy only the sprites owned by this pool. */
 export function syncPlacementGhosts(pool, specs, { art, bindings, resolve, project, zoom, verticalMetres }) {
-  const { visual, facing, cells } = specs;
+  const { visual, facing = 0, cells = [], items = cells.map((cell, index) => ({
+    visual: Array.isArray(visual) ? visual[index] : visual,
+    facing,
+    point: [cell[0], (cell[1] + 0.5) * verticalMetres, cell[2]],
+  })) } = specs;
   for (const entry of pool.entries) entry.sprite.visible = false;
-  if (!visual || !cells.length) return;
-  while (pool.entries.length < cells.length) pool.entries.push({ sprite: pool.factory(), owned: true });
-  cells.forEach((cell, index) => {
+  if (!items.length) return;
+  while (pool.entries.length < items.length) pool.entries.push({ sprite: pool.factory(), owned: true });
+  items.forEach((item, index) => {
     const entry = pool.entries[index];
-    const cellVisual = Array.isArray(visual) ? visual[index] : visual;
-    const binding = cellVisual ? bindings[cellVisual] : undefined;
-    const resolved = binding && art ? resolve(art, binding, facing) : undefined;
+    const binding = item.visual ? bindings[item.visual] : undefined;
+    const resolved = binding && art ? resolve(art, binding, item.facing ?? facing) : undefined;
     if (!resolved?.texture) return;
-    const point = project(cell[0], (cell[1] + 0.5) * verticalMetres, cell[2]);
+    const point = project(...item.point);
     entry.sprite.texture = resolved.texture;
     entry.sprite.anchor.set(resolved.anchor?.x ?? 0.5, resolved.anchor?.y ?? 1);
     entry.sprite.position.set(point.x * zoom.x + zoom.offsetX, point.y * zoom.y + zoom.offsetY);

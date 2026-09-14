@@ -491,6 +491,10 @@ export interface CollisionFact {
 }
 export type VisualPlacement =
   | {
+      readonly kind: "edge";
+      readonly edge: EdgeTarget;
+    }
+  | {
       readonly kind: "footprint";
       readonly footprint: readonly (readonly [number, number])[];
       readonly orientation: CardinalOrientation;

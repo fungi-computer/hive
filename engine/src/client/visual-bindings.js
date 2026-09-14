@@ -8,6 +8,7 @@ const constructionBindings = Object.fromEntries(["floor", "stair", "roof", "bed"
 const edgeWallBindings = Object.fromEntries(["stakes", "frame", "finished"].flatMap(stage => [
   ...[["x", 0], ["z", 1]].map(([axis, facing]) => [`colony.wall.segment.${stage}.${axis}`, Object.freeze({
     kind: "static", path: ["edgeWalls", "segment", stage, facing], facing: false, anchor: "propAnchor", worldRole: "structure",
+    edgeWall: Object.freeze({ kind: "segment", stage, axis }),
   })]),
   ...Array.from({ length: 15 }, (_, index) => index + 1).map(mask => [`colony.wall.junction.${stage}.${mask}`, Object.freeze({
     kind: "static", path: ["edgeWalls", "junction", stage, mask], facing: false, anchor: "propAnchor", worldRole: "structure",

@@ -22,6 +22,13 @@ const point = (value: unknown): value is readonly [number, number, number] =>
 export function validVisualPlacement(value: unknown): value is VisualPlacement {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const placement = value as Record<string, unknown>;
+  if (placement.kind === "edge") {
+    if (Object.keys(placement).some(key => !["kind", "edge"].includes(key)) || !placement.edge || typeof placement.edge !== "object" || Array.isArray(placement.edge)) return false;
+    const edge = placement.edge as Record<string, unknown>;
+    return Object.keys(edge).every(key => ["cell", "axis"].includes(key)) && Object.keys(edge).length === 2 &&
+      Array.isArray(edge.cell) && edge.cell.length === 3 && edge.cell.every(item => Number.isSafeInteger(item) && Math.abs(item) <= 1_000_000) &&
+      (edge.axis === "x" || edge.axis === "z");
+  }
   if (!orientations.has(placement.orientation as CardinalOrientation)) return false;
   if (placement.kind === "footprint") {
     if (Object.keys(placement).some(key => !["kind", "footprint", "orientation"].includes(key)) ||

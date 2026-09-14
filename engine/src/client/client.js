@@ -53,6 +53,7 @@ import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaC
 import { selectedBrewStation } from "./colony-presentation.js";
 import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
 import { acquireEdgeStroke, canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
+import { edgeWallGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
 import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -810,6 +811,9 @@ export function createHiveClient({
         hitZoom: camera.zoom,
         pickable: projectWorldFact(fact, state.view).pickable,
       }));
+    const subjectTerrain = displayedTerrainFrame();
+    if (subjectTerrain)
+      state.subjects.push(...edgeWallJunctionSubjects(state.subjects, bindings, subjectTerrain.verticalMetres));
     for (const cue of motionCues.sample(state.subjects, { now: presentedTime, paused: state.paused, sequence: frameSequence })) playMotionCue(cue);
     if (!groundSprite) {
       if (environment === "water") {
@@ -1098,9 +1102,15 @@ export function createHiveClient({
     clearPlacementGhosts(placementGhosts);
     const targetSnapshot = terrainTarget.getSnapshot();
     const buildControl = targetSnapshot.context.control?.command === "build" ? targetSnapshot.context.control : null;
+    if (edgeStroke && displayed)
+      syncPlacementGhosts(placementGhosts, edgeWallGhostSpec(edgeStroke.edges, state.subjects, bindings, displayed.verticalMetres), {
+        art, bindings, resolve: resolveStaticVisual, project,
+        zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
+        verticalMetres: displayed.verticalMetres,
+      });
     const anchored = displayed && targetSnapshot.context.anchor ? structureAnchor(displayed, targetSnapshot.context.anchor) : null;
     const upperCandidates = anchored ? placementCache.candidates(displayed, anchored) : [];
-    if (buildControl && displayed) {
+    if (buildControl && buildControl.target !== "world-edge" && displayed) {
       const cells = placementCells({
         area: area.value === "dragging" ? area.context : null,
         target: targetSnapshot.context.hover,

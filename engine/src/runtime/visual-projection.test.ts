@@ -46,9 +46,20 @@ test("construction placement survives projection for fixture and stair art", () 
   assert.deepEqual(result.map(fact => fact.view?.pickable), [true, true, true]);
 });
 
+test("canonical edge placement survives projection without becoming physical geometry", () => {
+  const wall = entity("colony.build.timber-wall.edge");
+  const [projection] = colonyConstructionVisuals({ query: () => [{ id: wall, get: () => ({
+    catalog: "timber-wall", targetKind: "edge", targetX: 2, targetY: 14, targetZ: -3,
+    targetDirection: "x", phase: "finished", seconds: 4,
+  }) }] as never });
+  const [result] = appendVisualProjections([], [projection], ids => ids.map(candidate => candidate === wall), 512);
+  assert.deepEqual(result.placement, { kind: "edge", edge: { cell: [2, 14, -3], axis: "x" } });
+});
+
 test("projection rejects malformed placement values at the boundary", () => {
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "footprint", footprint: [[0.5, 0]], orientation: "north" } as never }], () => [true], 512), /visual placement/);
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "footprint", footprint: [[0, 0], [0, 0]], orientation: "north" } as never }], () => [true], 512), /visual placement/);
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "footprint", footprint: [[0, 0]], orientation: "north", extra: true } as never }], () => [true], 512), /visual placement/);
   assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "stair", entrance: [0, 0, 0], landing: [0, Infinity, 2], orientation: "north" } as never }], () => [true], 512), /visual placement/);
+  assert.throws(() => appendVisualProjections([], [{ ...art, placement: { kind: "edge", edge: { cell: [0, 0, 0], axis: "y" } } as never }], () => [true], 512), /visual placement/);
 });
