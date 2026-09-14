@@ -14,6 +14,8 @@ import {
 } from "./common";
 import { DeliveryControl, DeliveryTask, deliverySystem } from "./delivery";
 
+const contactFields = () => ({ destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false });
+
 for (const occupation of ["excavation", "construction"] as const) {
   test(`native ${occupation} reserves a worker without dropping its delivery state`, () => {
     const worker = entity("worker.digging");
@@ -23,6 +25,7 @@ for (const occupation of ["excavation", "construction"] as const) {
     const active = entity("delivery.active");
     const waiting = entity("delivery.waiting");
     const taskValues = (actor: typeof worker | null, phase: string) => ({
+      ...contactFields(),
       actor,
       sourceLot: lot,
       source,
@@ -137,6 +140,7 @@ for (const occupation of ["excavation", "construction"] as const) {
       physicalContacts: () => {
         throw new Error("unexpected physical contact query in this fixture");
       },
+      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
       terrainMaterials: () => [],
       terrainSurfaces: () => [],
       worldPoses: (ids) =>
@@ -319,6 +323,7 @@ test("delivery rejects impossible pairs before matcher cost", () => {
       physicalContacts: () => {
         throw new Error("unexpected physical contact query in this fixture");
       },
+      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
       terrainMaterials: () => [],
       terrainSurfaces: () => [],
       worldPoses: (ids) =>
@@ -356,7 +361,7 @@ function row<T extends object>(
     id,
     get(requested: { id: string }) {
       assert.equal(requested.id, definition.id);
-      return value;
+      return (definition.id === DeliveryTask.id ? { ...contactFields(), ...value } : value) as T;
     },
   };
 }
@@ -474,6 +479,7 @@ test("sealed custody waits without losing cargo and still acknowledges a complet
       physicalContacts: () => {
         throw new Error("unexpected physical contact query in this fixture");
       },
+      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
       terrainMaterials: () => [],
       terrainSurfaces: () => [],
       createAuthoredEntity: () => {
@@ -597,6 +603,7 @@ test("worker batch preference cannot exceed a delivery's requested quantity", ()
     physicalContacts: () => {
       throw new Error("unexpected physical contact query in this fixture");
     },
+    transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
     terrainMaterials: () => [],
     terrainSurfaces: () => [],
     createAuthoredEntity: () => {
@@ -703,6 +710,7 @@ test("full destination puts held goods down before releasing the worker", () => 
         throw new Error("no air query");
       },
       physicalContacts: () => [],
+      transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }),
       terrainMaterials: () => [],
       terrainSurfaces: () => [],
       createAuthoredEntity: () => {
@@ -791,7 +799,7 @@ function rejectedDeliveryFixture(initial: {
     workMaterialFacts: () => materialFacts(values),
     worldPoses: (ids: readonly ReturnType<typeof entity>[]) => ids.map((id) => ({ id, local: positions.get(id)!, world: positions.get(id)!, support: null, surface: null })),
     routeCosts: () => { throw new Error("unexpected route query"); }, routeToAny: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
+    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }), terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: () => [], createAuthoredEntity: () => { throw new Error("unexpected creation"); }, removeAuthoredEntity: () => { throw new Error("unexpected removal"); },
     write: (_definition: unknown, id: unknown, value: unknown) => { assert.equal(id, task); state = value as typeof state; writes.push([id, value]); },
     action: (value: unknown) => actions.push(value),
