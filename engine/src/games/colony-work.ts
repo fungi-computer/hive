@@ -39,6 +39,7 @@ import {
 } from "../sdk/common";
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
+import { OwnedByParty, PartyMember } from "../sdk/party";
 
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
 type ColonyResourceOrderState = {
@@ -129,7 +130,8 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
     }
   }
   const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
-  const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
+  const workerIds = workers.map(row => row.id);
+  const poses = new Map((workerIds.length ? ctx.worldPoses(workerIds) : []).map(p => [p.id, p]));
   const candidates = orders.flatMap(row => {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
     const approach = { x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null as EntityId | null };
@@ -1088,6 +1090,8 @@ export const colonyWorkSystem = createWorkSystem({
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
+    OwnedByParty,
+    PartyMember,
     WaterSupplyOrder,
     WaterSupplyWork,
   ],

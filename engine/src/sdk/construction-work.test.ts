@@ -74,6 +74,17 @@ function fixture(attempts: readonly any[] = []) {
   } as unknown as WriteContext;
   return { base, actions };
 }
+test("empty construction work does not ask native access for an empty batch", () => {
+  const context = {
+    query: () => [],
+    constructionAccess: () => { throw new Error("empty native access query"); },
+    worldPoses: () => { throw new Error("empty native pose query"); },
+    workAttempts: () => [],
+  } as unknown as WriteContext;
+  const prepared = constructionWorkProvider(context, { workers: [] }, new Set());
+  assert.deepEqual(prepared.claims, []);
+  assert.deepEqual(prepared.candidates, []);
+});
 test("construction provider begins one owned route attempt for a planned site", () => {
   const f = fixture();
   const p = constructionWorkProvider(f.base, { workers: [worker] }, new Set());

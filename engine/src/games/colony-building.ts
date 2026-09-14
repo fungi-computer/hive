@@ -1,5 +1,5 @@
 import { command, entity, query } from "../sdk/authoring";
-import { ConstructionSite, planConstruction, replaceFloor } from "../sdk/construction";
+import { ConstructionSite, FloorReplacement, planConstruction, replaceFloor } from "../sdk/construction";
 import { placementOrientation, structureOriginCell } from "../sdk/placement";
 import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";

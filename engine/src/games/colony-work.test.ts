@@ -44,6 +44,18 @@ function providerContext(order: unknown, site: unknown, lots: unknown[] = [], ou
   return { context, writes, created, removed, actions };
 }
 
+test("empty resource work does not ask native poses for an empty batch", () => {
+  const context: any = {
+    clock, outcomes: [],
+    query: () => [],
+    workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
+    worldPoses: () => { throw new Error("empty native pose query"); },
+  };
+  const prepared = resourceWorkProvider(context, new Set());
+  assert.deepEqual(prepared.claims, []);
+  assert.deepEqual(prepared.candidates, []);
+});
+
 test("player sow intent is workerless and blocked tend creates one stable shared water demand", () => {
   const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), actor: null, vessel: null, phase: "waiting", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" };
   const { context, created } = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 0 }, []);

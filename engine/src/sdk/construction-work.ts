@@ -68,7 +68,7 @@ export function constructionWorkProvider(
   const sites = ctx.query({ components: [ConstructionSite] });
   const siteIds = sites.map((row) => row.id);
   const access = new Map(
-    ctx.constructionAccess(siteIds).map((row) => [row.site, row]),
+    (siteIds.length ? ctx.constructionAccess(siteIds) : []).map((row) => [row.site, row]),
   );
   const sealed = new Set(
     ctx.query({ components: [SealedContainer] }).map((row) => row.id),
