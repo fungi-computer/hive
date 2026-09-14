@@ -1007,6 +1007,7 @@ function planGroundStockDeliveries(ctx: WriteContext) {
           sourceLot: row.id,
           source,
           destination: pantry,
+          destinationContactX: null, destinationContactY: null, destinationContactZ: null, destinationContactFrame: null,
           material: lot.kind,
           quantity: lot.quantity,
           phase: "idle",

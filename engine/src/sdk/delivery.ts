@@ -42,6 +42,10 @@ export const DeliveryTask = component<{
   sourceLot: EntityId;
   source: EntityId;
   destination: EntityId;
+  destinationContactX: number | null;
+  destinationContactY: number | null;
+  destinationContactZ: number | null;
+  destinationContactFrame: EntityId | null;
   material: string;
   quantity: number;
   phase: DeliveryPhase;
@@ -52,6 +56,7 @@ export const DeliveryTask = component<{
     sourceLot: "entity",
     source: "entity",
     destination: "entity",
+    destinationContactX: "nullable-number", destinationContactY: "nullable-number", destinationContactZ: "nullable-number", destinationContactFrame: "nullable-entity",
     material: "string",
     quantity: "number",
     phase: "string",
