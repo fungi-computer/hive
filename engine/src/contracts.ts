@@ -155,6 +155,7 @@ export type ActionRequest =
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
   | { readonly kind: "acknowledge-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number }
+  | { readonly kind: "continue-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly nextActivity: WorkActivityRef }
   | { readonly kind: "establish-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
@@ -310,7 +311,7 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
-export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination };
+export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination } | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }

@@ -3659,7 +3659,7 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
-        let crate::work_attempt::ActivityRef::Route { destination } = &activity;
+        let crate::work_attempt::ActivityRef::Route { destination } = &activity else { return Err("unsupported initial work activity".into()); };
         let actor = worker_entity;
         let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
@@ -3711,6 +3711,28 @@ impl Kernel {
         if let Some(worker) = worker { self.attempts_by_worker.remove(&worker); }
         Ok(())
     }
+    fn continue_work_attempt(&mut self, task: String, generation: u64, sequence: u32, next_activity: crate::work_attempt::ActivityRef) -> Result<()> {
+        let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
+        let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
+        if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
+        let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };
+        if site != task { return Err("construction continuation task mismatch".into()); }
+        let site_entity = self.entity(&site)?;
+        let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("construction site has no party owner")?;
+        if owner.party != current.party { return Err("construction continuation party mismatch".into()); }
+        let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+        match mode {
+            crate::work_attempt::ConstructionMode::Bind => {
+                self.bind_construction_stage(&site, contact.clone())?;
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode }, result: WorkOutcome::Completed })?;
+            }
+            crate::work_attempt::ConstructionMode::Work => {
+                if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction continuation requires bound stage".into()); }
+                self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode } };
+            }
+        }
+        Ok(())
+    }
     fn establish_party(&mut self, binding_id: String, player: String, party: String, records: Vec<EntityRecord>) -> Result<String> {
         if !valid_id(&binding_id) || !valid_id(&player) || !valid_id(&party) || records.is_empty() || records.len() > 32 { return Err("invalid prepared party plan".into()); }
         let digest = format!("{:x}", Sha256::digest(serde_json::to_vec(&records).map_err(|_| "invalid party plan encoding")?));
@@ -3741,6 +3763,7 @@ impl Kernel {
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
+            Action::ContinueWorkAttempt { task, generation, sequence, next_activity } => self.continue_work_attempt(task, generation, sequence, next_activity).map(|_| ActionEffect::None),
             Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)

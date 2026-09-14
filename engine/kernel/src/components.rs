@@ -378,6 +378,7 @@ pub enum Action {
     BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },
     AcknowledgeWorkAttempt { task: String, generation: u64, sequence: u32 },
+    ContinueWorkAttempt { task: String, generation: u64, sequence: u32, next_activity: crate::work_attempt::ActivityRef },
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
     AttendProcess { worker: String, process: String },

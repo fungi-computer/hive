@@ -52,6 +52,12 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "task", "generation", "sequence"];
       valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0;
       break;
+    case "continue-work-attempt": {
+      keys = ["kind", "task", "generation", "sequence", "nextActivity"];
+      const next = action.nextActivity as Record<string, unknown> | undefined;
+      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && !!next && Object.keys(next).length === 4 && next.kind === "construction" && id(next.site) && (next.mode === "bind" || next.mode === "work") && terrainContact(next.contact);
+      break;
+    }
     case "establish-resource-site":
       keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
       valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));

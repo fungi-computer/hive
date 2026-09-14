@@ -138,15 +138,16 @@ test("completed native route is acknowledged before one construction attendance"
   constructionWorkProvider(f.base, { workers: [worker] }, new Set()).progress();
   assert.deepEqual(f.actions, [
     {
-      kind: "acknowledge-work-attempt",
+      kind: "continue-work-attempt",
       task: site,
       generation: 1,
       sequence: 1,
-    },
-    {
-      kind: "bind-construction-stage",
-      site,
-      contact: { x: 1, y: 0.5, z: 1, frame: null },
+      nextActivity: {
+        kind: "construction",
+        site,
+        mode: "bind",
+        contact: { x: 1, y: 0.5, z: 1, frame: null },
+      },
     },
   ]);
 });

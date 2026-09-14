@@ -1,10 +1,5 @@
 import { system, type QueryRow } from "./authoring";
-import {
-  ConstructionSite,
-  SealedContainer,
-  attendConstruction,
-  bindConstructionStage,
-} from "./construction";
+import { ConstructionSite, SealedContainer } from "./construction";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
   Body,
@@ -19,6 +14,7 @@ import { OwnedByParty, PartyMember } from "./party";
 import {
   acknowledgeWorkAttempt,
   beginRouteWorkAttempt,
+  continueConstructionWorkAttempt,
   interruptWorkAttempt,
   workAttempt,
 } from "./work-attempt";
@@ -253,27 +249,16 @@ export function constructionWorkProvider(
         if (a.phase.kind !== "outcome") continue;
         const contact = current;
         if (a.phase.result.kind === "completed" && contact) {
-          acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
-          if (state.phase === "planned" && !positions.has(row.id))
-            ctx.action(
-              bindConstructionStage(row.id, {
-                x: contact.x,
-                y: contact.y,
-                z: contact.z,
-                frame: contact.frame,
-                kind: "origin",
-              }),
+          if (a.phase.activity.kind === "route")
+            continueConstructionWorkAttempt(
+              ctx,
+              a.key,
+              a.phase.operation.sequence,
+              row.id,
+              contact,
+              positions.has(row.id) ? "work" : "bind",
             );
-          else
-            ctx.action(
-              attendConstruction(a.worker, row.id, {
-                x: contact.x,
-                y: contact.y,
-                z: contact.z,
-                frame: contact.frame,
-                kind: "origin",
-              }),
-            );
+          else acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
         } else acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
       }
     },
