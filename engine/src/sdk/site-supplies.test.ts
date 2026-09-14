@@ -4,6 +4,7 @@ import { entity } from "./authoring";
 import { Container, MaterialLot } from "./common";
 import { SealedContainer } from "./construction";
 import { DeliveryTask } from "./delivery";
+import { OwnedByParty } from "./party";
 import { planSiteSupplies } from "./site-supplies";
 import type { EntityId, WriteContext } from "../contracts";
 
@@ -81,9 +82,13 @@ function baseRows(
   tasks: readonly { id: EntityId; value: Record<string, unknown> }[] = [],
   sealed: readonly EntityId[] = [],
 ) {
+  const party = entity("party.supply");
   return [
+    row(party, OwnedByParty, { party }),
     row(source, Container, { capacity: 20 }),
     row(destination, Container, { capacity: 4 }),
+    row(source, OwnedByParty, { party }),
+    row(destination, OwnedByParty, { party }),
     ...lots.map((lot) =>
       row(lot.id, MaterialLot, {
         quantity: lot.quantity,
