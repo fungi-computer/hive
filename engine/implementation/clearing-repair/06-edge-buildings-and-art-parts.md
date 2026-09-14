@@ -596,9 +596,32 @@ Evidence in this worktree's preserved `.botanical`:
   proof binding composition, `u7953` Fallow flag spelling; corrected harnesses
   reached the results above. No live deployment was attempted.
 
-Still required before whole-packet acceptance: actual door content/controls/art
-(native aperture operation exists but Colony exposes no door), consolidate edge
-stroke lifetime into the existing gesture owner, changed native WASM/DO pairing,
+The next root checkpoint added `timber-door` as real aperture content over the
+same canonical edge target, construction/material owner and connected-junction
+presentation. The first playable door is built open and rendered with a visibly
+swung leaf; it is therefore immediately traversable, while the existing native
+open/closed state still owns traversal, support, water and air. Designation needs
+no selected or idle worker. It is not yet a player-facing open/close interaction.
+Adding that interaction requires projecting authoritative aperture state; it must
+not infer state from art or reintroduce worker-coupled designation.
+
+Edge stroke lifetime now belongs to the existing XState controls owner. A rejected
+oversized drag atomically commits no prefix and exposes its reason to the HUD.
+Forward/reverse acquisition, cancellation and single completion passed in
+`run-u7974`. The first reviewer shape silently committed the last valid prefix;
+that rejected `u7973` result and its correction remain explicit.
+
+Root personally viewed both door axes in the original Three room at every stage.
+`run-u7964` produced the accepted images after `u7963` honestly failed for a
+missing browser library path. `run-u7968` regenerated the maintained v6 bank with
+1,874 textures; manifest SHA-256 is
+`bc03df2f43dd8b7652b69a0647ff65f0986660c905e19e837a939544f8045761`.
+The six door entries, current-bank consumer, edge construction and junction laws
+passed with the other drawing checks in `run-u7972` (87/87); `u7971` retains the
+incorrect first junction assertion. Native aperture/support/water/air/restore
+checks passed 8/8 in `run-u7976`; inherited Rust warnings remain disclosed.
+
+Still required before whole-packet acceptance: changed native WASM/DO pairing,
 actual Clearing room/party/save interactions, performance-page workload/render
 checks and coherent alias publication/readback. Full A2 beside/behind/beneath
 rendered interaction and upper-floor/cutaway coverage remain; local image samples
