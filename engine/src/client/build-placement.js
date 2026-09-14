@@ -1,3 +1,25 @@
+import { rotatePlacementPoint } from "./art-placement.js";
+
+/** Resolve an ordered structure sprite to its canonical physical support face. */
+export function structureSurfaceFromSprite(node, subject, point, displayed, project) {
+  if (!node?.target || node.role !== "structure" || !subject?.placement || !displayed?.structureSurfaces || !Number.isFinite(displayed.verticalMetres)) return null;
+  const supportLevel = Math.round(subject.y / displayed.verticalMetres - 0.5);
+  const localCells = subject.placement.kind === "footprint"
+    ? subject.placement.footprint
+    : [[subject.placement.entrance[0], subject.placement.entrance[2]]];
+  const cells = localCells.map(([x, z]) => {
+    const rotated = rotatePlacementPoint([x, z], subject.placement.orientation);
+    return [Math.round(subject.x + rotated[0]), supportLevel, Math.round(subject.z + rotated[1])];
+  });
+  const surfaces = cells.flatMap(cell => displayed.structureSurfaces.filter(surface => surface.cell.every((value, index) => value === cell[index])));
+  if (!surfaces.length) return null;
+  return surfaces.map(surface => {
+    const [x, y, z] = surface.cell;
+    const projected = project(x, (y + 0.5) * displayed.verticalMetres, z);
+    return { surface, distance: (projected.x - point.x) ** 2 + (projected.y - point.y) ** 2 };
+  }).sort((left, right) => left.distance - right.distance || left.surface.cell.join(",").localeCompare(right.surface.cell.join(",")))[0].surface;
+}
+
 /** Pure helpers for the shared, retained-style construction tool. */
 export function buildControls(controls) {
   const groups = new Map();
