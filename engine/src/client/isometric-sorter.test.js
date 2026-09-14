@@ -176,3 +176,24 @@ test("one-cell walls stay points while beds, stairs, and 2x2 brewers use stable 
   assert.deepEqual(sorter.order([near, brewer, far].reverse()).map((entry) => entry.id), ["far", "brewer", "near"]);
   assert.deepEqual(sorter.order([wall, bed, far]).map((entry) => entry.id), ["far", "bed", "wall"]);
 });
+
+test("long and area footprints do not invent depth outside their projected extent", () => {
+  const sorter = createIsometricSorter();
+  const screenBounds = { left: -200, right: 200, top: -200, bottom: 200 };
+  const line = node("a-line", 0, 0, {
+    footprint: [{ x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }],
+    screenBounds,
+  });
+  const besideLine = node("z-point", 10, -8, { moving: true, screenBounds });
+  assert.deepEqual(sorter.order([besideLine, line]).map((entry) => entry.id), ["a-line", "z-point"]);
+
+  const area = node("z-area", 0, 0, {
+    footprint: [
+      { x: 0, y: 0, z: 0 }, { x: 2, y: 0, z: 0 },
+      { x: 0, y: 0, z: 2 }, { x: 2, y: 0, z: 2 },
+    ],
+    screenBounds,
+  });
+  const besideArea = node("a-point", 10, -5, { moving: true, screenBounds });
+  assert.deepEqual(sorter.order([area, besideArea]).map((entry) => entry.id), ["a-point", "z-area"]);
+});

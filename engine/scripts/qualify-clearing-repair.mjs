@@ -69,6 +69,7 @@ const groups = Object.freeze({
     "engine/src/runtime/visual-projection.test.ts",
   ]),
   drawing: Object.freeze([
+    "engine/src/client/animation.test.js",
     "engine/src/client/art-placement.test.js",
     "engine/src/client/build-placement.test.js",
     "engine/src/client/construction-visuals.test.js",

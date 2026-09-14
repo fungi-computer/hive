@@ -70,31 +70,80 @@ function lineYAt(line, x) {
   return a.y + ((x - a.x) * (b.y - a.y)) / (b.x - a.x);
 }
 
-function relationByFootprints(left, right, camera) {
-  const a = left.footprint.map((value) => sortPoint(value, camera, `${stableKey(left)} footprint`));
-  const b = right.footprint.map((value) => sortPoint(value, camera, `${stableKey(right)} footprint`));
-  if (a.length > 2 || b.length > 2) {
-    const aMin = Math.min(...a.map((value) => value.y)), aMax = Math.max(...a.map((value) => value.y));
-    const bMin = Math.min(...b.map((value) => value.y)), bMax = Math.max(...b.map((value) => value.y));
-    if (aMax < bMin - EPSILON) return [left, right];
-    if (bMax < aMin - EPSILON) return [right, left];
-    return null;
+function cross(origin, left, right) {
+  return (left.x - origin.x) * (right.y - origin.y) - (left.y - origin.y) * (right.x - origin.x);
+}
+
+function convexHull(points) {
+  if (points.length <= 2) return points;
+  const sorted = [...points].sort((left, right) => left.x - right.x || left.y - right.y);
+  const half = (values) => {
+    const result = [];
+    for (const value of values) {
+      while (result.length >= 2 && cross(result.at(-2), result.at(-1), value) <= EPSILON) result.pop();
+      result.push(value);
+    }
+    return result;
+  };
+  const lower = half(sorted);
+  const upper = half([...sorted].reverse());
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+}
+
+function projectedFootprint(node, camera) {
+  return convexHull(node.footprint.map((value) => sortPoint(value, camera, `${stableKey(node)} footprint`)));
+}
+
+function xRange(shape) {
+  return { min: Math.min(...shape.map(({ x }) => x)), max: Math.max(...shape.map(({ x }) => x)) };
+}
+
+function verticalSpanAt(shape, x) {
+  if (shape.length === 1) return Math.abs(shape[0].x - x) <= EPSILON ? [shape[0].y, shape[0].y] : null;
+  if (shape.length === 2) {
+    const [left, right] = shape;
+    const minX = Math.min(left.x, right.x), maxX = Math.max(left.x, right.x);
+    if (x < minX - EPSILON || x > maxX + EPSILON) return null;
+    if (maxX - minX <= EPSILON) return [Math.min(left.y, right.y), Math.max(left.y, right.y)];
+    const y = lineYAt(shape, x);
+    return [y, y];
   }
+  const intersections = [];
+  for (let index = 0; index < shape.length; index++) {
+    const left = shape[index], right = shape[(index + 1) % shape.length];
+    const minX = Math.min(left.x, right.x), maxX = Math.max(left.x, right.x);
+    if (x < minX - EPSILON || x > maxX + EPSILON) continue;
+    if (maxX - minX <= EPSILON) intersections.push(left.y, right.y);
+    else intersections.push(lineYAt([left, right], x));
+  }
+  return intersections.length ? [Math.min(...intersections), Math.max(...intersections)] : null;
+}
+
+function comparisonXs(left, right) {
+  const a = xRange(left), b = xRange(right);
+  const min = Math.max(a.min, b.min), max = Math.min(a.max, b.max);
+  if (max < min - EPSILON) return [];
+  const critical = [min, max, ...left.map(({ x }) => x), ...right.map(({ x }) => x)]
+    .filter((x) => x >= min - EPSILON && x <= max + EPSILON)
+    .sort((a, b) => a - b)
+    .filter((x, index, values) => index === 0 || Math.abs(x - values[index - 1]) > EPSILON);
+  const result = [...critical];
+  for (let index = 1; index < critical.length; index++) {
+    if (critical[index] - critical[index - 1] > EPSILON) result.push((critical[index] + critical[index - 1]) / 2);
+  }
+  return result.sort((a, b) => a - b);
+}
+
+function relationByFootprints(left, right, camera) {
+  const a = projectedFootprint(left, camera), b = projectedFootprint(right, camera);
   if (a.length === 1 && b.length === 1)
     return a[0].y < b[0].y - EPSILON ? [left, right] : b[0].y < a[0].y - EPSILON ? [right, left] : null;
-  if (a.length === 1 || b.length === 1) {
-    const pointNode = a.length === 1 ? left : right;
-    const line = a.length === 1 ? b : a;
-    const projected = a.length === 1 ? a[0] : b[0];
-    const lineY = lineYAt(line, projected.x);
-    if (projected.y < lineY - EPSILON) return [pointNode, a.length === 1 ? right : left];
-    if (lineY < projected.y - EPSILON) return [a.length === 1 ? right : left, pointNode];
-    return null;
-  }
-  const leftAgainstRight = a.map((value) => value.y - lineYAt(b, value.x));
-  const rightAgainstLeft = b.map((value) => value.y - lineYAt(a, value.x));
-  if (leftAgainstRight.every((value) => value < -EPSILON) && rightAgainstLeft.every((value) => value > EPSILON)) return [left, right];
-  if (rightAgainstLeft.every((value) => value < -EPSILON) && leftAgainstRight.every((value) => value > EPSILON)) return [right, left];
+  const samples = comparisonXs(a, b)
+    .map((x) => ({ left: verticalSpanAt(a, x), right: verticalSpanAt(b, x) }))
+    .filter(({ left, right }) => left && right);
+  if (!samples.length) return null;
+  if (samples.every(({ left, right }) => left[1] < right[0] - EPSILON)) return [left, right];
+  if (samples.every(({ left, right }) => right[1] < left[0] - EPSILON)) return [right, left];
   return null;
 }
 
