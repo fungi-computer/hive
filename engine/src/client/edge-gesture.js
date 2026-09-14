@@ -1,56 +1,78 @@
 const AXES = Object.freeze(["x", "z"]);
 
-function cellKey(cell) { return cell.join(","); }
-function edgeKey(edge) { return `${cellKey(edge.cell)}:${edge.axis}`; }
-
-/** Acquire canonical grid edges on one visible support elevation. */
-export function acquireEdgeStroke(start, end, project, verticalMetres, max = 256, faceAxis = undefined) {
-  if (!Array.isArray(start) || !Array.isArray(end) || start[1] !== end[1]) throw new Error("edge stroke must stay on one elevation");
-  const sx = Number(start[0]), sz = Number(start[2]), ex = Number(end[0]), ez = Number(end[2]);
-  const tangent = faceAxis ? (faceAxis === "z" ? "x" : "z") : (Math.abs(ex - sx) >= Math.abs(ez - sz) ? "x" : "z");
-  const axis = tangent === "x" ? "z" : "x";
-  const fixed = tangent === "x" ? Math.round((sz + ez) / 2) : Math.round((sx + ex) / 2);
-  const from = tangent === "x" ? Math.min(sx, ex) : Math.min(sz, ez);
-  const to = tangent === "x" ? Math.max(sx, ex) : Math.max(sz, ez);
-  const edges = [];
-  for (let index = Math.floor(from); index < Math.ceil(to); index++) {
-    const cell = tangent === "x" ? [index, start[1], fixed] : [fixed, start[1], index];
-    edges.push({ cell, axis });
-  }
-  if (edges.length === 0) {
-    const cell = [Math.round(sx), start[1], Math.round(sz)];
-    edges.push({ cell, axis });
-  }
-  if (edges.length > max) throw new Error("edge stroke exceeds 256 edges");
-  return edges;
+function edgeKey(edge) { return `${edge.cell.join(",")}:${edge.axis}`; }
+function validCell(cell) { return Array.isArray(cell) && cell.length === 3 && cell.every(Number.isSafeInteger); }
+function compareEdges(left, right) {
+  return left.cell[0] - right.cell[0]
+    || left.cell[1] - right.cell[1]
+    || left.cell[2] - right.cell[2]
+    || left.axis.localeCompare(right.axis);
 }
 
-export function nearestGridSegment(point, project, level, verticalMetres, faceAxis = undefined) {
-  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y)) throw new Error("invalid edge pointer");
-  let best;
-  for (let x = Math.floor(point.x) - 1; x <= Math.ceil(point.x) + 1; x++) for (let z = Math.floor(point.y) - 1; z <= Math.ceil(point.y) + 1; z++) {
-    for (const tangent of AXES) {
-      if (faceAxis && (faceAxis === "z" ? tangent !== "x" : tangent !== "z")) continue;
-      const a = project(x, (level + 0.5) * verticalMetres, z);
-      const b = tangent === "x" ? project(x + 1, (level + 0.5) * verticalMetres, z) : project(x, (level + 0.5) * verticalMetres, z + 1);
-      const dx = b.x - a.x, dy = b.y - a.y, denominator = dx * dx + dy * dy;
-      const t = denominator ? Math.max(0, Math.min(1, ((point.x - a.x) * dx + (point.y - a.y) * dy) / denominator)) : 0;
-      const distance = (point.x - (a.x + t * dx)) ** 2 + (point.y - (a.y + t * dy)) ** 2;
-      const axis = tangent === "x" ? "z" : "x";
-      const candidate = { cell: [x, level, z], axis, distance };
-      if (!best || distance < best.distance || distance === best.distance && edgeKey(candidate) < edgeKey(best)) best = candidate;
-    }
-  }
-  return best;
+/** World endpoints of one canonical face on the top of its selected support cell. */
+export function edgeSegmentEndpoints(edge, verticalMetres) {
+  if (!validCell(edge?.cell) || !AXES.includes(edge?.axis) || !Number.isFinite(verticalMetres) || verticalMetres <= 0)
+    throw new Error("invalid edge target");
+  const [x, y, z] = edge.cell;
+  const height = (y + 0.5) * verticalMetres;
+  return edge.axis === "x"
+    ? [[x + 0.5, height, z - 0.5], [x + 0.5, height, z + 0.5]]
+    : [[x - 0.5, height, z + 0.5], [x + 0.5, height, z + 0.5]];
+}
+
+function squaredDistanceToSegment(point, start, end) {
+  const dx = end.x - start.x, dy = end.y - start.y;
+  const denominator = dx * dx + dy * dy;
+  const along = denominator
+    ? Math.max(0, Math.min(1, ((point.x - start.x) * dx + (point.y - start.y) * dy) / denominator))
+    : 0;
+  return (point.x - (start.x + along * dx)) ** 2 + (point.y - (start.y + along * dy)) ** 2;
+}
+
+/** Choose one of the four physical faces surrounding the picked support cell. */
+export function nearestGridSegment(point, project, supportCell, verticalMetres) {
+  if (!Number.isFinite(point?.x) || !Number.isFinite(point?.y) || !validCell(supportCell))
+    throw new Error("invalid edge pointer");
+  const [x, y, z] = supportCell;
+  const candidates = [
+    { cell: [x, y, z], axis: "x" },
+    { cell: [x - 1, y, z], axis: "x" },
+    { cell: [x, y, z], axis: "z" },
+    { cell: [x, y, z - 1], axis: "z" },
+  ];
+  return candidates.map(edge => {
+    const [worldStart, worldEnd] = edgeSegmentEndpoints(edge, verticalMetres);
+    const start = project(...worldStart), end = project(...worldEnd);
+    return { ...edge, distance: squaredDistanceToSegment(point, start, end) };
+  }).sort((left, right) => left.distance - right.distance || compareEdges(left, right))[0];
+}
+
+/** Extend an inclusive straight run from the initially selected physical face. */
+export function acquireEdgeStroke(start, currentCell, max = 256) {
+  if (!validCell(start?.cell) || !AXES.includes(start?.axis) || !validCell(currentCell) || start.cell[1] !== currentCell[1])
+    throw new Error("edge stroke must stay on one elevation");
+  const [x, y, z] = start.cell;
+  if ((start.axis === "x" && currentCell[0] !== x) || (start.axis === "z" && currentCell[2] !== z))
+    throw new Error("edge stroke must stay on its initial grid line");
+  const from = start.axis === "x" ? z : x;
+  const to = start.axis === "x" ? currentCell[2] : currentCell[0];
+  const count = Math.abs(to - from) + 1;
+  if (count > max) throw new Error(`edge stroke exceeds ${max} edges`);
+  return Array.from({ length: count }, (_, offset) => {
+    const tangent = Math.min(from, to) + offset;
+    return start.axis === "x"
+      ? { cell: [x, y, tangent], axis: "x" }
+      : { cell: [tangent, y, z], axis: "z" };
+  });
 }
 
 export function canonicalEdges(edges, max = 256) {
   const map = new Map();
   for (const edge of edges ?? []) {
-    if (!Array.isArray(edge.cell) || edge.cell.length !== 3 || !edge.cell.every(Number.isSafeInteger) || !AXES.includes(edge.axis)) throw new Error("invalid edge target");
+    if (!validCell(edge?.cell) || !AXES.includes(edge?.axis)) throw new Error("invalid edge target");
     map.set(edgeKey(edge), { cell: [...edge.cell], axis: edge.axis });
   }
-  const result = [...map.values()].sort((a, b) => edgeKey(a).localeCompare(edgeKey(b)));
-  if (!result.length || result.length > max) throw new Error("edge target exceeds 256 edges");
+  const result = [...map.values()].sort(compareEdges);
+  if (!result.length || result.length > max) throw new Error(`edge target exceeds ${max} edges`);
   return result;
 }

@@ -180,7 +180,7 @@ export function terrainAreaCommand(control, selected, area) {
 /** Bind a completed shared placement to the one build command. */
 export function buildPlacementCommand(control, selected, designation) {
   if (commandName(control) !== "build" || !["world-surface", "world-edge"].includes(control.target))
-    throw new Error("binding is not a world-surface build");
+    throw new Error("binding is not a world build");
   if (
     !designation ||
     (!Array.isArray(designation.cells) && !Array.isArray(designation.edges)) ||
@@ -190,9 +190,18 @@ export function buildPlacementCommand(control, selected, designation) {
   if (designation.mode && !control.designation?.includes(designation.mode))
     throw new Error("build designation mode is not supported by this binding");
   if (designation.edges) {
-    if (!control.designation?.includes("edge-line")) throw new Error("edge designation is not supported by this binding");
-    return { ...bindingCommand(control, selected), input: JSON.stringify({ ...(bindingCommand(control, selected).input ?? {}), target: { edges: designation.edges } }) };
+    if (control.target !== "world-edge" || !control.designation?.includes("edge-line"))
+      throw new Error("edge designation is not supported by this binding");
+    if (designation.edges.length > 256 || designation.edges.some(edge =>
+      !isObjectPreset(edge) || !validCell(edge.cell) || !["x", "z"].includes(edge.axis)
+      || Object.keys(edge).some(key => key !== "cell" && key !== "axis")))
+      throw new Error("invalid edge designation");
+    const command = bindingCommand(control, selected);
+    if (command.input !== undefined && (!isObjectPreset(command.input) || "target" in command.input))
+      throw new Error("edge binding preset already contains target");
+    return { ...command, input: jsonInput({ ...(command.input ?? {}), target: { edges: designation.edges } }) };
   }
+  if (control.target === "world-edge") throw new Error("edge build requires an edge designation");
   if (designation.cells.length === 1)
     return terrainCellCommand(control, selected, {
       cell: designation.cells[0],
