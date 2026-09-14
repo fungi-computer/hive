@@ -480,3 +480,55 @@ or authored/generated route intent, not appear because the renderer guessed one.
 Do not add encampments, a road planner or a wear simulation to finish this slice.
 Neither future feature blocks the current repair release. Record this limitation
 explicitly rather than claiming this terrain slice implements path wear.
+
+### Generated ground details and reserved mushroom gameplay
+
+Levi's follow-through: restore the small ground details of the original clearing,
+but do not scatter mushrooms as decorative filler. Read the accepted mushroom
+contracts in `docs/decisions/home-expeditions-and-living-world.md` (accepted
+direction 8 and mushroom knowledge proof), `a-home-between-realms.md` (daily
+novelty and stored strains), and `living-world-system-contracts.md` (horticulture,
+substrate, strain provenance). Paths above are relative to the repository root.
+
+Source checkpoint: `src/art/terrain-columns.js::groundCover` already deterministically
+derives cosmetic color/tufts from coordinates and batches them with changed
+terrain chunks. It is not a general ground-detail definition system. The native
+`generation.rs` produces geology, wet/cave and terrain facts, not mushroom batches.
+`engine/src/sdk/common.ts::ResourceSite` and native `components.rs::ResourceSite`
+carry definition/stage/nextDue; `colony-environment.ts` uses the shared lifecycle
+for mugwort. `colony.ts` projects positioned sites through definition-owned art.
+These are reusable foundations, not completed mushroom support: current site/lot
+projections do not express fixed strain/effect/batch provenance, identification
+or cultivation. Existing tree instances are supplied by Colony initial content;
+they do not demonstrate generic generated living-site admission.
+
+Keep two explicit consumers over the same terrain facts and original art:
+
+- Cosmetic litter, tiny embedded stones and non-harvestable grass: bounded,
+  seeded placement/variant selection in the existing terrain presentation owner.
+  Content definitions specify allowed surface, density, spacing and an existing
+  baked visual family. Replace hardcoded cosmetic choices as this consumer lands;
+  do not create a parallel scatter renderer. Rebuild on terrain changes; do not
+  draw tufts floating over a dug hole or through floors. Decoration has no tick,
+  item quantity, harvesting claim or shadow simulation.
+- Harvestable/living ground objects: generator proposes a stable site identity
+  and authored definition; the existing authoritative world owner admits it once.
+  Growth, removal, outputs and depleted-state persistence remain world facts.
+  On revisiting a chunk, reconcile the site's committed state, not fresh noise.
+  Reuse resource-site work and material custody where their laws fit; add the
+  missing strain/batch/knowledge facts explicitly before claiming mushroom play.
+
+Procedural art means stable parameters/variant selection over an owned original
+builder, not new Three geometry for every mushroom every frame. Cosmetic detail
+can use a small baked bank. A gameplay mushroom's appearance is selected from
+its committed batch/strain facts; picking and controller observations refer to
+that same identity. Hidden effects remain hidden until the knowledge rules allow
+them. Sampling reveals an existing effect; it does not reroll one. New cultivated
+physical batches retain strain provenance. Fungi are separate from the substrate
+they consume, not a texture flag on a log.
+
+For this art slice, reserve mushrooms and ship only non-gameplay surface detail.
+Later ground-detail acceptance must cover seed/chunk-order stability, bounded
+instance counts, removal after dig/build, no respawn on reload, and matching
+physical/presentation identity for interactive sites. No generic ecology framework
+or complete mushroom economy is required to finish the current rendering repair.
