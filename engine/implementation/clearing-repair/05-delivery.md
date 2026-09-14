@@ -21,7 +21,7 @@ provider arrays supplement but cannot replace physical evidence.
 | C1 | floor under brewer AND bed completes, identities/ports/contents unchanged | games/colony-construction.test.ts |
 | C2 | paid different finish replaces same support face, cancel/retry/save safe, no support gap | new native floor replacement laws + real Colony test |
 | C3 | alternate legal contact works; sealed/missing/frame/unsupported outcomes typed | native interaction_contact + SDK real consumer |
-| C4 | shared native plan admission rejects committed/pending geometry conflicts and unrooted prerequisites, preserves floor/furniture layering, reports stale previews and batch outcomes | 02-construction.md current audit; UNPROVED |
+| C4 | shared native plan admission enforces the complete compatibility ledger across committed/pending geometry, rejects duplicate finishes, stair interpenetration and unrooted prerequisites, preserves legal floor/furniture/wall/landing layering, reports stale previews and order-independent batch outcomes, and validates rebuilt pending intent on restore | 02-construction.md current audit; UNPROVED |
 | C5 | exact stair site/phase/part inspection distinguishes invalid placement, movement and rendering; rotated/multistorey intersections visually checked | 02-construction.md current audit + art-part witness; UNPROVED |
 | P1 | two credentials one world -> two parties/four people; same credential duplicate/concurrent join and commit-before-reply-loss -> same pair | public-engine-host party-join.test.ts with real SQLite Region |
 | P2 | no cross-party commands, claims or material spending; raw native actions/global pause rejected at HTTP and Region, including forged scope; host-tick work retains task party | party command + native material/attempt laws |

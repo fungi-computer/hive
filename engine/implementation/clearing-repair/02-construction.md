@@ -53,6 +53,47 @@ a floor on a wall's valid top support remains legal. Adjacent stairs or floors
 meeting at a valid landing are not automatically conflicts. Decorative rail art
 must agree with declared physical placement/clearance but does not create it.
 
+Do not treat successful `StaticGeometry::projection()` construction as the whole
+admission rule. Its `BTreeSet` support/face indexes intentionally merge some equal
+faces: that is correct for a physical query and insufficient for deciding whether
+two durable intents are compatible. Placement needs one explicit compatibility
+decision over canonical instances before those instances become derived sets.
+
+### Complete compatibility ledger
+
+The native owner must derive these facts for each instance: exclusive bulk cells,
+exclusive fixture cells, exclusive boundary faces, finish faces, support faces,
+stair entrance/landing contacts, stair swept crossings and required work/actor
+clearance. Each fact carries the owning instance ID and role while admission is
+decided. The ordinary physical projection may discard that provenance afterward.
+Do not add a second saved occupancy grid.
+
+| Existing/planned fact | New fact | Required decision |
+| --- | --- | --- |
+| floor finish on a horizontal face | ordinary floor on the same face | conflict; only the explicit replacement operation may change a finish |
+| cover on a horizontal face | cover or floor on the same face | conflict unless a future definition explicitly declares a distinct physical layer; no current content does |
+| fixture footprint cell | fixture footprint or stair bulk/clearance in that cell | conflict |
+| fixture footprint cell | floor finish beneath that cell | compatible |
+| wall or aperture boundary | wall or aperture on the same canonical face and height interval | conflict, even with another catalog, orientation or site ID |
+| wall boundary | floor whose edge terminates at or is supported by that wall | compatible |
+| stair bulk/swept corridor | another stair bulk/swept corridor | conflict; rotated and opposite-facing variants cannot interpenetrate |
+| stair landing support | floor at the declared landing face | compatible |
+| stair intermediate ramp/clearance | floor or cover cutting through that interval | conflict |
+| stair required crossing | closed wall/aperture interval crossing the route | conflict; a side wall that does not cross the route may be compatible |
+| committed solid terrain | fixture/stair/bulk or required work volume inside it | conflict unless the same atomic request supplies a validated excavation prerequisite; the current command does not |
+| actor temporarily occupying otherwise valid work volume | construction intent | compatible but completion waits and releases labor |
+
+Exact geometric contact, not a pair of catalog names, decides each row. New
+structure kinds must declare these same small roles and pass the ledger; they do
+not receive a new placement branch. If a relationship is neither declared nor
+provably disjoint, reject the plan as an unsupported geometry combination rather
+than accepting a permanently stuck job.
+
+Every accepted site must have one canonical instance and one physical-intent
+identity. Render parts, junction sprites, ghosts and progress overlays never add
+occupancy. Multiple art parts for one stair must not be mistaken for multiple
+sites; multiple sites cannot be collapsed into one visual owner to hide a conflict.
+
 ### Impossible versus waiting
 
 No worker, temporary access loss or unavailable material is not an invalid plan.
@@ -79,10 +120,31 @@ duplicate input is idempotent and cannot charge twice. Define compatible batch
 dependencies before mutation; conflicting targets receive stable reasons, never
 an accidental winner selected by input array order.
 
+Admission is an atomic state transition, not a later worker check. Rejection
+creates no ConstructionSite, container, material demand, claim, WorkAttempt,
+projection or receipt that says accepted. Multi-target commands first normalize
+and evaluate the whole set against committed state and one another, then publish
+only the documented per-target result semantics. Reversing input order must not
+change which geometry set is accepted. A stale preview is expected and harmless:
+submission rechecks at the current revision and returns the conflicting owner and
+typed reason.
+
+Current-format restore must rebuild the pending-instance index from ordinary live
+ConstructionSite records and validate the same compatibility ledger before the
+world becomes available. Finished sites belong to committed geometry, never the
+pending set. FloorReplacement staging sites are replacement intent and must not be
+counted as a second ordinary floor. Cancelled/completed replacement records and
+cancelled construction are likewise excluded. Crafted saves containing overlapping
+pending sites, duplicate finish intents, missing definitions, unrooted dependency
+cycles or a pending/committed conflict are rejected without starting the world.
+
 ### Required implementation proof
 
 - Same stair twice, rotated intersecting stairs, two catalogs sharing occupied
   space, and crossing stairs at different levels with/without actual clearance.
+- Every row of the compatibility ledger, including duplicate floor/cover faces,
+  stair intermediate-floor rejection, legal floor-under-fixture, legal landing
+  floor, wall beside a stair and a wall actually crossing the stair route.
 - Finished and pending conflicts, including two players' concurrent requests.
 - Floor under brewer/bed, floor on wall, adjacent stair landing, all orientations,
   multiple storeys; cancellation of planned support and a cycle without anchors.
@@ -94,6 +156,10 @@ an accidental winner selected by input array order.
   declared set of parts per site. Inspect actors between stair rails, upper floor
   contact and cutaways; distinguish draw-order bugs from invalid geometry.
 - Save/recovery rebuilds intent indexes and prerequisites; no phantom reservations.
+- Valid pending current-format save/reload retains the same decision; crafted
+  conflicting pending state fails restore before any tick, projection or command.
+- One canonical stair site projects one visual owner with its declared parts;
+  the pictured pile-up cannot be produced by repeatedly rotating/placing stairs.
 
 These checks apply to reusable geometry categories, not named timber-stair hacks.
 
