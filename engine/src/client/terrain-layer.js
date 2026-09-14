@@ -5,6 +5,7 @@ import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { createTerrainSceneCache, terrainBandScene, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
 import { terrainChunkKey, terrainFaceBounds, terrainColumnMap } from "../../../src/art/terrain-faces.js";
 import { project } from "./geometry.js";
+import { registerVisibleTexture, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 
 const WIDTH = 2304,
   HEIGHT = 1536,
@@ -120,20 +121,14 @@ function regionForChunk(
 export function createTerrainLayer() {
   const container = new Container();
   container.eventMode = "none";
-  let renderer, colorTexture, colorCanvas, colorContext;
-  let terrainSprite, bandSprites = [], waterItems = [], sortableItems = [], terrainSurfaces = [];
+  let renderer;
+  let bandSprites = [], waterItems = [], sortableItems = [], terrainSurfaces = [];
   const waterTile = createWaterTile();
   let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
   let terrainCache, canonicalCamera, cachedVerticalMetres;
   let revision, epoch, projectionKey;
 
   function clear() {
-    colorTexture?.destroy(true);
-    colorTexture = undefined;
-    colorCanvas = undefined;
-    colorContext = undefined;
-    terrainSprite?.destroy();
-    terrainSprite = undefined;
     for (const sprite of bandSprites) sprite.destroy();
     bandSprites = [];
     terrainCache?.dispose();
@@ -157,22 +152,25 @@ export function createTerrainLayer() {
     canonicalCamera = artCamera(WIDTH, HEIGHT, 1.03, 256);
     for (const sprite of bandSprites) sprite.destroy();
     bandSprites = [];
-    colorTexture = Texture.EMPTY;
     sortableItems = [];
     for (const level of [...new Set(terrainSurfaces.map(({ cell: [, y] }) => y))].sort((a, b) => a - b)) {
       const selected = terrainSurfaces.filter(({ cell: [, y] }) => y === level);
-      const bounds = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
+      const raw = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
+      const bounds = raw && { left: Math.max(0, Math.floor(raw.left) - 3), top: Math.max(0, Math.floor(raw.top) - 3), right: Math.min(WIDTH, Math.ceil(raw.right) + 3), bottom: Math.min(HEIGHT, Math.ceil(raw.bottom) + 3) };
       if (!bounds) continue;
       const bandCamera = canonicalCamera.clone();
       bandCamera.setViewOffset(WIDTH, HEIGHT, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
       const baked = renderBakeCanvas(renderer, terrainBandScene(terrainSurfaces, level, { verticalMetres: frame.verticalMetres }), bandCamera, bounds.right - bounds.left, bounds.bottom - bounds.top, { ink: false, releaseGeometry: true });
       const sprite = new Sprite(Texture.from(baked.canvas));
       sprite.texture.source.scaleMode = "nearest";
+      const pixels = baked.context.getImageData(0, 0, baked.canvas.width, baked.canvas.height).data;
+      registerVisibleTexture(sprite.texture, pixels, baked.canvas.width, baked.canvas.height);
       sprite.eventMode = "none";
       bandSprites.push(sprite);
       container.addChild(sprite);
       sprite.__terrainBounds = bounds;
-      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true });
+      const hitArea = visibleHitAreaFor(sprite.texture, { x: 0, y: 0 });
+      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains(point.x - sprite.x, point.y - sprite.y) });
     }
   }
 
@@ -207,11 +205,9 @@ export function createTerrainLayer() {
         bounds.height,
         { ink: false, releaseGeometry: false },
       );
-      colorContext.clearRect(bounds.left, bounds.top, bounds.width, bounds.height);
-      colorContext.drawImage(patch.canvas, bounds.left, bounds.top);
+      void patch;
       camera.clearViewOffset();
     }
-    colorTexture.source.update();
   }
 
   return {

@@ -150,7 +150,7 @@ function validateNode(input) {
 function edgeFor(left, right, camera) {
   if (!overlaps(left.screenBounds, right.screenBounds)) return null;
   if (left.storeyBand !== right.storeyBand) return left.storeyBand < right.storeyBand ? [left, right] : [right, left];
-  if (ROLE_ORDER[left.role] !== undefined && ROLE_ORDER[right.role] !== undefined && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
+  if ((left.role === "terrain" || left.role === "water" || right.role === "terrain" || right.role === "water") && ROLE_ORDER[left.role] !== undefined && ROLE_ORDER[right.role] !== undefined && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
     return ROLE_ORDER[left.role] < ROLE_ORDER[right.role] ? [left, right] : [right, left];
   return relationByFootprints(left, right, camera);
 }

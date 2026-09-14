@@ -974,6 +974,10 @@ export function createHiveClient({
             bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * texture.height * camera.zoom,
           },
           hitArea: subject.hitArea,
+          contains: (point) => subject.hitArea?.contains(
+            (point.x - entry.container.x - entry.sprite.x) / camera.zoom,
+            (point.y - entry.container.y - entry.sprite.y) / camera.zoom,
+          ) === true,
           visible: true,
         });
       }
@@ -1240,14 +1244,7 @@ export function createHiveClient({
       box.left = box.right = end.x;
       box.top = box.bottom = end.y;
     }
-    const candidates = click ? orderedSprites.filter((candidate) => {
-      if (!candidate.hitArea) return false;
-      const sprite = candidate.display.children[0];
-      return candidate.hitArea.contains(
-        (end.x - candidate.display.x - sprite.x) / camera.zoom,
-        (end.y - candidate.display.y - sprite.y) / camera.zoom,
-      );
-    }) : [];
+    const candidates = click ? orderedSprites.filter((candidate) => candidate.contains?.(end) === true) : [];
     const picked = pickFromOrdered(orderedSprites, candidates);
     const directHit = picked?.target ? [picked.target] : [];
     let hit = click
