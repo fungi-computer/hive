@@ -22,6 +22,8 @@ import type {
   SystemDefinition,
   WorldPose,
   Impact,
+  ScopedAction,
+  ScopedCreate,
 } from "../contracts";
 
 const morale: ComponentDefinition<{ value: number }> = {
@@ -56,6 +58,11 @@ class TestPort implements KernelPort {
   routeToAny(): import("../contracts").RouteToAnyResult {
     throw new Error("unexpected route query");
   }
+  floorOperations(): readonly import("../contracts").FloorOperation[] { return []; }
+  transferContacts(): { readonly kind: "ready"; readonly targets: readonly import("../contracts").MoveDestination[] } { return { kind: "ready", targets: [] }; }
+  waterContacts(): readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly import("../contracts").MoveDestination[] }[] { return []; }
+  workAttempts(): readonly import("../contracts").WorkAttempt[] { return []; }
+  workAttemptForWorker(): import("../contracts").WorkAttempt | null { return null; }
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
@@ -157,7 +164,8 @@ class TestPort implements KernelPort {
   advance(
     delta: number,
     writes: readonly WriteIntent[],
-    actions: readonly ActionRequest[],
+    actions: readonly ScopedAction[],
+    _options?: { readonly creates?: readonly ScopedCreate[]; readonly removes?: readonly import("../contracts").EntityId[] },
   ): AdvanceResult {
     this.revision++;
     if (this.failAdvance) throw new Error("native advance failed");
@@ -174,7 +182,7 @@ class TestPort implements KernelPort {
     this.impacts = [];
     state.impactQueue = [];
     this.entityJson = JSON.stringify(state);
-    const results = actions.map((action) => {
+    const results = actions.map(({ request: action }) => {
       if (action.kind === "consume") {
         if (this.acceptConsume) this.acceptedConsumes++;
         return this.acceptConsume
@@ -846,7 +854,7 @@ test("queued input is cloned when requested", () => {
   value.request(request);
   (request.destination as { x: number }).x = 99;
   assert.equal(
-    (value.save().pendingActions[0] as Extract<ActionRequest, { kind: "move" }>)
+    (value.save().pendingActions[0].request as Extract<ActionRequest, { kind: "move" }>)
       .destination.x,
     1,
   );
@@ -883,7 +891,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", {}));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 8);
+  assert.equal(value.save().version, 9);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {
@@ -1042,6 +1050,7 @@ test("authored orders are visible to paused commands and survive pending reload"
             .query({ components: [morale] })
             .find((row) => row.id === "order.1");
           assert.ok(row);
+          if (!row) throw new Error("missing authored order");
           return {
             actions: [],
             writes: [

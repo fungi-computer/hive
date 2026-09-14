@@ -353,7 +353,9 @@ export interface ReadContext {
   /** One committed physical projection shared by all work phases in a step. */
   workMaterialFacts(): WorkMaterialFacts;
   readonly workAttempts?: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
+  readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly processRequirements: (definition: string, station: EntityId) => ProcessRequirements;
+  readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
   worldPoses(entities: readonly EntityId[]): readonly WorldPose[];
   routeCosts(requests: readonly RouteCostRequest[]): readonly RouteCostResult[];
   routeToAny(request: RouteToAnyRequest): RouteToAnyResult;
@@ -384,6 +386,9 @@ export interface ReadContext {
   terrainSurfaces(
     columns: readonly [number, number][],
   ): readonly (TerrainSurface | null)[];
+  structureSurfaces(
+    columns: readonly [number, number][],
+  ): readonly (readonly StructureSurface[])[];
   waterContacts(centers: readonly [number, number, number][]): readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
   assign(
     candidates: readonly AssignmentCandidate[],
@@ -404,7 +409,7 @@ export interface ScopedCreate {
   readonly scope: ActionScope;
   readonly record: EntityRecord;
 }
-export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
+export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts"> & {
   readonly scope: CommandScope;
   readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
   readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;

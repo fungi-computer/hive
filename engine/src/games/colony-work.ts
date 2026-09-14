@@ -139,7 +139,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
     }
   }
   const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
-  const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
+  const poses = new Map(workers.length === 0 ? [] : ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
   const candidates = ownedOrders.flatMap(row => {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
     const owner = orderOwners.get(row.id)?.party;
