@@ -190,16 +190,29 @@ function setTransform(mesh, transform) {
   mesh.scale.set(finite(transform?.scaleX ?? transform?.scale ?? 1, "scale x"), finite(transform?.scaleY ?? transform?.scale ?? 1, "scale y"));
 }
 
+function destroyWorldDepthRecord(record) {
+  record.mesh.destroy({ texture: false });
+  record.geometry.destroy();
+  record.shader.destroy();
+}
+
 /** Pixi WebGL2 owner for the opaque world depth pass and its shared CPU picker. */
 export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder } = {}) {
   if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) || width <= 0 || height <= 0)
     throw new Error("invalid world depth layer size");
   const container = new Container();
   container.eventMode = "none";
+  const transparentContainer = new Container();
+  transparentContainer.eventMode = "none";
   const renderTexture = RenderTexture.create({ width, height, resolution });
   const target = new RenderTarget({ width, height, resolution, colorTextures: [renderTexture], depth: true, depthStencilTexture: true });
   const picker = createWorldDepthPicker({ roleOrder });
   const records = new Map();
+  const transparentRecords = new Map();
+  let opaqueCreated = 0;
+  let opaqueDestroyed = 0;
+  let transparentCreated = 0;
+  let transparentDestroyed = 0;
   let disposed = false;
   let activeBounds = null;
 
@@ -211,9 +224,13 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
     const basis = worldDepthBasis(towardCamera);
     picker.update(items, basis);
     const active = new Set();
-    if (!bounds) { container.removeChildren(); return null; }
+    if (!bounds) {
+      container.removeChildren();
+      for (const [key, record] of records) { destroyWorldDepthRecord(record); records.delete(key); opaqueDestroyed++; }
+      return null;
+    }
     const ordered = [...visible].sort((a, b) => compareWorldDepthItems(a, b, roleOrder));
-    for (const item of ordered) {
+    for (const [index, item] of ordered.entries()) {
       const key = worldDepthItemKey(item); active.add(key);
       let record = records.get(key);
       if (!record) {
@@ -226,7 +243,7 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
         } });
         const state = State.for2d(); state.blend = false; state.depthTest = true; state.depthMask = true;
         const mesh = new Mesh({ geometry, shader, state });
-        record = { mesh, geometry, shader }; records.set(key, record);
+        record = { mesh, geometry, shader }; records.set(key, record); opaqueCreated++;
       }
       updateGeometry(record, item);
       const range = item.depthFrame.depthRange;
@@ -238,8 +255,14 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
       uniforms.uNearDepth.value = bounds.nearDepth; uniforms.uFarDepth.value = bounds.farDepth;
       setTransform(record.mesh, item.screenTransform); record.mesh.visible = true;
       if (!record.mesh.parent) container.addChild(record.mesh);
+      container.setChildIndex(record.mesh, index);
     }
-    for (const [key, record] of records) if (!active.has(key)) { record.mesh.visible = false; }
+    for (const [key, record] of records) if (!active.has(key)) {
+      container.removeChild(record.mesh);
+      destroyWorldDepthRecord(record);
+      records.delete(key);
+      opaqueDestroyed++;
+    }
     return bounds;
   }
 
@@ -256,32 +279,56 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
         throw new Error("world-depth-requires-webgl2");
       if (!activeBounds) throw new Error("transparent world requires opaque pass");
       const ordered = transparentWorldComposition(items, roleOrder);
-      const layer = new Container();
-      for (const item of ordered) {
+      const active = new Set();
+      for (const [index, item] of ordered.entries()) {
         if (!item.colorTexture || !item.depthTexture)
           throw new Error("transparent world item requires paired textures");
-        const geometry = makeGeometry(item);
-        geometry.batchMode = "no-batch";
-        const shader = Shader.from({ gl: { name: "hive-transparent-world", vertex: WORLD_DEPTH_VERTEX, fragment: TRANSPARENT_WORLD_FRAGMENT }, resources: {
-          uColorTexture: item.colorTexture.source,
-          uDepthTexture: item.depthTexture.source,
-          depthUniforms: {
-            uOriginDepth: { value: originDepth(item, activeBounds.basis), type: "f32" },
-            uLocalMin: { value: item.depthFrame.depthRange.min, type: "f32" },
-            uLocalMax: { value: item.depthFrame.depthRange.max, type: "f32" },
-            uNearDepth: { value: activeBounds.nearDepth, type: "f32" },
-            uFarDepth: { value: activeBounds.farDepth, type: "f32" },
-            uAlpha: { value: item.alpha, type: "f32" },
-          },
-        } });
-        const state = State.for2d();
-        Object.assign(state, TRANSPARENT_WORLD_STATE);
-        const mesh = new Mesh({ geometry, shader, state });
-        setTransform(mesh, item.screenTransform);
-        layer.addChild(mesh);
+        const key = worldDepthItemKey(item); active.add(key);
+        let record = transparentRecords.get(key);
+        if (!record) {
+          const geometry = makeGeometry(item);
+          geometry.batchMode = "no-batch";
+          const shader = Shader.from({ gl: { name: "hive-transparent-world", vertex: WORLD_DEPTH_VERTEX, fragment: TRANSPARENT_WORLD_FRAGMENT }, resources: {
+            uColorTexture: item.colorTexture.source,
+            uDepthTexture: item.depthTexture.source,
+            depthUniforms: {
+              uOriginDepth: { value: 0, type: "f32" }, uLocalMin: { value: 0, type: "f32" }, uLocalMax: { value: 1, type: "f32" },
+              uNearDepth: { value: 1, type: "f32" }, uFarDepth: { value: 0, type: "f32" }, uAlpha: { value: 1, type: "f32" },
+            },
+          } });
+          const state = State.for2d();
+          Object.assign(state, TRANSPARENT_WORLD_STATE);
+          const mesh = new Mesh({ geometry, shader, state });
+          record = { mesh, geometry, shader }; transparentRecords.set(key, record); transparentCreated++;
+        }
+        updateGeometry(record, item);
+        record.shader.resources.uColorTexture = item.colorTexture.source;
+        record.shader.resources.uDepthTexture = item.depthTexture.source;
+        const uniforms = record.shader.resources.depthUniforms;
+        uniforms.uOriginDepth.value = originDepth(item, activeBounds.basis);
+        uniforms.uLocalMin.value = finite(item.depthFrame.depthRange.min, "depth min");
+        uniforms.uLocalMax.value = finite(item.depthFrame.depthRange.max, "depth max");
+        uniforms.uNearDepth.value = activeBounds.nearDepth;
+        uniforms.uFarDepth.value = activeBounds.farDepth;
+        uniforms.uAlpha.value = item.alpha;
+        setTransform(record.mesh, item.screenTransform);
+        record.mesh.visible = true;
+        if (!record.mesh.parent) transparentContainer.addChild(record.mesh);
+        transparentContainer.setChildIndex(record.mesh, index);
       }
-      renderer.render({ target, container: layer, clear: false });
-      layer.destroy({ children: true });
+      for (const [key, record] of transparentRecords) if (!active.has(key)) {
+        transparentContainer.removeChild(record.mesh);
+        destroyWorldDepthRecord(record);
+        transparentRecords.delete(key);
+        transparentDestroyed++;
+      }
+      renderer.render({ target, container: transparentContainer, clear: false });
+    },
+    diagnostics() {
+      return Object.freeze({
+        opaque: Object.freeze({ active: records.size, created: opaqueCreated, destroyed: opaqueDestroyed }),
+        transparent: Object.freeze({ active: transparentRecords.size, created: transparentCreated, destroyed: transparentDestroyed }),
+      });
     },
     resize(nextWidth, nextHeight) {
       if (!Number.isSafeInteger(nextWidth) || !Number.isSafeInteger(nextHeight) || nextWidth <= 0 || nextHeight <= 0) throw new Error("invalid world depth resize");
@@ -290,8 +337,10 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
     },
     dispose() {
       if (disposed) return; disposed = true;
-      for (const { mesh, geometry, shader } of records.values()) { mesh.destroy({ texture: false }); geometry.destroy(); shader.destroy(); }
+      for (const record of records.values()) destroyWorldDepthRecord(record);
+      for (const record of transparentRecords.values()) destroyWorldDepthRecord(record);
       records.clear(); container.destroy({ children: false }); target.destroy(); renderTexture.destroy(true);
+      transparentRecords.clear(); transparentContainer.destroy({ children: false });
     },
   });
 }
