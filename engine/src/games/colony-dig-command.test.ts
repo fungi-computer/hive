@@ -11,6 +11,7 @@ import { DeliveryTask } from "../sdk/delivery";
 import { ColonyDigOrder, colonyGroundStockPhase } from "./colony-work";
 import { GroundStock } from "../sdk/ground-stock";
 import { colonyPack } from "./colony";
+import type { WorkAttempt } from "../contracts";
 
 const worker = entity("colony.worker.1");
 const source = entity("colony.pantry");
@@ -30,6 +31,7 @@ type Fixture = {
   readonly tasks: readonly FixtureRow[];
   readonly work: readonly FixtureRow[];
   readonly orders: readonly FixtureRow[];
+  readonly attempts: readonly WorkAttempt[];
 };
 
 function context(overrides: Partial<Fixture> = {}) {
@@ -38,6 +40,7 @@ function context(overrides: Partial<Fixture> = {}) {
     tasks: [],
     work: [],
     orders: [],
+    attempts: [],
     ...overrides,
   };
   const values = new Map<string, readonly unknown[]>([
@@ -52,7 +55,7 @@ function context(overrides: Partial<Fixture> = {}) {
     [ExcavationWork.id, fixture.work],
     [ColonyDigOrder.id, fixture.orders],
   ]);
-  return { scope: { kind: "host" as const }, physicalContacts: () => { throw new Error("unexpected physical contact query"); }, terrainMaterials: () => [], terrainSurfaces: () => [], query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
+  return { scope: { kind: "host" as const }, physicalContacts: () => { throw new Error("unexpected physical contact query"); }, terrainMaterials: () => [], terrainSurfaces: () => [], workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => fixture.attempts.filter(attempt => tasks.includes(attempt.key.task)), query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
 }
 
 test("Colony dig creates an unassigned area order without requiring a worker", () => {
@@ -116,9 +119,10 @@ test("Colony cancelDig removes designated orders and cancels only their active w
     cellX: 0, cellY: 12, cellZ: 0, expected: 1,
     status: "queued", reason: "",
   });
-  const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order] }), { entities: [worker] });
+  const attempt: WorkAttempt = { key: { task: order.id, generation: 1 }, worker, party: entity("host"), phase: { kind: "executing", operation: { attempt: { task: order.id, generation: 1 }, sequence: 1 }, activity: { kind: "excavation", cell: [0, 12, 0], expectedMaterial: 1, replacementMaterial: 0 } } };
+  const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], attempts: [attempt] }), { entities: [worker] });
   assert.deepEqual(result, {
-    actions: [],
+    actions: [{ kind: "interrupt-work-attempt", task: order.id, generation: 1, sequence: 1, cause: "cancelled" }],
     writes: [],
     removes: [order.id],
   });
@@ -126,10 +130,7 @@ test("Colony cancelDig removes designated orders and cancels only their active w
     version: 2, party: entity("host"), sourceLot: entity("colony.food.1"), source,
     destination: entity("colony.guest.1"), material: "bread", quantity: 1, custody: "available", ground: null,
   });
-  assert.deepEqual(
-    colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { entities: [worker] }),
-    { actions: [], writes: [], removes: [order.id] },
-  );
+  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { entities: [worker] }), { actions: [], writes: [], removes: [order.id] });
   assert.throws(() => colonyPack.commands!.cancelDig.invoke(context(), { entities: [worker] }), /no matching excavation order/);
 });
 
