@@ -391,6 +391,7 @@ export type CommandScope =
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
   readonly scope: CommandScope;
+  readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
 };
 export interface WriteContext extends ReadContext {
   write<T extends object>(

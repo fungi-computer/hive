@@ -527,7 +527,12 @@ export const colonyPack: GamePack = {
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        return { actions: selected.map(worker => cancelWork(worker)), writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
+        const tasks = context.query(query(DeliveryTask)).map(row => row.id);
+        const attempts = context.workAttempts(tasks).filter(attempt => selected.includes(attempt.worker) && (context.scope.kind !== "player" || attempt.party === context.scope.party));
+        const actions = attempts.flatMap(attempt => attempt.phase.kind === "executing" ? [
+          { kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const },
+        ] : []);
+        return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
       },
     }),
     undraft: command({

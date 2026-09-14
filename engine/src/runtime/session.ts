@@ -355,6 +355,7 @@ export class GameSession {
         physicalContacts: (cells) => this.port.physicalContacts(cells),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
+        workAttempts: (taskIds) => this.port.workAttempts(taskIds),
         query: (spec) => {
           for (const component of spec.components)
             if (!reads.has(component.id))
