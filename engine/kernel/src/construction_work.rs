@@ -437,6 +437,7 @@ impl Kernel {
         if !crate::components::valid_id(&order_id) || self.known.contains(&order_id) { return Err("invalid or duplicate floor replacement order".into()); }
         let target_entity = self.entity(&existing_id)?;
         let target = self.ecs.get::<ConstructionSite>(target_entity).cloned().ok_or("existing floor is not a construction site")?;
+        let owner = self.ecs.get::<OwnedByParty>(target_entity).cloned().ok_or("existing floor has no party owner")?;
         if target.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(target_entity).is_none() { return Err("floor replacement requires a finished floor".into()); }
         let desired = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&desired_catalog).ok_or("unknown replacement catalog")?;
         if !matches!(desired.shape, crate::environment_definition::StructureShape::Floor) { return Err("replacement catalog must be a floor".into()); }
@@ -444,7 +445,7 @@ impl Kernel {
         if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
         let staged = ConstructionSite { catalog: desired_catalog.clone(), x: target.x, y: target.y, z: target.z, orientation: target.orientation, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
-        let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: target.x, support_y: i64::from(target.y), support_z: target.z, phase: FloorReplacementPhase::Queued })).id();
+        let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, owner, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: target.x, support_y: i64::from(target.y), support_z: target.z, phase: FloorReplacementPhase::Queued })).id();
         self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id, BTreeSet::new());
         self.refresh_state_weight();
         Ok(())
