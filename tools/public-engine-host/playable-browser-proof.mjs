@@ -192,6 +192,7 @@ try {
   assert.equal(evidence.join.people.length, 2, "fresh party must contain two people");
   assert.equal(new Set(evidence.join.people).size, 2, "party people must be unique");
   record("fresh world joins one party with two people", { party: evidence.join.party, people: evidence.join.people });
+  record("camera reset follows an ordinary viewport resize", { canvas: { width: resetCanvas.width, height: resetCanvas.height } });
   await screenshot(page, "desktop-01-joined.png");
 
   const commandCount = () => evidence.commands.length;
@@ -431,6 +432,8 @@ try {
     floorIdentity: originalFloorId,
     bedReplacementTarget: replacement.command.input.target.cell,
     brewerReplacementTarget: brewerReplacement.command.input.target.cell,
+    bedArtHit: bedSurface.art,
+    brewerArtHit: brewerSurface.art,
     limit: "The bounded browser proof observes command admission and identity; native completion remains covered by the joined construction laws.",
   });
   await buildPoint("Stair north", sameLevelNeighbor(wallEnd).cell);
