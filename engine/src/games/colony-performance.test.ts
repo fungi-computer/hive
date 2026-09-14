@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
+import { buildObservation } from "../runtime/observation";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
 import { FiniteResource, MaterialLot } from "../sdk/common";
@@ -10,6 +11,7 @@ import { Worker } from "./colony-components";
 import { ColonyTree } from "./colony-work";
 import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { createColonyPerformancePack } from "./colony-performance";
+import type { GamePack } from "../contracts";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -56,14 +58,40 @@ test("largest sparse-world preset starts and advances the real Colony systems", 
   }
 });
 
-test("32 and 100 worker presets sustain multiple real Colony steps", () => {
+function performancePackWithPails(workerCount: 32 | 100): GamePack {
+  const pack = createColonyPerformancePack(128, workerCount);
+  const definition = decode(pack.definition);
+  const workers = definition.initial.filter(record => record.components[Worker.id]).map(record => record.id);
+  const pailHolders = new Set(definition.initial
+    .map(record => record.components[MaterialLot.id] as { kind?: string; container?: string } | undefined)
+    .filter(lot => lot?.kind === "pail")
+    .map(lot => lot!.container));
+  for (const [index, worker] of workers.entries()) {
+    if (pailHolders.has(worker)) continue;
+    definition.initial.push(
+      { id: `${worker}.pail`, components: {
+        "hive.lot": { quantity: 1, kind: "pail", container: worker },
+        "hive.container": { capacity: 7 },
+        "hive.owned-by-party": { party: "colony.local-party" },
+        "hive.visual": { sprite: "pail", label: `Pail ${index + 1}` },
+      } },
+    );
+  }
+  return {
+    ...pack,
+    definition: new TextEncoder().encode(JSON.stringify(definition)),
+  };
+}
+
+test("32 and 100 worker presets sustain productive real Colony steps", () => {
   for (const workerCount of [32, 100] as const) {
     const port = wasmKernelPort(new WasmKernel());
     const session = new GameSession({ port, pack: createColonyPerformancePack(128, workerCount) });
     try {
       session.start();
-      for (let tick = 0; tick < 3; tick++) session.step(0.1);
-      assert.equal(session.renderFacts().filter(fact => fact.visual === "colony.rowan" || fact.visual === "colony.sedge").length, workerCount);
+      for (let tick = 0; tick < 90; tick++) session.step(1);
+      assert.equal(session.query(query(Worker)).length, workerCount, "all performance actors remain retained");
+      assert.ok(session.query(query(ColonyTree)).some(row => row.get(ColonyTree).phase !== "standing"), "sustained workload must complete productive tree work");
     } finally {
       port.dispose();
     }
@@ -93,15 +121,11 @@ test("sustained Colony workloads measure simulation, save, and observations", ()
         }).length;
       };
       const eligiblePails = pailWorkers();
-      if (eligiblePails > 16) {
-        for (let index = 0; index < eligiblePails; index++)
-          session.command("requestWater", {});
-      }
       for (let tick = 0; tick < 90; tick++) {
         try {
           stepMs.push(elapsedMs(() => session.step(1)));
           saveMs.push(elapsedMs(() => JSON.stringify(session.save())));
-          observationMs.push(elapsedMs(() => session.whistleObservation({ query: spec => session.query(spec) })));
+          observationMs.push(elapsedMs(() => buildObservation(session, { epoch: 0, sequence: tick + 1 })));
         } catch (error) {
           recoveryError = `tick ${tick}: ${error instanceof Error ? error.message : String(error)}`;
           break;
@@ -112,15 +136,11 @@ test("sustained Colony workloads measure simulation, save, and observations", ()
       const completedTrees = session.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase !== "standing").length;
       const woodRemaining = session.query(query(FiniteResource)).filter(row => row.get(FiniteResource).kind === "wood").reduce((sum, row) => sum + row.get(FiniteResource).quantity, 0);
       assert.ok(completedTrees > 0 || woodRemaining < 300, "sustained workload must complete productive tree work");
-      const waterDemand = session.query(query(WaterSupplyOrder, WaterSupplyWork));
-      if (eligiblePails > 16) assert.ok(waterDemand.length > 16, "active water workload must exceed sixteen pail workers");
       console.log(JSON.stringify({
         workload: `colony-performance-${workerCount}`,
         workers: workers().length,
         productiveTrees: completedTrees,
         eligiblePailWorkers: eligiblePails,
-        waterDemandCount: waterDemand.length,
-        waterWorkload: eligiblePails > 16 ? "active" : "unsupported-by-pack",
         steps: stepMs.length,
         stepMs: { total: stepMs.reduce((a, b) => a + b, 0), max: Math.max(...stepMs) },
         snapshotSaveMs: { total: saveMs.reduce((a, b) => a + b, 0), max: Math.max(...saveMs) },
@@ -130,5 +150,37 @@ test("sustained Colony workloads measure simulation, save, and observations", ()
     } finally {
       port.dispose();
     }
+  }
+});
+
+test("real pail workload crosses the sixteen-worker water planning batch", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({ port, pack: performancePackWithPails(32) });
+  let maxDemand = 0;
+  let maxActive = 0;
+  let recoveryError: string | undefined;
+  try {
+    session.start();
+    const pailWorkers = new Set(session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).kind === "pail").map(row => row.get(MaterialLot).container)).size;
+    assert.ok(pailWorkers > 16, "test-local records must author more than sixteen worker-held pails");
+    for (let index = 0; index < pailWorkers; index++) session.command("requestWater", {});
+    for (let tick = 0; tick < 12; tick++) {
+      try {
+        session.step(1);
+        const demands = session.query(query(WaterSupplyOrder, WaterSupplyWork));
+        maxDemand = Math.max(maxDemand, demands.length);
+        maxActive = Math.max(maxActive, demands.filter(row => row.get(WaterSupplyWork).phase !== "complete").length);
+      } catch (error) {
+        recoveryError = `tick ${tick}: ${error instanceof Error ? error.message : String(error)}`;
+        break;
+      }
+    }
+    assert.equal(recoveryError, undefined, `water workload threw during recovery/continuation: ${recoveryError}`);
+    assert.ok(maxDemand > 16, `water demand did not cross batch boundary: ${maxDemand}`);
+    assert.ok(maxActive > 0, "water workload must retain observed active demand");
+    assert.equal(session.query(query(Worker)).length, 32, "all water workload actors remain retained");
+    console.log(JSON.stringify({ workload: "colony-performance-water-32", pailWorkers, maxDemand, maxActive, recoveryError: null }));
+  } finally {
+    port.dispose();
   }
 });
