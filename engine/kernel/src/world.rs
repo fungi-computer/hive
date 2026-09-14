@@ -833,11 +833,20 @@ mod construction_tests {
         let bed_before = record(kernel.ecs.get::<ConstructionSite>(bed_entity).unwrap());
         let position_before = record(kernel.ecs.get::<Position>(bed_entity).unwrap());
         let sleep_before = record(kernel.ecs.get::<Container>(kernel.entity("bed-1:sleep").unwrap()).unwrap());
+        let sleep_lot_id = kernel.complete_material_output(MaterialOutputSpec {
+            container: "bed-1:sleep".into(), kind: "blanket".into(), quantity: 1, water_kg: None,
+        }).unwrap();
+        let sleep_lot_before = kernel.ecs.get::<Lot>(kernel.entity(&sleep_lot_id).unwrap()).unwrap().clone();
+        let bed_instances_before: Vec<_> = kernel.environment.as_ref().unwrap().world.structure_instances().into_iter()
+            .filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Fixture { id, .. } if id == "bed-1"))
+            .collect();
+        let material_total_before: u64 = kernel.ids.values().filter_map(|entity| kernel.ecs.get::<Lot>(*entity)).map(|lot| u64::from(lot.quantity)).sum();
         let floor_id = "floor-bed-0";
         let support = crate::generation::Cell { x: bed_origin.x, y: bed_origin.y, z: bed_origin.z };
         let original_floor = kernel.ecs.get::<ConstructionSite>(kernel.entity(floor_id).unwrap()).unwrap().clone();
         let base = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
         kernel.environment.as_mut().unwrap().structures.insert("floor-alt-2".into(), crate::environment_definition::StructureDefinition { id: "floor-alt-2".into(), ..base });
+        let replacement_cost: u64 = kernel.environment.as_ref().unwrap().structures.get("floor-alt-2").unwrap().materials.values().map(|quantity| u64::from(*quantity)).sum();
         let queued: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"replace-floor","orderId":"replace-bed-floor","existingFloorId":"floor-bed-0","desiredCatalog":"floor-alt-2"}}]}"#).unwrap()).unwrap();
         assert_eq!(queued["results"][0]["accepted"], true, "{queued}");
         let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(r#"["replace-bed-floor"]"#).unwrap()).unwrap();
@@ -867,10 +876,24 @@ mod construction_tests {
         assert_eq!(record(kernel.ecs.get::<ConstructionSite>(bed_entity).unwrap()), bed_before);
         assert_eq!(record(kernel.ecs.get::<Position>(bed_entity).unwrap()), position_before);
         assert_eq!(record(kernel.ecs.get::<Container>(kernel.entity("bed-1:sleep").unwrap()).unwrap()), sleep_before);
+        let sleep_lot_after = kernel.ecs.get::<Lot>(kernel.entity(&sleep_lot_id).unwrap()).unwrap();
+        assert_eq!((&sleep_lot_after.kind, sleep_lot_after.quantity, &sleep_lot_after.container), (&sleep_lot_before.kind, sleep_lot_before.quantity, &sleep_lot_before.container));
+        let bed_instances_after: Vec<_> = kernel.environment.as_ref().unwrap().world.structure_instances().into_iter()
+            .filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Fixture { id, .. } if id == "bed-1"))
+            .collect();
+        assert_eq!(bed_instances_after, bed_instances_before);
+        let material_total_after: u64 = kernel.ids.values().filter_map(|entity| kernel.ecs.get::<Lot>(*entity)).map(|lot| u64::from(lot.quantity)).sum();
+        assert_eq!(material_total_before - material_total_after, replacement_cost, "replacement consumes only its declared finish cost");
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
         assert_eq!(record(restored.ecs.get::<ConstructionSite>(restored.entity("bed-1").unwrap()).unwrap()), bed_before);
+        let restored_sleep_lot = restored.ecs.get::<Lot>(restored.entity(&sleep_lot_id).unwrap()).unwrap();
+        assert_eq!((&restored_sleep_lot.kind, restored_sleep_lot.quantity, &restored_sleep_lot.container), (&sleep_lot_before.kind, sleep_lot_before.quantity, &sleep_lot_before.container));
+        let restored_bed_instances: Vec<_> = restored.environment.as_ref().unwrap().world.structure_instances().into_iter()
+            .filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Fixture { id, .. } if id == "bed-1"))
+            .collect();
+        assert_eq!(restored_bed_instances, bed_instances_before);
         assert_eq!(restored.query_json(r#"["hive.floor-replacement"]"#).unwrap(), kernel.query_json(r#"["hive.floor-replacement"]"#).unwrap());
     }
 
