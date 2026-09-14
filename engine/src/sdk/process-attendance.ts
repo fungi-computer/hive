@@ -95,10 +95,18 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
           ctx.action({ kind: "acknowledge-work-attempt", task: operation.attempt.task, generation: operation.attempt.generation, sequence: operation.sequence });
           continue;
         }
-        if (attempt.phase.result.kind !== "completed") continue;
+        if (attempt.phase.result.kind !== "completed") {
+          // Blocked/interrupted approach has no physical process effect; ACK
+          // the retained result so the worker and task can be retried.
+          ctx.action({ kind: "acknowledge-work-attempt", task: operation.attempt.task, generation: operation.attempt.generation, sequence: operation.sequence });
+          continue;
+        }
         const target = targets.get(process.id), pose = positions.get(attempt.worker);
-        if (target && pose && Math.hypot(pose.x - target.x, pose.y - target.y, pose.z - target.z) <= CONTACT_DISTANCE)
+        if (target && pose && Math.hypot(pose.x - target.x, pose.y - target.y, pose.z - target.z) <= CONTACT_DISTANCE) {
           ctx.action({ kind: "continue-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, nextActivity: { kind: "process-attendance", process: process.id } });
+        } else {
+          ctx.action({ kind: "acknowledge-work-attempt", task: operation.attempt.task, generation: operation.attempt.generation, sequence: operation.sequence });
+        }
       }
     },
   };
