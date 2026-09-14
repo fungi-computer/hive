@@ -25,6 +25,14 @@ test("wall placement binds one canonical edge run to the shared build command", 
   assert.throws(() => buildPlacementCommand(wall, [], { mode: "edge-line", edges: [{ cell: [0, 13, 0], axis: "y" }] }), /invalid edge/);
 });
 
+test("door placement reuses the same generic edge command binding", () => {
+  const door = buildControl("timber-door");
+  const edges = [{ cell: [-1, 13, 2], axis: "x" }];
+  assert.equal(door.target, "world-edge");
+  assert.deepEqual(buildPlacementCommand(door, [], { mode: "edge-line", edges }).input,
+    { catalog: "timber-door", target: { edges } });
+});
+
 test("floor and roof areas fill through the same generic binder, while stairs stay point presets", () => {
   for (const catalog of ["timber-floor", "timber-roof"]) {
     const control = buildControl(catalog);

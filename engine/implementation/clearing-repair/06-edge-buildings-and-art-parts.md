@@ -611,6 +611,14 @@ Forward/reverse acquisition, cancellation and single completion passed in
 `run-u7974`. The first reviewer shape silently committed the last valid prefix;
 that rejected `u7973` result and its correction remain explicit.
 
+The edge ghost consumer is also content-driven: it resolves the selected
+GamePack catalog through the existing placement definition, while the shared
+gesture only supplies canonical edges. This removed the wall-only ghost path, so
+a door previews as a door without teaching the renderer catalog names. The joined
+drawing set passed 89/89 in `run-u7985`. Root viewed the regenerated ordinary Pixi
+room in `run-u7988`; both door axes join the wall kit and full-cell floors at all
+three construction stages.
+
 Root personally viewed both door axes in the original Three room at every stage.
 `run-u7964` produced the accepted images after `u7963` honestly failed for a
 missing browser library path. `run-u7968` regenerated the maintained v6 bank with

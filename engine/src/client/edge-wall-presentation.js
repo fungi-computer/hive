@@ -35,9 +35,10 @@ export function edgeWallJunctionSubjects(subjects, bindings, verticalMetres) {
   });
 }
 
-/** Finished connected art for the currently acquired edge stroke. */
-export function edgeWallGhostSpec(edges, subjects, bindings, verticalMetres) {
+/** Finished connected art for the currently acquired physical edge stroke. */
+export function edgeStructureGhostSpec(edges, subjects, bindings, verticalMetres, visualRoot) {
   if (!Number.isFinite(verticalMetres) || verticalMetres <= 0) throw new Error("edge wall preview requires vertical metres");
+  if (typeof visualRoot !== "string" || !visualRoot) throw new Error("edge structure preview requires a visual root");
   const proposed = canonicalEdges(edges).map((edge, index) => ({
     id: `preview.wall:${index}`,
     edge: { cell: [edge.cell[0], edge.cell[1] + 1, edge.cell[2]], axis: edge.axis },
@@ -45,7 +46,7 @@ export function edgeWallGhostSpec(edges, subjects, bindings, verticalMetres) {
   const observed = subjects.map(subject => edgeSubject(subject, bindings)).filter(Boolean);
   const proposedIds = new Set(proposed.map(row => row.id));
   const segmentItems = proposed.map(({ edge }) => ({
-    visual: `colony.wall.segment.finished.${edge.axis}`,
+    visual: `${visualRoot}.segment.finished.${edge.axis}`,
     point: [
       edge.cell[0] + (edge.axis === "x" ? 0.5 : 0),
       (edge.cell[1] - 0.5) * verticalMetres,

@@ -54,7 +54,7 @@ import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaC
 import { selectedBrewStation } from "./colony-presentation.js";
 import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
 import { canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
-import { edgeWallGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
+import { edgeStructureGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
 import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -1099,12 +1099,15 @@ export function createHiveClient({
     clearPlacementGhosts(placementGhosts);
     const targetSnapshot = terrainTarget.getSnapshot();
     const buildControl = targetSnapshot.context.control?.command === "build" ? targetSnapshot.context.control : null;
-    if (edge.value === "dragging" && displayed)
-      syncPlacementGhosts(placementGhosts, edgeWallGhostSpec(edge.context.edges, state.subjects, bindings, displayed.verticalMetres), {
+    if (edge.value === "dragging" && displayed) {
+      const edgeVisual = placementVisuals[buildControl?.input?.catalog]?.visual;
+      const edgeVisualRoot = typeof edgeVisual === "string" ? edgeVisual.replace(/\.finished$/, "") : null;
+      syncPlacementGhosts(placementGhosts, edgeStructureGhostSpec(edge.context.edges, state.subjects, bindings, displayed.verticalMetres, edgeVisualRoot), {
         art, bindings, resolve: resolveStaticVisual, project,
         zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
         verticalMetres: displayed.verticalMetres,
       });
+    }
     const anchored = displayed && targetSnapshot.context.anchor ? structureAnchor(displayed, targetSnapshot.context.anchor) : null;
     const upperCandidates = anchored ? placementCache.candidates(displayed, anchored) : [];
     if (buildControl && buildControl.target !== "world-edge" && displayed) {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { edgeWallGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
+import { edgeStructureGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
 
 const bindings = {
   "wall-x-stakes": { edgeWall: { kind: "segment", stage: "stakes", axis: "x" } },
@@ -25,13 +25,23 @@ test("visible physical edges derive one exact junction per occupied vertex", () 
 
 test("edge stroke ghost composes segments with affected existing junctions", () => {
   const observed = [wall("z", "wall-z-finished", [0, 14, 0], "z")];
-  const spec = edgeWallGhostSpec([{ cell: [0, 13, 0], axis: "x" }], observed, bindings, 2);
+  const spec = edgeStructureGhostSpec([{ cell: [0, 13, 0], axis: "x" }], observed, bindings, 2, "colony.wall");
   assert.deepEqual(spec.items.map(item => item.visual), [
     "colony.wall.segment.finished.x",
     "colony.wall.junction.finished.2",
     "colony.wall.junction.finished.12",
   ]);
   assert.deepEqual(spec.items[0].point, [0.5, 27, 0]);
+});
+
+test("edge preview uses the selected content visual while retaining shared junctions", () => {
+  const spec = edgeStructureGhostSpec([{ cell: [0, 13, 0], axis: "z" }], [], bindings, 2, "colony.door");
+  assert.deepEqual(spec.items.map(item => item.visual), [
+    "colony.door.segment.finished.z",
+    "colony.wall.junction.finished.1",
+    "colony.wall.junction.finished.4",
+  ]);
+  assert.throws(() => edgeStructureGhostSpec([{ cell: [0, 13, 0], axis: "z" }], [], bindings, 2), /visual root/);
 });
 
 test("edge presentation rejects visual geometry that disagrees with the physical edge", () => {
