@@ -248,11 +248,14 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       candidates,
       lowerBound: (candidate) => distance(candidate.actorPosition, candidate.sourcePosition),
       estimate: (candidate) => {
-        const [source, destination] = ctx.routeCosts([
-          { actor: candidate.worker, target: candidate.sourceTarget },
-          { actor: candidate.worker, target: candidate.destinationTarget },
-        ]);
-        return source.status === "reachable" && destination.status === "reachable" ? source.cost : null;
+        const [source] = ctx.routeCosts([{ actor: candidate.worker, target: candidate.sourceTarget }]);
+        if (source.status !== "reachable") return null;
+        const task = tasks.find(row => row.id === candidate.task)?.get(DeliveryTask);
+        if (!task) return null;
+        const contacts = ctx.transferContacts({ worker: candidate.worker, container: task.destination });
+        if (contacts.kind !== "ready") return null;
+        const destination = ctx.routeToAny({ actor: candidate.worker, targets: contacts.targets });
+        return destination.status === "reachable" ? source.cost + destination.cost : null;
       },
       apply: (assignments) => {
         assigned = new Set(assignments.map((assignment) => assignment.task));
