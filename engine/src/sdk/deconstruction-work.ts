@@ -367,19 +367,9 @@ export function deconstructionWorkProvider(
         if (phase.result.kind !== "completed") {
           ctx.write(DeconstructionOrder, row.id, {
             ...state,
-            status: "blocked",
-            reason: (phase.result.kind === "blocked"
-              ? phase.result.reason
-              : "Deconstruction was interrupted"
-            ).slice(0, 512),
-            retryKey: retryKey(
-              info,
-              owners.get(state.site),
-              workers,
-              members,
-              quantities,
-              containers,
-            ),
+            status: phase.result.kind === "blocked" ? "blocked" : "queued",
+            reason: (phase.result.kind === "blocked" ? phase.result.reason : "Deconstruction was interrupted").slice(0, 512),
+            retryKey: phase.result.kind === "blocked" ? retryKey(info, owners.get(state.site), workers, members, quantities, containers) : "",
           });
           acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
           continue;

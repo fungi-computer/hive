@@ -2,14 +2,34 @@
 use super::*;
 use crate::work_attempt::ActivityRef;
 
+fn retryable_deconstruction_failure(reason: &str) -> bool {
+    matches!(reason,
+        "worker is not at construction contact"
+        | "worker lacks salvage capacity"
+        | "deconstruction geometry is invalid"
+        | "supported dependent prevents deconstruction"
+        | "required empty port contains live contents")
+}
+
 impl Kernel {
     pub(super) fn validate_deconstruction_work(&mut self) -> Result<()> {
         let mut query = self.ecs.query::<(Entity, &ExternalId, &DeconstructionWork)>();
         for (task_entity, _id, work) in query.iter(&self.ecs) {
             if !work.site.is_empty() && (!work.seconds.is_finite() || work.seconds < 0.0 || !work.required_seconds.is_finite() || work.required_seconds < work.seconds) { return Err("invalid deconstruction progress".into()); }
-            let attempt = self.ecs.get::<WorkAttempt>(task_entity).ok_or("deconstruction progress has no work attempt")?;
-            let activity = match &attempt.phase { AttemptPhase::Executing { activity: ActivityRef::Deconstruction { site, contact }, .. } | AttemptPhase::Outcome { activity: ActivityRef::Deconstruction { site, contact }, .. } => (site, contact), _ => return Err("deconstruction progress activity mismatch".into()) };
-            if activity.0 != &work.site || activity.1.x != work.contact_x || activity.1.y != work.contact_y || activity.1.z != work.contact_z { return Err("deconstruction progress target mismatch".into()); }
+            let site_entity = self.entity(&work.site)?;
+            let _owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction progress site has no party owner")?;
+            if let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) {
+                match &attempt.phase {
+                    AttemptPhase::Executing { activity: ActivityRef::Deconstruction { site, contact }, .. }
+                    | AttemptPhase::Outcome { activity: ActivityRef::Deconstruction { site, contact }, .. } => {
+                        if site != &work.site || contact.x != work.contact_x || contact.y != work.contact_y || contact.z != work.contact_z { return Err("deconstruction progress target mismatch".into()); }
+                    }
+                    AttemptPhase::Executing { activity: ActivityRef::Route { .. }, .. }
+                    | AttemptPhase::Outcome { activity: ActivityRef::Route { .. }, .. }
+                    | AttemptPhase::Ready | AttemptPhase::Settling { .. } => {}
+                    _ => return Err("deconstruction progress activity mismatch".into()),
+                }
+            }
         }
         Ok(())
     }
@@ -57,13 +77,14 @@ impl Kernel {
                 // completion. Retain progress behind a typed terminal block;
                 // the authored provider acknowledges it and a later admission
                 // may retry from the saved work component.
-                Err(_reason) => {
+                Err(reason) if retryable_deconstruction_failure(&reason) => {
                     self.settle_attempt(&task, AttemptPhase::Outcome {
                         operation,
                         activity: ActivityRef::Deconstruction { site: work.site, contact },
                         result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost },
                     })?;
                 }
+                Err(reason) => return Err(reason),
             }
         }
         Ok(())
