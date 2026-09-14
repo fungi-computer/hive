@@ -180,11 +180,11 @@ type DigOrder = {
   cellY: number;
   cellZ: number;
   expected: number;
-  status: "queued" | "blocked";
+  status: "queued" | "blocked" | "cancelling";
   reason: string;
 };
 export const ColonyDigOrder = component<DigOrder>("colony.dig-order", {
-  version: 2,
+  version: 3,
   fields: {
     cellX: "number",
     cellY: "number",
@@ -403,6 +403,7 @@ function candidatesForDigOrder(
 ): readonly DigCandidate[] {
   const cellKey = `${state.cellX},${state.cellY},${state.cellZ}`;
   if (
+    state.status === "cancelling" ||
     (state.status === "blocked" && (state.reason !== "Someone is standing on this tile" || facts.standingCells.has(cellKey))) ||
     facts.standingCells.has(cellKey) ||
     material === undefined ||
@@ -595,6 +596,20 @@ export function digProvider(
         const owner = orderOwners.get(row.id);
         const attempt = attempts.get(row.id);
         if (owner && attempt && memberships.get(attempt.worker) !== owner) continue;
+        // Cancellation is a durable intent. Native interruption/acknowledgement
+        // must commit before the authored order can be removed on a later pass.
+        if (state.status === "cancelling") {
+          if (!attempt) {
+            ctx.removeAuthoredEntity(row.id);
+          } else if (attempt.phase.kind === "executing") {
+            interruptWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence, "cancelled");
+          } else if (attempt.phase.kind === "outcome") {
+            // An excavation outcome means the physical effect is already
+            // committed. Acknowledge it exactly once, then remove next pass.
+            acknowledgeWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence);
+          }
+          continue;
+        }
         if (attempt && suspendedActors.has(attempt.worker)) {
           if (attempt.phase.kind === "executing") {
             interruptWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence, "workerUnavailable");
