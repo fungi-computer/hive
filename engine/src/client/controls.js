@@ -116,7 +116,7 @@ export const edgeGestureMachine = createMachine(
           return { current, rejection: error instanceof Error ? error.message : String(error) };
         }
       }),
-      finishEdge: assign(({ context }) => ({ start: null, current: null, edges: [], committed: context.edges, rejection: context.rejection })),
+      finishEdge: assign(({ context }) => ({ start: null, current: null, edges: [], committed: context.rejection ? [] : context.edges, rejection: context.rejection })),
       clearEdge: assign({ start: null, current: null, edges: [], committed: [], rejection: null }),
     },
   },
