@@ -49,12 +49,8 @@ const localPartyPlan = createColonyPartyPlan("local", entity("colony.local-party
 const workerOne = localPartyPlan.people[0];
 const MAX_PARTY_SELECTION = 32;
 const guestId = entity("colony.guest.1");
-const pantryId = entity("colony.pantry");
-const colonyLumberId = entity("colony.lumber");
-const lotOne = entity("colony.food.1");
-const lotTwo = entity("colony.food.2");
-const taskOne = entity("colony.delivery.1");
-const taskTwo = entity("colony.delivery.2");
+const pantryId = entity("colony.local-party.starter-store");
+const colonyLumberId = pantryId;
 const catId = entity("colony.cat.1");
 const trees = [
   { id: entity("colony.tree.oak"), x: 2, z: 2 },
@@ -97,57 +93,6 @@ const colonyInitial = [
       "colony.guest": { hungry: true },
     },
   },
-  {
-    id: pantryId,
-    components: {
-      "hive.owned-by-party": { party: localPartyPlan.party },
-      "hive.position": { x: -2, y: 0, z: 0, facing: 0 },
-      "hive.container": { capacity: 20 },
-      "hive.visual": { sprite: "crate", label: "Pantry" },
-    },
-  },
-  {
-    id: colonyLumberId,
-    components: {
-      "hive.owned-by-party": { party: localPartyPlan.party },
-      "hive.position": { x: -3, y: 0, z: 1, facing: 0 },
-      "hive.container": { capacity: 48 },
-      "hive.visual": { sprite: "crate", label: "Starter lumber" },
-    },
-  },
-  {
-    id: entity("colony.lumber.initial"),
-    components: {
-      "hive.lot": { quantity: 48, kind: "wood", container: colonyLumberId },
-      "hive.owned-by-party": { party: localPartyPlan.party },
-    },
-  },
-  ...([lotOne, lotTwo] as const).map((id) => ({
-    id,
-    components: {
-      "hive.lot": { quantity: 3, kind: "bread", container: pantryId },
-      "hive.owned-by-party": { party: localPartyPlan.party },
-    },
-  })),
-  { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
-  { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId }, "hive.container": { capacity: 1 } } },
-  { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId }, "hive.container": { capacity: 4 } } },
-  ...([taskOne, taskTwo] as const).map((id, index) => ({
-    id,
-    components: {
-      "hive.owned-by-party": { party: localPartyPlan.party },
-      "hive.delivery-task": {
-        actor: null,
-        sourceLot: index === 0 ? lotOne : lotTwo,
-        source: pantryId,
-        destination: guestId,
-        destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
-        material: "bread",
-        quantity: 2,
-        phase: "idle",
-      },
-    },
-  })),
   ...trees.flatMap(({ id, x, z }) => [{ id, components: {
     "hive.position": { x, y: 0, z, facing: 0 },
     "hive.container": { capacity: 6 },
