@@ -74,8 +74,6 @@ test("Colony v2 persists the participant credential before join and keeps it out
     fetch: async (input, init) => {
       calls.push({ url: String(input), init });
       if (String(input).endsWith("/join")) return Response.json({
-        accepted: true,
-        created: true,
         player: "player:1",
         party: "party:1",
         people: ["party:1.person.0", "party:1.person.1"],
