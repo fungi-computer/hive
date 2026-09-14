@@ -150,7 +150,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
       while (tasks.some(task => task.id === id)) { leg++; id = taskId(row.id, source.id, leg); }
       context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
         actor: null, sourceLot: source.id, source: sourceContainer, destination: row.id,
-        destinationContactX: null, destinationContactY: null, destinationContactZ: null, destinationContactFrame: null,
+        destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
         material: source.lot.kind, quantity, phase: "idle",
       }}});
       created.push(id);

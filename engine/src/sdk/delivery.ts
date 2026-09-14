@@ -42,10 +42,11 @@ export const DeliveryTask = component<{
   sourceLot: EntityId;
   source: EntityId;
   destination: EntityId;
-  destinationContactX: number | null;
-  destinationContactY: number | null;
-  destinationContactZ: number | null;
+  destinationContactX: number;
+  destinationContactY: number;
+  destinationContactZ: number;
   destinationContactFrame: EntityId | null;
+  destinationContactSet: boolean;
   material: string;
   quantity: number;
   phase: DeliveryPhase;
@@ -56,7 +57,7 @@ export const DeliveryTask = component<{
     sourceLot: "entity",
     source: "entity",
     destination: "entity",
-    destinationContactX: "nullable-number", destinationContactY: "nullable-number", destinationContactZ: "nullable-number", destinationContactFrame: "nullable-entity",
+    destinationContactX: "number", destinationContactY: "number", destinationContactZ: "number", destinationContactFrame: "nullable-entity", destinationContactSet: "boolean",
     material: "string",
     quantity: "number",
     phase: "string",
@@ -247,6 +248,7 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       actor: row.get(DeliveryTask).actor,
     }));
     let assigned = new Set<EntityId>();
+    const selectedContacts = new Map<EntityId, MoveDestination>();
     return {
       claims: deliveryClaims,
       occupiedActors: [...occupiedActors],
@@ -260,7 +262,11 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         const contacts = ctx.transferContacts({ worker: candidate.worker, container: task.destination });
         if (contacts.kind !== "ready") return null;
         const destination = ctx.routeToAny({ actor: candidate.worker, targets: contacts.targets });
-        return destination.status === "reachable" ? source.cost + destination.cost : null;
+        if (destination.status !== "reachable") return null;
+        const target = contacts.targets[destination.targetIndex];
+        if (!target) return null;
+        selectedContacts.set(candidate.task, target);
+        return source.cost + destination.cost;
       },
       apply: (assignments) => {
         assigned = new Set(assignments.map((assignment) => assignment.task));
@@ -271,10 +277,16 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
             ?.get(DeliveryControl);
           if (!taskRow || !control) continue;
           const task = taskRow.get(DeliveryTask);
+          const contact = selectedContacts.get(taskRow.id);
           ctx.write(DeliveryTask, taskRow.id, {
             ...task,
             actor: assignment.worker,
             quantity: Math.min(control.quantity, task.quantity),
+            destinationContactX: contact?.x ?? 0,
+            destinationContactY: contact?.y ?? 0,
+            destinationContactZ: contact?.z ?? 0,
+            destinationContactFrame: contact?.frame ?? null,
+            destinationContactSet: contact !== undefined,
             phase: "to-source",
           });
         }
@@ -335,10 +347,13 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         || (lotState?.container === state.source && sealed.has(state.source))
       )) continue;
       const actorLotState = lotState?.container === state.actor ? lotState : undefined;
+      const selectedDestination = state.destinationContactSet
+        ? { x: state.destinationContactX, y: state.destinationContactY, z: state.destinationContactZ, frame: state.destinationContactFrame }
+        : { x: destinationPose.local.x, y: destinationPose.local.y, z: destinationPose.local.z, frame: destinationPose.support };
       const moveTarget = state.phase === "to-source"
         ? { x: sourcePose.local.x, y: sourcePose.local.y, z: sourcePose.local.z, frame: sourcePose.support }
         : state.phase === "carrying" || state.phase === "to-destination"
-          ? { x: destinationPose.local.x, y: destinationPose.local.y, z: destinationPose.local.z, frame: destinationPose.support }
+          ? selectedDestination
           : null;
       if (moveTarget && rejectedMove(state.actor, moveTarget)) {
         if (actorLotState) {
@@ -395,9 +410,11 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
         if (actorLotState) {
           ctx.write(DeliveryTask, task.id, { ...state, phase: "carrying" });
           requestMove(state.actor, {
-              ...destination.get(Position),
-              frame: destinationPose.support,
-            });
+            x: state.destinationContactSet ? state.destinationContactX : destination.get(Position).x,
+            y: state.destinationContactSet ? state.destinationContactY : destination.get(Position).y,
+            z: state.destinationContactSet ? state.destinationContactZ : destination.get(Position).z,
+            frame: state.destinationContactFrame ?? destinationPose.support,
+          });
           continue;
         }
         if (distance(actorPose.world, sourcePose.world) <= 1) {
