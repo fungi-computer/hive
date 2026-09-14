@@ -837,4 +837,4 @@ test("rejected delivery move before pickup returns the task to idle without retr
   });
   deliverySystem.run(fixture.context);
   assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
-  assert.equal(fixture.actions.length,
+  assert.equal(fixture.actions.length, 0);
