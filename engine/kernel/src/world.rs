@@ -447,6 +447,30 @@ mod construction_tests {
         assert!(serde_json::from_str::<serde_json::Value>(&kernel.water_contacts_json(&serde_json::to_string(&[far]).unwrap()).unwrap()).unwrap().as_array().unwrap().is_empty());
     }
 
+    #[test]
+    fn transfer_contacts_enumerate_traversable_targets_and_report_custody_states() {
+        let (mut kernel, surface, contact) = world();
+        let destination = kernel.ecs.spawn((ExternalId("transfer-destination".into()), Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }, Container { capacity: 4 })).id();
+        kernel.ids.insert("transfer-destination".into(), destination);
+        kernel.known.insert("transfer-destination".into());
+        kernel.rebuild_physical_indexes(true).unwrap();
+        let ready: serde_json::Value = serde_json::from_str(&kernel.transfer_contacts_json(r#"{"worker":"worker-1","container":"transfer-destination"}"#).unwrap()).unwrap();
+        assert_eq!(ready["kind"], "ready");
+        assert!(!ready["targets"].as_array().unwrap().is_empty());
+        assert!(ready["targets"].as_array().unwrap().iter().all(|target| target["frame"].is_null()));
+
+        kernel.ecs.entity_mut(destination).insert(SealedContainer {});
+        let sealed: serde_json::Value = serde_json::from_str(&kernel.transfer_contacts_json(r#"{"worker":"worker-1","container":"transfer-destination"}"#).unwrap()).unwrap();
+        assert_eq!(sealed, json!({"kind":"blocked","reason":"sealed"}));
+
+        kernel.ecs.entity_mut(destination).remove::<SealedContainer>();
+        kernel.ecs.entity_mut(kernel.entity("worker-1").unwrap()).insert(Position { x: contact.x + 100.0, y: contact.y, z: contact.z, facing: 0.0 });
+        let blocked: serde_json::Value = serde_json::from_str(&kernel.transfer_contacts_json(r#"{"worker":"worker-1","container":"transfer-destination"}"#).unwrap()).unwrap();
+        assert_eq!(blocked["kind"], "blocked");
+        assert_eq!(blocked["reason"], "no-contact");
+        let _ = surface;
+    }
+
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
@@ -2232,9 +2256,9 @@ impl Kernel {
         }).collect::<Result<_>>()?;
         serde_json::to_string(&facts).map_err(|error| error.to_string())
     }
-    /// Return the bounded standing target for a worker/container interaction.
-    /// The target is the container's immutable physical pose; final admission
-    /// uses the same shared reach predicate in `contact`.
+    /// Return bounded standing targets around a container's immutable pose.
+    /// Candidate cells are checked by the terrain traversal owner; final
+    /// admission uses the same reach predicate in `contact`.
     pub fn transfer_contacts_json(&mut self, input: &str) -> Result<String> {
         #[derive(serde::Deserialize)]
         #[serde(deny_unknown_fields)]
@@ -2245,9 +2269,45 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(container).is_some() {
             return serde_json::to_string(&json!({"kind":"blocked","reason":"sealed"})).map_err(|error| error.to_string());
         }
-        self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
-        let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
-        let targets = vec![json!({"x":container_pose.x,"y":container_pose.y,"z":container_pose.z,"frame":null})];
+        let worker_pose = self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
+        let frame = self.support_id(worker);
+        if self.support_id(container) != frame {
+            return serde_json::to_string(&json!({"kind":"blocked","reason":"unavailable-frame"})).map_err(|error| error.to_string());
+        }
+        let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
+        let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
+        let source_points = if self.ecs.get::<Position>(container).is_none() {
+            if let Some(site) = self.ecs.get::<ConstructionSite>(container).cloned() {
+                let definition = self.environment.as_ref().and_then(|environment| environment.structures.get(&site.catalog)).cloned().ok_or("construction catalog binding is missing")?;
+                self.current_contact_candidate_rows(&site, &definition, spacing)?.into_iter().map(|(point, _)| point).collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            }
+        } else {
+            let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
+            let raw = [container_pose.x / spacing[0], container_pose.y / spacing[1] - 0.5, container_pose.z / spacing[2]];
+            if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) {
+                return serde_json::to_string(&json!({"kind":"blocked","reason":"no-contact"})).map_err(|error| error.to_string());
+            }
+            let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
+            [(0_i64, 0_i64), (1, 0), (0, 1), (-1, 0), (0, -1)].into_iter().filter_map(|(dx, dz)| {
+                Some([center.x.checked_add(dx)? as f64 * spacing[0], (f64::from(center.y) + 0.5) * spacing[1], center.z.checked_add(dz)? as f64 * spacing[2]])
+            }).collect::<Vec<_>>()
+        };
+        let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.clearance_cells, max_step_cells: traversal.max_step_cells };
+        let mut targets = Vec::new();
+        for point in source_points {
+            let raw = [point[0] / spacing[0], point[1] / spacing[1] - 0.5, point[2] / spacing[2]];
+            let cell = crate::generation::Cell { x: raw[0].round() as i64, y: raw[1].round() as i32, z: raw[2].round() as i64 };
+            let environment = self.environment.as_mut().ok_or("world has no environment")?;
+            let mut query = |at| environment.world.traversal_material(at);
+            if crate::terrain_traversal::node(cell, config, &mut query)?.is_none() { continue; }
+            if !interaction_contact::within_transfer_reach([worker_pose.x, worker_pose.y, worker_pose.z], point) { continue; }
+            targets.push(json!({"x":point[0],"y":point[1],"z":point[2],"frame":frame.as_deref()}));
+        }
+        if targets.is_empty() {
+            return serde_json::to_string(&json!({"kind":"blocked","reason":"no-contact"})).map_err(|error| error.to_string());
+        }
         serde_json::to_string(&json!({"kind":"ready","targets":targets})).map_err(|error| error.to_string())
     }
     /// Bounded read-only route costs. Preparation uses the same route owner as
@@ -2858,7 +2918,7 @@ impl Kernel {
     fn contact(&self, a: Entity, b: Entity) -> Result<()> {
         let a = self.contact_pose(a)?;
         let b = self.world_pose_entity(b, 0)?;
-        if !interaction_contact::within_transfer_reach(navigation::point(a), navigation::point(b)) {
+        if !interaction_contact::within_transfer_reach([a.x, a.y, a.z], [b.x, b.y, b.z]) {
             return Err("out of reach".into());
         }
         Ok(())
