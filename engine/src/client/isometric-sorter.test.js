@@ -162,13 +162,13 @@ test("canonical compact, bed, wall, and stair placement records become lawful fo
     { x: 10, y: 4, z: 7 },
     { x: 10, y: 6, z: 5 },
   ]);
-  assert.deepEqual(subjectSortFootprint(subject, { kind: "edge", axis: "x", endpoints: [[-0.5, 0], [0.5, 0]] }), [
-    { x: 9.5, y: 4, z: 7 },
-    { x: 10.5, y: 4, z: 7 },
-  ]);
-  assert.deepEqual(subjectSortFootprint(subject, { kind: "edge", axis: "z", endpoints: [[0, -0.5], [0, 0.5]] }), [
+  assert.deepEqual(subjectSortFootprint(subject, { kind: "edge", axis: "x", endpoints: [[0, -0.5], [0, 0.5]] }), [
     { x: 10, y: 4, z: 6.5 },
     { x: 10, y: 4, z: 7.5 },
+  ]);
+  assert.deepEqual(subjectSortFootprint(subject, { kind: "edge", axis: "z", endpoints: [[-0.5, 0], [0.5, 0]] }), [
+    { x: 9.5, y: 4, z: 7 },
+    { x: 10.5, y: 4, z: 7 },
   ]);
 });
 

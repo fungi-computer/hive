@@ -5,6 +5,7 @@ import { building } from "../../../src/art/home.js";
 import { parseStaticArtManifest } from "../../../src/art/static-manifest.js";
 import { colonyConstructionVisuals } from "../games/colony-construction-visuals.ts";
 import { resolvePlacementArtTransform, resolveStairArtEndpoints, resolveWorldArtPlacement, rotatePlacementPoint } from "./art-placement.js";
+import { edgeSegmentEndpoints } from "./edge-gesture.js";
 
 const recipePlacement = (type) => building(type, "finished", 0).userData.staticPlacement;
 const BED_PLACEMENT = recipePlacement("bed");
@@ -89,15 +90,22 @@ test("real retained bindings resolve placement metadata for bed, brewer, and sta
 });
 
 test("edge placement uses its physical midpoint without art metadata or facing", () => {
+  const edge = { cell: [4, 13, 8], axis: "x" };
+  const midpoint = [edge.cell[0] + 0.5, edge.cell[2]];
+  const world = edgeSegmentEndpoints(edge, 0.54);
+  const expected = world.map(([, , z]) => [0, z - midpoint[1]]);
   assert.deepEqual(resolveWorldArtPlacement({
-    subjectPlacement: { kind: "edge", edge: { cell: [4, 13, 8], axis: "x" } },
+    subjectPlacement: { kind: "edge", edge },
   }), {
-    kind: "edge", axis: "x", endpoints: [[-0.5, 0], [0.5, 0]], offset: [0, 0],
+    kind: "edge", axis: "x", endpoints: expected, offset: [0, 0],
   });
+  const zEdge = { cell: [4, 13, 8], axis: "z" };
+  const zMidpoint = [zEdge.cell[0], zEdge.cell[2] + 0.5];
+  const zWorld = edgeSegmentEndpoints(zEdge, 0.54);
   assert.deepEqual(resolveWorldArtPlacement({
-    subjectPlacement: { kind: "edge", edge: { cell: [4, 13, 8], axis: "z" } },
+    subjectPlacement: { kind: "edge", edge: zEdge },
     orientation: "south",
-  }).endpoints, [[0, -0.5], [0, 0.5]]);
+  }).endpoints, zWorld.map(([x, ,]) => [x - zMidpoint[0], 0]));
 });
 
 test("recipe footprints align every native bed and brewer facing", () => {
