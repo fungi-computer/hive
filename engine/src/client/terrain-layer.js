@@ -1,6 +1,6 @@
 import { WebGLRenderer, Vector3 } from "three";
-import { Container, Graphics, Sprite, Texture } from "pixi.js";
-import { renderBakeCanvas } from "../../../src/art/bake.js";
+import { BufferImageSource, Container, Graphics, Texture } from "pixi.js";
+import { renderBakePairCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { createTerrainSceneCache, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
 import {
@@ -79,17 +79,24 @@ export function createTerrainLayer() {
   container.eventMode = "none";
   const water = new Graphics();
   water.eventMode = "none";
-  let renderer, sprite, texture, canvas, context;
+  let renderer, colorTexture, depthTexture, colorCanvas, colorContext, depthCanvas, depthContext;
+  let depthPixels, depthRange, drawItem;
+  let screenTransform = { x: (640 - WIDTH) / 2, y: (400 - HEIGHT) / 2, scale: 1 };
   let terrainCache, canonicalCamera, cachedVerticalMetres;
   let revision, epoch, projectionKey;
 
   function clear() {
-    texture?.destroy(true);
-    texture = undefined;
-    sprite?.destroy();
-    sprite = undefined;
-    canvas = undefined;
-    context = undefined;
+    colorTexture?.destroy(true);
+    depthTexture?.destroy(true);
+    colorTexture = undefined;
+    depthTexture = undefined;
+    colorCanvas = undefined;
+    colorContext = undefined;
+    depthCanvas = undefined;
+    depthContext = undefined;
+    depthPixels = undefined;
+    depthRange = undefined;
+    drawItem = undefined;
     terrainCache?.dispose();
     terrainCache = undefined;
     canonicalCamera = undefined;
@@ -106,7 +113,7 @@ export function createTerrainLayer() {
     terrainCache.update(frame.surfaces, frame.verticalMetres);
     cachedVerticalMetres = frame.verticalMetres;
     canonicalCamera = artCamera(WIDTH, HEIGHT, 1.03, 256);
-    const rendered = renderBakeCanvas(
+    const rendered = renderBakePairCanvas(
       renderer,
       terrainCache.scene,
       canonicalCamera,
@@ -114,16 +121,18 @@ export function createTerrainLayer() {
       HEIGHT,
       { ink: false, releaseGeometry: false },
     );
-    canvas = rendered.canvas;
-    context = rendered.context;
-    texture?.destroy(true);
-    texture = Texture.from(canvas);
-    texture.source.scaleMode = "nearest";
-    sprite?.destroy();
-    sprite = new Sprite(texture);
-    sprite.position.set((640 - WIDTH) / 2, (400 - HEIGHT) / 2);
-    sprite.eventMode = "none";
-    container.addChildAt(sprite, 0);
+    colorCanvas = rendered.colorCanvas;
+    colorContext = colorCanvas.getContext("2d", { willReadFrequently: true });
+    depthCanvas = rendered.depthCanvas;
+    depthContext = depthCanvas.getContext("2d", { willReadFrequently: true });
+    depthPixels = rendered.depthPixels;
+    depthRange = rendered.depthRange;
+    colorTexture?.destroy(true);
+    depthTexture?.destroy(true);
+    colorTexture = Texture.from(colorCanvas);
+    colorTexture.source.scaleMode = "nearest";
+    depthTexture = new Texture({ source: new BufferImageSource({ resource: depthPixels, width: WIDTH, height: HEIGHT, format: "rgba8unorm", alphaMode: "no-premultiply-alpha", scaleMode: "nearest" }) });
+    drawItem = makeDrawItem();
   }
 
   function patchBake(frame, update) {
@@ -149,7 +158,7 @@ export function createTerrainLayer() {
         bounds.width,
         bounds.height,
       );
-      const patch = renderBakeCanvas(
+      const patch = renderBakePairCanvas(
         renderer,
         terrainCache.scene,
         camera,
@@ -157,11 +166,37 @@ export function createTerrainLayer() {
         bounds.height,
         { ink: false, releaseGeometry: false },
       );
-      context.clearRect(bounds.left, bounds.top, bounds.width, bounds.height);
-      context.drawImage(patch.canvas, bounds.left, bounds.top);
+      if (patch.depthRange.min !== depthRange.min || patch.depthRange.max !== depthRange.max) {
+        fullBake(frame);
+        return;
+      }
+      colorContext.clearRect(bounds.left, bounds.top, bounds.width, bounds.height);
+      colorContext.drawImage(patch.colorCanvas, bounds.left, bounds.top);
+      depthContext.clearRect(bounds.left, bounds.top, bounds.width, bounds.height);
+      depthContext.drawImage(patch.depthCanvas, bounds.left, bounds.top);
       camera.clearViewOffset();
     }
-    texture.source.update();
+    colorTexture.source.update();
+    depthTexture.source.update();
+    depthPixels = depthContext.getImageData(0, 0, WIDTH, HEIGHT).data;
+    drawItem.depthFrame.pixels = depthPixels;
+  }
+
+  function makeDrawItem() {
+    return {
+      entityId: "terrain",
+      visualPartId: "opaque",
+      physicalRole: "terrain",
+      colorTexture,
+      depthTexture,
+      colorFrame: { frame: { x: 0, y: 0, width: WIDTH, height: HEIGHT } },
+      depthFrame: { frame: { x: 0, y: 0, width: WIDTH, height: HEIGHT }, pixels: depthPixels, atlasWidth: WIDTH, atlasHeight: HEIGHT, depthRange },
+      worldOrigin: { x: 0, y: 0, z: 0 },
+      screenTransform,
+      anchor: { x: 0, y: 0 },
+      visible: true,
+      pickable: false,
+    };
   }
 
   return {
@@ -180,7 +215,7 @@ export function createTerrainLayer() {
       renderer ??= new WebGLRenderer({ alpha: true, antialias: false });
       const needsFull =
         !terrainCache ||
-        !texture ||
+        !colorTexture ||
         projectionKey !== nextProjectionKey ||
         cachedVerticalMetres !== frame.verticalMetres;
       if (needsFull) fullBake(frame);
@@ -214,7 +249,10 @@ export function createTerrainLayer() {
     position(camera) {
       container.position.set(camera.x, camera.y);
       container.scale.set(camera.zoom);
+      screenTransform = { x: (640 - WIDTH) / 2 + camera.x, y: (400 - HEIGHT) / 2 + camera.y, scale: camera.zoom };
+      if (drawItem) drawItem.screenTransform = screenTransform;
     },
+    get drawItem() { return drawItem; },
     dispose() {
       clear();
       renderer?.dispose();
