@@ -6,7 +6,7 @@ mod fuel_emission;
 #[path = "environment_runtime.rs"]
 mod environment_runtime;
 use crate::{collision, combat, components::*, navigation, registry::Registry};
-use crate::staged_process::{ProcessPhase, StagedProcess};
+use crate::staged_process::{ProcessPhase, StagedProcess, StageMode};
 use crate::work_attempt::WorkBlockReason;
 #[path = "material_output.rs"]
 mod material_output;
@@ -297,7 +297,7 @@ mod process_request_tests {
         assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().container, "station:input");
     }
 
-    fn empty_process_kernel() -> (Kernel, String) {
+    pub(super) fn empty_process_kernel() -> (Kernel, String) {
         let mut kernel = kernel_with_slot();
         let definition = ProcessDefinition { id: "empty-v1".into(), version: 1, station_catalog: "floor".into(), inputs: vec![ProcessInput { role: "grain".into(), port: "input".into(), material: "grain".into(), quantity: 1, policy: InputPolicy::WholeLot, disposition: InputDisposition::Retain }], stages: vec![ProcessStage { id: "attend".into(), mode: StageMode::Attended, duration_seconds: 2.0, transition: ProcessTransition::default() }, ProcessStage { id: "wait".into(), mode: StageMode::Elapsed, duration_seconds: 2.0, transition: ProcessTransition::default() }, ProcessStage { id: "finish".into(), mode: StageMode::Attended, duration_seconds: 1.0, transition: ProcessTransition::default() }] };
         let structures = kernel.environment.as_ref().unwrap().structures.clone(); let emissions = kernel.environment.as_ref().unwrap().emissions.clone();
@@ -332,6 +332,17 @@ mod process_request_tests {
 mod process_attempt_tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn restore_rejects_orphan_working_process_without_executing_attendance() {
+        let (mut kernel, process) = process_request_tests::empty_process_kernel();
+        let process_entity = kernel.entity(&process).unwrap();
+        let mut state = kernel.ecs.get::<StagedProcess>(process_entity).unwrap().clone();
+        state.phase = ProcessPhase::Working;
+        state.worker = Some("worker".into());
+        kernel.ecs.entity_mut(process_entity).insert(state);
+        assert!(kernel.validate_process_records().is_err());
+    }
 
     #[test]
     fn scoped_attendance_keeps_worker_reserved_until_terminal_process_outcome() {
@@ -1643,6 +1654,20 @@ impl Kernel {
             let bindings = bindings_by_process.remove(id).unwrap_or_default();
             if matches!(process.phase, ProcessPhase::Working | ProcessPhase::Blocked) && bindings.is_empty() { return Err("active process has no bindings".into()); }
             if process.phase == ProcessPhase::Complete && !bindings.is_empty() { return Err("completed process retains input bindings".into()); }
+            let attendance = self.work_attempts.get(id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity));
+            let executing_attendance = attendance.and_then(|attempt| match &attempt.phase {
+                AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process: target }, .. } if target == id => Some(attempt),
+                _ => None,
+            });
+            if process.phase == ProcessPhase::Working {
+                if definition.stages.get(process.stage_index as usize).is_none_or(|stage| stage.mode != StageMode::Attended) { return Err("working process stage is not attended".into()); }
+                let Some(worker) = process.worker.as_deref() else { return Err("working process has no worker".into()); };
+                let Some(attempt) = executing_attendance else { return Err("working process has no executing attendance attempt".into()); };
+                if attempt.worker != worker { return Err("process attendance worker does not match process".into()); }
+                if self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(attempt.party.as_str()) { return Err("process attendance party does not match process owner".into()); }
+            } else if executing_attendance.is_some() {
+                return Err("non-working process retains executing attendance attempt".into());
+            }
             if !bindings.is_empty() {
                 crate::staged_process::validate_bindings(
                     definition, id, &process.station, &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
@@ -1651,6 +1676,14 @@ impl Kernel {
             }
         }
         if !bindings_by_process.is_empty() { return Err("saved process binding references an unknown process".into()); }
+        for (task, attempt_entity) in &self.work_attempts {
+            let Some(attempt) = self.ecs.get::<WorkAttempt>(*attempt_entity) else { return Err("work attempt index references missing component".into()); };
+            let Some(crate::work_attempt::ActivityRef::ProcessAttendance { process }) = (match &attempt.phase { AttemptPhase::Executing { activity, .. } => Some(activity), _ => None }) else { continue; };
+            if task != process { return Err("process attendance task does not match process activity".into()); }
+            let process_entity = self.entity(process)?;
+            let state = self.ecs.get::<StagedProcess>(process_entity).ok_or("process attendance references non-process task")?;
+            if state.phase != ProcessPhase::Working || state.worker.as_deref() != Some(attempt.worker.as_str()) { return Err("executing attendance does not match working process".into()); }
+        }
         Ok(())
     }
     pub fn new() -> Self {
