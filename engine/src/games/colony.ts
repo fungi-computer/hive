@@ -177,7 +177,10 @@ function admittedParty(context: CommandContext, worker: EntityId): EntityId {
 
 function exactRouteReplacement(context: CommandContext, worker: EntityId, party: EntityId, destination: MoveDestination): readonly ActionRequest[] {
   const current = attemptForWorker(context, worker);
-  if (!current) {
+  // An interrupted automatic attempt retains its terminal receipt for its task
+  // owner, but no longer owns the worker. Manual movement may begin immediately;
+  // the original provider will acknowledge its own outcome independently.
+  if (!current || (current.key.task !== worker && current.phase.kind === "outcome")) {
     const actions: ActionRequest[] = [];
     beginRouteWorkAttempt({ action: request => actions.push(request) }, worker, worker, party, destination);
     return actions;
@@ -367,10 +370,33 @@ export const colonyPack: GamePack = {
         if (orders.length >= 256) throw new Error("water demand capacity exhausted");
         const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
         const id = entity(`colony.water-demand.${revision}`);
-        return { actions: [], writes: [], creates: [{ id, components: {
-          [WaterSupplyOrder.id]: { revision, process: null, party: context.scope.kind === "player" ? context.scope.party : null },
-          [WaterSupplyWork.id]: { request: revision, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
-        } }] };
+        return {
+          actions: [],
+          writes: [],
+          creates: [
+            {
+              id,
+              components: {
+                [WaterSupplyOrder.id]: {
+                  revision,
+                  consumer: null,
+                  party:
+                    context.scope.kind === "player"
+                      ? context.scope.party
+                      : null,
+                },
+                [WaterSupplyWork.id]: {
+                  request: revision,
+                  phase: "queued",
+                  x: 0,
+                  y: 0,
+                  z: 0,
+                  reason: "",
+                },
+              },
+            },
+          ],
+        };
       },
     }),
     sowMugwort: command({
@@ -716,33 +742,92 @@ export const colonyPack: GamePack = {
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const pails = new Map(lots.filter((lot) => lot.kind === "pail").map((lot) => [lot.container, lot]));
       const taskRows = context.query(query(DeliveryTask));
-      const partyWorkers = context.query(query(Worker, PartyMember)).map(row => row.id).sort();
-      const stationFacts = finishedBrewStations(context).slice(0, 8).flatMap((site) => {
-        const hearth = entity(`${site.id}:hearth`);
-        const stationAir = context.atmosphereSamples([[
-          Math.floor(site.get(ConstructionSite).x + 0.5),
-          site.get(ConstructionSite).y + 1,
-          Math.floor(site.get(ConstructionSite).z + 0.5),
-        ]]).samples[0];
-        const process = context.query(query(StagedProcess)).find(row => row.get(StagedProcess).station === site.id)?.get(StagedProcess);
-        const phase = process?.phase === "complete" ? "Complete" : process ? `Stage ${process.stageIndex + 1} · ${process.phase}` : "No active process";
-        const processDetail = process
-          ? `${phase} · ${process.progressSeconds.toFixed(1)}s${process.phase === "blocked" && process.blockedReason ? ` · ${process.blockedReason}` : ""}`
-          : phase;
-        const containerTotal = (slot: string, kind: string) => lots.reduce((sum, lot) =>
-          sum + (lot.container === `${site.id}:${slot}` && lot.kind === kind ? lot.quantity : 0), 0);
-        const air = stationAir
-          ? `${stationAir.temperatureC.toFixed(1)} °C · ${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³ smoke`
-          : "air not modeled";
-        return [
-          { id: `station-${site.id}`, subjects: [site.id], label: "Brew station", value: "Finished · click actions below" },
-          { id: `station-${site.id}-kettle`, subjects: [site.id], label: "Kettle", value: `${containerTotal("kettle", "water")}/2 water · ${containerTotal("kettle", "malt")} malt · ${containerTotal("kettle", "mugwort")} mugwort` },
-          { id: `station-${site.id}-requirements`, subjects: [site.id], label: "Requirements", value: `${total(hearth)} fuel · ${containerTotal("barm", "barm")} barm · ${containerTotal("keg", "keg")} keg` },
-          { id: `station-${site.id}-air`, subjects: [site.id], label: "Air / heat", value: air },
-          { id: `station-${site.id}-process`, subjects: [site.id], label: "Process", value: processDetail },
-          { id: `station-${site.id}-output`, subjects: [site.id], label: "Output", value: `${containerTotal("tray", "spent-grain")} spent grain in tray` },
-        ];
-      });
+      const partyWorkers = context
+        .query(query(Worker, PartyMember))
+        .map((row) => row.id)
+        .sort();
+      const partyStores = new Map<EntityId, EntityId[]>();
+      for (const row of context.query(query(Container, OwnedByParty))) {
+        const party = row.get(OwnedByParty).party;
+        const stores = partyStores.get(party) ?? [];
+        stores.push(row.id);
+        partyStores.set(party, stores);
+      }
+      const stationFacts = finishedBrewStations(context)
+        .slice(0, 8)
+        .flatMap((site) => {
+          const hearth = entity(`${site.id}:hearth`);
+          const stationAir = context.atmosphereSamples([
+            [
+              Math.floor(site.get(ConstructionSite).x + 0.5),
+              site.get(ConstructionSite).y + 1,
+              Math.floor(site.get(ConstructionSite).z + 0.5),
+            ],
+          ]).samples[0];
+          const process = context
+            .query(query(StagedProcess))
+            .find((row) => row.get(StagedProcess).station === site.id)
+            ?.get(StagedProcess);
+          const phase =
+            process?.phase === "complete"
+              ? "Complete"
+              : process
+                ? `Stage ${process.stageIndex + 1} · ${process.phase}`
+                : "No active process";
+          const processDetail = process
+            ? `${phase} · ${process.progressSeconds.toFixed(1)}s${process.phase === "blocked" && process.blockedReason ? ` · ${process.blockedReason}` : ""}`
+            : phase;
+          const containerTotal = (slot: string, kind: string) =>
+            lots.reduce(
+              (sum, lot) =>
+                sum +
+                (lot.container === `${site.id}:${slot}` && lot.kind === kind
+                  ? lot.quantity
+                  : 0),
+              0,
+            );
+          const air = stationAir
+            ? `${stationAir.temperatureC.toFixed(1)} °C · ${(stationAir.smokeKgM3 * 1_000_000).toFixed(1)} mg/m³ smoke`
+            : "air not modeled";
+          return [
+            {
+              id: `station-${site.id}`,
+              subjects: [site.id],
+              label: "Brew station",
+              value: "Finished · click actions below",
+            },
+            {
+              id: `station-${site.id}-kettle`,
+              subjects: [site.id],
+              label: "Kettle",
+              value: `${containerTotal("kettle", "water")}/2 water · ${containerTotal("kettle", "malt")} malt · ${containerTotal("kettle", "mugwort")} mugwort`,
+            },
+            {
+              id: `station-${site.id}-requirements`,
+              subjects: [site.id],
+              label: "Requirements",
+              value: `${total(hearth)} fuel · ${containerTotal("barm", "barm")} barm · ${containerTotal("keg", "keg")} keg`,
+            },
+            {
+              id: `station-${site.id}-air`,
+              subjects: [site.id],
+              label: "Air / heat",
+              value: air,
+            },
+            {
+              id: `station-${site.id}-process`,
+              subjects: [site.id],
+              label: "Process",
+              value: processDetail,
+            },
+            {
+              id: `station-${site.id}-output`,
+              subjects: [site.id],
+              label: "Output",
+              value: `${containerTotal("tray", "spent-grain")} spent grain in tray`,
+            },
+          ];
+        });
       return [
         ...[...constructionSubjects.entries()]
           .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
@@ -773,7 +858,14 @@ export const colonyPack: GamePack = {
             return tree ? [{ id: `tree-${order.tree}`, subjects: [order.tree], label: "Tree work", value: `${tree.phase} · ${order.stage} · ${order.phase}` }] : [];
           });
         })(),
-        ...[...context.query(query(Container, OwnedByParty))].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `party-store-${index}`, subjects: [row.id], label: "Party store", value: total(row.id) })),
+        ...[...partyStores.entries()]
+          .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+          .map(([party, stores]) => ({
+            id: `party-store-${party}`,
+            subjects: stores.sort(),
+            label: "Party store",
+            value: stores.reduce((sum, store) => sum + total(store), 0),
+          })),
         ...stationFacts,
         { id: "worker-carried", subjects: partyWorkers, label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
         ...partyWorkers.map((worker, index) => ({

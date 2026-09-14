@@ -265,7 +265,13 @@ mod work_attempt_laws {
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
         let pickup = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"source","to":"worker","quantity":1}}}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<Value>(&pickup).unwrap()["results"][0]["accepted"], true, "{pickup}");
-        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "worker");
+        let source_lot = kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap();
+        assert_eq!((source_lot.container.as_str(), source_lot.quantity), ("source", 1));
+        let carried: Vec<_> = kernel.ecs.query::<(&ExternalId, &Lot)>().iter(&kernel.ecs)
+            .filter(|(_, lot)| lot.container == "worker").collect();
+        assert_eq!(carried.len(), 1);
+        assert_ne!(carried[0].0.0, "lot");
+        assert_eq!(carried[0].1.quantity, 1);
     }
 }
 enum ActionEffect { None, Entity(String), Projectile(String, Vector3), Attempt(AttemptKey) }
@@ -281,8 +287,8 @@ mod ground_stock_cleanup_tests {
         kernel.load(&json!({
             "format":"hive-game", "version":1, "game":"work-material-facts",
             "components":[], "initial":[
-                {"id":"source","components":{"hive.container":{"capacity":8}}},
-                {"id":"sealed","components":{"hive.container":{"capacity":4},"hive.sealed-container":{}}},
+                {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
+                {"id":"sealed","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":4},"hive.sealed-container":{}}},
                 {"id":"lot.1","components":{"hive.lot":{"kind":"wood","quantity":3,"container":"source"}}}
             ]
         }).to_string()).unwrap();
@@ -932,7 +938,7 @@ mod construction_tests {
         let staged_lot = cancelled.contents["replace-cancel"].iter().next().and_then(|entity| cancelled.ecs.get::<ExternalId>(*entity)).unwrap().0.clone();
         let cancelled_result: serde_json::Value = serde_json::from_str(&cancelled.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"cancel-work","entity":"worker-2"}}]}"#).unwrap()).unwrap();
         assert_eq!(cancelled_result["results"][0]["accepted"], true);
-        assert!(cancelled.ecs.get::<FloorReplacement>(cancelled.entity("replace-cancel").unwrap()).is_some_and(|replacement| replacement.phase == FloorReplacementPhase::Cancelled));
+        assert!(cancelled.ecs.get::<FloorReplacement>(cancelled.entity("replace-cancel").unwrap()).is_some_and(|replacement| replacement.phase == FloorReplacementPhase::Queued));
         let recovered: serde_json::Value = serde_json::from_str(&cancelled.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"transfer","lot":staged_lot,"from":"replace-cancel","to":"source","quantity":1}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(recovered["results"][0]["accepted"], true, "{recovered}");
         assert!(cancelled.contents["replace-cancel"].is_empty());
@@ -1806,7 +1812,11 @@ impl Kernel {
             } else if executing_attendance.is_some() {
                 return Err("non-working process retains executing attendance attempt".into());
             }
-            if process.phase != ProcessPhase::Complete {
+            // A newly requested stage-zero process is valid before material
+            // admission. Once bindings exist, or any later stage is reached,
+            // the remaining exact roles are mandatory.
+            if process.phase != ProcessPhase::Complete
+                && !(process.stage_index == 0 && bindings.is_empty()) {
                 crate::staged_process::validate_bindings_at_stage(
                     definition, usize::from(process.stage_index), id, &process.station,
                     &bindings.iter().map(|(_, binding)| binding.clone()).collect::<Vec<_>>(),
@@ -3572,10 +3582,12 @@ impl Kernel {
         let quantity = self.quantity(&spec.container);
         let lot = Lot { kind: spec.kind.clone(), quantity: spec.quantity, container: spec.container.clone() };
         let water = spec.water_kg.map(|mass| LotWater { water_kg: mass });
+        let owner_party = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.clone());
         let added_weight = 128
             + self.registry.weight("hive.lot", &record(&lot))
+            + owner_party.as_ref().map(|party| self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))).unwrap_or(0)
             + water.as_ref().map(|value| self.registry.weight("hive.lot-water", &record(value))).unwrap_or(0);
-        let prepared = material_output::prepare(
+        let mut prepared = material_output::prepare(
             spec,
             self.revision,
             self.next_lot,
@@ -3586,6 +3598,7 @@ impl Kernel {
             added_weight,
             STATE_BYTES,
         )?;
+        prepared.owner_party = owner_party;
         Ok(prepared)
     }
     fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>, owner_party: Option<String>) -> Result<PreparedMaterialOutput> {
@@ -3603,11 +3616,13 @@ impl Kernel {
             + self.registry.weight("hive.container", &record(&Container { capacity: quantity }))
             + self.registry.weight("hive.ground-stock", &record(&GroundStock {}))
             + self.registry.weight("hive.lot", &record(&lot))
+            + owner_party.as_ref().map(|party| self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))).unwrap_or(0)
             + water.as_ref().map(|v| self.registry.weight("hive.lot-water", &record(v))).unwrap_or(0);
         let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
             self.revision, self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")),
             quantity, 0, self.state_weight, added, STATE_BYTES)?;
         output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity, owner_party });
+        output.owner_party = output.ground.as_ref().and_then(|ground| ground.owner_party.clone());
         Ok(output)
     }
     // Private tokens are prepared and consumed within one synchronous Kernel
@@ -3625,6 +3640,7 @@ impl Kernel {
         } else {
             self.ecs.spawn((ExternalId(prepared.lot_id.clone()), prepared.lot)).id()
         };
+        if let Some(party) = prepared.owner_party { self.ecs.entity_mut(entity).insert(OwnedByParty { party }); }
         self.next_lot = prepared.next_lot;
         self.state_weight = prepared.state_weight;
         self.ids.insert(prepared.lot_id.clone(), entity);
@@ -3651,7 +3667,7 @@ impl Kernel {
         let water_kg = (excavation.water_kg() > 0.0).then_some(excavation.water_kg());
         let output = match location {
             material_output::MaterialOutputLocation::Container(container) => self.prepare_material_output(MaterialOutputSpec { container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg })?,
-            material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg, None)?,
+            material_output::MaterialOutputLocation::Ground { position, owner_party } => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg, owner_party)?,
         };
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.apply_excavation(excavation)?;
@@ -4304,8 +4320,11 @@ impl Kernel {
                 self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason } })?;
                 return Ok(());
             }
-            self.transfer(&lot, &from, &to, quantity)?;
-            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            let moved_lot = self.transfer_with_identity(&lot, &from, &to, quantity, !pickup)?;
+            let activity = crate::work_attempt::ActivityRef::MaterialTransfer {
+                lot: moved_lot, from, to, quantity,
+            };
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Completed })?;
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::MaterialDrop { lot } = next_activity.clone() {
@@ -5067,6 +5086,9 @@ impl Kernel {
         Ok(())
     }
     fn transfer(&mut self, lot: &str, from: &str, to: &str, quantity: u32) -> Result<()> {
+        self.transfer_with_identity(lot, from, to, quantity, true).map(|_| ())
+    }
+    fn transfer_with_identity(&mut self, lot: &str, from: &str, to: &str, quantity: u32, moved_retains_identity: bool) -> Result<String> {
         if quantity == 0 || from == to {
             return Err("invalid transfer".into());
         }
@@ -5098,6 +5120,7 @@ impl Kernel {
         }
         self.contact(source, dest)?;
         let current_water = self.ecs.get::<LotWater>(e).map(|water| water.water_kg);
+        let owner = self.ecs.get::<OwnedByParty>(e).cloned();
         let moved_water = current_water.map(|water| {
             if quantity == stock.quantity { water } else { water * f64::from(quantity) / f64::from(stock.quantity) }
         });
@@ -5115,8 +5138,10 @@ impl Kernel {
                 return Err("carried water split is not representable".into());
             }
         }
-        // Split identity is selected before mutation. The moved lot retains its
-        // ID so the actor's delivery plan continues to refer to the same object.
+        // Ordinary transfers retain the moved lot identity. Concurrent durable
+        // delivery attempts instead leave the reserved source identity in
+        // place and expose the newly allocated carried portion in their
+        // committed activity receipt.
         if stock.quantity > quantity {
             if self.ids.len() >= 16384 {
                 return Err("region entity capacity".into());
@@ -5124,11 +5149,14 @@ impl Kernel {
             let (id, next) = material_output::allocate_lot_id(self.next_lot, |candidate| self.known.contains(candidate))?;
             let extra_lot = Lot {
                 kind: stock.kind.clone(),
-                quantity: stock.quantity - quantity,
-                container: from.into(),
+                quantity: if moved_retains_identity { stock.quantity - quantity } else { quantity },
+                container: if moved_retains_identity { from.into() } else { to.into() },
             };
-            let extra_water = remainder_water.map(|water| LotWater { water_kg: water });
+            let extra_container = extra_lot.container.clone();
+            let extra_water = if moved_retains_identity { remainder_water } else { moved_water }
+                .map(|water| LotWater { water_kg: water });
             let extra = id.len() + 128 + self.registry.weight("hive.lot", &record(&extra_lot))
+                + owner.as_ref().map(|value| self.registry.weight("hive.owned-by-party", &record(value))).unwrap_or(0)
                 + extra_water.as_ref().map(|water| self.registry.weight("hive.lot-water", &record(water))).unwrap_or(0);
             if self.state_weight + extra > STATE_BYTES {
                 return Err("region canonical state capacity".into());
@@ -5138,14 +5166,24 @@ impl Kernel {
             } else {
                 self.ecs.spawn((ExternalId(id.clone()), extra_lot)).id()
             };
+            if let Some(owner) = owner.clone() { self.ecs.entity_mut(remainder).insert(owner); }
             self.next_lot = next;
             self.state_weight += extra;
             self.ids.insert(id.clone(), remainder);
-            self.known.insert(id);
+            self.known.insert(id.clone());
             self.contents
-                .entry(from.into())
+                .entry(extra_container)
                 .or_default()
                 .insert(remainder);
+            if !moved_retains_identity {
+                stock.quantity -= quantity;
+                self.ecs.entity_mut(e).insert(stock);
+                if let Some(remainder) = remainder_water {
+                    self.ecs.entity_mut(e).insert(LotWater { water_kg: remainder });
+                }
+                self.refresh_state_weight();
+                return Ok(id);
+            }
         }
         stock.quantity = quantity;
         stock.container = to.into();
@@ -5156,7 +5194,8 @@ impl Kernel {
         self.contents.entry(from.into()).or_default().remove(&e);
         self.contents.entry(to.into()).or_default().insert(e);
         if source_is_ground_stock { self.ground_stock_cleanup_pending = true; }
-        Ok(())
+        self.refresh_state_weight();
+        Ok(lot.into())
     }
     /// Validate saved geometry even when work is waiting on a changed world.
     /// Waiting suspends movement, never the relationship between pose and route.

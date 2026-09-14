@@ -116,7 +116,13 @@ class TestPort implements KernelPort {
   constructionAccess(
     sites: readonly import("../contracts").EntityId[],
   ): readonly import("../contracts").ConstructionAccess[] {
-    return sites.map((site) => ({ site, support: "ready", materialsReady: true, contacts: [] }));
+    return sites.map((site) => ({
+      site,
+      support: "ready",
+      materialsReady: true,
+      blockedActors: [],
+      contacts: [],
+    }));
   }
   deconstructionAccess(
     sites: readonly import("../contracts").EntityId[],
@@ -297,6 +303,7 @@ function pack(
   return {
     id: "colony",
     version: 1,
+    localScope: { kind: "host" },
     definition,
     components: [morale],
     systems: systems ?? (system ? [system] : []),

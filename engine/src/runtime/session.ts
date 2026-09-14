@@ -464,8 +464,21 @@ export class GameSession {
     incoming?: readonly EntityRecord[],
   ) {
     const allCreates = [...queuedCreates, ...creates];
-    const allRemoves = [...queuedRemoves, ...removes].map((remove) => ({ scope: checkedActionScope(remove.scope), entity: checkedAuthoredId(remove.entity) }));
+    const checkedRemoves = removes.map((remove) => ({
+      scope: checkedActionScope(remove.scope),
+      entity: checkedAuthoredId(remove.entity),
+    }));
+    const allRemoves = [
+      ...queuedRemoves.map((remove) => ({
+        scope: checkedActionScope(remove.scope),
+        entity: checkedAuthoredId(remove.entity),
+      })),
+      ...checkedRemoves,
+    ];
     const removeIds = allRemoves.map(({ entity }) => entity);
+    const currentRemoveIds = new Set(
+      checkedRemoves.map(({ entity }) => entity),
+    );
     if (
       allCreates.length > MAX_AUTHORED_RECORDS ||
       allRemoves.length > MAX_AUTHORED_REMOVES
@@ -584,8 +597,13 @@ export class GameSession {
           : this.port.query({ components: [definition] });
         for (const row of rows)
           if (targets.has(row.id)) {
-            if ((isReservedComponent(definition.id) && definition.id !== "hive.owned-by-party") ||
-              (!permitted.has(definition.id) && definition.id !== "hive.owned-by-party"))
+            if (
+              currentRemoveIds.has(row.id) &&
+              ((isReservedComponent(definition.id) &&
+                definition.id !== "hive.owned-by-party") ||
+                (!permitted.has(definition.id) &&
+                  definition.id !== "hive.owned-by-party"))
+            )
               throw new Error("authored removal exceeds component ownership");
             owned.add(row.id);
           }
@@ -601,7 +619,7 @@ export class GameSession {
     }
     return {
       creates: structuredClone([...creates]),
-      removes: allRemoves,
+      removes: checkedRemoves,
       known,
     };
   }

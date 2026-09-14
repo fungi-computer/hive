@@ -177,14 +177,22 @@ test("drafted executing dig and tree attempts emit the exact native interrupt", 
   }
 });
 
-test("drafted dig interruption blocks and acknowledges, while committed excavation is removed once", () => {
-  const interrupted = reconciliationContext("dig", outcome(id("dig-order"), id("worker"), { kind: "route", destination: { x: 1, y: 1.5, z: 1, frame: null } }, { kind: "interrupted", cause: "workerUnavailable" }));
+test("drafted dig interruption blocks while committed excavation acknowledges before removal", () => {
+  const interrupted = reconciliationContext(
+    "dig",
+    outcome(
+      id("dig-order"),
+      id("worker"),
+      { kind: "route", destination: { x: 1, y: 1.5, z: 1, frame: null } },
+      { kind: "interrupted", cause: "workerUnavailable" },
+    ),
+  );
   digProvider(interrupted.context, new Set([interrupted.worker])).progress();
   assert.equal(interrupted.writes[0][2].status, "blocked");
   assert.equal(interrupted.actions.length, 1);
   const physical = reconciliationContext("dig", outcome(id("dig-order"), id("worker"), { kind: "excavation", cell: [1, 1, 1], expectedMaterial: 2, replacementMaterial: 0 }));
   digProvider(physical.context, new Set([physical.worker])).progress();
-  assert.deepEqual(physical.removed, [physical.task]);
+  assert.deepEqual(physical.removed, []);
   assert.equal(physical.actions.length, 1);
 });
 

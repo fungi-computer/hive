@@ -45,6 +45,7 @@ function fixture(attempts: readonly any[] = []) {
         site,
         support: "ready",
         materialsReady: true,
+        blockedActors: [],
         contacts: [
           { x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const },
         ],
@@ -159,6 +160,36 @@ test("completed native route is acknowledged before one construction attendance"
         mode: "bind",
         contact: { x: 1, y: 0.5, z: 1, frame: null },
       },
+    },
+  ]);
+});
+
+test("completed route clears an occupied future structure volume before construction", () => {
+  const attempt = {
+    key: { task: site, generation: 1 },
+    worker,
+    party,
+    phase: {
+      kind: "outcome",
+      operation: { attempt: { task: site, generation: 1 }, sequence: 1 },
+      activity: {
+        kind: "route",
+        destination: { x: 1, y: 0.5, z: 1, frame: null },
+      },
+      result: { kind: "completed" },
+    },
+  };
+  const f = fixture([attempt]);
+  const access = f.base.constructionAccess;
+  (f.base as any).constructionAccess = () =>
+    access([site]).map((entry) => ({ ...entry, blockedActors: [worker] }));
+  constructionWorkProvider(f.base, { workers: [worker] }, new Set()).progress();
+  assert.deepEqual(f.actions, [
+    {
+      kind: "acknowledge-work-attempt",
+      task: site,
+      generation: 1,
+      sequence: 1,
     },
   ]);
 });

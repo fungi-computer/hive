@@ -152,7 +152,7 @@ test("native attempt routes, performs timed deconstruction, and records one term
     },
   };
   provider.progress();
-  assert.equal((writes[0] as any).status, "complete");
+  assert.equal((writes.at(-1) as any).status, "complete");
   assert.equal((actions[2] as any).kind, "acknowledge-work-attempt");
   current = {
     ...current,

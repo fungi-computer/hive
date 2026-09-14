@@ -88,9 +88,13 @@ export function createWorkSystem(options: WorkSystemOptions) {
       });
       for (const candidate of candidates)
         if (taskProviders.get(candidate.task) !== candidate.providerIndex)
-          throw new Error("work candidate task belongs to another provider");
-      const available = candidates.filter((candidate) =>
-        !occupiedActors.has(candidate.worker) && !suspendedActors.has(candidate.worker),
+          throw new Error(
+            `work candidate ${candidate.task} belongs to provider ${String(taskProviders.get(candidate.task))}, not ${candidate.providerIndex}`,
+          );
+      const available = candidates.filter(
+        (candidate) =>
+          !occupiedActors.has(candidate.worker) &&
+          !suspendedActors.has(candidate.worker),
       );
       const assignments = allocateWork(
         claims,

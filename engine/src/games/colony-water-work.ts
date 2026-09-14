@@ -15,8 +15,17 @@ export const WaterSupplyWork = component<WaterSupplyState>("colony.water-supply-
   request: "number", phase: "string", x: "number", y: "number", z: "number", reason: "string",
 } });
 
-export const WaterSupplyOrder = component<{ revision: number; process: EntityId | null; party: EntityId | null }>("colony.water-supply-order", {
-  version: 3, fields: { revision: "number", process: "nullable-entity", party: "nullable-entity" },
+export const WaterSupplyOrder = component<{
+  revision: number;
+  consumer: EntityId | null;
+  party: EntityId | null;
+}>("colony.water-supply-order", {
+  version: 4,
+  fields: {
+    revision: "number",
+    consumer: "nullable-entity",
+    party: "nullable-entity",
+  },
 });
 
 type WaterOption = { readonly cell: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] };
@@ -49,10 +58,130 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   }
   const selected = new Map<string, { cell: readonly [number, number, number]; approach: MoveDestination }>();
   return {
-    claims: nativeRows.filter(row => attempts.has(row.id)).map(row => ({ task: row.id, actor: attempts.get(row.id)?.worker ?? null })), candidates,
-    lowerBound: candidate => { const pose = poses.get(candidate.worker), target = candidate.options[0].approaches[0]; return pose ? Math.hypot(pose.x - target.x, pose.z - target.z) : Number.POSITIVE_INFINITY; },
-    estimate: candidate => { const targets = candidate.options.flatMap(option => option.approaches.map(approach => ({ option, approach }))); const result = ctx.routeToAny({ actor: candidate.worker, targets: targets.map(target => target.approach) }); if (result.status !== "reachable") return null; const target = targets[result.targetIndex]; if (!target) return null; selected.set(`${candidate.task}\0${candidate.worker}`, { cell: target.option.cell, approach: target.approach }); return result.cost; },
-    apply: assignments => { for (const assignment of assignments) { const candidate = candidates.find(item => item.task === assignment.task && item.worker === assignment.worker), party = owners.get(assignment.task), target = selected.get(`${assignment.task}\0${assignment.worker}`); if (!candidate || !party || !target) continue; beginRouteWorkAttempt(ctx, assignment.task, assignment.worker, party, target.approach); } },
-    progress: () => { for (const row of nativeRows) { const attempt = attempts.get(row.id); if (!attempt || attempt.phase.kind !== "outcome") continue; const state = row.get(WaterSupplyWork), phase = attempt.phase, activity = phase.activity; if (suspended.has(attempt.worker) && (phase.result.kind !== "completed" || activity.kind === "route")) { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "blocked", reason: "Drafted" }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } if (phase.result.kind !== "completed") { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : phase.result.cause }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } if (activity.kind === "route") { const pail = pails.get(attempt.worker), contact = contacts.find(item => item.approaches.some(approach => approach.x === activity.destination.x && approach.y === activity.destination.y && approach.z === activity.destination.z)); if (!pail || !contact) { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "blocked", reason: "worker unavailable" }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } continueFieldWaterWorkAttempt(ctx, attempt.key, phase.operation.sequence, pail, contact.at, "withdraw", 1); } else if (activity.kind === "field-water") { ctx.write(WaterSupplyWork, row.id, { ...state, phase: "complete", x: activity.cell[0], y: activity.cell[1], z: activity.cell[2], reason: "" }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } } },
+    claims: nativeRows.map((row) => ({
+      task: row.id,
+      actor: attempts.get(row.id)?.worker ?? null,
+    })),
+    candidates,
+    lowerBound: (candidate) => {
+      const pose = poses.get(candidate.worker);
+      return pose
+        ? Math.min(
+            ...candidate.options.flatMap((option) =>
+              option.approaches.map((target) =>
+                Math.hypot(pose.x - target.x, pose.z - target.z),
+              ),
+            ),
+          )
+        : Number.POSITIVE_INFINITY;
+    },
+    estimate: (candidate) => {
+      const targets = candidate.options.flatMap((option) =>
+        option.approaches.map((approach) => ({ option, approach })),
+      );
+      const result = ctx.routeToAny({
+        actor: candidate.worker,
+        targets: targets.map((target) => target.approach),
+      });
+      if (result.status !== "reachable") return null;
+      const target = targets[result.targetIndex];
+      if (!target) return null;
+      selected.set(`${candidate.task}\0${candidate.worker}`, {
+        cell: target.option.cell,
+        approach: target.approach,
+      });
+      return result.cost;
+    },
+    apply: (assignments) => {
+      for (const assignment of assignments) {
+        const candidate = candidates.find(
+            (item) =>
+              item.task === assignment.task &&
+              item.worker === assignment.worker,
+          ),
+          party = owners.get(assignment.task),
+          target = selected.get(`${assignment.task}\0${assignment.worker}`);
+        if (!candidate || !party || !target) continue;
+        beginRouteWorkAttempt(
+          ctx,
+          assignment.task,
+          assignment.worker,
+          party,
+          target.approach,
+        );
+      }
+    },
+    progress: () => {
+      for (const row of nativeRows) {
+        const attempt = attempts.get(row.id);
+        if (!attempt || attempt.phase.kind !== "outcome") continue;
+        const state = row.get(WaterSupplyWork),
+          phase = attempt.phase,
+          activity = phase.activity;
+        if (
+          suspended.has(attempt.worker) &&
+          (phase.result.kind !== "completed" || activity.kind === "route")
+        ) {
+          ctx.write(WaterSupplyWork, row.id, {
+            ...state,
+            phase: "blocked",
+            reason: "Drafted",
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
+        if (phase.result.kind !== "completed") {
+          ctx.write(WaterSupplyWork, row.id, {
+            ...state,
+            phase: "blocked",
+            reason:
+              phase.result.kind === "blocked"
+                ? phase.result.reason
+                : phase.result.cause,
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          continue;
+        }
+        if (activity.kind === "route") {
+          const pail = pails.get(attempt.worker),
+            contact = contacts.find((item) =>
+              item.approaches.some(
+                (approach) =>
+                  approach.x === activity.destination.x &&
+                  approach.y === activity.destination.y &&
+                  approach.z === activity.destination.z,
+              ),
+            );
+          if (!pail || !contact) {
+            ctx.write(WaterSupplyWork, row.id, {
+              ...state,
+              phase: "blocked",
+              reason: "worker unavailable",
+            });
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            continue;
+          }
+          continueFieldWaterWorkAttempt(
+            ctx,
+            attempt.key,
+            phase.operation.sequence,
+            pail,
+            contact.at,
+            "withdraw",
+            1,
+          );
+        } else if (activity.kind === "field-water") {
+          ctx.write(WaterSupplyWork, row.id, {
+            ...state,
+            phase: "complete",
+            x: activity.cell[0],
+            y: activity.cell[1],
+            z: activity.cell[2],
+            reason: "",
+          });
+          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+        }
+      }
+    },
   };
 }

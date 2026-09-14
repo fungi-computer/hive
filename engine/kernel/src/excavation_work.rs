@@ -114,7 +114,11 @@ impl Kernel {
                 ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) | ExcavationResult::StructuresBlocked(_) => continue,
             };
             // Capacity/geometry admission failure leaves earned work available for retry.
-            match self.complete_excavation_at(prepared, material_output::MaterialOutputLocation::Ground(Position { x: pose.x, y: pose.y, z: pose.z, facing: pose.facing })) {
+            let owner_party = self.ecs.get::<OwnedByParty>(task_entity).map(|owner| owner.party.clone());
+            match self.complete_excavation_at(prepared, material_output::MaterialOutputLocation::Ground {
+                position: Position { x: pose.x, y: pose.y, z: pose.z, facing: pose.facing },
+                owner_party,
+            }) {
                 Ok(Some(_)) => {
                     self.ecs.entity_mut(task_entity).remove::<ExcavationWork>();
                     self.refresh_state_weight();

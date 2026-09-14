@@ -110,29 +110,96 @@ const floorOperationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("waiting-for-support") }).strict(),
   z.object({ kind: z.literal("invalid"), reason: z.string().min(1) }).strict(),
 ]);
-const processRequirementsSchema = z.object({
-  definition: entityIdWireSchema,
-  version: z.number().int().positive(),
-  stationCatalog: entityIdWireSchema,
-  inputs: z.array(z.object({
-    role: entityIdWireSchema, port: entityIdWireSchema, material: entityIdWireSchema,
-    quantity: z.number().int().positive().max(0xffffffff),
-    policy: z.enum(["portion", "whole-lot"]),
-    disposition: z.enum(["consume", "retain", "emission-source"]),
-  }).strict()).min(1).max(32),
-  stages: z.array(z.object({ id: entityIdWireSchema, mode: z.enum(["attended", "elapsed"]), durationSeconds: z.number().finite().positive() }).strict()).min(1).max(16),
-  phase: z.enum(["waiting", "working", "complete", "blocked"]),
-}).strict();
-const constructionAccessSchema = z.array(z.object({
-  site: entityIdWireSchema,
-  support: z.enum(["ready", "waitingForSupport", "unknown"]),
-  materialsReady: z.boolean(),
-  contacts: z.array(z.object({
-    x: z.number().finite(), y: z.number().finite(), z: z.number().finite(),
-    frame: z.null(), kind: z.enum(["origin", "landing"]),
-  }).strict()).max(32),
-}).strict()).max(256);
-const deconstructionAccessSchema = z.array(z.object({ site: entityIdWireSchema, removal: z.enum(["ready", "occupiedPort", "structuralDependency", "invalidGeometry"]), salvageQuantity: z.number().int().nonnegative(), workSeconds: z.number().finite().nonnegative(), contacts: z.array(z.object({ x: z.number().finite(), y: z.number().finite(), z: z.number().finite(), frame: z.null(), kind: z.enum(["origin", "landing"]) }).strict()).max(32) }).strict()).max(128);
+const processRequirementsSchema = z
+  .object({
+    definition: entityIdWireSchema,
+    version: z.number().int().positive(),
+    stationCatalog: entityIdWireSchema,
+    inputs: z
+      .array(
+        z
+          .object({
+            role: entityIdWireSchema,
+            port: entityIdWireSchema,
+            material: entityIdWireSchema,
+            quantity: z.number().int().positive().max(0xffffffff),
+            policy: z.enum(["portion", "whole-lot"]),
+            disposition: z.enum(["consume", "retain", "emission-source"]),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(32),
+    stages: z
+      .array(
+        z
+          .object({
+            id: entityIdWireSchema,
+            mode: z.enum(["attended", "elapsed"]),
+            durationSeconds: z.number().finite().positive(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(16),
+    phase: z.enum(["waiting", "working", "complete", "blocked"]),
+  })
+  .strict();
+const constructionAccessSchema = z
+  .array(
+    z
+      .object({
+        site: entityIdWireSchema,
+        support: z.enum(["ready", "waitingForSupport", "unknown"]),
+        materialsReady: z.boolean(),
+        blockedActors: z.array(entityIdWireSchema).max(256),
+        contacts: z
+          .array(
+            z
+              .object({
+                x: z.number().finite(),
+                y: z.number().finite(),
+                z: z.number().finite(),
+                frame: z.null(),
+                kind: z.enum(["origin", "landing"]),
+              })
+              .strict(),
+          )
+          .max(32),
+      })
+      .strict(),
+  )
+  .max(256);
+const deconstructionAccessSchema = z
+  .array(
+    z
+      .object({
+        site: entityIdWireSchema,
+        removal: z.enum([
+          "ready",
+          "occupiedPort",
+          "structuralDependency",
+          "invalidGeometry",
+        ]),
+        salvageQuantity: z.number().int().nonnegative(),
+        workSeconds: z.number().finite().nonnegative(),
+        contacts: z
+          .array(
+            z
+              .object({
+                x: z.number().finite(),
+                y: z.number().finite(),
+                z: z.number().finite(),
+                frame: z.null(),
+                kind: z.enum(["origin", "landing"]),
+              })
+              .strict(),
+          )
+          .max(32),
+      })
+      .strict(),
+  )
+  .max(128);
 function validateConstructionAccessSites(sites: readonly EntityId[]): void {
   if (!Array.isArray(sites) || sites.length === 0 || sites.length > 256)
     throw new Error("construction access needs 1..256 sites");

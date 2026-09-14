@@ -11,6 +11,7 @@ import { DeliveryTask } from "../sdk/delivery";
 import { ColonyDigOrder, colonyGroundStockPhase } from "./colony-work";
 import { GroundStock } from "../sdk/ground-stock";
 import { colonyPack } from "./colony";
+import { OwnedByParty, PartyMember } from "../sdk/party";
 import type { WorkAttempt } from "../contracts";
 
 const worker = entity("colony.worker.1");
@@ -43,19 +44,52 @@ function context(overrides: Partial<Fixture> = {}) {
     attempts: [],
     ...overrides,
   };
+  const workerRow = {
+    id: worker,
+    get(definition: { id: string }) {
+      if (definition.id === "colony.worker") return { guest: false };
+      if (definition.id === PartyMember.id) return { party: entity("host") };
+      if (definition.id === Container.id) return { capacity: 3 };
+      throw new Error(`unexpected worker component ${definition.id}`);
+    },
+  };
+  const pantryRow = {
+    id: source,
+    get(definition: { id: string }) {
+      if (definition.id === Container.id) return { capacity: 20 };
+      if (definition.id === OwnedByParty.id) return { party: entity("host") };
+      throw new Error(`unexpected pantry component ${definition.id}`);
+    },
+  };
   const values = new Map<string, readonly unknown[]>([
-    ["colony.worker", [row(worker, { id: "colony.worker" }, { guest: false })]],
+    ["colony.worker", [workerRow]],
+    [PartyMember.id, [workerRow]],
+    [OwnedByParty.id, [pantryRow]],
     [Body.id, [row(worker, Body, { speed: 2 })]],
-    [Container.id, [
-      row(worker, Container, { capacity: 3 }),
-      row(source, Container, { capacity: 20 }),
-    ]],
+    [Container.id, [workerRow, pantryRow]],
     [MaterialLot.id, fixture.lots],
     [DeliveryTask.id, fixture.tasks],
     [ExcavationWork.id, fixture.work],
     [ColonyDigOrder.id, fixture.orders],
   ]);
-  return { scope: { kind: "host" as const }, physicalContacts: () => { throw new Error("unexpected physical contact query"); }, terrainMaterials: () => [], terrainSurfaces: () => [], workAttempts: (tasks: readonly ReturnType<typeof entity>[]) => fixture.attempts.filter(attempt => tasks.includes(attempt.key.task)), query: (spec: { components: readonly { id: string }[] }) => values.get(spec.components[0].id) as never };
+  return {
+    scope: { kind: "host" as const },
+    physicalContacts: () => {
+      throw new Error("unexpected physical contact query");
+    },
+    terrainMaterials: () => [],
+    terrainSurfaces: () => [],
+    workAttempts: (tasks: readonly ReturnType<typeof entity>[]) =>
+      fixture.attempts.filter((attempt) => tasks.includes(attempt.key.task)),
+    query: (spec: { components: readonly { id: string }[] }) => {
+      const ids = new Set(spec.components.map((component) => component.id));
+      if (ids.has("colony.worker") && ids.has(PartyMember.id))
+        return [workerRow] as never;
+      if (ids.has(Container.id) && ids.has(OwnedByParty.id))
+        return [pantryRow] as never;
+      return (values.get(spec.components[0].id) ?? []) as never;
+    },
+  };
 }
 
 test("Colony dig creates an unassigned area order without requiring a worker", () => {
@@ -73,7 +107,7 @@ test("Colony dig creates an unassigned area order without requiring a worker", (
   }]);
 });
 
-test("Colony ground stock schedules one ordinary pantry delivery and preserves existing claims", () => {
+test("Colony ground stock remains in place until a stockpile policy requests it", () => {
   const pile = entity("hive.lot.17");
   const source = entity("hive.ground-stock.17");
   const created: unknown[] = [];
@@ -92,10 +126,7 @@ test("Colony ground stock schedules one ordinary pantry delivery and preserves e
     createAuthoredEntity(record: unknown) { created.push(record); },
   };
   colonyGroundStockPhase(context as never);
-  assert.deepEqual(created, [{ id: `${pile}.delivery`, components: { [DeliveryTask.id]: {
-    version: 2, party: entity("host"), sourceLot: pile, source, destination: "colony.pantry",
-    material: "soil-spoil", quantity: 3, custody: "available", ground: null,
-  }}}]);
+  assert.deepEqual(created, []);
 });
 
 test("Colony dig rejects the superseded worker-target input and accepts a designation while workers are busy", () => {

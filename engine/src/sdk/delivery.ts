@@ -432,7 +432,7 @@ export function deliveryProvider(
     },
     progress: () => {
       for (const { id, state } of tasks) {
-        const lot = lots.get(state.sourceLot);
+        let lot = lots.get(state.sourceLot);
         if (!lot) continue;
         if (
           state.custody === "dropped" &&
@@ -448,12 +448,19 @@ export function deliveryProvider(
         }
         const attempt = attempts.get(id);
         if (!attempt || attempt.phase.kind !== "outcome") continue;
+        if (attempt.phase.activity.kind === "material-transfer") {
+          const committedLot = lots.get(attempt.phase.activity.lot);
+          if (!committedLot)
+            throw new Error("committed delivery lot is missing");
+          lot = committedLot;
+        }
         const sequence = attempt.phase.operation.sequence;
         const reconcileLotCustody = () => {
           if (lot.container === state.destination) {
             if (state.custody !== "delivered")
               ctx.write(DeliveryTask, id, {
                 ...state,
+                sourceLot: lot.id,
                 custody: "delivered",
                 ground: null,
               });
@@ -462,6 +469,7 @@ export function deliveryProvider(
           if (lot.container === attempt.worker && state.custody !== "held")
             ctx.write(DeliveryTask, id, {
               ...state,
+              sourceLot: lot.id,
               custody: "held",
               ground: null,
             });

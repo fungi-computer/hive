@@ -269,10 +269,10 @@ export function deconstructionWorkProvider(
       candidate,
     ]),
   );
-  const claims = orders.flatMap((row) => {
-    const attempt = attempts.get(row.id);
-    return attempt ? [{ task: row.id, actor: attempt.worker }] : [];
-  });
+  const claims = orders.map((row) => ({
+    task: row.id,
+    actor: attempts.get(row.id)?.worker ?? null,
+  }));
   return {
     claims,
     occupiedActors: [

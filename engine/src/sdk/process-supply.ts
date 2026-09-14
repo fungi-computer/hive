@@ -1,7 +1,13 @@
 import { component, entity, query } from "./authoring";
 import { planSiteSupplies, type SiteSupplyRequirement } from "./site-supplies";
 import { OwnedByParty } from "./party";
-import type { EntityId, ProcessRequirements, QueryRow, WriteContext } from "../contracts";
+import { PartyMember } from "./party";
+import type {
+  EntityId,
+  ProcessRequirements,
+  QueryRow,
+  WriteContext,
+} from "../contracts";
 
 export const StagedProcess = component<{
   version: number; definition: string; definitionVersion: number; station: EntityId;
@@ -34,8 +40,23 @@ export function processSupplyPhase(ctx: WriteContext): void {
     // per call, so separate calls could promise one source lot twice.
     waiting.push({ row, process, requirements, party: partyByEntity.get(process.station) ?? null });
   }
-  const destinations = new Set(waiting.flatMap(({ process, requirements }) => requirements.inputs.map(input => entity(`${process.station}:${input.port}`))));
-  const eligibleSources = facts.containers.filter(container => !container.sealed && !destinations.has(container.id)).map(container => container.id).sort((a, b) => a.localeCompare(b));
+  const destinations = new Set(
+    waiting.flatMap(({ process, requirements }) =>
+      requirements.inputs.map((input) =>
+        entity(`${process.station}:${input.port}`),
+      ),
+    ),
+  );
+  const actors = new Set(ctx.query(query(PartyMember)).map((row) => row.id));
+  const eligibleSources = facts.containers
+    .filter(
+      (container) =>
+        !container.sealed &&
+        !destinations.has(container.id) &&
+        !actors.has(container.id),
+    )
+    .map((container) => container.id)
+    .sort((a, b) => a.localeCompare(b));
   const grouped = new Map<string, typeof waiting>();
   for (const item of waiting) { const key = item.party ?? "__host__"; grouped.set(key, [...(grouped.get(key) ?? []), item]); }
   for (const [party, group] of grouped) {

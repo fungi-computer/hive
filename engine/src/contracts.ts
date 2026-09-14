@@ -27,6 +27,7 @@ export const RESERVED_COMPONENTS = [
   "hive.finite-resource",
   "hive.resource-site",
   "hive.excavation-work",
+  "hive.deconstruction-work",
   "hive.destination",
   "hive.support",
   "hive.surface",
@@ -566,6 +567,7 @@ export interface ConstructionAccess {
   readonly site: EntityId;
   readonly support: ConstructionReadinessStatus;
   readonly materialsReady: boolean;
+  readonly blockedActors: readonly EntityId[];
   readonly contacts: readonly ConstructionAccessContact[];
 }
 export type DeconstructionAccess = { readonly site: EntityId; readonly status: "ready" | "occupiedPort" | "structuralDependency" | "invalidGeometry"; readonly contacts: readonly ConstructionAccessContact[]; readonly salvageQuantity: number; readonly workSeconds: number };

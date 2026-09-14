@@ -17,11 +17,40 @@ const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
 
 test("water provider interleaves two queued demands across held pails", () => {
-  const workers = ["worker-a", "worker-b"].map((name, index) => row(name, new Map([
-    [Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: index * 2, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }],
-  ])));
-  const pails = ["pail-a", "pail-b"].map((name, index) => ({ id: id(name), kind: "pail", quantity: 1, container: id(`worker-${index === 0 ? "a" : "b"}`) }));
-  const demands = ["demand-a", "demand-b"].map((name, index) => row(name, new Map([[WaterSupplyOrder, { revision: index + 1, process: null, party: id("party") }], [WaterSupplyWork, { request: index + 1, phase: "queued", x: 0, y: 0, z: 0, reason: "" }], [OwnedByParty, { party: id("party") }]])));
+  const workers = ["worker-a", "worker-b"].map((name, index) =>
+    row(
+      name,
+      new Map([
+        [Worker, { guest: false }],
+        [Body, { speed: 1 }],
+        [Position, { x: index * 2, y: 0, z: 0, facing: 0 }],
+        [Container, { capacity: 3 }],
+        [PartyMember, { party: id("party") }],
+      ]),
+    ),
+  );
+  const pails = ["pail-a", "pail-b"].map((name, index) => ({
+    id: id(name),
+    kind: "pail",
+    quantity: 1,
+    container: id(`worker-${index === 0 ? "a" : "b"}`),
+  }));
+  const demands = ["demand-a", "demand-b"].map((name, index) =>
+    row(
+      name,
+      new Map([
+        [
+          WaterSupplyOrder,
+          { revision: index + 1, consumer: null, party: id("party") },
+        ],
+        [
+          WaterSupplyWork,
+          { request: index + 1, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
+        ],
+        [OwnedByParty, { party: id("party") }],
+      ]),
+    ),
+  );
   const writes: unknown[] = [];
   let routeTargetCount = 0;
   const context = {
@@ -76,10 +105,28 @@ test("water provider skips contact query with no eligible held pail workers and 
 });
 
 test("water provider sends at most sixteen authoritative centers", () => {
-  const workers = Array.from({ length: 16 }, (_, index) => id(`worker-${index}`));
-  const lots = workers.map((worker, index) => ({ id: id(`pail-${index}`), kind: "pail", quantity: 1, container: worker }));
-  const demand = row("demand", new Map([[WaterSupplyOrder, { revision: 1, process: null, party: id("party") }], [WaterSupplyWork, { request: 1, phase: "queued", x: 0, y: 0, z: 0, reason: "" }], [OwnedByParty, { party: id("party") }]]));
-  let poseCount = 0, centerCount = 0;
+  const workers = Array.from({ length: 16 }, (_, index) =>
+    id(`worker-${index}`),
+  );
+  const lots = workers.map((worker, index) => ({
+    id: id(`pail-${index}`),
+    kind: "pail",
+    quantity: 1,
+    container: worker,
+  }));
+  const demand = row(
+    "demand",
+    new Map([
+      [WaterSupplyOrder, { revision: 1, consumer: null, party: id("party") }],
+      [
+        WaterSupplyWork,
+        { request: 1, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
+      ],
+      [OwnedByParty, { party: id("party") }],
+    ]),
+  );
+  let poseCount = 0,
+    centerCount = 0;
   const context: any = {
     query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? workers.map(worker => row(worker, new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }]]))) : spec.components.includes(OwnedByParty) ? [demand] : spec.components.includes(Destination) ? [] : [demand],
     workAttempts: () => [],
@@ -93,9 +140,53 @@ test("water provider sends at most sixteen authoritative centers", () => {
 });
 
 test("completed demand does not invoke provider-side contact queries", () => {
-  const demand = row("done", new Map([[WaterSupplyOrder, { revision: 1, process: null, party: id("party") }], [WaterSupplyWork, { request: 1, phase: "complete", x: 0, y: 0, z: 0, reason: "" }], [OwnedByParty, { party: id("party") }]]));
-  let removed = "", facts = 0, contacts = 0;
-  const context: any = { query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? [] : spec.components.includes(OwnedByParty) ? [demand] : spec.components.includes(Destination) ? [] : [demand], workAttempts: () => [], workMaterialFacts: () => { facts++; return { version: 1, containers: [], lots: [] }; }, worldPoses: () => { throw new Error("should not query poses"); }, waterContacts: () => { contacts++; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, removeAuthoredEntity: (id: string) => { removed = id; }, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], };
+  const demand = row(
+    "done",
+    new Map([
+      [WaterSupplyOrder, { revision: 1, consumer: null, party: id("party") }],
+      [
+        WaterSupplyWork,
+        { request: 1, phase: "complete", x: 0, y: 0, z: 0, reason: "" },
+      ],
+      [OwnedByParty, { party: id("party") }],
+    ]),
+  );
+  let removed = "",
+    facts = 0,
+    contacts = 0;
+  const context: any = {
+    query: (spec: any) =>
+      spec.components.includes(Worker) || spec.components.includes(PartyMember)
+        ? []
+        : spec.components.includes(OwnedByParty)
+          ? [demand]
+          : spec.components.includes(Destination)
+            ? []
+            : [demand],
+    workAttempts: () => [],
+    workMaterialFacts: () => {
+      facts++;
+      return { version: 1, containers: [], lots: [] };
+    },
+    worldPoses: () => {
+      throw new Error("should not query poses");
+    },
+    waterContacts: () => {
+      contacts++;
+      return [];
+    },
+    routeToAny: () => ({ status: "unavailable", reason: "none" }),
+    routeCosts: () => [],
+    action: () => {},
+    write: () => {},
+    removeAuthoredEntity: (id: string) => {
+      removed = id;
+    },
+    outcomes: [],
+    clock: { now: 0, delta: 0, tick: 0 },
+    random: { next: () => 0 },
+    impacts: [],
+  };
   waterSupplyProvider(context, new Set()).progress();
   assert.equal(removed, "");
   assert.equal(facts, 1, "the provider reads canonical material facts before scheduling");
@@ -108,12 +199,42 @@ test("queued planning stays bounded with many demands and keeps an active bound 
   const pails = Array.from({ length: 4 }, (_, index) => ({ id: id(`pail-${index}`), kind: "pail", quantity: 1, container: id(`worker-${index}`) }));
   const extraWorkers = pails.slice(1).map((pail) => row(pail.container, new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }]])));
   const demands = Array.from({ length: 256 }, (_, index) => {
-    const components: [object, unknown][] = [[WaterSupplyOrder, { revision: index + 1, process: null, party: index < 32 ? id("party") : null }], [WaterSupplyWork, { request: index + 1, phase: "queued", x: 0, y: 0, z: 0, reason: "" }]];
+    const components: [object, unknown][] = [
+      [
+        WaterSupplyOrder,
+        {
+          revision: index + 1,
+          consumer: null,
+          party: index < 32 ? id("party") : null,
+        },
+      ],
+      [
+        WaterSupplyWork,
+        { request: index + 1, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
+      ],
+    ];
     if (index < 32) components.push([OwnedByParty, { party: id("party") }]);
     return row(`demand-${index}`, new Map(components));
   });
-  demands.push(row("active", new Map([[WaterSupplyOrder, { revision: 257, process: null, party: id("party") }], [WaterSupplyWork, { request: 257, phase: "blocked", x: 0, y: 1, z: 0, reason: "retry" }], [OwnedByParty, { party: id("party") }]])));
-  let posed: string[] = [], actions: any[] = [], progressWrites: any[] = [];
+  demands.push(
+    row(
+      "active",
+      new Map([
+        [
+          WaterSupplyOrder,
+          { revision: 257, consumer: null, party: id("party") },
+        ],
+        [
+          WaterSupplyWork,
+          { request: 257, phase: "blocked", x: 0, y: 1, z: 0, reason: "retry" },
+        ],
+        [OwnedByParty, { party: id("party") }],
+      ]),
+    ),
+  );
+  let posed: string[] = [],
+    actions: any[] = [],
+    progressWrites: any[] = [];
   const context: any = {
     query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? [worker, active, ...extraWorkers] : spec.components.includes(OwnedByParty) ? demands.filter(row => row.get(OwnedByParty)) : spec.components.includes(Destination) ? [] : demands,
     workAttempts: () => [],

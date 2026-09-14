@@ -7,22 +7,26 @@ use crate::terrain_traversal::{self, TraversalConfig};
 use crate::terrain_water::PreparedStructureChange;
 
 impl Kernel {
-    pub(super) fn structure_contact_problem(
+    pub(super) fn structure_contact_blocked_actors(
         &mut self,
         prepared: &PreparedStructureChange,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let spacing = self.environment.as_ref().ok_or("construction needs environment")?
             .world.cell_spacing_m();
+        let stairs = self.environment.as_ref().ok_or("construction needs environment")?
+            .world.stair_edges().to_vec();
         let mut query = self.ecs.query::<(Entity, &ExternalId, &Body, &Position)>();
         let mut actors: Vec<_> = query.iter(&self.ecs)
             .map(|(entity, id, _, position)| (id.0.clone(), entity, *position)).collect();
         actors.sort_by(|a, b| a.0.cmp(&b.0));
+        let mut blocked = Vec::new();
         for (id, entity, position) in actors {
             // Terrain and moving-deck contact are different capabilities. A
             // combined terrain/deck world needs an explicit volume witness;
             // do not silently treat a deck passenger as standing on terrain.
             if self.ecs.get::<Support>(entity).is_some() {
-                return Ok(Some(format!("construction awaits frame contact admission for {id}")));
+                blocked.push(id);
+                continue;
             }
             let capability = self.ecs.get::<Traversal>(entity)
                 .ok_or("terrain construction actor lacks traversal capability")?;
@@ -32,10 +36,10 @@ impl Kernel {
             };
             let occupied = if let Some(state) = self.terrain_routes.get(&entity) {
                 self.validate_terrain_route_witness(entity)?;
-                let points = crate::terrain_route::waypoints(&state.path, config)?;
+                let points = crate::terrain_route::waypoints_with_stairs(&state.path, config, &stairs)?;
                 let remaining = self.routes.get(&entity).ok_or("missing occupied route")?.len();
                 let next = points.len().checked_sub(remaining).ok_or("invalid occupied route progress")?;
-                let active = crate::terrain_route::active_support_index(&state.path, next)?;
+                let active = crate::terrain_route::active_support_index_with_stairs(&state.path, next, &stairs)?;
                 let end = state.path[active + 1];
                 let end_pose = [end.x as f64 * spacing[0],
                     (f64::from(end.y) + 0.5) * spacing[1], end.z as f64 * spacing[2]];
@@ -48,7 +52,8 @@ impl Kernel {
                 let raw = [position.x / spacing[0], position.y / spacing[1] - 0.5,
                     position.z / spacing[2]];
                 if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) {
-                    return Ok(Some(format!("construction awaits stable terrain contact for {id}")));
+                    blocked.push(id);
+                    continue;
                 }
                 if raw[0].abs() > 9_007_199_254_740_991.0 || raw[2].abs() > 9_007_199_254_740_991.0
                     || raw[1] < f64::from(i32::MIN) || raw[1] > f64::from(i32::MAX) {
@@ -59,10 +64,18 @@ impl Kernel {
             };
             let environment = self.environment.as_mut().ok_or("construction needs environment")?;
             let mut candidate = |at| environment.world.prepared_traversal_material(prepared, at);
-            if !terrain_traversal::path_supported(&occupied, config, &mut candidate)? {
-                return Ok(Some(format!("construction would obstruct {id}")));
+            if !terrain_traversal::path_supported_with_stairs(&occupied, config, &mut candidate, &stairs)? {
+                blocked.push(id);
             }
         }
-        Ok(None)
+        Ok(blocked)
+    }
+
+    pub(super) fn structure_contact_problem(
+        &mut self,
+        prepared: &PreparedStructureChange,
+    ) -> Result<Option<String>> {
+        Ok(self.structure_contact_blocked_actors(prepared)?.into_iter().next()
+            .map(|id| format!("construction would obstruct {id}")))
     }
 }

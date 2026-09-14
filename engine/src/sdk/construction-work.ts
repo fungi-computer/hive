@@ -135,6 +135,7 @@ export function constructionWorkProvider(
       attempts.get(row.id)
     )
       return [];
+    const blocked = new Set(ar.blockedActors);
     const mode: ConstructionCandidate["mode"] = positions.has(row.id)
       ? "work"
       : "bind";
@@ -151,7 +152,8 @@ export function constructionWorkProvider(
         destinations.has(worker) ||
         excavations.has(worker) ||
         !pose ||
-        suspendedActors.has(worker)
+        suspendedActors.has(worker) ||
+        (blocked.size > 0 && !blocked.has(worker))
       )
         return [];
       return [{ worker, task: row.id, contacts: ar.contacts, mode, party }];
@@ -264,7 +266,10 @@ export function constructionWorkProvider(
           continue;
         }
         if (a.phase.result.kind === "completed" && contact) {
-          if (a.phase.activity.kind === "route")
+          if (
+            a.phase.activity.kind === "route" &&
+            (ar?.blockedActors.length ?? 0) === 0
+          )
             continueConstructionWorkAttempt(
               ctx,
               a.key,
