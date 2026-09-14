@@ -366,10 +366,11 @@ export async function bakeArt(
         depthTextures.add(depth);
         allBakedTextures.add(depth);
         depthByTexture.set(texture, {
-          texture: depth,
-          depthRange: pair.depthRange,
-          visualBounds: pair.visualBounds,
-        });
+            texture: depth,
+            depthRange: pair.depthRange,
+            visualBounds: pair.visualBounds,
+            placement: source.userData?.staticPlacement,
+          });
       }
       completedTextures++;
       return texture;

@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { placementForStaticPath } from "../../../src/art/static-placement.js";
+import { building } from "../../../src/art/home.js";
+const BED_PLACEMENT = { kind: "footprint", bakedFootprint: [[0, 0], [0, 1]], rotationPivot: [0, 0] };
+const BREW_PLACEMENT = { kind: "footprint", bakedFootprint: [[0, 0], [1, 0], [0, 1], [1, 1]], rotationPivot: [0.5, 0.5] };
+const STAIR_PLACEMENT = { kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], rotationPivot: [0, 0, 0] };
+
+test("original art recipes expose the datum consumed by the exporter", () => {
+  for (const [type, expected] of [["bed", BED_PLACEMENT], ["stair", STAIR_PLACEMENT], ["brew-station", BREW_PLACEMENT]]) {
+    const recipe = building(type, "finished", 0);
+    assert.deepEqual(recipe.userData.staticPlacement, expected);
+  }
+});
 import { resolvePlacementArtTransform, resolveStairArtEndpoints, resolveStairArtEndpoints3d, resolveWorldArtPlacement, rotatePlacementPoint } from "./art-placement.js";
 
 test("long retained footprints align all cells for both axial facings", () => {
@@ -47,30 +57,30 @@ test("real retained bindings resolve decoded depth metadata for bed, brewer, and
   const decodedDepth = { visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 2, maxY: 2, maxZ: 2 } };
   const bed = resolveWorldArtPlacement({
     subjectPlacement: { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "east" },
-    artPlacement: placementForStaticPath(["buildings", "bed", "finished", 0]),
+    artPlacement: BED_PLACEMENT,
     orientation: "east", decodedDepth,
   });
   assert.deepEqual([...bed.alignedFootprint].sort(), [[-1, 0], [0, 0]]);
   const brewer = resolveWorldArtPlacement({
     subjectPlacement: { kind: "footprint", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]], orientation: "south" },
-    artPlacement: placementForStaticPath(["buildings", "brew-station", "finished", 0]),
+    artPlacement: BREW_PLACEMENT,
     orientation: "south", decodedDepth,
   });
   assert.equal(brewer.alignedFootprint.length, 4);
   const stair = resolveWorldArtPlacement({
     subjectPlacement: { kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation: "west" },
-    artPlacement: placementForStaticPath(["buildings", "stair", "finished", 0]),
+    artPlacement: STAIR_PLACEMENT,
     orientation: "west", decodedDepth,
   });
   assert.deepEqual(stair.landing, [2, 2.16, 0]);
   assert.throws(() => resolveWorldArtPlacement({
     subjectPlacement: { kind: "footprint", footprint: [[0, 0], [2, 0]], orientation: "north" },
-    artPlacement: placementForStaticPath(["buildings", "bed", "finished", 0]),
+    artPlacement: BED_PLACEMENT,
     orientation: "north", decodedDepth,
   }), /footprint does not match/);
   assert.throws(() => resolveWorldArtPlacement({
     subjectPlacement: { kind: "stair", entrance: [0, 0, 0], landing: [0, 2, 2], orientation: "north" },
-    artPlacement: placementForStaticPath(["buildings", "stair", "finished", 0]),
+    artPlacement: STAIR_PLACEMENT,
     orientation: "north", decodedDepth,
   }), /endpoints do not match/);
 });

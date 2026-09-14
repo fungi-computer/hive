@@ -291,6 +291,34 @@ function visualBounds(value, at) {
   return Object.freeze(result);
 }
 
+function placement(value, at) {
+  record(value, at);
+  if (value.kind === "footprint") {
+    keys(value, ["kind", "bakedFootprint", "rotationPivot"], at);
+    const footprint = array(value.bakedFootprint, `${at}.bakedFootprint`, { min: 1, max: 16 }).map((cell, index) => {
+      const checked = array(cell, `${at}.bakedFootprint[${index}]`, { min: 2, max: 2 });
+      return Object.freeze([
+        integer(checked[0], `${at}.bakedFootprint[${index}][0]`, -8, 8),
+        integer(checked[1], `${at}.bakedFootprint[${index}][1]`, -8, 8),
+      ]);
+    });
+    if (new Set(footprint.map(([x, z]) => `${x},${z}`)).size !== footprint.length)
+      problem(`${at}.bakedFootprint`, "duplicate-cell");
+    const pivot = array(value.rotationPivot, `${at}.rotationPivot`, { min: 2, max: 2 }).map((entry, index) => finite(entry, `${at}.rotationPivot[${index}]`, -8, 8));
+    return Object.freeze({ kind: "footprint", bakedFootprint: Object.freeze(footprint), rotationPivot: Object.freeze(pivot) });
+  }
+  if (value.kind === "stair") {
+    keys(value, ["kind", "entrance", "landing", "rotationPivot"], at);
+    const endpoint = (entry, name) => {
+      const checked = array(entry, `${at}.${name}`, { min: 3, max: 3 });
+      return Object.freeze(checked.map((part, index) => finite(part, `${at}.${name}[${index}]`, -64, 64)));
+    };
+    const pivot = array(value.rotationPivot, `${at}.rotationPivot`, { min: 3, max: 3 }).map((entry, index) => finite(entry, `${at}.rotationPivot[${index}]`, -64, 64));
+    return Object.freeze({ kind: "stair", entrance: endpoint(value.entrance, "entrance"), landing: endpoint(value.landing, "landing"), rotationPivot: Object.freeze(pivot) });
+  }
+  problem(at, "unsupported-kind");
+}
+
 function path(value, at) {
   const result = array(value, at, {
     min: 2,
@@ -315,6 +343,8 @@ function path(value, at) {
 
 function entry(value, index, pages, depthPages) {
   const at = `entries[${index}]`;
+  const rawPath = value?.path;
+  const requiresPlacement = Array.isArray(rawPath) && rawPath[0] === "buildings" && ["bed", "stair", "brew-station"].includes(rawPath[1]);
   keys(
     value,
     [
@@ -328,6 +358,7 @@ function entry(value, index, pages, depthPages) {
       "depth",
       "depthRange",
       "visualBounds",
+      ...(requiresPlacement ? ["placement"] : []),
     ],
     at,
   );
@@ -377,8 +408,10 @@ function entry(value, index, pages, depthPages) {
   );
   if (depthWidth !== width || depthHeight !== height)
     problem(`${at}.depth`, "unexpected-size");
+  const checkedPath = path(value.path, `${at}.path`);
+  const checkedPlacement = requiresPlacement ? placement(value.placement, `${at}.placement`) : undefined;
   return Object.freeze({
-    path: path(value.path, `${at}.path`),
+    path: checkedPath,
     page: pageId,
     x,
     y,
@@ -392,6 +425,7 @@ function entry(value, index, pages, depthPages) {
     }),
     depthRange: depthRange(value.depthRange, `${at}.depthRange`),
     visualBounds: visualBounds(value.visualBounds, `${at}.visualBounds`),
+    ...(checkedPlacement ? { placement: checkedPlacement } : {}),
     silhouette: silhouette(value.silhouette, width, height, `${at}.silhouette`),
   });
 }

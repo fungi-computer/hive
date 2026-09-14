@@ -107,14 +107,24 @@ function bed(parent, stage) {
   }
 }
 const TYPES = { wall, door, roof, bed, shelf, floor, stair };
+const STATIC_PLACEMENTS = Object.freeze({
+  bed: Object.freeze({ kind: "footprint", bakedFootprint: [[0, 0], [0, 1]], rotationPivot: [0, 0] }),
+  stair: Object.freeze({ kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], rotationPivot: [0, 0, 0] }),
+  "brew-station": Object.freeze({ kind: "footprint", bakedFootprint: [[0, 0], [1, 0], [0, 1], [1, 1]], rotationPivot: [0.5, 0.5] }),
+});
 export function building(type, stage, direction = 0, options) {
-  if (type === "brew-station") return stationScene(stage, direction, options);
+  if (type === "brew-station") {
+    const s = stationScene(stage, direction, options);
+    s.userData.staticPlacement = STATIC_PLACEMENTS[type];
+    return s;
+  }
   const build = TYPES[type];
   if (!build) throw new Error(`Unknown building art: ${type}`);
   const s = scene(),
     model = group(s);
   model.rotation.y = (direction * Math.PI) / 2;
   build(model, stage);
+  if (STATIC_PLACEMENTS[type]) s.userData.staticPlacement = STATIC_PLACEMENTS[type];
   return s;
 }
 export function woodPile(amount) {
