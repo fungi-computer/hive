@@ -49,6 +49,7 @@ type FixtureOptions = {
   readonly attempt?: WorkAttempt;
   readonly contacts?: "ready" | "blocked";
   readonly routeTargetIndex?: number;
+  readonly crossSupport?: boolean;
 };
 function fixture(options: FixtureOptions = {}) {
   const task = entity("delivery.task"),
@@ -175,7 +176,7 @@ function fixture(options: FixtureOptions = {}) {
         id,
         local: point,
         world: point,
-        support: null,
+        support: options.crossSupport ? id === worker ? "worker-surface" : id === source ? "ground-surface" : "upper-surface" : null,
         surface: null,
       })),
     routeCosts: (requests: readonly { actor: EntityId }[]) =>
@@ -260,6 +261,17 @@ function fixture(options: FixtureOptions = {}) {
     makeAttempt,
   };
 }
+
+test("cross-level delivery delegates reachability to route and transfer owners", () => {
+  const f = fixture({ crossSupport: true });
+  let p = f.prepare();
+  assert.equal(p.candidates.length, 1);
+  assert.equal(p.estimate(p.candidates[0]!), 2);
+  f.setContacts("blocked");
+  p = f.prepare();
+  assert.equal(p.candidates.length, 1);
+  assert.equal(p.estimate(p.candidates[0]!), null);
+});
 function route(destination = point): WorkActivityRef {
   return { kind: "route", destination };
 }

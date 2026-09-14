@@ -293,7 +293,10 @@ impl Kernel {
             let mut cells = [edge.cell, edge.neighbor()?];
             cells.iter_mut().for_each(|cell| cell.y = walking_y);
             return Ok(cells.into_iter().map(|cell| {
-                (cell, [cell.x as f64 * spacing[0], (f64::from(cell.y) + 0.5) * spacing[1], cell.z as f64 * spacing[2]], "edge")
+                // A wall has one construction side class.  The contact wire
+                // reserves `origin` for that class; `landing` is reserved
+                // for the upper endpoint of a stair.
+                (cell, [cell.x as f64 * spacing[0], (f64::from(cell.y) + 0.5) * spacing[1], cell.z as f64 * spacing[2]], "origin")
             }).collect());
         }
         let ConstructionTarget::Cell { cell: origin, orientation } = site.target else { unreachable!() };

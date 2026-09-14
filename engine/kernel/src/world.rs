@@ -2459,7 +2459,7 @@ impl Kernel {
             None => { self.terrain_routes.remove(&entity); }
         }
     }
-    fn restore_routes(&mut self, saved: Vec<RouteSnapshot>) -> Result<()> {
+    fn restore_routes(&mut self, saved: Vec<RouteSnapshot>, defer_environment_validation: bool) -> Result<()> {
         if saved.len() > self.ids.len() {
             return Err("too many saved routes".into());
         }
@@ -2521,11 +2521,17 @@ impl Kernel {
                 if route.terrain_target.as_ref() != route.path.first() {
                     return Err("saved terrain route target witness mismatch".into());
                 }
-                let environment = self.environment.as_ref().ok_or("saved terrain route needs environment")?;
-                let stairs = environment.world.stair_edges().to_vec();
-                let structure = environment.world.structure_projection_snapshot();
-                if path.windows(2).any(|pair| structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true)) {
-                    return Err("saved terrain route crosses a sealed structure face".into());
+                // Entity snapshots are restored before the environment record
+                // in `restore_records`.  Keep the route witness intact here;
+                // geometry validation runs after the environment is installed.
+                if let Some(environment) = self.environment.as_ref() {
+                    let stairs = environment.world.stair_edges().to_vec();
+                    let structure = environment.world.structure_projection_snapshot();
+                    if path.windows(2).any(|pair| structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true)) {
+                        return Err("saved terrain route crosses a sealed structure face".into());
+                    }
+                } else if !defer_environment_validation {
+                    return Err("saved terrain route needs environment".into());
                 }
                 self.terrain_routes.insert(entity, TerrainRouteState {
                     path,
@@ -3118,7 +3124,7 @@ impl Kernel {
             return Err("atmosphere records require an environment".into());
         }
         let mut candidate = Self::new();
-        candidate.restore_json(&records.entities)?;
+        candidate.restore_json_with_route_policy(&records.entities, true)?;
         if let Some((definition, records)) = &records.environment {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
             let world = crate::terrain_water::TerrainWater::restore_records(
@@ -3220,6 +3226,9 @@ impl Kernel {
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
     pub fn restore_json(&mut self, input: &str) -> Result<()> {
+        self.restore_json_with_route_policy(input, false)
+    }
+    fn restore_json_with_route_policy(&mut self, input: &str, defer_environment_validation: bool) -> Result<()> {
         if self.environment.is_some() { return Err("environment worlds require restore_records".into()); }
         if input.len() > 8 * 1024 * 1024 {
             return Err("snapshot too large".into());
@@ -3245,7 +3254,7 @@ impl Kernel {
         if candidate.state_weight.saturating_add(route_bytes) > STATE_BYTES {
             return Err("route state exceeds canonical capacity".into());
         }
-        candidate.restore_routes(state.routes)?;
+        candidate.restore_routes(state.routes, defer_environment_validation)?;
         let mut direct = BTreeMap::new();
         if state.direct.len() > 16384 { return Err("too many direct streams".into()); }
         for saved in state.direct {
@@ -5442,6 +5451,10 @@ impl Kernel {
         let points = crate::terrain_route::waypoints_with_stairs(&state.path, crate::terrain_traversal::TraversalConfig {
             spacing, clearance_cells: capability.clearance_cells, max_step_cells: capability.max_step_cells,
         }, &stairs)?;
+        let structure = self.environment.as_ref().expect("environment checked above").world.structure_projection_snapshot();
+        if state.path.windows(2).any(|pair| structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true)) {
+            return Err("saved terrain route crosses a sealed structure face".into());
+        }
         if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&state.path, &stairs)? > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
         let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
             .ok_or("invalid terrain route progress")?;
