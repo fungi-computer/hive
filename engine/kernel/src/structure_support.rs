@@ -4,7 +4,7 @@
 //! support query and no material or geometry is mutated here.
 
 use crate::generation::Cell;
-use crate::structure_geometry::{fixture_cells, Cardinal, StaticGeometry, StaticInstance};
+use crate::structure_geometry::{fixture_cells, Cardinal, Face, StaticGeometry, StaticInstance};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 pub type TerrainSupportQuery<'a> = dyn FnMut(Cell) -> Result<bool, String> + 'a;
@@ -51,19 +51,22 @@ fn cardinal_delta(direction: Cardinal) -> (i64, i64) {
         Cardinal::West => (-1, 0),
     }
 }
-fn wall_top(base: Cell, height: u8) -> Result<Cell, String> {
-    Ok(Cell { y: base.y.checked_add(i32::from(height).checked_sub(1).ok_or("invalid wall height")?).ok_or("structure support coordinate overflow")?, ..base })
+fn wall_top(edge: Face, height: u8) -> Result<Face, String> {
+    Ok(Face { cell: Cell { y: edge.cell.y.checked_add(i32::from(height).checked_sub(1).ok_or("invalid wall height")?).ok_or("structure support coordinate overflow")?, ..edge.cell }, axis: edge.axis })
 }
 
-fn wall_support(base: Cell) -> Result<Cell, String> {
-    Ok(Cell { y: base.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..base })
+fn wall_support(edge: Face) -> Result<[Cell; 2], String> {
+    let lower = Cell { y: edge.cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..edge.cell };
+    let upper = Cell { y: lower.y, ..edge.neighbor()? };
+    Ok([lower, upper])
 }
 
 /// The load-bearing face immediately above a wall's highest occupied cell.
 /// `column_tops` intentionally retains the occupied-cell datum for column
 /// stacking; floors and spans consume this face as their support coordinate.
-fn wall_load_contact(base: Cell, height: u8) -> Result<Cell, String> {
-    Ok(Cell { y: base.y.checked_add(i32::from(height)).ok_or("structure support coordinate overflow")?, ..base })
+fn wall_load_cells(edge: Face, height: u8) -> Result<[Cell; 2], String> {
+    let y = edge.cell.y.checked_add(i32::from(height)).ok_or("structure support coordinate overflow")?;
+    Ok([Cell { y, ..edge.cell }, Cell { y, ..edge.neighbor()? }])
 }
 
 fn charge(work: &mut usize, policy: SupportPolicy) -> Result<(), String> {
@@ -186,11 +189,16 @@ pub fn resolve(
         let base = match instance {
             StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support,
             StaticInstance::Fixture { origin, .. } => Cell { y: origin.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*origin },
-            StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
+            StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. } => wall_support(*edge)?[0],
             StaticInstance::Stair { origin, .. } => *origin,
         };
         if support_at(base)? {
             terrain_anchors.insert(base);
+        }
+        if let StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. } = instance {
+            for support in wall_support(*edge)? {
+                if support_at(support)? { terrain_anchors.insert(support); }
+            }
         }
         // Fixtures are body occupancy only. Their support is checked below at
         // admission; they never become structural anchors for later objects.
@@ -268,11 +276,11 @@ pub fn resolve(
         for instance in instances {
             charge(&mut work, policy)?;
             match instance {
-                StaticInstance::Wall { id, base, height } | StaticInstance::ApertureWall { id, base, height, .. } if !rooted_walls.contains(id) && load_contacts.contains(&wall_support(*base)?) => {
+                StaticInstance::Wall { id, edge, height } | StaticInstance::ApertureWall { id, edge, height, .. } if !rooted_walls.contains(id) && wall_support(*edge)?.iter().any(|cell| load_contacts.contains(cell)) => {
                     rooted_walls.insert(id.clone());
                     rooted.insert(id.clone());
-                    column_tops.insert(wall_top(*base, *height)?);
-                    wall_load_contacts.insert(wall_load_contact(*base, *height)?);
+                    column_tops.insert(wall_top(*edge, *height)?.cell);
+                    wall_load_contacts.extend(wall_load_cells(*edge, *height)?);
                     changed = true;
                 }
                 StaticInstance::Stair { id, origin, orientation, run, rise } if !rooted_stairs.contains(id) && load_contacts.contains(origin) => {
@@ -328,7 +336,7 @@ pub fn candidate_supported(
     let support = match instance {
         StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support,
         StaticInstance::Fixture { origin, .. } => Cell { y: origin.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..*origin },
-        StaticInstance::Wall { base, .. } | StaticInstance::ApertureWall { base, .. } => wall_support(*base)?,
+        StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. } => wall_support(*edge)?[0],
         StaticInstance::Stair { origin, .. } => *origin,
     };
     if let StaticInstance::Fixture { origin, orientation, footprint, .. } = instance {
@@ -359,6 +367,9 @@ pub fn candidate_supported(
             let neighbor = cardinal_neighbor(support, dx, dz)?;
             if distances.get(&neighbor).is_some_and(|distance| distance.checked_add(1).is_some_and(|next| next <= max_span_steps)) { return Ok(true); }
         }
+    } else if matches!(instance, StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. }) {
+        let edge = match instance { StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. } => *edge, _ => unreachable!() };
+        if wall_support(edge)?.iter().any(|cell| base.load_contacts.contains(cell)) { return Ok(true); }
     } else if base.load_contacts.contains(&support) {
         return Ok(true);
     }
@@ -392,14 +403,13 @@ pub(crate) fn add_prospective_support(base: &mut SupportResult, instance: &Stati
             base.floor_surfaces.insert(*support);
             base.load_contacts.insert(*support);
         }
-        StaticInstance::Wall { base: support, height, .. } | StaticInstance::ApertureWall { base: support, height, .. } => {
-            let top = wall_top(*support, *height)?;
-            let load = wall_load_contact(*support, *height)?;
+        StaticInstance::Wall { edge: support, height, .. } | StaticInstance::ApertureWall { edge: support, height, .. } => {
+            let top = wall_top(*support, *height)?.cell;
+            let load = wall_load_cells(*support, *height)?;
             base.column_tops.insert(top);
-            base.load_contacts.insert(top);
-            base.load_contacts.insert(load);
+            base.load_contacts.extend(load.iter().copied());
             base.structural_anchors.insert(top);
-            base.structural_anchors.insert(load);
+            base.structural_anchors.extend(load);
         }
         StaticInstance::Stair { origin, orientation, run, rise, .. } => {
             let landing = stair_landing(*origin, *orientation, *run, *rise)?;
@@ -498,7 +508,7 @@ mod tests {
     fn prospective_pending_wall_supports_floor_in_stable_id_order() {
         let mut terrain_query = terrain(&[Cell { x: 0, y: 0, z: 0 }]);
         let base = resolve(&StaticGeometry::new(bounds(), Vec::new()).unwrap(), policy(6), &mut terrain_query).unwrap();
-        let wall = StaticInstance::Wall { id: "a-wall".into(), base: Cell { x: 0, y: 1, z: 0 }, height: 4 };
+        let wall = StaticInstance::Wall { id: "a-wall".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: crate::structure_geometry::FaceAxis::X }, height: 4 };
         let floor = StaticInstance::Floor { id: "z-floor".into(), support: Cell { x: 0, y: 5, z: 0 } };
         let mut projected = base.clone();
         assert!(candidate_supported(&projected, &wall, 6, &mut terrain(&[Cell { x: 0, y: 0, z: 0 }])).unwrap());
@@ -558,7 +568,7 @@ mod tests {
 
         let wall = StaticInstance::Wall {
             id: "wall".into(),
-            base: Cell { x: 4, y: 0, z: 0 },
+            edge: Face { cell: Cell { x: 4, y: 0, z: 0 }, axis: crate::structure_geometry::FaceAxis::X },
             height: 3,
         };
         let mut ground = terrain(&[Cell { x: 4, y: -1, z: 0 }]);
@@ -640,8 +650,8 @@ mod tests {
     #[test]
     fn rooted_column_stack_produces_signed_tops() {
         let geometry = StaticGeometry::new(bounds(), vec![
-            StaticInstance::Wall { id: "lower".into(), base: Cell { x: 0, y: -4, z: 0 }, height: 2 },
-            StaticInstance::Wall { id: "upper".into(), base: Cell { x: 0, y: -2, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "lower".into(), edge: Face { cell: Cell { x: 0, y: -4, z: 0 }, axis: crate::structure_geometry::FaceAxis::X }, height: 2 },
+            StaticInstance::Wall { id: "upper".into(), edge: Face { cell: Cell { x: 0, y: -2, z: 0 }, axis: crate::structure_geometry::FaceAxis::X }, height: 1 },
         ]).unwrap();
         let mut query = terrain(&[Cell { x: 0, y: -5, z: 0 }]);
         let result = resolve(&geometry, policy(1), &mut query).unwrap();
@@ -654,7 +664,7 @@ mod tests {
     fn completed_wall_makes_its_top_a_floor_anchor() {
         let wall = StaticInstance::Wall {
             id: "wall".into(),
-            base: Cell { x: 0, y: 1, z: 0 },
+            edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: crate::structure_geometry::FaceAxis::X },
             height: 4,
         };
         let floor = StaticInstance::Floor {
@@ -682,7 +692,7 @@ mod tests {
     fn floor_is_supported_by_the_face_above_a_wall() {
         let wall = StaticInstance::Wall {
             id: "wall".into(),
-            base: Cell { x: 2, y: 4, z: -1 },
+            edge: Face { cell: Cell { x: 2, y: 4, z: -1 }, axis: crate::structure_geometry::FaceAxis::X },
             height: 3,
         };
         let floor = StaticInstance::Floor {
@@ -700,7 +710,7 @@ mod tests {
     fn wall_then_floor_resolution_is_order_independent() {
         let wall = StaticInstance::Wall {
             id: "wall".into(),
-            base: Cell { x: 2, y: 4, z: -1 },
+            edge: Face { cell: Cell { x: 2, y: 4, z: -1 }, axis: crate::structure_geometry::FaceAxis::X },
             height: 3,
         };
         let floor = StaticInstance::Floor {

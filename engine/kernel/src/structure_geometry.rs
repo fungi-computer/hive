@@ -70,16 +70,21 @@ pub struct StairEdge {
     pub rise: u8,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum FaceAxis {
     X,
     Y,
     Z,
 }
 
+impl FaceAxis {
+    pub const fn is_vertical(self) -> bool { matches!(self, Self::X | Self::Z) }
+}
+
 /// Canonical undirected face between this cell and its positive-axis neighbor.
 /// A floor's top face is `Face::upward(floor.support)`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Face {
     pub cell: Cell,
     pub axis: FaceAxis,
@@ -111,16 +116,29 @@ impl Face {
     }
 }
 
+/// Convert a placement-side orientation into the canonical face whose lower
+/// neighbour is the selected support cell.
+pub fn edge_for_cell(cell: Cell, side: Cardinal) -> Face {
+    match side {
+        Cardinal::North => Face { cell: Cell { z: cell.z - 1, ..cell }, axis: FaceAxis::Z },
+        Cardinal::South => Face { cell, axis: FaceAxis::Z },
+        Cardinal::East => Face { cell, axis: FaceAxis::X },
+        Cardinal::West => Face { cell: Cell { x: cell.x - 1, ..cell }, axis: FaceAxis::X },
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum StaticInstance {
     Floor { id: String, support: Cell },
     Cover { id: String, support: Cell },
     Fixture { id: String, origin: Cell, orientation: Cardinal, footprint: Vec<[i8; 2]> },
-    Wall { id: String, base: Cell, height: u8 },
+    /// A wall occupies the vertical faces of one canonical X/Z edge. `edge.cell`
+    /// is the lower-index neighbour; it is never a cell-centred bulk column.
+    Wall { id: String, edge: Face, height: u8 },
     ApertureWall {
         id: String,
-        base: Cell,
+        edge: Face,
         height: u8,
         #[serde(rename = "openingBottom")]
         opening_bottom: u8,
@@ -164,30 +182,34 @@ impl StaticInstance {
                 for cell in fixture_cells(*origin, *orientation, footprint)? { if !contains(bounds, cell) || !cells.insert(cell) { return Err("invalid structure fixture footprint".into()); } }
                 Ok(footprint.len())
             }
-            Self::Wall { id, base, height } => {
+            Self::Wall { id, edge, height } => {
                 if !crate::components::valid_id(id) || *height == 0 || *height > MAX_WALL_HEIGHT {
                     return Err("invalid bounded structure wall".into());
                 }
+                validate_vertical_edge(*edge, bounds)?;
+                let neighbor = edge.neighbor()?;
                 for offset in 0..u32::from(*height) {
-                    let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure wall coordinate overflow")?)
+                    let y = edge.cell.y.checked_add(i32::try_from(offset).map_err(|_| "structure wall coordinate overflow")?)
                         .ok_or("structure wall coordinate overflow")?;
-                    if !contains(bounds, Cell { y, ..*base }) {
+                    if !contains(bounds, Cell { y, ..edge.cell }) || !contains(bounds, Cell { y, ..neighbor }) {
                         return Err("structure wall is outside generated bounds".into());
                     }
                 }
                 Ok(usize::from(*height))
             }
-            Self::ApertureWall { id, base, height, opening_bottom, opening_height, open } => {
+            Self::ApertureWall { id, edge, height, opening_bottom, opening_height, open } => {
                 if !crate::components::valid_id(id) || *height == 0 || *height > MAX_WALL_HEIGHT ||
                     *opening_height == 0 || u16::from(*opening_bottom) + u16::from(*opening_height) > u16::from(*height) {
                     return Err("invalid bounded aperture wall".into());
                 }
                 if u16::from(*opening_bottom) + u16::from(*opening_height) >= u16::from(*height) { return Err("aperture must retain a lintel".into()); }
+                validate_vertical_edge(*edge, bounds)?;
+                let neighbor = edge.neighbor()?;
                 let occupied = if *open { usize::from(*height - *opening_height) } else { usize::from(*height) };
                 for offset in 0..u32::from(*height) {
-                    let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
+                    let y = edge.cell.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
                         .ok_or("structure aperture coordinate overflow")?;
-                    if !contains(bounds, Cell { y, ..*base }) { return Err("structure aperture wall is outside generated bounds".into()); }
+                    if !contains(bounds, Cell { y, ..edge.cell }) || !contains(bounds, Cell { y, ..neighbor }) { return Err("structure aperture wall is outside generated bounds".into()); }
                 }
                 Ok(occupied)
             }
@@ -227,21 +249,23 @@ impl StaticInstance {
             }
             Self::Cover { support, .. } => { faces.insert(Face::upward(*support)); }
             Self::Fixture { .. } => {}
-            Self::Wall { base, height, .. } => {
+            Self::Wall { edge, height, .. } => {
                 for offset in 0..u32::from(*height) {
-                    let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure wall coordinate overflow")?)
+                    let y = edge.cell.y.checked_add(i32::try_from(offset).map_err(|_| "structure wall coordinate overflow")?)
                         .ok_or("structure wall coordinate overflow")?;
-                    if !solids.insert(Cell { y, ..*base }) {
-                        return Err("duplicate structure bulk occupied cell".into());
+                    if !faces.insert(Face { cell: Cell { y, ..edge.cell }, axis: edge.axis }) {
+                        return Err("duplicate structure boundary face".into());
                     }
                 }
             }
-            Self::ApertureWall { base, height, opening_bottom, opening_height, open, .. } => {
+            Self::ApertureWall { edge, height, opening_bottom, opening_height, open, .. } => {
                 for offset in 0..u32::from(*height) {
                     if *open && offset >= u32::from(*opening_bottom) && offset < u32::from(*opening_bottom + *opening_height) { continue; }
-                    let y = base.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
+                    let y = edge.cell.y.checked_add(i32::try_from(offset).map_err(|_| "structure aperture coordinate overflow")?)
                         .ok_or("structure aperture coordinate overflow")?;
-                    if !solids.insert(Cell { y, ..*base }) { return Err("duplicate structure bulk occupied cell".into()); }
+                    if !faces.insert(Face { cell: Cell { y, ..edge.cell }, axis: edge.axis }) {
+                        return Err("duplicate structure boundary face".into());
+                    }
                 }
             }
             Self::Stair { origin, orientation, run, rise, .. } => {
@@ -298,7 +322,7 @@ impl StaticGeometry {
 
     /// Save canonical instances only; projection indexes are rebuilt and validated.
     pub fn encode(&self) -> Result<Vec<u8>, String> {
-        let bytes = serde_json::to_vec(&(1u16, &self.instances)).map_err(|error| error.to_string())?;
+        let bytes = serde_json::to_vec(&(2u16, &self.instances)).map_err(|error| error.to_string())?;
         if bytes.len() > 256 * 1024 { return Err("structure record budget exceeded".into()); }
         Ok(bytes)
     }
@@ -307,7 +331,7 @@ impl StaticGeometry {
         if bytes.len() > 256 * 1024 { return Err("structure record budget exceeded".into()); }
         let (version, instances): (u16, Vec<StaticInstance>) = serde_json::from_slice(bytes)
             .map_err(|_| "invalid structure record")?;
-        if version != 1 { return Err("unsupported structure record version".into()); }
+        if version != 2 { return Err("unsupported structure record version".into()); }
         Self::new(bounds, instances)
     }
 
@@ -379,6 +403,22 @@ impl GeometryProjection {
             || self.solids.contains(&face.cell)
             || face.neighbor().is_ok_and(|neighbor| self.solids.contains(&neighbor))
     }
+    /// A horizontal move crosses the canonical face between its two cells.
+    /// Closed wall faces are obstacles while an aperture opening is absent
+    /// from `explicit_faces` and therefore remains passable.
+    pub fn blocks_crossing(&self, from: Cell, to: Cell) -> Result<bool, String> {
+        let dx = i128::from(to.x) - i128::from(from.x);
+        let dy = i64::from(to.y) - i64::from(from.y);
+        let dz = i128::from(to.z) - i128::from(from.z);
+        if dy != 0 || (dx.abs() + dz.abs()) != 1 {
+            return Err("structure crossing must be one cardinal horizontal step".into());
+        }
+        let (cell, axis) = if dx > 0 { (from, FaceAxis::X) }
+            else if dx < 0 { (to, FaceAxis::X) }
+            else if dz > 0 { (from, FaceAxis::Z) }
+            else { (to, FaceAxis::Z) };
+        Ok(self.is_face_sealed(Face { cell, axis }))
+    }
     pub fn supports(&self, cell: Cell) -> bool {
         self.solids.contains(&cell) || self.support_faces.contains(&Face::upward(cell))
     }
@@ -407,6 +447,17 @@ impl GeometryProjection {
 fn validate_bounds(bounds: Bounds) -> Result<(), String> {
     if bounds.min_x >= bounds.max_x || bounds.min_y >= bounds.max_y || bounds.min_z >= bounds.max_z {
         return Err("invalid structure geometry bounds".into());
+    }
+    Ok(())
+}
+
+fn validate_vertical_edge(edge: Face, bounds: Bounds) -> Result<(), String> {
+    if !edge.axis.is_vertical() {
+        return Err("wall edge must be vertical X/Z face".into());
+    }
+    let neighbor = edge.neighbor()?;
+    if !contains(bounds, edge.cell) || !contains(bounds, neighbor) {
+        return Err("wall edge is outside generated bounds".into());
     }
     Ok(())
 }
@@ -528,10 +579,10 @@ mod tests {
     fn negative_deep_coordinates_are_valid_and_outside_is_rejected() {
         let geometry = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
             id: "deep-wall".into(),
-            base: Cell { x: -31, y: -31, z: -31 },
+            edge: Face { cell: Cell { x: -31, y: -31, z: -31 }, axis: FaceAxis::X },
             height: 2,
         }]).unwrap();
-        assert!(geometry.projection().unwrap().is_bulk_solid(Cell { x: -31, y: -30, z: -31 }));
+        assert!(geometry.projection().unwrap().is_face_sealed(Face { cell: Cell { x: -31, y: -30, z: -31 }, axis: FaceAxis::X }));
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Floor {
             id: "outside-floor".into(),
             support: Cell { x: 32, y: 0, z: 0 },
@@ -544,8 +595,8 @@ mod tests {
         let geometry = StaticGeometry::new(bounds(), vec![floor("floor-a"), floor("floor-b")]).unwrap();
         assert_eq!(geometry.projection().unwrap().explicit_faces().count(), 1);
         assert!(StaticGeometry::new(bounds(), vec![
-            StaticInstance::Wall { id: "wall-a".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
-            StaticInstance::Wall { id: "wall-b".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "wall-a".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1 },
+            StaticInstance::Wall { id: "wall-b".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1 },
         ]).is_err());
     }
 
@@ -553,7 +604,7 @@ mod tests {
     fn horizontal_surfaces_keep_distinct_levels_and_stair_tops() {
         let geometry = StaticGeometry::new(bounds(), vec![
             StaticInstance::Floor { id: "low".into(), support: Cell { x: 0, y: 0, z: 0 } },
-            StaticInstance::Wall { id: "middle".into(), base: Cell { x: 0, y: 1, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "middle".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1 },
             StaticInstance::Floor { id: "high".into(), support: Cell { x: 0, y: 2, z: 0 } },
             StaticInstance::Stair { id: "stairs".into(), origin: Cell { x: 2, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 },
         ]).unwrap();
@@ -574,7 +625,7 @@ mod tests {
             id: "zero-run".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 0, rise: 4,
         }]).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
-            id: "".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1,
+            id: "".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1,
         }]).is_err());
     }
 
@@ -623,43 +674,72 @@ mod tests {
         assert_eq!(restored.projection().unwrap(), geometry.projection().unwrap());
         assert!(StaticGeometry::decode(bounds(), br#"[0,[]]"#).is_err());
         let overlapping = vec![
-            StaticInstance::Wall { id: "one".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
-            StaticInstance::Wall { id: "two".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 1 },
+            StaticInstance::Wall { id: "one".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1 },
+            StaticInstance::Wall { id: "two".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1 },
         ];
-        assert!(StaticGeometry::decode(bounds(), &serde_json::to_vec(&(1u16, overlapping)).unwrap()).is_err());
+        assert!(StaticGeometry::decode(bounds(), &serde_json::to_vec(&(2u16, overlapping)).unwrap()).is_err());
     }
 
     #[test]
     fn aperture_opening_preserves_rooted_frame_and_omits_only_open_interval() {
         let base = Cell { x: 0, y: -2, z: 0 };
         let closed = StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
-            id: "door".into(), base, height: 5, opening_bottom: 1, opening_height: 2, open: false,
+            id: "door".into(), edge: Face { cell: base, axis: FaceAxis::X }, height: 5, opening_bottom: 1, opening_height: 2, open: false,
         }]).unwrap().projection().unwrap();
         let open = StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
-            id: "door".into(), base, height: 5, opening_bottom: 1, opening_height: 2, open: true,
+            id: "door".into(), edge: Face { cell: base, axis: FaceAxis::X }, height: 5, opening_bottom: 1, opening_height: 2, open: true,
         }]).unwrap().projection().unwrap();
-        assert!(closed.is_bulk_solid(base));
-        assert!(closed.is_bulk_solid(Cell { y: 0, ..base }));
-        assert!(open.is_bulk_solid(base));
-        assert!(!open.is_bulk_solid(Cell { y: -1, ..base }));
-        assert!(!open.is_bulk_solid(Cell { y: 0, ..base }));
-        assert!(open.is_bulk_solid(Cell { y: 1, ..base }));
-        assert!(open.supports(base));
-        assert!(open.supports(Cell { y: 1, ..base }));
+        assert!(closed.is_face_sealed(Face { cell: base, axis: FaceAxis::X }));
+        assert!(closed.is_face_sealed(Face { cell: Cell { y: 0, ..base }, axis: FaceAxis::X }));
+        assert!(open.is_face_sealed(Face { cell: base, axis: FaceAxis::X }));
+        assert!(!open.is_face_sealed(Face { cell: Cell { y: -1, ..base }, axis: FaceAxis::X }));
+        assert!(!open.is_face_sealed(Face { cell: Cell { y: 0, ..base }, axis: FaceAxis::X }));
+        assert!(open.is_face_sealed(Face { cell: Cell { y: 1, ..base }, axis: FaceAxis::X }));
     }
 
     #[test]
     fn aperture_opening_bounds_are_rejected_before_projection() {
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
-            id: "bad".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 4, opening_bottom: 3, opening_height: 2, open: true,
+            id: "bad".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 4, opening_bottom: 3, opening_height: 2, open: true,
         }]).is_err());
         assert!(StaticGeometry::new(bounds(), vec![StaticInstance::ApertureWall {
-            id: "bad".into(), base: Cell { x: 0, y: 0, z: 0 }, height: 4, opening_bottom: 0, opening_height: 0, open: false,
+            id: "bad".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 4, opening_bottom: 0, opening_height: 0, open: false,
         }]).is_err());
     }
 
     #[test]
     fn metric_height_rejects_vertical_faces() {
         assert!(Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }.metric_height(0.54).is_err());
+    }
+
+    #[test]
+    fn edge_targets_canonicalize_both_sides_to_one_boundary() {
+        let east = edge_for_cell(Cell { x: 4, y: 14, z: 2 }, Cardinal::East);
+        let west = edge_for_cell(Cell { x: 5, y: 14, z: 2 }, Cardinal::West);
+        assert_eq!(east, west);
+        assert_eq!(east.axis, FaceAxis::X);
+    }
+
+    #[test]
+    fn wall_is_a_vertical_boundary_and_blocks_only_its_crossing() {
+        let edge = Face { cell: Cell { x: 0, y: 14, z: 0 }, axis: FaceAxis::X };
+        let projection = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "edge-wall".into(), edge, height: 4,
+        }]).unwrap().projection().unwrap();
+        assert!(!projection.is_bulk_solid(edge.cell));
+        assert!(projection.blocks_crossing(Cell { x: 0, y: 14, z: 0 }, Cell { x: 1, y: 14, z: 0 }).unwrap());
+        assert!(!projection.blocks_crossing(Cell { x: 0, y: 13, z: 0 }, Cell { x: 1, y: 13, z: 0 }).unwrap());
+        assert!(!projection.blocks_crossing(Cell { x: 0, y: 14, z: 1 }, Cell { x: 1, y: 14, z: 1 }).unwrap());
+    }
+
+    #[test]
+    fn wall_height_four_base_fourteen_meets_floor_support_seventeen() {
+        let edge = Face { cell: Cell { x: 0, y: 14, z: 0 }, axis: FaceAxis::X };
+        let projection = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "support-wall".into(), edge, height: 4,
+        }]).unwrap().projection().unwrap();
+        assert!(projection.is_face_sealed(Face { cell: Cell { y: 17, ..edge.cell }, axis: FaceAxis::X }));
+        let upper = Cell { x: 0, y: 17, z: 0 };
+        assert!(!projection.is_bulk_solid(upper));
     }
 }
