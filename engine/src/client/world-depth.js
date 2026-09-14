@@ -50,7 +50,7 @@ export function worldDepthBounds(items, towardCamera, margin = 0.001) {
   let nearDepth = -Infinity;
   let farDepth = Infinity;
   for (const item of items) {
-    if (item.visible === false) continue;
+    if (item.visible === false || item.preview === true) continue;
     const range = depthRange(item);
     const origin = originDepth(item, basis);
     nearDepth = Math.max(nearDepth, origin + range.max);
@@ -170,7 +170,7 @@ export function createWorldDepthPicker({
     const nextBasis = worldDepthBasis(towardCamera);
     const nextBuckets = new Map();
     for (const item of items) {
-      if (item.visible === false) continue;
+      if (item.visible === false || item.preview === true) continue;
       const screen = screenFrame(item);
       const record = { item, screen };
       const minX = Math.floor(screen.left / bucketSize);

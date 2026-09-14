@@ -91,6 +91,14 @@ test("screen buckets preserve scaled pixels and permutation-stable winners", () 
   }
 });
 
+test("preview items are excluded from depth bounds and CPU picking", () => {
+  const preview = item("preview", 1, { preview: true });
+  const picker = createWorldDepthPicker();
+  picker.update([preview], [1, 0, 0]);
+  assert.equal(picker.pick({ x: 32, y: 32 }), null);
+  assert.equal(worldDepthBounds([preview], [1, 0, 0]), null);
+});
+
 test("transparent water is bounded, deterministic, alpha checked, and non-pickable", () => {
   const water = (id, order = 1) => ({ entityId: id, visualPartId: "surface", physicalRole: "water", order, alpha: 0.7, pickable: false });
   assert.deepEqual(transparentWorldComposition([water("b"), water("a")]).map(item => item.entityId), ["a", "b"]);

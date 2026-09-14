@@ -205,7 +205,7 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
 
   function update(items, towardCamera) {
     if (disposed) throw new Error("world depth layer is disposed");
-    const visible = items.filter((item) => item.visible !== false);
+    const visible = items.filter((item) => item.visible !== false && item.preview !== true);
     const bounds = worldDepthBounds(visible, towardCamera);
     activeBounds = bounds;
     const basis = worldDepthBasis(towardCamera);
