@@ -346,13 +346,37 @@ fn admitted() -> (Kernel, String) {
     kernel
         .admit_process(&process, "herbal-ale-v1", "station")
         .unwrap();
+    let party = kernel.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
+    kernel.ids.insert("party:process".into(), party);
+    kernel.known.insert("party:process".into());
+    let worker = kernel.entity("worker").unwrap();
+    kernel.ecs.entity_mut(worker).insert(PartyMember { party: "party:process".into() });
+    kernel.ecs.entity_mut(kernel.entity(&process).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+    kernel.refresh_state_weight();
     (kernel, process)
+}
+
+/// Advance one native attendance operation through the durable attempt owner.
+/// The first call begins the process operation; later calls continue its exact
+/// operation or acknowledge a retained terminal result before retrying.
+fn attend_tick(kernel: &mut Kernel, process: &str, delta: f64) -> String {
+    let action = if let Some(entity) = kernel.work_attempts.get(process).copied() {
+        let attempt = kernel.ecs.get::<WorkAttempt>(entity).unwrap();
+        match &attempt.phase {
+            AttemptPhase::Executing { operation, .. } => json!({"kind":"continue-work-attempt","task":process,"generation":attempt.key.generation,"sequence":operation.sequence,"nextActivity":{"kind":"process-attendance","process":process}}),
+            AttemptPhase::Outcome { operation, .. } => json!({"kind":"acknowledge-work-attempt","task":process,"generation":attempt.key.generation,"sequence":operation.sequence}),
+            _ => panic!("unexpected process attempt phase"),
+        }
+    } else {
+        json!({"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process}})
+    };
+    kernel.advance_json(&json!({"delta":delta,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:process"},"request":action}]}).to_string()).unwrap()
 }
 
 #[test]
 fn split_bindings_are_consumed_once_and_retained_bindings_survive() {
     let (mut kernel, process) = admitted();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     assert_eq!(
         kernel
             .ecs
@@ -385,7 +409,7 @@ fn split_bindings_are_consumed_once_and_retained_bindings_survive() {
 #[test]
 fn prepare_emits_on_next_tick_and_fermentation_survives_save_reload() {
     let (mut kernel, process) = admitted();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     let paid = kernel.snapshot_entities_json().unwrap();
     assert!(kernel
         .environment
@@ -442,14 +466,14 @@ fn prepare_emits_on_next_tick_and_fermentation_survives_save_reload() {
 #[test]
 fn final_outputs_use_retained_keg_and_distinct_tray_lots() {
     let (mut kernel, _process) = admitted();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     let lots: Vec<_> = kernel
         .ecs
         .query::<&Lot>()
@@ -500,7 +524,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .unwrap()
         .insert(filler);
     kernel.refresh_state_weight();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     kernel
         .advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#)
         .unwrap();
@@ -509,7 +533,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .unwrap();
     let before_lots = kernel.query_json(r#"["hive.lot"]"#).unwrap();
     let before_bindings = kernel.query_json(r#"["hive.process-binding"]"#).unwrap();
-    let blocked: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap()).unwrap();
+    let blocked: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
     assert_eq!(blocked["results"][0]["accepted"], true);
     assert_eq!(kernel.query_json(r#"["hive.lot"]"#).unwrap(), before_lots);
     assert_eq!(
@@ -526,14 +550,14 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .entity_mut(tray)
         .insert(Container { capacity: 16 });
     kernel.refresh_state_weight();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     let ale_count = kernel
         .ecs
         .query::<&Lot>()
         .iter(&kernel.ecs)
         .filter(|lot| lot.kind == "ale")
         .count();
-    let repeated: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap()).unwrap();
+    let repeated: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
     assert_eq!(repeated["results"][0]["accepted"], false);
     assert_eq!(
         kernel
@@ -566,7 +590,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
     let before = kernel
         .query_json(r#"["hive.lot","hive.process-binding"]"#)
         .unwrap();
-    let blocked: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap()).unwrap();
+    let blocked: serde_json::Value = serde_json::from_str(&attend_tick(&mut kernel, &process, 1.0)).unwrap();
     assert_eq!(blocked["results"][0]["accepted"], true);
     assert_eq!(
         kernel
@@ -606,7 +630,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
             });
     }
     kernel.rebuild_physical_indexes(true).unwrap();
-    kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"attend-process","worker":"worker","process":"process:station:herbal-ale-v1"}}]}"#).unwrap();
+    attend_tick(&mut kernel, &process, 1.0);
     assert_eq!(kernel.environment.as_ref().unwrap().paid_emissions.len(), 1);
     assert!(kernel
         .environment
