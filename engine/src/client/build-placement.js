@@ -2,7 +2,7 @@ import { rotatePlacementPoint } from "./art-placement.js";
 
 /** Resolve an ordered structure sprite to its canonical physical support face. */
 export function structureSurfaceFromSprite(node, subject, point, displayed, project) {
-  if (!node?.target || node.role !== "structure" || !subject?.placement || !displayed?.structureSurfaces || !Number.isFinite(displayed.verticalMetres)) return null;
+  if (!(node?.target ?? node?.id) || node.role !== "structure" || !subject?.placement || !displayed?.structureSurfaces || !Number.isFinite(displayed.verticalMetres)) return null;
   const supportLevel = Math.round(subject.y / displayed.verticalMetres - 0.5);
   const localCells = subject.placement.kind === "footprint"
     ? subject.placement.footprint.map(([x, z]) => ({ x, z, level: supportLevel }))

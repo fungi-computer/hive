@@ -75,7 +75,7 @@ test("stair resolution follows actual step faces for every orientation", () => {
 test("ordered structure picking falls through actors and trees to the canonical structure", () => {
   const bed = subject({ kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" });
   const candidates = [
-    { id: "bed", target: "site", role: "structure", contains: () => true },
+    { id: "site", role: "structure", contains: () => true },
     { id: "tree", target: "tree", role: "structure", contains: () => true },
     { id: "actor", target: "actor", role: "actor", contains: () => true },
   ];
