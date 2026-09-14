@@ -153,6 +153,7 @@ export type WriteIntent = {
   readonly value: unknown;
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
+export type EdgeTarget = { readonly cell: readonly [number, number, number]; readonly axis: "x" | "z" };
 export type ActionRequest =
   | { readonly kind: "establish-party"; readonly bindingId: string; readonly expectedSequence: number; readonly records: readonly EntityRecord[] }
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
@@ -194,6 +195,7 @@ export type ActionRequest =
       readonly y: number;
       readonly z: number;
       readonly orientation: CardinalOrientation;
+      readonly edges?: readonly EdgeTarget[];
     }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }

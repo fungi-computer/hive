@@ -51,21 +51,17 @@ fn cardinal_delta(direction: Cardinal) -> (i64, i64) {
         Cardinal::West => (-1, 0),
     }
 }
-fn wall_top(edge: Face, height: u8) -> Result<Face, String> {
-    Ok(Face { cell: Cell { y: edge.cell.y.checked_add(i32::from(height).checked_sub(1).ok_or("invalid wall height")?).ok_or("structure support coordinate overflow")?, ..edge.cell }, axis: edge.axis })
-}
-
 fn wall_support(edge: Face) -> Result<[Cell; 2], String> {
     let lower = Cell { y: edge.cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..edge.cell };
     let upper = Cell { y: lower.y, ..edge.neighbor()? };
     Ok([lower, upper])
 }
 
-/// The load-bearing face immediately above a wall's highest occupied cell.
-/// `column_tops` intentionally retains the occupied-cell datum for column
-/// stacking; floors and spans consume this face as their support coordinate.
+/// The load-bearing support cells at the wall's highest occupied voxel.
+/// Both adjacent cells meet the same top edge and therefore can root a floor
+/// or another wall on this timber boundary.
 fn wall_load_cells(edge: Face, height: u8) -> Result<[Cell; 2], String> {
-    let y = edge.cell.y.checked_add(i32::from(height)).ok_or("structure support coordinate overflow")?;
+    let y = edge.cell.y.checked_add(i32::from(height).checked_sub(1).ok_or("invalid wall height")?).ok_or("structure support coordinate overflow")?;
     Ok([Cell { y, ..edge.cell }, Cell { y, ..edge.neighbor()? }])
 }
 
@@ -279,8 +275,9 @@ pub fn resolve(
                 StaticInstance::Wall { id, edge, height } | StaticInstance::ApertureWall { id, edge, height, .. } if !rooted_walls.contains(id) && wall_support(*edge)?.iter().any(|cell| load_contacts.contains(cell)) => {
                     rooted_walls.insert(id.clone());
                     rooted.insert(id.clone());
-                    column_tops.insert(wall_top(*edge, *height)?.cell);
-                    wall_load_contacts.extend(wall_load_cells(*edge, *height)?);
+                    let loads = wall_load_cells(*edge, *height)?;
+                    column_tops.extend(loads);
+                    wall_load_contacts.extend(loads);
                     changed = true;
                 }
                 StaticInstance::Stair { id, origin, orientation, run, rise } if !rooted_stairs.contains(id) && load_contacts.contains(origin) => {
@@ -348,6 +345,12 @@ pub fn candidate_supported(
         }
         return Ok(true);
     }
+    if let StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. } = instance {
+        let supports = wall_support(*edge)?;
+        for cell in supports {
+            if terrain_support(cell)? { return Ok(true); }
+        }
+    }
     if terrain_support(support)? { return Ok(true); }
     if matches!(instance, StaticInstance::Floor { .. } | StaticInstance::Cover { .. }) && base.structural_anchors.contains(&support) { return Ok(true); }
     if matches!(instance, StaticInstance::Floor { .. } | StaticInstance::Cover { .. }) {
@@ -367,7 +370,7 @@ pub fn candidate_supported(
             let neighbor = cardinal_neighbor(support, dx, dz)?;
             if distances.get(&neighbor).is_some_and(|distance| distance.checked_add(1).is_some_and(|next| next <= max_span_steps)) { return Ok(true); }
         }
-    } else if matches!(instance, StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. }) {
+    } else if matches!(instance, StaticInstance::Wall { .. } | StaticInstance::ApertureWall { .. }) {
         let edge = match instance { StaticInstance::Wall { edge, .. } | StaticInstance::ApertureWall { edge, .. } => *edge, _ => unreachable!() };
         if wall_support(edge)?.iter().any(|cell| base.load_contacts.contains(cell)) { return Ok(true); }
     } else if base.load_contacts.contains(&support) {
@@ -404,11 +407,9 @@ pub(crate) fn add_prospective_support(base: &mut SupportResult, instance: &Stati
             base.load_contacts.insert(*support);
         }
         StaticInstance::Wall { edge: support, height, .. } | StaticInstance::ApertureWall { edge: support, height, .. } => {
-            let top = wall_top(*support, *height)?.cell;
             let load = wall_load_cells(*support, *height)?;
-            base.column_tops.insert(top);
+            base.column_tops.extend(load);
             base.load_contacts.extend(load.iter().copied());
-            base.structural_anchors.insert(top);
             base.structural_anchors.extend(load);
         }
         StaticInstance::Stair { origin, orientation, run, rise, .. } => {
@@ -513,7 +514,7 @@ mod tests {
         let mut projected = base.clone();
         assert!(candidate_supported(&projected, &wall, 6, &mut terrain(&[Cell { x: 0, y: 0, z: 0 }])).unwrap());
         add_prospective_support(&mut projected, &wall, 6, None).unwrap();
-        assert!(projected.load_contacts.contains(&Cell { x: 0, y: 5, z: 0 }));
+        assert!(projected.load_contacts.contains(&Cell { x: 0, y: 4, z: 0 }));
         let reverse = base;
         assert!(!candidate_supported(&reverse, &floor, 6, &mut terrain(&[])).unwrap());
         assert!(!candidate_supported(&reverse, &wall, 6, &mut terrain(&[])).unwrap());
@@ -573,11 +574,11 @@ mod tests {
         };
         let mut ground = terrain(&[Cell { x: 4, y: -1, z: 0 }]);
         let wall_base = resolve(&StaticGeometry::new(bounds(), vec![wall]).unwrap(), policy(2), &mut ground).unwrap();
-        let wall_contact = Cell { x: 4, y: 3, z: 0 };
+        let wall_contact = Cell { x: 4, y: 2, z: 0 };
         assert!(wall_base.structural_anchors.contains(&wall_contact));
-        let wall_adjacent = Cell { x: 5, y: 3, z: 0 };
+        let wall_adjacent = Cell { x: 5, y: 2, z: 0 };
         let mut no_terrain = terrain(&[]);
-        assert_eq!(candidate_floor_distance(&wall_base, wall_adjacent, 1, &mut no_terrain).unwrap(), Some(1));
+        assert_eq!(candidate_floor_distance(&wall_base, wall_adjacent, 1, &mut no_terrain).unwrap(), Some(0));
 
         let mut chained = wall_base.clone();
         chained.floor_distances.insert(wall_adjacent, 1);
@@ -697,13 +698,13 @@ mod tests {
         };
         let floor = StaticInstance::Floor {
             id: "floor".into(),
-            support: Cell { x: 2, y: 7, z: -1 },
+            support: Cell { x: 2, y: 6, z: -1 },
         };
         let geometry = StaticGeometry::new(bounds(), vec![wall, floor]).unwrap();
         let mut ground = terrain(&[Cell { x: 2, y: 3, z: -1 }]);
         let result = resolve(&geometry, policy(1), &mut ground).unwrap();
         assert!(result.unsupported.is_empty());
-        assert!(result.load_contacts.contains(&Cell { x: 2, y: 7, z: -1 }));
+        assert!(result.load_contacts.contains(&Cell { x: 2, y: 6, z: -1 }));
     }
 
     #[test]
@@ -715,7 +716,7 @@ mod tests {
         };
         let floor = StaticInstance::Floor {
             id: "floor".into(),
-            support: Cell { x: 2, y: 7, z: -1 },
+            support: Cell { x: 2, y: 6, z: -1 },
         };
         let mut first = terrain(&[Cell { x: 2, y: 3, z: -1 }]);
         let forward = resolve(
@@ -732,6 +733,30 @@ mod tests {
         assert_eq!(forward.unsupported, reverse.unsupported);
         assert_eq!(forward.supported, reverse.supported);
         assert_eq!(forward.load_contacts, reverse.load_contacts);
+    }
+
+    #[test]
+    fn wall_base_fourteen_height_four_supports_floor_seventeen_on_both_sides() {
+        let edge = Face { cell: Cell { x: 0, y: 14, z: 0 }, axis: crate::structure_geometry::FaceAxis::X };
+        let wall = StaticInstance::Wall { id: "wall".into(), edge, height: 4 };
+        let left = StaticInstance::Floor { id: "left".into(), support: Cell { x: 0, y: 17, z: 0 } };
+        let right = StaticInstance::Floor { id: "right".into(), support: Cell { x: 1, y: 17, z: 0 } };
+        let geometry = StaticGeometry::new(bounds(), vec![wall, left, right]).unwrap();
+        let mut ground = terrain(&[Cell { x: 0, y: 13, z: 0 }, Cell { x: 1, y: 13, z: 0 }]);
+        let result = resolve(&geometry, policy(1), &mut ground).unwrap();
+        assert!(result.unsupported.is_empty());
+        assert!(result.load_contacts.contains(&Cell { x: 0, y: 17, z: 0 }));
+        assert!(result.load_contacts.contains(&Cell { x: 1, y: 17, z: 0 }));
+    }
+
+    #[test]
+    fn stacked_wall_on_same_edge_uses_both_top_contacts() {
+        let edge = Face { cell: Cell { x: 0, y: 14, z: 0 }, axis: crate::structure_geometry::FaceAxis::X };
+        let lower = StaticInstance::Wall { id: "lower".into(), edge, height: 4 };
+        let upper = StaticInstance::Wall { id: "upper".into(), edge: Face { cell: Cell { y: 18, ..edge.cell }, axis: edge.axis }, height: 2 };
+        let geometry = StaticGeometry::new(bounds(), vec![lower, upper]).unwrap();
+        let mut ground = terrain(&[Cell { x: 0, y: 13, z: 0 }, Cell { x: 1, y: 13, z: 0 }]);
+        assert!(resolve(&geometry, policy(1), &mut ground).unwrap().unsupported.is_empty());
     }
 
     #[test]

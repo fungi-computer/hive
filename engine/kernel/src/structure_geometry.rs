@@ -118,12 +118,12 @@ impl Face {
 
 /// Convert a placement-side orientation into the canonical face whose lower
 /// neighbour is the selected support cell.
-pub fn edge_for_cell(cell: Cell, side: Cardinal) -> Face {
+pub fn edge_for_cell(cell: Cell, side: Cardinal) -> Result<Face, String> {
     match side {
-        Cardinal::North => Face { cell: Cell { z: cell.z - 1, ..cell }, axis: FaceAxis::Z },
-        Cardinal::South => Face { cell, axis: FaceAxis::Z },
-        Cardinal::East => Face { cell, axis: FaceAxis::X },
-        Cardinal::West => Face { cell: Cell { x: cell.x - 1, ..cell }, axis: FaceAxis::X },
+        Cardinal::North => Ok(Face { cell: Cell { z: cell.z.checked_sub(1).ok_or("edge z underflow")?, ..cell }, axis: FaceAxis::Z }),
+        Cardinal::South => Ok(Face { cell, axis: FaceAxis::Z }),
+        Cardinal::East => Ok(Face { cell, axis: FaceAxis::X }),
+        Cardinal::West => Ok(Face { cell: Cell { x: cell.x.checked_sub(1).ok_or("edge x underflow")?, ..cell }, axis: FaceAxis::X }),
     }
 }
 
@@ -419,6 +419,60 @@ impl GeometryProjection {
             else { (to, FaceAxis::Z) };
         Ok(self.is_face_sealed(Face { cell, axis }))
     }
+    /// Validate the swept boundary for one admitted terrain edge. Flat moves
+    /// cross at their shared support height; hops cross at the upper height on
+    /// ascent and the lower height on descent. Stair spans check every
+    /// horizontal face touched by their rising sweep.
+    pub fn blocks_swept_transition(&self, from: Cell, to: Cell, stairs: &[StairEdge]) -> Result<bool, String> {
+        if let Some(stair) = stairs.iter().find(|stair| (stair.entrance == from && stair.landing == to) || (stair.entrance == to && stair.landing == from)) {
+            let forward = stair.entrance == from;
+            let start = if forward { stair.entrance } else { stair.landing };
+            let (mut dx, mut dz) = stair.orientation.delta();
+            let run = i64::from(stair.run);
+            if run == 0 { return Err("stair sweep has zero run".into()); }
+            let rise = if forward { i64::from(stair.rise) } else { -i64::from(stair.rise) };
+            if !forward { dx = -dx; dz = -dz; }
+            for step in 0..run {
+                let x = start.x.checked_add(dx.checked_mul(step).ok_or("stair sweep x overflow")?).ok_or("stair sweep x overflow")?;
+                let z = start.z.checked_add(dz.checked_mul(step).ok_or("stair sweep z overflow")?).ok_or("stair sweep z overflow")?;
+                let next = Cell { x: x.checked_add(dx).ok_or("stair sweep x overflow")?, y: start.y, z: z.checked_add(dz).ok_or("stair sweep z overflow")? };
+                let y0 = start.y.checked_add(i32::try_from((step * rise) / run).map_err(|_| "stair sweep y overflow")?).ok_or("stair sweep y overflow")?;
+                let y1 = start.y.checked_add(i32::try_from(((step + 1) * rise) / run).map_err(|_| "stair sweep y overflow")?).ok_or("stair sweep y overflow")?;
+                let low = y0.min(y1);
+                let high = y0.max(y1);
+                for y in low..=high {
+                    if self.blocks_crossing(Cell { y, ..Cell { x, y: start.y, z } }, Cell { y, ..next })? { return Ok(true); }
+                }
+            }
+            return Ok(false);
+        }
+        let dx = i128::from(to.x) - i128::from(from.x);
+        let dz = i128::from(to.z) - i128::from(from.z);
+        let dy = i64::from(to.y) - i64::from(from.y);
+        if dx.abs() + dz.abs() != 1 || dy.abs() > 1 { return Err("invalid swept terrain transition".into()); }
+        let low = from.y.min(to.y);
+        let high = from.y.max(to.y);
+        for y in low..=high {
+            if self.blocks_crossing(Cell { y, ..from }, Cell { y, ..to })? { return Ok(true); }
+        }
+        Ok(false)
+    }
+
+    /// Check a direct-control segment using both possible cardinal
+    /// decompositions. A decomposition is open only when both of its faces
+    /// are open; one open decomposition is sufficient for the diagonal.
+    pub fn blocks_direct_decomposition(&self, from: Cell, to: Cell) -> Result<bool, String> {
+        if from == to { return Ok(false); }
+        if from.y != to.y { return Err("direct structure transition changes height".into()); }
+        if from.x != to.x && from.z != to.z {
+            let via_x = Cell { x: to.x, ..from };
+            let via_z = Cell { z: to.z, ..from };
+            let x_open = !self.blocks_crossing(from, via_x)? && !self.blocks_crossing(via_x, to)?;
+            let z_open = !self.blocks_crossing(from, via_z)? && !self.blocks_crossing(via_z, to)?;
+            return Ok(!x_open && !z_open);
+        }
+        self.blocks_crossing(from, to)
+    }
     pub fn supports(&self, cell: Cell) -> bool {
         self.solids.contains(&cell) || self.support_faces.contains(&Face::upward(cell))
     }
@@ -611,7 +665,7 @@ mod tests {
         let projection = geometry.projection().unwrap();
         let columns = [(0, 0), (3, 0)].into_iter().collect();
         let surfaces = projection.horizontal_surfaces(&columns);
-        assert_eq!(surfaces[&(0, 0)], vec![Cell { x: 0, y: 1, z: 0 }, Cell { x: 0, y: 2, z: 0 }]);
+        assert_eq!(surfaces[&(0, 0)], vec![Cell { x: 0, y: 0, z: 0 }, Cell { x: 0, y: 2, z: 0 }]);
         assert_eq!(surfaces[&(3, 0)], vec![Cell { x: 3, y: 1, z: 0 }]);
     }
 
@@ -714,8 +768,8 @@ mod tests {
 
     #[test]
     fn edge_targets_canonicalize_both_sides_to_one_boundary() {
-        let east = edge_for_cell(Cell { x: 4, y: 14, z: 2 }, Cardinal::East);
-        let west = edge_for_cell(Cell { x: 5, y: 14, z: 2 }, Cardinal::West);
+        let east = edge_for_cell(Cell { x: 4, y: 14, z: 2 }, Cardinal::East).unwrap();
+        let west = edge_for_cell(Cell { x: 5, y: 14, z: 2 }, Cardinal::West).unwrap();
         assert_eq!(east, west);
         assert_eq!(east.axis, FaceAxis::X);
     }
@@ -741,5 +795,43 @@ mod tests {
         assert!(projection.is_face_sealed(Face { cell: Cell { y: 17, ..edge.cell }, axis: FaceAxis::X }));
         let upper = Cell { x: 0, y: 17, z: 0 };
         assert!(!projection.is_bulk_solid(upper));
+    }
+
+    #[test]
+    fn swept_hop_checks_upper_ascent_and_lower_descent_faces() {
+        let ascent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "upper".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
+        }]).unwrap().projection().unwrap();
+        assert!(ascent.blocks_swept_transition(Cell { x: 0, y: 0, z: 0 }, Cell { x: 1, y: 1, z: 0 }, &[]).unwrap());
+        let lower_ascent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "lower-ascent".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1,
+        }]).unwrap().projection().unwrap();
+        assert!(lower_ascent.blocks_swept_transition(Cell { x: 0, y: 0, z: 0 }, Cell { x: 1, y: 1, z: 0 }, &[]).unwrap());
+        let descent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "lower".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 1,
+        }]).unwrap().projection().unwrap();
+        assert!(descent.blocks_swept_transition(Cell { x: 1, y: 1, z: 0 }, Cell { x: 0, y: 0, z: 0 }, &[]).unwrap());
+        let upper_descent = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "upper-descent".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
+        }]).unwrap().projection().unwrap();
+        assert!(upper_descent.blocks_swept_transition(Cell { x: 1, y: 1, z: 0 }, Cell { x: 0, y: 0, z: 0 }, &[]).unwrap());
+    }
+
+    #[test]
+    fn swept_stair_checks_each_rising_horizontal_face() {
+        let projection = StaticGeometry::new(bounds(), vec![StaticInstance::Wall {
+            id: "stair-wall".into(), edge: Face { cell: Cell { x: 1, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1,
+        }]).unwrap().projection().unwrap();
+        let stair = StairEdge { id: "stair".into(), entrance: Cell { x: 0, y: 0, z: 0 }, landing: Cell { x: 2, y: 2, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        assert!(projection.blocks_swept_transition(stair.entrance, stair.landing, &[stair]).unwrap());
+    }
+
+    #[test]
+    fn direct_diagonal_requires_one_complete_open_cardinal_decomposition() {
+        let projection = StaticGeometry::new(bounds(), vec![
+            StaticInstance::Wall { id: "x".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 1 }, axis: FaceAxis::X }, height: 1 },
+            StaticInstance::Wall { id: "z".into(), edge: Face { cell: Cell { x: 1, y: 0, z: 0 }, axis: FaceAxis::Z }, height: 1 },
+        ]).unwrap().projection().unwrap();
+        assert!(projection.blocks_direct_decomposition(Cell { x: 0, y: 0, z: 0 }, Cell { x: 1, y: 0, z: 1 }).unwrap());
     }
 }
