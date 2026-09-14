@@ -2,6 +2,17 @@
 use super::*;
 
 impl Kernel {
+    pub(super) fn validate_deconstruction_work(&mut self) -> Result<()> {
+        let mut query = self.ecs.query::<(Entity, &ExternalId, &DeconstructionWork)>();
+        for (task_entity, _id, work) in query.iter(&self.ecs) {
+            if !work.site.is_empty() && (!work.seconds.is_finite() || work.seconds < 0.0 || !work.required_seconds.is_finite() || work.required_seconds < work.seconds) { return Err("invalid deconstruction progress".into()); }
+            let attempt = self.ecs.get::<WorkAttempt>(task_entity).ok_or("deconstruction progress has no work attempt")?;
+            let activity = match &attempt.phase { AttemptPhase::Executing { activity: ActivityRef::Deconstruction { site, contact }, .. } | AttemptPhase::Outcome { activity: ActivityRef::Deconstruction { site, contact }, .. } => (site, contact), _ => return Err("deconstruction progress activity mismatch".into()) };
+            if activity.0 != &work.site || activity.1.x != work.contact_x || activity.1.y != work.contact_y || activity.1.z != work.contact_z { return Err("deconstruction progress target mismatch".into()); }
+        }
+        Ok(())
+    }
+
     pub(super) fn request_deconstruction_for_attempt(&mut self, task: &str, site: String, contact: Point, required_seconds: f64) -> Result<()> {
         if !required_seconds.is_finite() || required_seconds < 0.0 { return Err("invalid deconstruction duration".into()); }
         let task_entity = self.entity(task)?;
@@ -41,11 +52,19 @@ impl Kernel {
                     self.refresh_state_weight();
                     self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: ActivityRef::Deconstruction { site: work.site, contact }, result: WorkOutcome::Completed })?;
                 }
-                Err(reason) if reason.contains("capacity") || reason.contains("geometry") || reason.contains("contact") => {}
-                Err(reason) => return Err(reason),
+                // Physical admission can change between earned progress and
+                // completion. Retain progress behind a typed terminal block;
+                // the authored provider acknowledges it and a later admission
+                // may retry from the saved work component.
+                Err(_reason) => {
+                    self.settle_attempt(&task, AttemptPhase::Outcome {
+                        operation,
+                        activity: ActivityRef::Deconstruction { site: work.site, contact },
+                        result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost },
+                    })?;
+                }
             }
         }
         Ok(())
     }
 }
-

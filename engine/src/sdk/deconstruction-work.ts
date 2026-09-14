@@ -350,13 +350,10 @@ export function deconstructionWorkProvider(
             : null;
         if (
           phase.kind === "executing" &&
-          (!info ||
-            info.status !== "ready" ||
-            !activity ||
-            activity.kind !== "route" ||
-            !info.contacts.some((contact) =>
-              sameTarget(activity.destination, contact),
-            ))
+          (!info || info.status !== "ready" || !activity ||
+            (activity.kind === "route" && !info.contacts.some((contact) => sameTarget(activity.destination, contact))) ||
+            (activity.kind === "deconstruction" && (!info.contacts.some((contact) => sameTarget(activity.contact, contact)) || !sites.has(activity.site))) ||
+            (activity.kind !== "route" && activity.kind !== "deconstruction"))
         ) {
           interruptWorkAttempt(
             ctx,
