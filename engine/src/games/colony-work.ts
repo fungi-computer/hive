@@ -36,7 +36,7 @@ import {
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
 import { OwnedByParty, PartyMember } from "../sdk/party";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, workAttempt } from "../sdk/work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, interruptWorkAttempt, workAttempt } from "../sdk/work-attempt";
 
 export type ColonyResourceStage = "sow" | "tend" | "harvest";
 export type ColonyResourceStatus = "queued" | "blocked" | "complete";
@@ -291,11 +291,30 @@ const treeWorkProvider = (
       for (const row of orders) {
         const state = row.get(ColonyTreeOrder), treeRow = trees.find(tree => tree.id === state.tree), attempt = attempts.get(row.id), policy = policies.get(state.tree);
         if (state.phase === "complete") continue;
+        if (attempt?.phase.kind === "executing" && suspendedActors.has(attempt.worker)) {
+          interruptWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence, "workerUnavailable");
+          continue;
+        }
         if (attempt?.phase.kind === "outcome") {
           const phase = attempt.phase;
           if (suspendedActors.has(attempt.worker)) {
-            ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: "Drafted" });
-            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            if (phase.result.kind !== "completed") {
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : phase.result.cause });
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else if (phase.activity.kind === "route") {
+              // A route outcome is movement only. Drafting must release the
+              // worker before felling/chopping can be admitted.
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: "Drafted" });
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else if (phase.activity.kind === "resource-extract") {
+              // Rust has already committed the extraction; reconcile its
+              // canonical tree/order state exactly once before acknowledgement.
+              if (treeRow) ctx.write(ColonyTree, treeRow.id, { phase: "chopped" });
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "complete", seconds: 0, reason: "" });
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else {
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            }
             continue;
           }
           if (phase.result.kind !== "completed") {
@@ -576,7 +595,25 @@ function digProvider(
         const owner = orderOwners.get(row.id);
         const attempt = attempts.get(row.id);
         if (owner && attempt && memberships.get(attempt.worker) !== owner) continue;
-        if (attempt && suspendedActors.has(attempt.worker)) continue;
+        if (attempt && suspendedActors.has(attempt.worker)) {
+          if (attempt.phase.kind === "executing") {
+            interruptWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence, "workerUnavailable");
+          } else if (attempt.phase.kind === "outcome") {
+            const phase = attempt.phase;
+            if (phase.result.kind !== "completed") {
+              ctx.write(ColonyDigOrder, row.id, { ...state, status: "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : `interrupted:${phase.result.cause}` });
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else if (phase.activity.kind === "route") {
+              if (state.status !== "blocked" || state.reason !== "Drafted")
+                ctx.write(ColonyDigOrder, row.id, { ...state, status: "blocked", reason: "Drafted" });
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else if (phase.activity.kind === "excavation") {
+              ctx.removeAuthoredEntity(row.id);
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+          }
+          continue;
+        }
         if (obstructed(state)) {
           if (state.status !== "blocked" || state.reason !== "Someone is standing on this tile") {
             ctx.write(ColonyDigOrder, row.id, {

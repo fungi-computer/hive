@@ -163,6 +163,36 @@ test("completed native route is acknowledged before one construction attendance"
   ]);
 });
 
+test("drafted completed construction route is acknowledged without physical work", () => {
+  const attempt = {
+    key: { task: site, generation: 1 }, worker, party,
+    phase: {
+      kind: "outcome",
+      operation: { attempt: { task: site, generation: 1 }, sequence: 1 },
+      activity: { kind: "route", destination: { x: 1, y: 0.5, z: 1, frame: null } },
+      result: { kind: "completed" },
+    },
+  };
+  const f = fixture([attempt]);
+  constructionWorkProvider(f.base, { workers: [worker] }, new Set([worker])).progress();
+  assert.deepEqual(f.actions, [{ kind: "acknowledge-work-attempt", task: site, generation: 1, sequence: 1 }]);
+});
+
+test("drafted completed physical construction is acknowledged exactly once", () => {
+  const attempt = {
+    key: { task: site, generation: 1 }, worker, party,
+    phase: {
+      kind: "outcome",
+      operation: { attempt: { task: site, generation: 1 }, sequence: 2 },
+      activity: { kind: "construction", site, mode: "bind", contact: { x: 1, y: 0.5, z: 1, frame: null } },
+      result: { kind: "completed" },
+    },
+  };
+  const f = fixture([attempt]);
+  constructionWorkProvider(f.base, { workers: [worker] }, new Set([worker])).progress();
+  assert.deepEqual(f.actions, [{ kind: "acknowledge-work-attempt", task: site, generation: 1, sequence: 2 }]);
+});
+
 test("invalidated executing contact interrupts the exact native attempt and leaves the site claim", () => {
   const attempt = {
     key: { task: site, generation: 2 },

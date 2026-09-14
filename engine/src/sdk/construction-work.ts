@@ -208,6 +208,25 @@ export function constructionWorkProvider(
               a.phase.operation.sequence,
               "workerUnavailable",
             );
+          else if (a.phase.kind === "outcome") {
+            // A completed route only proves movement.  Drafting owns the
+            // worker now, so leave the authored site retryable and release
+            // the terminal native outcome without admitting construction.
+            if (a.phase.result.kind !== "completed") {
+              if (state.phase === "working")
+                ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });
+              acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+            } else if (a.phase.activity.kind === "route") {
+              if (state.phase === "working")
+                ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });
+              acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+            } else {
+              // Native construction is already committed before its outcome
+              // is exposed.  Reconcile the canonical site exactly once even
+              // when the worker was drafted during the physical operation.
+              acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+            }
+          }
           continue;
         }
         const ar = access.get(row.id);
@@ -237,6 +256,12 @@ export function constructionWorkProvider(
         }
         if (a.phase.kind !== "outcome") continue;
         const contact = current;
+        if (a.phase.result.kind !== "completed") {
+          if (state.phase === "working")
+            ctx.write(ConstructionSite, row.id, { ...state, phase: "planned" });
+          acknowledgeWorkAttempt(ctx, a.key, a.phase.operation.sequence);
+          continue;
+        }
         if (a.phase.result.kind === "completed" && contact) {
           if (a.phase.activity.kind === "route")
             continueConstructionWorkAttempt(
