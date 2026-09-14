@@ -80,11 +80,32 @@ const sameTarget = (
 ) => a.x === b.x && a.y === b.y && a.z === b.z && a.frame === b.frame;
 const retryKey = (
   info: DeconstructionAccess | undefined,
+  party: EntityId | undefined,
   workers: readonly EntityId[],
+  members: ReadonlyMap<EntityId, EntityId>,
   quantities: ReadonlyMap<EntityId, number>,
   containers: ReadonlyMap<EntityId, { readonly capacity: number }>,
-) =>
-  `${info?.status ?? "missing"}|${info?.salvageQuantity ?? 0}|${info?.workSeconds ?? 0}|${info?.contacts.map((contact) => `${contact.x},${contact.y},${contact.z}`).join(";") ?? ""}|${workers.map((worker) => `${worker}:${quantities.get(worker) ?? 0}:${containers.get(worker)?.capacity ?? 0}`).join("|")}`;
+) => {
+  const freeCapacity = workers
+    .filter((worker) => members.get(worker) === party)
+    .reduce(
+      (maximum, worker) =>
+        Math.max(
+          maximum,
+          (containers.get(worker)?.capacity ?? 0) -
+            (quantities.get(worker) ?? 0),
+        ),
+      0,
+    );
+  const contacts =
+    info?.contacts
+      .map(
+        (contact) =>
+          `${contact.x},${contact.y},${contact.z},${contact.frame},${contact.kind}`,
+      )
+      .join(";") ?? "";
+  return `${info?.status ?? "missing"}|${info?.salvageQuantity ?? 0}|${info?.workSeconds ?? 0}|${contacts}|${freeCapacity}`;
+};
 
 /** Queue intent owns target/progress/result facts; native WorkAttempt owns attendance. */
 export const queueDeconstruction = (site: EntityId): EntityRecord => {
@@ -183,9 +204,21 @@ export function deconstructionWorkProvider(
     const info = access.get(state.site);
     const party = owners.get(state.site);
     const attempt = attempts.get(row.id);
-    const currentRetryKey = retryKey(info, workers, quantities, containers);
-    // A committed deconstruction can remove its site before this outcome is
-    // reconciled. Keep the order alive until progress settles the attempt.
+    const currentRetryKey = retryKey(
+      info,
+      party,
+      workers,
+      members,
+      quantities,
+      containers,
+    );
+    // Establish stable first-order ownership before attempt/status branching.
+    // A committed deconstruction can remove its site before reconciliation.
+    if (liveSites.has(state.site)) {
+      if (!attempt) ctx.removeAuthoredEntity(row.id);
+      continue;
+    }
+    liveSites.add(state.site);
     if (attempt) continue;
     if (
       !site ||
@@ -198,11 +231,6 @@ export function deconstructionWorkProvider(
       if (!site) ctx.removeAuthoredEntity(row.id);
       continue;
     }
-    if (liveSites.has(state.site)) {
-      ctx.removeAuthoredEntity(row.id);
-      continue;
-    }
-    liveSites.add(state.site);
     if (
       state.status === "complete" ||
       (state.status === "blocked" && state.retryKey === currentRetryKey)
@@ -350,7 +378,14 @@ export function deconstructionWorkProvider(
               ? phase.result.reason
               : "Deconstruction was interrupted"
             ).slice(0, 512),
-            retryKey: retryKey(info, workers, quantities, containers),
+            retryKey: retryKey(
+              info,
+              owners.get(state.site),
+              workers,
+              members,
+              quantities,
+              containers,
+            ),
           });
           acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
           continue;
@@ -360,7 +395,17 @@ export function deconstructionWorkProvider(
           const contact = info?.contacts.find((item) =>
             sameTarget(completedActivity.destination, item),
           );
-          if (contact)
+          if (contact && info) {
+            // Persist the exact native admission facts before continuing. The
+            // site may disappear before the deconstruction outcome is read.
+            ctx.write(DeconstructionOrder, row.id, {
+              ...state,
+              contactX: contact.x,
+              contactY: contact.y,
+              contactZ: contact.z,
+              salvageQuantity: info.salvageQuantity,
+              workSeconds: info.workSeconds,
+            });
             continueDeconstructionWorkAttempt(
               ctx,
               attempt.key,
@@ -368,7 +413,7 @@ export function deconstructionWorkProvider(
               state.site,
               contact,
             );
-          else
+          } else
             acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
         } else if (completedActivity.kind === "deconstruction") {
           ctx.write(DeconstructionOrder, row.id, {
