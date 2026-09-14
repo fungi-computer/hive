@@ -73,6 +73,41 @@ test("public connection uses a persisted bearer token and starts only after the 
   choice.runtime.dispose();
 });
 
+test("fresh Colony worlds always use the shared v2 protocol", () => {
+  const calls = [], saved = storage(), fetchImpl = async () => new Response("{}");
+  const choice = createConnectionChoice({
+    mode: "colony", publicHost: "https://demo.example.test/arena/", storage: saved,
+    cryptoSource: cryptoSource(), fetchImpl,
+    locationSource: { href: "https://play.example.test/engine/colony?game=colony", hash: "" },
+    connectLocal: () => { throw new Error("local factory should not run"); },
+    connectRemote: runtimeFactory(calls),
+  });
+  assert.equal(calls[0].options.endpoint.toString(), "https://demo.example.test/arena");
+  assert.match(calls[0].options.invite, /^[0-9a-f]{64}$/);
+  assert.equal(calls[0].options.token, calls[0].options.invite);
+  assert.equal(calls[0].options.fetch, fetchImpl);
+  assert.match(choice.persistence.invitation.url(), new RegExp(`#world=${calls[0].options.invite}$`));
+  choice.runtime.dispose();
+});
+
+test("a new Colony world after an invitation uses the new world secret", () => {
+  const calls = [], oldInvite = "a".repeat(64);
+  const page = new URL(`https://play.example.test/engine/colony?game=colony#world=${oldInvite}`);
+  const choice = createConnectionChoice({
+    mode: "colony", publicHost: "https://demo.example.test", storage: storage(),
+    cryptoSource: cryptoSource(),
+    locationSource: { get href() { return page.toString(); }, get hash() { return page.hash; } },
+    historySource: { replaceState(_state, _title, value) { page.href = new URL(value, page).toString(); } },
+    connectLocal: () => ({}), connectRemote: runtimeFactory(calls),
+  });
+  assert.equal(calls[0].options.invite, oldInvite);
+  choice.persistence.newWorld();
+  assert.notEqual(calls[1].options.invite, oldInvite);
+  assert.equal(calls[1].options.token, calls[1].options.invite);
+  assert.equal(page.hash, "");
+  choice.runtime.dispose();
+});
+
 test("local mode is explicit and keeps save ownership in its capability", () => {
   const sent = [];
   const choice = createConnectionChoice({

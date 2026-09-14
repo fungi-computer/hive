@@ -30,8 +30,6 @@ export interface RemoteRuntimeOptions {
   readonly token: string;
   /** Colony v2 invitation. It is submitted only in the join body. */
   readonly invite?: string;
-  /** Stable world handle; when omitted it is derived from invite. */
-  readonly world?: string;
   /** Browser persistence for the world-scoped participant credential. */
   readonly storage?: Storage;
   readonly cryptoSource?: Crypto;
@@ -88,8 +86,8 @@ const credentialPattern = /^[a-f0-9]{64}$/;
 const sharedWorldPath = (endpoint: string | URL, world: string, operation: string, handle?: string) =>
   endpointUrl(endpoint, `/v2/colony/worlds/${world}/${operation}${handle === undefined ? "" : `/${encodeURIComponent(handle)}`}`);
 function hex(bytes: Uint8Array): string { return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join(""); }
-async function digestHex(value: string): Promise<string> {
-  return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))));
+async function digestHex(value: string, cryptoSource: Crypto): Promise<string> {
+  return hex(new Uint8Array(await cryptoSource.subtle.digest("SHA-256", new TextEncoder().encode(value))));
 }
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -397,8 +395,8 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let admissionAttempts = 0;
   const shared = options.game === "colony" && options.invite !== undefined;
-  let sharedWorld = options.world;
-  let sharedCredential = options.token;
+  let sharedWorld: string | undefined;
+  let sharedCredential = "";
   let sharedPrepared = false;
   const sharedBase = () => {
     if (!sharedWorld) throw new Error("remote Colony world is not prepared");
@@ -409,7 +407,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (!shared || sharedPrepared) return;
     const cryptoSource = options.cryptoSource ?? globalThis.crypto;
     if (!credentialPattern.test(options.invite!)) throw new Error("invalid Colony invitation");
-    sharedWorld ??= await digestHex(options.invite!);
+    sharedWorld = await digestHex(options.invite!, cryptoSource);
     if (!credentialPattern.test(sharedWorld)) throw new Error("invalid Colony world handle");
     const storage = options.storage ?? globalThis.localStorage;
     if (!storage) throw new Error("Colony v2 requires browser persistence");
@@ -470,7 +468,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const openSocket = async () => {
     let connectedSocket: SocketLike;
     try {
-      await prepareShared();
+      if (shared) await prepareShared();
       const connectPath = shared ? sharedBase()("connect") : endpointUrl(options.endpoint, "/connect");
       const handleResponse = await requestJson(options.fetch, connectPath, { method: "GET", headers: shared ? { Authorization: `Bearer ${sharedCredential}` } : undefined }, abort.signal, 16 * 1024, requestTimeoutMs);
       if (!handleResponse.response.ok) {
@@ -587,7 +585,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       while (!disposed && !blocked) {
         try {
           const responseData = await requestJson(options.fetch, shared ? sharedBase()("command") : endpointUrl(options.endpoint, "/command"), {
-            method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${shared ? sharedCredential : options.token}` }, body: item.body,
+            method: "POST", headers: shared ? { "Content-Type": "application/json", Authorization: `Bearer ${sharedCredential}` } : { "Content-Type": "application/json" }, body: item.body,
           }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
           const response = responseData.response;
           if (response.status >= 500 || response.status === 408) {

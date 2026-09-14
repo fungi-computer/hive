@@ -60,7 +60,9 @@ function publicEndpoint(host, mode) {
     throw new Error("Online demos require an HTTPS public host");
   if (url.username || url.password)
     throw new Error("Online demo hosts cannot contain credentials");
-  url.pathname = `${url.pathname.replace(/\/$/, "")}/v1/${encodeURIComponent(mode)}`;
+  url.pathname = mode === "colony"
+    ? url.pathname.replace(/\/$/, "")
+    : `${url.pathname.replace(/\/$/, "")}/v1/${encodeURIComponent(mode)}`;
   url.search = "";
   url.hash = "";
   return url;
@@ -120,16 +122,15 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
   const storageKey = tokenKey(mode);
 
   function replace(nextToken) {
+    const sharedColony = mode === "colony";
     const next = connectRemote({
       endpoint,
       game: mode,
       // Colony v2 owns the participant bearer. The invitation is not an
       // identity and must never be captured by an auth wrapper.
-      fetch: mode === "colony" && invitedToken !== undefined
-        ? fetchImpl
-        : authorizedFetch(fetchImpl, nextToken),
+      fetch: sharedColony ? fetchImpl : authorizedFetch(fetchImpl, nextToken),
       token: nextToken,
-      ...(mode === "colony" && invitedToken !== undefined ? { invite: invitedToken, storage, cryptoSource } : {}),
+      ...(sharedColony ? { invite: nextToken, storage, cryptoSource } : {}),
     });
     let nextUnsubscribe;
     try {
