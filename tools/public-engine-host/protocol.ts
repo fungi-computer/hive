@@ -25,6 +25,8 @@ export type PublicCommandInput = z.infer<typeof commandInput>;
 
 const joinInput = z.object({ invite: z.string().regex(tokenPattern) }).strict();
 export type ColonyJoinInput = z.infer<typeof joinInput>;
+export const colonyCredentialSchema = z.string().regex(tokenPattern);
+export const colonyWorldHandleSchema = z.string().regex(worldPattern);
 export type ColonyWorldOperation = "join" | "observe" | "command" | "connect" | "socket";
 export type ColonyWorldRoute = {
   readonly world: string;
@@ -56,6 +58,8 @@ export function socketHandleFromPath(pathname: string): string | null {
 
 export type SocketClientMessage = { readonly type: "authenticate"; readonly token: string };
 
+export type ColonySocketAuth = { readonly type: "authenticate"; readonly credential: string };
+
 export function readSocketMessage(value: string | ArrayBuffer): SocketClientMessage {
   if (typeof value !== "string") throw new Error("public-socket-message-invalid");
   let parsed: unknown;
@@ -67,6 +71,27 @@ export function readSocketMessage(value: string | ArrayBuffer): SocketClientMess
       !tokenPattern.test(message.token) || Object.keys(message).some((key) => !["type", "token"].includes(key)))
     throw new Error("public-socket-message-invalid");
   return { type: "authenticate", token: message.token };
+}
+
+/** Colony v2 keeps participant authentication in the first frame, never in its URL. */
+export function readColonySocketMessage(value: string | ArrayBuffer): ColonySocketAuth {
+  if (typeof value !== "string") throw new Error("public-socket-message-invalid");
+  let parsed: unknown;
+  try { parsed = JSON.parse(value); } catch { throw new Error("public-socket-message-invalid"); }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+    throw new Error("public-socket-message-invalid");
+  const message = parsed as Record<string, unknown>;
+  if (message.type !== "authenticate" || typeof message.credential !== "string" ||
+      !tokenPattern.test(message.credential) || Object.keys(message).some((key) => !["type", "credential"].includes(key)))
+    throw new Error("public-socket-message-invalid");
+  return { type: "authenticate", credential: message.credential };
+}
+
+export function colonyWorldPath(world: string, operation: ColonyWorldOperation, socketHandle?: string): string {
+  if (!worldPattern.test(world) || (operation === "socket") !== (socketHandle !== undefined) ||
+      (socketHandle !== undefined && !socketHandlePattern.test(socketHandle)))
+    throw new Error("public-world-route-invalid");
+  return `/v2/colony/worlds/${world}/${operation}${socketHandle === undefined ? "" : `/${socketHandle}`}`;
 }
 
 export function tokenFromRequest(request: Request): string {

@@ -18,9 +18,11 @@ function whistleObservation(revision: number) {
 }
 class FakeSocket {
   private listeners = new Map<string, ((event: { data?: unknown }) => void)[]>();
+  readonly sent: string[] = [];
   constructor(private readonly initial = observation(0), private readonly onReconnect?: () => void) {}
   addEventListener(type: string, listener: (event: { data?: unknown }) => void) { this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]); }
   send(value: string) {
+    this.sent.push(value);
     if (JSON.parse(value).type === "authenticate") {
       queueMicrotask(() => this.emit("message", { data: JSON.stringify({ type: "ready", game: "survival" }) }));
       queueMicrotask(() => this.emit("message", { data: JSON.stringify({ type: "observation", ...this.initial }) }));
@@ -31,6 +33,13 @@ class FakeSocket {
   emit(type: string, event: { data?: unknown }) { for (const listener of this.listeners.get(type) ?? []) listener(event); }
 }
 const wait = (ms = 0) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+function memoryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+  } as Storage;
+}
 function setup(fetcher: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>, socket = new FakeSocket()) {
   let commandNumber = 0;
   return connectRemoteRuntime({
@@ -42,6 +51,49 @@ function setup(fetcher: (input: RequestInfo | URL, init?: RequestInit) => Promis
     createCommandId: () => `stable-command-${++commandNumber}`,
   });
 }
+
+test("Colony v2 persists the participant credential before join and keeps it out of routes", async () => {
+  const invite = "b".repeat(64);
+  const storage = memoryStorage();
+  const socket = new FakeSocket();
+  const calls: { url: string; init?: RequestInit }[] = [];
+  const runtime = connectRemoteRuntime({
+    endpoint: "https://hive.test/arena",
+    game: "colony",
+    token: invite,
+    invite,
+    storage,
+    cryptoSource: { getRandomValues(bytes: Uint8Array) { bytes.fill(7); return bytes; } } as Crypto,
+    fetch: async (input, init) => {
+      calls.push({ url: String(input), init });
+      if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
+      const body = JSON.parse(String(init?.body));
+      return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
+    },
+    createSocket: (url) => { calls.push({ url }); queueMicrotask(() => socket.emit("open", {})); return socket; },
+    createCommandId: () => "colony-command-1",
+  });
+  runtime.send({ type: "start", game: "colony" });
+  await wait(10);
+  const join = calls.find((call) => call.url.endsWith("/join"));
+  assert(join);
+  const joinHeaders = new Headers(join.init?.headers);
+  const credential = joinHeaders.get("Authorization")?.slice("Bearer ".length);
+  assert.match(credential ?? "", /^[0-9a-f]{64}$/);
+  assert.equal(storage.getItem(`hive:colony-v2:credential:${await crypto.subtle.digest("SHA-256", new TextEncoder().encode(invite)).then(bytes => [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, "0")).join(""))}`), credential);
+  assert.equal(JSON.parse(String(join.init?.body)).invite, invite);
+  const socketUrl = calls.find((call) => call.url.includes("/socket/"))?.url ?? "";
+  assert.match(socketUrl, /\/v2\/colony\/worlds\/[0-9a-f]{64}\/socket\/opaque$/);
+  assert.equal(socketUrl.includes(credential!), false);
+  const auth = JSON.parse(socket.sent.at(-1) ?? "{}");
+  assert.equal(auth.credential, credential);
+  runtime.send({ type: "pause" });
+  await wait(10);
+  const command = calls.find((call) => call.url.endsWith("/command"));
+  assert(command);
+  assert.equal(new Headers(command.init?.headers).get("Authorization"), `Bearer ${credential}`);
+  runtime.dispose();
+});
 
 test("socket admission emits only authenticated observations and command omits implicit revision", async () => {
   const calls: { url: string; init?: RequestInit }[] = [];

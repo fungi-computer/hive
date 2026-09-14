@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { colonyWorldRoute, packFromPath, readColonyJoin, readCommand, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
+import { colonyWorldPath, colonyWorldRoute, packFromPath, readColonyJoin, readColonySocketMessage, readCommand, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
 
 const token = "a".repeat(64);
 
@@ -37,6 +37,10 @@ test("shared Colony routes separate world routing from participant authority", (
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${"B".repeat(64)}/join`), null);
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/socket`), null);
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/join/extra`), null);
+  assert.equal(colonyWorldPath(world, "command"), `/v2/colony/worlds/${world}/command`);
+  assert.equal(colonyWorldPath(world, "socket", "client.1"), `/v2/colony/worlds/${world}/socket/client.1`);
+  assert.throws(() => colonyWorldPath(world, "socket"), /invalid/);
+  assert.throws(() => colonyWorldPath("bad", "observe"), /invalid/);
 });
 
 test("Colony join body carries only the bounded invitation", async () => {
@@ -53,6 +57,8 @@ test("socket admission accepts an opaque routing handle but authenticates separa
   assert.equal(socketHandleFromPath("/v1/survival/socket/abc-123"), "abc-123");
   assert.deepEqual(readSocketMessage(JSON.stringify({ type: "authenticate", token })), { type: "authenticate", token });
   assert.throws(() => readSocketMessage(JSON.stringify({ type: "authenticate", token, extra: true })), /invalid/);
+  assert.deepEqual(readColonySocketMessage(JSON.stringify({ type: "authenticate", credential: token })), { type: "authenticate", credential: token });
+  assert.throws(() => readColonySocketMessage(JSON.stringify({ type: "authenticate", token })), /invalid/);
 });
 
 test("public command body is strict and bounded before Region admission", async () => {
