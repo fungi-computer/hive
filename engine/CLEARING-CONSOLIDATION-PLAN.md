@@ -1466,6 +1466,186 @@ joined environmental play; two-person continuity; sustained acceptance and Levi'
 playtest. Commits and source-only tests are supporting evidence, not velocity units.
 A useful update says what can now be played, what still fails and what is live.
 
+## September 14 priority: dependable jobs and spatial drawing
+
+This is the next bounded Clearing outcome, requested by Levi after the trapped
+floor/brewer report and incorrect sprite overlap. It supersedes older handoff
+locations below. Current integration is
+`/mnt/fungi-data/botanical-work/pathfinding-clean`, branch
+`engine/pathfinding-clean-20260913`, reviewed base `8086d8b`. This section is a
+plan and source audit, not an implemented or accepted fix.
+
+### 1. Work can wait without imprisoning people; flooring can go under furniture
+
+Product laws:
+
+- Designating work never requires an available worker. A queued order describes
+  the player's intent; an attempt is one worker trying to perform it.
+- Flooring may be laid or its finish replaced under a brewer, bed, storage or
+  other furniture without removing that object. Surface finish, structural
+  support and occupied volume are distinct facts. Replacing a finish preserves
+  the supporting structure and everything standing on it. Open air still needs
+  structural support; solid earth still needs excavation.
+- Floor location, material delivery contact and worker standing contact are
+  distinct. Resolve legal nearby work contacts from the existing footprint and
+  physical reach rules. Do not require a worker to stand inside furniture or
+  bake a brewer-specific exception into placement.
+- An inaccessible order remains queued with an honest reason while workers do
+  other useful work. Reconsider it when relevant access, materials or capability
+  changes; do not hammer the same failed command every tick.
+- Manual control stops automatic orders from pulling that person back. Global
+  pause freezes physical progress. Neither action erases goods or earned work.
+
+Source findings and limits:
+
+- `engine/src/sdk/work-system.ts` shares assignment, but provider-local claims,
+  movement-result matching, retries and release decisions remain duplicated.
+  Delivery, construction, deconstruction, process attendance, tree, resource and
+  water work do not consistently handle manual suspension.
+- `construction-work.ts` chooses work contacts from native `constructionAccess`.
+  `engine/kernel/src/construction_work.rs::bind_construction_stage` binds the
+  site's material contact once. That old contact can become obstructed even
+  while another valid contact exists. The delivery owner currently targets the
+  container position. Do not solve this by teleporting staged goods when a
+  contact changes: define physical staging custody and interaction reach.
+- Native construction already releases its worker on several failures and
+  preserves progress. `complete_construction` collapses expected blocked cases
+  into `false`, losing the reason needed for scheduling and presentation.
+  Other providers retain claims across early `continue` branches. Disappearance
+  of `Destination` is not an explicit arrival or rejection result.
+- The supplied world's read-only observation at revision 2689 has the floor at
+  (-2,13,6) and wall at (-3,14,4) still planned; both workers are automatic and
+  carry pails, but no construction wood in that observation. The current public
+  projection does not expose their exact claim. This does not yet establish the
+  precise runtime cause. Saved evidence is in `.botanical/jobs-boundary-review/`;
+  keep invitation credentials out of committed documents.
+
+Implementation sequence:
+
+1. Reproduce that arrangement with actual Colony commands in a disposable local
+   session. Inspect orders, active attempts, native attendance, routes, staging
+   contacts and lot custody. Record the first non-progressing transition and
+   actual blocker before changing behavior.
+2. Recut the existing shared work boundary around explicit attempt transitions.
+   Keep one canonical attempt association between task, worker and issued native
+   action. Correlate results to that attempt, not actor/coordinate resemblance.
+   Reconcile results and interruption before presenting eligible claims to the
+   allocator. Preserve existing joint Hungarian allocation and path budgets.
+   Use the existing session transaction/results owner; do not add a scheduler,
+   event bus, retry service or parallel world ledger.
+3. Define exhaustive outcomes for ongoing work: running, completed, blocked,
+   interrupted and pending physical cleanup. Missing acknowledgement is pending,
+   not rejection. Expected blocked results carry a reason and relevant retry
+   condition; contract defects remain errors. A bounded/deferred route search
+   must not be mislabeled proof of permanent unreachability.
+4. Centralize generic attempt release, suspension and result reconciliation.
+   Providers retain their legitimate physical operations: lot transfer/drop,
+   pail exchange, material consumption and earned work. Release a carrying
+   worker only once safe custody is committed, or detach the delivery obligation
+   from the worker under an explicitly valid custody rule. Never reset quantity
+   or invent goods to simplify cancellation.
+5. Give construction/delivery one native contact/readiness contract used by
+   discovery and final admission. Distinguish supported flooring under furniture
+   from a blocked work approach. Bind retry to relevant changes without using
+   whole-world tick/revision as an excuse for continuous retries. Keep caches
+   rebuildable and bounded; saved pending work survives restart.
+6. Introduce floor finish replacement at the existing structure/material owner,
+   reusing existing geometry and definitions where possible. Preview and command
+   admission share the same rule. A drag may identify unchanged, replaceable,
+   unsupported and obstructed cells without hiding rejected cells or requiring
+   an empty room. Valid intent can wait for access; planning is not execution.
+7. Migrate all current automatic-work consumers in the joined chunk and delete
+   their superseded generic outcome scans and retry/release branches. First
+   targets: delivery `rejectedMove`, construction's local `rejected` predicate,
+   deconstruction `matchingRejectedMove`, and equivalent process/tree/resource/
+   water checks. Delete duplicate claim ownership as consumers move; do not put
+   a new wrapper over the old machinery. Preserve task-specific physical laws.
+8. Expose the authoritative queued/blocked/working reason through existing
+   inspection so both humans and AI can tell what a worker or job is waiting on.
+
+Required focused proof: flooring under an existing brewer and bed; change floor
+finish without moving either; obstruct a delivery/work contact after assignment;
+release affected workers to another reachable task; reopen access and complete
+the queued job; manual takeover during approach/work/carrying; retry/lost-result
+and current-format save/reload without double consumption or lost progress.
+Exercise the shared boundary with building, hauling and brewing plus affected
+dig/tree/water/resource callers. Prove actual physical results, not only mocked
+candidate arrays. No whole-history test matrix or new benchmark campaign.
+
+### 2. Shared height- and footprint-aware draw ordering
+
+Source findings:
+
+- `engine/src/client/client.js` sorts by `supportDepth`, then `x + z`, then ID,
+  and writes the resulting rank to Pixi `zIndex`. Support ancestry is not voxel
+  elevation. A multi-cell sprite is reduced to its anchor.
+- `colony-environment.ts` already defines two-cell bed footprints, a four-cell
+  brewer footprint and stair run/rise. `colony-construction-visuals.ts` emits a
+  visual anchor and cutaway height but not a complete sorting extent. Reuse
+  these definitions instead of authoring another physical footprint registry.
+- Excalibur's `IsometricEntitySystem` calculates elevation times a map-sized
+  depth band plus transform Y. Its component/sorter does not inspect an object's
+  footprint or two endpoints. It is a useful explicit elevation baseline, not
+  a ready-made solution for our long objects and overlapping storeys.
+  Source reviewed September 14:
+  https://github.com/excaliburjs/Excalibur/blob/main/src/engine/tile-map/isometric-entity-system.ts
+  and `isometric-entity-component.ts` in the same directory.
+
+Implementation sequence:
+
+1. Trace visual poses, metric conversion, original sprite anchors, actor support,
+   terrain layers and picking together. Characterize the current brewer/floor
+   overlap and bed/stair examples. Do not blame the artwork before verifying
+   coordinate and ordering contracts.
+2. Derive render extents from existing canonical shape definitions and poses.
+   A stair has bottom and landing endpoints with vertical extent; beds and
+   fixtures have oriented footprints and height. Two points are useful for a
+   stair, not a universal replacement for an arbitrary fixture footprint.
+3. Implement one client-owned ordering operation over visible overlapping
+   extents. Use physical separation, elevation and support relations to establish
+   behind/in-front constraints, then a stable deterministic order for ties.
+   Do not blanket-sort every higher floor over every lower object, or add
+   per-item magic z offsets. Narrow comparisons spatially and reuse unchanged
+   static relations so this does not become an all-world quadratic pass.
+4. When a single long sprite requires a person behind one section and ahead of
+   another, one rank cannot satisfy it. Prove that case before changing art;
+   use sortable pieces or a depth-aware bake from the original asset pipeline
+   with a shared origin. King owns those art changes. Never split physical
+   identity, inventory, selection or simulation to accomplish a visual split.
+5. Make picking consume the same final draw order and existing visible-silhouette
+   data. All four current demos consume this shared renderer; no Colony-only
+   fork. Preserve interpolation, animations, cutaways and camera controls.
+6. Delete the replaced support-depth/anchor-only sorter and obsolete ordering
+   workarounds. The new representation is a render projection, never a second
+   simulation or independently saved geometry authority.
+
+Required focused proof: person walks behind/in front of brewer and bed; floor
+stays beneath furniture; stairs in all four orientations with a person at bottom,
+midpoint and landing; overlapping upper/lower storeys and cutaways; clicking
+selects the visually frontmost eligible object. Inspect original-art captures
+personally and measure only the changed sort cost for a representative visible
+set. Preserve other demos through focused shared-consumer checks.
+
+### Execution and release
+
+King owns the boundary design, source acceptance, original art and integration.
+Luna implements bounded mechanical chunks in isolated worktrees: one coupled
+jobs/native/contact lane and one independent rendering lane. Freeze any shared
+geometry/projection contract before simultaneous edits. Review first working
+shape while each writer continues its full authorized outcome. Do not refactor
+unrelated systems or build a universal job/plugin framework.
+
+The release must assemble the root build FIRST and the engine Vite build SECOND;
+root Vite clears `dist`, while engine Vite produces `dist/engine`. Require the
+actual `/engine/colony` HTML and bank in the artifact. Never use SPA fallback to
+serve the retained root Clearing at an engine URL. Prepare the DO config through
+`tools/public-engine-host/prepare.mjs` with the exact authorized preview origin
+and implementation hash; never deploy its blank template. Use the existing
+credential env file and preview hosts. Verify the hosted Rust/DO client,
+connection and corrected interaction before calling the release playable.
+Current remote saves and private source remain protected; no hidden migration,
+reset or production-route change is authorized by this plan.
+
 ## Ownership and current handoff
 
 King owns architecture, original art, integration and release. Luna handles bounded
