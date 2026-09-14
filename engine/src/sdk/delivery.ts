@@ -441,17 +441,37 @@ export function deliveryProvider(
         const attempt = attempts.get(id);
         if (!attempt || attempt.phase.kind !== "outcome") continue;
         const sequence = attempt.phase.operation.sequence;
+        const reconcileLotCustody = () => {
+          if (lot.container === state.destination) {
+            if (state.custody !== "delivered")
+              ctx.write(DeliveryTask, id, {
+                ...state,
+                custody: "delivered",
+                ground: null,
+              });
+            return;
+          }
+          if (lot.container === attempt.worker && state.custody !== "held")
+            ctx.write(DeliveryTask, id, {
+              ...state,
+              custody: "held",
+              ground: null,
+            });
+        };
         if (
           attempt.phase.result.kind === "blocked" ||
           attempt.phase.result.kind === "interrupted"
         ) {
-          if (lot.container === attempt.worker && state.custody !== "held")
-            ctx.write(DeliveryTask, id, { ...state, custody: "held" });
+          reconcileLotCustody();
           acknowledgeWorkAttempt(ctx, attempt.key, sequence);
           continue;
         }
         const activity = attempt.phase.activity;
         if (activity.kind === "route") {
+          // Draft is an intent boundary. A completed route has no physical
+          // delivery effect to reconcile, so retain its terminal outcome until
+          // the holder is undrafted instead of starting another operation.
+          if (suspendedActors.has(attempt.worker)) continue;
           if (lot.container === attempt.worker)
             continueMaterialTransferAttempt(
               ctx,
@@ -474,9 +494,16 @@ export function deliveryProvider(
             );
         } else if (activity.kind === "material-transfer") {
           if (lot.container === state.destination) {
-            ctx.write(DeliveryTask, id, { ...state, custody: "delivered" });
+            reconcileLotCustody();
             acknowledgeWorkAttempt(ctx, attempt.key, sequence);
           } else if (lot.container === attempt.worker) {
+            if (suspendedActors.has(attempt.worker)) {
+              // Pickup is already committed and the lot remains in the real
+              // worker container. Preserve that obligation for Undraft.
+              reconcileLotCustody();
+              acknowledgeWorkAttempt(ctx, attempt.key, sequence);
+              continue;
+            }
             const contacts = ctx.transferContacts({
               worker: attempt.worker,
               container: state.destination,
