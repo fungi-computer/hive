@@ -60,7 +60,7 @@ fn construction_status(
             continue;
         }
         let definition = kernel.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
-        let instance = kernel.construction_instance(site, &definition, state.x, state.y, state.z, state.orientation);
+        let instance = kernel.construction_instance(site, &definition, state.x, state.y, state.z, state.orientation)?;
         pending_ids.push(site.clone());
         pending.push(instance);
     }
@@ -207,7 +207,7 @@ impl Kernel {
                 if let Some(state) = self.ecs.get::<ConstructionSite>(entity).cloned() {
                     if let Some(definition) = self.environment.as_ref().and_then(|environment| environment.structures.get(&state.catalog)).cloned() {
                         if state.phase != ConstructionPhase::Finished {
-                            let candidate = self.construction_instance(&site, &definition, state.x, state.y, state.z, state.orientation);
+                            let candidate = self.construction_instance(&site, &definition, state.x, state.y, state.z, state.orientation)?;
                             let prepared = {
                                 let environment = self.environment.as_mut().ok_or("construction needs environment")?;
                                 let mut instances = environment.world.structure_instances();
@@ -260,16 +260,16 @@ impl Kernel {
         y: i32,
         z: i64,
         orientation: crate::structure_geometry::Cardinal,
-    ) -> crate::structure_geometry::StaticInstance {
+    ) -> Result<crate::structure_geometry::StaticInstance> {
         use crate::environment_definition::StructureShape;
         use crate::structure_geometry::StaticInstance;
         match &definition.shape {
-            StructureShape::Floor => StaticInstance::Floor { id: site.into(), support: crate::generation::Cell { x, y, z } },
-            StructureShape::Cover => StaticInstance::Cover { id: site.into(), support: crate::generation::Cell { x, y, z } },
-            StructureShape::Fixture { footprint } => StaticInstance::Fixture { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, footprint: footprint.clone() },
-            StructureShape::Wall { height } => StaticInstance::Wall { id: site.into(), edge: crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation), height: *height },
-            StructureShape::Aperture { height, opening_bottom, opening_height } => StaticInstance::ApertureWall { id: site.into(), edge: crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation), height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false },
-            StructureShape::Stair { run, rise } => StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise },
+            StructureShape::Floor => Ok(StaticInstance::Floor { id: site.into(), support: crate::generation::Cell { x, y, z } }),
+            StructureShape::Cover => Ok(StaticInstance::Cover { id: site.into(), support: crate::generation::Cell { x, y, z } }),
+            StructureShape::Fixture { footprint } => Ok(StaticInstance::Fixture { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, footprint: footprint.clone() }),
+            StructureShape::Wall { height } => Ok(StaticInstance::Wall { id: site.into(), edge: crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation)?, height: *height }),
+            StructureShape::Aperture { height, opening_bottom, opening_height } => Ok(StaticInstance::ApertureWall { id: site.into(), edge: crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation)?, height: *height, opening_bottom: *opening_bottom, opening_height: *opening_height, open: false }),
+            StructureShape::Stair { run, rise } => Ok(StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise }),
         }
     }
     pub(super) fn current_contact_candidate_rows(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Result<Vec<([f64; 3], &'static str)>> {
@@ -361,7 +361,7 @@ impl Kernel {
                 return Err(format!("invalid construction site {id}"));
             }
             let spacing = environment.world.cell_spacing_m();
-            let instance = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
+            let instance = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation)?;
             crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
             if let Some(position) = self.ecs.get::<Position>(*entity) {
                 if !self.contact_candidate_rows(site, definition, spacing)?.into_iter().any(|(candidate, _)| [position.x, position.y, position.z] == candidate) {
@@ -373,7 +373,7 @@ impl Kernel {
             }
             match site.phase {
                 ConstructionPhase::Finished => {
-                    let expected = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
+                    let expected = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation)?;
                     if self.ecs.get::<SealedContainer>(*entity).is_none()
                         || site.seconds != definition.work_seconds
                         || !geometry_instances.iter().any(|instance| match (&expected, instance) {
@@ -433,9 +433,10 @@ impl Kernel {
         if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
         let environment = self.environment.as_ref().ok_or("construction needs environment")?;
         let definition = environment.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
-        let instance = self.construction_instance(&site, &definition, x, y, z, orientation);
+        let instance = self.construction_instance(&site, &definition, x, y, z, orientation)?;
         crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
-        let staged = ConstructionSite { catalog, x, y, z, orientation, seconds: 0.0, phase: ConstructionPhase::Planned };
+        let edge = matches!(definition.shape, StructureShape::Wall { .. } | StructureShape::Aperture { .. }).then(|| crate::structure_geometry::edge_for_cell(crate::generation::Cell { x, y, z }, orientation)).transpose()?;
+        let staged = ConstructionSite { catalog, x, y, z, orientation, edge, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
         let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
             + self.registry.weight("hive.construction-site", &record(&staged))
@@ -456,7 +457,8 @@ impl Kernel {
         if !matches!(desired.shape, crate::environment_definition::StructureShape::Floor) { return Err("replacement catalog must be a floor".into()); }
         if target.catalog == desired_catalog { return Ok(()); }
         if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
-        let staged = ConstructionSite { catalog: desired_catalog.clone(), x: target.x, y: target.y, z: target.z, orientation: target.orientation, seconds: 0.0, phase: ConstructionPhase::Planned };
+        let edge = matches!(definition.shape, StructureShape::Wall { .. } | StructureShape::Aperture { .. }).then(|| crate::structure_geometry::edge_for_cell(crate::generation::Cell { x: target.x, y: target.y, z: target.z }, target.orientation)).transpose()?;
+        let staged = ConstructionSite { catalog: desired_catalog.clone(), x: target.x, y: target.y, z: target.z, orientation: target.orientation, edge, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
         let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, owner, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: target.x, support_y: i64::from(target.y), support_z: target.z, phase: FloorReplacementPhase::Queued })).id();
         self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id, BTreeSet::new());
@@ -497,7 +499,7 @@ impl Kernel {
     fn complete_construction(&mut self, site_id: &str, state: &ConstructionSite) -> Result<bool> {
         if self.ecs.get::<FloorReplacement>(self.entity(site_id)?).is_some() { return self.complete_floor_replacement(site_id, state); }
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
-        let instance = self.construction_instance(site_id, &definition, state.x, state.y, state.z, state.orientation);
+        let instance = self.construction_instance(site_id, &definition, state.x, state.y, state.z, state.orientation)?;
         let prepared = {
             let environment = self.environment.as_mut().ok_or("construction needs environment")?;
             let mut instances = environment.world.structure_instances();

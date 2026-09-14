@@ -154,8 +154,8 @@ pub(crate) struct PreparedStructureChange {
 }
 
 impl PreparedStructureChange {
-    pub(crate) fn blocks_crossing(&self, from: Cell, to: Cell) -> Result<bool, String> {
-        self.projection.blocks_crossing(from, to)
+    pub(crate) fn blocks_swept_transition(&self, from: Cell, to: Cell, stairs: &[crate::structure_geometry::StairEdge]) -> Result<bool, String> {
+        self.projection.blocks_swept_transition(from, to, stairs)
     }
 }
 
@@ -486,6 +486,20 @@ impl TerrainWater {
     /// pore-water debit, not a newly created material quantity.
     pub fn prepare_excavation(&mut self,
         at: Cell, expected: u16, replacement: u16) -> Result<ExcavationResult, String> {
+        let occupied = self.structures.instances().iter().filter_map(|instance| {
+            let matches = match instance {
+                StaticInstance::Floor { support, .. } | StaticInstance::Cover { support, .. } => *support == at,
+                StaticInstance::Fixture { origin, .. } => *origin == at,
+                _ => false,
+            };
+            let id = match instance {
+                StaticInstance::Floor { id, .. } | StaticInstance::Cover { id, .. }
+                | StaticInstance::Fixture { id, .. } | StaticInstance::Wall { id, .. }
+                | StaticInstance::ApertureWall { id, .. } | StaticInstance::Stair { id, .. } => id,
+            };
+            matches.then_some(id.to_owned())
+        }).collect::<Vec<_>>();
+        if !occupied.is_empty() { return Ok(ExcavationResult::StructuresBlocked(occupied)); }
         let prepared = match self.terrain.prepare_excavation(at, expected, replacement)? {
             PrepareResult::Blocked { reason, .. } => return Ok(ExcavationResult::TerrainBlocked(reason)),
             PrepareResult::Prepared(change) => change,
@@ -861,7 +875,8 @@ mod tests {
         assert!(columns.contains(&[anchor.x, anchor.z]));
         assert_eq!(world.air_geometry(air_bounds).unwrap(), proposed_air);
         let expected = world.material(anchor).unwrap();
-        assert!(matches!(world.prepare_excavation(anchor, expected, 0).unwrap(), ExcavationResult::StructuresBlocked(_)));
+        let expected_floor = world.material(low).unwrap();
+        assert!(matches!(world.prepare_excavation(low, expected_floor, 0).unwrap(), ExcavationResult::StructuresBlocked(_)));
         assert_eq!(world.material(anchor).unwrap(), expected);
         // In the first local step the floor blocks direct downward flow.
         // Later water can legitimately go around this single-tile floor.

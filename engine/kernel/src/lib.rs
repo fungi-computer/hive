@@ -29,6 +29,15 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 pub use world::Kernel;
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DirectPredictionRequest {
+    position: components::Position, speed: f64, blocked: Vec<[i32; 3]>, bounds: Option<DirectBounds>, inputs: Vec<components::DirectInput>,
+    #[serde(default)] closed_faces: Vec<[i64; 4]>,
+}
+#[derive(Deserialize)] #[serde(deny_unknown_fields)] struct DirectBounds { min_x: f64, max_x: f64, min_z: f64, max_z: f64 }
+#[derive(Serialize)] struct DirectPredictionResponse { position: components::Position }
+
 // One resident-region planning pass: 64 workers against 256 pending jobs.
 const ASSIGNMENT_MAX_BYTES: usize = 8 * 1024 * 1024;
 const ASSIGNMENT_MAX_EDGES: usize = 64 * 256;
@@ -82,21 +91,6 @@ impl WasmKernelRecords {
         self.0.read(key).map_err(js_error)
     }
 }
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct DirectPredictionRequest {
-    position: components::Position,
-    speed: f64,
-    blocked: Vec<[i32; 3]>,
-    bounds: Option<DirectBounds>,
-    inputs: Vec<components::DirectInput>,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct DirectBounds { min_x: f64, max_x: f64, min_z: f64, max_z: f64 }
-#[derive(Serialize)]
-struct DirectPredictionResponse { position: components::Position }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -327,27 +321,20 @@ impl WasmKernel {
     }
 }
 
-/// Pure direct-control prediction entrypoint. It does not access or mutate a
-/// Kernel instance, so browser prediction cannot become a second world owner.
 #[wasm_bindgen]
 pub fn predict_direct(json: &str) -> Result<String, JsValue> {
-    if json.len() > 64 * 1024 { return Err(js_error("direct prediction request too large".into())); }
     let request: DirectPredictionRequest = serde_json::from_str(json).map_err(|e| js_error(e.to_string()))?;
-    if request.inputs.len() > navigation::MAX_DIRECT_INPUTS || request.blocked.len() > 4096 {
-        return Err(js_error("direct prediction input exceeds bounds".into()));
-    }
-    let mut blocked = BTreeSet::new();
-    for cell in request.blocked {
-        if !blocked.insert((cell[0], cell[1], cell[2])) { return Err(js_error("duplicate blocked cell".into())); }
-    }
+    if request.inputs.len() > navigation::MAX_DIRECT_INPUTS || request.blocked.len() > 4096 || request.closed_faces.len() > 4096 { return Err(js_error("direct prediction input exceeds bounds".into())); }
+    let blocked = request.blocked.into_iter().collect::<BTreeSet<_>>();
+    let closed = request.closed_faces;
     let bounds = request.bounds.map(|b| navigation::Bounds { min_x: b.min_x, max_x: b.max_x, min_z: b.min_z, max_z: b.max_z });
-    let mut position = navigation::direct_step(request.position, 0.0, 0.0, request.speed, &blocked, bounds).map_err(js_error)?;
-    let mut expected: Option<u64> = None;
-    for input in request.inputs {
-        if input.sequence == 0 || input.sequence > 9_007_199_254_740_991 || expected.is_some_and(|value| input.sequence != value.saturating_add(1)) { return Err(js_error("direct prediction sequence gap".into())); }
-        expected = Some(input.sequence);
-        position = navigation::direct_step(position, input.x, input.z, request.speed, &blocked, bounds).map_err(js_error)?;
-    }
+    let crossing = |fx: f64, fz: f64, tx: f64, tz: f64, y: i32| {
+        let from = (fx.round() as i64, y, fz.round() as i64); let to = (tx.round() as i64, y, tz.round() as i64);
+        let (x, z, axis) = if from.0 != to.0 { (from.0.min(to.0), from.2, 0) } else { (from.0, from.2.min(to.2), 1) };
+        closed.iter().any(|face| face[0] == x && face[1] == i64::from(y) && face[2] == z && face[3] == axis)
+    };
+    let mut position = navigation::direct_step_with_crossings(request.position, 0.0, 0.0, request.speed, &blocked, bounds, &crossing).map_err(js_error)?;
+    for input in request.inputs { position = navigation::direct_step_with_crossings(position, input.x, input.z, request.speed, &blocked, bounds, &crossing).map_err(js_error)?; }
     serde_json::to_string(&DirectPredictionResponse { position }).map_err(|e| js_error(e.to_string()))
 }
 

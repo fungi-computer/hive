@@ -135,6 +135,8 @@ pub struct ConstructionSite {
     pub y: i32,
     pub z: i64,
     pub orientation: Cardinal,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub edge: Option<crate::structure_geometry::Face>,
     pub seconds: f64,
     pub phase: ConstructionPhase,
 }

@@ -374,7 +374,7 @@ mod process_request_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
-        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
+        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, edge: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
         kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
         let structure = kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap();
         structure.on_complete = CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "input".into(), components: vec![("hive.container".into(), record(&Container { capacity: 4 }))], at_site_contact: false }] };
@@ -1176,6 +1176,7 @@ mod construction_tests {
         let state = ConstructionSite {
             catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z,
             orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished,
+            edge: None,
         };
         let entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state,
             Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
@@ -1240,7 +1241,7 @@ mod construction_tests {
         let upper = StaticInstance::Floor { id: "dependent-floor".into(), support: crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z } };
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
-        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished };
+        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, edge: None, seconds: 1.0, phase: ConstructionPhase::Finished };
         let wall_entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state, Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
         kernel.ids.insert("support-wall".into(), wall_entity); kernel.known.insert("support-wall".into()); kernel.contents.insert("support-wall".into(), BTreeSet::new());
         let dependent_entity = kernel.ecs.spawn((ExternalId("dependent-floor".into()), Support { entity: "support-wall".into() })).id();
@@ -2253,6 +2254,7 @@ impl Kernel {
                     start_cell = previous.path[cell_index];
                     origin = previous.origin.clone();
                 }
+                let structure = environment.world.structure_projection_snapshot();
                 let mut query = |cell| environment.world.traversal_material(cell);
                 let obstacle = |cell: crate::generation::Cell| {
                     i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x, z)| {
@@ -2260,13 +2262,12 @@ impl Kernel {
                         blocked.contains(&(x, y, z))
                     })
                 };
-                let structure = environment.world.structure_projection_snapshot();
                 let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
-                    from.y == to.y && structure.blocks_crossing(from, to).unwrap_or(true)
+                    structure.blocks_swept_transition(from, to, &stairs).unwrap_or(true)
                 };
                 if !history.is_empty() && (!crate::terrain_traversal::path_supported_with_stairs(&history[contact_start..], config, &mut query, &stairs)?
                     || history[contact_start..].iter().copied().any(&obstacle)
-                    || history[contact_start..].windows(2).any(|pair| pair[0].y == pair[1].y && structure.blocks_crossing(pair[0], pair[1]).unwrap_or(true))) {
+                    || history[contact_start..].windows(2).any(|pair| structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true))) {
                     return Err("retained terrain contact is no longer traversable".into());
                 }
                 let mut path = crate::terrain_route::search_any_with_blocked_and_stairs_and_crossings(start_cell, &[destination_cell], config, &mut query, &obstacle, &stairs, &crossing)?.1;
@@ -2293,6 +2294,9 @@ impl Kernel {
                 };
                 return Ok(PreparedRoute { points: points.into_iter().collect(), terrain: Some(terrain) });
             }
+        }
+        if frame.is_none() && self.environment.as_ref().is_some_and(|environment| environment.world.structure_projection_snapshot().explicit_faces().any(|face| face.axis.is_vertical())) {
+            return Err("flat route cannot validate vertical structure boundaries".into());
         }
         let route = navigation::route(
             navigation::point(start),
@@ -2343,7 +2347,7 @@ impl Kernel {
         let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
         let structure = environment.world.structure_projection_snapshot();
         let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
-            from.y == to.y && structure.blocks_crossing(from, to).unwrap_or(true)
+            structure.blocks_swept_transition(from, to, &stairs).unwrap_or(true)
         };
         let mut query = |cell| environment.world.traversal_material(cell);
         let paths = crate::terrain_route::search_many_with_blocked_and_stairs(start_cell, &targets, config, &mut query, &obstacle, &stairs, &crossing)?;
@@ -2405,7 +2409,7 @@ impl Kernel {
         let environment = self.environment.as_mut().ok_or("terrain traversal needs environment")?;
         let structure = environment.world.structure_projection_snapshot();
         let crossing = |from: crate::generation::Cell, to: crate::generation::Cell| {
-            from.y == to.y && structure.blocks_crossing(from, to).unwrap_or(true)
+            structure.blocks_swept_transition(from, to, &stairs).unwrap_or(true)
         };
         let mut query = |cell| environment.world.traversal_material(cell);
         let (index,path) = crate::terrain_route::search_any_with_blocked_and_stairs_and_crossings(start_cell,&targets,config,&mut query,&obstacle,&stairs,&crossing)?;
@@ -2475,6 +2479,9 @@ impl Kernel {
             let start = *self.ecs.get::<Position>(entity).ok_or("saved route has no position")?;
             if route.terrain_path.is_none() {
                 let destination = destination.ok_or("flat route requires destination")?;
+                if frame.is_none() && self.environment.as_ref().is_some_and(|environment| environment.world.structure_projection_snapshot().explicit_faces().any(|face| face.axis.is_vertical())) {
+                    return Err("saved flat route cannot validate vertical structure boundaries".into());
+                }
                 navigation::validate_saved_path(
                     navigation::point(start),
                     &route.path,
@@ -2501,7 +2508,9 @@ impl Kernel {
                     return Err("saved terrain route target witness mismatch".into());
                 }
                 let environment = self.environment.as_ref().ok_or("saved terrain route needs environment")?;
-                if route.path.windows(2).any(|pair| pair[0].y == pair[1].y && environment.world.structure_blocks_crossing(pair[0], pair[1]).unwrap_or(true)) {
+                let stairs = environment.world.stair_edges().to_vec();
+                let structure = environment.world.structure_projection_snapshot();
+                if path.windows(2).any(|pair| structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true)) {
                     return Err("saved terrain route crosses a sealed structure face".into());
                 }
                 self.terrain_routes.insert(entity, TerrainRouteState {
@@ -2987,6 +2996,7 @@ impl Kernel {
             (terrain_points(center)?, Some([container_pose.x, container_pose.y, container_pose.z]))
         };
         let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.clearance_cells, max_step_cells: traversal.max_step_cells };
+        let contact_projection = self.environment.as_ref().ok_or("world has no environment")?.world.structure_projection_snapshot();
         let mut targets = Vec::new();
         for point in source_points {
             let raw = [point[0] / spacing[0], point[1] / spacing[1] - 0.5, point[2] / spacing[2]];
@@ -2995,6 +3005,11 @@ impl Kernel {
             let mut query = |at| environment.world.traversal_material(at);
             if crate::terrain_traversal::node(cell, config, &mut query)?.is_none() { continue; }
             if contact_reference.is_some_and(|reference| !interaction_contact::within_transfer_reach(reference, point)) { continue; }
+            if let Some(reference) = contact_reference {
+                let reference_raw = [reference[0] / spacing[0], reference[1] / spacing[1] - 0.5, reference[2] / spacing[2]];
+                let reference_cell = crate::generation::Cell { x: reference_raw[0].round() as i64, y: reference_raw[1].round() as i32, z: reference_raw[2].round() as i64 };
+                if contact_projection.blocks_direct_decomposition(cell, reference_cell).unwrap_or(true) { continue; }
+            }
             targets.push(json!({"x":point[0],"y":point[1],"z":point[2],"frame":frame.as_deref()}));
         }
         if targets.is_empty() {
@@ -3869,7 +3884,20 @@ impl Kernel {
         if !interaction_contact::within_transfer_reach([a.x, a.y, a.z], [b.x, b.y, b.z]) {
             return Err("out of reach".into());
         }
+        if !self.physical_contact_clear(a, b)? { return Err("sealed structure boundary".into()); }
         Ok(())
+    }
+    fn physical_contact_clear(&self, a: Position, b: Position) -> Result<bool> {
+        let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
+        let to_cell = |position: Position| -> Result<crate::generation::Cell> {
+            let raw = [position.x / spacing[0], position.y / spacing[1] - 0.5, position.z / spacing[2]];
+            if raw.iter().any(|value| !value.is_finite()) { return Err("contact position is not finite".into()); }
+            Ok(crate::generation::Cell { x: raw[0].round() as i64, y: raw[1].round() as i32, z: raw[2].round() as i64 })
+        };
+        let from = to_cell(a)?;
+        let to = to_cell(b)?;
+        let projection = self.environment.as_ref().unwrap().world.structure_projection_snapshot();
+        Ok(!projection.blocks_direct_decomposition(from, to).unwrap_or(true))
     }
     /// Portable containers have no independent pose. Their lot's container is
     /// the authoritative holder and therefore the contact point for interior
@@ -5480,7 +5508,7 @@ impl Kernel {
             }
             let mut query = |cell| environment.world.traversal_material(cell);
             let active = crate::terrain_route::active_support_index_with_stairs(&path, offset.ok_or("missing route progress")?, &stairs)?;
-            let boundary_valid = path[active..].windows(2).all(|pair| pair[0].y != pair[1].y || !structure.blocks_crossing(pair[0], pair[1]).unwrap_or(true));
+            let boundary_valid = path[active..].windows(2).all(|pair| !structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true));
             let valid = boundary_valid && crate::terrain_traversal::path_supported_with_stairs(&path[active..], config, &mut query, &stairs)?;
             if !valid { invalid.push(entity); }
             else if let Some(state) = self.terrain_routes.get_mut(&entity) { state.revision = Some(current_revision); }
@@ -5592,14 +5620,7 @@ impl Kernel {
                     let from = crate::generation::Cell { x: from_x.round() as i64, y, z: from_z.round() as i64 };
                     let to = crate::generation::Cell { x: to_x.round() as i64, y, z: to_z.round() as i64 };
                     if from == to { return false; }
-                    if from.x != to.x && from.z != to.z {
-                        let via_x = crate::generation::Cell { x: to.x, ..from };
-                        let via_z = crate::generation::Cell { z: to.z, ..from };
-                        projection.blocks_crossing(from, via_x).unwrap_or(true)
-                            || projection.blocks_crossing(from, via_z).unwrap_or(true)
-                    } else {
-                        projection.blocks_crossing(from, to).unwrap_or(true)
-                    }
+                    projection.blocks_direct_decomposition(from, to).unwrap_or(true)
                 };
                 next = navigation::direct_step_with_crossings(next, input.x, input.z, body.speed, &blocked, bounds, &crossing)?;
                 state.last_processed = input.sequence;

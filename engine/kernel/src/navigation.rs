@@ -18,14 +18,14 @@ pub const MAX_DIRECT_INPUTS: usize = 50;
 /// of the ECS so the WASM prediction entrypoint and the authoritative owner
 /// execute the same bounded movement and wall-slide rule.
 pub fn direct_step(
-    mut position: Position,
+    position: Position,
     x: f64,
     z: f64,
     speed: f64,
     blocked: &BTreeSet<Cell>,
     bounds: Option<Bounds>,
 ) -> Result<Position> {
-    direct_step_with_crossings(position, x, z, speed, blocked, bounds, &|_, _| false)
+    direct_step_with_crossings(position, x, z, speed, blocked, bounds, &|_, _, _, _, _| false)
 }
 
 pub fn direct_step_with_crossings(

@@ -193,6 +193,7 @@ fn fixture(blocked_air: bool) -> Kernel {
             Container { capacity: 1 },
             SealedContainer {},
             ConstructionSite {
+                edge: None,
                 catalog: "brew-station".into(),
                 x: surface.x,
                 y: surface.y,
