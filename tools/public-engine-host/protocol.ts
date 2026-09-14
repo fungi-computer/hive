@@ -47,7 +47,9 @@ export function colonyWorldRoute(pathname: string): ColonyWorldRoute | null {
 
 export function packFromPath(pathname: string): PublicPack | null {
   const match = /^\/v1\/([^/]+)\/(observe|command|connect|socket(?:\/[A-Za-z0-9._:-]{1,256})?)$/.exec(pathname);
-  if (!match || !PACKS.includes(match[1] as PublicPack)) return null;
+  // Colony moved to the world-scoped v2 contract.  Do not silently route a
+  // Colony request through the old bearer-token singleton.
+  if (!match || match[1] === "colony" || !PACKS.includes(match[1] as PublicPack)) return null;
   return match[1] as PublicPack;
 }
 

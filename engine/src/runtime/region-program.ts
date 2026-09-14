@@ -42,6 +42,7 @@ export type SessionResidentOptions = {
 };
 
 export interface SessionResident {
+  readonly findSafeSpawn: (revision: number, state: SessionRegionState, records: RegionRecordReader, offsets?: readonly (readonly [number, number])[]) => { readonly x: number; readonly y: number; readonly z: number } | null;
   readonly begin: (revision: number, state: SessionRegionState, records: RegionRecordReader) => void;
   readonly execute: (candidate: SessionRegionState, command: RegionCommand, records: RegionRecordReader, baseRevision: number, context: RegionExecutionContext) => RegionTransition;
   readonly accept: (revision: number) => void;
@@ -52,7 +53,11 @@ export interface SessionResident {
 
 function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope): unknown {
   switch (command.kind) {
-    case "action": session.request(command.action); return [];
+    case "action":
+      session.request(command.action);
+      // Party establishment is a host-only composite: settle its prepared
+      // native group in this same Region candidate and receipt.
+      return command.action.kind === "establish-party" ? session.step(0) : [];
     case "command": session.command(command.name, command.input, scope); return [];
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];
@@ -67,7 +72,9 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
-      const scope = options.scopeForPrincipal(options.ownerPrincipal);
+      // Hydration is a host operation.  The principal for a later command is
+      // resolved again in execute; never retain an authenticated player here.
+      const scope = options.scopeForPrincipal(options.hostPrincipal);
       if (!scope) throw new Error("region-principal-unbound");
       const session = new GameSession({ port, pack: options.pack, seed: options.seed, scope });
       session.restore(snapshot);
@@ -189,6 +196,9 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         throw error;
       }
     },
+    findSafeSpawn(revision, state, records, offsets) {
+      return this.observe(revision, state, records, session => session.findSafeSpawn(offsets));
+    },
   };
 }
 
@@ -253,9 +263,11 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
         : command;
     },
     authorize(principal, command) {
+      const scope = options.scopeForPrincipal(principal);
+      if (!scope) return false;
       if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action")
-        return principal === hostPrincipal;
-      return principal === ownerPrincipal;
+        return scope.kind === "host";
+      return scope.kind === "host" || scope.kind === "player";
     },
     execute(candidate, command, records, baseRevision, context) {
       return options.resident.execute(candidate, command, records, baseRevision, context);
