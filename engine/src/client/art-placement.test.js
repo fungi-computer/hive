@@ -124,7 +124,7 @@ test("recipe stair endpoints align all four native directions", () => {
 });
 
 test("v4 manifest retains recipe placement for every bed, brewer, and stair frame", () => {
-  const manifest = parseStaticArtManifest(JSON.parse(readFileSync("public/generated-art/goblin-static-art-v4/manifest.json", "utf8")));
+  const manifest = parseStaticArtManifest(JSON.parse(readFileSync("public/generated-art/goblin-static-art-v5/manifest.json", "utf8")));
   const recipes = new Map([["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT], ["stair", STAIR_PLACEMENT]]);
   const entries = manifest.entries.filter((entry) => recipes.has(entry.path[1]));
   assert.equal(entries.length, 82);
