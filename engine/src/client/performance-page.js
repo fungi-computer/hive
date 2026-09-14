@@ -7,6 +7,7 @@ import { createRoot } from "react-dom/client";
 import { Slider } from "@fungi.computer/caps/components/slider";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
+import { colonyPack } from "../games/colony.ts";
 
 const sizes = [64, 128, 256, 512], workerCounts = [4, 8, 16, 32, 50, 100, 200];
 const params = new URLSearchParams(location.search);
@@ -59,7 +60,7 @@ function mount() {
   }) });
   const persistence = { online: false, statusLabel: "Local performance run", save() {}, continue() {}, newWorld(callback) { callback(false); } };
   root.className = "hive-shell";
-  createHiveClient({ root, mode: `colony-performance-${size}-${workers}`, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
+  createHiveClient({ root, mode: `colony-performance-${size}-${workers}`, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
   const hud = root.querySelector(".hive-hud");
   const rail = document.createElement("div");
   rail.className = "hive-hud-rail";

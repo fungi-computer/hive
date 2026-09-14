@@ -4,7 +4,7 @@ import { localBindings } from "./whistle-runtime.js";
 import { colonyPack } from "../games/colony.ts";
 import { bindingCommand, buildPlacementCommand, terrainAreaCommand, terrainCellCommand } from "./whistle-command.js";
 
-const colonyBindings = localBindings(colonyPack);
+const colonyBindings = localBindings(colonyPack.id, colonyPack.commands);
 const buildControl = (id) => colonyBindings.find((control) => control.id === id);
 
 test("local floor binding turns a rectangle into one durable command input", () => {

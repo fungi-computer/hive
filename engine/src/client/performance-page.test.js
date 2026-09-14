@@ -11,3 +11,12 @@ test("performance page exposes all fixed size share URLs and worker choices", ()
   assert.match(source, /root\.className = "hive-shell"/);
   assert.match(source, /hud\.replaceWith\(rail\)/);
 });
+
+test("performance composition supplies Colony commands to the shared client", () => {
+  const page = readFileSync(new URL("./performance-page.js", import.meta.url), "utf8");
+  const client = readFileSync(new URL("./client.js", import.meta.url), "utf8");
+  assert.match(page, /import \{ colonyPack \} from "\.\.\/games\/colony\.ts"/);
+  assert.match(page, /commandDefinitions: colonyPack\.commands/);
+  assert.doesNotMatch(client, /const packs =/);
+  assert.doesNotMatch(client, /packs\[mode\]/);
+});

@@ -1,9 +1,10 @@
 import { createWhistle } from "@fungi.computer/whistle";
 
-/** Project only the owning pack's local acquisition data into Whistle custom data. */
-export function localBindings(pack) {
-  return Object.freeze(Object.entries(pack.commands ?? {}).flatMap(([name, command]) =>
-    (command.localPresentation?.bindings ?? []).map(binding => Object.freeze({ ...binding, commandId: `${pack.id}:${name}` }))
+/** Project the owning composition root's command data into Whistle custom data. */
+export function localBindings(gameId, commands) {
+  if (!gameId || !commands) throw new TypeError("game ID and owning command definitions are required");
+  return Object.freeze(Object.entries(commands).flatMap(([name, command]) =>
+    (command.localPresentation?.bindings ?? []).map(binding => Object.freeze({ ...binding, commandId: `${gameId}:${name}` }))
   ));
 }
 

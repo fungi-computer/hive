@@ -47,10 +47,6 @@ import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromOrderedSprites } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
-import { colonyPack } from "../games/colony.ts";
-import { survivalPack } from "../games/survival.ts";
-import { formationsPack } from "../games/formations.ts";
-import { piratesPack } from "../games/pirates.ts";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
@@ -67,6 +63,7 @@ export function createHiveClient({
   source,
   runtime,
   persistence,
+  commandDefinitions,
   orderCommand,
   directControlId,
   controlHelp,
@@ -78,6 +75,7 @@ export function createHiveClient({
   placementVisuals = {},
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
+  if (!commandDefinitions) throw new Error("Hive client requires owning command definitions");
   let directControl;
   let nativeBinding;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
@@ -111,8 +109,7 @@ export function createHiveClient({
   const aimGesture = createActor(aimGestureMachine).start();
   const terrainTarget = createActor(terrainTargetMachine).start();
   const terrainArea = createActor(terrainAreaGestureMachine).start();
-  const packs = { colony: colonyPack, survival: survivalPack, formations: formationsPack, pirates: piratesPack };
-  const localWhistle = createLocalGameWhistle({ bindings: localBindings(packs[mode]), submit: command => submit(command) });
+  const localWhistle = createLocalGameWhistle({ bindings: localBindings(mode, commandDefinitions), submit: command => submit(command) });
   function localControls() {
     return localWhistle.whistle.snapshot().menu.flatMap(row => {
       const presentation = row.action?.presentation;
