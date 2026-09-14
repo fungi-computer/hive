@@ -60,6 +60,29 @@ type HostRow = {
 };
 type WorldRow = { singleton: number; format_version: number; world_handle: string; pack: string; invite_hash: string };
 type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: string };
+
+/** Shared join transaction seam used by the DO and host law tests. */
+export async function runColonyJoinTransaction(options: {
+  readonly transaction: <T>(operation: () => T | Promise<T>) => Promise<T>;
+  readonly owner: RegionSqliteOwner;
+  readonly credentialHash: string;
+  readonly principal: string;
+  readonly bindingId: string;
+  readonly player: string;
+  readonly party: string;
+  readonly people: readonly string[];
+  readonly dispatch: () => { status: "applied" | "rejected"; result: unknown };
+}): Promise<{ player: string; party: string; people: readonly string[] }> {
+  return options.transaction(async () => {
+    const existing = options.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE credential_hash=?", options.credentialHash).toArray()[0];
+    if (existing) return { player: existing.player_id, party: existing.party_id, people: options.people };
+    const receipt = options.dispatch();
+    const results = receipt.status === "applied" && receipt.result && typeof receipt.result === "object" ? (receipt.result as { results?: unknown }).results : undefined;
+    if (!Array.isArray(results) || results.length !== 1 || !(results[0] as { accepted?: unknown })?.accepted) throw new Error("party-establish-rejected");
+    options.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", options.credentialHash, options.principal, options.player, options.party);
+    return { player: options.player, party: options.party, people: options.people };
+  });
+}
 type SocketAttachment = {
   readonly pack: PublicPack;
   readonly tokenHash: string;
@@ -649,19 +672,13 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       let revision: number | undefined;
       try {
         const result = await this.inTransaction(async () => {
-          const recheck = this.owner.sql.exec<ParticipantRow>("SELECT * FROM hive_public_participants WHERE credential_hash=?", credentialHash).toArray()[0];
-          if (recheck) return { player: recheck.player_id, party: recheck.party_id, people: this.partyPeople(recheck.party_id) };
           const committed = this.region.readCommitted();
           this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
-          const receipt = this.region.dispatch(`${this.pack}-host`, { id: `join:${credentialHash}`, command: { kind: "action", action: establishParty(bindingId, player, party as EntityId, plan.records) } });
-          if (receipt.status !== "applied" || !receipt.result || typeof receipt.result !== "object") throw new Error("party-establish-rejected");
-          const results = (receipt.result as { results?: unknown }).results;
-          if (!Array.isArray(results) || results.length !== 1 || !(results[0] as { accepted?: unknown })?.accepted) throw new Error("party-establish-rejected");
           revision = this.region.readCommitted().revision;
           const people = plan.people.map(String);
-          this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, participantPrincipal(credentialHash), player, party);
+          const joined = await runColonyJoinTransaction({ transaction: operation => Promise.resolve(operation()), owner: this.owner, credentialHash, principal: participantPrincipal(credentialHash), bindingId, player, party, people, dispatch: () => this.region.dispatch(`${this.pack}-host`, { id: `join:${credentialHash}`, command: { kind: "action", action: establishParty(bindingId, player, party as EntityId, plan.records) } }) });
           await this.arm(this.hostRow()!);
-          return { player, party, people, receipt };
+          return joined;
         });
         this.resident.accept(revision!);
         return { player: result.player, party: result.party, people: result.people };
