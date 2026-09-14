@@ -28,11 +28,14 @@ test("binding and party plans are deterministic and retry safe", async () => {
   assert.equal(plan.records.filter(record => record.components["hive.owned-by-party"] !== undefined).length, 3);
 });
 
-test("participant binding is atomic, idempotent, and survives reopen", () => {
+test("participant binding is atomic, idempotent, and survives reopen", async () => {
   const directory = mkdtempSync("/tmp/hive-party-laws-");
   const file = join(directory, "world.sqlite");
   const db = new DatabaseSync(file);
   db.exec("CREATE TABLE hive_public_participants (credential_hash TEXT PRIMARY KEY, principal TEXT UNIQUE, player_id TEXT UNIQUE, party_id TEXT UNIQUE)");
+  const owner = { sql: { exec: (statement: string, ...bindings: any[]) => ({ toArray: () => db.prepare(statement).all(...bindings) }) }, transactionSync: (operation: any) => operation() } as any;
+  await assert.rejects(() => runColonyJoinTransaction({ transaction: async operation => { db.exec("BEGIN"); try { await operation(); throw new Error("injected-after-commit"); } catch (error) { db.exec("ROLLBACK"); throw error; } }, owner, credentialHash: "rollback", principal: "participant:rollback", bindingId: "binding:rollback", player: "player:rollback", party: "party:rollback", people: [], dispatch: () => ({ status: "applied", result: { results: [{ accepted: true }] } }) }), /injected-after-commit/);
+  assert.equal(db.prepare("SELECT count(*) AS count FROM hive_public_participants").get().count, 0);
   const insert = db.prepare("INSERT INTO hive_public_participants VALUES (?,?,?,?)");
   db.exec("BEGIN");
   insert.run("a", "participant:a", "player:a", "party:a");
@@ -76,6 +79,12 @@ test("forged credentials and cross-party commands fail closed", async () => {
   assert.equal(foreign.records[0].components["hive.party"].ownerPlayer, "player:foreign");
   assert.notEqual(owner, String(foreign.party));
   assert.throws(() => createColonyPartyPlan("player/forged", entity("party:bad"), { x: 1, y: 0.5, z: 1 }), /invalid Colony player identity/);
+  const db = new DatabaseSync(":memory:");
+  db.exec("CREATE TABLE hive_public_participants (credential_hash TEXT PRIMARY KEY, principal TEXT UNIQUE, player_id TEXT UNIQUE, party_id TEXT UNIQUE)");
+  const host = { sql: { exec: (statement: string, ...args: any[]) => ({ toArray: () => db.prepare(statement).all(...args) }) }, transactionSync: (operation: any) => operation() } as any;
+  const forgedBinding = await colonyBindingId(world, forged);
+  await assert.rejects(() => runColonyJoinTransaction({ transaction: async operation => operation(), owner: host, credentialHash: forged, principal: `participant:${forged}`, bindingId: forgedBinding, player: "player:forged", party: owner, people: [], dispatch: () => ({ status: "rejected", result: {} }) }));
+  db.close();
 });
 
 test("disconnect and reopen preserve both participant memberships and world ticking", () => {
