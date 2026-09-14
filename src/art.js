@@ -1,4 +1,4 @@
-import { bake, renderBakePairCanvas } from "./art/bake.js";
+import { bake } from "./art/bake.js";
 import { compositeWaterOccluders } from "./visual-order.js";
 import { sliceCamera } from "./art/slice-camera.js";
 import { terrainCell } from "./terrain.ts";
@@ -323,12 +323,10 @@ export async function loadArt(onProgress = () => {}, options = {}) {
 
 export async function bakeArt(
   onProgress = () => {},
-  { withDepth = false } = {},
 ) {
   let completedTextures = 0;
   const bakedTextures = new Set();
-  const depthTextures = new Set();
-  const depthByTexture = new Map();
+  const placementByTexture = new Map();
   const allBakedTextures = new Set();
   let detail = "Preparing the drawing tools";
   const report = (waitingFor = null) =>
@@ -337,41 +335,10 @@ export async function bakeArt(
   function bakeStartup(...args) {
     try {
       const [renderer, source, camera, width, height, ink = true] = args;
-      let texture;
-      let depth;
-      let pair;
-      if (withDepth) {
-        pair = renderBakePairCanvas(renderer, source, camera, width, height, {
-          ink,
-          releaseGeometry: true,
-        });
-        texture = Texture.from(pair.colorCanvas);
-        texture.source.scaleMode = "nearest";
-        registerVisibleTexture(
-          texture,
-          pair.colorCanvas
-            .getContext("2d", { willReadFrequently: true })
-            .getImageData(0, 0, width, height).data,
-          width,
-          height,
-        );
-        depth = Texture.from(pair.depthCanvas);
-        depth.source.scaleMode = "nearest";
-      } else {
-        texture = bake(renderer, source, camera, width, height, ink);
-      }
+      const texture = bake(renderer, source, camera, width, height, ink);
       bakedTextures.add(texture);
       allBakedTextures.add(texture);
-      if (withDepth) {
-        depthTextures.add(depth);
-        allBakedTextures.add(depth);
-        depthByTexture.set(texture, {
-            texture: depth,
-            depthRange: pair.depthRange,
-            visualBounds: pair.visualBounds,
-            placement: source.userData?.staticPlacement,
-          });
-      }
+      placementByTexture.set(texture, source.userData?.staticPlacement);
       completedTextures++;
       return texture;
     } catch (error) {
@@ -681,8 +648,8 @@ export async function bakeArt(
     // It never updates simulation state or time. View owns replacement textures.
     detail = "Preparing water rendering";
     report();
-    Object.defineProperty(art, "depthByTexture", {
-      value: depthByTexture,
+    Object.defineProperty(art, "placementByTexture", {
+      value: placementByTexture,
       enumerable: false,
     });
     return attachDynamicBakers(art, renderer, disposeStatic);

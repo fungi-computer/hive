@@ -95,7 +95,7 @@ function serializedSilhouette(texture, width, height) {
 
 /** Bake the original bank once and arrange its exact final pixels for export. */
 export async function createStaticArtDraft(onProgress = () => {}) {
-  const art = await bakeArt(onProgress, { withDepth: true });
+  const art = await bakeArt(onProgress);
   try {
     const textures = collectTextures(art);
     const ground = textures.find(
@@ -107,9 +107,6 @@ export async function createStaticArtDraft(onProgress = () => {}) {
     )
       throw new Error("Static art must contain one ground texture");
     const groundCanvas = textureCanvas(ground.texture, "ground");
-    const groundDepthBake = art.depthByTexture?.get(ground.texture);
-    if (!groundDepthBake)
-      throw new Error("Static art ground has no depth bake");
     if (
       groundCanvas.width !== STATIC_ART_RENDER.ground.width ||
       groundCanvas.height !== STATIC_ART_RENDER.ground.height
@@ -136,7 +133,6 @@ export async function createStaticArtDraft(onProgress = () => {}) {
     }
 
     const atlases = [page(0)],
-      depthAtlases = [page(0)],
       entries = [];
     for (const item of textures.filter(({ path }) => path[0] !== "ground")) {
       const canvas = textureCanvas(item.texture, JSON.stringify(item.path));
@@ -145,22 +141,10 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       if (!at) {
         owner = page(atlases.length);
         atlases.push(owner);
-        depthAtlases.push(page(depthAtlases.length));
         at = place(owner, canvas.width, canvas.height);
       }
       if (!at) throw new Error("Static art frame exceeds an atlas page");
       owner.context.drawImage(canvas, at.x, at.y);
-      const depthBake = art.depthByTexture?.get(item.texture);
-      if (!depthBake)
-        throw new Error(
-          `Static art ${JSON.stringify(item.path)} has no depth bake`,
-        );
-      const depthCanvas = textureCanvas(
-        depthBake.texture,
-        `${JSON.stringify(item.path)} depth`,
-      );
-      const ownerIndex = atlases.length - 1;
-      depthAtlases[ownerIndex].context.drawImage(depthCanvas, at.x, at.y);
       entries.push({
         path: item.path,
         page: owner.id,
@@ -168,10 +152,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         y: at.y,
         width: canvas.width,
         height: canvas.height,
-        depth: { x: at.x, y: at.y, width: canvas.width, height: canvas.height },
-        depthRange: depthBake.depthRange,
-        visualBounds: depthBake.visualBounds,
-        ...(depthBake.placement ? { placement: depthBake.placement } : {}),
+        ...(art.placementByTexture.get(item.texture) ? { placement: art.placementByTexture.get(item.texture) } : {}),
         silhouette: serializedSilhouette(
           item.texture,
           canvas.width,
@@ -197,22 +178,9 @@ export async function createStaticArtDraft(onProgress = () => {}) {
           groundCanvas.height,
         ),
       },
-      groundDepth: {
-        file: "ground-depth.png",
-        width: groundCanvas.width,
-        height: groundCanvas.height,
-      },
-      groundDepthRange: groundDepthBake.depthRange,
-      groundVisualBounds: groundDepthBake.visualBounds,
       pages: atlases.map(({ id, file, width, height }) => ({
         id,
         file,
-        width,
-        height,
-      })),
-      depthPages: depthAtlases.map(({ id, width, height }) => ({
-        id,
-        file: `depth-${id}.png`,
         width,
         height,
       })),
@@ -226,12 +194,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       draft,
       files: new Map([
         ["ground.png", groundCanvas],
-        [
-          "ground-depth.png",
-          textureCanvas(groundDepthBake.texture, "ground depth"),
-        ],
         ...atlases.map(({ file, canvas }) => [file, canvas]),
-        ...depthAtlases.map(({ id, canvas }) => [`depth-${id}.png`, canvas]),
       ]),
       dispose: art.dispose,
     };

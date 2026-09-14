@@ -235,62 +235,6 @@ function page(value, index) {
   });
 }
 
-function depth(
-  value,
-  at = "depth",
-  fields = ["file", "sha256", "width", "height"],
-) {
-  keys(value, fields, at);
-  return Object.freeze({
-    file: file(value.file, `${at}.file`),
-    sha256: sha256(value.sha256, `${at}.sha256`),
-    width: integer(value.width, `${at}.width`, 1, STATIC_ART_LIMITS.pageSide),
-    height: integer(
-      value.height,
-      `${at}.height`,
-      1,
-      STATIC_ART_LIMITS.pageSide,
-    ),
-  });
-}
-
-function depthRange(value, at) {
-  keys(value, ["min", "max"], at);
-  const min = finite(
-    value.min,
-    `${at}.min`,
-    -Number.MAX_VALUE,
-    Number.MAX_VALUE,
-  );
-  const max = finite(
-    value.max,
-    `${at}.max`,
-    -Number.MAX_VALUE,
-    Number.MAX_VALUE,
-  );
-  if (!(max > min)) problem(at, "empty-range");
-  return Object.freeze({ min, max });
-}
-
-function visualBounds(value, at) {
-  keys(value, ["minX", "minY", "minZ", "maxX", "maxY", "maxZ"], at);
-  const result = {};
-  for (const key of ["minX", "minY", "minZ", "maxX", "maxY", "maxZ"])
-    result[key] = finite(
-      value[key],
-      `${at}.${key}`,
-      -Number.MAX_VALUE,
-      Number.MAX_VALUE,
-    );
-  if (!(
-    result.maxX >= result.minX &&
-    result.maxY >= result.minY &&
-    result.maxZ >= result.minZ
-  ))
-    problem(at, "inverted-bounds");
-  return Object.freeze(result);
-}
-
 function placement(value, at) {
   record(value, at);
   if (value.kind === "footprint") {
@@ -341,7 +285,7 @@ function path(value, at) {
   return Object.freeze(result);
 }
 
-function entry(value, index, pages, depthPages) {
+function entry(value, index, pages) {
   const at = `entries[${index}]`;
   const rawPath = value?.path;
   const requiresPlacement = Array.isArray(rawPath) && rawPath[0] === "buildings" && ["bed", "stair", "brew-station"].includes(rawPath[1]);
@@ -355,9 +299,6 @@ function entry(value, index, pages, depthPages) {
       "width",
       "height",
       "silhouette",
-      "depth",
-      "depthRange",
-      "visualBounds",
       ...(requiresPlacement ? ["placement"] : []),
     ],
     at,
@@ -365,8 +306,6 @@ function entry(value, index, pages, depthPages) {
   const pageId = string(value.page, `${at}.page`, /^atlas-[0-7]$/, 16);
   const owner = pages.get(pageId);
   if (!owner) problem(`${at}.page`, "unknown-page");
-  const depthAtlas = depthPages.get(pageId);
-  if (!depthAtlas) problem(`${at}.page`, "missing-depth-page");
   const width = integer(
     value.width,
     `${at}.width`,
@@ -381,33 +320,6 @@ function entry(value, index, pages, depthPages) {
   );
   const x = integer(value.x, `${at}.x`, 0, owner.width - width);
   const y = integer(value.y, `${at}.y`, 0, owner.height - height);
-  keys(value.depth, ["x", "y", "width", "height"], `${at}.depth`);
-  const depthX = integer(
-    value.depth.x,
-    `${at}.depth.x`,
-    0,
-    depthAtlas.width - width,
-  );
-  const depthY = integer(
-    value.depth.y,
-    `${at}.depth.y`,
-    0,
-    depthAtlas.height - height,
-  );
-  const depthWidth = integer(
-    value.depth.width,
-    `${at}.depth.width`,
-    1,
-    depthAtlas.width - depthX,
-  );
-  const depthHeight = integer(
-    value.depth.height,
-    `${at}.depth.height`,
-    1,
-    depthAtlas.height - depthY,
-  );
-  if (depthWidth !== width || depthHeight !== height)
-    problem(`${at}.depth`, "unexpected-size");
   const checkedPath = path(value.path, `${at}.path`);
   const checkedPlacement = requiresPlacement ? placement(value.placement, `${at}.placement`) : undefined;
   return Object.freeze({
@@ -417,14 +329,6 @@ function entry(value, index, pages, depthPages) {
     y,
     width,
     height,
-    depth: Object.freeze({
-      x: depthX,
-      y: depthY,
-      width: depthWidth,
-      height: depthHeight,
-    }),
-    depthRange: depthRange(value.depthRange, `${at}.depthRange`),
-    visualBounds: visualBounds(value.visualBounds, `${at}.visualBounds`),
     ...(checkedPlacement ? { placement: checkedPlacement } : {}),
     silhouette: silhouette(value.silhouette, width, height, `${at}.silhouette`),
   });
@@ -541,10 +445,6 @@ export function parseStaticArtManifest(input) {
       "textureCount",
       "anchors",
       "ground",
-      "groundDepth",
-      "groundDepthRange",
-      "groundVisualBounds",
-      "depthPages",
       "pages",
       "entries",
       "provenance",
@@ -559,15 +459,6 @@ export function parseStaticArtManifest(input) {
   }).map(page);
   const pageIds = new Map();
   const pageFiles = new Set(["ground.png"]);
-  const checkedGroundDepth = depth(input.groundDepth, "groundDepth");
-  if (
-    checkedGroundDepth.width !== STATIC_ART_RENDER.ground.width ||
-    checkedGroundDepth.height !== STATIC_ART_RENDER.ground.height
-  )
-    problem("groundDepth", "unexpected-size");
-  if (checkedGroundDepth.file === "ground.png")
-    problem("groundDepth.file", "duplicate-file");
-  pageFiles.add(checkedGroundDepth.file);
   let colorPagePixels = 0;
   for (const current of checkedPages) {
     if (pageIds.has(current.id) || pageFiles.has(current.file))
@@ -576,39 +467,12 @@ export function parseStaticArtManifest(input) {
     pageFiles.add(current.file);
     colorPagePixels += current.width * current.height;
   }
-  const checkedDepthPages = array(input.depthPages, "depthPages", {
-    min: 1,
-    max: STATIC_ART_LIMITS.pages,
-  }).map((value, index) => {
-    const at = `depthPages[${index}]`;
-    return Object.freeze({
-      id: string(value.id, `${at}.id`, /^atlas-[0-7]$/, 16),
-      ...depth(value, at, ["id", "file", "sha256", "width", "height"]),
-    });
-  });
-  const depthPageIds = new Map();
-  let depthPagePixels = 0;
-  for (const current of checkedDepthPages) {
-    const color = pageIds.get(current.id);
-    if (!color) problem("depthPages", "unmatched-page");
-    if (depthPageIds.has(current.id)) problem("depthPages", "duplicate-id");
-    if (pageFiles.has(current.file)) problem("depthPages", "duplicate-file");
-    if (current.width !== color.width || current.height !== color.height)
-      problem("depthPages", "atlas-size-mismatch");
-    depthPageIds.set(current.id, current);
-    pageFiles.add(current.file);
-    depthPagePixels += current.width * current.height;
-  }
-  if (depthPageIds.size !== pageIds.size) problem("depthPages", "missing-page");
-  if (
-    colorPagePixels > STATIC_ART_LIMITS.pagePixels ||
-    depthPagePixels > STATIC_ART_LIMITS.pagePixels
-  )
+  if (colorPagePixels > STATIC_ART_LIMITS.pagePixels)
     problem("pages", "pixel-budget");
   const checkedEntries = array(input.entries, "entries", {
     min: 1,
     max: STATIC_ART_LIMITS.textures - 1,
-  }).map((value, index) => entry(value, index, pageIds, depthPageIds));
+  }).map((value, index) => entry(value, index, pageIds));
   const textureCount = integer(
     input.textureCount,
     "textureCount",
@@ -637,14 +501,7 @@ export function parseStaticArtManifest(input) {
       exactFile: "ground.png",
       exactSize: STATIC_ART_RENDER.ground,
     }),
-    groundDepth: checkedGroundDepth,
-    groundDepthRange: depthRange(input.groundDepthRange, "groundDepthRange"),
-    groundVisualBounds: visualBounds(
-      input.groundVisualBounds,
-      "groundVisualBounds",
-    ),
     pages: Object.freeze(checkedPages),
-    depthPages: Object.freeze(checkedDepthPages),
     entries: Object.freeze(checkedEntries),
     provenance: provenance(input.provenance),
   });
@@ -668,17 +525,7 @@ export function completeStaticArtManifest(draft, fileSha256, sources) {
       ...draft.ground,
       sha256: hashes[draft.ground.file],
     },
-    groundDepth: {
-      ...draft.groundDepth,
-      sha256: hashes[draft.groundDepth.file],
-    },
-    groundDepthRange: draft.groundDepthRange,
-    groundVisualBounds: draft.groundVisualBounds,
     pages: draft.pages.map((page) => ({
-      ...page,
-      sha256: hashes[page.file],
-    })),
-    depthPages: draft.depthPages.map((page) => ({
       ...page,
       sha256: hashes[page.file],
     })),

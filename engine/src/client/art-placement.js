@@ -1,5 +1,5 @@
 // Pure placement datum shared by the retained original-art projection and
-// its depth/picking item. Physical cells remain authoritative; this helper
+// its physical footprint. Physical cells remain authoritative; this helper
 // only translates the baked visual into that existing footprint.
 
 const ORIENTATIONS = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
@@ -64,8 +64,7 @@ function samePointSet(left, right, epsilon) {
 
 /**
  * Align one original baked facing to the native footprint. The returned
- * translation is in world x/z metres/cells and must be applied to both the
- * color quad origin and its paired depth origin.
+ * translation is in world x/z metres/cells and applies to the color quad.
  */
 export function resolvePlacementArtTransform({ physicalFootprint, bakedFootprint, orientation, rotationPivot = [0, 0], epsilon = 1e-9 }) {
   const physical = cells(physicalFootprint, "physical footprint");
@@ -124,9 +123,9 @@ export function resolveStairArtEndpoints3d({ entrance, landing, physicalEntrance
   return Object.freeze({ entrance: actualEntrance, landing: actualLanding, orientation: cardinalQuarterTurns(orientation) });
 }
 
-/** Resolve content supplied native datum against the decoded original frame. */
-export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orientation, decodedDepth }) {
-  if (!subjectPlacement || !artPlacement || !decodedDepth?.visualBounds)
+/** Resolve content supplied native datum against the original art frame. */
+export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orientation }) {
+  if (!subjectPlacement || !artPlacement)
     throw new Error("original art placement metadata is unavailable");
   const turns = cardinalQuarterTurns(orientation);
   if (subjectPlacement.kind === "footprint" && artPlacement.kind === "footprint") {

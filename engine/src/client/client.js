@@ -943,12 +943,10 @@ export function createHiveClient({
       let placement;
       let resolvedPlacement;
       if (texture && isStatic && subject.placement) {
-        const decodedDepth = art.depthByTexture?.get(texture);
         const resolved = resolveWorldArtPlacement({
           subjectPlacement: subject.placement,
-          artPlacement: decodedDepth?.placement,
+          artPlacement: art.placementByTexture?.get(texture),
           orientation: subject.placement.orientation,
-          decodedDepth,
         });
         resolvedPlacement = resolved;
         const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);

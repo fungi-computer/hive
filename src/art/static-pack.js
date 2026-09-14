@@ -76,27 +76,6 @@ function closeBitmap(bitmap) {
   bitmap?.close?.();
 }
 
-async function decodeCpuPixels(bitmap) {
-  const canvas =
-    typeof OffscreenCanvas === "function"
-      ? new OffscreenCanvas(bitmap.width, bitmap.height)
-      : Object.assign(document.createElement("canvas"), {
-          width: bitmap.width,
-          height: bitmap.height,
-        });
-  if (!(canvas.width && canvas.height)) {
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-  }
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) throw new Error("Static art CPU depth canvas is unavailable");
-  context.imageSmoothingEnabled = false;
-  context.drawImage(bitmap, 0, 0);
-  return new Uint8Array(
-    context.getImageData(0, 0, bitmap.width, bitmap.height).data,
-  );
-}
-
 /**
  * Load one complete immutable static bank. Nothing is returned until every
  * checked image, frame and CPU silhouette has been assembled successfully.
@@ -105,7 +84,6 @@ export async function loadStaticArtPack({
   baseUrl = STATIC_ART_BASE,
   fetchImpl = fetch,
   decodeImage = createImageBitmap,
-  decodeDepthPixels = decodeCpuPixels,
   onProgress = () => {},
 } = {}) {
   const base = new URL(baseUrl, document.baseURI);
@@ -129,9 +107,7 @@ export async function loadStaticArtPack({
 
   const definitions = [
     manifest.ground,
-    manifest.groundDepth,
     ...manifest.pages,
-    ...manifest.depthPages,
   ];
   onProgress({ detail: "Loading the clearing art", completedTextures: 0 });
   const loaded = await Promise.allSettled(
@@ -161,12 +137,8 @@ export async function loadStaticArtPack({
   }
 
   try {
-    const groundDepthPixels = decodeDepthPixels
-      ? await decodeDepthPixels(bitmaps[1])
-      : null;
     const ground = textureFromBitmap(bitmaps[0]);
-    const groundDepth = textureFromBitmap(bitmaps[1]);
-    ownerTextures.push(ground, groundDepth);
+    ownerTextures.push(ground);
     registerVisibleSilhouette(ground, {
       width: manifest.ground.width,
       height: manifest.ground.height,
@@ -174,47 +146,18 @@ export async function loadStaticArtPack({
     });
     const pageTextures = new Map();
     manifest.pages.forEach((page, index) => {
-      const color = textureFromBitmap(bitmaps[index + 2]);
+      const color = textureFromBitmap(bitmaps[index + 1]);
       ownerTextures.push(color);
       pageTextures.set(page.id, { color });
     });
-    const depthOffset = 2 + manifest.pages.length;
-    for (const [index, page] of manifest.depthPages.entries()) {
-      const bitmap = bitmaps[depthOffset + index];
-      const texture = textureFromBitmap(bitmap);
-      const pixels = decodeDepthPixels ? await decodeDepthPixels(bitmap) : null;
-      ownerTextures.push(texture);
-      Object.assign(pageTextures.get(page.id), {
-        depth: texture,
-        depthPixels: pixels,
-        depthDefinition: page,
-      });
-    }
     const art = {
       ground,
-      groundDepth,
       pawnAnchor: { ...manifest.anchors.pawn },
       propAnchor: { ...manifest.anchors.prop },
       vehicleAnchor: { ...manifest.anchors.vehicle },
     };
-    const depthByTexture = new Map();
-    depthByTexture.set(
-      ground,
-      Object.freeze({
-        texture: groundDepth,
-        pixels: groundDepthPixels,
-        atlasWidth: manifest.groundDepth.width,
-        atlasHeight: manifest.groundDepth.height,
-        frame: Object.freeze({
-          x: 0,
-          y: 0,
-          width: manifest.ground.width,
-          height: manifest.ground.height,
-        }),
-        depthRange: manifest.groundDepthRange,
-        visualBounds: manifest.groundVisualBounds,
-      }),
-    );
+    const placementByTexture = new Map();
+    placementByTexture.set(ground, undefined);
     for (const entry of manifest.entries) {
       const page = pageTextures.get(entry.page);
       const source = page.color.source;
@@ -228,23 +171,11 @@ export async function loadStaticArtPack({
         height: entry.height,
         ...entry.silhouette,
       });
-      depthByTexture.set(
-        texture,
-        Object.freeze({
-          texture: page.depth,
-          pixels: page.depthPixels,
-          atlasWidth: page.depthDefinition.width,
-          atlasHeight: page.depthDefinition.height,
-          frame: entry.depth,
-          depthRange: entry.depthRange,
-          visualBounds: entry.visualBounds,
-          placement: entry.placement,
-        }),
-      );
+      placementByTexture.set(texture, entry.placement);
       setTexture(art, entry.path, texture);
     }
-    Object.defineProperty(art, "depthByTexture", {
-      value: depthByTexture,
+    Object.defineProperty(art, "placementByTexture", {
+      value: placementByTexture,
       enumerable: false,
     });
     onProgress({
