@@ -184,7 +184,7 @@ try {
     }
   });
 
-  const response = await page.goto(worldUrl, { waitUntil: "domcontentloaded" });
+  const response = await page.goto(worldUrl.toString(), { waitUntil: "domcontentloaded" });
   assert.equal(response?.status(), 200, `Clearing frontend returned ${response?.status()}`);
   await waitForReady(page);
   const resetCanvas = await resizeAndResetCamera(page);
@@ -336,7 +336,7 @@ try {
   const structureFact = (fragment, supportCell) => latestObservation?.observation?.facts?.find(fact =>
     typeof fact.visual === "string" && fact.visual.includes(fragment) &&
     (!supportCell || (fact.pose?.position && Math.round(fact.pose.position.x) === supportCell[0] && Math.round(fact.pose.position.z) === supportCell[2])));
-  const artManifestResponse = await page.request.get(new URL("/generated-art/goblin-static-art-v4/manifest.json", frontend));
+  const artManifestResponse = await page.request.get(new URL("/engine/generated-art/goblin-static-art-v4/manifest.json", frontend).toString());
   assert.equal(artManifestResponse.status(), 200, "the public static-art manifest is unavailable");
   const artManifest = await artManifestResponse.json();
   const visualPathPrefix = (visual) => {

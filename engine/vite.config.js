@@ -8,13 +8,23 @@ const engine = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(engine, "..");
 const artDirectory = STATIC_ART_DIRECTORY;
 
+function manifestFiles(manifest) {
+  return new Set([
+    "manifest.json",
+    manifest.ground.file,
+    manifest.groundDepth.file,
+    ...manifest.pages.map((page) => page.file),
+    ...manifest.depthPages.map((page) => page.file),
+  ]);
+}
+
 // The original checked bank is copied byte-for-byte, never baked at startup.
 function originalAssetsAndAuthorSource() {
   return {
     name: "hive-original-assets-and-author-source",
     configureServer(server) {
       const manifest = JSON.parse(readFileSync(resolve(repository, "public", artDirectory, "manifest.json"), "utf8"));
-      const files = new Set(["manifest.json", manifest.ground.file, ...manifest.pages.map((page) => page.file)]);
+      const files = manifestFiles(manifest);
       const base = server.config.base.endsWith("/") ? server.config.base : `${server.config.base}/`;
       const prefix = `${base}${artDirectory}/`;
       server.middlewares.use((request, response, next) => {
@@ -35,7 +45,7 @@ function originalAssetsAndAuthorSource() {
     },
     generateBundle() {
       const manifest = JSON.parse(readFileSync(resolve(repository, "public", artDirectory, "manifest.json"), "utf8"));
-      for (const file of ["manifest.json", manifest.ground.file, ...manifest.pages.map(page => page.file)]) {
+      for (const file of manifestFiles(manifest)) {
         this.emitFile({ type: "asset", fileName: `${artDirectory}/${file}`, source: readFileSync(resolve(repository, "public", artDirectory, file)) });
       }
       for (const file of ["MapleMono-OFL.txt", "Nunito-OFL.txt", "README.md"]) {
