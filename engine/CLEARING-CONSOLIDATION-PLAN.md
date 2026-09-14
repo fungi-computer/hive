@@ -1572,6 +1572,139 @@ Exercise the shared boundary with building, hauling and brewing plus affected
 dig/tree/water/resource callers. Prove actual physical results, not only mocked
 candidate arrays. No whole-history test matrix or new benchmark campaign.
 
+### Watchdog-shaped work lifecycle — September 14 design refinement
+
+Levi requested this comparison and pseudocode before implementation. Source read:
+Botanical candidate `38966f9`, `packages/watchdog/src/effect.ts` and its private
+SQLite store. Watchdog owns opaque job lifecycle, private exact claims, durable
+cancellation before signalling execution, and settlement/recovery. An unanswered
+liveness probe does not release a claim. Its current runtime executes one async
+job per tick invocation and reports busy during that execution. Those are source
+findings, not proof that it is a simulation scheduler. Reuse its actual host
+capabilities where applicable; do not launch a Watchdog instance per goblin or
+duplicate world truth in its SQLite rows.
+
+**Chosen shape:** consolidate the existing work system around orders and attempts.
+An order is durable intent. An attempt is the current worker executing a bounded
+part of that intent. Stopping an attempt need not cancel the order. Game content
+supplies typed requirements and physical operations, never its own generic retry,
+claim-release or receipt-matching implementation. This remains the existing work
+owner, allocator and Region transaction; the names below are pseudocode, not
+accepted new public APIs or permission to create a general workflow language.
+
+Canonical ownership:
+
+- Work owns the single task-to-worker attempt association, its generation,
+  interruption state and pending operation reference. Migrate existing provider
+  actor fields and native attendance consistently; native physical activity must
+  reference/validate that attempt rather than independently allocate its worker.
+- Native movement owns routes, arrival and route blockage; native work/material
+  owners retain earned progress, physical quantities and final admission. An
+  accepted move request is not arrival; accepted attendance is not completion.
+- The existing Region/session action-result owner correlates an issued operation
+  to an exact attempt/generation/step. Do not correlate by actor and coordinates.
+  Retain required unconsumed results until reconciliation; the current one-tick
+  outcome array alone is insufficient if a consumer can miss a tick. Choose its
+  bounded retention/acknowledgement implementation at that existing owner, not a
+  second receipt database. Unacknowledged work is pending, never assumed failed.
+- Providers describe current readiness, relevant dependencies, admissible contact
+  targets and the next supported physical operation. Only the lifecycle owner
+  changes attempt status. Inspection derives human/AI status from these facts.
+
+Lifecycle pseudocode:
+
+```text
+placeOrder(intent):
+  validate shape, world authority and supported content
+  commit queued intent                   // no available-worker requirement
+
+advanceWork(candidate, changes):
+  reconcile exact committed operation results
+  apply pending cancellation/manual takeover to affected attempts
+  reconsider blocked orders affected by relevant changes, within budget
+  inspect current attempts; settle finished work or interrupt blocked work
+  match ready work to free eligible workers using the existing allocator
+  claim selected attempts and issue their next bounded physical operations
+  publish candidate through the existing Region transaction
+  broadcast only committed results
+
+inspectAttempt(attempt, world):
+  if physical result is unresolved: return pending(operationId)
+  if its physical work is finished: return completed
+  if player revoked automatic control: return interrupted
+  if requirements/contact no longer hold: return blocked(reason, dependencies)
+  if route planning budget was exhausted: return deferred
+  return running(nextPhysicalOperation)
+```
+
+Reconciliation precedes new allocation. Definitions and result variants are
+exhaustive; defects throw and discard/invalidate the detached candidate rather
+than becoming an endlessly retried blocked job. Logical step ordering is stable.
+Pause permits intent changes but no time, movement, labor or automatic cleanup
+progress. Browser and DO execute the same rules.
+
+Interruption and physical cleanup:
+
+```text
+interruptAttempt(attempt, reason):
+  stop only movement/activity owned by this exact attempt
+  reconcile any admitted transfer before deciding custody
+  if custody is unresolved: keep pending settlement; do not issue another effect
+  else if actor carries reserved goods:
+    detach the delivery obligation from labor occupancy
+    retain the real held lot and its reservation until a lawful transfer/drop
+    prevent another worker from treating held goods as freely available stock
+  else: release attempt reservations
+  release worker for manual control / other eligible labor
+  preserve earned work and leave order queued or blocked
+```
+
+Detaching does not make held cargo weightless or create a new material owner.
+Shared delivery owns the obligation and physical custody limits. Automatic
+cleanup may drop through the existing native operation when allowed; manual
+takeover cannot be overridden by an automatic move back to the old destination.
+If a different worker can resume with unreserved supply, the same supply owner
+must account for reserved undelivered amounts so it does not over-deliver.
+Cancellation of the entire order releases its outstanding demand after admitted
+effects settle; it never deletes held goods or already-completed construction.
+
+Blocked work is not globally blocked merely because one worker cannot reach it.
+Keep worker-specific capability/access failures scoped to that pairing. Missing
+materials or structural support may block the order. Retry dependencies include
+the relevant contacts/navigation regions, material availability, destination
+capacity and worker capability; ordinary world ticks are not invalidation. A
+bounded deferred-discovery queue must prevent starvation when no physical fact
+changes. Derived indexes rebuild after restore, including paused intent changes.
+
+Flooring and contact reuse:
+
+```text
+floorPlan = { supportFace, desiredFinish }
+readiness = structureOwner.inspect(floorPlan)  // support, finish, occupied volume
+workTargets = contactOwner.workContacts(floorPlan)
+deliveryTargets = contactOwner.transferContacts(stagingContainer)
+chosen = navigation.routeToAny(worker, legalTargets)
+completion = structureOwner.prepareFinishChange(floorPlan, paidMaterials)
+commit(completion)                            // furniture stays in place
+```
+
+The same native contact rule must generate candidate standing places and check
+the final physical operation. Staging position/custody does not move when a
+worker chooses another contact. Root's first actual runtime fixture (`u7158`,
+existing generated WASM, one law, exit 0) shows a floor at support level 13 can
+already finish beneath a brewer whose native fixture origin is level 14. This
+narrows the repair: do not add a special permission for furniture overlap; prove
+the obstructed staging case and finish replacement separately. It does not prove
+the user's exact trapped-world cause or the full new lifecycle.
+
+Implementation chunks remain joined before acceptance: (1) real failure fixture
+and result/contact contract, (2) shared lifecycle with delivery + construction
+first, (3) all other current work providers migrated with obsolete checks deleted,
+(4) floor replacement and inspection, then focused current-format recovery and
+playable proof. Any persisted format change needs explicit disposition under
+the current no-migration/no-hidden-reset rules before release. No data loss can
+be hidden by a green new-world test.
+
 ### 2. Shared height- and footprint-aware draw ordering
 
 Source findings:
