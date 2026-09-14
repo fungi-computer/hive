@@ -343,6 +343,7 @@ export class GameSession {
     const result: GameCommandResult = handler.invoke(
       {
         physicalContacts: (cells) => this.port.physicalContacts(cells),
+        transferContacts: (request) => this.port.transferContacts(request),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         query: (spec) => {
@@ -741,6 +742,7 @@ export class GameSession {
         assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
         physicalContacts: (cells) => this.port.physicalContacts(cells),
+        transferContacts: (request) => this.port.transferContacts(request),
         environmentFacts: () => this.port.environmentFacts(),
         atmosphereSamples: (cells) => this.port.atmosphereSamples(cells),
         constructionReadiness: (sites) => this.port.constructionReadiness(sites),
