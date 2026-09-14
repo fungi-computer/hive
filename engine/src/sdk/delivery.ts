@@ -54,13 +54,21 @@ export function decodeDeliveryObligation(value: unknown): DeliveryObligation {
     typeof row.kind !== "string"
   )
     throw new Error("unsupported delivery obligation version or shape");
+  const keys = Object.keys(row);
   if (
     row.kind === "available" ||
     row.kind === "held" ||
     row.kind === "delivered"
-  )
+  ) {
+    if (keys.length !== 3)
+      throw new Error("delivery obligation custody shape is invalid");
     return { version: 2, kind: row.kind, lot: row.lot as EntityId };
-  if (row.kind === "dropped" && typeof row.ground === "string")
+  }
+  if (
+    row.kind === "dropped" &&
+    typeof row.ground === "string" &&
+    keys.length === 4
+  )
     return {
       version: 2,
       kind: "dropped",
@@ -509,10 +517,12 @@ export function deliveryProvider(
             reconcileLotCustody();
             acknowledgeWorkAttempt(ctx, attempt.key, sequence);
           } else if (lot.container === attempt.worker) {
+            // Pickup is already physical truth. Record that custody in the
+            // same candidate before either pausing or admitting the next leg.
+            reconcileLotCustody();
             if (suspendedActors.has(attempt.worker)) {
               // Pickup is already committed and the lot remains in the real
               // worker container. Preserve that obligation for Undraft.
-              reconcileLotCustody();
               acknowledgeWorkAttempt(ctx, attempt.key, sequence);
               continue;
             }

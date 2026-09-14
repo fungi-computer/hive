@@ -42,6 +42,7 @@ type FixtureOptions = {
   readonly workerParties?: ReadonlyMap<EntityId, EntityId>;
   readonly lotContainer?: EntityId;
   readonly lotQuantity?: number;
+  readonly taskQuantity?: number;
   readonly containerCapacity?: number;
   readonly occupiedWorkers?: readonly EntityId[];
   readonly sealedContainers?: readonly EntityId[];
@@ -68,7 +69,7 @@ function fixture(options: FixtureOptions = {}) {
     source,
     destination,
     material: "wood",
-    quantity: 1,
+    quantity: options.taskQuantity ?? 1,
     custody: "available",
     ground: null,
   };
@@ -144,7 +145,9 @@ function fixture(options: FixtureOptions = {}) {
     impacts: [],
     random: { next: () => 0 },
     query: (spec: { components: readonly { id: string }[] }) =>
-      (values.get(spec.components[0]!.id) ?? []) as never,
+      (spec.components[0]!.id === DeliveryTask.id
+        ? [row(task, DeliveryTask, state)]
+        : (values.get(spec.components[0]!.id) ?? [])) as never,
     workMaterialFacts: () => ({
       version: 1 as const,
       containers: [source, destination, ...workers].map((id) => ({
@@ -351,7 +354,7 @@ test("interrupted carrying preserves lot custody, releases labor, and only its h
 });
 
 test("J2 lost destination contact drops held material, then reopens from committed ground lot", () => {
-  const f = fixture({ lotContainer: entity("holder") });
+  const f = fixture({ lotContainer: entity("delivery.worker") });
   f.setAttempt(
     f.makeAttempt(transfer(f.lot, f.worker, f.destination), {
       kind: "completed",
@@ -422,7 +425,11 @@ test("a held obligation never routes a second worker to the physical holder", ()
 });
 
 test("capacity remains bounded by the requested quantity", () => {
-  const f = fixture({ lotQuantity: 3, containerCapacity: 1 });
+  const f = fixture({
+    lotQuantity: 3,
+    taskQuantity: 3,
+    containerCapacity: 1,
+  });
   assert.equal(f.prepare().candidates.length, 0);
 });
 
