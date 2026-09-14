@@ -9,9 +9,25 @@ import { createSessionRegionRuntime, type SessionResident } from "./region-progr
 import { hydrateSession } from "./session-record-store";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { colonyPack } from "../games/colony";
+import { colonyPack, colonyServerPack } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
+
+test("server Region creates its initial session with explicit host authority", () => {
+  const runtime = createSessionRegionRuntime({
+    pack: colonyServerPack,
+    createKernel: () => wasmKernelPort(new WasmKernel()),
+    implementationHash: "0".repeat(64),
+    ownerPrincipal: "player",
+    hostPrincipal: "clock",
+    seed: 17,
+    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : null,
+  });
+  const initial = runtime.program.initial();
+  assert.equal(initial.state.session.game, colonyServerPack.id);
+  assert.equal(initial.state.session.gameVersion, colonyServerPack.version);
+  runtime.resident.dispose();
+});
 
 test("actual Colony water records commit with session and recover after failed SQL", () => {
   const db = new DatabaseSync(":memory:");

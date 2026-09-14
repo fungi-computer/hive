@@ -24,6 +24,12 @@ const commandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("pause") }).strict(),
   z.object({ kind: z.literal("resume") }).strict(),
 ]);
+
+function hostScope(options: Pick<SessionResidentOptions, "hostPrincipal" | "scopeForPrincipal">): CommandScope {
+  const scope = options.scopeForPrincipal(options.hostPrincipal);
+  if (scope?.kind !== "host") throw new Error("region-host-principal-unbound");
+  return scope;
+}
 type RegionCommand =
   | Exclude<z.infer<typeof commandSchema>, { kind: "action" }>
   | { kind: "action"; action: ActionRequest };
@@ -89,9 +95,12 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
     try {
       // Hydration is a host operation.  The principal for a later command is
       // resolved again in execute; never retain an authenticated player here.
-      const scope = options.scopeForPrincipal(options.hostPrincipal);
-      if (!scope) throw new Error("region-principal-unbound");
-      const session = new GameSession({ port, pack: options.pack, seed: options.seed, scope });
+      const session = new GameSession({
+        port,
+        pack: options.pack,
+        seed: options.seed,
+        scope: hostScope(options),
+      });
       session.restore(snapshot);
       return { session, port };
     } catch (error) {
@@ -246,6 +255,7 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
         port,
         pack: pack,
         seed: seed,
+        scope: hostScope(options),
       });
       if (snapshot) session.restore(snapshot);
       else session.start();
