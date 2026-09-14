@@ -354,6 +354,18 @@ mod process_attempt_tests {
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         let attempt = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
         assert!(attempt.contains("worker:1"));
+
+        let wrong_party = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:2"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&wrong_party).unwrap()["results"][0]["accepted"], false);
+        let half = kernel.advance_json(&json!({"delta":0.5,"writes":[],"actions":[]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&half).unwrap()["results"].as_array().unwrap().len(), 0);
+        let mid = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
+        assert!(mid.contains("executing"), "{mid}");
+        kernel.advance_json(&json!({"delta":0.5,"writes":[],"actions":[]}).to_string()).unwrap();
+        let process_state = kernel.ecs.get::<StagedProcess>(kernel.entity(process).unwrap()).unwrap();
+        assert_eq!(process_state.phase, ProcessPhase::Complete);
+        let completed = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
+        assert!(completed.contains("completed"), "{completed}");
     }
 }
 

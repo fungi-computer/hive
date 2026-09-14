@@ -319,8 +319,7 @@ export type WorkActivityRef =
   | { readonly kind: "resource-establish"; readonly site: EntityId; readonly definition: string; readonly cell: readonly [number, number, number] }
   | { readonly kind: "resource-tend"; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "resource-extract"; readonly source: EntityId }
-  | { readonly kind: "field-water"; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly direction: "withdraw" | "deposit"; readonly portions: number }
-  | { readonly kind: "tree"; readonly tree: EntityId };
+  | { readonly kind: "field-water"; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly direction: "withdraw" | "deposit"; readonly portions: number };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }

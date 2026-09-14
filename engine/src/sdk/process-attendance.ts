@@ -7,10 +7,18 @@ import type { PreparedWorkProvider } from "./work-system";
 
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly target: MoveDestination };
 const CONTACT_DISTANCE = 1.5;
+const MAX_PROCESSES = 64;
+const MAX_WORKERS = 256;
+const ACTIVE_PROCESS_WINDOW = 4;
+const ACTIVE_WORKER_WINDOW = 32;
 
 /** Process attendance is represented by the native WorkAttempt. */
 export function processAttendanceProvider(ctx: WriteContext, workers: readonly EntityId[], suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
-  const processes = ctx.query(query(StagedProcess)).map(row => ({ id: row.id, state: row.get(StagedProcess) }));
+  if (workers.length > MAX_WORKERS) throw new Error("process attendance worker bound exceeded");
+  const allProcesses = ctx.query(query(StagedProcess)).map(row => ({ id: row.id, state: row.get(StagedProcess) })).sort((a, b) => a.id.localeCompare(b.id));
+  if (allProcesses.length > MAX_PROCESSES) throw new Error("process attendance process bound exceeded");
+  const processStart = allProcesses.length ? (ctx.clock.tick * ACTIVE_PROCESS_WINDOW) % allProcesses.length : 0;
+  const processes = Array.from({ length: Math.min(ACTIVE_PROCESS_WINDOW, allProcesses.length) }, (_, offset) => allProcesses[(processStart + offset) % allProcesses.length]!);
   const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
   const positions = new Map(ctx.query(query(Position)).map(row => { const p = row.get(Position); return [row.id, { x: p.x, y: p.y, z: p.z, frame: null } satisfies MoveDestination]; }));
@@ -20,23 +28,36 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
   const supports = new Set(ctx.query(query(Support)).map(row => row.id));
   const destinations = new Set(ctx.query(query(Destination)).map(row => row.id));
   const excavating = new Set(ctx.query(query(ExcavationWork)).map(row => row.id));
-  const attempts = new Map((ctx.workAttempts?.(processes.map(process => process.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
-  const targets = new Map(processes.flatMap(process => { const target = positions.get(process.state.station); return target ? [[process.id, target] as const] : []; }));
+  const targets = new Map(allProcesses.flatMap(process => { const target = positions.get(process.state.station); return target ? [[process.id, target] as const] : []; }));
+  const attempts = new Map((ctx.workAttempts?.(allProcesses.map(process => process.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const materialFacts = processes.some(process => process.state.phase === "waiting" && process.state.stageIndex === 0) ? ctx.workMaterialFacts() : null;
   const ready = processes.filter(process => {
     if (attempts.has(process.id)) return false;
     if (process.state.phase !== "waiting") return false;
     const requirements: ProcessRequirements = ctx.processRequirements(process.state.definition, process.state.station);
-    return requirements.stages[process.state.stageIndex]?.mode === "attended";
+    const stage = requirements.stages[process.state.stageIndex];
+    if (stage?.mode !== "attended") return false;
+    if (process.state.stageIndex !== 0) return true;
+    const lots = materialFacts?.lots ?? [];
+    return requirements.inputs.every(input => {
+      const matching = lots.filter(lot => lot.container === `${process.state.station}:${input.port}` && lot.kind === input.material && lot.quantity > 0);
+      return input.policy === "whole-lot"
+        ? matching.some(lot => lot.quantity === input.quantity)
+        : matching.reduce((sum, lot) => sum + lot.quantity, 0) >= input.quantity;
+    });
   });
   const activeWorkers = new Set([...attempts.values()].map(attempt => attempt.worker));
   const eligibleWorkers = workers.filter(worker => bodies.has(worker) && containers.has(worker) && traversals.has(worker) && positions.has(worker) && !activeWorkers.has(worker) && !supports.has(worker) && !destinations.has(worker) && !excavating.has(worker) && !suspended.has(worker));
+  const sortedWorkers = [...new Set(eligibleWorkers)].sort((a, b) => a.localeCompare(b));
+  const workerStart = sortedWorkers.length ? (ctx.clock.tick * ACTIVE_WORKER_WINDOW) % sortedWorkers.length : 0;
+  const selectedWorkers = Array.from({ length: Math.min(ACTIVE_WORKER_WINDOW, sortedWorkers.length) }, (_, offset) => sortedWorkers[(workerStart + offset) % sortedWorkers.length]!);
   const candidates = ready.flatMap(process => {
     const party = owners.get(process.id) ?? owners.get(process.state.station);
     const target = targets.get(process.id);
-    return target ? eligibleWorkers.filter(worker => party === undefined || memberships.get(worker) === party).map(worker => ({ worker, task: process.id, target })) : [];
+    return target ? selectedWorkers.filter(worker => party === undefined || memberships.get(worker) === party).map(worker => ({ worker, task: process.id, target })) : [];
   });
   return {
-    claims: processes.map(process => ({ task: process.id, actor: attempts.get(process.id)?.worker ?? process.state.worker })),
+    claims: allProcesses.map(process => ({ task: process.id, actor: attempts.get(process.id)?.worker ?? process.state.worker })),
     candidates,
     lowerBound: candidate => { const pose = positions.get(candidate.worker); return pose ? Math.hypot(pose.x - candidate.target.x, pose.y - candidate.target.y, pose.z - candidate.target.z) : 0; },
     estimate: candidate => { const result = ctx.routeCosts([{ actor: candidate.worker, target: candidate.target }])[0]; return result?.status === "reachable" ? result.cost : null; },
@@ -51,7 +72,7 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
       }
     },
     progress: () => {
-      for (const process of processes) {
+      for (const process of allProcesses) {
         const attempt = attempts.get(process.id);
         if (!attempt || attempt.phase.kind !== "outcome" || attempt.phase.result.kind !== "completed") continue;
         const target = targets.get(process.id), pose = positions.get(attempt.worker);
