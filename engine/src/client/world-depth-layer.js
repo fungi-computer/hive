@@ -140,7 +140,7 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
   const container = new Container();
   container.eventMode = "none";
   const renderTexture = RenderTexture.create({ width, height, resolution });
-  const target = new RenderTarget({ width, height, resolution, colorTextures: [renderTexture], depth: true });
+  const target = new RenderTarget({ width, height, resolution, colorTextures: [renderTexture], depth: true, depthStencilTexture: true });
   const picker = createWorldDepthPicker({ roleOrder });
   const records = new Map();
   let disposed = false;
@@ -191,12 +191,13 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
     },
     resize(nextWidth, nextHeight) {
       if (!Number.isSafeInteger(nextWidth) || !Number.isSafeInteger(nextHeight) || nextWidth <= 0 || nextHeight <= 0) throw new Error("invalid world depth resize");
-      target.resize(nextWidth, nextHeight, resolution); renderTexture.resize(nextWidth, nextHeight, resolution);
+      // The target listens to its color source and resizes both attachments once.
+      target.resize(nextWidth, nextHeight, resolution);
     },
     dispose() {
       if (disposed) return; disposed = true;
       for (const { mesh, geometry, shader } of records.values()) { mesh.destroy({ texture: false }); geometry.destroy(); shader.destroy(); }
-      records.clear(); container.destroy({ children: true }); target.destroy(); renderTexture.destroy(true);
+      records.clear(); container.destroy({ children: false }); target.destroy(); renderTexture.destroy(true);
     },
   });
 }
