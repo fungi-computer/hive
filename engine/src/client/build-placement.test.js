@@ -60,6 +60,16 @@ test("structure surface resolution is null without a match and stable on ties", 
   assert.deepEqual(tied.cell, [4, 13, 4]);
 });
 
+test("wall edge visuals never resolve to standable horizontal surfaces", () => {
+  assert.equal(structureSurfaceFromSprite(
+    node,
+    subject({ kind: "edge", edge: { cell: [4, 13, 4], axis: "x" } }),
+    { x: 4, y: 4 },
+    frame([[4, 13, 4]]),
+    project,
+  ), null);
+});
+
 test("stair resolution follows actual step faces for every orientation", () => {
   const faces = {
     north: [[4, 15, 3], [4, 17, 2]], east: [[5, 15, 4], [6, 17, 4]],

@@ -491,6 +491,8 @@ export function subjectSortFootprint(subject, resolvedPlacement) {
     return resolvedPlacement.alignedFootprint.map(([x, z]) => ({ x: origin.x + x, y: origin.y, z: origin.z + z }));
   if (resolvedPlacement?.kind === "stair" && resolvedPlacement.entrance && resolvedPlacement.landing)
     return [resolvedPlacement.entrance, resolvedPlacement.landing].map(([x, y, z]) => ({ x: origin.x + x, y: origin.y + y, z: origin.z + z }));
+  if (resolvedPlacement?.kind === "edge" && resolvedPlacement.endpoints?.length)
+    return resolvedPlacement.endpoints.map(([x, z]) => ({ x: origin.x + x, y: origin.y, z: origin.z + z }));
   return [origin];
 }
 

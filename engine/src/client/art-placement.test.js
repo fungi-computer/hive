@@ -88,6 +88,18 @@ test("real retained bindings resolve placement metadata for bed, brewer, and sta
   }), /endpoints do not match/);
 });
 
+test("edge placement uses its physical midpoint without art metadata or facing", () => {
+  assert.deepEqual(resolveWorldArtPlacement({
+    subjectPlacement: { kind: "edge", edge: { cell: [4, 13, 8], axis: "x" } },
+  }), {
+    kind: "edge", axis: "x", endpoints: [[-0.5, 0], [0.5, 0]], offset: [0, 0],
+  });
+  assert.deepEqual(resolveWorldArtPlacement({
+    subjectPlacement: { kind: "edge", edge: { cell: [4, 13, 8], axis: "z" } },
+    orientation: "south",
+  }).endpoints, [[0, -0.5], [0, 0.5]]);
+});
+
 test("recipe footprints align every native bed and brewer facing", () => {
   for (const [type, placement] of [["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT]]) {
     for (const orientation of ["north", "east", "south", "west"]) {

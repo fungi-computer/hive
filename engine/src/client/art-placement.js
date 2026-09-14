@@ -125,7 +125,20 @@ export function resolveStairArtEndpoints3d({ entrance, landing, physicalEntrance
 
 /** Resolve content supplied native datum against the original art frame. */
 export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orientation }) {
-  if (!subjectPlacement || !artPlacement)
+  if (!subjectPlacement)
+    throw new Error("original art placement metadata is unavailable");
+  if (subjectPlacement.kind === "edge") {
+    const axis = subjectPlacement.edge?.axis;
+    if (axis !== "x" && axis !== "z") throw new Error("invalid edge art placement axis");
+    const endpoints = axis === "x" ? [[-0.5, 0], [0.5, 0]] : [[0, -0.5], [0, 0.5]];
+    return Object.freeze({
+      kind: "edge",
+      axis,
+      endpoints: Object.freeze(endpoints.map((endpoint) => Object.freeze(endpoint))),
+      offset: Object.freeze([0, 0]),
+    });
+  }
+  if (!artPlacement)
     throw new Error("original art placement metadata is unavailable");
   const turns = cardinalQuarterTurns(orientation);
   if (subjectPlacement.kind === "footprint" && artPlacement.kind === "footprint") {
