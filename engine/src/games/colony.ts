@@ -575,21 +575,29 @@ export const colonyPack: GamePack = {
         if (selected === null && area === null) throw new Error("cancel dig requires workers or an area");
         const orders = context.query(query(ColonyDigOrder));
         const attempts = new Map((context.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
-        const removes = orders.filter((row) => {
+        const matching = orders.filter((row) => {
           const state = row.get(ColonyDigOrder);
           const attempt = attempts.get(row.id);
           const byWorker = selected !== null && attempt !== undefined && selected.has(attempt.worker);
           const byArea = area !== null && state.cellY === area.y && state.cellX >= area.minX && state.cellX <= area.maxX && state.cellZ >= area.minZ && state.cellZ <= area.maxZ;
           return byWorker || byArea;
-        }).map((row) => row.id);
-        if (!removes.length) throw new Error("no matching excavation order");
-        const actions: ActionRequest[] = orders.flatMap((row) => {
-          const attempt = attempts.get(row.id);
-          return removes.includes(row.id) && attempt && attempt.phase.kind === "executing"
-            ? [{ kind: "interrupt-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" }]
-            : [];
         });
-        return { actions, writes: [], removes };
+        if (!matching.length) throw new Error("no matching excavation order");
+        const actions: ActionRequest[] = [];
+        const writes = [];
+        const removes: EntityId[] = [];
+        for (const row of matching) {
+          const attempt = attempts.get(row.id);
+          if (!attempt) {
+            removes.push(row.id);
+            continue;
+          }
+          const state = row.get(ColonyDigOrder);
+          writes.push({ component: ColonyDigOrder.id, entity: row.id, value: { ...state, status: "cancelling", reason: "Cancelled" } });
+          if (attempt.phase.kind === "executing") actions.push({ kind: "interrupt-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" });
+          else if (attempt.phase.kind === "outcome") actions.push({ kind: "acknowledge-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence });
+        }
+        return { actions, writes, removes };
       },
     }),
     deposit: command({

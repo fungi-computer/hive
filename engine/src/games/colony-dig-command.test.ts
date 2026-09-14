@@ -111,7 +111,7 @@ test("Colony dig rejects the superseded worker-target input and accepts a design
   }));
 });
 
-test("Colony cancelDig removes designated orders and cancels only their active workers", () => {
+test("Colony cancelDig records cancellation before interrupting the exact active worker", () => {
   const work = row(worker, ExcavationWork, {
     x: 0, y: 12, z: 0, expected: 1, replacement: 0, seconds: 0,
   });
@@ -123,14 +123,14 @@ test("Colony cancelDig removes designated orders and cancels only their active w
   const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], attempts: [attempt] }), { entities: [worker] });
   assert.deepEqual(result, {
     actions: [{ kind: "interrupt-work-attempt", task: order.id, generation: 1, sequence: 1, cause: "cancelled" }],
-    writes: [],
-    removes: [order.id],
+    writes: [{ component: ColonyDigOrder.id, entity: order.id, value: { ...order.get(ColonyDigOrder), status: "cancelling", reason: "Cancelled" } }],
+    removes: [],
   });
   const activeDelivery = row(entity("colony.delivery.1"), DeliveryTask, {
     version: 2, party: entity("host"), sourceLot: entity("colony.food.1"), source,
     destination: entity("colony.guest.1"), material: "bread", quantity: 1, custody: "available", ground: null,
   });
-  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { entities: [worker] }), { actions: [], writes: [], removes: [order.id] });
+  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { area: { start: [0, 12, 0], end: [0, 12, 0] } }), { actions: [], writes: [], removes: [order.id] });
   assert.throws(() => colonyPack.commands!.cancelDig.invoke(context(), { entities: [worker] }), /no matching excavation order/);
 });
 

@@ -19,7 +19,7 @@ const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
 const clock = { now: 20, delta: 0.25, tick: 80 };
 
-type ReconciliationState = { cellX: number; cellY: number; cellZ: number; expected: number; status: "queued" | "blocked"; reason: string } | { tree: EntityId; phase: "queued" | "working" | "blocked" | "complete"; stage: "fell" | "chop"; seconds: number; reason: string };
+type ReconciliationState = { cellX: number; cellY: number; cellZ: number; expected: number; status: "queued" | "blocked" | "cancelling"; reason: string } | { tree: EntityId; phase: "queued" | "working" | "blocked" | "complete"; stage: "fell" | "chop"; seconds: number; reason: string };
 function reconciliationContext(kind: "dig" | "tree", attempt: WorkAttempt | null, stateOverride: Partial<ReconciliationState> = {}) {
   const task = id(kind === "dig" ? "dig-order" : "tree-order"), worker = id("worker"), tree = id("tree");
   const state = kind === "dig"
@@ -132,6 +132,34 @@ test("drafted dig route releases the claim and is eligible again after undraft",
   assert.equal(first.actions.length, 1);
   const retry = reconciliationContext("dig", null, first.state);
   assert.equal(digProvider(retry.context, new Set()).candidates.length, 1);
+});
+
+test("cancelling dig excludes candidates and removes only after an attempt acknowledgement", () => {
+  const executing = reconciliationContext("dig", {
+    key: { task: id("dig-order"), generation: 4 }, worker: id("worker"), party: id("party"),
+    phase: { kind: "executing", operation: { attempt: { task: id("dig-order"), generation: 4 }, sequence: 9 }, activity: { kind: "route", destination: { x: 1, y: 1.5, z: 1, frame: null } } },
+  }, { status: "cancelling", reason: "Cancelled" });
+  const prepared = digProvider(executing.context, new Set());
+  assert.equal(prepared.candidates.length, 0);
+  prepared.progress();
+  assert.deepEqual(executing.actions, [{ kind: "interrupt-work-attempt", task: executing.task, generation: 4, sequence: 9, cause: "cancelled" }]);
+  assert.deepEqual(executing.removed, []);
+
+  const outcomeState = reconciliationContext("dig", outcome(id("dig-order"), id("worker"), { kind: "excavation", cell: [1, 1, 1], expectedMaterial: 2, replacementMaterial: 0 }), { status: "cancelling", reason: "Cancelled" });
+  digProvider(outcomeState.context, new Set()).progress();
+  assert.deepEqual(outcomeState.actions, [{ kind: "acknowledge-work-attempt", task: outcomeState.task, generation: 1, sequence: 1 }]);
+  assert.deepEqual(outcomeState.removed, [], "physical completion is acknowledged before authored removal");
+
+  const removed = reconciliationContext("dig", null, { status: "cancelling", reason: "Cancelled" });
+  digProvider(removed.context, new Set()).progress();
+  assert.deepEqual(removed.removed, [removed.task]);
+});
+
+test("cancelling dig with no attempt removes the authored order immediately", () => {
+  const fixture = reconciliationContext("dig", null, { status: "cancelling", reason: "Cancelled" });
+  digProvider(fixture.context, new Set()).progress();
+  assert.deepEqual(fixture.removed, [fixture.task]);
+  assert.deepEqual(fixture.actions, []);
 });
 
 test("drafted executing dig and tree attempts emit the exact native interrupt", () => {
