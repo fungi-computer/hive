@@ -1,5 +1,9 @@
 # Goblin Bed & Breakfast
 
+The maintained Clearing deployment command and targets are documented in
+[DEPLOYING.md](DEPLOYING.md). Do not reconstruct the Wrangler commands from
+memory.
+
 An original isometric survival experiment in Hive. Rowan begins alone with
 Sedge visibly stranded nearby. Recruit her, select either or both people, issue
 personal direct or queued work, or drag a shared rectangular Chop designation.
