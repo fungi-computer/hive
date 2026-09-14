@@ -1,0 +1,69 @@
+function finite(value, name) {
+  if (!Number.isFinite(value)) throw new Error(`invalid world depth subject ${name}`);
+  return value;
+}
+
+function atlasFrame(texture) {
+  const frame = texture?.frame;
+  const source = texture?.source;
+  if (
+    !frame || !source ||
+    ![frame.x, frame.y, frame.width, frame.height, source.width, source.height]
+      .every(Number.isSafeInteger) ||
+    frame.x < 0 || frame.y < 0 || frame.width <= 0 || frame.height <= 0 ||
+    source.width <= 0 || source.height <= 0 ||
+    frame.x + frame.width > source.width || frame.y + frame.height > source.height
+  ) throw new Error("invalid world depth color frame");
+  return Object.freeze({
+    frame: Object.freeze({ x: frame.x, y: frame.y, width: frame.width, height: frame.height }),
+    atlasWidth: source.width,
+    atlasHeight: source.height,
+  });
+}
+
+/**
+ * Project one resolved original-art frame into the shared opaque world pass.
+ * The art bank owns depth pixels; this projection owns no texture lifetime.
+ */
+export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, visualPartId = "body" }) {
+  if (!subject || typeof subject.id !== "string" || subject.id.length === 0)
+    throw new Error("invalid world depth subject identity");
+  if (!texture || !art?.depthByTexture)
+    throw new Error("world depth art is unavailable");
+  const depth = art.depthByTexture.get(texture);
+  if (!depth?.texture || !(depth.pixels instanceof Uint8Array))
+    throw new Error(`visual depth unavailable for ${subject.id}`);
+  if (!anchor || !Number.isFinite(anchor.x) || !Number.isFinite(anchor.y))
+    throw new Error("invalid world depth subject anchor");
+
+  return Object.freeze({
+    entityId: subject.id,
+    visualPartId,
+    physicalRole: subject.visualRole === "floor"
+      ? "floor"
+      : subject.visualRole === "structure" || subject.surface
+        ? "structure"
+        : subject.visualRole === "terrain"
+          ? "terrain"
+          : subject.visualRole === "item"
+            ? "item"
+            : "actor",
+    colorTexture: texture,
+    colorFrame: atlasFrame(texture),
+    depthTexture: depth.texture,
+    depthFrame: depth,
+    worldOrigin: Object.freeze({
+      x: finite(subject.x, "x"),
+      y: finite(subject.y, "y"),
+      z: finite(subject.z, "z"),
+    }),
+    screenTransform: Object.freeze({
+      x: finite(subject.screen?.x, "screen x"),
+      y: finite(subject.screen?.y, "screen y"),
+      scale: finite(scale, "scale"),
+    }),
+    anchor: Object.freeze({ x: anchor.x, y: anchor.y }),
+    visible: true,
+    pickable: subject.pickable !== false,
+  });
+}
