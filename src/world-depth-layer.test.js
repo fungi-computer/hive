@@ -21,7 +21,7 @@ function item(id, depth, extra = {}) {
     screenTransform: { x: 0, y: 0 },
     anchor: { x: 0, y: 0 },
     depthFrame: frame(depth),
-    depthRange: [0, 10],
+    depthRange: { min: 0, max: 10 },
     visible: true,
     pickable: true,
     ...extra,
@@ -48,4 +48,10 @@ test("transparent pixels do not occlude and equal depth has deterministic role/i
   const floor = item("a", 0.5, { physicalRole: "floor" });
   assert.equal(pickWorldDepth([hidden, actor, floor], { x: 0, y: 0 }, [1, 0, 0]).item.entityId, "a");
   assert.ok(compareWorldDepthItems(floor, actor) < 0);
+});
+
+test("static pack depth metadata uses its checked min/max object shape", () => {
+  const wall = item("wall", 0.9, { depthFrame: { ...frame(0.9), depthRange: { min: -2, max: 3 } } });
+  const actor = item("actor", 0.1, { depthFrame: { ...frame(0.1), depthRange: { min: -2, max: 3 } } });
+  assert.equal(pickWorldDepth([actor, wall], { x: 0, y: 0 }, [1, 0, 0]).item.entityId, "wall");
 });

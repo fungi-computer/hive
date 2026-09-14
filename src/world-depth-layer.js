@@ -1,4 +1,4 @@
-import { Container } from "pixi.js";
+import { Container, Mesh, MeshGeometry, RenderTarget, RenderTexture, Shader, State } from "pixi.js";
 import { decodeDepth24 } from "./art/depth-image.js";
 
 /**
@@ -49,11 +49,12 @@ export function worldDepthBounds(items, towardCamera, margin = 1e-4) {
     if (!item.visible) continue;
     const origin = item.worldOrigin ?? [0, 0, 0];
     const dot = origin[0] * basis[0] + origin[1] * basis[1] + origin[2] * basis[2];
-    const range = item.depthRange ?? item.localDepthRange;
-    if (!range || range.length !== 2 || !Number.isFinite(range[0]) || !Number.isFinite(range[1]) || range[1] < range[0])
+    const range = item.depthRange ?? item.depthFrame?.depthRange ?? item.localDepthRange;
+    const min = range?.min ?? range?.[0], max = range?.max ?? range?.[1];
+    if (!range || !Number.isFinite(min) || !Number.isFinite(max) || max < min)
       throw new Error("world-depth-missing-range");
-    near = Math.max(near, dot + finite(range[1], "range"));
-    far = Math.min(far, dot + finite(range[0], "range"));
+    near = Math.max(near, dot + finite(max, "range"));
+    far = Math.min(far, dot + finite(min, "range"));
   }
   if (!Number.isFinite(near) || !Number.isFinite(far)) return null;
   const span = Math.max(Math.abs(near - far), 1);
@@ -84,9 +85,11 @@ function itemDepth(item, pixel, basis) {
   if (offset < 0 || offset + 3 >= pixels.length || pixels[offset + 3] === 0) return null;
   const encoded = decodeDepth24(pixels, offset);
   const range = depth.depthRange ?? item.depthRange;
-  if (!range || range.length !== 2) return null;
+  const min = range?.min ?? range?.[0];
+  const max = range?.max ?? range?.[1];
+  if (!range || !Number.isFinite(min) || !Number.isFinite(max) || max < min) return null;
   const origin = item.worldOrigin ?? [0, 0, 0];
-  return origin[0] * basis[0] + origin[1] * basis[1] + origin[2] * basis[2] + range[0] + encoded * (range[1] - range[0]);
+  return origin[0] * basis[0] + origin[1] * basis[1] + origin[2] * basis[2] + min + encoded * (max - min);
 }
 
 /** Pick the nearest opaque surface, retaining occlusion from nonpickable art. */
@@ -108,13 +111,23 @@ export function pickWorldDepth(items, point, basis, bounds = null, roleOrder = D
   return { ...winner, target: winner.item.pickable ? winner.item.entityId : null };
 }
 
-function vertexShader() {
-  return `in vec2 aPosition; in vec2 aUV; out vec2 vUV; void main(){vUV=aUV;gl_Position=vec4(aPosition,0.0,1.0);}`;
-}
+const vertex = `#version 300 es
+in vec2 aPosition; in vec2 aUV; out vec2 vUV; out vec4 vColor;
+uniform mat3 uProjectionMatrix; uniform mat3 uWorldTransformMatrix;
+uniform mat3 uTransformMatrix; uniform vec4 uWorldColorAlpha; uniform vec4 uColor;
+void main(){vUV=aUV;vColor=uWorldColorAlpha*uColor;
+gl_Position=vec4((uProjectionMatrix*uWorldTransformMatrix*uTransformMatrix*vec3(aPosition,1.0)).xy,0.0,1.0);}`;
 
-function fragmentShader() {
-  return `in vec2 vUV; uniform sampler2D uColor; uniform sampler2D uDepth; uniform vec2 uDepthRange; uniform vec2 uWorldRange; out vec4 finalColor; void main(){vec4 color=texture(uColor,vUV);if(color.a==0.0)discard;vec4 packed=texture(uDepth,vUV);float encoded=packed.r+packed.g/256.0+packed.b/65536.0;float worldDepth=uWorldRange.x+mix(uDepthRange.x,uDepthRange.y,encoded);gl_FragDepth=(uWorldRange.x-worldDepth)/(uWorldRange.x-uWorldRange.y);finalColor=color;}`;
-}
+const fragment = `#version 300 es
+in vec2 vUV; in vec4 vColor; out vec4 finalColor;
+uniform sampler2D uColorTexture; uniform sampler2D uDepthTexture;
+uniform float uOriginDepth; uniform float uLocalMin; uniform float uLocalMax;
+uniform float uNearDepth; uniform float uFarDepth;
+float decodeDepth24(vec3 encoded){return dot(encoded,vec3(65536.0,256.0,1.0))/65793.0;}
+void main(){vec4 color=texture(uColorTexture,vUV);if(color.a<=0.5)discard;
+float localDepth=mix(uLocalMin,uLocalMax,decodeDepth24(texture(uDepthTexture,vUV).rgb));
+float worldDepth=uOriginDepth+localDepth;
+gl_FragDepth=(uNearDepth-worldDepth)/(uNearDepth-uFarDepth);finalColor=color*vColor;}`;
 
 /** Public-Pixi owner. Mesh construction is deliberately injectable for headless proofs. */
 export function createWorldDepthLayer({ parent = null, renderer = null, roleOrder = DEFAULT_ROLE_ORDER } = {}) {
@@ -122,7 +135,7 @@ export function createWorldDepthLayer({ parent = null, renderer = null, roleOrde
   container.label = "opaque-world-depth";
   container.sortableChildren = false;
   const meshes = new Map();
-  let items = [], disposed = false;
+  let items = [], disposed = false, target = null, targetSize = null;
   let sharedBounds = null;
   function setItems(next, towardCamera) {
     if (disposed) throw new Error("world-depth-disposed");
@@ -134,16 +147,53 @@ export function createWorldDepthLayer({ parent = null, renderer = null, roleOrde
     const activeBounds = sharedBounds ?? worldDepthBounds(items, towardCamera);
     return pickWorldDepth(items, point, activeBounds.basis, activeBounds, roleOrder);
   }
-  function resize(width, height) { if (renderer?.resize) renderer.resize(width, height); }
+  function resize(width, height) {
+    if (targetSize?.width === width && targetSize.height === height) return;
+    target?.destroy(true);
+    const color = RenderTexture.create({ width, height, resolution: 1 });
+    target = new RenderTarget({ width, height, colorTextures: [color], depth: true });
+    targetSize = { width, height };
+  }
+  function render({ width, height, towardCamera, clearColor = [0, 0, 0, 0] } = {}) {
+    if (!renderer) throw new Error("world-depth-renderer-required");
+    resize(width, height);
+    const bounds = sharedBounds ?? worldDepthBounds(items, towardCamera);
+    const layer = new Container();
+    for (const item of items) {
+      const color = item.colorFrame;
+      const depth = item.depthFrame;
+      const frame = color?.frame ?? color;
+      const depthRange = depth.depthRange ?? item.depthRange;
+      const min = depthRange.min ?? depthRange[0];
+      const max = depthRange.max ?? depthRange[1];
+      const geometry = new MeshGeometry({
+        positions: new Float32Array([-(item.anchor?.x ?? 0) * frame.width, -(item.anchor?.y ?? 0) * frame.height, frame.width * (1 - (item.anchor?.x ?? 0)), -(item.anchor?.y ?? 0) * frame.height, frame.width * (1 - (item.anchor?.x ?? 0)), frame.height * (1 - (item.anchor?.y ?? 0)), -(item.anchor?.x ?? 0) * frame.width, frame.height * (1 - (item.anchor?.y ?? 0))]),
+        uvs: new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]), indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+      });
+      geometry.batchMode = "no-batch";
+      const origin = item.worldOrigin ?? { x: 0, y: 0, z: 0 };
+      const originDepth = Array.isArray(origin) ? origin[0] * bounds.basis[0] + origin[1] * bounds.basis[1] + origin[2] * bounds.basis[2] : origin.x * bounds.basis[0] + origin.y * bounds.basis[1] + origin.z * bounds.basis[2];
+      const shader = Shader.from({ gl: { name: "hive-world-depth", vertex, fragment }, resources: { uColorTexture: color.source, uDepthTexture: depth.texture.source, depthUniforms: { uOriginDepth: { value: originDepth, type: "f32" }, uLocalMin: { value: min, type: "f32" }, uLocalMax: { value: max, type: "f32" }, uNearDepth: { value: bounds.nearDepth, type: "f32" }, uFarDepth: { value: bounds.farDepth, type: "f32" } } } });
+      const state = State.for2d(); state.blend = false; state.depthTest = true; state.depthMask = true;
+      const mesh = new Mesh({ geometry, shader, state });
+      const transform = item.screenTransform ?? {};
+      mesh.position.set(transform.x ?? 0, transform.y ?? 0);
+      layer.addChild(mesh);
+    }
+    renderer.render({ target, container: layer, clear: true, clearColor });
+    layer.destroy({ children: true });
+    return target;
+  }
   function dispose() {
     if (disposed) return;
     disposed = true;
     for (const mesh of meshes.values()) mesh.destroy({ children: true });
     meshes.clear();
     container.destroy({ children: true });
+    target?.destroy(true);
   }
   if (parent) parent.addChild(container);
-  return Object.freeze({ container, setItems, pick, resize, dispose, items: () => items.slice(), meshes });
+  return Object.freeze({ container, setItems, pick, render, resize, dispose, items: () => items.slice(), meshes });
 }
 
 export { DEFAULT_ROLE_ORDER };
