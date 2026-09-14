@@ -29,6 +29,7 @@ import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
+import { createColonyPartyPlan } from "./colony-party";
 import { beginRouteWorkAttempt, retargetRouteWorkAttempt } from "../sdk/work-attempt";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
@@ -44,14 +45,9 @@ export const Guest = component<{ hungry: boolean }>("colony.guest", {
   fields: { hungry: "boolean" },
 });
 
-const workerOne = entity("colony.worker.1");
-const workerTwo = entity("colony.worker.2");
-const workers = [workerOne, workerTwo] as const;
+const localPartyPlan = createColonyPartyPlan("local", entity("colony.local-party"), { x: 0, y: 0, z: 0 });
+const workerOne = localPartyPlan.people[0];
 const MAX_PARTY_SELECTION = 32;
-const workerVisuals = [
-  { sprite: "colony.rowan", label: "Rowan" },
-  { sprite: "colony.sedge", label: "Sedge" },
-] as const;
 const guestId = entity("colony.guest.1");
 const pantryId = entity("colony.pantry");
 const colonyLumberId = entity("colony.lumber");
@@ -59,7 +55,6 @@ const lotOne = entity("colony.food.1");
 const lotTwo = entity("colony.food.2");
 const taskOne = entity("colony.delivery.1");
 const taskTwo = entity("colony.delivery.2");
-const tasks = [taskOne, taskTwo] as const;
 const catId = entity("colony.cat.1");
 const trees = [
   { id: entity("colony.tree.oak"), x: 2, z: 2 },
@@ -90,24 +85,7 @@ export function constructionStatusLabel(
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
   { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
-  ...workers.map((id, index) => ({
-    id,
-    components: {
-      "hive.position": { x: 0, y: 0, z: index * 2, facing: 0 },
-      "hive.body": { speed: 2 },
-      "hive.container": { capacity: 4 },
-      "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
-      "hive.visual": workerVisuals[index],
-      "colony.worker": { guest: false },
-      "hive.work-participation": { automatic: true },
-      "hive.delivery-control": { enabled: true, quantity: 3 },
-    },
-  })),
-  ...workers.map((worker, index) => ({ id: entity(`colony.pail.${index + 1}`), components: {
-    "hive.lot": { quantity: 1, kind: "pail", container: worker },
-    "hive.container": { capacity: 7 },
-    "hive.visual": { sprite: "pail", label: "Pail" },
-  }})),
+  ...localPartyPlan.records,
   {
     id: guestId,
     components: {
@@ -122,6 +100,7 @@ const colonyInitial = [
   {
     id: pantryId,
     components: {
+      "hive.owned-by-party": { party: localPartyPlan.party },
       "hive.position": { x: -2, y: 0, z: 0, facing: 0 },
       "hive.container": { capacity: 20 },
       "hive.visual": { sprite: "crate", label: "Pantry" },
@@ -130,6 +109,7 @@ const colonyInitial = [
   {
     id: colonyLumberId,
     components: {
+      "hive.owned-by-party": { party: localPartyPlan.party },
       "hive.position": { x: -3, y: 0, z: 1, facing: 0 },
       "hive.container": { capacity: 48 },
       "hive.visual": { sprite: "crate", label: "Starter lumber" },
@@ -139,12 +119,14 @@ const colonyInitial = [
     id: entity("colony.lumber.initial"),
     components: {
       "hive.lot": { quantity: 48, kind: "wood", container: colonyLumberId },
+      "hive.owned-by-party": { party: localPartyPlan.party },
     },
   },
   ...([lotOne, lotTwo] as const).map((id) => ({
     id,
     components: {
       "hive.lot": { quantity: 3, kind: "bread", container: pantryId },
+      "hive.owned-by-party": { party: localPartyPlan.party },
     },
   })),
   { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
@@ -153,6 +135,7 @@ const colonyInitial = [
   ...([taskOne, taskTwo] as const).map((id, index) => ({
     id,
     components: {
+      "hive.owned-by-party": { party: localPartyPlan.party },
       "hive.delivery-task": {
         actor: null,
         sourceLot: index === 0 ? lotOne : lotTwo,
@@ -756,6 +739,7 @@ export const colonyPack: GamePack = {
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const pails = new Map(lots.filter((lot) => lot.kind === "pail").map((lot) => [lot.container, lot]));
       const taskRows = context.query(query(DeliveryTask));
+      const partyWorkers = context.query(query(Worker, PartyMember)).map(row => row.id).sort();
       const stationFacts = finishedBrewStations(context).slice(0, 8).flatMap((site) => {
         const hearth = entity(`${site.id}:hearth`);
         const stationAir = context.atmosphereSamples([[
@@ -815,23 +799,23 @@ export const colonyPack: GamePack = {
         { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
         { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
         ...stationFacts,
-        { id: "worker-carried", subjects: workers, label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
-        ...workers.map((worker, index) => ({
-          id: `worker-${index + 1}-control`, subjects: [worker],
-          label: workerVisuals[index].label,
+        { id: "worker-carried", subjects: partyWorkers, label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
+        ...partyWorkers.map((worker, index) => ({
+          id: `worker-${worker}-control`, subjects: [worker],
+          label: "Party worker",
           value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
         })),
-        ...workers.map((worker, index) => ({
-          id: `worker-${index + 1}-pail`, subjects: [worker], label: "Pail",
+        ...partyWorkers.map((worker) => ({
+          id: `worker-${worker}-pail`, subjects: [worker], label: "Pail",
           value: pails.has(worker) ? "Carried · in this worker's custody" : "None",
         })),
         { id: "guest-quantity", subjects: [guestId], label: "Guest meal", value: total(guestId) },
-        ...workers.map((worker, index) => ({
-          id: `dig-progress-${index + 1}`, subjects: [worker],
-          label: `Worker ${index + 1} digging`,
+        ...partyWorkers.map((worker) => ({
+          id: `dig-progress-${worker}`, subjects: [worker],
+          label: "Worker digging",
           value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
         })),
-        { id: "spoil-carried", subjects: workers, label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
+        { id: "spoil-carried", subjects: partyWorkers, label: "Spoil carried", value: partyWorkers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
         { id: "spoil-ground", label: "Loose spoil", value: (() => {
           const stockContainers = new Set(context.query(query(GroundStock)).map(row => row.id));
           return context.query(query(MaterialLot)).reduce((sum, row) => {
@@ -841,7 +825,7 @@ export const colonyPack: GamePack = {
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
-        ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [guestId], label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
+        ...taskRows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).phase })),
       ];
     },
   },

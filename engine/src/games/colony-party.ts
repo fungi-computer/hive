@@ -75,7 +75,7 @@ export function createColonyPartyPlan(
     {
       id: store,
       components: {
-        "hive.position": { x: spawn.x, y: spawn.y, z: spawn.z + 2, facing: 0 },
+        "hive.position": { x: spawn.x + 4, y: spawn.y, z: spawn.z, facing: 0 },
         "hive.container": { capacity: 64 },
         "hive.owned-by-party": { party },
         "hive.visual": { sprite: "crate", label: "Starter store" },
