@@ -47,7 +47,8 @@ impl Kernel {
 
     fn request_excavation_internal(&mut self, id: &str, work: ExcavationWork, admitted_attempt: bool) -> Result<()> {
         let task_entity = self.entity(id)?;
-        let actor_id = self.ecs.get::<WorkAttempt>(task_entity).map(|attempt| attempt.worker.clone()).unwrap_or_else(|| id.to_owned());
+            let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) else { continue; };
+            let actor_id = attempt.worker.clone();
         let actor = self.entity(&actor_id)?;
         if self.ecs.get::<Body>(actor).is_none() {
             return Err("excavation needs a worker body".into());
@@ -76,9 +77,15 @@ impl Kernel {
 
     pub(super) fn validate_excavation_work(&mut self) -> Result<()> {
         let mut query = self.ecs.query::<(Entity, &ExternalId, &ExcavationWork)>();
-        let saved: Vec<_> = query.iter(&self.ecs).map(|(entity, id, work)| (entity, id.0.clone(), *work)).collect();
-        for (task_entity, task_id, work) in saved {
-            let actor_id = self.ecs.get::<WorkAttempt>(task_entity).map(|attempt| attempt.worker.clone()).unwrap_or(task_id);
+        let saved: Vec<_> = query.iter(&self.ecs).map(|(entity, _id, work)| (entity, *work)).collect();
+        for (task_entity, work) in saved {
+            let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) else {
+                let environment = self.environment.as_mut().ok_or("saved work needs environment")?;
+                if environment.world.material(cell(work))? != work.expected { return Err("saved excavation target changed".into()); }
+                continue;
+            };
+            if !matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Excavation { .. }, .. }) { continue; }
+            let actor_id = attempt.worker.clone();
             let actor = self.entity(&actor_id)?;
             if self.ecs.get::<Body>(actor).is_none() {
                 return Err("saved excavation lacks worker capabilities".into());
