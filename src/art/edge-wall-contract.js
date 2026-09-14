@@ -6,6 +6,28 @@
 export const EDGE_WALL_FAMILY = "timber-edge-v1";
 export const EDGE_WALL_AXES = Object.freeze(["x", "z"]);
 export const EDGE_WALL_STAGES = Object.freeze(["stakes", "frame", "finished"]);
+export const EDGE_WALL_VARIANTS = Object.freeze({
+  end: Object.freeze({
+    negative: Object.freeze({ tangent: false, normalNegative: false, normalPositive: false }),
+    positive: Object.freeze({ tangent: false, normalNegative: false, normalPositive: false }),
+  }),
+  straight: Object.freeze({
+    negative: Object.freeze({ tangent: true, normalNegative: false, normalPositive: false }),
+    positive: Object.freeze({ tangent: true, normalNegative: false, normalPositive: false }),
+  }),
+  corner: Object.freeze({
+    negative: Object.freeze({ tangent: false, normalNegative: true, normalPositive: false }),
+    positive: Object.freeze({ tangent: false, normalNegative: false, normalPositive: false }),
+  }),
+  t: Object.freeze({
+    negative: Object.freeze({ tangent: false, normalNegative: true, normalPositive: true }),
+    positive: Object.freeze({ tangent: false, normalNegative: false, normalPositive: false }),
+  }),
+  cross: Object.freeze({
+    negative: Object.freeze({ tangent: true, normalNegative: true, normalPositive: true }),
+    positive: Object.freeze({ tangent: false, normalNegative: false, normalPositive: false }),
+  }),
+});
 
 const SIDES = Object.freeze(["negative", "positive"]);
 const DIRECTIONS = Object.freeze(["tangent", "normalNegative", "normalPositive"]);
@@ -15,7 +37,7 @@ function isBoolean(value) {
 }
 
 export function validateEdgeWallPlacement(placement) {
-  const allowed = new Set(["family", "axis", "cell", "adjacency", "stage"]);
+  const allowed = new Set(["family", "axis", "cell", "adjacency", "stage", "facing"]);
   if (placement && Object.keys(placement).some((key) => !allowed.has(key)))
     throw new Error("Unknown edge wall placement field");
   if (!placement || placement.family !== EDGE_WALL_FAMILY)
@@ -31,6 +53,8 @@ export function validateEdgeWallPlacement(placement) {
     throw new Error("Edge wall adjacency must declare every endpoint direction");
   if (placement.stage !== undefined && !EDGE_WALL_STAGES.includes(placement.stage))
     throw new Error(`Invalid edge wall stage: ${placement.stage}`);
+  if (placement.facing !== undefined && (!Number.isInteger(placement.facing) || placement.facing < 0 || placement.facing > 3))
+    throw new Error(`Invalid edge wall facing: ${placement.facing}`);
   return placement;
 }
 
@@ -59,6 +83,6 @@ export function edgeWallJoinVariant(adjacency) {
   return "end";
 }
 
-export function edgeWallPlacement(axis, cell, adjacency, stage = "finished") {
-  return validateEdgeWallPlacement({ family: EDGE_WALL_FAMILY, axis, cell, adjacency, stage });
+export function edgeWallPlacement(axis, cell, adjacency, stage = "finished", facing = 0) {
+  return validateEdgeWallPlacement({ family: EDGE_WALL_FAMILY, axis, cell, adjacency, stage, facing });
 }

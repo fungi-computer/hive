@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   EDGE_WALL_FAMILY,
+  EDGE_WALL_VARIANTS,
   edgeWallJoinVariant,
   edgeWallPlacement,
   endpointJoinKind,
@@ -48,4 +49,11 @@ test("perpendicular endpoint join art changes with adjacency and stage", () => {
   assert.equal(stakes.boxes.filter(({ role }) => role.startsWith("endpoint-join")).length, 1);
   assert.equal(finished.boxes.filter(({ role }) => role === "plank").length, 4);
   assert.equal(finished.boxes.some(({ role }) => role === "endpoint-join-corner"), true);
+});
+
+test("the exporter contract has every authored join variant and four facings", () => {
+  assert.deepEqual(Object.keys(EDGE_WALL_VARIANTS), ["end", "straight", "corner", "t", "cross"]);
+  for (const [variant, adjacency] of Object.entries(EDGE_WALL_VARIANTS))
+    assert.equal(edgeWallJoinVariant(adjacency), variant);
+  assert.equal(edgeWallPlacement("x", [0, 0, 0], EDGE_WALL_VARIANTS.cross, "finished", 3).facing, 3);
 });

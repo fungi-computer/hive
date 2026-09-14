@@ -10,7 +10,9 @@ import { camera, worldCamera, project, WIDTH, HEIGHT } from "./art/scale.js";
 import { clearing, tree, excavationScene } from "./art/clearing.js";
 import { figure } from "./art/figures.js";
 import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
-import { building, woodPile, wallJoint } from "./art/home.js";
+import { building, woodPile } from "./art/home.js";
+import { edgeWall } from "./art/edge-wall.js";
+import { EDGE_WALL_VARIANTS, edgeWallPlacement } from "./art/edge-wall-contract.js";
 import { PROFILES, mixedShelf } from "./art/mixed-shelf.js";
 import { basinScene } from "./art/spring-basin.js";
 import { brewerCache } from "./art/brew-supplies.js";
@@ -453,7 +455,7 @@ export async function bakeArt(
       soil: {},
       stone: {},
       ration: {},
-      wallJoints: {},
+      edgeWalls: {},
       mixedShelf: {},
       props: { cannon: [] },
       projectiles: {},
@@ -617,10 +619,19 @@ export async function bakeArt(
           112,
         ),
       );
-    for (const stage of ["stakes", "frame", "finished"])
-      art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
-        bakeStartup(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
-      );
+    for (const stage of ["stakes", "frame", "finished"]) {
+      art.edgeWalls[stage] = {};
+      for (const variant of Object.keys(EDGE_WALL_VARIANTS))
+        art.edgeWalls[stage][variant] = Array.from({ length: 4 }, (_, facing) =>
+          bakeStartup(
+            renderer,
+            edgeWall(edgeWallPlacement("x", [0, 0, 0], EDGE_WALL_VARIANTS[variant], stage, facing)),
+            prop,
+            112,
+            112,
+          ),
+        );
+    }
     for (let amount = 1; amount <= 6; amount++)
       art.wood[amount] = bakeStartup(
         renderer,

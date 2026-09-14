@@ -5,6 +5,7 @@ import { edgeWallGeometry } from "./edge-wall-geometry.js";
 export function edgeWall(placement) {
   const resolved = validateEdgeWallPlacement(placement);
   const s = scene();
+  s.rotation.y = (resolved.facing ?? 0) * Math.PI / 2;
   for (const primitive of edgeWallGeometry(resolved).boxes)
     box(s, primitive.color, primitive.x, primitive.y, primitive.z, primitive.w, primitive.h, primitive.d);
   s.userData.edgeWallPlacement = resolved;
