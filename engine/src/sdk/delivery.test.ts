@@ -126,9 +126,7 @@ for (const occupation of ["excavation", "construction"] as const) {
       routeCosts: () => {
         throw new Error("unexpected route query");
       },
-      routeToAny: () => {
-        throw new Error("unexpected route query");
-      },
+      routeToAny: ({ actor }) => ({ actor, status: "reachable" as const, targetIndex: 0, cost: 0 }),
       environmentFacts: () => {
         throw new Error("unexpected environment query in this fixture");
       },
@@ -818,7 +816,7 @@ test("lost selected contact releases labor while preserving carried cargo and ob
   const source = entity("j2.source");
   const destination = entity("j2.destination");
   const lot = entity("j2.lot");
-  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination" });
+  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination", destinationContactSet: true, destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null } as never);
   fixture.setContactX(1);
   deliverySystem.run(fixture.context);
   assert.equal(fixture.state().phase, "putting-down");
@@ -850,4 +848,8 @@ test("manual participation leaves a ready delivery obligation unclaimed", () => 
   const destination = entity("manual.destination");
   const lot = entity("manual.lot");
   const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" }, { automatic: false });
-  deliverySystem.run(fixture.co
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().actor, null);
+  assert.equal(fixture.state().phase, "idle");
+  assert.equal(fixture.actions.length, 0);
+});
