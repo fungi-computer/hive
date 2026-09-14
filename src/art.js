@@ -11,6 +11,7 @@ import { clearing, tree, excavationScene } from "./art/clearing.js";
 import { figure } from "./art/figures.js";
 import { mugwort, MUGWORT_STAGES } from "./art/herbs.js";
 import { building, woodPile, wallJoint } from "./art/home.js";
+import { edgeWallSegment, edgeWallJunction, EDGE_WALL_STAGES, EDGE_WALL_JUNCTION_MASKS } from "./art/edge-wall.js";
 import { PROFILES, mixedShelf } from "./art/mixed-shelf.js";
 import { basinScene } from "./art/spring-basin.js";
 import { brewerCache } from "./art/brew-supplies.js";
@@ -454,6 +455,7 @@ export async function bakeArt(
       stone: {},
       ration: {},
       wallJoints: {},
+      edgeWalls: { segment: {}, junction: {} },
       mixedShelf: {},
       props: { cannon: [] },
       projectiles: {},
@@ -621,6 +623,12 @@ export async function bakeArt(
       art.wallJoints[stage] = Array.from({ length: 16 }, (_, mask) =>
         bakeStartup(renderer, wallJoint(stage, mask || 5), prop, 112, 112),
       );
+    for (const stage of EDGE_WALL_STAGES) {
+      art.edgeWalls.segment[stage] = ["x", "z"].map(axis =>
+        bakeStartup(renderer, edgeWallSegment(stage, axis), prop, 112, 112));
+      art.edgeWalls.junction[stage] = Object.fromEntries(EDGE_WALL_JUNCTION_MASKS.map(mask => [mask,
+        bakeStartup(renderer, edgeWallJunction(stage, mask), prop, 112, 112)]));
+    }
     for (let amount = 1; amount <= 6; amount++)
       art.wood[amount] = bakeStartup(
         renderer,

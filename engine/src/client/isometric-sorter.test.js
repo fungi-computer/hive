@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
+import { transformBakedPartPoint } from "./multipart-visual-owner.js";
 
 const node = (id, x, z, extra = {}) => ({
   id,
@@ -211,11 +212,7 @@ test("multipart stair geometry keeps an actor between both rails at every facing
   const bounds = { left: -100, right: 100, top: -100, bottom: 100 };
   for (const facing of [0, 1, 2, 3]) {
     const angle = facing * Math.PI / 2;
-    const rotate = (x, z, y = 0) => ({
-      x: x * Math.cos(angle) - z * Math.sin(angle),
-      y,
-      z: x * Math.sin(angle) + z * Math.cos(angle),
-    });
+    const rotate = (x, z, y = 0) => transformBakedPartPoint({ x, y, z }, facing, { x: 0, y: 0, z: 0 });
     for (const progress of [0.05, 0.5, 0.95]) {
       const actor = rotate(0, progress * 2, progress * 2.16);
       const surface = {
@@ -246,12 +243,58 @@ test("multipart stair geometry keeps an actor between both rails at every facing
       assert(ordered.findIndex((node) => node.part === "surface") < ordered.findIndex((node) => node.id === "actor"));
       // In the stair's local support frame the actor remains between the two
       // semantic rail boundaries at entrance, middle and landing contact.
-      assert(Math.abs(actor.x * Math.cos(-angle) - actor.z * Math.sin(-angle)) < 1e-9);
+      assert(Math.abs(actor.x * Math.cos(angle) - actor.z * Math.sin(angle)) < 1e-9);
       const railIndexes = ordered.map((node, index) => node.part.startsWith("rail.") ? index : -1).filter((index) => index >= 0);
       assert.equal(railIndexes.length, 2);
       assert.equal(ordered.filter((node) => node.id === "actor").length, 1);
       const actorIndex = ordered.findIndex((node) => node.id === "actor");
       assert(actorIndex > Math.min(...railIndexes) && actorIndex < Math.max(...railIndexes));
+      // The front rail is the one toward the actual camera (+X,+Z), not
+      // whichever arbitrary rail ID/topological tie happened to sort last.
+      const nearRail = Math.cos(angle) - Math.sin(angle) > 0 ? "rail.right" : "rail.left";
+      assert.equal(ordered[Math.max(...railIndexes)].part, nearRail, `facing ${facing}`);
+      const reversedEndpoints = nodes.map(n => ({ ...n, footprint: [...n.footprint].reverse() }));
+      assert.deepEqual(sorter.order(reversedEndpoints).map(n => [n.id, n.part]), ordered.map(n => [n.id, n.part]));
     }
   }
+});
+
+test("upright part height survives footprint normalization and invalidates cached roles", () => {
+  const sorter = createIsometricSorter();
+  const screenBounds = { left: 0, right: 100, top: 0, bottom: 100 };
+  const rail = node("rail", 0, 0, { partRole: "upright-boundary", role: "structure", screenBounds,
+    footprint: [{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 2 }, { x: 0, y: 3, z: 0 }, { x: 0, y: 3, z: 2 }] });
+  const actor = node("actor", 0.2, 1, { role: "actor", moving: false, screenBounds, footprint: [{ x: 0.2, y: 2, z: 1 }] });
+  const ordered = sorter.order([rail, actor]);
+  assert.equal(ordered.find(n => n.id === "rail").footprint.length, 4);
+  assert.deepEqual(ordered.map(n => n.id), ["rail", "actor"]);
+  sorter.order([rail, actor]);
+  assert.equal(sorter.diagnostics().relationTests, 0);
+  sorter.order([{ ...rail, partRole: "supporting-surface" }, actor]);
+  assert(sorter.diagnostics().relationTests > 0);
+});
+
+test("support contact distinguishes an actor standing on a ramp from one beneath it", () => {
+  const sorter = createIsometricSorter();
+  const screenBounds = { left: 0, right: 100, top: 0, bottom: 100 };
+  const surface = node("ramp", 0, 0, { role: "structure", partRole: "supporting-surface", relationPolicy: "multipart-geometry", screenBounds,
+    footprint: [{ x: -0.5, y: 0, z: 0 }, { x: 0.5, y: 0, z: 0 }, { x: -0.5, y: 2, z: 2 }, { x: 0.5, y: 2, z: 2 }] });
+  for (const [height, expected] of [[0, ["actor", "ramp"]], [1, ["ramp", "actor"]], [2, ["ramp", "actor"]]]) {
+    const actor = node("actor", 0, 1, { role: "actor", moving: true, screenBounds, footprint: [{ x: 0, y: height, z: 1 }] });
+    assert.deepEqual(sorter.order([actor, surface]).map(n => n.id), expected);
+  }
+});
+
+test("floors stay below their wall and feet at contact while an upper floor stays above the lower storey", () => {
+  const sorter = createIsometricSorter();
+  const screenBounds = { left: 0, right: 100, top: 0, bottom: 100 };
+  const floor = node("z-floor", 0, 0, { role: "floor", screenBounds, storeyBand: 0 });
+  const wall = node("a-wall", 0, 0, { role: "structure", screenBounds, storeyBand: 0 });
+  const actor = node("b-actor", 0, 0, { role: "actor", moving: true, screenBounds, storeyBand: 0 });
+  for (const input of [[actor, wall, floor], [floor, wall, actor]]) {
+    const order = sorter.order(input).map(n => n.id);
+    assert(order.indexOf(floor.id) < order.indexOf(wall.id));
+    assert(order.indexOf(floor.id) < order.indexOf(actor.id));
+  }
+  assert.deepEqual(sorter.order([actor, { ...floor, storeyBand: 4 }]).map(n => n.id), [actor.id, floor.id]);
 });

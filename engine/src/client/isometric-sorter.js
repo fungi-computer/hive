@@ -8,7 +8,8 @@
  */
 
 const EPSILON = 1e-7;
-const ROLE_ORDER = Object.freeze({ terrain: 0, water: 1, structure: 2, item: 3, actor: 4 });
+const ROLE_ORDER = Object.freeze({ terrain: 0, water: 1, floor: 2, structure: 3, item: 4, actor: 5 });
+const SURFACE_ROLES = new Set(["terrain", "water", "floor"]);
 
 function finite(value, name) {
   if (!Number.isFinite(value)) throw new Error(`invalid isometric ${name}`);
@@ -160,17 +161,41 @@ function projectedContains(shape, pointValue) {
   return true;
 }
 
-function uprightRelation(boundary, occupant) {
+function uprightRelation(boundary, occupant, camera) {
   if (boundary.partRole !== "upright-boundary" || occupant.partRole === "upright-boundary" || (occupant.role !== "actor" && !occupant.moving)) return null;
   if (boundary.footprint.length < 2 || occupant.footprint.length < 1) return null;
-  const [start, end] = boundary.footprint;
+  // A vertical extent may repeat XZ endpoints at different heights.
+  const start = boundary.footprint[0];
+  const end = boundary.footprint.find(p => Math.hypot(p.x - start.x, p.z - start.z) > EPSILON);
+  if (!end) return null;
   const pointValue = occupant.footprint[0];
-  const side = (end.x - start.x) * (pointValue.z - start.z) - (end.z - start.z) * (pointValue.x - start.x);
-  if (Math.abs(side) <= EPSILON) return null;
-  // Boundary footprints run from their lower/support end to their upper end.
-  // The side of that actual world line determines far/near draw order even
-  // when the isometric projection makes the two boundaries collinear.
-  return side < 0 ? [boundary, occupant] : [occupant, boundary];
+  const dx = end.x - start.x, dz = end.z - start.z;
+  const along = ((pointValue.x - start.x) * dx + (pointValue.z - start.z) * dz) / (dx * dx + dz * dz);
+  const minY = Math.min(...boundary.footprint.map(p => p.y));
+  const maxY = Math.max(...boundary.footprint.map(p => p.y));
+  if (along < -EPSILON || along > 1 + EPSILON || pointValue.y < minY - EPSILON || pointValue.y > maxY + EPSILON) return null;
+  const side = dx * (pointValue.z - start.z) - dz * (pointValue.x - start.x);
+  const cameraSide = dx * camera.z - dz * camera.x;
+  if (Math.abs(side) <= EPSILON || Math.abs(cameraSide) <= EPSILON) return null;
+  // Reversing endpoints reverses both signs, leaving the relation unchanged.
+  return side * cameraSide > 0 ? [boundary, occupant] : [occupant, boundary];
+}
+
+function supportRelation(surface, occupant) {
+  const footprint = convexHull(surface.footprint.map(p => ({ x: p.x, y: p.z })));
+  const at = occupant.footprint[0];
+  if (!at || footprint.length < 3 || !projectedContains(footprint, { x: at.x, y: at.z })) return null;
+  const a = surface.footprint[0];
+  for (let i = 1; i < surface.footprint.length - 1; i++) {
+    const b = surface.footprint[i], c = surface.footprint[i + 1];
+    const ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+    const vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    if (Math.abs(ny) <= EPSILON) continue;
+    const height = a.y - (nx * (at.x - a.x) + nz * (at.z - a.z)) / ny;
+    return at.y < height - EPSILON ? [occupant, surface] : [surface, occupant];
+  }
+  return null;
 }
 
 function compareStable(a, b) {
@@ -181,6 +206,7 @@ function geometrySignature(node) {
   return JSON.stringify([
     node.role,
     node.part,
+    node.partRole,
     node.relationPolicy,
     node.screenBounds,
     node.storeyBand,
@@ -195,11 +221,16 @@ function normalizeFootprint(values, name) {
   })).values()];
   if (unique.length <= 2) return unique;
   const [origin, axis] = unique;
-  const cross = unique.every((p) => Math.abs((axis.x - origin.x) * (p.z - origin.z) - (axis.z - origin.z) * (p.x - origin.x)) <= EPSILON);
+  const dx = axis.x - origin.x, dy = axis.y - origin.y, dz = axis.z - origin.z;
+  const cross = unique.every((p) => Math.hypot(
+    dy * (p.z - origin.z) - dz * (p.y - origin.y),
+    dz * (p.x - origin.x) - dx * (p.z - origin.z),
+    dx * (p.y - origin.y) - dy * (p.x - origin.x),
+  ) <= EPSILON);
   if (cross) {
     let first = unique[0], last = unique[0], distance = -1;
     for (const left of unique) for (const right of unique) {
-      const d = (left.x - right.x) ** 2 + (left.z - right.z) ** 2;
+      const d = (left.x - right.x) ** 2 + (left.y - right.y) ** 2 + (left.z - right.z) ** 2;
       if (d > distance) { distance = d; first = left; last = right; }
     }
     return [first, last];
@@ -238,9 +269,9 @@ function edgeFor(left, right, camera) {
   // in front of every lower fragment.
   if (left.storeyBand !== right.storeyBand && left.relationPolicy !== "multipart-geometry" && right.relationPolicy !== "multipart-geometry")
     return left.storeyBand < right.storeyBand ? [left, right] : [right, left];
-  if ((left.role === "terrain" || left.role === "water" || right.role === "terrain" || right.role === "water") && ROLE_ORDER[left.role] !== undefined && ROLE_ORDER[right.role] !== undefined && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
+  if ((SURFACE_ROLES.has(left.role) || SURFACE_ROLES.has(right.role)) && ROLE_ORDER[left.role] !== undefined && ROLE_ORDER[right.role] !== undefined && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
     return ROLE_ORDER[left.role] < ROLE_ORDER[right.role] ? [left, right] : [right, left];
-  const boundaryRelation = uprightRelation(left, right) ?? uprightRelation(right, left);
+  const boundaryRelation = uprightRelation(left, right, camera) ?? uprightRelation(right, left, camera);
   if (boundaryRelation) return boundaryRelation;
   if (left.partRole === "upright-boundary" && right.partRole === "upright-boundary" && left.id === right.id) return null;
   if ((left.partRole === "supporting-surface" && right.partRole === "upright-boundary") ||
@@ -251,9 +282,8 @@ function edgeFor(left, right, camera) {
   const support = left.partRole === "supporting-surface" ? left : right.partRole === "supporting-surface" ? right : null;
   const occupant = support === left ? right : support === right ? left : null;
   if (support && occupant) {
-    const supportShape = projectedFootprint(support, camera);
-    const occupantShape = projectedFootprint(occupant, camera);
-    if (occupantShape.some((pointValue) => projectedContains(supportShape, pointValue))) return [support, occupant];
+    const contact = supportRelation(support, occupant);
+    if (contact) return contact;
   }
   const relation = relationByFootprints(left, right, camera);
   if (relation) return relation;

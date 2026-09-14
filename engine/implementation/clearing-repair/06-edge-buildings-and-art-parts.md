@@ -543,3 +543,64 @@ Later ground-detail acceptance must cover seed/chunk-order stability, bounded
 instance counts, removal after dig/build, no respawn on reload, and matching
 physical/presentation identity for interactive sites. No generic ecology framework
 or complete mushroom economy is required to finish the current rendering repair.
+
+### September 14 personal art/consumer checkpoint (partial, not a release)
+
+Root reviewed the joined client in `clearing-edge-integration` and corrected
+three defects that synthetic between-two-rails assertions had missed:
+
+- Multipart points now follow the original Three positive-Y bake rotation.
+  The prior client used the opposite rotation on east/west baked facings.
+  The maintained test compares all declared stair points to `localToWorld`
+  on the actual original builder, including translation/placement offset.
+- Upright relationships compare the actor and camera sides of the finite
+  boundary, preserving endpoint reversal. Normalization retains vertical
+  extents; `partRole` changes invalidate the static cache. Supporting planes
+  distinguish an actor on a ramp from one underneath it.
+- Full floors use the existing definition-owned floor role in sorting, below
+  same-level wall/furniture/feet; an upper floor keeps its storey ordering.
+  Physical edge placements now reach the real art-placement, sorting and
+  structure-surface callers without being mistaken for a stair or furniture.
+
+Root authored the edge timber kit over the original colors, grain, nails and
+stone footings. Six stage/axis segments plus 45 stage/mask posts are baked into
+ordinary Pixi art. The exact physical endpoint incidence owns junction identity;
+posts are still client-only and non-pickable. Root personally viewed the original
+Three room and actual Pixi assembly for stakes/frame/finished, and the original
+Rowan sprite on entrance/middle/landing at all four baked stair facings.
+
+Evidence in this worktree's preserved `.botanical`:
+
+- `run-u7940` drawing: exit 0, 84 tests. Later corrected the synthetic test to
+  use the real bake rotation and added explicit floor ordering coverage.
+- `run-u7948`: 19 focused sorter/multipart tests passed; combined command exit 2
+  from the broad `engine/tsconfig.json` check. That includes missing generated
+  WASM declarations, missing Node test typings and existing test-fixture type
+  errors. This is not a full engine type pass. The actual changed typed edge
+  projection/connection consumers passed strict `tsc` separately in `run-u7959`.
+- `run-u7945`: maintained complete bank exporter exit 0, 1,868 textures.
+  Manifest SHA-256 `eb8f6eac2b0492244944e952a68eb5cebf7ea7ad652d2b738f9e12a282d34150`.
+  Inventory contains the new original `src/art/edge-wall.js` and its exact hash.
+- `run-u7956`: actual Pixi stair assembly and all 12 stage/facing empty
+  recompositions pass, zero differing RGBA bytes in either part order.
+  `stair-sprite-review/stairs.png` and `orders.json` retain the viewed result.
+- `run-u7951`: actual Pixi wall/floor assembly exit 0; personally viewed
+  `wall-sprite-review/walls.png`. This is a local assembly, not hosted gameplay.
+- `run-u7954`: touched audit exit 1, retained at `root-art-review/fallow.json`.
+  Existing client draw/HUD/gesture and sorter graph hotspots remain; new upright
+  comparator is CC15/cognitive11, edge kit functions CC10/cognitive17. It also
+  reports the unused `stableKey` export, unresolved generated WASM and tool
+  dependency findings. No suppression or deletion of unrelated owners followed.
+  This is not a clean Fallow gate.
+- Proof-harness failures retained: `u7941` bare Pixi import, `u7949` incomplete
+  proof binding composition, `u7953` Fallow flag spelling; corrected harnesses
+  reached the results above. No live deployment was attempted.
+
+Still required before whole-packet acceptance: actual door content/controls/art
+(native aperture operation exists but Colony exposes no door), consolidate edge
+stroke lifetime into the existing gesture owner, changed native WASM/DO pairing,
+actual Clearing room/party/save interactions, performance-page workload/render
+checks and coherent alias publication/readback. Full A2 beside/behind/beneath
+rendered interaction and upper-floor/cutaway coverage remain; local image samples
+and the underneath-plane law do not establish that entire row. Do not call
+mechanics complete or substitute these assemblies for the playable goal.

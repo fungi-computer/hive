@@ -38,7 +38,7 @@ import {
 } from "@opentui/keymap/extras";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisual, resolveStaticVisualParts } from "./visual-resolver.js";
-import { createMultipartVisualOwner, multipartOverlayZIndex } from "./multipart-visual-owner.js";
+import { createMultipartVisualOwner, multipartOverlayZIndex, transformBakedPartPoint } from "./multipart-visual-owner.js";
 import { terrainCameraFocus } from "./camera-focus.js";
 import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js";
 
@@ -986,12 +986,7 @@ export function createHiveClient({
           anchor,
           screen: { x: subject.screen.x + (placement?.screenOffset?.[0] ?? 0), y: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) },
           scale: camera.zoom,
-          transform: (point) => {
-            const angle = physicalFacing * Math.PI / 2;
-            const x = point.x * Math.cos(angle) - point.z * Math.sin(angle);
-            const z = point.x * Math.sin(angle) + point.z * Math.cos(angle);
-            return { x: subject.x + x + (resolvedPlacement?.offset?.[0] ?? 0), y: subject.y + point.y, z: subject.z + z + (resolvedPlacement?.offset?.[1] ?? 0) };
-          },
+          transform: (point) => transformBakedPartPoint(point, physicalFacing, subject, resolvedPlacement?.offset),
           pickable: subject.pickable !== false,
           hitAreaFor: (partTexture) => visibleHitAreaFor(partTexture, anchor),
         });
@@ -1011,7 +1006,7 @@ export function createHiveClient({
         entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);
         sortableSprites.push({
           id: subject.id,
-          role: isStatic ? "structure" : "actor",
+          role: isStatic ? (binding.worldRole === "floor" ? "floor" : "structure") : "actor",
           part: "body",
           relationPolicy: isStatic ? "structure" : "actor",
           pickable: subject.pickable !== false,

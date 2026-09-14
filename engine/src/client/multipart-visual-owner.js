@@ -3,6 +3,16 @@ function finite(value, name) {
   return value;
 }
 
+/** Same positive-Y rotation as the original Three authoring group. */
+export function transformBakedPartPoint(point, facing, origin, offset = [0, 0]) {
+  const angle = facing * Math.PI / 2;
+  return {
+    x: origin.x + point.x * Math.cos(angle) + point.z * Math.sin(angle) + offset[0],
+    y: origin.y + point.y,
+    z: origin.z - point.x * Math.sin(angle) + point.z * Math.cos(angle) + offset[1],
+  };
+}
+
 export function transformedPartGeometry(part, transform = (point) => point) {
   const geometry = part.geometry;
   const points = geometry?.footprint ?? [{ 0: 0, 1: 0, 2: 0 }];

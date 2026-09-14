@@ -1,10 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createMultipartVisualOwner, multipartOverlayZIndex, transformedPartGeometry } from "./multipart-visual-owner.js";
+import { createMultipartVisualOwner, multipartOverlayZIndex, transformedPartGeometry, transformBakedPartPoint } from "./multipart-visual-owner.js";
+import { Vector3 } from "three";
+import { building } from "../../../src/art/home.js";
 
 function sprite() {
   return { visible: false, anchor: { set() {} }, position: { set() {} }, scale: { set() {} }, destroy() { this.destroyed = true; } };
 }
+
+test("part geometry follows the real authored Three group in all baked facings", () => {
+  for (const facing of [0, 1, 2, 3]) {
+    const source = building("stair", "finished", facing);
+    source.updateMatrixWorld(true);
+    for (const part of source.userData.staticParts) {
+      for (const [x, y, z] of part.geometry.footprint) {
+        const actual = part.group.localToWorld(new Vector3(x, y, z));
+        const resolved = transformBakedPartPoint({ x, y, z }, facing, { x: 7, y: 3, z: -5 }, [0.25, -0.5]);
+        assert(Math.abs(resolved.x - actual.x - 7.25) < 1e-9);
+        assert(Math.abs(resolved.y - actual.y - 3) < 1e-9);
+        assert(Math.abs(resolved.z - actual.z + 5.5) < 1e-9);
+      }
+    }
+    source.traverse(object => object.geometry?.dispose());
+  }
+});
 
 test("multipart owner keeps sibling identities while resolving one entity target", () => {
   const children = [];
