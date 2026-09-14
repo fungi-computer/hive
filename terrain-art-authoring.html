@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Terrain art authoring</title>
+  </head>
+  <body>
+    <script type="module">
+      import { authorTerrainPack } from "/src/art/terrain-patch-authoring.js";
+      window.exportTerrainArt = () => {
+        const pack = authorTerrainPack();
+        return {
+          manifest: pack.manifest,
+          files: {
+            "terrain-atlas.png": pack.atlas.toDataURL(),
+            "terrain-preview.png": pack.preview.toDataURL(),
+            "terrain-masks.png": pack.sheet.toDataURL(),
+          },
+        };
+      };
+    </script>
+  </body>
+</html>
