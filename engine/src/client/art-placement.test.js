@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { building } from "../../../src/art/home.js";
-const BED_PLACEMENT = { kind: "footprint", bakedFootprint: [[0, 0], [0, 1]], rotationPivot: [0, 0] };
-const BREW_PLACEMENT = { kind: "footprint", bakedFootprint: [[0, 0], [1, 0], [0, 1], [1, 1]], rotationPivot: [0.5, 0.5] };
-const STAIR_PLACEMENT = { kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], rotationPivot: [0, 0, 0] };
+import { parseStaticArtManifest } from "../../../src/art/static-manifest.js";
+import { resolvePlacementArtTransform, resolveStairArtEndpoints, resolveWorldArtPlacement, rotatePlacementPoint } from "./art-placement.js";
+
+const recipePlacement = (type) => building(type, "finished", 0).userData.staticPlacement;
+const BED_PLACEMENT = recipePlacement("bed");
+const BREW_PLACEMENT = recipePlacement("brew-station");
+const STAIR_PLACEMENT = recipePlacement("stair");
 
 test("original art recipes expose the datum consumed by the exporter", () => {
   for (const [type, expected] of [["bed", BED_PLACEMENT], ["stair", STAIR_PLACEMENT], ["brew-station", BREW_PLACEMENT]]) {
@@ -11,8 +16,6 @@ test("original art recipes expose the datum consumed by the exporter", () => {
     assert.deepEqual(recipe.userData.staticPlacement, expected);
   }
 });
-import { resolvePlacementArtTransform, resolveStairArtEndpoints, resolveStairArtEndpoints3d, resolveWorldArtPlacement, rotatePlacementPoint } from "./art-placement.js";
-
 test("long retained footprints align all cells for both axial facings", () => {
   const north = resolvePlacementArtTransform({
     physicalFootprint: [[4, 7], [4, 8]],
@@ -83,4 +86,51 @@ test("real retained bindings resolve decoded depth metadata for bed, brewer, and
     artPlacement: STAIR_PLACEMENT,
     orientation: "north", decodedDepth,
   }), /endpoints do not match/);
+});
+
+test("recipe footprints align every native bed and brewer facing", () => {
+  const decodedDepth = { visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 2, maxY: 2, maxZ: 2 } };
+  for (const [type, placement] of [["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT]]) {
+    for (const orientation of ["north", "east", "south", "west"]) {
+      const result = resolveWorldArtPlacement({
+        subjectPlacement: { kind: "footprint", footprint: placement.bakedFootprint, orientation },
+        artPlacement: placement,
+        orientation,
+        decodedDepth,
+      });
+      const expected = placement.bakedFootprint.map((cell) => rotatePlacementPoint(cell, orientation));
+      assert.equal(result.alignedFootprint.length, expected.length, type);
+      for (const cell of expected)
+        assert.ok(result.alignedFootprint.some((candidate) => candidate.every((value, index) => Math.abs(value - cell[index]) < 1e-9)), `${type}:${orientation}`);
+    }
+  }
+});
+
+test("recipe stair endpoints align all four native directions", () => {
+  const decodedDepth = { visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 2, maxY: 2, maxZ: 2 } };
+  for (const orientation of ["north", "east", "south", "west"]) {
+    const result = resolveWorldArtPlacement({
+      subjectPlacement: { kind: "stair", entrance: STAIR_PLACEMENT.entrance, landing: STAIR_PLACEMENT.landing, orientation },
+      artPlacement: STAIR_PLACEMENT,
+      orientation,
+      decodedDepth,
+    });
+    const expectedEntrance = [
+      ...rotatePlacementPoint([STAIR_PLACEMENT.entrance[0], STAIR_PLACEMENT.entrance[2]], orientation),
+    ];
+    const expectedLanding = rotatePlacementPoint([STAIR_PLACEMENT.landing[0], STAIR_PLACEMENT.landing[2]], orientation);
+    assert.deepEqual(result.entrance, [expectedEntrance[0], STAIR_PLACEMENT.entrance[1], expectedEntrance[1]]);
+    assert.deepEqual(result.landing, [expectedLanding[0], STAIR_PLACEMENT.landing[1], expectedLanding[1]]);
+  }
+});
+
+test("v4 manifest retains recipe placement for every bed, brewer, and stair frame", () => {
+  const manifest = parseStaticArtManifest(JSON.parse(readFileSync(new URL("../../../public/generated-art/goblin-static-art-v4/manifest.json", import.meta.url))));
+  const recipes = new Map([["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT], ["stair", STAIR_PLACEMENT]]);
+  const entries = manifest.entries.filter((entry) => recipes.has(entry.path[1]));
+  assert.equal(entries.length, 82);
+  for (const entry of entries) assert.deepEqual(entry.placement, recipes.get(entry.path[1]));
+  for (const type of ["bed", "brew-station"])
+    assert.deepEqual(new Set(entries.filter((entry) => entry.path[1] === type && entry.path.length === 4).map((entry) => entry.path.at(-1))), new Set([0, 1]));
+  assert.deepEqual(new Set(entries.filter((entry) => entry.path[1] === "stair" && entry.path.length === 4).map((entry) => entry.path.at(-1))), new Set([0, 1, 2, 3]));
 });
