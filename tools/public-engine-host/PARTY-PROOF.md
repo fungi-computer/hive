@@ -12,6 +12,11 @@ receive a different party and two different people. The witness also retries A
 concurrently, rejects forged cross-party work and host-only pause/native
 commands, queues A's dig work, stops using A, renews the shared lease as B,
 and checks that the queued work and world projection survive A's reconnect.
+The P3 dig target is selected from A's actual observation: it must be generated
+material-1 terrain, have no current fact, structure, or dig-order occupant, and
+be an unoccupied same-level neighbor of an A person. A queued-to-blocked
+transition does not count as progress; the witness requires a `working` or
+`complete` mark, or a changed authoritative terrain surface.
 
 The script hashes its TypeScript, relevant Rust party/work sources, generated
 bindings, and generated kernel before starting Wrangler. Missing generated
@@ -30,7 +35,10 @@ P2 is covered by cross-party worker admission and forged host-scope rejection;
 the focused Region/native material laws remain the authority for detailed
 material and attempt isolation. P3 is covered by A's queued dig advancing
 while only B observes/renews the same Region, followed by exact A reconnect
-IDs and order/world state.
+IDs and order/world state. The observation does not expose a complete path
+certificate, so adjacency to A's current generated support is the bounded
+reachability selection law; the resulting nonblocked status or terrain change
+is the runtime proof.
 
 R1 is a separate release check. After the source-matched kernel and frontend
 are built, prepare the existing host packet with `prepare.mjs`, deploy the

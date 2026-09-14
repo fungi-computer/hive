@@ -207,13 +207,37 @@ try {
   assertRejected(await command(credentialA, "party-forged-native", { kind: "action", action: { kind: "pause" }, scope: { kind: "host" } }), "forged native/global scope");
 
   const aInitial = await observe(credentialA);
-  const aPerson = a.people.map((id) => facts(aInitial).find((row) => row.id === id)).find((row) => row?.pose?.position);
-  assert(aPerson?.pose?.position, "A people have no observed positions");
-  const aPosition = aPerson.pose.position;
-  const digCell = before.observation.terrain.surfaces
-    ?.slice()
-    .sort((left, right) => (left.cell[0] - aPosition.x) ** 2 + (left.cell[2] - aPosition.z) ** 2 - ((right.cell[0] - aPosition.x) ** 2 + (right.cell[2] - aPosition.z) ** 2))[0]?.cell;
-  assert(Array.isArray(digCell) && digCell.length === 3, "party dig witness has no generated surface");
+  const terrain = aInitial.observation.terrain;
+  const people = a.people
+    .map((id) => facts(aInitial).find((row) => row.id === id))
+    .filter((row) => row?.pose?.position);
+  assert(people.length === 2, "A people have no complete observed positions");
+  const occupied = new Set(facts(aInitial).flatMap((row) => row.pose?.position
+    ? [`${Math.round(row.pose.position.x)},${Math.round(row.pose.position.z)}`]
+    : []));
+  const structures = new Set((terrain.structureSurfaces ?? []).map((surface) =>
+    `${surface.cell[0]},${surface.cell[1]},${surface.cell[2]}`));
+  const marks = new Set(terrainMarkIds(aInitial));
+  const nearestSurfaceFor = (position) => terrain.surfaces
+    .filter((surface) => surface.material === 1)
+    .slice()
+    .sort((left, right) =>
+      (left.cell[0] - position.x) ** 2 + (left.cell[2] - position.z) ** 2 -
+      ((right.cell[0] - position.x) ** 2 + (right.cell[2] - position.z) ** 2))[0];
+  const actorSurfaces = people.map((person) => nearestSurfaceFor(person.pose.position));
+  assert(actorSurfaces.every(Boolean), "A people have no generated material-1 support surface");
+  const digCandidates = terrain.surfaces.filter((surface) => {
+    if (surface.material !== 1 || !Number.isSafeInteger(surface.generatedTop)) return false;
+    const key = `${surface.cell[0]},${surface.cell[1]},${surface.cell[2]}`;
+    if (occupied.has(`${surface.cell[0]},${surface.cell[2]}`) || structures.has(key)) return false;
+    if (marks.has(`colony.dig.${surface.cell[0]}.${surface.cell[1]}.${surface.cell[2]}`)) return false;
+    return actorSurfaces.some((actorSurface) =>
+      actorSurface.cell[1] === surface.cell[1] &&
+      Math.abs(actorSurface.cell[0] - surface.cell[0]) + Math.abs(actorSurface.cell[2] - surface.cell[2]) === 1);
+  });
+  const digSurface = digCandidates[0];
+  assert(digSurface, "party dig witness has no unoccupied generated surface adjacent to A");
+  const digCell = digSurface.cell;
   const dig = await command(credentialA, "party-a-dig", {
     kind: "command", name: "dig", input: { area: { start: digCell, end: digCell } },
   });
@@ -224,6 +248,9 @@ try {
   const mark = (observation) => observation.observation.terrainMarks?.find((row) => row.id === digId);
   const initialMark = mark(afterEnqueue);
   assert(initialMark, "A dig did not publish its exact order");
+  const initialSurface = afterEnqueue.observation.terrain.surfaces?.find(({ cell }) =>
+    cell[0] === digCell[0] && cell[1] === digCell[1] && cell[2] === digCell[2]);
+  assert(initialSurface, "A dig target disappeared before offline progress could be observed");
   let bRenew;
   let afterTick;
   const deadline = Date.now() + 30_000;
@@ -234,12 +261,16 @@ try {
     bRenew = await observe(credentialB);
     const currentMark = mark(bRenew);
     const surface = bRenew.observation.terrain.surfaces?.find(({ cell }) => cell[0] === digCell[0] && cell[2] === digCell[2]);
-    if ((currentMark && currentMark.status !== initialMark.status) || (surface && surface.cell[1] < digCell[1])) {
+    const terrainChanged = !surface || surface.cell[1] !== initialSurface.cell[1] || surface.material !== initialSurface.material || surface.generatedTop !== initialSurface.generatedTop;
+    const nonblockedProgress = currentMark?.status === "working" || currentMark?.status === "complete";
+    if (currentMark?.status === "blocked") continue;
+    if (nonblockedProgress || terrainChanged) {
       afterTick = bRenew;
       break;
     }
   }
-  assert(afterTick, "A queued work did not advance while A was disconnected");
+  assert(afterTick, "A dig did not show nonblocked physical progress while A was disconnected");
+  assert.notEqual(mark(afterTick)?.status, "blocked", "A dig became blocked instead of making physical progress");
   assert(mark(afterTick) || afterTick.observation.terrain.surfaces?.some(({ cell }) => cell[0] === digCell[0] && cell[2] === digCell[2]), "A exact dig order disappeared while disconnected");
   const aReconnected = await observe(credentialA);
   assert.deepEqual(mark(aReconnected), mark(afterTick), "A reconnect did not restore the exact dig order state");
