@@ -527,7 +527,7 @@ export const colonyPack: GamePack = {
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
+        return { actions: selected.map(worker => cancelWork(worker)), writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
       },
     }),
     undraft: command({
