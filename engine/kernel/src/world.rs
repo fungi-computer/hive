@@ -224,7 +224,7 @@ mod process_request_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
-        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
+        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
         kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
         let structure = kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap();
         structure.on_complete = CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "input".into(), components: vec![("hive.container".into(), record(&Container { capacity: 4 }))], at_site_contact: false }] };
@@ -829,7 +829,7 @@ mod construction_tests {
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
         let state = ConstructionSite {
             catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z,
-            orientation: Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished,
+            orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished,
         };
         let entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state,
             Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
@@ -894,7 +894,7 @@ mod construction_tests {
         let upper = StaticInstance::Floor { id: "dependent-floor".into(), support: crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z } };
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
-        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished };
+        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished };
         let wall_entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state, Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
         kernel.ids.insert("support-wall".into(), wall_entity); kernel.known.insert("support-wall".into()); kernel.contents.insert("support-wall".into(), BTreeSet::new());
         let dependent_entity = kernel.ecs.spawn((ExternalId("dependent-floor".into()), Support { entity: "support-wall".into() })).id();
@@ -1073,7 +1073,6 @@ mod construction_tests {
         let sealed = kernel.query_json(r#"["hive.sealed-container"]"#).unwrap();
         assert!(site.contains("\"seconds\":1.0"));
         assert!(site.contains("\"phase\":\"planned\""));
-        assert!(site.contains("\"worker\":null"));
         assert!(lots.contains("\"container\":\"site-wall\""));
         assert!(lots.contains("\"quantity\":1"));
         assert_eq!(sealed, "[]");
@@ -1228,7 +1227,6 @@ mod construction_tests {
         assert_eq!(attended["results"][0]["accepted"], true);
         let state = kernel.ecs.get::<ConstructionSite>(kernel.entity("access-floor").unwrap()).unwrap();
         assert_eq!(state.phase, ConstructionPhase::Working);
-        assert_eq!(state.worker.as_deref(), Some("worker-1"));
         assert_eq!(kernel.ecs.get::<Position>(kernel.entity("access-floor").unwrap()).unwrap().x, contact.x);
     }
 
@@ -3785,16 +3783,9 @@ impl Kernel {
                 if self.ecs.get::<ExcavationWork>(actor).is_some() {
                     self.ecs.entity_mut(actor).remove::<ExcavationWork>();
                 } else {
-                    let sites: Vec<_> = self.ids.values().copied().filter(|site| self.ecs.get::<ConstructionSite>(*site).is_some_and(|state| state.worker.as_deref() == Some(entity.as_str()))).collect();
-                    for site in sites {
-                        if let Some(mut state) = self.ecs.get::<ConstructionSite>(site).cloned() {
-                            if let Some(replacement) = self.ecs.get::<FloorReplacement>(site).cloned() {
-                                self.ecs.entity_mut(site).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
-                            }
-                            state.worker = None;
-                            if state.phase == ConstructionPhase::Working { state.phase = ConstructionPhase::Planned; }
-                            self.ecs.entity_mut(site).insert(state);
-                        }
+                    if let Some(key) = self.attempts_by_worker.get(&entity).cloned() {
+                        let sequence = self.work_attempts.get(&key.task).and_then(|attempt| self.ecs.get::<WorkAttempt>(*attempt)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("worker attempt has no active operation")?;
+                        self.interrupt_work_attempt(key.task, key.generation, sequence, InterruptCause::Cancelled)?;
                     }
                 }
                 self.refresh_state_weight();

@@ -43,7 +43,7 @@ impl Kernel {
             return Err("excavation needs a worker body".into());
         }
         if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor)
-            || self.ecs.query::<&ConstructionSite>().iter(&self.ecs).any(|site| site.worker.as_deref() == Some(id)) {
+            || self.attempts_by_worker.contains_key(id) {
             return Err("excavation requires terrain contact".into());
         }
         if self.terrain_support_occupied(cell(work))? {

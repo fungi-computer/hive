@@ -323,7 +323,6 @@ impl Kernel {
     }
     pub(super) fn validate_construction_sites(&mut self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
-        let mut workers = BTreeSet::new();
         let geometry_instances = environment.world.structure_instances();
         let geometry_ids: BTreeSet<String> = geometry_instances.iter().map(|instance| match instance {
             crate::structure_geometry::StaticInstance::Floor { id, .. }
@@ -355,7 +354,7 @@ impl Kernel {
             match site.phase {
                 ConstructionPhase::Finished => {
                     let expected = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
-                    if self.ecs.get::<SealedContainer>(*entity).is_none() || site.worker.is_some()
+                    if self.ecs.get::<SealedContainer>(*entity).is_none() || false
                         || site.seconds != definition.work_seconds
                         || !geometry_instances.iter().any(|instance| match (&expected, instance) {
                             (crate::structure_geometry::StaticInstance::ApertureWall { id, base, height, opening_bottom, opening_height, .. }, crate::structure_geometry::StaticInstance::ApertureWall { id: other, base: other_base, height: other_height, opening_bottom: other_bottom, opening_height: other_opening, .. }) => id == other && base == other_base && height == other_height && opening_bottom == other_bottom && opening_height == other_opening,
@@ -375,14 +374,8 @@ impl Kernel {
                         }
                     }
                 }
-                ConstructionPhase::Planned => if site.worker.is_some() || geometry_ids.contains(id) { return Err("planned construction progress is invalid".into()); },
-                ConstructionPhase::Working => {
-                    let worker = site.worker.as_ref().ok_or("working construction lacks worker")?;
-                    let worker_entity = self.entity(worker)?;
-                    if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || geometry_ids.contains(id) || !workers.insert(worker.clone()) {
-                        return Err("construction worker linkage is invalid".into());
-                    }
-                }
+                ConstructionPhase::Planned => if geometry_ids.contains(id) { return Err("planned construction progress is invalid".into()); },
+                ConstructionPhase::Working => if geometry_ids.contains(id) { return Err("working construction geometry is invalid".into()); },
             }
             if site.seconds > definition.work_seconds { return Err("construction progress exceeds catalog work".into()); }
             let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
@@ -422,7 +415,7 @@ impl Kernel {
         let definition = environment.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
         let instance = self.construction_instance(&site, &definition, x, y, z, orientation);
         crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
-        let staged = ConstructionSite { catalog, x, y, z, orientation, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
+        let staged = ConstructionSite { catalog, x, y, z, orientation, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
         let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
             + self.registry.weight("hive.construction-site", &record(&staged))
@@ -443,7 +436,7 @@ impl Kernel {
         if !matches!(desired.shape, crate::environment_definition::StructureShape::Floor) { return Err("replacement catalog must be a floor".into()); }
         if target.catalog == desired_catalog { return Ok(()); }
         if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
-        let staged = ConstructionSite { catalog: desired_catalog.clone(), x: target.x, y: target.y, z: target.z, orientation: target.orientation, worker: None, seconds: 0.0, phase: ConstructionPhase::Planned };
+        let staged = ConstructionSite { catalog: desired_catalog.clone(), x: target.x, y: target.y, z: target.z, orientation: target.orientation, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
         let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, owner, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: target.x, support_y: i64::from(target.y), support_z: target.z, phase: FloorReplacementPhase::Queued })).id();
         self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id, BTreeSet::new());
@@ -455,7 +448,7 @@ impl Kernel {
         let site_entity = self.entity(site)?;
         if self.ecs.get::<Position>(site_entity).is_some() { return Err("construction stage is already bound".into()); }
         let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
-        if state.phase != ConstructionPhase::Planned || state.worker.is_some() { return Err("construction stage can only bind while planned".into()); }
+        if state.phase != ConstructionPhase::Planned || false { return Err("construction stage can only bind while planned".into()); }
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
         if !self.contact_is_valid(&state, &definition, [contact.x, contact.y, contact.z], spacing)? { return Err("construction contact is not adjacent to footprint".into()); }
@@ -472,7 +465,7 @@ impl Kernel {
         let worker_entity = self.entity(worker)?;
         let site_entity = self.entity(site)?;
         let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
-        let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("construction site has no party owner")?;
+        let owner = self.ecs.get::<OwnedByParty>(site_entity).cloned().ok_or("construction site has no party owner")?;
         if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(owner.party.as_str()) { return Err("construction worker is outside site party".into()); }
         if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction stage is not bound".into()); }
         if self.ecs.get::<SealedContainer>(site_entity).is_some() || state.phase == ConstructionPhase::Finished { return Err("construction site is finished".into()); }
@@ -480,16 +473,26 @@ impl Kernel {
             || self.direct.contains_key(&worker_entity) || self.ecs.get::<Destination>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some() {
             return Err("worker cannot attend construction from current state".into());
         }
-        if state.worker.as_deref().is_some_and(|assigned| assigned != worker) { return Err("construction site already has a worker".into()); }
-        for (other, entity) in &self.ids {
-            if other != site && self.ecs.get::<ConstructionSite>(*entity).is_some_and(|candidate| candidate.worker.as_deref() == Some(worker)) { return Err("worker already attends construction".into()); }
-        }
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
         let position = self.world_pose(worker)?;
         if !self.contact_is_valid(&state, &definition, [contact.x, contact.y, contact.z], spacing)? { return Err("construction contact is not adjacent to footprint".into()); }
         if [position.x, position.y, position.z] != [contact.x, contact.y, contact.z] { return Err("worker is not at construction contact".into()); }
-        state.worker = Some(worker.into()); state.phase = ConstructionPhase::Working;
+        if let Some(existing) = self.work_attempts.get(site).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).cloned() {
+            if let Some(operation) = existing.current_operation() {
+                if matches!(existing.phase, crate::work_attempt::AttemptPhase::Outcome { .. }) { self.acknowledge_work_attempt(site.into(), existing.key.generation, operation.sequence)?; }
+                else { return Err("construction work attempt is already owned".into()); }
+            }
+        }
+        if self.attempts_by_worker.contains_key(worker) { return Err("construction work attempt is already owned".into()); }
+        let generation = self.next_work_generation;
+        self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
+        let key = crate::work_attempt::AttemptKey { task: site.into(), generation };
+        let operation = crate::work_attempt::OperationKey { attempt: key.clone(), sequence: 1 };
+        self.ecs.entity_mut(site_entity).insert(crate::work_attempt::WorkAttempt { key: key.clone(), worker: worker.into(), party: owner.party.clone(), phase: crate::work_attempt::AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site: site.into(), contact: contact.clone(), mode: crate::work_attempt::ConstructionMode::Work } } });
+        self.work_attempts.insert(site.into(), site_entity);
+        self.attempts_by_worker.insert(worker.into(), key);
+        state.phase = ConstructionPhase::Working;
         let old_weight = self.registry.weight("hive.construction-site", &record(self.ecs.get::<ConstructionSite>(site_entity).ok_or("not a construction site")?));
         let new_weight = self.registry.weight("hive.construction-site", &record(&state));
         if self.state_weight.saturating_sub(old_weight).saturating_add(new_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
@@ -507,8 +510,6 @@ impl Kernel {
         })
     }
     fn release_construction_worker(&mut self, site: &str, mut state: ConstructionSite) -> Result<()> {
-        if state.worker.is_none() && state.phase == ConstructionPhase::Planned { return Ok(()); }
-        state.worker = None;
         state.phase = ConstructionPhase::Planned;
         self.ecs.entity_mut(self.entity(site)?).insert(state);
         Ok(())
@@ -561,7 +562,6 @@ impl Kernel {
         self.publish_material_consumption(prepared_consumption)?;
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
-        finished.worker = None;
         self.ecs.entity_mut(site_entity).insert((finished, SealedContainer {}));
         for (name, value) in &definition.on_complete.components { self.registry.insert(&mut self.ecs, site_entity, name, value).expect("validated completion component"); }
         for port in &definition.on_complete.ports {
@@ -622,7 +622,7 @@ impl Kernel {
         if self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Destination>(worker_entity).is_some()
             || self.direct.contains_key(&worker_entity) || self.ecs.get::<Support>(worker_entity).is_some()
             || self.ecs.get::<ExcavationWork>(worker_entity).is_some()
-            || self.ids.values().any(|entity| self.ecs.get::<ConstructionSite>(*entity).is_some_and(|state| state.worker.as_deref() == Some(worker))) {
+            || self.attempts_by_worker.contains_key(worker) {
             return Err("worker cannot operate structure aperture while busy".into());
         }
         let site_entity = self.entity(site)?;
@@ -662,7 +662,7 @@ impl Kernel {
         for (site_id, mut state) in pending {
             if state.phase != ConstructionPhase::Working { continue; }
             let attempt = self.work_attempts.get(&site_id).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).cloned();
-            let worker_id = state.worker.clone().or_else(|| attempt.as_ref().and_then(|attempt| match &attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Construction { site, mode: crate::work_attempt::ConstructionMode::Work, .. }, .. } if site == &site_id => Some(attempt.worker.clone()), _ => None }));
+            let worker_id = attempt.as_ref().and_then(|attempt| match &attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Construction { site, mode: crate::work_attempt::ConstructionMode::Work, .. }, .. } if site == &site_id => Some(attempt.worker.clone()), _ => None });
             let Some(worker_id) = worker_id else { continue; };
             let worker = self.entity(&worker_id)?;
             if readiness.get(&site_id).is_some_and(|status| *status != "ready") {

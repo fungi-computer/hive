@@ -124,7 +124,6 @@ pub struct ConstructionSite {
     pub y: i32,
     pub z: i64,
     pub orientation: Cardinal,
-    pub worker: Option<String>,
     pub seconds: f64,
     pub phase: ConstructionPhase,
 }
