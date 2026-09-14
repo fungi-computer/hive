@@ -372,10 +372,18 @@ mod process_attempt_tests {
         assert_eq!(waiting.phase, ProcessPhase::Waiting);
         assert!(waiting.worker.is_none());
         assert!(kernel.work_attempts_json(&format!("[\"{process}\"]")).unwrap().contains("workerUnavailable"));
+        let saved = kernel.snapshot_entities_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&saved).unwrap();
+        let restored_state = restored.ecs.get::<StagedProcess>(restored.entity(process).unwrap()).unwrap();
+        assert_eq!(restored_state.phase, ProcessPhase::Waiting);
+        assert_eq!(restored_state.progress_seconds, waiting.progress_seconds);
+        assert!(!restored.query_json(r#"["hive.process-binding"]"#).unwrap().is_empty());
+        assert!(restored.work_attempts_json(&format!("[\"{process}\"]")).unwrap().contains("workerUnavailable"));
         kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:1"},"request":{"kind":"acknowledge-work-attempt","task":process,"generation":1,"sequence":1}}]}).to_string()).unwrap();
         kernel.ecs.entity_mut(kernel.entity("worker:1").unwrap()).insert(Body { speed: 1.0 });
         let rebegin = kernel.advance_json(&begin.to_string()).unwrap();
-        assert_eq!(serde_json::from_str::<serde_json::Value>(&rebegin).unwrap()["results"][0]["accepted"], true);
+        assert_eq!(serde_json::from_str::<serde_json::Value>(&rebegin).unwrap()["results"][0]["accepted"], true, "{rebegin}");
 
         let wrong_party = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:2"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&wrong_party).unwrap()["results"][0]["accepted"], false);

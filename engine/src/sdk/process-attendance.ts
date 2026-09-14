@@ -57,7 +57,11 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
     return target ? selectedWorkers.filter(worker => party === undefined || memberships.get(worker) === party).map(worker => ({ worker, task: process.id, target })) : [];
   });
   return {
-    claims: allProcesses.map(process => ({ task: process.id, actor: attempts.get(process.id)?.worker ?? process.state.worker })),
+    claims: allProcesses.map(process => {
+      const attempt = attempts.get(process.id);
+      const actor = attempt && (attempt.phase.kind === "executing" || (attempt.phase.kind === "outcome" && attempt.phase.result.kind === "completed")) ? attempt.worker : null;
+      return { task: process.id, actor };
+    }),
     candidates,
     lowerBound: candidate => { const pose = positions.get(candidate.worker); return pose ? Math.hypot(pose.x - candidate.target.x, pose.y - candidate.target.y, pose.z - candidate.target.z) : 0; },
     estimate: candidate => { const result = ctx.routeCosts([{ actor: candidate.worker, target: candidate.target }])[0]; return result?.status === "reachable" ? result.cost : null; },
@@ -74,7 +78,13 @@ export function processAttendanceProvider(ctx: WriteContext, workers: readonly E
     progress: () => {
       for (const process of allProcesses) {
         const attempt = attempts.get(process.id);
-        if (!attempt || attempt.phase.kind !== "outcome" || attempt.phase.result.kind !== "completed") continue;
+        if (!attempt || attempt.phase.kind !== "outcome") continue;
+        const operation = attempt.phase.operation;
+        if (attempt.phase.activity.kind === "process-attendance") {
+          ctx.action({ kind: "acknowledge-work-attempt", task: operation.attempt.task, generation: operation.attempt.generation, sequence: operation.sequence });
+          continue;
+        }
+        if (attempt.phase.result.kind !== "completed") continue;
         const target = targets.get(process.id), pose = positions.get(attempt.worker);
         if (target && pose && Math.hypot(pose.x - target.x, pose.y - target.y, pose.z - target.z) <= CONTACT_DISTANCE)
           ctx.action({ kind: "continue-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, nextActivity: { kind: "process-attendance", process: process.id } });
