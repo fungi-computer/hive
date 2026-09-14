@@ -742,8 +742,7 @@ export const colonyPack: GamePack = {
             return tree ? [{ id: `tree-${order.tree}`, subjects: [order.tree], label: "Tree work", value: `${tree.phase} · ${order.stage} · ${order.phase}` }] : [];
           });
         })(),
-        { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
-        { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
+        ...context.query(query(Container, OwnedByParty)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `party-store-${index}`, subjects: [row.id], label: "Party store", value: total(row.id) })),
         ...stationFacts,
         { id: "worker-carried", subjects: partyWorkers, label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
         ...partyWorkers.map((worker, index) => ({
@@ -776,4 +775,23 @@ export const colonyPack: GamePack = {
     },
   },
   definition: encodeDefinition("colony", colonyComponents, colonyInitial),
+};
+
+function neutralColonyBytes(bytes: Uint8Array, initialKey: "initial" | "initialPlacements"): Uint8Array {
+  const value = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
+  const initial = value[initialKey];
+  if (!Array.isArray(initial)) return bytes;
+  value[initialKey] = initial.filter((entry) => {
+    const id = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>).id ?? (entry as Record<string, unknown>).entity : undefined;
+    return typeof id !== "string" || (!id.startsWith("colony.local-party") && id !== "colony.cat.1");
+  });
+  return new TextEncoder().encode(JSON.stringify(value));
+}
+
+/** Host pack: the same Colony behavior over neutral shared world content. */
+export const colonyServerPack: GamePack = {
+  ...colonyPack,
+  localScope: undefined,
+  definition: neutralColonyBytes(colonyPack.definition, "initial"),
+  environmentDefinition: colonyPack.environmentDefinition ? neutralColonyBytes(colonyPack.environmentDefinition, "initialPlacements") : undefined,
 };

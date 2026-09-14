@@ -3,7 +3,7 @@ import { WorkerRuntime } from "./worker";
 import type { WorkerCommand, WorkerTransportEvent } from "./protocol";
 import { wasmKernelPort } from "./wasm-kernel";
 import { piratesPack } from "../games/pirates";
-import { colonyPack } from "../games/colony";
+import { colonyServerPack } from "../games/colony";
 import { survivalPack } from "../games/survival";
 import { formationsPack } from "../games/formations";
 import * as generated from "../../generated/hive_kernel.js";
@@ -36,7 +36,7 @@ export async function bootGeneratedWorker(
 ): Promise<WorkerRuntime> {
   return installWorkerRuntime(scope, createKernel, {
     pirates: piratesPack,
-    colony: colonyPack,
+    colony: colonyServerPack,
     survival: survivalPack,
     formations: formationsPack,
   });
