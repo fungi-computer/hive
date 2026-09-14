@@ -45,7 +45,7 @@ import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrai
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
-import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromSprite } from "./build-placement.js";
+import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromOrderedSprites } from "./build-placement.js";
 import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { colonyPack } from "../games/colony.ts";
 import { survivalPack } from "../games/survival.ts";
@@ -1115,14 +1115,12 @@ export function createHiveClient({
           return;
         }
       }
-      const spriteCandidates = orderedSprites.filter(candidate => candidate.contains?.(at) === true);
-      const spriteHit = pickFromOrdered(orderedSprites, spriteCandidates);
       const structurePoint = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const spriteSurface = spriteHit?.target && displayed ? structureSurfaceFromSprite(spriteHit.node, state.subjects.find(candidate => candidate.id === spriteHit.target), structurePoint, displayed, project) : null;
+      const spriteSurface = displayed ? structureSurfaceFromOrderedSprites(orderedSprites, state.subjects, at, structurePoint, displayed, project) : null;
       const hit = spriteSurface
         ? { kind: "structure-top", surface: spriteSurface }
         : displayed && displayedTerrainHit(localPoint.x, localPoint.y, displayed);
-      const structure = Boolean(spriteSurface);
+      const structure = hit?.kind === "structure-top";
       const surface = (hit?.kind === "terrain-top" || (structure && targetControl.target === "world-surface")) && hit.surface;
       if (!surface) {
         state.message = targetControl.target === "world-surface" ? "Choose a visible ground or building surface" : "Choose a visible terrain top";
