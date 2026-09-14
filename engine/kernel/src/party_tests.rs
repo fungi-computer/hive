@@ -84,3 +84,24 @@ fn scoped_batch_rejects_malformed_scope_before_mutation() {
     let malformed = json!({"delta":0,"writes":[],"actions":[{"scope":{"party":"party:1"},"request":{"kind":"move","entity":"missing","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}]});
     assert!(kernel.advance_json(&malformed.to_string()).is_err());
 }
+
+#[test]
+fn scoped_authored_removal_enforces_party_and_preserves_physical_entities() {
+    let mut kernel = Kernel::new();
+    kernel.load(&json!({"format":"hive-game","version":1,"game":"scoped-remove","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"initial":[
+        {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
+        {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
+        {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}}
+    ]}).to_string()).unwrap();
+    let create = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"removes":[],"actions":[]});
+    assert!(kernel.advance_json(&create.to_string()).is_ok());
+    let before = kernel.save_records().unwrap().entities;
+    let foreign = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","party":"party:2"},"entity":"order:1"}],"actions":[]});
+    assert!(kernel.advance_json(&foreign.to_string()).is_err());
+    assert_eq!(kernel.save_records().unwrap().entities, before);
+    let owned = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","party":"party:1"},"entity":"order:1"}],"actions":[]});
+    assert!(kernel.advance_json(&owned.to_string()).is_ok());
+    let physical = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"host"},"entity":"worker"}],"actions":[]});
+    assert!(kernel.advance_json(&physical.to_string()).is_err());
+    assert!(kernel.entity("worker").is_ok());
+}

@@ -29,6 +29,7 @@ mod tests {
 
     fn advance(kernel: &mut Kernel, creates: serde_json::Value, removes: serde_json::Value, writes: serde_json::Value) -> Result<String> {
         let creates = creates.as_array().unwrap().iter().map(|record| json!({"scope":{"kind":"host"},"record":record})).collect::<Vec<_>>();
+        let removes = removes.as_array().unwrap().iter().map(|id| json!({"scope":{"kind":"host"},"entity":id})).collect::<Vec<_>>();
         kernel.advance_json(&json!({"delta":0,"creates":creates,"removes":removes,"writes":writes,"actions":[]}).to_string())
     }
 

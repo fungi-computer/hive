@@ -307,7 +307,7 @@ mod ground_stock_cleanup_tests {
         kernel.ground_stock_cleanup_pending = true;
         kernel.cleanup_empty_ground_stock();
         assert!(kernel.known.contains("ground.1"));
-        kernel.advance_json(&json!({"delta":0.0,"creates":[],"removes":["haul.1"],"writes":[],"actions":[]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"creates":[],"removes":[{"scope":{"kind":"host"},"entity":"haul.1"}],"writes":[],"actions":[]}).to_string()).unwrap();
         assert!(!kernel.known.contains("ground.1"));
     }
 
@@ -3409,7 +3409,21 @@ impl Kernel {
                 }
                 Ok(record)
         }).collect::<Result<Vec<_>>>()?;
-        let prepared = self.prepare_authored_entities(creates, batch.removes, batch.writes)?;
+        let removes = batch.removes.into_iter().map(|remove| {
+            let entity = self.entity(&remove.entity)?;
+            match remove.scope {
+                ActionScope::Host => {}
+                ActionScope::Party { party } => {
+                    let party_entity = self.entity(&party)?;
+                    if self.ecs.get::<Party>(party_entity).is_none() { return Err("removal scope is not a party".into()); }
+                    if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) {
+                        return Err("scoped authored removal is outside party".into());
+                    }
+                }
+            }
+            Ok(remove.entity)
+        }).collect::<Result<Vec<_>>>()?;
+        let prepared = self.prepare_authored_entities(creates, removes, batch.writes)?;
         self.publish_authored_entities(prepared);
         for (id, party) in owned_creates {
             let entity = self.entity(&id)?;
