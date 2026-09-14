@@ -48,6 +48,7 @@ export const Guest = component<{ hungry: boolean }>("colony.guest", {
 const workerOne = entity("colony.worker.1");
 const workerTwo = entity("colony.worker.2");
 const workers = [workerOne, workerTwo] as const;
+const localParty = entity("local");
 const workerVisuals = [
   { sprite: "colony.rowan", label: "Rowan" },
   { sprite: "colony.sedge", label: "Sedge" },
@@ -89,6 +90,7 @@ export function constructionStatusLabel(
 
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
+  { id: localParty, components: { "hive.party": { ownerPlayer: "local" } } },
   { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
   ...workers.map((id, index) => ({
     id,
@@ -99,6 +101,7 @@ const colonyInitial = [
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": workerVisuals[index],
       "colony.worker": { guest: false },
+      "hive.party-member": { party: localParty },
       "hive.work-participation": { automatic: true },
       "hive.delivery-control": { enabled: true, quantity: 3 },
     },
@@ -226,10 +229,9 @@ const mugwortTargetInput = z.object({
 
 function selectedWorkers(context: CommandContext, raw: readonly EntityId[]): readonly EntityId[] {
   const selected = [...new Set(raw)];
-  if (
-    selected.length !== raw.length ||
-    selected.some((id) => !workers.includes(id))
-  )
+  const party = context.scope.kind === "player" ? context.scope.party : null;
+  const owned = new Set(context.query(query(Worker, PartyMember)).filter(row => row.get(Worker).guest === false && (party === null || row.get(PartyMember).party === party)).map(row => row.id));
+  if (selected.length !== raw.length || selected.some((id) => !owned.has(id)))
     throw new Error("selection must contain distinct colony workers");
   const rows = context.query(query(Worker));
   for (const id of selected) {
@@ -285,8 +287,9 @@ function deliveryWrites(
 
 function selectedDigWorker(context: CommandContext, input: z.infer<typeof depositInput>): EntityId {
   const worker = input.entities[0];
-  if (!workers.includes(worker)) throw new Error("selection must contain a colony worker");
-  const workerState = context.query(query(Worker)).find((row) => row.id === worker)?.get(Worker);
+  const party = context.scope.kind === "player" ? context.scope.party : null;
+  const row = context.query(query(Worker, PartyMember)).find(row => row.id === worker && (party === null || row.get(PartyMember).party === party));
+  const workerState = row?.get(Worker);
   if (!workerState || workerState.guest) throw new Error("guests cannot act");
   return worker;
 }
