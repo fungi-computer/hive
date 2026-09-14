@@ -2287,6 +2287,17 @@ impl Kernel {
         }
         let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
+        let terrain_points = |center: crate::generation::Cell| -> Result<Vec<[f64; 3]>> {
+            let mut points = Vec::new();
+            for [dx, dy, dz] in interaction_contact::standing_offsets(spacing).map_err(str::to_owned)? {
+                let Some(x) = center.x.checked_add(dx) else { continue };
+                let Ok(dy) = i32::try_from(dy) else { continue };
+                let Some(y) = center.y.checked_add(dy) else { continue };
+                let Some(z) = center.z.checked_add(dz) else { continue };
+                points.push([x as f64 * spacing[0], (f64::from(y) + 0.5) * spacing[1], z as f64 * spacing[2]]);
+            }
+            Ok(points)
+        };
         let resolved_pose = match self.contact_pose(container) {
             Ok(pose) => Some(pose),
             Err(reason) if reason == "no position" => None,
@@ -2300,7 +2311,7 @@ impl Kernel {
                 let raw = [container_pose.x / spacing[0], container_pose.y / spacing[1] - 0.5, container_pose.z / spacing[2]];
                 if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) { (Vec::new(), None) } else {
                     let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
-                    ([(0_i64, 0_i64), (1, 0), (0, 1), (-1, 0), (0, -1)].into_iter().filter_map(|(dx, dz)| Some([center.x.checked_add(dx)? as f64 * spacing[0], (f64::from(center.y) + 0.5) * spacing[1], center.z.checked_add(dz)? as f64 * spacing[2]])).collect(), Some([container_pose.x, container_pose.y, container_pose.z]))
+                    (terrain_points(center)?, Some([container_pose.x, container_pose.y, container_pose.z]))
                 }
             } else {
                 (Vec::new(), None)
@@ -2312,9 +2323,7 @@ impl Kernel {
                 return serde_json::to_string(&json!({"kind":"blocked","reason":"no-contact"})).map_err(|error| error.to_string());
             }
             let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
-            ([(0_i64, 0_i64), (1, 0), (0, 1), (-1, 0), (0, -1)].into_iter().filter_map(|(dx, dz)| {
-                Some([center.x.checked_add(dx)? as f64 * spacing[0], (f64::from(center.y) + 0.5) * spacing[1], center.z.checked_add(dz)? as f64 * spacing[2]])
-            }).collect::<Vec<_>>(), Some([container_pose.x, container_pose.y, container_pose.z]))
+            (terrain_points(center)?, Some([container_pose.x, container_pose.y, container_pose.z]))
         };
         let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.clearance_cells, max_step_cells: traversal.max_step_cells };
         let mut targets = Vec::new();
