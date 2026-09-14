@@ -114,20 +114,10 @@ export function constructionWorkProvider(
     const attempt = attempts.get(row.id);
     if (!owners.has(row.id) || sealed.has(row.id) || state.phase === "finished")
       return [];
-    return [{ task: row.id, actor: state.worker ?? attempt?.worker ?? null }];
+    return [{ task: row.id, actor: attempt?.worker ?? null }];
   });
   const occupiedActors = [
-    ...new Set(
-      [...attempts.values()]
-        .flatMap((a) => (a ? [a.worker] : []))
-        .concat(
-          sites.flatMap((row) =>
-            row.get(ConstructionSite).worker
-              ? [row.get(ConstructionSite).worker!]
-              : [],
-          ),
-        ),
-    ),
+    ...new Set([...attempts.values()].flatMap((a) => (a ? [a.worker] : []))),
   ];
   const candidates = sites.flatMap((row) => {
     const state = row.get(ConstructionSite);
@@ -137,7 +127,6 @@ export function constructionWorkProvider(
       !party ||
       sealed.has(row.id) ||
       state.phase === "finished" ||
-      state.worker !== null ||
       !ar ||
       ar.support !== "ready" ||
       ar.contacts.length === 0 ||

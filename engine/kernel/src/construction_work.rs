@@ -354,7 +354,7 @@ impl Kernel {
             match site.phase {
                 ConstructionPhase::Finished => {
                     let expected = self.construction_instance(id, definition, site.x, site.y, site.z, site.orientation);
-                    if self.ecs.get::<SealedContainer>(*entity).is_none() || false
+                    if self.ecs.get::<SealedContainer>(*entity).is_none()
                         || site.seconds != definition.work_seconds
                         || !geometry_instances.iter().any(|instance| match (&expected, instance) {
                             (crate::structure_geometry::StaticInstance::ApertureWall { id, base, height, opening_bottom, opening_height, .. }, crate::structure_geometry::StaticInstance::ApertureWall { id: other, base: other_base, height: other_height, opening_bottom: other_bottom, opening_height: other_opening, .. }) => id == other && base == other_base && height == other_height && opening_bottom == other_bottom && opening_height == other_opening,
@@ -448,7 +448,7 @@ impl Kernel {
         let site_entity = self.entity(site)?;
         if self.ecs.get::<Position>(site_entity).is_some() { return Err("construction stage is already bound".into()); }
         let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
-        if state.phase != ConstructionPhase::Planned || false { return Err("construction stage can only bind while planned".into()); }
+        if state.phase != ConstructionPhase::Planned { return Err("construction stage can only bind while planned".into()); }
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
         let spacing = self.environment.as_ref().unwrap().world.cell_spacing_m();
         if !self.contact_is_valid(&state, &definition, [contact.x, contact.y, contact.z], spacing)? { return Err("construction contact is not adjacent to footprint".into()); }
@@ -460,6 +460,9 @@ impl Kernel {
         Ok(())
     }
 
+    // Deliberately retained as a low-level native fixture/authoring seam for
+    // already-at-contact callers. The SDK construction provider never uses
+    // this shortcut: it owns the route -> continue -> acknowledge lifecycle.
     pub(super) fn attend_construction(&mut self, worker: &str, site: &str, contact: Point) -> Result<()> {
         if contact.frame.is_some() || ![contact.x, contact.y, contact.z].iter().all(|value| value.is_finite()) { return Err("construction contact must be finite terrain position".into()); }
         let worker_entity = self.entity(worker)?;
