@@ -308,7 +308,13 @@ function path(value, at) {
         0,
         STATIC_ART_LIMITS.textures - 1,
       );
-    const checked = string(segment, `${at}[${index}]`, KEY, 64);
+    // Multipart texture leaves use the declared part ID verbatim. Part IDs may
+    // contain a dot (for example rail.left); the surrounding owner path keeps
+    // using the ordinary art-key grammar.
+    const pattern = value[0] === "parts" && index === value.length - 1
+      ? PART_ID
+      : KEY;
+    const checked = string(segment, `${at}[${index}]`, pattern, 64);
     if (INHERITED_KEYS.has(checked))
       problem(`${at}[${index}]`, "inherited-key");
     return checked;

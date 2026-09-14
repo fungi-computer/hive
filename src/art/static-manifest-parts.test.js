@@ -12,7 +12,7 @@ function manifest() {
     pages: [{ id: "atlas-0", file: "atlas-0.png", sha256: hash, width: 16, height: 16 }],
     entries: [
       { path: ["buildings", "stair", "finished", 0], page: "atlas-0", x: 1, y: 1, width: 2, height: 2, placement: { kind: "stair", entrance: [0, 0, 0], landing: [0, 2, 2], rotationPivot: [0, 0, 0] }, silhouette: empty },
-      { path: ["parts", "stair", 0, "surface"], page: "atlas-0", x: 4, y: 1, width: 2, height: 2, silhouette: empty, part: { owner: JSON.stringify(["buildings", "stair", "finished", 0]), id: "surface", role: "supporting-surface", geometry: { footprint: [[0, 0, 0]], minY: 0, maxY: 2 } } },
+      { path: ["parts", "stair", 0, "rail.left"], page: "atlas-0", x: 4, y: 1, width: 2, height: 2, silhouette: empty, part: { owner: JSON.stringify(["buildings", "stair", "finished", 0]), id: "rail.left", role: "upright-boundary", geometry: { footprint: [[0, 0, 0]], minY: 0, maxY: 2 } } },
     ],
     provenance: { threeRevision: "185", renderer: { ...STATIC_ART_RENDER.renderer }, sources: [{ path: "src/art/stair.js", sha256: hash }] },
   };
