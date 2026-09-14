@@ -2,7 +2,7 @@ import { WebGLRenderer, Vector3 } from "three";
 import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { renderBakeCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
-import { terrainBandScene } from "../../../src/art/terrain-columns.js";
+import { terrainBandScene, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
 import { terrainFaceBounds, terrainColumnMap } from "../../../src/art/terrain-faces.js";
 import { project } from "./geometry.js";
 import { registerVisibleTexture, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";

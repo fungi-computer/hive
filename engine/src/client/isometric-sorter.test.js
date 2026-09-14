@@ -134,3 +134,16 @@ test("canonical compact, bed, wall, and stair placement records become lawful fo
     { x: 10, y: 6, z: 9 },
   ]);
 });
+
+test("one-cell walls stay points while beds, stairs, and 2x2 brewers use stable multi-cell relations", () => {
+  const sorter = createIsometricSorter();
+  const bounds = { left: -100, right: 100, top: -100, bottom: 100 };
+  const wall = node("wall", 0, 0, { screenBounds: bounds });
+  const bed = node("bed", 0, 0, { screenBounds: bounds, footprint: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }] });
+  const brewer = node("brewer", 0, 0, { screenBounds: bounds, footprint: [{ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, { x: 1, y: 0, z: 1 }] });
+  const far = node("far", -3, -3, { screenBounds: bounds });
+  const near = node("near", 3, 3, { screenBounds: bounds });
+  assert.deepEqual(sorter.order([near, brewer, far]).map((entry) => entry.id), ["far", "brewer", "near"]);
+  assert.deepEqual(sorter.order([near, brewer, far].reverse()).map((entry) => entry.id), ["far", "brewer", "near"]);
+  assert.deepEqual(sorter.order([wall, bed, far]).map((entry) => entry.id), ["far", "bed", "wall"]);
+});
