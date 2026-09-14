@@ -3,13 +3,18 @@
 Status: active implementation over source baseline `ab58104` in
 `/mnt/fungi-data/botanical-work/pathfinding-clean`. Integrator remains on
 `engine/pathfinding-clean-20260913`; use separate worktrees for each writer.
-Accepted through `1e2fa9c`: the native WorkAttempt owner retains exact
+Accepted through `89c334f`: the native WorkAttempt owner retains exact
 generation/sequence and now rejects worker/task/party ownership mismatches; the
 shared native transfer-contact query follows portable custody, enumerates lawful
 three-dimensional terrain contacts, and shares its metric reach predicate with
-final transfer admission. The rebuilt Colony contact consumer and delivery laws
-pass 11/11. Floor replacement, shared-party hosting, complete provider migration,
-and per-pixel drawing remain review work rather than accepted behavior.
+final transfer admission. Typed SDK helpers preserve those exact identities. The
+rebuilt Colony contact consumer and delivery laws pass 11/11. Native floor finish
+replacement now preserves the supporting floor identity and geometry beneath a
+completed 2x2 brewer, including its kettle port and live contents; cancellation
+leaves staged material recoverable, target mutation cannot publish, current-format
+save/reload passes, and the 24 affected floor laws pass. Shared-party hosting,
+complete provider migration, the real Colony floor consumer, and per-pixel drawing
+remain review work rather than accepted behavior.
 This packet refines the September 14 sections of
 [the owning sprint](../../CLEARING-CONSOLIDATION-PLAN.md). Later direct Levi
 instructions supersede it. Do not revive historical queues elsewhere in that file.
