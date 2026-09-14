@@ -128,7 +128,7 @@ build adds the real `/engine/colony` entry afterward. Both builds receive the
 public DO host at compile time:
 
 ```sh
-VITE_HIVE_PUBLIC_HOST=https://hive-public-engine-demo.levi-fe0.workers.dev pnpm build
+VITE_HIVE_PUBLIC_HOST=https://hive-public-engine-demo.levi-fe0.workers.dev ./node_modules/.bin/vite build
 VITE_HIVE_PUBLIC_HOST=https://hive-public-engine-demo.levi-fe0.workers.dev ./node_modules/.bin/vite build --config engine/vite.config.js
 ```
 

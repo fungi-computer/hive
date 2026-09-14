@@ -45,7 +45,8 @@ export NO_COLOR=1
   --env-file "$credential_file" \
   --json > "$receipt_dir/frontend-versions-before.json"
 
-VITE_HIVE_PUBLIC_HOST="$backend_origin" pnpm build 2>&1 | tee "$receipt_dir/root-build.log"
+VITE_HIVE_PUBLIC_HOST="$backend_origin" \
+  ./node_modules/.bin/vite build 2>&1 | tee "$receipt_dir/root-build.log"
 VITE_HIVE_PUBLIC_HOST="$backend_origin" \
   ./node_modules/.bin/vite build --config engine/vite.config.js 2>&1 \
   | tee "$receipt_dir/engine-build.log"
