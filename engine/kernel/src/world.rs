@@ -202,6 +202,25 @@ mod work_attempt_laws {
         let duplicate = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-drop","lot":"lot"}}}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<Value>(&duplicate).unwrap()["results"][0]["accepted"], false);
     }
+
+    #[test]
+    fn material_transfer_allows_source_to_worker_pickup_only() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"pickup","components":[],"initial":[
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
+            {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
+            {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
+            {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":2,"container":"source"}}}
+        ]}).to_string()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
+        let pickup = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"source","to":"worker","quantity":1}}}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<Value>(&pickup).unwrap()["results"][0]["accepted"], true, "{pickup}");
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "worker");
+    }
 }
 enum ActionEffect { None, Entity(String), Projectile(String, Vector3), Attempt(AttemptKey) }
 enum PreparedWaterMaterial { Output(PreparedMaterialOutput), Consumption(PreparedConsumption) }
@@ -4029,15 +4048,22 @@ impl Kernel {
         let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
         if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
         if let crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } = next_activity.clone() {
-            if from != current.worker { return Err("material transfer source is not attempt worker".into()); }
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
             let destination = self.entity(&to)?;
-            if self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(current.party.as_str()) { return Err("material transfer destination is outside attempt party or unowned".into()); }
+            let destination_owned = self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) == Some(current.party.as_str());
+            let destination_is_worker = to == current.worker && self.ecs.get::<PartyMember>(destination).map(|member| member.party.as_str()) == Some(current.party.as_str());
+            if !destination_owned && !destination_is_worker { return Err("material transfer destination is outside attempt party or unowned".into()); }
             let source = self.entity(&from)?;
             let lot_entity = self.entity(&lot)?;
             let stock = self.ecs.get::<Lot>(lot_entity).ok_or("not a material lot")?.clone();
             if self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) != Some(current.party.as_str()) { return Err("material transfer lot is outside attempt party or unowned".into()); }
+            let source_owned = self.ecs.get::<OwnedByParty>(source).map(|owner| owner.party.as_str()) == Some(current.party.as_str());
+            let source_is_worker = from == current.worker && self.ecs.get::<PartyMember>(source).map(|member| member.party.as_str()) == Some(current.party.as_str());
+            if !source_owned && !source_is_worker { return Err("material transfer source is outside attempt party or unowned".into()); }
             if quantity == 0 { return Err("invalid material transfer quantity".into()); }
+            let pickup = from != current.worker && to == current.worker;
+            let deposit = from == current.worker && to != current.worker;
+            if !pickup && !deposit { return Err("material transfer must be worker pickup or worker deposit".into()); }
             let capacity = self.ecs.get::<Container>(destination).ok_or("not a container")?.capacity;
             let reason = if stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
               else if self.quantity(&to) + u64::from(quantity) > u64::from(capacity) { Some(WorkBlockReason::CapacityUnavailable) }

@@ -197,10 +197,10 @@ function exactRouteReplacement(context: CommandContext, worker: EntityId, party:
 }
 
 function activeTaskFor(context: CommandContext, actor: EntityId) {
-  return context
-    .query(query(DeliveryTask))
-    .map((row) => row.get(DeliveryTask))
-    .find((task) => task.actor === actor);
+  const tasks = context.query(query(DeliveryTask));
+  const attempts = context.workAttempts(tasks.map(row => row.id));
+  const taskIds = new Set(attempts.filter(attempt => attempt.worker === actor).map(attempt => attempt.key.task));
+  return tasks.find(row => taskIds.has(row.id))?.get(DeliveryTask);
 }
 
 function deliveryWrites(
@@ -219,7 +219,6 @@ function deliveryWrites(
   }
   return selected.map((worker) => {
     const active = activeTaskFor(context, worker);
-    if (active?.phase === "complete") throw new Error("completed delivery cannot be restarted");
     const current = context.query(query(DeliveryControl)).find((row) => row.id === worker)?.get(DeliveryControl);
     if (
       enabled &&
@@ -259,7 +258,7 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
     context
       .query(query(DeliveryTask))
       .map((row) => row.get(DeliveryTask))
-      .filter((task) => task.phase !== "complete")
+      .filter((task) => task.custody !== "delivered")
       .map((task) => task.sourceLot),
   );
   const carried = lots.filter((lot) => lot.container === worker);
@@ -775,7 +774,7 @@ export const colonyPack: GamePack = {
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
-        ...taskRows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).phase })),
+        ...taskRows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).custody })),
       ];
     },
   },

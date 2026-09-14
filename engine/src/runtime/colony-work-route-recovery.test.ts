@@ -34,8 +34,8 @@ test("Colony digging then supplied building does not strand an existing delivery
     for (const id of ["colony.delivery.1", "colony.delivery.2"]) {
       const task = session.query(query(DeliveryTask)).find(row => row.id === id)?.get(DeliveryTask);
       assert(task, `existing delivery ${id} must remain observable`);
-      assert.equal(task.phase, "complete", `${id} must finish after terrain changes`);
-      assert.equal(task.actor, null, `${id} must release its worker`);
+      assert.equal(task.custody, "delivered", `${id} must finish after terrain changes`);
+      assert.equal(task.custody, "delivered", `${id} must release its worker`);
     }
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
     assert.equal(lots.filter(lot => lot.kind === "soil-spoil").reduce((sum, lot) => sum + lot.quantity, 0), 6);

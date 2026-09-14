@@ -27,7 +27,7 @@ test("selected workers receive distinct finite delivery tasks", () => {
     session.step(0.1);
     const actors = session
       .query(query(DeliveryTask))
-      .map((row) => row.get(DeliveryTask).actor);
+      .flatMap((row) => port.workAttempts([row.id]).map(attempt => attempt.worker));
     assert.deepEqual(new Set(actors), new Set(["colony.worker.1", "colony.worker.2"]));
     assert.throws(
       () => session.command("deliver", { quantity: 1, entities: [] }),

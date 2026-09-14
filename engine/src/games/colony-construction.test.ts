@@ -100,9 +100,9 @@ test("actual Colony staircase supply splits one shared lumber lot into two lawfu
       session.step(0.01);
       const tasks = session.query(query(DeliveryTask)).filter((row) => {
         const task = row.get(DeliveryTask);
-        return task.destination.startsWith("colony.build.") && task.phase !== "complete";
+        return task.destination.startsWith("colony.build.") && task.custody !== "delivered";
       });
-      if (tasks.length === 2 && tasks.every((row) => row.get(DeliveryTask).actor !== null)) {
+      if (tasks.length === 2 && tasks.every((row) => port.workAttempts([row.id]).length > 0)) {
         live = tasks;
         break;
       }
@@ -111,13 +111,13 @@ test("actual Colony staircase supply splits one shared lumber lot into two lawfu
     const tasks = live;
     const states = tasks.map((row) => row.get(DeliveryTask));
     assert.equal(new Set(tasks.map((row) => row.id)).size, 2);
-    assert.equal(new Set(states.map((task) => task.actor)).size, 2);
+    assert.equal(new Set(tasks.flatMap((row) => port.workAttempts([row.id]).map(attempt => attempt.worker))).size, 2);
     assert.equal(states.reduce((sum, task) => sum + task.quantity, 0), 6);
     assert(states.every((task) => task.quantity === 3));
     const saved = session.save();
     session.restore(saved);
-    const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.phase !== "complete");
-    assert.deepEqual(restored.map((task) => [task.sourceLot, task.actor, task.quantity]), states.map((task) => [task.sourceLot, task.actor, task.quantity]));
+    const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.custody !== "delivered");
+    assert.deepEqual(restored.map((task) => [task.sourceLot, task.custody, task.quantity]), states.map((task) => [task.sourceLot, task.custody, task.quantity]));
     let finished = false;
     for (let tick = 0; tick < 600; tick++) {
       session.step(0.25);

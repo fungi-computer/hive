@@ -261,6 +261,7 @@ export function planSiteSupplies(
             // it when applying a worker's DeliveryControl quantity.
             quantity,
             custody: "available",
+            ground: null,
           },
         },
       };

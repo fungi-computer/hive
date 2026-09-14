@@ -1029,6 +1029,7 @@ function planGroundStockDeliveries(ctx: WriteContext) {
           material: lot.kind,
           quantity: lot.quantity,
           custody: "available",
+            ground: null,
         },
       },
     }, party ? { kind: "party", party } : { kind: "host" });

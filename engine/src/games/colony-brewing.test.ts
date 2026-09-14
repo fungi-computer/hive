@@ -75,7 +75,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       const activeProcessWaterDemands = processWaterDemands.filter(order => session.query(query(WaterSupplyWork)).some(work => work.id === order.id && ["approaching", "submitting"].includes(work.get(WaterSupplyWork).phase)));
       assert(processWaterDemands.length <= 1, "one active process must have at most one water demand");
       const kettleWater = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === `${station.id}:kettle` && row.get(MaterialLot).kind === "water").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
-      const waterDelivery = session.query(query(DeliveryTask)).filter(row => { const task = row.get(DeliveryTask); return task.phase !== "complete" && task.destination === `${station.id}:kettle` && task.material === "water"; }).reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);
+      const waterDelivery = session.query(query(DeliveryTask)).filter(row => { const task = row.get(DeliveryTask); return task.custody !== "delivered" && task.destination === `${station.id}:kettle` && task.material === "water"; }).reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);
       assert(kettleWater + waterDelivery < 2 || activeProcessWaterDemands.length === 0, "sufficient staged and in-flight water must prevent another fetch from starting");
       if (processWaterDemands.length) sawProcessWaterDemand = true;
       const attending = state?.worker !== null;

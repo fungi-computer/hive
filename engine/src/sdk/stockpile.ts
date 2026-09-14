@@ -153,6 +153,7 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
       context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
         version: 2, party: owners.get(row.id) ?? owners.get(sourceContainer) ?? entity("host"), sourceLot: source.id, source: sourceContainer, destination: row.id,
         material: source.lot.kind, quantity, custody: "available",
+            ground: null,
       }}}, { kind: "host" });
       created.push(id);
       reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);

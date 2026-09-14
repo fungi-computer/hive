@@ -91,8 +91,8 @@ test("Colony ground stock schedules one ordinary pantry delivery and preserves e
   };
   colonyGroundStockPhase(context as never);
   assert.deepEqual(created, [{ id: `${pile}.delivery`, components: { [DeliveryTask.id]: {
-    actor: null, sourceLot: pile, source, destination: "colony.pantry",
-    material: "soil-spoil", quantity: 3, phase: "idle",
+    version: 2, party: entity("host"), sourceLot: pile, source, destination: "colony.pantry",
+    material: "soil-spoil", quantity: 3, custody: "available", ground: null,
   }}}]);
 });
 
@@ -101,8 +101,8 @@ test("Colony dig rejects the superseded worker-target input and accepts a design
     entities: [worker], target: { cell: [0, 12, 0], material: 0 },
   }));
   const task = row(entity("colony.delivery.1"), DeliveryTask, {
-    actor: worker, sourceLot: entity("colony.food.1"), source,
-    destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "idle",
+    version: 2, party: entity("host"), sourceLot: entity("colony.food.1"), source,
+    destination: entity("colony.guest.1"), material: "bread", quantity: 1, custody: "available", ground: null,
   });
   assert.doesNotThrow(() => colonyPack.commands!.dig.invoke(context({ tasks: [task] }), {
     area: { start: [0, 12, 0], end: [1, 12, 0] },
@@ -125,8 +125,8 @@ test("Colony cancelDig removes designated orders and cancels only their active w
     removes: [order.id],
   });
   const activeDelivery = row(entity("colony.delivery.1"), DeliveryTask, {
-    actor: worker, sourceLot: entity("colony.food.1"), source,
-    destination: entity("colony.guest.1"), material: "bread", quantity: 1, phase: "idle",
+    version: 2, party: entity("host"), sourceLot: entity("colony.food.1"), source,
+    destination: entity("colony.guest.1"), material: "bread", quantity: 1, custody: "available", ground: null,
   });
   assert.deepEqual(
     colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { entities: [worker] }),
@@ -157,8 +157,8 @@ test("Colony deposit rejects reserved cargo and aggregate pantry overflow", () =
     quantity: 1, kind: "soil-spoil", container: worker,
   });
   const claim = row(entity("colony.delivery.claimed"), DeliveryTask, {
-    actor: null, sourceLot: reserved.id, source: worker,
-    destination: entity("colony.guest.1"), material: "soil-spoil", quantity: 1, phase: "idle",
+    version: 2, party: entity("host"), sourceLot: reserved.id, source: worker,
+    destination: entity("colony.guest.1"), material: "soil-spoil", quantity: 1, custody: "available", ground: null,
   });
   assert.throws(
     () => colonyPack.commands!.deposit.invoke(context({ lots: [reserved], tasks: [claim] }), { entities: [worker] }),

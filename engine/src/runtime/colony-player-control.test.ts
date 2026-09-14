@@ -33,11 +33,11 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
       session.step(0.1);
       const carrying = session.query(query(DeliveryTask)).find((row) => {
         const task = row.get(DeliveryTask);
-        return task.actor === worker && task.phase === "to-destination";
+        return task.custody === "held";
       });
       if (carrying && session.query(query(MaterialLot)).some((row) => row.get(MaterialLot).container === worker)) {
         taskId = carrying.id;
-        otherTaskId = session.query(query(DeliveryTask)).find((row) => row.get(DeliveryTask).actor === other)?.id;
+        otherTaskId = session.query(query(DeliveryTask)).find((row) => row.id !== taskId)?.id;
         break;
       }
     }
@@ -64,8 +64,8 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
     const pose = port.worldPoses([worker])[0];
     assert(pose && Math.abs(pose.world.x - 2) < 1e-6 && Math.abs(pose.world.z) < 1e-6, "manual worker must remain at the requested position");
     assert.equal(session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === worker).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), manualCargo, "manual cargo quantity is conserved");
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).actor, worker, "manual delivery claim remains owned");
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === otherTaskId)?.get(DeliveryTask).phase, "complete", "other worker completes independent work");
+    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(MaterialLot).container, worker, "manual delivery claim remains owned");
+    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === otherTaskId)?.get(DeliveryTask).custody, "delivered", "other worker completes independent work");
 
     const saved = session.save();
     session.restore(saved);
@@ -77,7 +77,7 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
       if (session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).phase === "complete") break;
     }
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, true);
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).phase, "complete", "resume returns the claimed delivery to automatic completion");
+    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody, "delivered", "resume returns the claimed delivery to automatic completion");
   } finally {
     port.dispose();
   }
