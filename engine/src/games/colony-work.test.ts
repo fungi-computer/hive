@@ -37,7 +37,7 @@ function reconciliationContext(kind: "dig" | "tree", attempt: WorkAttempt | null
   let projectedAttempt = attempt;
   const context: any = {
     clock, query: (spec: any) => records.filter(record => spec.components.every((component: any) => record.get(component) !== undefined)),
-    workAttempts: () => projectedAttempt ? [projectedAttempt] : [],
+    workAttempts: (taskIds: readonly EntityId[]) => projectedAttempt && taskIds.includes(projectedAttempt.key.task) ? [projectedAttempt] : [],
     worldPoses: () => [{ id: worker, local: { x: 0, y: 1, z: 0, facing: 0 }, world: { x: 0, y: 1, z: 0, facing: 0 }, support: null, surface: null }],
     terrainMaterials: () => [2], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }),
     action: (action: ActionRequest) => { actions.push(action); if (action.kind === "acknowledge-work-attempt") projectedAttempt = null; }, write: (definition: unknown, entity: EntityId, value: unknown) => writes.push([definition, entity, value]),
@@ -54,6 +54,7 @@ function providerContext(order: unknown, site: unknown, lots: unknown[] = [], ou
   const worker = row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 1, y: 1, z: 1, facing: 0 }], [PartyMember, { party: id("party") }]]));
   const context: any = {
     clock, outcomes, writes,
+    workAttempts: () => [],
     query(spec: any) {
       if (spec.components.includes(Worker)) return [worker];
       if (spec.components.includes(PartyMember)) return [worker];
@@ -82,6 +83,7 @@ test("empty resource work does not ask native poses for an empty batch", () => {
   const context: any = {
     clock, outcomes: [],
     query: () => [],
+    workAttempts: () => [],
     workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
     worldPoses: () => { throw new Error("empty native pose query"); },
   };
