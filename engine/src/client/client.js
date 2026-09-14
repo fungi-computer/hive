@@ -207,6 +207,7 @@ export function createHiveClient({
     const next = setWorldViewLevel(state.view, level);
     if (next.level === state.view.level) return;
     state.view = next;
+    spriteSorter.invalidate(["view-level"]);
     gesture.send({ type: "CANCEL" });
     exitAim();
     state.dragging = null;
@@ -220,6 +221,7 @@ export function createHiveClient({
     terrainArea.send({ type: "CANCEL" });
     clearPlacement();
     state.view = toggleWorldCutaway(state.view, value);
+    spriteSorter.invalidate(["cutaway"]);
     gesture.send({ type: "CANCEL" });
     exitAim();
     state.dragging = null;
@@ -304,6 +306,7 @@ export function createHiveClient({
     state.invitationUrl = null;
     state.invitationCopied = false;
     state.subjects = [];
+    spriteSorter.invalidate();
     latestFacts = [];
     state.presentationFacts = [];
     localWhistle.update([]);
@@ -875,6 +878,7 @@ export function createHiveClient({
         textureSource: false,
       });
       actorCache.delete(id);
+      spriteSorter.invalidate([id]);
     }
     const sortableSprites = [];
     const orderedSubjects = [...state.subjects].sort((a, b) => a.id.localeCompare(b.id));
@@ -908,6 +912,7 @@ export function createHiveClient({
         entry.container.addChild(entry.sprite, entry.marker, entry.label, entry.progress);
         terrainLayer.container.addChild(entry.container);
         actorCache.set(subject.id, entry);
+        if (isStatic) spriteSorter.invalidate([subject.id]);
       }
       const animation = animationById.get(subject.id);
       entry.marker.visible = state.selectedIds.includes(subject.id);
@@ -963,6 +968,8 @@ export function createHiveClient({
         sortableSprites.push({
           id: subject.id,
           role: isStatic ? "structure" : "actor",
+          part: "body",
+          relationPolicy: isStatic ? "structure" : "actor",
           pickable: subject.pickable !== false,
           display: entry.container,
           moving: !isStatic,
@@ -1395,6 +1402,7 @@ export function createHiveClient({
       baseUrl: staticArtBase(import.meta.env?.BASE_URL ?? "/engine/"),
     });
     art = pack.art;
+    spriteSorter.invalidate(["art"]);
     state.disposeArt = pack.dispose;
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
@@ -1564,6 +1572,7 @@ export function createHiveClient({
           terrainFrame = event.terrain;
           const terrainChanged = terrainFrame && (newEpoch || !previousTerrain || previousTerrain.revision !== terrainFrame.revision);
           if (terrainChanged) {
+            spriteSorter.invalidate(["terrain"]);
             const publishedById = new Map(event.facts.map((fact) => [fact.id, fact]));
             const actor = state.selectedIds.map((id) => publishedById.get(id)).find((fact) => fact?.pose?.position)
               ?? activeSelectionShortcuts.map(({ id }) => publishedById.get(id)).find((fact) => fact?.pose?.position);
