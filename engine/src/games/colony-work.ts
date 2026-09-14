@@ -9,6 +9,7 @@ import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
   createWorkSystem,
+  shouldRetryWorkTask,
   type PreparedWorkProvider,
 } from "../sdk/work-system";
 import {
@@ -73,7 +74,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
     if (nativeAttempts.has(row.id)) continue;
     const state = row.get(ColonyResourceOrder), site = nativeSites.get(state.site), definition = nativeDefinitions.get(state.definition), party = nativeOwners.get(row.id);
     const stage = site && definition ? (site.stage >= definition.stages.length ? "harvest" : "tend") : "sow";
-    const retryBlocked = state.status === "blocked" && ctx.clock.tick % 8 === 0;
+    const retryBlocked = state.status === "blocked" && shouldRetryWorkTask(row.id, ctx.clock.tick);
     if (!definition || !party || (state.status !== "queued" && !retryBlocked)) continue;
     if (stage !== "sow" && !site) continue;
     if (stage !== "sow" && stage !== "harvest" && site!.nextDue > ctx.clock.now) continue;
@@ -251,7 +252,7 @@ export const treeWorkProvider = (
   const candidates: TreeCandidate[] = [];
   for (const row of trees) {
     const tree = row.get(ColonyTree), order = active.get(row.id), policy = policies.get(row.id), party = treeOwners.get(row.id), position = positions.get(row.id), pose = poses.get(row.id);
-    const retryBlocked = order?.state.phase === "blocked" && order.state.reason !== "Not designated" && ctx.clock.tick % 8 === 0;
+    const retryBlocked = order?.state.phase === "blocked" && order.state.reason !== "Not designated" && shouldRetryWorkTask(order.id, ctx.clock.tick);
     if (!order || !policy?.designated || !position || !pose || attempts.has(order.id) || (order.state.phase !== "queued" && !retryBlocked) || (order.state.stage === "fell" && tree.phase !== "standing") || (order.state.stage === "chop" && tree.phase !== "felled")) continue;
     const approaches = [
       { x: position.x + 1, y: position.y, z: position.z, frame: pose.support },

@@ -1,6 +1,6 @@
 import { component, query } from "../sdk/authoring";
 import { Body, Container, Destination, MaterialLot, Position, Support, Surface, exchangeFieldWater, move } from "../sdk/common";
-import type { PreparedWorkProvider } from "../sdk/work-system";
+import { shouldRetryWorkTask, type PreparedWorkProvider } from "../sdk/work-system";
 import type { EntityId, MoveDestination, WriteContext } from "../contracts";
 import { Worker } from "./colony-components";
 import { OwnedByParty, PartyMember } from "../sdk/party";
@@ -38,7 +38,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
   for (const row of nativeRows) {
     if (attempts.has(row.id)) continue;
     const state = row.get(WaterSupplyWork), party = owners.get(row.id), order = row.get(WaterSupplyOrder);
-    const retryBlocked = state.phase === "blocked" && ctx.clock.tick % 8 === 0;
+    const retryBlocked = state.phase === "blocked" && shouldRetryWorkTask(row.id, ctx.clock.tick);
     if ((state.phase !== "queued" && !retryBlocked) || order.revision !== state.request || !party || order.party !== party) continue;
     for (const worker of workers) {
       const vessel = pails.get(worker.id);

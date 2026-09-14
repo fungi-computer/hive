@@ -3,6 +3,25 @@ import { allocateWork, type WorkClaim } from "./work-allocation";
 import { WorkParticipation } from "./work-control";
 import type { AssignmentPair, AssignmentCandidate, EntityId, WriteContext } from "../contracts";
 
+export const WORK_RETRY_INTERVAL = 8;
+
+/**
+ * Return whether a blocked task is due for its deterministic retry slot.
+ * A task gets exactly one slot in every interval; the task id is the only
+ * source of staggering, so retries survive reloads and never consume random state.
+ */
+export function shouldRetryWorkTask(task: EntityId, tick: number, interval = WORK_RETRY_INTERVAL): boolean {
+  if (!Number.isInteger(interval) || interval <= 0) throw new Error("retry interval must be a positive integer");
+  const text = String(task);
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  const slot = (hash >>> 0) % interval;
+  return (((slot + tick) % interval) + interval) % interval === 0;
+}
+
 export type WorkCandidate = Pick<AssignmentCandidate, "worker" | "task">;
 type TaggedCandidate = WorkCandidate & { readonly providerIndex: number };
 type TaggedAssignment = AssignmentPair & { readonly providerIndex: number };
