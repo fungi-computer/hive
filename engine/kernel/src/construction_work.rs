@@ -484,7 +484,13 @@ impl Kernel {
                 else { return Err("construction work attempt is already owned".into()); }
             }
         }
-        if self.attempts_by_worker.contains_key(worker) { return Err("construction work attempt is already owned".into()); }
+        if let Some(existing_key) = self.attempts_by_worker.get(worker).cloned() {
+            let finished = self.entity(&existing_key.task).ok().and_then(|entity| self.ecs.get::<ConstructionSite>(entity)).is_some_and(|site| site.phase == ConstructionPhase::Finished);
+            if !finished { return Err("construction work attempt is already owned".into()); }
+            let sequence = self.work_attempts.get(&existing_key.task).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("finished construction attempt has no operation")?;
+            self.interrupt_work_attempt(existing_key.task.clone(), existing_key.generation, sequence, InterruptCause::Cancelled)?;
+            self.acknowledge_work_attempt(existing_key.task.clone(), existing_key.generation, sequence)?;
+        }
         let generation = self.next_work_generation;
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = crate::work_attempt::AttemptKey { task: site.into(), generation };

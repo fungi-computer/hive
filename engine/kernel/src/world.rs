@@ -487,11 +487,16 @@ mod construction_tests {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-1","contact":contact},
-            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1}
         ]});
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch.to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        let route = json!({"delta":0.0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"site-1","worker":"worker-1","party":"party","operation":{"kind":"route","destination":contact}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&route.to_string()).unwrap()).unwrap();
+        let generation = result["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        let continue_action = json!({"delta":0.0,"writes":[],"actions":[{"kind":"continue-work-attempt","task":"site-1","generation":generation,"sequence":1,"nextActivity":{"kind":"construction","site":"site-1","contact":contact,"mode":"work"}}]});
+        let continued: serde_json::Value = serde_json::from_str(&kernel.advance_json(&continue_action.to_string()).unwrap()).unwrap();
+        assert!(continued["results"][0]["accepted"] == true, "{continued}");
     }
 
     fn install_floor_alt_and_furniture(kernel: &mut Kernel) {
@@ -1040,10 +1045,9 @@ mod construction_tests {
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-1","contact":contact},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact},
             {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
-        assert_eq!(response["results"].as_array().unwrap().len(), 4);
+        assert_eq!(response["results"].as_array().unwrap().len(), 3);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let state = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
@@ -3785,7 +3789,10 @@ impl Kernel {
                 } else {
                     if let Some(key) = self.attempts_by_worker.get(&entity).cloned() {
                         let sequence = self.work_attempts.get(&key.task).and_then(|attempt| self.ecs.get::<WorkAttempt>(*attempt)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("worker attempt has no active operation")?;
-                        self.interrupt_work_attempt(key.task, key.generation, sequence, InterruptCause::Cancelled)?;
+                        self.interrupt_work_attempt(key.task.clone(), key.generation, sequence, InterruptCause::Cancelled)?;
+                        if let Some(replacement) = self.ecs.get::<FloorReplacement>(self.entity(&key.task)?).cloned() {
+                            self.ecs.entity_mut(self.entity(&key.task)?).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
+                        }
                     }
                 }
                 self.refresh_state_weight();
