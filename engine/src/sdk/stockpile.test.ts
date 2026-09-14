@@ -4,12 +4,14 @@ import { entity } from "./authoring";
 import { Container, FiniteResource, MaterialLot, Position } from "./common";
 import { DeliveryTask } from "./delivery";
 import { GroundStock } from "./ground-stock";
+import { OwnedByParty } from "./party";
 import { StockpileCell, planStockpileDeliveries } from "./stockpile";
 import type { EntityId, WriteContext } from "../contracts";
 
 type Row = { id: EntityId; values: Map<string, unknown> };
 type PlannerCell = { zone: EntityId; cell: readonly [number, number, number]; priority: number; filterProfile: string; capacity: number; verticalMetres: number };
-function plannerCellFixtures(specs: readonly PlannerCell[]) { return specs.map(spec => ({ id: `stockpile.${spec.zone.length}:${spec.zone}.${spec.cell.join(".")}` as EntityId, components: { [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filterProfile: spec.filterProfile }, [Container.id]: { capacity: spec.capacity }, [Position.id]: { x: spec.cell[0], y: (spec.cell[1] + 0.5) * spec.verticalMetres, z: spec.cell[2], facing: 0 } } })); }
+const stockpileParty = entity("party.stockpile");
+function plannerCellFixtures(specs: readonly PlannerCell[]) { return specs.map(spec => ({ id: `stockpile.${spec.zone.length}:${spec.zone}.${spec.cell.join(".")}` as EntityId, components: { [StockpileCell.id]: { zone: spec.zone, priority: spec.priority, filterProfile: spec.filterProfile }, [Container.id]: { capacity: spec.capacity }, [Position.id]: { x: spec.cell[0], y: (spec.cell[1] + 0.5) * spec.verticalMetres, z: spec.cell[2], facing: 0 }, [OwnedByParty.id]: { party: stockpileParty } } })); }
 const row = (id: EntityId, definition: { id: string }, value: unknown): Row => ({ id, values: new Map([[definition.id, value]]) });
 function fake(rows: Row[]) {
   const created: EntityId[] = [];
@@ -42,8 +44,8 @@ test("planner accepts lots in native finite-resource source containers", () => {
   const lot = entity("tree-wood");
   const rows = [
     row(destination.id, StockpileCell, destination.components[StockpileCell.id]),
-    row(destination.id, Container, { capacity: 6 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
-    row(tree, Container, { capacity: 6 }), row(tree, FiniteResource, { kind: "wood", quantity: 0 }),
+    row(destination.id, Container, { capacity: 6 }), row(destination.id, OwnedByParty, { party: stockpileParty }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    row(tree, Container, { capacity: 6 }), row(tree, OwnedByParty, { party: stockpileParty }), row(tree, FiniteResource, { kind: "wood", quantity: 0 }),
     row(lot, MaterialLot, { kind: "wood", quantity: 6, container: tree }),
   ];
   const state = fake(rows);
@@ -58,8 +60,8 @@ test("planner does not haul a non-exhausted finite source", () => {
   const destination = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 5, filterProfile: "wood", capacity: 6, verticalMetres: 0.54 }])[0];
   const tree = entity("standing-tree");
   const rows = [
-    row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 6 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
-    row(tree, Container, { capacity: 6 }), row(tree, FiniteResource, { kind: "wood", quantity: 6 }), row(entity("premature-wood"), MaterialLot, { kind: "wood", quantity: 1, container: tree }),
+    row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 6 }), row(destination.id, OwnedByParty, { party: stockpileParty }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    row(tree, Container, { capacity: 6 }), row(tree, OwnedByParty, { party: stockpileParty }), row(tree, FiniteResource, { kind: "wood", quantity: 6 }), row(entity("premature-wood"), MaterialLot, { kind: "wood", quantity: 1, container: tree }),
   ];
   assert.deepEqual(planStockpileDeliveries(fake(rows).context, { filterProfiles: { wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } }), []);
 });
@@ -72,8 +74,8 @@ test("planner claims one lot and cell, respects existing capacity and reloadable
   const records = plannerCellFixtures([{ zone, cell: [0, 3, 2], priority: 2, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 }]);
   const rows = [
     row(destination, StockpileCell, records[0].components[StockpileCell.id]),
-    row(destination, Container, { capacity: 3 }), row(destination, Position, { x: 0, y: 1.8900000000000001, z: 2, facing: 0 }),
-    row(source, GroundStock, {}), row(source, Container, { capacity: 4 }), row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source }),
+    row(destination, Container, { capacity: 3 }), row(destination, OwnedByParty, { party: stockpileParty }), row(destination, Position, { x: 0, y: 1.8900000000000001, z: 2, facing: 0 }),
+    row(source, GroundStock, {}), row(source, Container, { capacity: 4 }), row(source, OwnedByParty, { party: stockpileParty }), row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source }),
   ];
   const state = fake(rows);
   const profile = { filterProfiles: { wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } };
@@ -97,7 +99,7 @@ test("rehauled stock only moves to a strictly better cell, with capacity and cla
     row(source, GroundStock, {}), row(source, Container, { capacity: 5 }),
     row(lowerLot, MaterialLot, { kind: "wood", quantity: 2, container: low.id }),
     row(looseLot, MaterialLot, { kind: "wood", quantity: 1, container: source }),
-    row(entity("claimed"), DeliveryTask, { actor: null, sourceLot: looseLot, source, destination: equal.id, material: "wood", quantity: 1, phase: "carrying" }),
+    row(entity("claimed"), DeliveryTask, { version: 2, party: entity("party.stockpile"), sourceLot: looseLot, source, destination: equal.id, material: "wood", quantity: 1, custody: "available", ground: null }),
   ];
   const state = fake(rows);
   const result = planStockpileDeliveries(state.context, { filterProfiles: { materials: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } });
@@ -208,7 +210,7 @@ test("post-split stale stockpile reservation cannot overbook remaining source ma
     row(source, GroundStock, {}), row(source, Container, { capacity: 4 }),
     row(moved, MaterialLot, { kind: "wood", quantity: 2, container: worker }),
     row(remainder, MaterialLot, { kind: "wood", quantity: 2, container: source }),
-    row(entity("stale.stockpile.split"), DeliveryTask, { actor: worker, sourceLot: moved, source, destination: cells[0].id, material: "wood", quantity: 2, phase: "to-source" }),
+    row(entity("stale.stockpile.split"), DeliveryTask, { version: 2, party: entity("party.stockpile"), sourceLot: moved, source, destination: cells[0].id, material: "wood", quantity: 2, custody: "available", ground: null }),
   ];
   assert.deepEqual(planStockpileDeliveries(fake(rows).context, { filterProfiles: { materials: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } }), []);
 });

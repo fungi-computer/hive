@@ -161,13 +161,15 @@ test("rejects full, sealed, and actively claimed supply endpoints before creatin
         {
           id: entity("foreign.delivery"),
           value: {
-            actor: entity("worker"),
+            version: 2,
+            party: entity("party.supply"),
             sourceLot: entity("lot.claimed"),
             source,
             destination: claimed,
             material: "wood",
             quantity: 1,
-            phase: "carrying",
+            custody: "available",
+            ground: null,
           },
         },
       ],
@@ -205,7 +207,7 @@ test("cleans only its deposited completed task, then selects the next remaining 
   );
   const taskRow = rows.find((candidate) => candidate.id === taskId)!;
   const task = taskRow.values.get(DeliveryTask.id) as Record<string, unknown>;
-  task.phase = "complete";
+  task.custody = "delivered";
   const firstLot = rows.find((candidate) => candidate.id === first)!;
   (firstLot.values.get(MaterialLot.id) as Record<string, unknown>).container =
     destination;
@@ -234,7 +236,7 @@ test("cleans its completed receipt after construction consumes the deposited lot
     sourceContainers: [source],
   });
   const task = rows.find((candidate) => candidate.values.has(DeliveryTask.id))!;
-  (task.values.get(DeliveryTask.id) as Record<string, unknown>).phase = "complete";
+  (task.values.get(DeliveryTask.id) as Record<string, unknown>).custody = "delivered";
   rows.splice(rows.findIndex((candidate) => candidate.id === lot), 1);
   planSiteSupplies(state.fake, {
     requirements: [],
@@ -256,13 +258,15 @@ test("preserves a completed task owned by another delivery planner", () => {
       {
         id: foreignTask,
         value: {
-          actor: null,
+          version: 2,
+          party: entity("party.foreign"),
           sourceLot: lot,
           source,
           destination,
           material: "wood",
           quantity: 1,
-          phase: "complete",
+          custody: "delivered",
+          ground: null,
         },
       },
     ],
@@ -344,7 +348,9 @@ test("validates duplicate requirements and bounded injective task identities bef
   const longDestination = entity("d".repeat(120));
   const longState = context([
     row(source, Container, { capacity: 20 }),
+    row(source, OwnedByParty, { party: entity("party.supply") }),
     row(longDestination, Container, { capacity: 4 }),
+    row(longDestination, OwnedByParty, { party: entity("party.supply") }),
     row(entity("lot.validation.long"), MaterialLot, {
       quantity: 1,
       kind: "wood",
@@ -381,10 +387,12 @@ test("post-split stale reservations cap two destinations at remaining source mat
   const second = entity("supply.destination.split.b");
   const rows = [
     row(source, Container, { capacity: 10 }),
-    row(first, Container, { capacity: 4 }), row(second, Container, { capacity: 4 }),
+    row(source, OwnedByParty, { party: entity("party.supply") }),
+    row(first, Container, { capacity: 4 }), row(first, OwnedByParty, { party: entity("party.supply") }),
+    row(second, Container, { capacity: 4 }), row(second, OwnedByParty, { party: entity("party.supply") }),
     row(moved, MaterialLot, { quantity: 2, kind: "wood", container: entity("worker.split") }),
     row(remainder, MaterialLot, { quantity: 2, kind: "wood", container: source }),
-    row(entity("stale.split"), DeliveryTask, { actor: entity("worker.split"), sourceLot: moved, source, destination: first, material: "wood", quantity: 2, phase: "to-source" }),
+    row(entity("stale.split"), DeliveryTask, { version: 2, party: entity("party.supply"), sourceLot: moved, source, destination: first, material: "wood", quantity: 2, custody: "available", ground: null }),
   ];
   const state = context(rows);
   assert.deepEqual(planSiteSupplies(state.fake, { requirements: [requirement(first, 2), requirement(second, 2)], sourceContainers: [source], batchQuantity: 2 }), []);
