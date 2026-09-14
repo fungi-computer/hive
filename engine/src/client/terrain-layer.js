@@ -3,10 +3,7 @@ import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { renderBakeCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { createTerrainSceneCache, terrainBandScene, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
-import {
-  terrainChunkKey,
-  terrainFaceBounds,
-} from "../../../src/art/terrain-faces.js";
+import { terrainChunkKey, terrainFaceBounds, terrainColumnMap } from "../../../src/art/terrain-faces.js";
 import { project } from "./geometry.js";
 
 const WIDTH = 2304,
@@ -158,27 +155,24 @@ export function createTerrainLayer() {
     terrainCache.update(frame.surfaces, frame.verticalMetres);
     cachedVerticalMetres = frame.verticalMetres;
     canonicalCamera = artCamera(WIDTH, HEIGHT, 1.03, 256);
-    const rendered = renderBakeCanvas(
-      renderer,
-      terrainCache.scene,
-      canonicalCamera,
-      WIDTH,
-      HEIGHT,
-      { ink: false, releaseGeometry: false },
-    );
-    colorCanvas = rendered.canvas;
-    colorContext = colorCanvas.getContext("2d", { willReadFrequently: true });
-    colorTexture?.destroy(true);
-    colorTexture = Texture.from(colorCanvas);
-    colorTexture.source.scaleMode = "nearest";
+    for (const sprite of bandSprites) sprite.destroy();
+    bandSprites = [];
+    colorTexture = Texture.EMPTY;
     sortableItems = [];
     for (const level of [...new Set(terrainSurfaces.map(({ cell: [, y] }) => y))].sort((a, b) => a - b)) {
-      const baked = renderBakeCanvas(renderer, terrainBandScene(terrainSurfaces, level, { verticalMetres: frame.verticalMetres }), canonicalCamera, WIDTH, HEIGHT, { ink: false, releaseGeometry: true });
+      const selected = terrainSurfaces.filter(({ cell: [, y] }) => y === level);
+      const bounds = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
+      if (!bounds) continue;
+      const bandCamera = canonicalCamera.clone();
+      bandCamera.setViewOffset(WIDTH, HEIGHT, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+      const baked = renderBakeCanvas(renderer, terrainBandScene(terrainSurfaces, level, { verticalMetres: frame.verticalMetres }), bandCamera, bounds.right - bounds.left, bounds.bottom - bounds.top, { ink: false, releaseGeometry: true });
       const sprite = new Sprite(Texture.from(baked.canvas));
+      sprite.texture.source.scaleMode = "nearest";
       sprite.eventMode = "none";
       bandSprites.push(sprite);
       container.addChild(sprite);
-      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: terrainSurfaces.filter(({ cell: [, y] }) => y === level).map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: { left: 0, right: WIDTH, top: 0, bottom: HEIGHT }, storeyBand: level, pickable: false, visible: true });
+      sprite.__terrainBounds = bounds;
+      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true });
     }
   }
 
@@ -237,7 +231,6 @@ export function createTerrainLayer() {
       renderer ??= new WebGLRenderer({ alpha: true, antialias: false });
       const needsFull =
         !terrainCache ||
-        !colorTexture ||
         projectionKey !== nextProjectionKey ||
         cachedVerticalMetres !== frame.verticalMetres;
       if (needsFull) fullBake(frame);
@@ -278,17 +271,18 @@ export function createTerrainLayer() {
       screenTransform = terrainScreenTransform(camera);
       for (const sprite of bandSprites) {
         sprite.position.set(
-          camera.x + ((640 - WIDTH) / 2) * camera.zoom,
-          camera.y + ((400 - HEIGHT) / 2) * camera.zoom,
+          camera.x + ((640 - WIDTH) / 2 + (sprite.__terrainBounds?.left ?? 0)) * camera.zoom,
+          camera.y + ((400 - HEIGHT) / 2 + (sprite.__terrainBounds?.top ?? 0)) * camera.zoom,
         );
         sprite.scale.set(camera.zoom);
       }
       for (const terrain of sortableItems.filter((item) => item.id.startsWith("terrain:"))) {
+        const bounds = terrain.display.__terrainBounds;
         terrain.screenBounds = {
-        left: camera.x + ((640 - WIDTH) / 2) * camera.zoom,
-        right: camera.x + ((640 - WIDTH) / 2 + WIDTH) * camera.zoom,
-        top: camera.y + ((400 - HEIGHT) / 2) * camera.zoom,
-        bottom: camera.y + ((400 - HEIGHT) / 2 + HEIGHT) * camera.zoom,
+          left: camera.x + ((640 - WIDTH) / 2 + bounds.left) * camera.zoom,
+          right: camera.x + ((640 - WIDTH) / 2 + bounds.right) * camera.zoom,
+          top: camera.y + ((400 - HEIGHT) / 2 + bounds.top) * camera.zoom,
+          bottom: camera.y + ((400 - HEIGHT) / 2 + bounds.bottom) * camera.zoom,
         };
       }
       for (const item of sortableItems) if (!item.id.startsWith("terrain:")) {
