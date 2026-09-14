@@ -308,7 +308,7 @@ export class GameSession {
       const contacts = this.port.physicalContacts([[sx, sy, sz], [sx, sy + 1, sz]]);
       const support = contacts[0];
       const standing = contacts[1];
-      if (support?.solid && !support.sealedTop && support.outside && standing && !standing.solid && !standing.sealedTop && standing.outside)
+      if (support?.solid && !support.sealedTop && standing && !standing.solid && !standing.sealedTop)
         return { x, y: surface.cell[1], z };
     }
     return null;
