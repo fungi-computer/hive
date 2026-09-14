@@ -370,13 +370,14 @@ export const colonyPack: GamePack = {
     updateStockpile: colonyStockpilePolicyCommand,
     requestWater: command({
       title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
-      input: emptyInput, reads: [WaterSupplyOrder], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork],
+      input: emptyInput, reads: [WaterSupplyOrder, OwnedByParty], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork, OwnedByParty],
       run(context) {
         const orders = context.query(query(WaterSupplyOrder));
         if (orders.length >= 256) throw new Error("water demand capacity exhausted");
         const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
         const id = entity(`colony.water-demand.${revision}`);
         return { actions: [], writes: [], creates: [{ id, components: {
+          ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}),
           [WaterSupplyOrder.id]: { revision, process: null },
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };

@@ -208,7 +208,9 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     // A multi-portion requirement therefore cannot reuse the first fetch's
     // accepted operation receipt for a later portion.
     const id = entity(`colony.water-process.${row.id}.${quantity + inFlight}`);
+    const owner = ctx.query(query(OwnedByParty)).find(candidate => candidate.id === row.id)?.get(OwnedByParty);
     ctx.createAuthoredEntity({ id, components: {
+      ...(owner ? { [OwnedByParty.id]: owner } : {}),
       [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
       [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
     } });
