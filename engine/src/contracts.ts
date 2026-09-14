@@ -300,9 +300,9 @@ export interface ActionOutcome {
 }
 export type WorkActivityRef =
   | { readonly kind: "route"; readonly destination: MoveDestination }
-  | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" }
+  | { readonly kind: "construction"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null }; readonly mode: "bind" | "work" }
   | { readonly kind: "excavation"; readonly cell: readonly [number, number, number]; readonly expectedMaterial: number; readonly replacementMaterial: number }
-  | { readonly kind: "deconstruction"; readonly site: EntityId; readonly contact: ConstructionAccessContact }
+  | { readonly kind: "deconstruction"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
   | { readonly kind: "process-attendance"; readonly process: EntityId }
   | { readonly kind: "material-transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly quantity: number }
   | { readonly kind: "material-drop"; readonly lot: EntityId }

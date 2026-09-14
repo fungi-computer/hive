@@ -49,8 +49,8 @@ function validateOptions(options: ConstructionWorkOptions): void {
     if (typeof worker !== "string")
       throw new Error("invalid construction worker");
 }
-function target(contact: ConstructionAccessContact): ConstructionAccessContact {
-  return contact;
+function target(contact: ConstructionAccessContact): MoveDestination {
+  return { x: contact.x, y: contact.y, z: contact.z, frame: contact.frame };
 }
 function exactContact(a: MoveDestination, b: MoveDestination): boolean {
   return a.x === b.x && a.y === b.y && a.z === b.z && a.frame === b.frame;

@@ -267,12 +267,12 @@ export function deliveryProvider(
   const occupied = new Set(
     ctx.query(query(ExcavationWork)).map((row) => row.id),
   );
-  const poseIds = [
-    ...new Set([
-      ...positions.keys(),
-      ...tasks.flatMap(({ state }) => [state.source, state.destination]),
-    ]),
-  ];
+  // Native pose batches are all-or-nothing. Unbound construction sites and
+  // other not-yet-placed containers intentionally have no position, so only
+  // ask for entities with the canonical Position capability. A delivery to an
+  // unbound destination remains in ordinary available custody until the
+  // construction owner publishes its contact.
+  const poseIds = [...positions.keys()];
   const poses = new Map(ctx.worldPoses(poseIds).map((pose) => [pose.id, pose]));
   const positionForContainer = (container: EntityId): WorldPose | undefined => {
     let current = container;

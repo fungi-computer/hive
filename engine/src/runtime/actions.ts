@@ -37,21 +37,17 @@ const destination = (value: unknown): boolean =>
   record(value) && exactKeys(value, ["x", "y", "z", "frame"]) &&
   coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
   (value.frame === null || id(value.frame));
-const constructionContact = (value: unknown): boolean =>
-  record(value) && exactKeys(value, ["x", "y", "z", "frame", "kind"]) &&
-  value.frame === null && coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
-  (value.kind === "origin" || value.kind === "landing");
 const activity = (value: unknown): boolean => {
   if (!record(value)) return false;
   switch (value.kind) {
     case "route":
       return exactKeys(value, ["kind", "destination"]) && destination(value.destination);
     case "construction":
-      return exactKeys(value, ["kind", "site", "contact", "mode"]) && id(value.site) && constructionContact(value.contact) && (value.mode === "bind" || value.mode === "work");
+      return exactKeys(value, ["kind", "site", "contact", "mode"]) && id(value.site) && terrainContact(value.contact) && (value.mode === "bind" || value.mode === "work");
     case "excavation":
       return exactKeys(value, ["kind", "cell", "expectedMaterial", "replacementMaterial"]) && cell(value.cell) && [value.expectedMaterial, value.replacementMaterial].every(Number.isSafeInteger);
     case "deconstruction":
-      return exactKeys(value, ["kind", "site", "contact"]) && id(value.site) && constructionContact(value.contact);
+      return exactKeys(value, ["kind", "site", "contact"]) && id(value.site) && terrainContact(value.contact);
     case "process-attendance":
       return exactKeys(value, ["kind", "process"]) && id(value.process);
     case "material-transfer":

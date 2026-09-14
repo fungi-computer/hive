@@ -178,7 +178,7 @@ export function continueConstructionWorkAttempt(
     task: exact.task,
     generation: exact.generation,
     sequence: operation,
-    nextActivity: { kind: "construction", site, contact, mode },
+    nextActivity: { kind: "construction", site, contact: { x: contact.x, y: contact.y, z: contact.z, frame: null }, mode },
   });
 }
 
@@ -194,7 +194,7 @@ export function continueDeconstructionWorkAttempt(
   if (![contact.x, contact.y, contact.z].every(Number.isFinite)) throw new Error("deconstruction contact must be finite");
   const current = workAttempt(context, exact.task);
   if (!current || current.key.generation !== exact.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
-  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "deconstruction", site, contact } });
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "deconstruction", site, contact: { x: contact.x, y: contact.y, z: contact.z, frame: null } } });
 }
 
 function requireCompleted(context: Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operation: number): void {

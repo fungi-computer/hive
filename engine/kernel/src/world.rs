@@ -4253,6 +4253,17 @@ impl Kernel {
         let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
         let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
         if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
+        if let crate::work_attempt::ActivityRef::Route { destination } = next_activity.clone() {
+            let worker = self.entity(&current.worker)?;
+            let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
+            self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
+            let route = self.route_for(worker, position, &destination)?;
+            self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+            self.install_route(worker, route);
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            return Ok(());
+        }
         if let crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } = next_activity.clone() {
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
             let destination = self.entity(&to)?;
@@ -4634,7 +4645,11 @@ impl Kernel {
             Action::DesignateStockpile { zone, .. } | Action::UpdateStockpile { zone, .. } => targets.push(zone.as_str()),
             Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
             Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
-            Action::PlanConstruction { site, party: action_party, .. } => { if action_party != party { return Err("scoped action party mismatch".into()); } targets.push(site.as_str()); }
+            Action::PlanConstruction { party: action_party, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+                // Planning creates the site identity atomically, so it cannot
+                // be required to exist during scope validation.
+            }
             Action::ReplaceFloor { order_id, existing_floor_id, .. } => { targets.push(order_id.as_str()); targets.push(existing_floor_id.as_str()); }
             Action::BindConstructionStage { site, .. } => targets.push(site.as_str()),
             Action::BeginEmission { worker, station } => { targets.push(worker.as_str()); targets.push(station.as_str()); }

@@ -56,7 +56,7 @@ test("attempt batches skip empty native queries and preserve the native bound", 
 });
 
 test("the action boundary accepts every closed work activity and rejects additions", () => {
-  const contact = { x: 1, y: 0, z: 2, frame: null, kind: "origin" as const };
+  const contact = { x: 1, y: 0, z: 2, frame: null };
   const activities = [
     { kind: "route" as const, destination: { x: 1, y: 0, z: 2, frame: null } },
     { kind: "construction" as const, site: task, contact, mode: "work" as const },
