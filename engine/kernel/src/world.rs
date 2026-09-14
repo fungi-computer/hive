@@ -3764,6 +3764,13 @@ impl Kernel {
         let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
         let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
         if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
+        if let crate::work_attempt::ActivityRef::DeliveryTransfer { lot, from, to, quantity } = next_activity.clone() {
+            if from != current.worker { return Err("delivery transfer source is not attempt worker".into()); }
+            self.transfer(&lot, &from, &to, quantity)?;
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
         let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };
         if site != task { return Err("construction continuation task mismatch".into()); }
         let site_entity = self.entity(&site)?;

@@ -30,6 +30,19 @@ function replacementLot(lots: readonly DeliveryLot[], source: EntityId, material
 
 export type DeliveryPhase =
   "idle" | "to-source" | "carrying" | "to-destination" | "putting-down" | "complete";
+export type DeliveryCustody =
+  | { readonly kind: "source" }
+  | { readonly kind: "held"; readonly lot: EntityId }
+  | { readonly kind: "delivered" }
+  | { readonly kind: "dropped"; readonly lot: EntityId; readonly groundContainer: EntityId };
+export function deliveryCustody(value: unknown): DeliveryCustody {
+  if (!value || typeof value !== "object" || typeof (value as any).kind !== "string") throw new Error("invalid delivery custody");
+  const state = value as any;
+  if (state.kind === "source" || state.kind === "delivered") return { kind: state.kind };
+  if (state.kind === "held" && typeof state.lot === "string") return { kind: "held", lot: state.lot };
+  if (state.kind === "dropped" && typeof state.lot === "string" && typeof state.groundContainer === "string") return { kind: "dropped", lot: state.lot, groundContainer: state.groundContainer };
+  throw new Error("invalid delivery custody");
+}
 export const DeliveryControl = component<{
   enabled: boolean;
   quantity: number;

@@ -5,6 +5,7 @@ import type {
   ReadContext,
   WorkAttempt,
   WorkAttemptKey,
+  ConstructionAccessContact,
   WorkInterruptCause,
   WriteContext,
 } from "../contracts";
@@ -109,7 +110,7 @@ export function continueConstructionWorkAttempt(
   attempt: WorkAttemptKey,
   operationSequence: number,
   site: EntityId,
-  contact: MoveDestination,
+  contact: ConstructionAccessContact,
   mode: "bind" | "work",
 ): void {
   const exact = key(attempt);
@@ -133,4 +134,22 @@ export function continueConstructionWorkAttempt(
     sequence: operation,
     nextActivity: { kind: "construction", site, contact, mode },
   });
+}
+
+/** Continue a delivered lot through the native transfer owner. */
+export function continueDeliveryTransferAttempt(
+  context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
+  attempt: WorkAttemptKey,
+  operationSequence: number,
+  lot: EntityId,
+  from: EntityId,
+  to: EntityId,
+  quantity: number,
+): void {
+  const exact = key(attempt), operation = sequence(operationSequence);
+  entity(lot); entity(from); entity(to);
+  if (!Number.isSafeInteger(quantity) || quantity <= 0) throw new Error("delivery quantity must be positive");
+  const current = workAttempt(context, exact.task);
+  if (!current || current.key.generation !== exact.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "delivery-transfer", lot, from, to, quantity } });
 }

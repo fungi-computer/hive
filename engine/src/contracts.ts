@@ -305,7 +305,7 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
-export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination } | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" };
+export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination } | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" } | { readonly kind: "delivery-transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly quantity: number };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }

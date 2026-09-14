@@ -37,6 +37,8 @@ pub enum AttemptPhase {
 pub enum ActivityRef {
     Route { destination: Point },
     Construction { site: String, contact: Point, mode: ConstructionMode },
+    #[serde(rename = "delivery-transfer")]
+    DeliveryTransfer { lot: String, from: String, to: String, quantity: u32 },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
