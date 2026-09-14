@@ -6,6 +6,7 @@ import {
   DeliveryControl,
   DeliveryTask,
   decodeDeliveryObligation,
+  decodeDeliveryTask,
   deliveryProvider,
   type DeliveryTaskValue,
 } from "./delivery";
@@ -429,6 +430,45 @@ test("manual control removes a worker from automatic delivery without changing t
   const f = fixture();
   assert.equal(f.prepare(new Set([f.worker])).candidates.length, 0);
   assert.equal(f.state.custody, "available");
+});
+
+test("Draft after a completed route retains the outcome and launches no delivery operation", () => {
+  const f = fixture();
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.deepEqual(f.actions, []);
+  assert.deepEqual(f.writes, []);
+  assert.equal(f.state.custody, "available");
+});
+
+test("Draft after committed pickup acknowledges once and retains held lot custody", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.state.custody, "held");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+});
+
+test("Draft after committed deposit reconciles delivered custody without duplicate quantity", () => {
+  const f = fixture({ lotContainer: entity("delivery.destination") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.worker, f.destination), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.state.custody, "delivered");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+});
+
+test("reconciled delivery task custody survives current-format save and reload", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  const restored = decodeDeliveryTask(JSON.parse(JSON.stringify(f.state)));
+  assert.equal(restored.custody, "held");
+  assert.equal(restored.sourceLot, f.lot);
+  assert.equal(restored.quantity, 1);
 });
 
 test("a move interruption leaves source custody and does not fabricate a transfer", () => {
