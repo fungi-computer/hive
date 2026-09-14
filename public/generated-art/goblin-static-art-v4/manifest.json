@@ -1063,6 +1063,7 @@
         "maxY": 0.3275000000745058,
         "maxZ": 1.4399999976158142
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [0, 1]], "rotationPivot": [0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -1271,6 +1272,7 @@
         "maxY": 0.3275000000745058,
         "maxZ": 0.40500000119209323
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [0, 1]], "rotationPivot": [0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -1479,6 +1481,7 @@
         "maxY": 0.18500000074505807,
         "maxZ": 1.4399999976158142
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [0, 1]], "rotationPivot": [0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -1681,6 +1684,7 @@
         "maxY": 0.18500000074505807,
         "maxZ": 0.40500000119209323
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [0, 1]], "rotationPivot": [0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -1883,6 +1887,7 @@
         "maxY": 0.10999999970197677,
         "maxZ": 1.4399999976158142
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [0, 1]], "rotationPivot": [0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -2083,6 +2088,7 @@
         "maxY": 0.10999999970197677,
         "maxZ": 0.40500000119209323
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [0, 1]], "rotationPivot": [0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -2283,6 +2289,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -2527,6 +2534,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -2787,6 +2795,7 @@
         "maxY": 0.8400000001490117,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -3025,6 +3034,7 @@
         "maxY": 0.8400000001490117,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -3265,6 +3275,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -3511,6 +3522,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -3773,6 +3785,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -4019,6 +4032,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -4281,6 +4295,7 @@
         "maxY": 1.9595966555637783,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -4545,6 +4560,7 @@
         "maxY": 2.0350567015442746,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -4811,6 +4827,7 @@
         "maxY": 2.1061793979774643,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -5077,6 +5094,7 @@
         "maxY": 1.9853622696589628,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -5343,6 +5361,7 @@
         "maxY": 2.059133333333333,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -5611,6 +5630,7 @@
         "maxY": 2.1293419591292317,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -5879,6 +5899,7 @@
         "maxY": 2.0104925973595305,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -6141,6 +6162,7 @@
         "maxY": 2.082809584634686,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -6409,6 +6431,7 @@
         "maxY": 1.9595966555637783,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -6685,6 +6708,7 @@
         "maxY": 2.0350567015442746,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -6965,6 +6989,7 @@
         "maxY": 2.1061793979774643,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -7245,6 +7270,7 @@
         "maxY": 1.9853622696589628,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -7521,6 +7547,7 @@
         "maxY": 2.059133333333333,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -7805,6 +7832,7 @@
         "maxY": 2.1293419591292317,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -8089,6 +8117,7 @@
         "maxY": 2.0104925973595305,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -8367,6 +8396,7 @@
         "maxY": 2.082809584634686,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -8649,6 +8679,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -8895,6 +8926,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -9157,6 +9189,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -9403,6 +9436,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -9665,6 +9699,7 @@
         "maxY": 1.8518754647091016,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -9911,6 +9946,7 @@
         "maxY": 1.853914106850612,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -10157,6 +10193,7 @@
         "maxY": 1.8529556402623926,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -10403,6 +10440,7 @@
         "maxY": 1.84949501721646,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -10649,6 +10687,7 @@
         "maxY": 1.8453752943061366,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -10895,6 +10934,7 @@
         "maxY": 1.8439897726660033,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -11143,6 +11183,7 @@
         "maxY": 1.8477525980968825,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -11389,6 +11430,7 @@
         "maxY": 1.8487137541979886,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -11637,6 +11679,7 @@
         "maxY": 1.8518754647091016,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -11901,6 +11944,7 @@
         "maxY": 1.853914106850612,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -12163,6 +12207,7 @@
         "maxY": 1.8529556402623926,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -12423,6 +12468,7 @@
         "maxY": 1.84949501721646,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -12681,6 +12727,7 @@
         "maxY": 1.8453752943061366,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -12939,6 +12986,7 @@
         "maxY": 1.8439897726660033,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -13199,6 +13247,7 @@
         "maxY": 1.8477525980968825,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -13461,6 +13510,7 @@
         "maxY": 1.8487137541979886,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -13723,6 +13773,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -13969,6 +14020,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -14231,6 +14283,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -14477,6 +14530,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -14739,6 +14793,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -14985,6 +15040,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -15247,6 +15303,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -15493,6 +15550,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -15755,6 +15813,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -16001,6 +16060,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -16263,6 +16323,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -16509,6 +16570,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -16771,6 +16833,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -17017,6 +17080,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.2099999785423279
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -17279,6 +17343,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -17525,6 +17590,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -17787,6 +17853,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.490000010728836
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -18033,6 +18100,7 @@
         "maxY": 1.8633601164066258,
         "maxZ": 1.347199993133545
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -18293,6 +18361,7 @@
         "maxY": 0.27899999994039537,
         "maxZ": 1.4334999987483026
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -18609,6 +18678,7 @@
         "maxY": 0.27899999994039537,
         "maxZ": 1.4334999987483026
       },
+      "placement": { "kind": "footprint", "bakedFootprint": [[0, 0], [1, 0], [0, 1], [1, 1]], "rotationPivot": [0.5, 0.5] },
       "silhouette": {
         "rows": [
           0,
@@ -25149,6 +25219,7 @@
         "maxY": 2.82250000089407,
         "maxZ": 2.460000004172325
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -25615,6 +25686,7 @@
         "maxY": 2.82250000089407,
         "maxZ": 0.489999998658896
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -26081,6 +26153,7 @@
         "maxY": 2.82250000089407,
         "maxZ": 0.4600000041723252
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -26587,6 +26660,7 @@
         "maxY": 2.82250000089407,
         "maxZ": 0.4899999986588955
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -27089,6 +27163,7 @@
         "maxY": 2.1600000429153443,
         "maxZ": 2.2599999986588957
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -27469,6 +27544,7 @@
         "maxY": 2.1600000429153443,
         "maxZ": 0.489999998658896
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -27849,6 +27925,7 @@
         "maxY": 2.1600000429153443,
         "maxZ": 1.9992207667129946e-8
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -28325,6 +28402,7 @@
         "maxY": 2.1600000429153443,
         "maxZ": 0.4899999986588955
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -28801,6 +28879,7 @@
         "maxY": 0.28000000059604646,
         "maxZ": 2.037500001490116
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -29089,6 +29168,7 @@
         "maxY": 0.28000000059604646,
         "maxZ": 0.46750000149011656
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -29377,6 +29457,7 @@
         "maxY": 0.28000000059604646,
         "maxZ": 0.03750000149011618
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -29665,6 +29746,7 @@
         "maxY": 0.28000000059604646,
         "maxZ": 0.4675000014901161
       },
+      "placement": { "kind": "stair", "entrance": [0, 0, 0], "landing": [0, 2.16, 2], "rotationPivot": [0, 0, 0] },
       "silhouette": {
         "rows": [
           0,
@@ -384042,7 +384124,7 @@
       },
       {
         "path": "src/art.js",
-        "sha256": "ba8e9d29edd2531bece5154da609a6b0e39a56095dd0332df0f875a25a55843c"
+        "sha256": "beb0f5af93551fbb6c12df31b367e9d292a5710c46cd68f083bf14801261ab3e"
       },
       {
         "path": "src/art/bake.js",
@@ -384102,7 +384184,7 @@
       },
       {
         "path": "src/art/home.js",
-        "sha256": "216332a0a6ea799802ed1203a394afc8f814e7a40b98b2ea6e44d11a5a1d78e2"
+        "sha256": "6506928a22ba0e72f85dc48a9eb87882743a5f39a94d2dea4a2eba1a40dc9eb3"
       },
       {
         "path": "src/art/mixed-shelf.js",
@@ -384150,7 +384232,7 @@
       },
       {
         "path": "src/art/static-authoring.js",
-        "sha256": "83542f226c9da527c9e1a77905bdfadadfe70fe1862862cb462be0684fb418cc"
+        "sha256": "ff573bb258a35fcb88757ad4ace64afd7e6916f12dfad55d6eeda700ac91e448"
       },
       {
         "path": "src/art/static-batch.js",
@@ -384162,15 +384244,15 @@
       },
       {
         "path": "src/art/static-manifest.js",
-        "sha256": "d21e9a1192bbec21de0681911345bb1ec0cf12aabc61081ceec7ed7d39fafdf4"
+        "sha256": "bdd51c6cb4a62da67d88bb905b1e06777c5dc21d9191b85c436d4ce7723e2e7f"
       },
       {
         "path": "src/art/static-manifest.test.js",
-        "sha256": "24f095f1ae7fb5e38723875cc43ff63ae0110ecbb5d6c0e7f0e543d29f69aac3"
+        "sha256": "2a5dc06752628aa59e85c151b8af9cacb2f1caa74dacd9efd61f33f089bbb65b"
       },
       {
         "path": "src/art/static-pack.js",
-        "sha256": "a749d81a846c1f6abe534fdbe8cc5f8614b637c37274e6aec8363d3329788d47"
+        "sha256": "f863c6e083f51642fce0ccf7761b726c7beab5c43265e6d6617fe416d96cacc7"
       },
       {
         "path": "src/art/stone.js",

@@ -171,6 +171,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         depth: { x: at.x, y: at.y, width: canvas.width, height: canvas.height },
         depthRange: depthBake.depthRange,
         visualBounds: depthBake.visualBounds,
+        ...(depthBake.placement ? { placement: depthBake.placement } : {}),
         silhouette: serializedSilhouette(
           item.texture,
           canvas.width,

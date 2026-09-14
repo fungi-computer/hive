@@ -128,6 +128,26 @@ test("static art manifest admits detached finite frames and CPU silhouettes", ()
   assert(Object.isFrozen(parsed));
 });
 
+test("opaque retained structure entries require checked datum metadata", () => {
+  const valid = manifest();
+  valid.entries[0].path = ["buildings", "bed", "finished", 0];
+  valid.entries[0].placement = {
+    kind: "footprint",
+    bakedFootprint: [[0, 0], [0, 1]],
+    rotationPivot: [0, 0],
+  };
+  assert.equal(parseStaticArtManifest(valid).entries[0].placement.kind, "footprint");
+  const missing = manifest();
+  missing.entries[0].path = ["buildings", "bed", "finished", 0];
+  assert.throws(() => parseStaticArtManifest(missing), /unexpected-fields/);
+  const malformed = manifest();
+  malformed.entries[0].path = ["buildings", "stair", "finished", 0];
+  malformed.entries[0].placement = {
+    kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16], rotationPivot: [0, 0, 0],
+  };
+  assert.throws(() => parseStaticArtManifest(malformed), /array-size/);
+});
+
 test("static art manifest rejects the superseded bank format", () => {
   const input = manifest();
   input.schema = "goblin-static-art-v1";
