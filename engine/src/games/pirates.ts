@@ -105,14 +105,13 @@ const piratesInitial = [
     id: breadTaskId,
     components: {
       "hive.delivery-task": {
-        actor: null,
+        version: 2, party: entity("pirate-party"),
         sourceLot: breadId,
         source: chestId,
         destination: holdId,
-        destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
         material: "bread",
         quantity: 1,
-        phase: "idle",
+        custody: "available",
       },
     },
   },
@@ -120,14 +119,13 @@ const piratesInitial = [
     id: woodTaskId,
     components: {
       "hive.delivery-task": {
-        actor: null,
+        version: 2, party: entity("pirate-party"),
         sourceLot: woodId,
         source: chestId,
         destination: holdId,
-        destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
         material: "wood",
         quantity: 1,
-        phase: "idle",
+        custody: "available",
       },
     },
   },

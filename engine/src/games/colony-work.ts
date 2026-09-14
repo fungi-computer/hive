@@ -203,7 +203,7 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     const quantity = lots.filter(lot => lot.container === destination && lot.kind === "water" && lot.quantity > 0)
       .reduce((sum, lot) => sum + lot.quantity, 0);
     const inFlight = deliveries.filter(task =>
-      task.phase !== "complete" && task.destination === destination && task.material === "water"
+      task.custody !== "delivered" && task.destination === destination && task.material === "water"
     ).reduce((sum, task) => sum + task.quantity, 0);
     const existing = ordersByProcess.get(row.id) ?? [];
     if (quantity + inFlight >= water.quantity) {
@@ -835,10 +835,7 @@ function digProvider(
   const deliveries = ctx
     .query(query(DeliveryTask))
     .map((row) => row.get(DeliveryTask));
-  const occupied = new Set<EntityId>([
-    ...excavating,
-    ...deliveries.flatMap((task) => (task.actor ? [task.actor] : [])),
-  ]);
+  const occupied = new Set<EntityId>(excavating);
   const claims = orders.map((row) => ({
     task: row.id,
     actor: row.get(ColonyDigOrder).actor,
@@ -1024,14 +1021,14 @@ function planGroundStockDeliveries(ctx: WriteContext) {
       id: taskId,
       components: {
         [DeliveryTask.id]: {
-          actor: null,
+          version: 2,
+          party: party ?? entity("host"),
           sourceLot: row.id,
           source,
           destination: pantry,
-          destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
           material: lot.kind,
           quantity: lot.quantity,
-          phase: "idle",
+          custody: "available",
         },
       },
     }, party ? { kind: "party", party } : { kind: "host" });
@@ -1046,7 +1043,7 @@ export function colonyGroundStockPhase(ctx: WriteContext) {
   );
   for (const row of ctx.query(query(DeliveryTask))) {
     const task = row.get(DeliveryTask);
-    if (task.phase === "complete" && stockContainers.has(task.source))
+    if ((task.custody === "delivered" || task.custody === "dropped") && stockContainers.has(task.source))
       ctx.removeAuthoredEntity(row.id);
   }
   planGroundStockDeliveries(ctx);

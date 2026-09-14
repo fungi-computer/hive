@@ -161,7 +161,7 @@ export function planSiteSupplies(
   const removals: EntityId[] = [];
   for (const row of tasks) {
     const task = row.get(DeliveryTask);
-    if (task.phase === "complete") {
+    if (task.custody === "delivered") {
       // Delivery already observed the committed deposit before it published
       // complete. Construction may consume that lot in the following phase,
       // so this planner must retire its receipt without requiring the lot to
@@ -175,7 +175,7 @@ export function planSiteSupplies(
       !entity(task.destination) ||
       !validMaterial(task.material) ||
       !validQuantity(task.quantity) ||
-      typeof task.phase !== "string"
+      typeof task.custody !== "string" || !entity(task.party)
     )
       throw new Error("invalid active site supply task");
     addChecked(reservedByLot, task.sourceLot, task.quantity);
@@ -251,20 +251,16 @@ export function planSiteSupplies(
         id,
         components: {
           [DeliveryTask.id]: {
-            actor: null,
+            version: 2,
+            party: destinationParty,
             sourceLot: source.id,
             source: source.lot.container,
             destination: requirement.destination,
-            destinationContactX: 0,
-            destinationContactY: 0,
-            destinationContactZ: 0,
-            destinationContactFrame: null,
-            destinationContactSet: false,
             material: requirement.material,
             // This is a finite planning cap. The delivery provider must preserve
             // it when applying a worker's DeliveryControl quantity.
             quantity,
-            phase: "idle",
+            custody: "available",
           },
         },
       };

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ActivityBinding, DeliveryActivityPhase, ReadContext, RenderFact } from "../contracts";
+import type { ActivityBinding, DeliveryActivityPhase, ReadContext, RenderFact, WorkActivityRef } from "../contracts";
 import { query } from "../sdk/authoring";
 import { ExcavationWork, Position } from "../sdk/common";
 import { ConstructionSite } from "../sdk/construction";
@@ -23,18 +23,17 @@ export const activitySchema = z.union([workActivitySchema, deliveryActivitySchem
 export type WorkActivity = z.infer<typeof activitySchema>;
 const boundedProgress = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : undefined;
 
-const deliveryPhase = (phase: string, atSource: boolean): DeliveryActivityPhase | null => {
-  if (phase === "to-source") return atSource ? "pickup" : null;
-  if (phase === "carrying") return "carrying";
-  if (phase === "to-destination") return "to-destination";
-  if (phase === "putting-down") return "putting-down";
+const deliveryPhase = (activity: WorkActivityRef): DeliveryActivityPhase | null => {
+  if (activity.kind === "route") return "carrying";
+  if (activity.kind === "material-transfer") return "to-destination";
+  if (activity.kind === "material-drop") return "putting-down";
   return null;
 };
 
 /** Read committed work attendance, never a queued designation or client timer. */
 export function decorateWorkActivity(
   facts: readonly RenderFact[],
-  context: Pick<ReadContext, "query">,
+  context: Pick<ReadContext, "query" | "workAttempts">,
   extra: readonly ActivityBinding[] = [],
 ): readonly RenderFact[] {
   const activity = new Map<string, WorkActivity>();
@@ -42,26 +41,18 @@ export function decorateWorkActivity(
     const work = row.get(ExcavationWork);
     activity.set(row.id, { kind: "dig", target: [work.x, work.z] });
   }
-  for (const row of context.query(query(ConstructionSite))) {
-    const site = row.get(ConstructionSite);
-    if (site.phase !== "working" || site.worker === null) continue;
-    if (activity.has(site.worker)) throw new Error("actor has competing native work attendance");
-    activity.set(site.worker, { kind: "build", target: [site.x, site.z] });
-  }
+  // Construction attendance is projected by its native WorkAttempt below.
   const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
   for (const row of context.query(query(DeliveryTask))) {
-    const task = row.get(DeliveryTask);
-    if (task.actor === null || activity.has(task.actor)) {
-      if (task.actor !== null && activity.has(task.actor)) throw new Error("actor has competing work attendance");
-      continue;
-    }
-    const actor = positions.get(task.actor), source = positions.get(task.source), destination = positions.get(task.destination);
-    if (!actor || !source || !destination) continue;
-    const atSource = Math.hypot(actor.x - source.x, actor.z - source.z) <= 1;
-    const phase = deliveryPhase(task.phase, atSource);
-    if (!phase) continue;
-    const target = phase === "pickup" ? source : destination;
-    activity.set(task.actor, { kind: "delivery", phase, material: task.material, target: [target.x, target.z] });
+    const attempt = context.workAttempts?.([row.id])?.[0];
+    if (!attempt) continue;
+    if (activity.has(attempt.worker)) throw new Error("actor has competing work attendance");
+    const operation = attempt.phase.kind === "executing" || attempt.phase.kind === "outcome" ? attempt.phase.activity : null;
+    if (!operation || !["material-transfer", "material-drop", "route"].includes(operation.kind)) continue;
+    const destination = operation.kind === "route" ? operation.destination : positions.get(attempt.worker);
+    if (!destination) continue;
+    const phase = deliveryPhase(operation); if (!phase) continue;
+    activity.set(attempt.worker, { kind: "delivery", phase, material: row.get(DeliveryTask).material, target: [destination.x, destination.z] });
   }
   for (const binding of extra) {
     const progress = boundedProgress(binding.progress);

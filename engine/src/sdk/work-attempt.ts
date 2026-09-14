@@ -88,6 +88,20 @@ export function retargetRouteWorkAttempt(context: Pick<WriteContext, "action">, 
   context.action({ kind: "retarget-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, destination });
 }
 
+export function continueRouteWorkAttempt(
+  context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
+  attempt: WorkAttemptKey,
+  operationSequence: number,
+  destination: MoveDestination,
+): void {
+  const exact = key(attempt), operation = sequence(operationSequence);
+  if (![destination.x, destination.y, destination.z].every(Number.isFinite)) throw new Error("work attempt destination must be finite");
+  if (destination.frame !== null) entity(destination.frame);
+  const current = workAttempt(context, exact.task);
+  if (!current || current.key.generation !== exact.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "route", destination } });
+}
+
 /** Acknowledge only the currently projected terminal operation. */
 export function acknowledgeWorkAttempt(
   context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
@@ -161,4 +175,18 @@ export function continueMaterialTransferAttempt(
   const current = workAttempt(context, exact.task);
   if (!current || current.key.generation !== exact.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
   context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "material-transfer", lot, from, to, quantity } });
+}
+
+/** Continue an admitted attempt through the native ground-custody owner. */
+export function continueMaterialDropAttempt(
+  context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
+  attempt: WorkAttemptKey,
+  operationSequence: number,
+  lot: EntityId,
+): void {
+  const exact = key(attempt), operation = sequence(operationSequence);
+  entity(lot);
+  const current = workAttempt(context, exact.task);
+  if (!current || current.key.generation !== exact.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
+  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "material-drop", lot } });
 }
