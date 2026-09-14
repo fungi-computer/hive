@@ -605,6 +605,35 @@ impl TerrainWater {
         Ok(unsupported)
     }
 
+    /// Validate a proposed construction intent against committed geometry and
+    /// every other live intent. This is deliberately a read-only projection:
+    /// pending geometry participates in occupancy and rooted-support checks,
+    /// but never enters the physical structure projection or water field.
+    pub(crate) fn admit_construction_placement(
+        &mut self,
+        candidate: StaticInstance,
+        pending: &[StaticInstance],
+    ) -> Result<(), String> {
+        let mut instances = self.structure_instances();
+        instances.extend(pending.iter().cloned());
+        instances.push(candidate.clone());
+        let geometry = StaticGeometry::new(self.terrain.bounds(), instances)?;
+        let projection = geometry.projection()?;
+        for cell in projection.traversal_blockers() {
+            let material = self.terrain.query(*cell)?;
+            if !self.terrain.is_open_material(material) {
+                return Err("structure overlaps solid terrain".into());
+            }
+        }
+
+        let mut all_pending = pending.to_vec();
+        all_pending.push(candidate.clone());
+        if !self.construction_support(&all_pending)?.is_empty() {
+            return Err("construction placement lacks rooted support".into());
+        }
+        Ok(())
+    }
+
     pub(crate) fn apply_structures(&mut self, prepared: PreparedStructureChange) -> Result<(), String> {
         if !Arc::ptr_eq(&self.owner, &prepared.owner) || self.epoch != prepared.epoch {
             return Err("prepared structure change is stale or foreign".into());
@@ -760,6 +789,33 @@ mod tests {
             StaticInstance::Floor { id: "cycle-b".into(), support: Cell { x: 4, y: 30, z: 0 } },
         ];
         assert_eq!(world.construction_support(&cycle).unwrap(), vec!["cycle-a", "cycle-b"]);
+    }
+
+    #[test]
+    fn placement_admission_rejects_rotated_intersecting_stairs() {
+        let mut world = support_law_world(2);
+        let first = StaticInstance::Stair { id: "stair-east".into(), origin: Cell { x: 0, y: 30, z: 0 }, orientation: crate::structure_geometry::Cardinal::East, run: 2, rise: 1 };
+        let crossing = StaticInstance::Stair { id: "stair-south".into(), origin: Cell { x: 1, y: 30, z: -1 }, orientation: crate::structure_geometry::Cardinal::South, run: 2, rise: 1 };
+        let error = world.admit_construction_placement(crossing, &[first]).unwrap_err();
+        assert!(error.contains("duplicate structure bulk occupied cell") || error.contains("duplicate structure"), "{error}");
+    }
+
+    #[test]
+    fn placement_admission_resolves_pending_support_independent_of_order() {
+        let (mut first, floor, wall) = pending_wall_and_floor();
+        let candidate = StaticInstance::Floor { id: "next-floor".into(), support: Cell { x: 1, y: 30, z: 0 } };
+        first.admit_construction_placement(candidate.clone(), &[floor.clone(), wall.clone()]).unwrap();
+        let (mut second, _, _) = pending_wall_and_floor();
+        second.admit_construction_placement(candidate, &[wall, floor]).unwrap();
+    }
+
+    #[test]
+    fn placement_admission_rejects_unrooted_plan_without_physical_change() {
+        let mut world = support_law_world(2);
+        let before = world.structure_instances();
+        let impossible = StaticInstance::Floor { id: "unrooted-floor".into(), support: Cell { x: 3, y: 30, z: 0 } };
+        assert_eq!(world.admit_construction_placement(impossible, &[]).unwrap_err(), "construction placement lacks rooted support");
+        assert_eq!(world.structure_instances(), before);
     }
 
     #[test]

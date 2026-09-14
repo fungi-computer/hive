@@ -271,6 +271,17 @@ impl Kernel {
             (_, ConstructionTarget::Edge { .. }) => Err("only wall construction accepts an edge target".into()),
         }
     }
+
+    fn pending_construction_instances(&self) -> Result<Vec<crate::structure_geometry::StaticInstance>> {
+        let mut pending = Vec::new();
+        for (id, entity) in &self.ids {
+            let Some(state) = self.ecs.get::<ConstructionSite>(*entity) else { continue; };
+            if state.phase == ConstructionPhase::Finished { continue; }
+            let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?;
+            pending.push(self.construction_instance(id, definition, state.target)?);
+        }
+        Ok(pending)
+    }
     pub(super) fn current_contact_candidate_rows(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Result<Vec<([f64; 3], &'static str)>> {
         let candidates = self.contact_candidate_cells(site, definition, spacing)?;
         let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: 1, max_step_cells: 1 };
@@ -452,10 +463,11 @@ impl Kernel {
         let party_entity = self.entity(&party)?;
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("construction owner is not a party".into()); }
         if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
-        let environment = self.environment.as_ref().ok_or("construction needs environment")?;
-        let definition = environment.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
+        let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
         let instance = self.construction_instance(&site, &definition, target)?;
-        crate::structure_geometry::StaticGeometry::new(environment.world.bounds(), vec![instance])?;
+        let pending = self.pending_construction_instances()?;
+        self.environment.as_mut().ok_or("construction needs environment")?
+            .world.admit_construction_placement(instance, &pending)?;
         let staged = ConstructionSite { catalog, target, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
         let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
