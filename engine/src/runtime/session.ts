@@ -350,6 +350,8 @@ export class GameSession {
         scope,
         physicalContacts: (cells) => this.port.physicalContacts(cells),
         transferContacts: (request) => this.port.transferContacts(request),
+        structureSurfaces: (columns) => this.port.structureSurfaces(columns),
+        floorOperations: (requests) => this.port.floorOperations(requests),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         query: (spec) => {
@@ -749,6 +751,8 @@ export class GameSession {
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
         physicalContacts: (cells) => this.port.physicalContacts(cells),
         transferContacts: (request) => this.port.transferContacts(request),
+        structureSurfaces: (columns) => this.port.structureSurfaces(columns),
+        floorOperations: (requests) => this.port.floorOperations(requests),
         environmentFacts: () => this.port.environmentFacts(),
         atmosphereSamples: (cells) => this.port.atmosphereSamples(cells),
         constructionReadiness: (sites) => this.port.constructionReadiness(sites),

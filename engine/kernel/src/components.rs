@@ -128,6 +128,21 @@ pub struct ConstructionSite {
     pub seconds: f64,
     pub phase: ConstructionPhase,
 }
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FloorReplacement {
+    pub version: u32,
+    pub target_floor: String,
+    pub expected_catalog: String,
+    pub desired_catalog: String,
+    pub support_x: i64,
+    pub support_y: i64,
+    pub support_z: i64,
+    pub phase: FloorReplacementPhase,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum FloorReplacementPhase { Queued, Working, Completed, Cancelled }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ConstructionPhase {
@@ -380,6 +395,7 @@ pub enum Action {
         z: i64,
         orientation: Cardinal,
     },
+    ReplaceFloor { #[serde(rename = "orderId")] order_id: String, #[serde(rename = "existingFloorId")] existing_floor_id: String, #[serde(rename = "desiredCatalog")] desired_catalog: String },
     BindConstructionStage { site: String, contact: Point },
     AttendConstruction { worker: String, site: String, contact: Point },
     Move {

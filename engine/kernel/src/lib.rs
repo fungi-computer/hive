@@ -233,6 +233,9 @@ impl WasmKernel {
     pub fn transfer_contacts(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.transfer_contacts_json(input).map_err(js_error)
     }
+    pub fn floor_operations(&mut self, input: &str) -> Result<String, JsValue> {
+        self.0.floor_operations_json(input).map_err(js_error)
+    }
     pub fn route_costs(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.route_costs_json(input).map_err(js_error)
     }
