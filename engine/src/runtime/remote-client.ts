@@ -387,12 +387,14 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let admissionAttempts = 0;
   let sharedCredential = options.token;
-  const shared = options.game === "colony" && options.world !== undefined && options.invite !== undefined;
-  const sharedBase = () => endpointUrl(options.endpoint, `/v2/colony/worlds/${options.world}`);
+  const shared = options.game === "colony" && options.invite !== undefined;
+  let sharedWorld = options.world;
+  const sharedBase = () => endpointUrl(options.endpoint, `/v2/colony/worlds/${sharedWorld}`);
   const prepareShared = async () => {
     if (!shared) return;
+    if (!sharedWorld) sharedWorld = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(options.invite!)))].map(byte => byte.toString(16).padStart(2, "0")).join("");
     const storage = options.storage ?? globalThis.localStorage;
-    const key = `hive:colony-v2:credential:${options.world}`;
+    const key = `hive:colony-v2:credential:${sharedWorld}`;
     sharedCredential = storage.getItem(key) ?? "";
     if (!/^[a-f0-9]{64}$/.test(sharedCredential)) {
       sharedCredential = [...crypto.getRandomValues(new Uint8Array(32))].map(byte => byte.toString(16).padStart(2, "0")).join("");

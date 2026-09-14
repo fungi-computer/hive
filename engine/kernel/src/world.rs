@@ -3300,12 +3300,14 @@ impl Kernel {
         if let Some(environment) = self.environment.as_mut() {
             let spacing = environment.world.cell_spacing_m();
             for record in &records {
-                let (Some(position), Some(traversal)) = (record.components.get("hive.position"), record.components.get("hive.traversal")) else { continue };
+                let Some(position) = record.components.get("hive.position") else { continue };
+                let traversal = record.components.get("hive.traversal");
+                if traversal.is_none() && record.components.get("hive.container").is_none() { continue; }
                 let x = position.get("x").and_then(|v| v.as_f64()).ok_or("invalid party position")?;
                 let y = position.get("y").and_then(|v| v.as_f64()).ok_or("invalid party position")?;
                 let z = position.get("z").and_then(|v| v.as_f64()).ok_or("invalid party position")?;
                 let support = crate::generation::Cell { x: (x / spacing[0]).round() as i64, y: (y / spacing[1]).round() as i32, z: (z / spacing[2]).round() as i64 };
-                let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.get("clearanceCells").and_then(|v| v.as_u64()).ok_or("invalid party traversal")? as u8, max_step_cells: traversal.get("maxStepCells").and_then(|v| v.as_u64()).ok_or("invalid party traversal")? as u8 };
+                let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.and_then(|v| v.get("clearanceCells")).and_then(|v| v.as_u64()).unwrap_or(1) as u8, max_step_cells: traversal.and_then(|v| v.get("maxStepCells")).and_then(|v| v.as_u64()).unwrap_or(1) as u8 };
                 let mut query = |cell| environment.world.traversal_material(cell);
                 let node = crate::terrain_traversal::node(support, config, &mut query)?.ok_or("party spawn unavailable")?;
                 if (node.feet_y(config)? - y).abs() > 1e-6 { return Err("party spawn height mismatch".into()); }

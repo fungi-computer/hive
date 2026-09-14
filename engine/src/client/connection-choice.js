@@ -106,12 +106,12 @@ function preparePrivateSelection({ invited, nextToken, locationSource, historySo
 }
 
 function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connectRemote, locationSource, historySource }) {
-  const endpoint = publicEndpoint(host, mode);
+  const invitedToken = invitationToken(locationSource);
+  const endpoint = invitedToken && mode === "colony" ? new URL(host) : publicEndpoint(host, mode);
   const listeners = new Set();
   let disposed = false;
   let current;
   let unsubscribe = () => {};
-  const invitedToken = invitationToken(locationSource);
   let token = invitedToken ?? readToken(storage, mode, cryptoSource);
   const storageKey = tokenKey(mode);
 
@@ -121,6 +121,7 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       game: mode,
       fetch: authorizedFetch(fetchImpl, nextToken),
       token: nextToken,
+      ...(mode === "colony" && invitedToken ? { invite: invitedToken, storage } : {}),
     });
     let nextUnsubscribe;
     try {
