@@ -315,8 +315,9 @@ try {
     }
     throw new Error(`timed out waiting for ${label}`);
   };
-  const structureFact = (fragment) => latestObservation?.observation?.facts?.find(fact =>
-    typeof fact.visual === "string" && fact.visual.includes(fragment));
+  const structureFact = (fragment, supportCell) => latestObservation?.observation?.facts?.find(fact =>
+    typeof fact.visual === "string" && fact.visual.includes(fragment) &&
+    (!supportCell || (fact.pose?.position && Math.round(fact.pose.position.x) === supportCell[0] && Math.round(fact.pose.position.z) === supportCell[2])));
   const artManifestResponse = await page.request.get(new URL("/generated-art/goblin-static-art-v4/manifest.json", frontend));
   assert.equal(artManifestResponse.status(), 200, "the public static-art manifest is unavailable");
   const artManifest = await artManifestResponse.json();
@@ -347,9 +348,9 @@ try {
     assert(best, "static-art manifest has no opaque placement pixel");
     return best;
   };
-  const structurePoint = async (fragment) => {
-    await waitForObservation(() => structureFact(fragment), `${fragment} visual`);
-    const fact = structureFact(fragment);
+  const structurePoint = async (fragment, supportCell) => {
+    await waitForObservation(() => structureFact(fragment, supportCell), `${fragment} visual at ${supportCell?.join(",") ?? "known support"}`);
+    const fact = structureFact(fragment, supportCell);
     assert(fact?.pose?.position, `${fragment} has no authoritative pose`);
     assert(fact.placement, `${fragment} has no authoritative placement datum`);
     const entry = manifestEntryForVisual(fact.visual);
@@ -408,31 +409,50 @@ try {
     assert.equal(submitted.name, "build", `${label} submitted ${submitted.name}`);
     return submitted;
   }
-  const floorSupport = freeSurface();
-  const floorNeighborSupport = freeSurface({ level: floorSupport.cell[1], adjacentTo: floorSupport.cell });
-  const firstFloorBuild = await buildPoint("Build floor", floorSupport.cell);
-  const brewerFloorBuild = await buildPoint("Build floor", floorNeighborSupport.cell);
-  await waitForObservation(() => latestObservation.observation.terrain?.structureSurfaces?.length, "floor support surfaces");
-  await waitForObservation(() => structureFact("colony.floor.finished"), "finished floor visual");
-  const originalFloorId = structureFact("colony.floor")?.id;
+  const findClearRectangle = () => {
+    const terrain = latestObservation?.observation?.terrain;
+    const occupied = occupiedWorldCells();
+    const surfaces = new Map((terrain?.surfaces ?? []).map(surface => [cellKey(surface.cell), surface]));
+    const clear = (cell) => {
+      const surface = surfaces.get(cellKey(cell));
+      return surface?.material === 1 && !reservedSurfaceCells.has(cellKey(cell)) && !occupied.has(`${cell[0]},${cell[2]}`);
+    };
+    for (const origin of terrain?.surfaces ?? []) {
+      const [x, y, z] = origin.cell;
+      const cells = Array.from({ length: 3 }, (_, dx) => [x + dx, y, z]).concat(
+        Array.from({ length: 3 }, (_, dx) => [x + dx, y, z + 1]),
+      );
+      if (cells.every(clear)) return { cells, brewer: [x, y, z], bed: [x + 2, y, z] };
+    }
+    return null;
+  };
+  const rectangle = findClearRectangle();
+  assert(rectangle, "no clear same-level 3x2 terrain rectangle is available for north fixtures");
+  for (const cell of rectangle.cells) reservedSurfaceCells.add(cellKey(cell));
+  const floorBuilds = [];
+  for (const cell of rectangle.cells) floorBuilds.push(await buildPoint("Build floor", cell));
+  await waitForObservation(() => rectangle.cells.every(cell => structureFact("colony.floor.finished", cell)), "six finished floor supports", 30_000);
+  const originalFloorId = structureFact("colony.floor", rectangle.cells[0])?.id;
   assert(originalFloorId, "finished floor has no stable render identity");
-  const bedBuild = await buildPoint("Build bed", floorSupport.cell);
-  const brewerBuild = await buildPoint("Build brew-station", floorNeighborSupport.cell);
-  await waitForObservation(() => structureFact("colony.bed.finished") && structureFact("colony.brew-station.profile"), "finished bed and brewer", 30_000);
+  const brewerBuild = await buildPoint("Build brew-station", rectangle.brewer);
+  const bedBuild = await buildPoint("Build bed", rectangle.bed);
+  assert.equal(brewerBuild.command.input.orientation, "north", "brewer must use the north footprint");
+  assert.equal(bedBuild.command.input.orientation, "north", "bed must use the north footprint");
+  await waitForObservation(() => structureFact("colony.bed.finished", rectangle.bed) && structureFact("colony.brew-station.profile", rectangle.brewer), "finished bed and brewer", 30_000);
   const wallSupport = freeSurface();
   const wallEndSupport = freeSurface({ level: wallSupport.cell[1], adjacentTo: wallSupport.cell });
   const wallBuild = await buildLine("Build wall", wallSupport.cell, wallEndSupport.cell);
-  assert.deepEqual(bedBuild.command.input.target.cell, firstFloorBuild.command.input.target.cell,
-    "bed placement did not retain the authoritative floor support cell");
-  assert.deepEqual(brewerBuild.command.input.target.cell, brewerFloorBuild.command.input.target.cell,
-    "brewer placement did not retain the authoritative floor support cell");
+  assert.deepEqual(bedBuild.command.input.target.cell, rectangle.bed,
+    "bed placement did not retain the authoritative 1x2 floor support origin");
+  assert.deepEqual(brewerBuild.command.input.target.cell, rectangle.brewer,
+    "brewer placement did not retain the authoritative 2x2 floor support origin");
   assert(wallBuild.command.input.target.area || wallBuild.command.input.target.cell, "wall line did not produce a placement target");
   record("wall/floor/furniture placement uses the shared visible-surface tool", { builds: buildCommandsBefore().length });
   await screenshot(page, "desktop-04-structures.png");
 
   // A second floor gesture over the occupied support is the replacement path.
-  const bedSurface = await structurePoint("colony.bed");
-  const brewerSurface = await structurePoint("colony.brew-station");
+  const bedSurface = await structurePoint("colony.bed", rectangle.bed);
+  const brewerSurface = await structurePoint("colony.brew-station", rectangle.brewer);
   const replacementBefore = commandCount();
   await (await waitForVisible(page, "Build")).click();
   await (await waitForVisible(page, "Build floor")).click();
@@ -440,7 +460,7 @@ try {
   const replacement = await waitCommandAccepted(replacementBefore, "bed floor replacement");
   assert.equal(replacement.name, "build");
   assert.equal(replacement.command.input.target.source, "structure", "bed floor gesture did not hit a structure surface");
-  assert.deepEqual(replacement.command.input.target.cell, firstFloorBuild.command.input.target.cell,
+  assert.deepEqual(replacement.command.input.target.cell, rectangle.bed,
     "bed floor replacement did not preserve its support cell");
   await waitForObservation(observation => observation.observation.facts?.some(fact => fact.id === originalFloorId), "floor identity after bed replacement");
   const brewerReplacementBefore = commandCount();
@@ -450,7 +470,7 @@ try {
   const brewerReplacement = await waitCommandAccepted(brewerReplacementBefore, "brewer floor replacement");
   assert.equal(brewerReplacement.name, "build");
   assert.equal(brewerReplacement.command.input.target.source, "structure", "brewer floor gesture did not hit a structure surface");
-  assert.deepEqual(brewerReplacement.command.input.target.cell, brewerFloorBuild.command.input.target.cell,
+  assert.deepEqual(brewerReplacement.command.input.target.cell, rectangle.brewer,
     "brewer floor replacement did not preserve its support cell");
   record("floor replacement is attempted through the same Build floor command", {
     replacementAccepted: true,

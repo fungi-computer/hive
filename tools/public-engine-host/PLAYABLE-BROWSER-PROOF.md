@@ -42,8 +42,10 @@ than clicking a raw pose center. Command assertions associate the first
 Terrain gestures choose distinct material-1 surfaces from the current
 authoritative observation, excluding current fact positions, structure surfaces,
 and already reserved cells. Dig endpoints and wall strokes are same-level
-neighbors; floors and furniture use two other same-level supports. The wall is
-queued after the two floors and furniture so this bounded proof does not spend
+neighbors. Before construction it finds one clear same-level 3x2 rectangle,
+places six floors with ordinary Build floor gestures, then places the north
+2x2 brewer and north 1x2 bed on separate origins in that rectangle. The wall
+is queued after those floors and fixtures so this bounded proof does not spend
 starter materials before the required support and replacement checks.
 
 The exact source inventory is embedded in
