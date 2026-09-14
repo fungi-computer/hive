@@ -261,6 +261,22 @@ test("remote inventory rejects mismatched portable identity and over-capacity co
   } finally { runtime.dispose(); }
 });
 
+test("remote observations reject malformed visual placement", async () => {
+  const socket = new FakeSocket();
+  const runtime = setup(async (input) => String(input).endsWith("/connect") ? Response.json({ handle: "opaque" }) : Response.json({}), socket);
+  const events: WorkerEvent[] = [];
+  runtime.subscribe(event => events.push(event));
+  try {
+    runtime.send({ type: "start", game: "survival" });
+    await wait();
+    const next = observation(1);
+    socket.emit("message", { data: JSON.stringify({ type: "observation", ...next,
+      observation: { ...next.observation, facts: [{ id: "site.floor", placement: { kind: "footprint", footprint: [[0.5, 0]], orientation: "north" } }] } }) });
+    assert.equal(events.filter(event => event.type === "frame").length, 1);
+    assert.equal(events.filter(event => event.type === "error" && event.message === "invalid remote observation").length, 1);
+  } finally { runtime.dispose(); }
+});
+
 test("disposing during socket handle admission aborts the request", async () => {
   let aborted = false;
   const runtime = setup((_input, init) => new Promise((_resolve, reject) => {
