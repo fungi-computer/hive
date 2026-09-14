@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createIsometricSorter, pickFromOrdered, subjectSortFootprint } from "./isometric-sorter.js";
+import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
 
 const node = (id, x, z, extra = {}) => ({
   id,
@@ -75,6 +75,20 @@ test("static relations cache and explicit invalidation clear only affected pairs
   assert.equal(sorter.cacheSize(), 0);
 });
 
+test("static geometry signatures replace stale cached relations and inactive pairs are pruned", () => {
+  const sorter = createIsometricSorter();
+  const a = node("a", 0, 0);
+  const b = node("b", 1, 1);
+  sorter.order([a, b]);
+  assert.equal(sorter.cacheSize(), 1);
+  sorter.order([a]);
+  assert.equal(sorter.cacheSize(), 0);
+  sorter.order([a, b]);
+  const moved = { ...b, footprint: [{ x: 20, y: 0, z: 20 }] };
+  sorter.order([a, moved]);
+  assert.equal(sorter.cacheSize(), 1);
+});
+
 test("moving nodes bypass the static cache and results are input-order independent", () => {
   const sorter = createIsometricSorter();
   const moving = node("actor", 1, 1, { moving: true });
@@ -98,7 +112,14 @@ test("cycles are deterministic and picking chooses the last visible ordered silh
     ordered.map((entry) => entry.id),
     ["a", "b"],
   );
-  assert.equal(pickFromOrdered(ordered, [a, b]).id, "b");
+  assert.equal(pickFromOrdered(ordered, [a, b]).node.id, "b");
+  assert.equal(pickFromOrdered(ordered, [{ ...b, pickable: false }]).target, null);
+});
+
+test("storey conversion requires canonical vertical metres", () => {
+  assert.equal(storeyBandFor({ y: 4 }, 2), 2);
+  assert.equal(storeyBandFor({ y: 99, support: { level: 3 } }), 3);
+  assert.throws(() => storeyBandFor({ y: 4 }), /positive vertical metres/);
 });
 
 test("canonical compact, bed, wall, and stair placement records become lawful footprints", () => {

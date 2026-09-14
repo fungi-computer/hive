@@ -124,7 +124,7 @@ export function createTerrainLayer() {
   const container = new Container();
   container.eventMode = "none";
   let renderer, colorTexture, colorCanvas, colorContext;
-  let terrainSprite, waterItems = [];
+  let terrainSprite, waterItems = [], sortableItems = [], terrainSurfaces = [];
   const waterTile = createWaterTile();
   let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
   let terrainCache, canonicalCamera, cachedVerticalMetres;
@@ -144,6 +144,8 @@ export function createTerrainLayer() {
     revision = undefined;
     for (const item of waterItems) item.destroy();
     waterItems = [];
+    sortableItems = [];
+    terrainSurfaces = [];
     projectionKey = undefined;
   }
 
@@ -171,6 +173,16 @@ export function createTerrainLayer() {
     terrainSprite.position.set((640 - WIDTH) / 2, (400 - HEIGHT) / 2);
     terrainSprite.eventMode = "none";
     container.addChildAt(terrainSprite, 0);
+    sortableItems = [{
+      id: "terrain:ground",
+      part: "ground",
+      display: terrainSprite,
+      footprint: terrainSurfaces.map(({ cell: [x, y, z] }) => ({ x, y, z })),
+      screenBounds: { left: 0, right: WIDTH, top: 0, bottom: HEIGHT },
+      storeyBand: 0,
+      pickable: false,
+      visible: true,
+    }];
   }
 
   function patchBake(frame, update) {
@@ -224,6 +236,7 @@ export function createTerrainLayer() {
         return;
       }
       container.visible = true;
+      terrainSurfaces = frame.surfaces;
       renderer ??= new WebGLRenderer({ alpha: true, antialias: false });
       const needsFull =
         !terrainCache ||
@@ -240,6 +253,7 @@ export function createTerrainLayer() {
       }
       revision = frame.revision;
       projectionKey = nextProjectionKey;
+      sortableItems = sortableItems.filter((item) => item.id === "terrain:ground");
       for (const item of waterItems) item.destroy();
       waterItems = [];
       for (const cell of frame.water) {
@@ -253,6 +267,16 @@ export function createTerrainLayer() {
         water.position.set(projected.x, projected.y);
         water.eventMode = "none";
         waterItems.push(water);
+        sortableItems.push({
+          id: `water:${x}:${y}:${z}`,
+          part: "surface",
+          display: water,
+          footprint: [{ x, y: top, z }],
+          screenBounds: { left: projected.x - 16, right: projected.x + 16, top: projected.y - 8, bottom: projected.y + 8 },
+          storeyBand: y,
+          pickable: false,
+          visible: true,
+        });
         container.addChild(water);
       }
     },
@@ -261,9 +285,26 @@ export function createTerrainLayer() {
       container.scale.set(camera.zoom);
       screenTransform = terrainScreenTransform(camera);
       if (terrainSprite) terrainSprite.position.set((640 - WIDTH) / 2, (400 - HEIGHT) / 2);
+      const terrain = sortableItems.find((item) => item.id === "terrain:ground");
+      if (terrain) terrain.screenBounds = {
+        left: camera.x + ((640 - WIDTH) / 2) * camera.zoom,
+        right: camera.x + ((640 - WIDTH) / 2 + WIDTH) * camera.zoom,
+        top: camera.y + ((400 - HEIGHT) / 2) * camera.zoom,
+        bottom: camera.y + ((400 - HEIGHT) / 2 + HEIGHT) * camera.zoom,
+      };
+      for (const item of sortableItems) if (item.id !== "terrain:ground") {
+        const projected = project(item.footprint[0].x, item.footprint[0].y, item.footprint[0].z);
+        item.screenBounds = {
+          left: projected.x * camera.zoom + camera.x - 16,
+          right: projected.x * camera.zoom + camera.x + 16,
+          top: projected.y * camera.zoom + camera.y - 8,
+          bottom: projected.y * camera.zoom + camera.y + 8,
+        };
+      }
     },
     get drawItem() { return terrainSprite; },
     get transparentItems() { return waterItems; },
+    get sortableItems() { return sortableItems; },
     get waterTile() { return waterTile; },
     dispose() {
       clear();

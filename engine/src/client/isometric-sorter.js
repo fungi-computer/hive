@@ -94,6 +94,14 @@ function compareStable(a, b) {
   return stableKey(a).localeCompare(stableKey(b));
 }
 
+function geometrySignature(node) {
+  return JSON.stringify([
+    node.screenBounds,
+    node.storeyBand,
+    node.footprint.map(({ x, y, z }) => [x, y, z]),
+  ]);
+}
+
 function validateNode(input) {
   if (!input || input.id === undefined || input.id === null)
     throw new Error("isometric node needs an id");
@@ -111,7 +119,8 @@ function validateNode(input) {
       input.screenBounds ?? { left: 0, right: 0, top: 0, bottom: 0 },
       stableKey(input),
     ),
-    storeyBand: Number.isFinite(input.storeyBand) ? input.storeyBand : 0,
+    storeyBand: finite(input.storeyBand ?? 0, `${input.id} storey band`),
+    pickable: input.pickable === true,
     moving: input.moving === true,
     visible: input.visible !== false,
   });
@@ -159,9 +168,11 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
   function relation(left, right) {
     const moving = left.moving || right.moving;
     const key = relationKey(left, right);
-    if (!moving && staticRelations.has(key)) return staticRelations.get(key);
+    const signature = `${geometrySignature(left)}|${geometrySignature(right)}`;
+    if (!moving && staticRelations.get(key)?.signature === signature)
+      return staticRelations.get(key).result;
     const result = edgeFor(left, right, normalized);
-    if (!moving) staticRelations.set(key, result);
+    if (!moving) staticRelations.set(key, { signature, result });
     return result;
   }
 
@@ -184,6 +195,11 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
         outgoing.get(from).add(to);
         indegree.set(to, indegree.get(to) + 1);
       }
+    const activeKeys = new Set(nodes.map(stableKey));
+    for (const key of staticRelations.keys()) {
+      const [left, right] = key.split("\u0000\u0000");
+      if (!activeKeys.has(left) || !activeKeys.has(right)) staticRelations.delete(key);
+    }
     const ready = nodes
       .filter((node) => indegree.get(stableKey(node)) === 0)
       .sort(compareStable);
@@ -197,20 +213,34 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
       }
       ready.sort(compareStable);
     }
-    // Cycles are possible for whole sprites.  Remove the least authoritative
-    // remaining edge by stable identity, then continue; this is deterministic
-    // and leaves every node represented exactly once.
+    // Cycles are possible for whole sprites. Remove one deterministic incoming
+    // edge from the stalled node, then resume Kahn's algorithm.
     while (result.length < nodes.length) {
       const remaining = nodes
         .filter((node) => !result.includes(node))
         .sort(compareStable);
-      const node = remaining[0];
-      result.push(node);
-      for (const target of [...outgoing.get(stableKey(node))])
-        if (!result.some((entry) => stableKey(entry) === target)) {
-          indegree.set(target, 0);
-          ready.push(byKey.get(target));
+      const target = stableKey(remaining[0]);
+      const predecessor = remaining
+        .filter((node) => outgoing.get(stableKey(node)).has(target))
+        .sort(compareStable)
+        .at(-1);
+      if (predecessor) {
+        outgoing.get(stableKey(predecessor)).delete(target);
+        indegree.set(target, Math.max(0, indegree.get(target) - 1));
+      } else {
+        indegree.set(target, 0);
+      }
+      if (indegree.get(target) === 0) ready.push(byKey.get(target));
+      while (ready.length) {
+        const node = ready.shift();
+        if (result.includes(node)) continue;
+        result.push(node);
+        for (const next of [...outgoing.get(stableKey(node))].sort()) {
+          indegree.set(next, indegree.get(next) - 1);
+          if (indegree.get(next) === 0) ready.push(byKey.get(next));
         }
+        ready.sort(compareStable);
+      }
     }
     return result;
   }
@@ -236,7 +266,7 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
 /** Use the same final ordering for alpha-silhouette picking. */
 export function pickFromOrdered(order, candidates) {
   const rank = new Map(order.map((node, index) => [stableKey(node), index]));
-  return (
+  const node = (
     [...candidates]
       .filter((candidate) => candidate?.visible !== false)
       .sort(
@@ -245,6 +275,17 @@ export function pickFromOrdered(order, candidates) {
           compareStable(a, b),
       )[0] ?? null
   );
+  return node
+    ? { node, target: node.pickable ? node.target ?? node.id : null, occluded: !node.pickable }
+    : null;
+}
+
+export function storeyBandFor(subject, verticalMetres) {
+  const explicit = subject?.support?.level ?? subject?.surface?.level;
+  if (Number.isFinite(explicit)) return explicit;
+  if (!Number.isFinite(verticalMetres) || verticalMetres <= 0)
+    throw new Error("isometric storey conversion requires positive vertical metres");
+  return Math.floor(subject.y / verticalMetres);
 }
 
 /** Translate canonical art placement datums into the subject's world origin. */

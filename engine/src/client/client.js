@@ -1,7 +1,7 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
-import { createIsometricSorter, pickFromOrdered, subjectSortFootprint } from "./isometric-sorter.js";
+import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
 import { resolveWorldArtPlacement } from "./art-placement.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
@@ -965,7 +965,7 @@ export function createHiveClient({
           display: entry.container,
           moving: !isStatic,
           footprint: subjectSortFootprint(subject, resolvedPlacement),
-          storeyBand: Math.floor(subject.y / (terrainFrame?.verticalMetres || 1)),
+          storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
           screenBounds: {
             left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * texture.width * camera.zoom,
             right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * texture.width * camera.zoom,
@@ -991,7 +991,7 @@ export function createHiveClient({
       entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
-    orderedSprites = spriteSorter.apply(sortableSprites);
+    orderedSprites = spriteSorter.apply([...terrainLayer.sortableItems, ...sortableSprites]);
     const drag = gesture.getSnapshot().context;
     if (
       gesture.getSnapshot().value === "dragging" &&
@@ -1248,7 +1248,7 @@ export function createHiveClient({
       );
     }) : [];
     const picked = pickFromOrdered(orderedSprites, candidates);
-    const directHit = picked ? [picked.id] : [];
+    const directHit = picked?.target ? [picked.target] : [];
     let hit = click
       ? directHit.length
         ? drag.additive
