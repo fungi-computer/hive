@@ -3,6 +3,8 @@ import type { RegionProgram, Json, RegionRecordReader, RegionTransition, RegionE
 import type { GamePack, KernelPort, ActionRequest, CommandScope } from "../contracts";
 import { GameSession, type SessionSnapshot } from "./session";
 import { checkedAction } from "./actions";
+import { query } from "../sdk/authoring";
+import { Party, PartyMember, PartyReceipt } from "../sdk/party";
 import { checkedStoredSession, storeSession, hydrateSession, changedSessionRecords, type StoredSession } from "./session-record-store";
 
 const commandSchema = z.discriminatedUnion("kind", [
@@ -55,7 +57,14 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
     case "action":
       session.request(command.action);
       // Party establishment is a durable join effect and must settle now.
-      if (command.action.kind === "establish-party") return session.step(0);
+      if (command.action.kind === "establish-party") {
+        const result = session.step(0);
+        const party = session.query(query(Party)).find(row => row.id === command.action.party)?.get(Party);
+        const receipt = session.query(query(PartyReceipt)).find(row => row.get(PartyReceipt).bindingId === command.action.bindingId)?.get(PartyReceipt);
+        const people = session.query(query(PartyMember)).filter(row => row.get(PartyMember).party === command.action.party);
+        if (!party || !receipt || receipt.player !== command.action.player || receipt.party !== command.action.party || people.length !== 2) throw new Error("party-establish-corrupt");
+        return result;
+      }
       return [];
     case "command": session.command(command.name, command.input, scope); return [];
     case "step": return session.step(command.delta);
@@ -71,8 +80,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
-      const scope = options.scopeForPrincipal(options.ownerPrincipal);
-      if (!scope) throw new Error("region-principal-unbound");
+      const scope = options.scopeForPrincipal(options.hostPrincipal) ?? { kind: "host" as const };
       const session = new GameSession({ port, pack: options.pack, seed: options.seed, scope });
       session.restore(snapshot);
       return { session, port };

@@ -301,6 +301,10 @@ export class GameSession {
     this.ensureLive();
     return this.port.waterContacts(centers);
   }
+  physicalContacts(cells: readonly [number, number, number][]) {
+    this.ensureLive();
+    return this.port.physicalContacts(cells);
+  }
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
     return this.port.query(spec);
