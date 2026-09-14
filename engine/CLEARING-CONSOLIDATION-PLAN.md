@@ -1705,6 +1705,47 @@ playable proof. Any persisted format change needs explicit disposition under
 the current no-migration/no-hidden-reset rules before release. No data loss can
 be hidden by a green new-world test.
 
+### Drafting and multiplayer parties — explicit product correction
+
+Levi clarified that manual precedence means the retained **Draft / Undraft**
+interaction, not a normal move silently disabling work forever. Current
+`colony.ts::go` writes `WorkParticipation.automatic=false`; `resumeWork` restores
+true. Restore an explicit, visible drafted mode through that existing owner.
+Selecting a person does not draft them. Draft grants manual movement control;
+Undraft returns them to automatic work using the shared interruption/custody
+rules. Do not introduce a second UI-owned draft flag. Decide ordinary undrafted
+movement explicitly (one-shot order with return to work, or require Draft in the
+UI); it must not silently become indefinite manual mode. Keep the retained
+control semantics and shortcuts as the reference before changing callers.
+
+Multiplayer target: a colony is a player-owned party within a shared world;
+multiple players/parties may inhabit that world. Party membership, work ownership,
+inventory permissions and who may command a body must be explicit game facts,
+not inferred from whichever browser selected an entity. Party identity is not
+Region/DO identity; a world/region may contain several parties and a party may
+eventually cross regions. Host-authenticated principal and game party are separate.
+
+Current source is **not this complete model**: public Worker initializes one
+`${pack}-player` principal per token-addressed world and dispatches all authorized
+invite holders as that principal. This supplies shared control of one demo world,
+not distinct account-owned parties. Colony work scans are not yet party-scoped.
+Keep the existing public App pairwise-customer authority decision; do not invent
+an identity store or treat an invite token as a unique signed-in player.
+
+The shared work repair must admit a scope for worker/task eligibility and enforce
+it at final command/claim admission: ownership/membership and explicit delegated
+permissions govern Draft/Undraft, designation, assignment and material use.
+Nearby workers are not automatically eligible workers. Co-op delegation and
+shared storage can be explicit permissions. Human and AI controllers use the
+same admitted operations. Revoking a controller must not lose cargo or progress.
+
+Do not claim full party multiplayer from two tabs sharing one invite. Before
+that claim, prove two different principals controlling different parties in one
+world, forbidden cross-party commands/assignment/material access, authorized
+co-op delegation and revocation, and reconnect retaining each player's scope.
+This records the architecture constraint; account/App admission remains an
+explicit unfinished dependency, not permission for a new backend identity lane.
+
 ### 2. Shared height- and footprint-aware draw ordering
 
 Source findings:
