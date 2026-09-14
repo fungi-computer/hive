@@ -38,12 +38,20 @@ impl Kernel {
     }
 
     pub(super) fn request_excavation(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
+        self.request_excavation_internal(id, work, false)
+    }
+
+    pub(super) fn request_excavation_for_attempt(&mut self, id: &str, work: ExcavationWork) -> Result<()> {
+        self.request_excavation_internal(id, work, true)
+    }
+
+    fn request_excavation_internal(&mut self, id: &str, work: ExcavationWork, admitted_attempt: bool) -> Result<()> {
         let actor = self.entity(id)?;
         if self.ecs.get::<Body>(actor).is_none() {
             return Err("excavation needs a worker body".into());
         }
         if self.ecs.get::<Support>(actor).is_some() || self.direct.contains_key(&actor)
-            || self.attempts_by_worker.contains_key(id) {
+            || (!admitted_attempt && self.attempts_by_worker.contains_key(id)) {
             return Err("excavation requires terrain contact".into());
         }
         if self.terrain_support_occupied(cell(work))? {

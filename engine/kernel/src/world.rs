@@ -4157,7 +4157,7 @@ impl Kernel {
         }
         if let crate::work_attempt::ActivityRef::Excavation { cell, expected_material, replacement_material } = next_activity.clone() {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.request_excavation(&current.worker, ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 })?;
+            self.request_excavation_for_attempt(&current.worker, ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 })?;
             self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
             return Ok(());
         }
