@@ -29,6 +29,36 @@ test("server Region creates its initial session with explicit host authority", (
   runtime.resident.dispose();
 });
 
+test("server Colony admits two starter parties into one generated world", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({
+    port,
+    pack: colonyServerPack,
+    seed: 17,
+    scope: { kind: "host" },
+  });
+  try {
+    session.start();
+    for (const bindingId of ["first-binding", "second-binding"]) {
+      const identity = session.partyJoinIdentity(bindingId);
+      assert.equal(identity.status, "available");
+      const spawn = session.findSafeSpawn(colonyServerPack.partyJoin!.footprint);
+      assert.ok(spawn, `${bindingId} has no safe spawn`);
+      const plan = colonyServerPack.partyJoin!.prepare(identity.player, identity.party, spawn);
+      session.request({
+        kind: "establish-party",
+        bindingId,
+        expectedSequence: identity.sequence,
+        records: plan.records,
+      });
+      const outcome = session.step(0)[0];
+      assert.equal(outcome?.accepted, true, `${bindingId}: ${outcome?.reason}`);
+    }
+  } finally {
+    port.dispose();
+  }
+});
+
 test("actual Colony water records commit with session and recover after failed SQL", () => {
   const db = new DatabaseSync(":memory:");
   let failRecord = false;

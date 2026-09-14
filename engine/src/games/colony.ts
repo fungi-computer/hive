@@ -28,7 +28,7 @@ import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
-import { createColonyPartyPlan } from "./colony-party";
+import { colonyPartyFootprint, createColonyPartyPlan } from "./colony-party";
 import { encodeEnvironmentDefinition } from "../sdk/environment";
 import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
@@ -339,7 +339,7 @@ export const colonyPack: GamePack = {
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
   partyJoin: Object.freeze({
-    footprint: Object.freeze([[0, 0], [2, 0], [0, 2]] as const),
+    footprint: colonyPartyFootprint,
     prepare: (player, party, spawn) => {
       const plan = createColonyPartyPlan(player, party, spawn);
       return Object.freeze({ records: plan.records, people: plan.people });

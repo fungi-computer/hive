@@ -12,7 +12,7 @@ export type ColonyPartyPlan = Readonly<{
   people: readonly [EntityId, EntityId];
   records: readonly EntityRecord[];
 }>;
-export const colonyPartyFootprint = Object.freeze([[0, 0], [2, 0], [0, 2]] as const);
+export const colonyPartyFootprint = Object.freeze([[0, 0], [2, 0], [4, 0]] as const);
 
 const workerLooks = [
   { sprite: "colony.rowan", label: "Rowan" },

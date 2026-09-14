@@ -324,12 +324,17 @@ export class GameSession {
     }
     const vertical = this.terrainPresentation?.verticalMetres() ?? null;
     if (!vertical) return null;
+    const occupied = this.port.query(query(Position)).map((row) => row.get(Position));
     for (const [x, z] of candidates) {
       if (offsets.some(([ox, oz]) => !Number.isSafeInteger(ox) || !Number.isSafeInteger(oz) || Math.abs(ox) > 8 || Math.abs(oz) > 8)) throw new Error("spawn-footprint-invalid");
       const cells = offsets.map(([ox, oz]) => [x + ox, 0, z + oz] as [number, number, number]);
       const surfaces = this.port.terrainSurfaces(cells.map(([cx,,cz]) => [cx,cz] as [number,number]));
       const surface = surfaces[0];
       if (!surface) continue;
+      const planned = offsets.map(([ox, oz]) => ({ x: x + ox, z: z + oz }));
+      if (planned.some((point) => occupied.some((position) =>
+        Math.abs(position.x - point.x) < 0.75 && Math.abs(position.z - point.z) < 0.75))) continue;
+      if (surfaces.some((candidate) => candidate?.cell[1] !== surface.cell[1])) continue;
       const points = surfaces.map((s, i) => s ? [s.cell, [s.cell[0], s.cell[1] + 1, s.cell[2]]] : null).filter(Boolean).flat() as [number,number,number][];
       if (surfaces.some(s => !s)) continue;
       const contacts = this.port.physicalContacts(points);
