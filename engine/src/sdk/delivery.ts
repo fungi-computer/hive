@@ -468,11 +468,23 @@ export function deliveryProvider(
         }
         const activity = attempt.phase.activity;
         if (activity.kind === "route") {
-          // Draft is an intent boundary. A completed route has no physical
-          // delivery effect to reconcile, so retain its terminal outcome until
-          // the holder is undrafted instead of starting another operation.
-          if (suspendedActors.has(attempt.worker)) continue;
-          if (lot.container === attempt.worker)
+          // A route outcome is complete and can be acknowledged even when the
+          // worker is drafted. Preserve any real lot custody first, then leave
+          // the worker immediately available for manual control.
+          if (suspendedActors.has(attempt.worker)) {
+            reconcileLotCustody();
+            acknowledgeWorkAttempt(ctx, attempt.key, sequence);
+            continue;
+          }
+          if (lot.container === attempt.worker) {
+            // Pickup is already committed. Persist held custody in the same
+            // authored candidate that admits the destination route.
+            if (state.custody !== "held")
+              ctx.write(DeliveryTask, id, {
+                ...state,
+                custody: "held",
+                ground: null,
+              });
             continueMaterialTransferAttempt(
               ctx,
               attempt.key,
@@ -482,7 +494,7 @@ export function deliveryProvider(
               state.destination,
               state.quantity,
             );
-          else
+          } else
             continueMaterialTransferAttempt(
               ctx,
               attempt.key,
