@@ -9,28 +9,167 @@ import type { QueryRow, QuerySpec, WriteContext } from "../contracts";
 const worker = "worker.builder" as const;
 const site = "site.floor" as const;
 const party = "party.colony" as const;
-const row = (id: string, values: Record<string, unknown>): QueryRow<any> => ({ id, get: (d: {id:string}) => values[d.id] } as QueryRow<any>);
-function fixture() {
+const row = (id: string, values: Record<string, unknown>): QueryRow<any> =>
+  ({ id, get: (d: { id: string }) => values[d.id] }) as QueryRow<any>;
+function fixture(attempts: readonly any[] = []) {
   const records = [
-    row(site, { [ConstructionSite.id]: { catalog:"floor", x:1, y:0, z:1, orientation:"north", worker:null, seconds:1, phase:"planned" }, [OwnedByParty.id]: { party } }),
-    row(worker, { [PartyMember.id]: { party }, [Body.id]: { speed:1 }, [Container.id]: { capacity:8 }, [Traversal.id]: { clearanceCells:1,maxStepCells:1 }, [Position.id]: { x:0,y:0.5,z:0,facing:0 } }),
+    row(site, {
+      [ConstructionSite.id]: {
+        catalog: "floor",
+        x: 1,
+        y: 0,
+        z: 1,
+        orientation: "north",
+        worker: null,
+        seconds: 1,
+        phase: "planned",
+      },
+      [OwnedByParty.id]: { party },
+    }),
+    row(worker, {
+      [PartyMember.id]: { party },
+      [Body.id]: { speed: 1 },
+      [Container.id]: { capacity: 8 },
+      [Traversal.id]: { clearanceCells: 1, maxStepCells: 1 },
+      [Position.id]: { x: 0, y: 0.5, z: 0, facing: 0 },
+    }),
   ];
   const actions: unknown[] = [];
   const base = {
-    query: (spec: QuerySpec<any>) => records.filter(r => spec.components.every(c => r.get(c) !== undefined)),
-    constructionAccess: () => [{ site, support:"ready", materialsReady:true, contacts:[{x:1,y:0.5,z:1,frame:null,kind:"origin" as const}], removal:"ready" as const, salvageQuantity:0, workSeconds:1 }],
-    worldPoses: () => [{ id:worker, local:{x:0,y:0.5,z:0,facing:0}, world:{x:0,y:0.5,z:0,facing:0}, support:null, surface:null }],
-    routeToAny: () => ({ actor:worker, status:"reachable" as const, targetIndex:0, cost:1 }),
-    workAttempts: () => [], assign: (x: any) => x, action: (x: unknown) => actions.push(x),
+    query: (spec: QuerySpec<any>) =>
+      records.filter((r) =>
+        spec.components.every((c) => r.get(c) !== undefined),
+      ),
+    constructionAccess: () => [
+      {
+        site,
+        support: "ready",
+        materialsReady: true,
+        contacts: [
+          { x: 1, y: 0.5, z: 1, frame: null, kind: "origin" as const },
+        ],
+        removal: "ready" as const,
+        salvageQuantity: 0,
+        workSeconds: 1,
+      },
+    ],
+    worldPoses: () => [
+      {
+        id: worker,
+        local: { x: 0, y: 0.5, z: 0, facing: 0 },
+        world: { x: 0, y: 0.5, z: 0, facing: 0 },
+        support: null,
+        surface: null,
+      },
+    ],
+    routeToAny: () => ({
+      actor: worker,
+      status: "reachable" as const,
+      targetIndex: 0,
+      cost: 1,
+    }),
+    workAttempts: () => attempts,
+    assign: (x: any) => x,
+    action: (x: unknown) => actions.push(x),
   } as unknown as WriteContext;
   return { base, actions };
 }
 test("construction provider begins one owned route attempt for a planned site", () => {
-  const f=fixture(); const p=constructionWorkProvider(f.base,{workers:[worker]},new Set());
-  assert.equal(p.candidates.length,1); p.estimate(p.candidates[0]); p.apply([{worker,task:site,cost:1}]);
-  assert.deepEqual(f.actions,[{kind:"begin-work-attempt",task:site,worker,party,operation:{kind:"route",destination:{x:1,y:0.5,z:1,frame:null}}}]);
+  const f = fixture();
+  const p = constructionWorkProvider(f.base, { workers: [worker] }, new Set());
+  assert.equal(p.candidates.length, 1);
+  p.estimate(p.candidates[0]);
+  p.apply([{ worker, task: site, cost: 1 }]);
+  assert.deepEqual(f.actions, [
+    {
+      kind: "begin-work-attempt",
+      task: site,
+      worker,
+      party,
+      operation: {
+        kind: "route",
+        destination: { x: 1, y: 0.5, z: 1, frame: null },
+      },
+    },
+  ]);
 });
 test("construction provider rejects cross-party workers", () => {
-  const f=fixture(); const rows=f.base.query; (f.base as any).query=(spec: QuerySpec<any>) => rows(spec).map(r => r.id===worker ? row(worker,{ [PartyMember.id]:{party:"other"},[Body.id]:{speed:1},[Container.id]:{capacity:8},[Traversal.id]:{clearanceCells:1,maxStepCells:1},[Position.id]:{x:0,y:0.5,z:0,facing:0}}) : r);
-  assert.equal(constructionWorkProvider(f.base,{workers:[worker]},new Set()).candidates.length,0);
+  const f = fixture();
+  const rows = f.base.query;
+  (f.base as any).query = (spec: QuerySpec<any>) =>
+    rows(spec).map((r) =>
+      r.id === worker
+        ? row(worker, {
+            [PartyMember.id]: { party: "other" },
+            [Body.id]: { speed: 1 },
+            [Container.id]: { capacity: 8 },
+            [Traversal.id]: { clearanceCells: 1, maxStepCells: 1 },
+            [Position.id]: { x: 0, y: 0.5, z: 0, facing: 0 },
+          })
+        : r,
+    );
+  assert.equal(
+    constructionWorkProvider(f.base, { workers: [worker] }, new Set())
+      .candidates.length,
+    0,
+  );
+});
+
+test("completed native route is acknowledged before one construction attendance", () => {
+  const attempt = {
+    key: { task: site, generation: 1 },
+    worker,
+    party,
+    phase: {
+      kind: "outcome",
+      operation: { attempt: { task: site, generation: 1 }, sequence: 1 },
+      activity: {
+        kind: "route",
+        destination: { x: 1, y: 0.5, z: 1, frame: null },
+      },
+      result: { kind: "completed" },
+    },
+  };
+  const f = fixture([attempt]);
+  constructionWorkProvider(f.base, { workers: [worker] }, new Set()).progress();
+  assert.deepEqual(f.actions, [
+    {
+      kind: "acknowledge-work-attempt",
+      task: site,
+      generation: 1,
+      sequence: 1,
+    },
+    {
+      kind: "bind-construction-stage",
+      site,
+      contact: { x: 1, y: 0.5, z: 1, frame: null },
+    },
+  ]);
+});
+
+test("invalidated executing contact interrupts the exact native attempt and leaves the site claim", () => {
+  const attempt = {
+    key: { task: site, generation: 2 },
+    worker,
+    party,
+    phase: {
+      kind: "executing",
+      operation: { attempt: { task: site, generation: 2 }, sequence: 1 },
+      activity: {
+        kind: "route",
+        destination: { x: 9, y: 0.5, z: 9, frame: null },
+      },
+    },
+  };
+  const f = fixture([attempt]);
+  constructionWorkProvider(f.base, { workers: [worker] }, new Set()).progress();
+  assert.deepEqual(f.actions, [
+    {
+      kind: "interrupt-work-attempt",
+      task: site,
+      generation: 2,
+      sequence: 1,
+      cause: "accessLost",
+    },
+  ]);
 });
