@@ -3,6 +3,14 @@ import * as THREE from "three";
 
 const PIXELS_PER_UNIT = 16 * Math.SQRT2;
 
+/** Unit vector from the shared art camera target toward the camera. */
+export function towardCamera(targetY = 1.03) {
+  const vector = { x: 12, y: Math.sqrt(288) * Math.tan(Math.PI / 6), z: 12 };
+  vector.y += targetY;
+  const length = Math.hypot(vector.x, vector.y - targetY, vector.z);
+  return Object.freeze([vector.x / length, (vector.y - targetY) / length, vector.z / length]);
+}
+
 export function camera(width, height, targetY = 1.03, depth = 80) {
   const c = new THREE.OrthographicCamera(
     -width / PIXELS_PER_UNIT / 2,
