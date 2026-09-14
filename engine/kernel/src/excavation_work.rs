@@ -46,7 +46,9 @@ impl Kernel {
     }
 
     fn request_excavation_internal(&mut self, id: &str, work: ExcavationWork, admitted_attempt: bool) -> Result<()> {
-        let actor = self.entity(id)?;
+        let task_entity = self.entity(id)?;
+        let actor_id = self.ecs.get::<WorkAttempt>(task_entity).map(|attempt| attempt.worker.clone()).unwrap_or_else(|| id.to_owned());
+        let actor = self.entity(&actor_id)?;
         if self.ecs.get::<Body>(actor).is_none() {
             return Err("excavation needs a worker body".into());
         }
@@ -62,20 +64,22 @@ impl Kernel {
             || environment.world.material(cell(work))? != work.expected {
             return Err("excavation target is unavailable".into());
         }
-        if let Some(existing) = self.ecs.get::<ExcavationWork>(actor) {
+        if let Some(existing) = self.ecs.get::<ExcavationWork>(task_entity) {
             return if same_target(*existing, work) { Ok(()) } else { Err("worker already has excavation work".into()) };
         }
         let added = self.registry.weight("hive.excavation-work", &record(&work));
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        self.ecs.entity_mut(actor).insert(work);
+        self.ecs.entity_mut(task_entity).insert(work);
         self.state_weight += added;
         Ok(())
     }
 
     pub(super) fn validate_excavation_work(&mut self) -> Result<()> {
-        let mut query = self.ecs.query::<(Entity, &ExcavationWork)>();
-        let saved: Vec<_> = query.iter(&self.ecs).map(|(entity, work)| (entity, *work)).collect();
-        for (actor, work) in saved {
+        let mut query = self.ecs.query::<(Entity, &ExternalId, &ExcavationWork)>();
+        let saved: Vec<_> = query.iter(&self.ecs).map(|(entity, id, work)| (entity, id.0.clone(), *work)).collect();
+        for (task_entity, task_id, work) in saved {
+            let actor_id = self.ecs.get::<WorkAttempt>(task_entity).map(|attempt| attempt.worker.clone()).unwrap_or(task_id);
+            let actor = self.entity(&actor_id)?;
             if self.ecs.get::<Body>(actor).is_none() {
                 return Err("saved excavation lacks worker capabilities".into());
             }
@@ -97,14 +101,19 @@ impl Kernel {
         let mut pending: Vec<_> = query.iter(&self.ecs).map(|(id, work)| (id.0.clone(), *work)).collect();
         pending.sort_by(|a, b| a.0.cmp(&b.0));
         for (id, mut work) in pending {
-            let actor = self.entity(&id)?;
+            let task_entity = self.entity(&id)?;
+            if let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) {
+                if !matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Excavation { .. }, .. }) { continue; }
+            }
+            let actor_id = self.ecs.get::<WorkAttempt>(task_entity).map(|attempt| attempt.worker.clone()).unwrap_or(id.clone());
+            let actor = self.entity(&actor_id)?;
             // Routing retains saved work but earns no effort while travelling.
             if self.direct.contains_key(&actor) || self.ecs.get::<Destination>(actor).is_some() { continue; }
             let pose = self.world_pose_entity(actor, 0)?;
             if self.terrain_support_occupied(cell(work))? || self.terrain_support_reserved(cell(work)) { continue; }
             let environment = self.environment.as_mut().ok_or("saved work needs environment")?;
             if environment.world.material(cell(work))? != work.expected {
-                self.ecs.entity_mut(actor).remove::<ExcavationWork>();
+                self.ecs.entity_mut(task_entity).remove::<ExcavationWork>();
                 self.refresh_state_weight();
                 continue;
             }
@@ -113,7 +122,7 @@ impl Kernel {
             let spacing = environment.world.cell_spacing_m();
             if !within_reach([pose.x, pose.y, pose.z], cell(work), spacing) || self.ecs.get::<Support>(actor).is_some() { continue; }
             work.seconds = super::earned_work_seconds(work.seconds, delta, required)?;
-            self.ecs.entity_mut(actor).insert(work);
+            self.ecs.entity_mut(task_entity).insert(work);
             if work.seconds < required { continue; }
             let prepared = match self.environment.as_mut().unwrap().world.prepare_excavation(cell(work), work.expected, work.replacement)? {
                 ExcavationResult::Prepared(prepared) => prepared,
@@ -122,8 +131,13 @@ impl Kernel {
             // Capacity/geometry admission failure leaves earned work available for retry.
             match self.complete_excavation_at(prepared, material_output::MaterialOutputLocation::Ground(Position { x: pose.x, y: pose.y, z: pose.z, facing: pose.facing })) {
                 Ok(Some(_)) => {
-                    self.ecs.entity_mut(actor).remove::<ExcavationWork>();
+                    self.ecs.entity_mut(task_entity).remove::<ExcavationWork>();
                     self.refresh_state_weight();
+                    if let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity).cloned() {
+                        if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                            self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Completed })?;
+                        }
+                    }
                 }
                 Ok(None) => {},
                 Err(reason) if reason == "material output exceeds container capacity"

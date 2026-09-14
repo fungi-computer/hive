@@ -4025,7 +4025,7 @@ impl Kernel {
                 if let AttemptPhase::Executing { activity, .. } = attempt.phase {
                     match activity {
                         crate::work_attempt::ActivityRef::Excavation { .. } => {
-                            if self.ecs.get::<ExcavationWork>(entity).is_some() { self.ecs.entity_mut(entity).remove::<ExcavationWork>(); }
+                            if let Some(attempt_entity) = self.work_attempts.get(&task).copied() { if self.ecs.get::<ExcavationWork>(attempt_entity).is_some() { self.ecs.entity_mut(attempt_entity).remove::<ExcavationWork>(); } }
                         }
                         crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
                             if let Ok(process_entity) = self.entity(&process) { if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() { if state.phase == ProcessPhase::Working { self.ecs.entity_mut(process_entity).insert(StagedProcess { phase: ProcessPhase::Waiting, worker: None, ..state }); } } }
@@ -4157,7 +4157,7 @@ impl Kernel {
         }
         if let crate::work_attempt::ActivityRef::Excavation { cell, expected_material, replacement_material } = next_activity.clone() {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.request_excavation_for_attempt(&current.worker, ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 })?;
+            self.request_excavation_for_attempt(&task, ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 })?;
             self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
             return Ok(());
         }
