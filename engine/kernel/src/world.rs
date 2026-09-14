@@ -4177,8 +4177,19 @@ impl Kernel {
         }
         if let crate::work_attempt::ActivityRef::ResourceExtract { source } = next_activity.clone() {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.extract_resource(&current.worker, &source)?;
-            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            match self.extract_resource(&current.worker, &source) {
+                Ok(_) => self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?,
+                Err(reason) => {
+                    let block = if reason == "finite resource is exhausted" { Some(WorkBlockReason::MissingInputs) }
+                        else if reason == "resource extraction requires a worker body" { Some(WorkBlockReason::WorkerUnavailable) }
+                        else if reason == "out of reach" { Some(WorkBlockReason::AccessLost) }
+                        else if reason == "material output exceeds container capacity" || reason == "region entity capacity" || reason == "region canonical state capacity" { Some(WorkBlockReason::CapacityUnavailable) }
+                        else { None };
+                    if let Some(block) = block {
+                        self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason: block } })?;
+                    } else { return Err(reason); }
+                }
+            }
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::FieldWater { vessel, cell, direction, portions } = next_activity.clone() {
