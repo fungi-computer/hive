@@ -34,7 +34,7 @@ import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
-import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext } from "../contracts";
+import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext, GameCommandContext } from "../contracts";
 
 export { Worker } from "./colony-components";
 export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
@@ -174,7 +174,7 @@ const colonyInitial = [
   } }]),
 ];
 
-type CommandContext = Pick<ReadContext, "query">;
+type CommandContext = Pick<GameCommandContext, "query" | "scope">;
 
 const goInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
@@ -497,6 +497,9 @@ export const colonyPack: GamePack = {
           const worker = row.get(ConstructionSite).worker;
           return worker === null ? [] : [worker];
         }));
+        const participation = new Map(context.query(query(WorkParticipation)).map(row => [row.id, row.get(WorkParticipation)]));
+        if (selected.some(worker => participation.get(worker)?.automatic !== false))
+          throw new Error("go requires drafted workers");
         return {
           actions: selected.flatMap(worker => (excavating.has(worker) || building.has(worker)) ? [cancelWork(worker)] : [])
             .concat(selected.map(worker => {
@@ -504,8 +507,30 @@ export const colonyPack: GamePack = {
               if (!position) throw new Error("selected worker position is unavailable");
               return moveAction(worker, parsed.destination, position.facing);
             })),
-          writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })),
+          writes: [],
         };
+      },
+    }),
+    draft: command({
+      title: "Draft workers", category: "Colony", description: "Draft selected workers for manual control.",
+      localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities" }] },
+      input: workerSelectionInput,
+      reads: [Worker, WorkParticipation],
+      writes: [WorkParticipation],
+      run: (context, input) => {
+        const selected = selectedWorkers(context, input.entities);
+        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
+      },
+    }),
+    undraft: command({
+      title: "Undraft workers", category: "Colony", description: "Return selected workers to automatic work.",
+      localPresentation: { bindings: [{ id: "undraft", label: "Undraft", selection: "entities" }] },
+      input: workerSelectionInput,
+      reads: [Worker, WorkParticipation],
+      writes: [WorkParticipation],
+      run: (context, input) => {
+        const selected = selectedWorkers(context, input.entities);
+        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
       },
     }),
     resumeWork: command({

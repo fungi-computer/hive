@@ -39,6 +39,7 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
 
     const destination = port.terrainSurfaces([[2, 0]])[0];
     assert(destination, "native terrain must provide a reachable Go destination");
+    session.command("draft", { entities: [worker] });
     session.command("go", {
       entities: [worker],
       destination: { x: 2, y: (destination.cell[1] + 0.5) * 0.54, z: 0, frame: null },
@@ -82,6 +83,7 @@ test("Colony Go cancels active digging without losing the order or terrain", () 
   const other = entity("colony.worker.2");
   try {
     session.start();
+    session.command("draft", { entities: [other] });
     session.command("go", { entities: [other], destination: { x: 0, y: 0, z: 2, frame: null } });
     session.step(0);
     session.command("dig", { area: { start: [1, 13, 0], end: [1, 13, 0] } });
@@ -97,6 +99,7 @@ test("Colony Go cancels active digging without losing the order or terrain", () 
     const before = port.terrainMaterials([[1, 13, 0]])[0];
     const surface = port.terrainSurfaces([[2, 0]])[0];
     assert(surface);
+    session.command("draft", { entities: [worker] });
     session.command("go", { entities: [worker], destination: { x: 2, y: (surface.cell[1] + 0.5) * 0.54, z: 0, frame: null } });
     session.step(0.1);
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, false);

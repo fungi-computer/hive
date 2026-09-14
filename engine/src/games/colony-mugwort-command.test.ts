@@ -24,6 +24,7 @@ function context(options: {
 } = {}) {
   const material = options.material ?? 1;
   return {
+    scope: { kind: "host" as const },
     physicalContacts: () => [],
     terrainMaterials: () => [material],
     terrainSurfaces: () => [{ cell: [cell[0], cell[1], cell[2]] as [number, number, number], material, generatedTop: cell[1] }],
