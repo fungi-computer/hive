@@ -38,5 +38,17 @@ export function resolveStaticVisual(art, binding, facing = 0, frame = 0) {
   } else if (binding.frames !== undefined) {
     throw new Error("static visual frames flag must be boolean");
   }
-  return { texture: value, anchor: art?.[binding.anchor], path: resolvedPath };
+  const owner = JSON.stringify(resolvedPath);
+  const parts = art?.partsByOwner?.get(owner);
+  return { texture: value, ...(parts?.length ? { parts } : {}), anchor: art?.[binding.anchor], path: resolvedPath };
+}
+
+/** Resolve one owner into sibling render fragments while preserving its ID. */
+export function resolveStaticVisualParts(art, binding, facing = 0, frame = 0) {
+  const resolved = resolveStaticVisual(art, binding, facing, frame);
+  if (!resolved) return undefined;
+  // Ordinary art retains the established single Sprite/container lifecycle;
+  // only an owner with authored part declarations becomes siblings.
+  if (!resolved.parts?.length) return resolved;
+  return Object.freeze({ ...resolved, parts: Object.freeze([...resolved.parts]) });
 }

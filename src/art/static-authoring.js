@@ -153,6 +153,17 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         width: canvas.width,
         height: canvas.height,
         ...(art.placementByTexture.get(item.texture) ? { placement: art.placementByTexture.get(item.texture) } : {}),
+        ...(art.partByTexture?.get(item.texture) ? {
+          part: (() => {
+            const descriptor = art.partByTexture.get(item.texture);
+            return {
+              id: descriptor.id,
+              owner: descriptor.owner,
+              role: descriptor.role,
+              geometry: descriptor.geometry,
+            };
+          })(),
+        } : {}),
         silhouette: serializedSilhouette(
           item.texture,
           canvas.width,
