@@ -356,13 +356,14 @@ export const colonyPack: GamePack = {
         ? { status: "available" } : { status: "unavailable", reason: "No finished construction is available to deconstruct." },
       subjects: context => context.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase === "finished").map(row => row.id),
       input: z.object({ site: z.string().min(1).max(128) }).strict(),
-      reads: [ConstructionSite, DeconstructionOrder], writes: [], lifecycle: [DeconstructionOrder],
+      reads: [ConstructionSite, DeconstructionOrder, OwnedByParty], writes: [], lifecycle: [DeconstructionOrder],
       run(context, input) {
         const site = context.query(query(ConstructionSite)).find((row) => row.id === input.site);
         if (!site) throw new Error("Unknown construction site");
         if (site.get(ConstructionSite).phase !== "finished") throw new Error("Construction site is not finished");
         if (context.query(query(DeconstructionOrder)).some((row) => row.get(DeconstructionOrder).site === input.site)) return { creates: [], actions: [], writes: [] };
-        return { creates: [queueDeconstruction(entity(input.site))], actions: [], writes: [] };
+        const record = queueDeconstruction(entity(input.site));
+        return { creates: [{ ...record, components: { ...record.components, ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}) } }], actions: [], writes: [] };
       },
     }),
     designateStockpile: colonyStockpileCommand,
@@ -526,11 +527,11 @@ export const colonyPack: GamePack = {
       localPresentation: { bindings: [{ id: "designate-trees", label: "Fell selected trees", selection: "entities" }] },
       subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing").map(row => row.id),
       input: treeSelectionInput,
-      reads: [ColonyTree], writes: [ColonyTreePolicy],
+      reads: [ColonyTree, OwnedByParty], writes: [ColonyTreePolicy, OwnedByParty],
       run(context, input) {
         const selected = new Set(input.entities);
         const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
-        const writes = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing").map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }));
+        const writes = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing").flatMap(row => [{ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }, ...(context.scope.kind === "player" ? [{ component: OwnedByParty.id, entity: row.id, value: { party: context.scope.party } }] : [])]);
         if (!writes.length) throw new Error("no standing trees selected");
         return { actions: [], writes };
       },
