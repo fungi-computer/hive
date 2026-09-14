@@ -9,8 +9,40 @@ fn plan() -> Value {
  {"id":"party:1:storage","components":{"hive.position":{"x":0.0,"y":0.0,"z":2.0,"facing":0.0},"hive.container":{"capacity":8},"hive.owned-by-party":{"party":"party:1"}}}
     ])
 }
-fn request(binding: &str, player: &str, party: &str, records: Value) -> Value {
-    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"establish-party","bindingId":binding,"player":player,"party":party,"records":records}}]})
+fn request(binding: &str, records: Value) -> Value {
+    request_sequence(binding, 1, records)
+}
+fn request_sequence(binding: &str, sequence: u64, records: Value) -> Value {
+    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"establish-party","bindingId":binding,"expectedSequence":sequence,"records":records}}]})
+}
+
+#[test]
+fn party_sequence_exhaustion_is_atomic_before_spawn() {
+    let max = u64::MAX;
+    let mut kernel = Kernel::new();
+    kernel.load(&json!({"format":"hive-game","version":1,"game":"party-max","components":[],"initial":[]}).to_string()).unwrap();
+    let saved = kernel.snapshot_json().unwrap().replace("\"next_party_sequence\":1", &format!("\"next_party_sequence\":{max}"));
+    kernel.restore_json(&saved).unwrap();
+    let records: Value = serde_json::from_str(&plan().to_string().replace("party:1", &format!("party:{max}")).replace("player:1", &format!("player:{max}"))).unwrap();
+    let mut before: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+    before.as_object_mut().unwrap().remove("revision");
+    assert!(!accepted(&mut kernel, request_sequence("bind:max", max, records)));
+    let mut after: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+    after.as_object_mut().unwrap().remove("revision");
+    assert_eq!(after, before);
+}
+
+#[test]
+fn party_join_identity_is_native_and_replay_stable() {
+    let mut kernel = Kernel::new();
+    kernel.load(&json!({"format":"hive-game","version":1,"game":"party-query","components":[],"initial":[]}).to_string()).unwrap();
+    let available: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
+    assert_eq!((available["status"].as_str(), available["sequence"].as_u64(), available["player"].as_str(), available["party"].as_str()), (Some("available"), Some(1), Some("player:1"), Some("party:1")));
+    assert!(accepted(&mut kernel, request("binding:a", plan())));
+    let existing: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
+    assert_eq!((existing["status"].as_str(), existing["sequence"].as_u64(), existing["player"].as_str(), existing["party"].as_str()), (Some("existing"), Some(1), Some("player:1"), Some("party:1")));
+    let next: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:b\"").unwrap()).unwrap();
+    assert_eq!((next["status"].as_str(), next["sequence"].as_u64(), next["player"].as_str(), next["party"].as_str()), (Some("available"), Some(2), Some("player:2"), Some("party:2")));
 }
 fn accepted(kernel: &mut Kernel, input: Value) -> bool {
     serde_json::from_str::<Value>(&kernel.advance_json(&input.to_string()).unwrap()).unwrap()["results"][0]["accepted"] == true
@@ -24,7 +56,7 @@ fn party_batch(party: &str, request: Value) -> Value {
 fn prepared_party_replay_and_mismatches_are_atomic() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":1,"game":"party","components":[],"initial":[]}).to_string()).unwrap();
-    assert!(accepted(&mut kernel, request("bind:1", "player:1", "party:1", plan())));
+    assert!(accepted(&mut kernel, request("bind:1", plan())));
     let party = kernel.entity("party:1").unwrap();
     let receipt = kernel.ecs.get::<PartyReceipt>(party).unwrap();
     assert_eq!((receipt.binding_id.as_str(), receipt.player.as_str(), receipt.party.as_str()), ("bind:1", "player:1", "party:1"));
@@ -34,10 +66,10 @@ fn prepared_party_replay_and_mismatches_are_atomic() {
     let count = kernel.known.len();
     let saved = kernel.save_records().unwrap();
     let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
-    assert!(accepted(&mut restored, request("bind:1", "player:1", "party:1", plan())));
+    assert!(accepted(&mut restored, request("bind:1", plan())));
     assert_eq!(restored.known.len(), count);
     let mut changed = plan(); changed[2]["components"]["hive.position"]["x"] = json!(3.0);
-    for input in [request("bind:1", "player:1", "party:1", changed), request("bind:2", "player:1", "party:1", plan()), request("bind:1", "player:2", "party:1", plan())] {
+    for input in [request("bind:1", changed), request("bind:2", plan())] {
         let before = restored.save_records().unwrap().entities;
         assert!(!accepted(&mut restored, input));
         assert_eq!(restored.known.len(), count);
@@ -50,7 +82,7 @@ fn prepared_party_replay_and_mismatches_are_atomic() {
 fn scoped_authored_creation_attaches_party_ownership_atomically() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":1,"game":"party-create","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"initial":[]}).to_string()).unwrap();
-    assert!(accepted(&mut kernel, request("bind:1", "player:1", "party:1", plan())));
+    assert!(accepted(&mut kernel, request("bind:1", plan())));
     let batch = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
     assert!(kernel.advance_json(&batch.to_string()).is_ok());
     let order = kernel.entity("order:1").unwrap();

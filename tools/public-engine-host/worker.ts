@@ -30,7 +30,6 @@ import {
   readSocketMessage,
   socketHandleFromPath,
 } from "./protocol";
-import { createColonyPartyPlan, colonyPartyFootprint } from "../../engine/src/games/colony-party";
 import { entity } from "../../engine/src/sdk/authoring";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
@@ -41,6 +40,7 @@ type Environment = {
   IMPLEMENTATION_HASH: string;
   PUBLIC_ORIGIN: string;
   TEST_FAILURE_AFTER_JOIN?: string;
+  TEST_DROP_JOIN_RESPONSE?: string;
 };
 type HostRow = {
   singleton: number;
@@ -575,10 +575,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return this.serial(() => this.commandExclusive(input, now));
   }
 
-  private async commandExclusive(input: PublicCommandInput, now: number, principal = `${this.pack}-player`) {
+  private async commandExclusive(input: PublicCommandInput, now: number, principal = `${this.pack}-player`, inTransaction = false) {
     if (commandKind(input) === "step") throw new Error("public-step-forbidden");
     try {
-      const result = await this.inTransaction(async () => {
+      const operation = async () => {
         const committed = this.region.readCommitted();
         this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
         const receipt = this.region.dispatch(principal, input);
@@ -614,8 +614,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const armed = this.nextDue(next, now) ?? next;
         await this.arm(armed);
         return { receipt, row: armed };
-      });
-      this.resident.accept(this.region.readCommitted().revision);
+      };
+      const result = inTransaction ? await operation() : await this.inTransaction(operation);
+      if (!inTransaction) this.resident.accept(this.region.readCommitted().revision);
       return result;
     } catch (error) {
       try { this.resident.discard(); } catch {}
@@ -647,20 +648,19 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         if (!world) this.owner.sql.exec("INSERT INTO hive_public_world VALUES (1,?,?,?)", this.worldHandle!, "colony", inviteHash);
         const existing = this.participant(credentialHash);
         if (existing) return { binding: existing, created: false };
-        const player = `player-${credentialHash.slice(0, 24)}`;
-        const party = entity(`party-${credentialHash.slice(0, 24)}`);
-        const committed = this.region.readCommitted();
-        const spawn = this.resident.findSafeSpawn(committed.revision, committed.state, this.residentRecords(committed.revision), colonyPartyFootprint);
-        if (!spawn) throw new Error("spawn-unavailable");
-        const plan = createColonyPartyPlan(player, party, spawn);
-        const command = { id: `join:${credentialHash}`, command: { kind: "action", action: { kind: "establish-party", bindingId: credentialHash.slice(0, 96), player, party, records: plan.records } } };
-        this.resident.begin(this.region.readCommitted().revision, this.region.readCommitted().state, this.residentRecords(this.region.readCommitted().revision));
-        this.region.dispatch("colony-host", command);
+        const bindingId = await sha256Hex(`hive:colony:join:${this.worldHandle}:${credentialHash}`);
+        const command = { id: `join:${bindingId}`, command: { kind: "join-party", credentialBindingId: bindingId } };
+        const result = await this.commandExclusive(command, now, "colony-host", true);
         if (this.hostEnv.TEST_FAILURE_AFTER_JOIN === "1") throw new Error("test-join-injected-failure");
+        const join = (result.receipt.result as { results?: unknown }).results;
+        if (!join || typeof join !== "object" || !Array.isArray((join as { people?: unknown }).people) || typeof (join as { player?: unknown }).player !== "string" || typeof (join as { party?: unknown }).party !== "string") throw new Error("public-party-join-result");
+        const player = (join as { player: string }).player;
+        const party = entity((join as { party: string }).party);
         this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, principal, player, party);
         return { binding: { credential_hash: credentialHash, principal, player_id: player, party_id: party } satisfies ParticipantRow, created: true };
       });
       if (result.created) this.resident.accept(this.region.readCommitted().revision);
+      if (result.created && this.hostEnv.TEST_DROP_JOIN_RESPONSE === "1") throw new Error("test-join-response-lost");
       await this.renewLeaseExclusive(now);
       return { player: result.binding.player_id, party: result.binding.party_id, people: [ `${result.binding.party_id}.person.0`, `${result.binding.party_id}.person.1` ] };
       } catch (error) {

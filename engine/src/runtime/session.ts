@@ -71,7 +71,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 9;
+  readonly version: 10;
   readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
@@ -277,6 +277,9 @@ export class GameSession {
   get isPaused(): boolean {
     this.ensureLive();
     return this.paused;
+  }
+  partyJoinIdentity(bindingId: string) {
+    return this.port.partyJoinIdentity(bindingId);
   }
   get simulationTime(): number {
     this.ensureLive();
@@ -976,7 +979,7 @@ export class GameSession {
     this.ensureLive();
     return {
       format: "hive-session",
-      version: 9,
+      version: 10,
       cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
@@ -1005,7 +1008,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 9 ||
+      snapshot.version !== 10 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||

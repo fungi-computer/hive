@@ -30,6 +30,7 @@ import type {
   WriteIntent,
   EntityRecord,
   MoveDestination,
+  PartyJoinIdentity,
 } from "../contracts";
 import { ASSIGNMENT_MAX_EDGES, checkedAssignments } from "../sdk/assignment";
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
@@ -60,6 +61,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   work_material_snapshot(): string;
   work_attempts(json: string): string;
   work_attempt_for_worker(json: string): string;
+  party_join_identity(json: string): string;
   process_requirements(json: string): string;
   entity_membership(json: string): string;
   advance(json: string): string;
@@ -84,6 +86,12 @@ const workAttemptWireSchema = z.object({
   party: entityIdWireSchema,
   phase: z.object({ kind: z.enum(["ready", "executing", "outcome", "settling"]) }).passthrough(),
 }).passthrough();
+const partyJoinIdentitySchema = z.object({
+  status: z.enum(["existing", "available"]),
+  sequence: z.number().int().positive(),
+  player: entityIdWireSchema,
+  party: entityIdWireSchema,
+}).strict();
 const routeToAnyResultSchema = z.discriminatedUnion("status", [
   z
     .object({
@@ -626,6 +634,10 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       if (result === null) return null;
       if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error("invalid worker work attempt projection");
       return workAttemptWireSchema.parse(result) as WorkAttempt;
+    },
+    partyJoinIdentity(bindingId): PartyJoinIdentity {
+      const result = partyJoinIdentitySchema.parse(JSON.parse(binding.party_join_identity(JSON.stringify(bindingId))));
+      return result;
     },
     processRequirements(definition, station): ProcessRequirements {
       if (!entityIdWireSchema.safeParse(definition).success || !entityIdWireSchema.safeParse(station).success)

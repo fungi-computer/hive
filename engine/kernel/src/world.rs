@@ -1515,6 +1515,7 @@ pub struct Kernel {
     ground_stock_cleanup_pending: bool,
     bound_process_lots: BTreeSet<String>,
     next_work_generation: u64,
+    next_party_sequence: u64,
     work_attempts: BTreeMap<String, Entity>,
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
@@ -1542,6 +1543,18 @@ impl Kernel {
             let output = self.ecs.get::<FiniteResource>(*entity).unwrap();
             let mature = site.stage as usize == definition.stages.len();
             if output.kind != definition.output_kind || (!mature && output.quantity != 0) || (mature && output.quantity != 0 && output.quantity != definition.output_quantity) { return Err("saved resource site yield is invalid".into()); }
+        }
+        Ok(())
+    }
+    fn validate_party_receipts(&self) -> Result<()> {
+        let mut bindings = BTreeSet::new();
+        let mut players = BTreeSet::new();
+        let mut parties = BTreeSet::new();
+        for (id, entity) in &self.ids {
+            let Some(receipt) = self.ecs.get::<PartyReceipt>(*entity) else { continue; };
+            if id != &receipt.party || !bindings.insert(receipt.binding_id.clone()) || !players.insert(receipt.player.clone()) || !parties.insert(receipt.party.clone()) { return Err("invalid duplicate party receipt".into()); }
+            let sequence = id.strip_prefix("party:").and_then(|value| value.parse::<u64>().ok()).ok_or("invalid party receipt identity")?;
+            if sequence == 0 || sequence >= self.next_party_sequence || self.ecs.get::<Party>(*entity).map(|party| party.owner_player.as_str()) != Some(receipt.player.as_str()) { return Err("party receipt does not match party identity".into()); }
         }
         Ok(())
     }
@@ -1642,6 +1655,7 @@ impl Kernel {
             ground_stock_cleanup_pending: false,
             bound_process_lots: BTreeSet::new(),
             next_work_generation: 1,
+            next_party_sequence: 1,
             work_attempts: BTreeMap::new(),
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
@@ -2802,7 +2816,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 8,
+            version: 9,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -2822,6 +2836,7 @@ impl Kernel {
                 targets: targets.iter().cloned().collect(),
             }).collect(),
             next_work_generation: self.next_work_generation,
+            next_party_sequence: self.next_party_sequence,
             work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
@@ -2833,7 +2848,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 8
+            || state.version != 9
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -2899,7 +2914,7 @@ impl Kernel {
         candidate.next_lot = state.next_lot;
         candidate.next_projectile = state.next_projectile;
         candidate.next_impact = state.next_impact;
-        if state.next_work_generation == 0 || state.work_attempts.len() > 16384 {
+        if state.next_work_generation == 0 || state.next_party_sequence == 0 || state.work_attempts.len() > 16384 {
             return Err("invalid work attempt snapshot".into());
         }
         let mut attempts = BTreeMap::new();
@@ -2917,6 +2932,8 @@ impl Kernel {
             }
         }
         candidate.next_work_generation = state.next_work_generation;
+        candidate.next_party_sequence = state.next_party_sequence;
+        candidate.validate_party_receipts()?;
         for (task, attempt) in attempts {
             let entity = candidate.entity(&task)?;
             candidate.ecs.entity_mut(entity).insert(attempt.clone());
@@ -3723,6 +3740,21 @@ impl Kernel {
             .and_then(|entity| self.ecs.get::<WorkAttempt>(*entity));
         serde_json::to_string(&row).map_err(|e| e.to_string())
     }
+    pub fn party_join_identity_json(&self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        let binding_id: String = serde_json::from_str(input).map_err(|_| "invalid party join binding")?;
+        if !valid_id(&binding_id) { return Err("invalid party join binding".into()); }
+        let mut found = None;
+        for (party, entity) in &self.ids {
+            if let Some(receipt) = self.ecs.get::<PartyReceipt>(*entity) && receipt.binding_id == binding_id {
+                let sequence = party.strip_prefix("party:").and_then(|value| value.parse::<u64>().ok()).ok_or("invalid saved party identity")?;
+                if party != &receipt.party || self.ecs.get::<Party>(*entity).map(|value| value.owner_player.as_str()) != Some(receipt.player.as_str()) || found.is_some() { return Err("duplicate or corrupt party join binding".into()); }
+                found = Some((sequence, receipt.player.clone(), receipt.party.clone()));
+            }
+        }
+        if let Some((sequence, player, party)) = found { return serde_json::to_string(&serde_json::json!({"status":"existing","sequence":sequence,"player":player,"party":party})).map_err(|e| e.to_string()); }
+        serde_json::to_string(&serde_json::json!({"status":"available","sequence":self.next_party_sequence,"player":format!("player:{}", self.next_party_sequence),"party":format!("party:{}", self.next_party_sequence)})).map_err(|e| e.to_string())
+    }
     fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
         if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
         if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
@@ -3833,10 +3865,14 @@ impl Kernel {
         }
         Ok(())
     }
-    fn establish_party(&mut self, binding_id: String, player: String, party: String, records: Vec<EntityRecord>) -> Result<String> {
-        if !valid_id(&binding_id) || !valid_id(&player) || !valid_id(&party) || records.is_empty() || records.len() > 32 { return Err("invalid prepared party plan".into()); }
+    fn establish_party(&mut self, binding_id: String, expected_sequence: u64, records: Vec<EntityRecord>) -> Result<String> {
+        if !valid_id(&binding_id) || expected_sequence == 0 || records.is_empty() || records.len() > 32 { return Err("invalid prepared party plan".into()); }
+        let player = format!("player:{expected_sequence}");
+        let party = format!("party:{expected_sequence}");
         let digest = format!("{:x}", Sha256::digest(serde_json::to_vec(&records).map_err(|_| "invalid party plan encoding")?));
         if let Some(existing) = self.ids.get(&party).copied() { if let Some(receipt) = self.ecs.get::<PartyReceipt>(existing) { if receipt.binding_id == binding_id && receipt.player == player && receipt.party == party && receipt.digest == digest { return Ok(party); } } return Err("party binding replay mismatch".into()); }
+        if expected_sequence != self.next_party_sequence { return Err("party sequence is stale".into()); }
+        let next_sequence = self.next_party_sequence.checked_add(1).ok_or("party sequence exhausted")?;
         let mut ids = BTreeSet::new();
         for record in &records { if !valid_id(&record.id) || !ids.insert(record.id.clone()) || self.ids.contains_key(&record.id) { return Err("party plan identity conflict".into()); } }
         if !ids.contains(&party) { return Err("party plan lacks party entity".into()); }
@@ -3854,12 +3890,13 @@ impl Kernel {
         let party_entity = handles.iter().find(|(id, _)| id == &party).map(|(_, entity)| *entity).ok_or("party entity missing")?;
         self.ecs.entity_mut(party_entity).insert(PartyReceipt { binding_id, player, party: party.clone(), digest });
         for (id, entity) in handles { self.ids.insert(id.clone(), entity); self.known.insert(id); }
+        self.next_party_sequence = next_sequence;
         self.refresh_state_weight(); Ok(party)
     }
 
     fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
         match action {
-            Action::EstablishParty { binding_id, player, party, records } => self.establish_party(binding_id, player, party, records).map(ActionEffect::Entity),
+            Action::EstablishParty { binding_id, expected_sequence, records } => self.establish_party(binding_id, expected_sequence, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
