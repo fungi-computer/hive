@@ -4,6 +4,11 @@ import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
+import { query } from "../sdk/authoring";
+import { FiniteResource, MaterialLot } from "../sdk/common";
+import { Worker } from "./colony-components";
+import { ColonyTree } from "./colony-work";
+import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { createColonyPerformancePack } from "./colony-performance";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -59,6 +64,69 @@ test("32 and 100 worker presets sustain multiple real Colony steps", () => {
       session.start();
       for (let tick = 0; tick < 3; tick++) session.step(0.1);
       assert.equal(session.renderFacts().filter(fact => fact.visual === "colony.rowan" || fact.visual === "colony.sedge").length, workerCount);
+    } finally {
+      port.dispose();
+    }
+  }
+});
+
+function elapsedMs(run: () => void): number {
+  const start = process.hrtime.bigint();
+  run();
+  return Number(process.hrtime.bigint() - start) / 1_000_000;
+}
+
+test("sustained Colony workloads measure simulation, save, and observations", () => {
+  for (const workerCount of [32, 100] as const) {
+    const port = wasmKernelPort(new WasmKernel());
+    const session = new GameSession({ port, pack: createColonyPerformancePack(128, workerCount) });
+    const stepMs: number[] = [], saveMs: number[] = [], observationMs: number[] = [];
+    let recoveryError: string | undefined;
+    try {
+      session.start();
+      const workers = () => session.query(query(Worker));
+      const pailWorkers = () => {
+        const workerIds = new Set(workers().map(row => row.id));
+        return session.query(query(MaterialLot)).filter(row => {
+          const lot = row.get(MaterialLot);
+          return lot.kind === "pail" && workerIds.has(lot.container);
+        }).length;
+      };
+      const eligiblePails = pailWorkers();
+      if (eligiblePails > 16) {
+        for (let index = 0; index < eligiblePails; index++)
+          session.command("requestWater", {});
+      }
+      for (let tick = 0; tick < 90; tick++) {
+        try {
+          stepMs.push(elapsedMs(() => session.step(1)));
+          saveMs.push(elapsedMs(() => JSON.stringify(session.save())));
+          observationMs.push(elapsedMs(() => session.whistleObservation({ query: spec => session.query(spec) })));
+        } catch (error) {
+          recoveryError = `tick ${tick}: ${error instanceof Error ? error.message : String(error)}`;
+          break;
+        }
+      }
+      assert.equal(recoveryError, undefined, `sustained workload threw during step/save/observation: ${recoveryError}`);
+      assert.equal(workers().length, workerCount, "all performance actors remain retained");
+      const completedTrees = session.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase !== "standing").length;
+      const woodRemaining = session.query(query(FiniteResource)).filter(row => row.get(FiniteResource).kind === "wood").reduce((sum, row) => sum + row.get(FiniteResource).quantity, 0);
+      assert.ok(completedTrees > 0 || woodRemaining < 300, "sustained workload must complete productive tree work");
+      const waterDemand = session.query(query(WaterSupplyOrder, WaterSupplyWork));
+      if (eligiblePails > 16) assert.ok(waterDemand.length > 16, "active water workload must exceed sixteen pail workers");
+      console.log(JSON.stringify({
+        workload: `colony-performance-${workerCount}`,
+        workers: workers().length,
+        productiveTrees: completedTrees,
+        eligiblePailWorkers: eligiblePails,
+        waterDemandCount: waterDemand.length,
+        waterWorkload: eligiblePails > 16 ? "active" : "unsupported-by-pack",
+        steps: stepMs.length,
+        stepMs: { total: stepMs.reduce((a, b) => a + b, 0), max: Math.max(...stepMs) },
+        snapshotSaveMs: { total: saveMs.reduce((a, b) => a + b, 0), max: Math.max(...saveMs) },
+        observationMs: { total: observationMs.reduce((a, b) => a + b, 0), max: Math.max(...observationMs) },
+        recoveryError: recoveryError ?? null,
+      }));
     } finally {
       port.dispose();
     }
