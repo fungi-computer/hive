@@ -340,10 +340,13 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
   if (!carried.length) throw new Error("worker has no carried goods");
   if (carried.some((lot) => !Number.isSafeInteger(lot.quantity) || lot.quantity <= 0 || lot.quantity > 0xffffffff))
     throw new Error("worker cargo is invalid");
-  const pantry = context.query(query(Container)).find((row) => row.id === pantryId)?.get(Container);
+  const party = context.query(query(PartyMember)).find((row) => row.id === worker)?.get(PartyMember).party;
+  const pantryRow = context.query(query(Container, OwnedByParty)).find((row) => row.get(OwnedByParty).party === party);
+  const pantry = pantryRow?.get(Container);
   if (!pantry) throw new Error("pantry is unavailable");
+  const destination = pantryRow!.id;
   const pantryQuantity = lots
-    .filter((lot) => lot.container === pantryId)
+    .filter((lot) => lot.container === destination)
     .reduce((sum, lot) => sum + lot.quantity, 0);
   const carriedQuantity = carried.reduce((sum, lot) => sum + lot.quantity, 0);
   if (!Number.isSafeInteger(pantryQuantity) || !Number.isSafeInteger(carriedQuantity) ||
@@ -351,7 +354,7 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
     throw new Error("pantry lacks capacity");
   return carried
     .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
-    .map((lot) => transfer(lot.id, worker, pantryId, lot.quantity));
+    .map((lot) => transfer(lot.id, worker, destination, lot.quantity));
 }
 
 const colonyComponents = [

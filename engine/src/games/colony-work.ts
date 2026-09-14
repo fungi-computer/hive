@@ -39,7 +39,7 @@ import {
 } from "../sdk/common";
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
-import { OwnedByParty, PartyMember } from "../sdk/party";
+import { OwnedByParty } from "../sdk/party";
 
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
 type ColonyResourceOrderState = {
@@ -130,8 +130,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
     }
   }
   const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
-  const workerIds = workers.map(row => row.id);
-  const poses = new Map((workerIds.length ? ctx.worldPoses(workerIds) : []).map(p => [p.id, p]));
+  const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
   const candidates = orders.flatMap(row => {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
     const approach = { x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null as EntityId | null };
@@ -979,10 +978,9 @@ function digProvider(
 }
 
 function planGroundStockDeliveries(ctx: WriteContext) {
-  const pantry = entity("colony.pantry");
-  const stockContainers = new Set(
-    ctx.query(query(GroundStock)).map((row) => row.id),
-  );
+  const ownedStores = ctx.query(query(Container, OwnedByParty));
+  const stockOwners = new Map(ctx.query(query(GroundStock, OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const stockContainers = new Set(stockOwners.keys());
   const tasks = ctx.query(query(DeliveryTask));
   const existing = new Set(tasks.map((row) => row.get(DeliveryTask).sourceLot));
   const taskIds = new Set(tasks.map((row) => row.id));
@@ -996,6 +994,9 @@ function planGroundStockDeliveries(ctx: WriteContext) {
     )
       continue;
     const source = lot.container;
+    const party = stockOwners.get(source);
+    const pantry = ownedStores.filter(row => row.get(OwnedByParty).party === party).map(row => row.id).sort()[0];
+    if (!pantry) continue;
     const taskId = entity(`${row.id}.delivery`);
     if (taskIds.has(taskId)) continue;
     ctx.createAuthoredEntity({
@@ -1037,11 +1038,17 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
     { length: Math.min(3, sites.length) },
     (_, offset) => sites[(start + offset) % sites.length],
   );
-  planSiteSupplies(ctx, {
-    sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
+  const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const grouped = new Map<EntityId, typeof active>();
+  for (const row of active) {
+    const party = owners.get(row.id);
+    if (party) grouped.set(party, [...(grouped.get(party) ?? []), row]);
+  }
+  for (const [party, partySites] of grouped) planSiteSupplies(ctx, {
+    sourceContainers: ctx.query(query(Container, OwnedByParty)).filter(row => row.get(OwnedByParty).party === party).map(row => row.id).sort(),
     batchQuantity: 3,
     requirements: [
-      ...active.flatMap((row) => {
+      ...partySites.flatMap((row) => {
         const site = row.get(ConstructionSite);
         const definition = colonyEnvironment.structures.catalog.find(
           (item) => item.id === site.catalog,
@@ -1090,8 +1097,6 @@ export const colonyWorkSystem = createWorkSystem({
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
-    OwnedByParty,
-    PartyMember,
     WaterSupplyOrder,
     WaterSupplyWork,
   ],

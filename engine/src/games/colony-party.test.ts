@@ -55,3 +55,14 @@ test("Colony party plans are deterministic, finite and world-unique", () => {
     false,
   );
 });
+
+test("party starter custody has no duplicated supply and cannot cross party", () => {
+  const a = createColonyPartyPlan("a", entity("party.a"), { x: 0, y: 0, z: 0 });
+  const b = createColonyPartyPlan("b", entity("party.b"), { x: 8, y: 0, z: 0 });
+  const quantity = (plan: typeof a, kind: string) => plan.records.filter(record => (record.components["hive.lot"] as { kind?: string } | undefined)?.kind === kind).reduce((sum, record) => sum + ((record.components["hive.lot"] as { quantity?: number }).quantity ?? 0), 0);
+  assert.equal(quantity(a, "wood"), 48);
+  assert.equal(quantity(a, "bread"), 6);
+  assert.equal(new Set(a.records.map(record => record.id)).size, a.records.length);
+  const ownedBy = (plan: typeof a) => new Set(plan.records.filter(record => record.components["hive.owned-by-party"] !== undefined).map(record => record.id));
+  assert.equal([...ownedBy(a)].some(id => ownedBy(b).has(id)), false);
+});

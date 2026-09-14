@@ -160,12 +160,11 @@ export const colonyEnvironment: EnvironmentDefinition = {
 };
 
 const colonyInitialPlacements = [
-  { entity: "colony.worker.1", column: [0, 0] },
-  { entity: "colony.worker.2", column: [0, 2] },
+  { entity: "colony.local-party.person.0", column: [0, 0] },
+  { entity: "colony.local-party.person.1", column: [0, 2] },
   { entity: "colony.cat.1", column: [1, 1] },
   { entity: "colony.guest.1", column: [3, 1] },
-  { entity: "colony.pantry", column: [-2, 0] },
-  { entity: "colony.lumber", column: [-3, 1] },
+  { entity: "colony.local-party.starter-store", column: [4, 0] },
   { entity: "colony.tree.oak", column: [2, 2] },
   { entity: "colony.tree.pine", column: [-5, 4] },
   { entity: "colony.tree.willow", column: [4, -5] },
