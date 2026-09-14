@@ -46,3 +46,16 @@ test("missing paired depth is an explicit renderer failure", () => {
     /visual depth unavailable/,
   );
 });
+
+test("paired color/depth item applies one shared long-object datum", () => {
+  const value = fixture();
+  const item = subjectWorldDepthItem({
+    ...value,
+    anchor: { x: 0.5, y: 1 },
+    scale: 1,
+    physicalRole: "structure",
+    placement: { offset: [4, 1], screenOffset: [6, -3] },
+  });
+  assert.deepEqual(item.worldOrigin, { x: 5, y: 2, z: 4 });
+  assert.deepEqual(item.screenTransform, { x: 46, y: 47, scale: 1 });
+});

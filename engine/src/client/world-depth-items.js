@@ -25,7 +25,7 @@ function atlasFrame(texture) {
  * Project one resolved original-art frame into the shared opaque world pass.
  * The art bank owns depth pixels; this projection owns no texture lifetime.
  */
-export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, physicalRole, visualPartId = "body" }) {
+export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, physicalRole, visualPartId = "body", placement = null }) {
   if (!subject || typeof subject.id !== "string" || subject.id.length === 0)
     throw new Error("invalid world depth subject identity");
   if (!texture || !art?.depthByTexture)
@@ -38,6 +38,13 @@ export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, ph
   if (!["floor", "structure", "actor", "item"].includes(physicalRole))
     throw new Error("invalid world depth subject role");
 
+  const worldOffset = placement?.offset ?? [0, 0];
+  if (!Array.isArray(worldOffset) || worldOffset.length !== 2 || !worldOffset.every(Number.isFinite))
+    throw new Error("invalid world depth placement offset");
+  const screenOffset = placement?.screenOffset ?? [0, 0];
+  if (!Array.isArray(screenOffset) || screenOffset.length !== 2 || !screenOffset.every(Number.isFinite))
+    throw new Error("invalid world depth placement screen offset");
+
   return Object.freeze({
     entityId: subject.id,
     visualPartId,
@@ -47,13 +54,13 @@ export function subjectWorldDepthItem({ subject, texture, anchor, art, scale, ph
     depthTexture: depth.texture,
     depthFrame: depth,
     worldOrigin: Object.freeze({
-      x: finite(subject.x, "x"),
+      x: finite(subject.x, "x") + worldOffset[0],
       y: finite(subject.y, "y"),
-      z: finite(subject.z, "z"),
+      z: finite(subject.z, "z") + worldOffset[1],
     }),
     screenTransform: Object.freeze({
-      x: finite(subject.screen?.x, "screen x"),
-      y: finite(subject.screen?.y, "screen y"),
+      x: finite(subject.screen?.x, "screen x") + screenOffset[0],
+      y: finite(subject.screen?.y, "screen y") + screenOffset[1],
       scale: finite(scale, "scale"),
     }),
     anchor: Object.freeze({ x: anchor.x, y: anchor.y }),
