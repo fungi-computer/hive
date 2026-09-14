@@ -91,6 +91,11 @@ const partyJoinIdentitySchema = z.object({
   sequence: z.number().int().positive(),
   player: entityIdWireSchema,
   party: entityIdWireSchema,
+  people: z.array(entityIdWireSchema).max(32).superRefine((people, context) => {
+    for (let index = 1; index < people.length; index += 1) {
+      if (people[index - 1] >= people[index]) context.addIssue({ code: z.ZodIssueCode.custom, message: "party people must be sorted and unique" });
+    }
+  }),
 }).strict();
 const routeToAnyResultSchema = z.discriminatedUnion("status", [
   z

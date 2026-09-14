@@ -65,14 +65,14 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
       const capability = session.pack.partyJoin;
       if (!capability) throw new Error("party join is unavailable for this pack");
       const identity = session.partyJoinIdentity(command.credentialBindingId);
-      if (identity.status === "existing") return { player: identity.player, party: identity.party, people: [`${identity.party}.person.0`, `${identity.party}.person.1`] };
+      if (identity.status === "existing") return { player: identity.player, party: identity.party, people: identity.people };
       const spawn = session.findSafeSpawn(capability.footprint);
       if (!spawn) throw new Error("spawn-unavailable");
-      const records = capability.prepare(identity.player, identity.party, spawn);
-      session.request({ kind: "establish-party", bindingId: command.credentialBindingId, expectedSequence: identity.sequence, records });
+      const prepared = capability.prepare(identity.player, identity.party, spawn);
+      session.request({ kind: "establish-party", bindingId: command.credentialBindingId, expectedSequence: identity.sequence, records: prepared.records });
       const result = session.step(0)[0];
       if (!result?.accepted || result.entityId !== identity.party) throw new Error(result?.reason ?? "party join rejected");
-      return { player: identity.player, party: identity.party, people: [`${identity.party}.person.0`, `${identity.party}.person.1`] };
+      return { player: identity.player, party: identity.party, people: prepared.people };
     }
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];

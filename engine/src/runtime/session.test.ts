@@ -46,7 +46,7 @@ const definition = new TextEncoder().encode(
 );
 
 class TestPort implements KernelPort {
-  partyJoinIdentity() { return { status: "available" as const, sequence: 1, player: "player:1", party: "party:1" as import("../contracts").EntityId }; }
+  partyJoinIdentity() { return { status: "available" as const, sequence: 1, player: "player:1", party: "party:1" as import("../contracts").EntityId, people: [] as const }; }
   processRequirements(): import("../contracts").ProcessRequirements {
     throw new Error("unexpected process requirements query");
   }

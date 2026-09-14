@@ -30,7 +30,6 @@ import {
   readSocketMessage,
   socketHandleFromPath,
 } from "./protocol";
-import { entity } from "../../engine/src/sdk/authoring";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
@@ -55,14 +54,23 @@ type HostRow = {
   due_deadline_ms: number | null;
 };
 type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: import("../../engine/src/contracts").EntityId };
+type PartyJoinResult = { player: string; party: ParticipantRow["party_id"]; people: string[] };
 function participantRow(value: unknown): ParticipantRow {
   if (!value || typeof value !== "object") throw new Error("public-participant-format");
   const row = value as Record<string, unknown>;
   if (typeof row.credential_hash !== "string" || !/^[a-f0-9]{64}$/.test(row.credential_hash) ||
       typeof row.principal !== "string" || row.principal !== `participant:${row.credential_hash}` ||
       typeof row.player_id !== "string" || !/^[A-Za-z0-9._:-]{1,96}$/.test(row.player_id) ||
-      typeof row.party_id !== "string") throw new Error("public-participant-format");
-  return { credential_hash: row.credential_hash, principal: row.principal, player_id: row.player_id, party_id: entity(row.party_id) };
+      typeof row.party_id !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(row.party_id)) throw new Error("public-participant-format");
+  return { credential_hash: row.credential_hash, principal: row.principal, player_id: row.player_id, party_id: row.party_id as ParticipantRow["party_id"] };
+}
+function partyJoinResult(value: unknown): PartyJoinResult {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("public-party-join-result");
+  const row = value as Record<string, unknown>;
+  if (typeof row.player !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(row.player) || typeof row.party !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(row.party) || !Array.isArray(row.people) || row.people.length > 32 || !row.people.every(person => typeof person === "string" && /^[A-Za-z0-9._:-]{1,128}$/.test(person))) throw new Error("public-party-join-result");
+  const people = row.people as string[];
+  for (let index = 1; index < people.length; index += 1) if (people[index - 1] >= people[index]) throw new Error("public-party-join-result");
+  return { player: row.player, party: row.party as ParticipantRow["party_id"], people };
 }
 type SocketAttachment = {
   readonly pack: PublicPack;
@@ -646,23 +654,23 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         if (world && (world.world_handle !== this.worldHandle || world.pack !== "colony" || world.invite_hash !== inviteHash))
           throw new Error("public-invite-forbidden");
         if (!world) this.owner.sql.exec("INSERT INTO hive_public_world VALUES (1,?,?,?)", this.worldHandle!, "colony", inviteHash);
-        const existing = this.participant(credentialHash);
-        if (existing) return { binding: existing, created: false };
         const bindingId = await sha256Hex(`hive:colony:join:${this.worldHandle}:${credentialHash}`);
         const command = { id: `join:${bindingId}`, command: { kind: "join-party", credentialBindingId: bindingId } };
         const result = await this.commandExclusive(command, now, "colony-host", true);
         if (this.hostEnv.TEST_FAILURE_AFTER_JOIN === "1") throw new Error("test-join-injected-failure");
-        const join = (result.receipt.result as { results?: unknown }).results;
-        if (!join || typeof join !== "object" || !Array.isArray((join as { people?: unknown }).people) || typeof (join as { player?: unknown }).player !== "string" || typeof (join as { party?: unknown }).party !== "string") throw new Error("public-party-join-result");
-        const player = (join as { player: string }).player;
-        const party = entity((join as { party: string }).party);
-        this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, principal, player, party);
-        return { binding: { credential_hash: credentialHash, principal, player_id: player, party_id: party } satisfies ParticipantRow, created: true };
+        const join = partyJoinResult((result.receipt.result as { results?: unknown }).results);
+        const existing = this.participant(credentialHash);
+        if (existing) {
+          if (existing.player_id !== join.player || existing.party_id !== join.party) throw new Error("public-party-join-replay-mismatch");
+          return { binding: existing, created: false, people: join.people, accepted: true };
+        }
+        this.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", credentialHash, principal, join.player, join.party);
+        return { binding: { credential_hash: credentialHash, principal, player_id: join.player, party_id: join.party } satisfies ParticipantRow, created: true, people: join.people, accepted: true };
       });
-      if (result.created) this.resident.accept(this.region.readCommitted().revision);
-      if (result.created && this.hostEnv.TEST_DROP_JOIN_RESPONSE === "1") throw new Error("test-join-response-lost");
+      if (result.accepted) this.resident.accept(this.region.readCommitted().revision);
+      if (result.accepted && this.hostEnv.TEST_DROP_JOIN_RESPONSE === "1") throw new Error("test-join-response-lost");
       await this.renewLeaseExclusive(now);
-      return { player: result.binding.player_id, party: result.binding.party_id, people: [ `${result.binding.party_id}.person.0`, `${result.binding.party_id}.person.1` ] };
+      return { player: result.binding.player_id, party: result.binding.party_id, people: result.people };
       } catch (error) {
         try { this.resident.discard(); } catch { /* preserve transaction failure */ }
         throw error;
