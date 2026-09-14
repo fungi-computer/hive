@@ -179,12 +179,12 @@ export function terrainAreaCommand(control, selected, area) {
 
 /** Bind a completed shared placement to the one build command. */
 export function buildPlacementCommand(control, selected, designation) {
-  if (commandName(control) !== "build" || control.target !== "world-surface")
+  if (commandName(control) !== "build" || !["world-surface", "world-edge"].includes(control.target))
     throw new Error("binding is not a world-surface build");
   if (
     !designation ||
-    !Array.isArray(designation.cells) ||
-    designation.cells.length === 0
+    (!Array.isArray(designation.cells) && !Array.isArray(designation.edges)) ||
+    (designation.cells?.length === 0 && designation.edges?.length === 0)
   )
     throw new Error("build designation has no cells");
   if (designation.mode && !control.designation?.includes(designation.mode))
