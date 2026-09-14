@@ -2,6 +2,11 @@
 
 King Bolete · September 12, 2026 · **active Colony delivery plan**
 
+September 14: [Grid-edge buildings and declarative art parts](implementation/clearing-repair/06-edge-buildings-and-art-parts.md)
+records Levi's accepted walls-on-grid-lines decision and the implementation packet
+for matching floors, multipart stair railings, physical consumers and real-room
+acceptance. This is the next construction/rendering correction, not landed work.
+
 September 13: [Interaction and reliability audit](CLEARING-INTERACTION-AUDIT.md)
 records the actual retained placement flows, broken current browser command
 bindings, and the next coherent restoration sequence. Read before UI changes.

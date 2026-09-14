@@ -1,5 +1,9 @@
 # Shared contacts and floor replacement
 
+September 14: [Grid-edge buildings](06-edge-buildings-and-art-parts.md) supersedes
+cell-centered wall/aperture placement below. Floor/fixture datums and the shared
+contact/work ownership remain; new edge contacts must follow that packet.
+
 [Packet index](README.md) · [Work attempts](01-work.md)
 
 ## Preserve the existing geometry meaning

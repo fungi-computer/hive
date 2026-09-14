@@ -1,5 +1,10 @@
 # Spatial drawing: lawful isometric sprite order
 
+September 14: [Declarative art parts](06-edge-buildings-and-art-parts.md) supersedes
+one-point thin-wall and unconditional scalar-band guidance below. Edge walls use
+their segments; stairs require independently ordered rails/support surfaces and
+vertical extents. Ordinary Pixi, spatial indexing and the shared picker remain.
+
 [Packet index](README.md) · [Coordinates](02-construction.md)
 
 ## Decision

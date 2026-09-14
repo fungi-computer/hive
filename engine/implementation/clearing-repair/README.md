@@ -1,5 +1,13 @@
 # Clearing repair implementation packet
 
+**September 14 accepted design update:**
+[Grid-edge buildings and declarative art parts](06-edge-buildings-and-art-parts.md)
+owns the next construction/rendering implementation. Walls and doors move to
+canonical grid boundaries; floors stay full tiles; stair rails and supporting
+surfaces become separately ordered original-art parts. Read this update before
+the historical status and earlier construction/drawing instructions below.
+It is an implementation plan, not a claim of landed code or hosted acceptance.
+
 Status: active integration on `engine/clearing-repair-acceptance-20260914`.
 The accepted runtime source is pinned at `d67e28ac`.
 Historical branches and receipts remain evidence; they are not the active queue.
@@ -51,6 +59,9 @@ Rust physical ownership, DO durability and existing assignment performance remai
    representation, exact picking, clipping and performance acceptance.
 5. [Integration, evidence and release](05-delivery.md): dependency order,
    executable checks, upgrade rules and actual preview publication.
+6. [Grid-edge buildings and art parts](06-edge-buildings-and-art-parts.md): current
+   coordinate contract, physical consumers, edge gestures, multipart bake/sorting,
+   writer sequence and acceptance ledger; supersedes conflicting wall guidance.
 
 ## Non-negotiable implementation choices
 
