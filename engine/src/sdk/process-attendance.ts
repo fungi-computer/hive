@@ -3,6 +3,7 @@ import { Body, Container, Destination, ExcavationWork, Position, Support, Traver
 import { StagedProcess, attendProcess } from "./process-supply";
 import type { EntityId, MoveDestination, ProcessRequirements, WriteContext } from "../contracts";
 import type { PreparedWorkProvider } from "./work-system";
+import { OwnedByParty, PartyMember } from "./party";
 
 export const ProcessAttendanceWork = component<{ process: EntityId; actor: EntityId; contactX: number; contactY: number; contactZ: number }>("hive.process-attendance", { version: 1, fields: { process: "entity", actor: "entity", contactX: "number", contactY: "number", contactZ: "number" } });
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly target: MoveDestination };
@@ -22,6 +23,8 @@ export function processAttendanceProvider(
 ): PreparedWorkProvider<Candidate> {
   if (workers.length > MAX_WORKERS) throw new Error("process worker bound exceeded");
   const rows = ctx.query(query(StagedProcess));
+  const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
   if (rows.length > MAX_PROCESSES) throw new Error("staged process bound exceeded");
   const workerIds = [...new Set(workers)];
   const processes = rows.map(row => ({ id: row.id, state: row.get(StagedProcess) }));
@@ -62,10 +65,11 @@ export function processAttendanceProvider(
   const active = Array.from({ length: Math.min(4, discoverable.length) }, (_, offset) => discoverable[(processStart + offset) % discoverable.length]!);
   const claims = processes.map(({ id, state }) => ({ task: id, actor: state.phase === "working" ? state.worker : attendance.get(id)?.state.actor ?? null }));
   const candidates = active.flatMap(process => {
+    const party = owners.get(process.id);
     const target = targets.get(process.id);
     const workerStart = eligibleWorkers.length ? (ctx.clock.tick * 32) % eligibleWorkers.length : 0;
     const selectedWorkers = Array.from({ length: Math.min(32, eligibleWorkers.length) }, (_, offset) => eligibleWorkers[(workerStart + offset) % eligibleWorkers.length]!);
-    return target ? selectedWorkers.map(worker => ({ worker, task: process.id, target })) : [];
+    return target ? selectedWorkers.filter(worker => party === undefined || memberships.get(worker) === party).map(worker => ({ worker, task: process.id, target })) : [];
   });
   return {
     claims,
@@ -84,7 +88,8 @@ export function processAttendanceProvider(
         if (!candidate) throw new Error("unknown process attendance assignment");
         const pose = positions.get(candidate.worker);
         const attendanceId = `process-attendance.${candidate.task}` as EntityId;
-        ctx.createAuthoredEntity({ id: attendanceId, components: { [ProcessAttendanceWork.id]: { process: candidate.task, actor: candidate.worker, contactX: candidate.target.x, contactY: candidate.target.y, contactZ: candidate.target.z } } });
+        const party = owners.get(candidate.task);
+        ctx.createAuthoredEntity({ id: attendanceId, components: { ...(party ? { [OwnedByParty.id]: { party } } : {}), [ProcessAttendanceWork.id]: { process: candidate.task, actor: candidate.worker, contactX: candidate.target.x, contactY: candidate.target.y, contactZ: candidate.target.z } } });
         if (pose && Math.hypot(pose.x - candidate.target.x, pose.y - candidate.target.y, pose.z - candidate.target.z) <= CONTACT_DISTANCE) ctx.action(attendProcess(candidate.worker, candidate.task));
         else ctx.action(move(candidate.worker, candidate.target));
       }
