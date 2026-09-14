@@ -18,6 +18,22 @@ const WIDTH = 2304,
   WATER_DEPTH_MIN = -1,
   WATER_DEPTH_MAX = 1;
 
+export function waterTileWorldOffset(pixelX, pixelY) {
+  if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY)) throw new Error("invalid water tile pixel");
+  const origin = project(0, 0, 0);
+  const axisX = project(1, 0, 0);
+  const axisZ = project(0, 0, 1);
+  const basisX = { x: axisX.x - origin.x, y: axisX.y - origin.y };
+  const basisZ = { x: axisZ.x - origin.x, y: axisZ.y - origin.y };
+  const determinant = basisX.x * basisZ.y - basisZ.x * basisX.y;
+  const screenX = pixelX - WATER_TILE_WIDTH / 2;
+  const screenY = pixelY - WATER_TILE_HEIGHT / 2;
+  return {
+    x: (screenX * basisZ.y - basisZ.x * screenY) / determinant,
+    z: (basisX.x * screenY - screenX * basisX.y) / determinant,
+  };
+}
+
 function encodeDepth24(value) {
   const normalized = Math.max(0, Math.min(1, (value - WATER_DEPTH_MIN) / (WATER_DEPTH_MAX - WATER_DEPTH_MIN)));
   const encoded = Math.round(normalized * 16777215);
@@ -39,9 +55,8 @@ function createWaterTilePair() {
       colorPixels[offset + 1] = 125;
       colorPixels[offset + 2] = 136;
       colorPixels[offset + 3] = 178;
-      const worldX = screenX / WATER_TILE_WIDTH + screenY / (WATER_TILE_HEIGHT * 2);
-      const worldZ = -screenX / WATER_TILE_WIDTH + screenY / (WATER_TILE_HEIGHT * 2);
-      depthPixels.set(encodeDepth24(basis[0] * worldX + basis[2] * worldZ), offset);
+      const world = waterTileWorldOffset(x + 0.5, y + 0.5);
+      depthPixels.set(encodeDepth24(basis[0] * world.x + basis[2] * world.z), offset);
     }
   }
   const colorTexture = new Texture({ source: new BufferImageSource({ resource: colorPixels, width: WATER_TILE_WIDTH, height: WATER_TILE_HEIGHT, format: "rgba8unorm", alphaMode: "no-premultiply-alpha", scaleMode: "nearest" }) });

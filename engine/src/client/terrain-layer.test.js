@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { copyTerrainDepthPixels, createTerrainLayer, terrainScreenTransform } from "./terrain-layer.js";
+import { copyTerrainDepthPixels, createTerrainLayer, terrainScreenTransform, waterTileWorldOffset } from "./terrain-layer.js";
+import { project, WORLD_TOWARD_CAMERA } from "./geometry.js";
+import { worldDepthBasis } from "./world-depth.js";
 
 test("terrain layer has no opaque sprite owner and disposal is repeatable", () => {
   const layer = createTerrainLayer();
@@ -21,6 +23,21 @@ test("water tile keeps a bounded diamond alpha and paired metric bytes", () => {
   assert.ok(opaque > 0 && opaque < 32 * 16);
   assert.equal(layer.waterTile.depthTexture.source.resource.length, layer.waterTile.depthPixels.length);
   assert.ok(new Set(layer.waterTile.depthPixels.filter((_, index) => index % 4 === 0)).size > 1);
+  for (let index = 3; index < color.length; index += 4)
+    assert.equal(color[index] > 0, layer.waterTile.depthPixels[index] > 0);
+  const origin = project(0, 0, 0), axisX = project(1, 0, 0), axisZ = project(0, 0, 1);
+  const basisX = { x: axisX.x - origin.x, y: axisX.y - origin.y }, basisZ = { x: axisZ.x - origin.x, y: axisZ.y - origin.y };
+  const basis = worldDepthBasis(WORLD_TOWARD_CAMERA);
+  for (const [x, y] of [[16, 8], [17, 8], [16, 9], [12, 6]]) {
+    const pixel = (y * 32 + x) * 4;
+    assert.ok(layer.waterTile.depthPixels[pixel + 3] > 0);
+    const offset = waterTileWorldOffset(x + 0.5, y + 0.5);
+    const expected = basis[0] * offset.x + basis[2] * offset.z;
+    const encoded = ((layer.waterTile.depthPixels[pixel] / 255) * 65536 + (layer.waterTile.depthPixels[pixel + 1] / 255) * 256 + layer.waterTile.depthPixels[pixel + 2] / 255) / 65793;
+    const decoded = -1 + encoded * 2;
+    assert.ok(Math.abs(decoded - expected) <= 2 / 16777215);
+  }
+  assert.equal(basisX.x * basisZ.y - basisZ.x * basisX.y, 256);
   layer.dispose();
 });
 
