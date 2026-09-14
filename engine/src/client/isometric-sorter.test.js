@@ -158,9 +158,9 @@ test("canonical compact, bed, wall, and stair placement records become lawful fo
     { x: 10, y: 4, z: 7 },
     { x: 11, y: 4, z: 7 },
   ]);
-  assert.deepEqual(subjectSortFootprint(subject, { kind: "stair", entrance: [0, 0, 0], landing: [0, 2, 2] }), [
+  assert.deepEqual(subjectSortFootprint(subject, { kind: "stair", entrance: [0, 0, 0], landing: [0, 2, -2] }), [
     { x: 10, y: 4, z: 7 },
-    { x: 10, y: 6, z: 9 },
+    { x: 10, y: 6, z: 5 },
   ]);
 });
 
