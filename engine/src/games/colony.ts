@@ -777,21 +777,22 @@ export const colonyPack: GamePack = {
   definition: encodeDefinition("colony", colonyComponents, colonyInitial),
 };
 
-function neutralColonyBytes(bytes: Uint8Array, initialKey: "initial" | "initialPlacements"): Uint8Array {
-  const value = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
-  const initial = value[initialKey];
-  if (!Array.isArray(initial)) return bytes;
-  value[initialKey] = initial.filter((entry) => {
-    const id = typeof entry === "object" && entry !== null ? (entry as Record<string, unknown>).id ?? (entry as Record<string, unknown>).entity : undefined;
-    return typeof id !== "string" || (!id.startsWith("colony.local-party") && id !== "colony.cat.1");
-  });
-  return new TextEncoder().encode(JSON.stringify(value));
-}
+const neutralColonyInitial = [
+  { id: guestId, components: { "hive.position": { x: 3, y: 0, z: 1, facing: 0 }, "hive.body": { speed: 1 }, "hive.container": { capacity: 4 }, "hive.traversal": { clearanceCells: 1, maxStepCells: 1 }, "hive.visual": { sprite: "goblin.guest", label: "Guest" }, "colony.guest": { hungry: true } } },
+  ...trees.flatMap(({ id, x, z }) => [{ id, components: { "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 }, "colony.tree": { phase: "standing" }, [FiniteResource.id]: { kind: "wood", quantity: 6 }, "colony.tree-policy": { designated: false } } }, { id: entity(`${id}.order`), components: { "colony.tree-order": { tree: id, actor: null, phase: "blocked", stage: "fell", seconds: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "Not designated" } } }]),
+];
+const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
+  ...colonyEnvironment,
+  initialPlacements: [
+    { entity: guestId, column: [3, 1] },
+    ...trees.map(({ id, x, z }) => ({ entity: id, column: [x, z] as [number, number] })),
+  ],
+});
 
 /** Host pack: the same Colony behavior over neutral shared world content. */
 export const colonyServerPack: GamePack = {
   ...colonyPack,
   localScope: undefined,
-  definition: neutralColonyBytes(colonyPack.definition, "initial"),
-  environmentDefinition: colonyPack.environmentDefinition ? neutralColonyBytes(colonyPack.environmentDefinition, "initialPlacements") : undefined,
+  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial),
+  environmentDefinition: neutralColonyEnvironmentDefinition,
 };
