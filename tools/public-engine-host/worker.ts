@@ -649,7 +649,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         if (existing) return { binding: existing, created: false };
         const player = `player-${credentialHash.slice(0, 24)}`;
         const party = entity(`party-${credentialHash.slice(0, 24)}`);
-        const plan = createColonyPartyPlan(player, party, { x: 0, y: 0, z: 0 });
+        const committed = this.region.readCommitted();
+        const spawn = this.resident.findSafeSpawn(committed.revision, committed.state, this.residentRecords(committed.revision));
+        if (!spawn) throw new Error("spawn-unavailable");
+        const plan = createColonyPartyPlan(player, party, spawn);
         const command = { id: `join:${credentialHash}`, command: { kind: "action", action: { kind: "establish-party", bindingId: credentialHash.slice(0, 96), player, party, records: plan.records } } };
         this.resident.begin(this.region.readCommitted().revision, this.region.readCommitted().state, this.residentRecords(this.region.readCommitted().revision));
         this.region.dispatch("colony-host", command);

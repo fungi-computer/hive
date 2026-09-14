@@ -297,6 +297,18 @@ export class GameSession {
     this.ensureLive();
     return this.port.terrainSurfaces(columns);
   }
+  /** Bounded host-owned spawn projection; callers must still validate the full plan. */
+  findSafeSpawn(): { readonly x: number; readonly y: number; readonly z: number } | null {
+    this.ensureLive();
+    const candidates: readonly [number, number][] = [[0,0],[2,0],[-2,0],[0,2],[0,-2],[2,2],[-2,2],[2,-2],[-2,-2]];
+    for (const [x, z] of candidates) {
+      const surface = this.port.terrainSurfaces([[x, z]])[0];
+      const contact = this.port.physicalContacts([[x, 0, z]])[0];
+      if (surface && contact && !contact.sealedTop && contact.outside)
+        return { x, y: surface.cell[1], z };
+    }
+    return null;
+  }
   waterContacts(centers: readonly [number, number, number][]) {
     this.ensureLive();
     return this.port.waterContacts(centers);
