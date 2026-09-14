@@ -234,7 +234,7 @@ type TreeCandidate = {
   readonly target: Vec3 & { frame: EntityId | null };
   readonly approaches: readonly (Vec3 & { frame: EntityId | null })[];
 };
-const treeWorkProvider = (
+export const treeWorkProvider = (
   ctx: WriteContext,
   suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<TreeCandidate> => {
@@ -304,7 +304,7 @@ const treeWorkProvider = (
             } else if (phase.activity.kind === "route") {
               // A route outcome is movement only. Drafting must release the
               // worker before felling/chopping can be admitted.
-              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: "Drafted" });
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "queued", reason: "" });
               acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
             } else if (phase.activity.kind === "resource-extract") {
               // Rust has already committed the extraction; reconcile its
@@ -431,7 +431,7 @@ function candidatesForDigOrder(
     }));
 }
 
-function digProvider(
+export function digProvider(
   ctx: WriteContext,
   suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<DigCandidate> {
@@ -604,8 +604,8 @@ function digProvider(
               ctx.write(ColonyDigOrder, row.id, { ...state, status: "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : `interrupted:${phase.result.cause}` });
               acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
             } else if (phase.activity.kind === "route") {
-              if (state.status !== "blocked" || state.reason !== "Drafted")
-                ctx.write(ColonyDigOrder, row.id, { ...state, status: "blocked", reason: "Drafted" });
+              if (state.status !== "queued" || state.reason !== "")
+                ctx.write(ColonyDigOrder, row.id, { ...state, status: "queued", reason: "" });
               acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
             } else if (phase.activity.kind === "excavation") {
               ctx.removeAuthoredEntity(row.id);
