@@ -146,6 +146,7 @@ export type WriteIntent = {
 };
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
+  | { readonly kind: "establish-party"; readonly bindingId: string; readonly player: string; readonly party: EntityId; readonly records: readonly EntityRecord[] }
   | { readonly kind: "establish-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }

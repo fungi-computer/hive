@@ -11,6 +11,18 @@ pub const MAX_CARRIED_WATER_KG: f64 = 1.0e12;
 
 #[derive(Component, Clone)]
 pub struct ExternalId(pub String);
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct Party { pub owner_player: String }
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PartyMember { pub party: String }
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OwnedByParty { pub party: String }
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PartyReceipt { pub binding_id: String, pub player: String, pub party: String, pub digest: String }
 #[derive(Component, Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Position {
@@ -334,6 +346,7 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    EstablishParty { #[serde(rename = "bindingId")] binding_id: String, player: String, party: String, records: Vec<EntityRecord> },
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
     AttendProcess { worker: String, process: String },

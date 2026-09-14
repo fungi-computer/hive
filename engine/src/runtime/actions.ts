@@ -36,6 +36,10 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "establish-party":
+      keys = ["kind", "bindingId", "player", "party", "records"];
+      valid = id(action.bindingId) && id(action.player) && id(action.party) && Array.isArray(action.records) && action.records.length > 0 && action.records.length <= 32;
+      break;
     case "establish-resource-site":
       keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
       valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
