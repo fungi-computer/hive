@@ -8,7 +8,6 @@ import { chromium } from "playwright";
 const base = process.env.HIVE_DEPTH_ACCEPTANCE_BASE ?? "http://127.0.0.1:5187/depth-feasibility-acceptance.html";
 const output = resolve(process.env.HIVE_DEPTH_ACCEPTANCE_OUTPUT ?? ".botanical/depth-acceptance-prep-20260914");
 const MAX_VISIBLE_ITEMS = 256;
-const MAX_ESTIMATED_BYTES = 64 * 1024 * 1024;
 const sourceFiles = [
   "scripts/prove-world-depth-acceptance.mjs",
   "src/studies/depth-feasibility/acceptance-page.js",
@@ -73,8 +72,6 @@ try {
   assert.equal(result.diagnostics?.transparent?.active, 0, "transparent records were not released after the empty-scene lifecycle check");
   assert(result.diagnostics?.opaque?.created <= result.candidates + 1, "opaque resource creation exceeded fixture bound");
   const renderTargetBytes = 640 * 400 * 4 * 2;
-  const estimatedOwnedBytes = result.atlasBytes + renderTargetBytes + result.candidates * 4096;
-  assert(estimatedOwnedBytes <= MAX_ESTIMATED_BYTES, "owned depth resources exceeded acceptance bound");
 
   receipt = {
     status: "PASS",
@@ -91,8 +88,8 @@ try {
     memory: {
       atlasBytes: result.atlasBytes,
       renderTargetBytes,
-      estimatedOwnedBytes,
-      maxEstimatedBytes: MAX_ESTIMATED_BYTES,
+      knownOwnedBytes: result.atlasBytes + renderTargetBytes,
+      limitation: "Mesh, shader, and driver allocations are reported through lifecycle counts and browser heap; no unsupported per-record byte estimate is invented.",
       heap: browserFacts.heap,
       resourceBytes: browserFacts.resources.reduce((sum, resource) => sum + resource.bytes, 0),
     },
