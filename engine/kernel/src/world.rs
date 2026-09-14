@@ -3693,7 +3693,11 @@ impl Kernel {
         let attempt = self.attempt_mut(&task, generation, sequence)?;
         if !matches!(&attempt.phase, AttemptPhase::Executing { .. }) { return Err("work attempt operation is already settled".into()); }
         let operation = OperationKey { attempt: attempt.key.clone(), sequence };
-        self.settle_attempt(&task, AttemptPhase::Outcome { operation, result: WorkOutcome::Interrupted { cause } })
+        let activity = match &self.ecs.get::<WorkAttempt>(self.entity(&task)?).ok_or("work attempt component is missing")?.phase {
+            AttemptPhase::Executing { activity, .. } => activity.clone(),
+            _ => return Err("work attempt operation is already settled".into()),
+        };
+        self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Interrupted { cause } })
     }
     fn acknowledge_work_attempt(&mut self, task: String, generation: u64, sequence: u32) -> Result<()> {
         {
