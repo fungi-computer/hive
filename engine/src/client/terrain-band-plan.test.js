@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { planTerrainBandUpdates } from "./terrain-band-plan.js";
+import { terrainChunkKeys, affectedTerrainColumns } from "../../../src/art/terrain-faces.js";
 
 const surface = (x, y, z, top = y) => ({ cell: [x, y, z], material: 1, generatedTop: top });
 
@@ -14,4 +15,9 @@ test("terrain band plan rebuilds changed and neighboring levels while retaining 
 
 test("terrain band plan removes vanished levels", () => {
   assert.deepEqual(planTerrainBandUpdates([surface(0, 4, 0)], []).removedLevels, [4]);
+});
+
+test("a change at an eight-cell seam dirties both dependent chunks", () => {
+  const dirty = affectedTerrainColumns([{ x: 7, z: 3 }]);
+  assert.deepEqual(terrainChunkKeys(dirty), ["0,0", "1,0"]);
 });
