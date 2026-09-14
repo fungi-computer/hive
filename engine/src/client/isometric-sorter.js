@@ -247,4 +247,14 @@ export function pickFromOrdered(order, candidates) {
   );
 }
 
+/** Translate canonical art placement datums into the subject's world origin. */
+export function subjectSortFootprint(subject, resolvedPlacement) {
+  const origin = { x: subject.x, y: subject.y, z: subject.z };
+  if (resolvedPlacement?.kind === "footprint" && resolvedPlacement.alignedFootprint?.length)
+    return resolvedPlacement.alignedFootprint.map(([x, z]) => ({ x: origin.x + x, y: origin.y, z: origin.z + z }));
+  if (resolvedPlacement?.kind === "stair" && resolvedPlacement.entrance && resolvedPlacement.landing)
+    return [resolvedPlacement.entrance, resolvedPlacement.landing].map(([x, y, z]) => ({ x: origin.x + x, y: origin.y + y, z: origin.z + z }));
+  return [origin];
+}
+
 export { stableKey };

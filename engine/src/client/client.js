@@ -1,7 +1,7 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
-import { createIsometricSorter, pickFromOrdered } from "./isometric-sorter.js";
+import { createIsometricSorter, pickFromOrdered, subjectSortFootprint } from "./isometric-sorter.js";
 import { resolveWorldArtPlacement } from "./art-placement.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
@@ -938,6 +938,7 @@ export function createHiveClient({
         ? visibleHitAreaFor(texture, anchor)
         : undefined;
       let placement;
+      let resolvedPlacement;
       if (texture && isStatic && subject.placement) {
         const decodedDepth = art.depthByTexture?.get(texture);
         const resolved = resolveWorldArtPlacement({
@@ -946,6 +947,7 @@ export function createHiveClient({
           orientation: subject.placement.orientation,
           decodedDepth,
         });
+        resolvedPlacement = resolved;
         const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);
         const base = project(subject.x, subject.y, subject.z);
         placement = { offset: resolved.offset, screenOffset: [
@@ -962,12 +964,13 @@ export function createHiveClient({
           id: subject.id,
           display: entry.container,
           moving: !isStatic,
-          footprint: [{ x: subject.x, y: subject.y, z: subject.z }],
+          footprint: subjectSortFootprint(subject, resolvedPlacement),
+          storeyBand: Math.floor(subject.y / (terrainFrame?.verticalMetres || 1)),
           screenBounds: {
-            left: subject.screen.x - anchor.x * texture.width * camera.zoom,
-            right: subject.screen.x + (1 - anchor.x) * texture.width * camera.zoom,
-            top: subject.screen.y - anchor.y * texture.height * camera.zoom,
-            bottom: subject.screen.y + (1 - anchor.y) * texture.height * camera.zoom,
+            left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * texture.width * camera.zoom,
+            right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * texture.width * camera.zoom,
+            top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * texture.height * camera.zoom,
+            bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * texture.height * camera.zoom,
           },
           hitArea: subject.hitArea,
           visible: true,

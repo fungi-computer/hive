@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createIsometricSorter, pickFromOrdered } from "./isometric-sorter.js";
+import { createIsometricSorter, pickFromOrdered, subjectSortFootprint } from "./isometric-sorter.js";
 
 const node = (id, x, z, extra = {}) => ({
   id,
@@ -99,4 +99,17 @@ test("cycles are deterministic and picking chooses the last visible ordered silh
     ["a", "b"],
   );
   assert.equal(pickFromOrdered(ordered, [a, b]).id, "b");
+});
+
+test("canonical compact, bed, wall, and stair placement records become lawful footprints", () => {
+  const subject = { x: 10, y: 4, z: 7 };
+  assert.deepEqual(subjectSortFootprint(subject), [{ x: 10, y: 4, z: 7 }]);
+  assert.deepEqual(subjectSortFootprint(subject, { kind: "footprint", alignedFootprint: [[0, 0], [1, 0]] }), [
+    { x: 10, y: 4, z: 7 },
+    { x: 11, y: 4, z: 7 },
+  ]);
+  assert.deepEqual(subjectSortFootprint(subject, { kind: "stair", entrance: [0, 0, 0], landing: [0, 2, 2] }), [
+    { x: 10, y: 4, z: 7 },
+    { x: 10, y: 6, z: 9 },
+  ]);
 });
