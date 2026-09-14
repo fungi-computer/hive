@@ -2,7 +2,7 @@ import { constructionWorkProvider } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
 import { planSiteSupplies } from "../sdk/site-supplies";
 import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
-import { ProcessAttendanceWork, processAttendanceProvider } from "../sdk/process-attendance";
+import { processAttendanceProvider } from "../sdk/process-attendance";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
 import { ConstructionSite, SealedContainer } from "../sdk/construction";
@@ -1115,7 +1115,6 @@ export const colonyWorkSystem = createWorkSystem({
     Surface,
     MaterialLot,
     StagedProcess,
-    ProcessAttendanceWork,
     ColonyResourceOrder,
     ExcavationWork,
     DeliveryTask,
@@ -1133,7 +1132,6 @@ export const colonyWorkSystem = createWorkSystem({
     DeconstructionOrder,
     WaterSupplyOrder,
     WaterSupplyWork,
-    ProcessAttendanceWork,
     ColonyResourceOrder,
   ],
   phases: [

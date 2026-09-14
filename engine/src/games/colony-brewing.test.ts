@@ -7,7 +7,6 @@ import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
 import { ConstructionSite } from "../sdk/construction";
 import { Destination, MaterialLot, Position } from "../sdk/common";
-import { ProcessAttendanceWork } from "../sdk/process-attendance";
 import { StagedProcess } from "../sdk/process-supply";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
@@ -79,17 +78,16 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       const waterDelivery = session.query(query(DeliveryTask)).filter(row => { const task = row.get(DeliveryTask); return task.phase !== "complete" && task.destination === `${station.id}:kettle` && task.material === "water"; }).reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);
       assert(kettleWater + waterDelivery < 2 || activeProcessWaterDemands.length === 0, "sufficient staged and in-flight water must prevent another fetch from starting");
       if (processWaterDemands.length) sawProcessWaterDemand = true;
-      const attendance = session.query(query(ProcessAttendanceWork));
-      if (attendance.length) sawAttendance = true;
-      if (state?.stageIndex === 1 && state.phase === "waiting" && attendance.length === 0)
+      const attending = state?.worker !== null;
+      if (attending) sawAttendance = true;
+      if (state?.stageIndex === 1 && state.phase === "waiting" && !attending)
         sawElapsedWithoutAttendance = true;
-      if (state?.stageIndex === 2 && attendance.length) sawLaterAttendance = true;
+      if (state?.stageIndex === 2 && attending) sawLaterAttendance = true;
       if (state?.phase === "complete") break;
     }
     const final = session.query(query(StagedProcess))[0]?.get(StagedProcess);
     assert.equal(final?.phase, "complete", JSON.stringify({
       process: final,
-      attendance: session.query(query(ProcessAttendanceWork)).map(row => row.get(ProcessAttendanceWork)),
       deliveries: session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)),
       lots: session.query(query(MaterialLot)).map(row => row.get(MaterialLot)),
       positions: session.query(query(Position)).filter(row => row.id.startsWith("colony.worker")).map(row => [row.id, row.get(Position)]),
@@ -101,7 +99,6 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     assert(sawElapsedWithoutAttendance, "fermentation must release attendance");
     assert(sawLaterAttendance, "kegging must acquire attendance after consumed inputs are gone");
     session.step(0);
-    assert.equal(session.query(query(ProcessAttendanceWork)).length, 0);
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
     assert.equal(lots.filter(lot => lot.kind === "ale" && lot.container === "colony.brew.keg").reduce((sum, lot) => sum + lot.quantity, 0), 4);
     assert.equal(lots.filter(lot => lot.kind === "spent-grain" && lot.container === `${station.id}:tray`).reduce((sum, lot) => sum + lot.quantity, 0), 1);

@@ -308,7 +308,19 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
-export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination } | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" };
+export type WorkActivityRef =
+  | { readonly kind: "route"; readonly destination: MoveDestination }
+  | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" }
+  | { readonly kind: "excavation"; readonly cell: readonly [number, number, number]; readonly expectedMaterial: number; readonly replacementMaterial: number }
+  | { readonly kind: "deconstruction"; readonly site: EntityId; readonly contact: ConstructionAccessContact }
+  | { readonly kind: "process-attendance"; readonly process: EntityId }
+  | { readonly kind: "material-transfer"; readonly lot: EntityId; readonly from: EntityId; readonly to: EntityId; readonly quantity: number }
+  | { readonly kind: "material-drop"; readonly lot: EntityId }
+  | { readonly kind: "resource-establish"; readonly site: EntityId; readonly definition: string; readonly cell: readonly [number, number, number] }
+  | { readonly kind: "resource-tend"; readonly site: EntityId; readonly vessel: EntityId }
+  | { readonly kind: "resource-extract"; readonly source: EntityId }
+  | { readonly kind: "field-water"; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly direction: "withdraw" | "deposit"; readonly portions: number }
+  | { readonly kind: "tree"; readonly tree: EntityId };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }

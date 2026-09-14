@@ -37,7 +37,29 @@ pub enum AttemptPhase {
 pub enum ActivityRef {
     Route { destination: Point },
     Construction { site: String, contact: Point, mode: ConstructionMode },
+    #[serde(rename = "excavation")]
+    Excavation { cell: [i32; 3], expected_material: u16, replacement_material: u16 },
+    #[serde(rename = "deconstruction")]
+    Deconstruction { site: String, contact: Point },
+    #[serde(rename = "process-attendance")]
+    ProcessAttendance { process: String },
+    #[serde(rename = "material-transfer")]
+    MaterialTransfer { lot: String, from: String, to: String, quantity: u32 },
+    #[serde(rename = "material-drop")]
+    MaterialDrop { lot: String },
+    #[serde(rename = "resource-establish")]
+    ResourceEstablish { site: String, definition: String, cell: [i32; 3] },
+    #[serde(rename = "resource-tend")]
+    ResourceTend { site: String, vessel: String },
+    #[serde(rename = "resource-extract")]
+    ResourceExtract { source: String },
+    #[serde(rename = "field-water")]
+    FieldWater { vessel: String, cell: [i32; 3], direction: WaterDirection, portions: u8 },
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WaterDirection { Withdraw, Deposit }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]

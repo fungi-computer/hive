@@ -342,7 +342,7 @@ fn admitted() -> (Kernel, String) {
         .unwrap()
         .insert(extra);
     kernel.refresh_state_weight();
-    let process = kernel.request_process("herbal-ale-v1", "station").unwrap();
+    let process = kernel.request_process("herbal-ale-v1", "station", &ActionScope::Host).unwrap();
     kernel
         .admit_process(&process, "herbal-ale-v1", "station")
         .unwrap();
@@ -560,7 +560,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
 fn blocked_air_preserves_physical_facts_and_releases_worker() {
     let (mut kernel, process) = {
         let mut k = fixture(true);
-        let p = k.request_process("herbal-ale-v1", "station").unwrap();
+        let p = k.request_process("herbal-ale-v1", "station", &ActionScope::Host).unwrap();
         k.admit_process(&p, "herbal-ale-v1", "station").unwrap();
         (k, p)
     };

@@ -7,6 +7,7 @@ mod fuel_emission;
 mod environment_runtime;
 use crate::{collision, combat, components::*, navigation, registry::Registry};
 use crate::staged_process::{ProcessPhase, StagedProcess};
+use crate::work_attempt::WorkBlockReason;
 #[path = "material_output.rs"]
 mod material_output;
 #[path = "material_consumption.rs"]
@@ -220,7 +221,7 @@ mod process_request_tests {
     use crate::staged_process::{InputDisposition, InputPolicy, ProcessCatalog, ProcessDefinition, ProcessInput, ProcessPhase, ProcessStage, ProcessTransition, StagedProcess, StageMode};
     use serde_json::json;
 
-    fn kernel_with_slot() -> Kernel {
+    pub(super) fn kernel_with_slot() -> Kernel {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
@@ -240,13 +241,13 @@ mod process_request_tests {
     #[test]
     fn request_is_workerless_idempotent_and_restarts_completed_slot() {
         let mut kernel = kernel_with_slot();
-        let id = kernel.request_process("process-v1", "station").unwrap();
+        let id = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         let entity = kernel.entity(&id).unwrap();
         assert_eq!(kernel.ecs.get::<StagedProcess>(entity).unwrap().phase, ProcessPhase::Waiting);
-        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), id);
+        assert_eq!(kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(), id);
         kernel.ecs.entity_mut(entity).get_mut::<StagedProcess>().unwrap().phase = ProcessPhase::Complete;
         kernel.revision = 7;
-        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), id);
+        assert_eq!(kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(), id);
         let process = kernel.ecs.get::<StagedProcess>(entity).unwrap();
         assert_eq!((process.phase, process.stage_index, process.progress_seconds, process.entered_tick), (ProcessPhase::Waiting, 0, 0.0, 7));
     }
@@ -254,7 +255,7 @@ mod process_request_tests {
     #[test]
     fn request_restore_rejects_stale_station_or_definition_version() {
         let mut kernel = kernel_with_slot();
-        let id = kernel.request_process("process-v1", "station").unwrap();
+        let id = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         let entity = kernel.entity(&id).unwrap();
         kernel.ecs.get_mut::<StagedProcess>(entity).unwrap().definition_version = 2;
         assert!(kernel.validate_process_records().is_err());
@@ -267,7 +268,7 @@ mod process_request_tests {
     #[test]
     fn admission_waits_for_all_port_lots_and_is_retry_idempotent() {
         let mut kernel = kernel_with_slot();
-        let process = kernel.request_process("process-v1", "station").unwrap();
+        let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         assert!(kernel.admit_process(&process, "process-v1", "station").is_err());
         let lot = kernel.ecs.spawn((ExternalId("grain.1".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
         kernel.ids.insert("grain.1".into(), lot);
@@ -285,7 +286,7 @@ mod process_request_tests {
     #[test]
     fn admitted_binding_reserves_lot_from_ordinary_transfer() {
         let mut kernel = kernel_with_slot();
-        let process = kernel.request_process("process-v1", "station").unwrap();
+        let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         let lot = kernel.ecs.spawn((ExternalId("grain.1".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
         kernel.ids.insert("grain.1".into(), lot); kernel.known.insert("grain.1".into());
         let destination = kernel.ecs.spawn((ExternalId("destination".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 4 })).id();
@@ -303,27 +304,56 @@ mod process_request_tests {
         kernel.environment.as_mut().unwrap().processes = ProcessCatalog::from_definitions(vec![definition], &structures, &emissions).unwrap();
         let lot = kernel.ecs.spawn((ExternalId("grain.empty".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.empty".into(), lot); kernel.known.insert("grain.empty".into()); kernel.refresh_state_weight();
         let worker = kernel.ecs.spawn((ExternalId("worker".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Body { speed: 1.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, Container { capacity: 4 })).id(); kernel.ids.insert("worker".into(), worker); kernel.known.insert("worker".into()); kernel.rebuild_physical_indexes(true).unwrap();
-        let process = kernel.request_process("empty-v1", "station").unwrap(); kernel.admit_process(&process, "empty-v1", "station").unwrap(); (kernel, process)
+        let process = kernel.request_process("empty-v1", "station", &ActionScope::Host).unwrap(); kernel.admit_process(&process, "empty-v1", "station").unwrap(); (kernel, process)
     }
 
     #[test] fn attendance_requires_contact_and_authoritative_delta() { let (mut kernel, process) = empty_process_kernel(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); assert!(kernel.attend_process("worker", &process, 1.0).is_err()); kernel.ecs.entity_mut(worker).insert(Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }); kernel.attend_process("worker", &process, 1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
     #[test] fn zero_delta_pause_and_repeated_attend_do_not_cross_twice() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 0.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.attend_process("worker", &process, 2.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().clone(); assert_eq!((state.stage_index, state.phase), (1, ProcessPhase::Waiting)); kernel.attend_process("worker", &process, 0.0).unwrap_err(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().stage_index, 1); }
     #[test] fn elapsed_stage_has_no_same_tick_credit_and_survives_worker_release() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 2.0).unwrap(); kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.revision += 1; kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
     #[test] fn worker_release_allows_replacement_and_save_reload_preserves_process() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 1.0).unwrap(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); kernel.advance_staged_processes(1.0).unwrap(); assert!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().worker.is_none()); let saved = kernel.snapshot_entities_json().unwrap(); let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap(); assert_eq!(restored.ecs.get::<StagedProcess>(restored.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
-    #[test] fn process_transition_consumes_exact_bound_portion() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station").unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); kernel.attend_process("worker.blocked", &process, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Complete); assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().quantity, 0); }
+    #[test] fn process_transition_consumes_exact_bound_portion() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); kernel.attend_process("worker.blocked", &process, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Complete); assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().quantity, 0); }
 
     #[test]
     fn process_station_rejects_different_active_definition() {
         let mut kernel = kernel_with_slot();
-        let first = kernel.request_process("process-v1", "station").unwrap();
+        let first = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         let mut second = kernel.environment.as_ref().unwrap().processes.get("process-v1").unwrap().definition().clone();
         second.id = "process-v2".into();
         let first_definition = kernel.environment.as_ref().unwrap().processes.get("process-v1").unwrap().definition().clone();
         let structures = kernel.environment.as_ref().unwrap().structures.clone();
         let emissions = kernel.environment.as_ref().unwrap().emissions.clone();
         kernel.environment.as_mut().unwrap().processes = ProcessCatalog::from_definitions(vec![first_definition, second], &structures, &emissions).unwrap();
-        assert_eq!(kernel.request_process("process-v1", "station").unwrap(), first);
-        assert!(kernel.request_process("process-v2", "station").is_err());
+        assert_eq!(kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(), first);
+        assert!(kernel.request_process("process-v2", "station", &ActionScope::Host).is_err());
+    }
+}
+
+#[cfg(test)]
+mod process_attempt_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn scoped_attendance_keeps_worker_reserved_until_terminal_process_outcome() {
+        let mut kernel = process_request_tests::kernel_with_slot();
+        let party = kernel.ecs.spawn((ExternalId("party:1".into()), Party { owner_player: "player:1".into() })).id();
+        kernel.ids.insert("party:1".into(), party); kernel.known.insert("party:1".into());
+        let station = kernel.entity("station").unwrap();
+        kernel.ecs.entity_mut(station).insert(OwnedByParty { party: "party:1".into() });
+        let grain = kernel.ecs.spawn((ExternalId("grain:1".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
+        kernel.ids.insert("grain:1".into(), grain); kernel.known.insert("grain:1".into()); kernel.refresh_state_weight();
+        let worker = kernel.ecs.spawn((ExternalId("worker:1".into()), PartyMember { party: "party:1".into() }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Body { speed: 1.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, Container { capacity: 4 })).id();
+        kernel.ids.insert("worker:1".into(), worker); kernel.known.insert("worker:1".into());
+        let request = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:1"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&request.to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        let process = "process:station:process-v1";
+        kernel.admit_process(process, "process-v1", "station").unwrap();
+        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","party":"party:1","operation":{"kind":"process-attendance","process":process}}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&begin.to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        let attempt = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
+        assert!(attempt.contains("worker:1"));
     }
 }
 
@@ -3101,7 +3131,7 @@ impl Kernel {
             .into_iter()
             .map(|action| {
                 let ScopedAction { scope, request } = action;
-                let result = self.validate_action_scope(&scope, &request).and_then(|()| self.apply_action(request, batch.delta));
+                let result = self.validate_action_scope(&scope, &request).and_then(|()| self.apply_action(request, batch.delta, &scope));
                 ActionResult {
                     accepted: result.is_ok(),
                     projectile_id: result.as_ref().ok().and_then(|effect| match effect { ActionEffect::Projectile(id, _) => Some(id.clone()), _ => None }),
@@ -3123,6 +3153,7 @@ impl Kernel {
         self.advance_movement(batch.delta)?;
         self.settle_arrived_work_attempts();
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
+        self.advance_process_work_attempts(batch.delta)?;
         self.advance_staged_processes(batch.delta)?;
         self.cleanup_empty_ground_stock();
         self.time += batch.delta;
@@ -3140,11 +3171,44 @@ impl Kernel {
         }).collect();
         for (task, phase) in arrived { let _ = self.settle_attempt(&task, phase); }
     }
+    fn advance_process_work_attempts(&mut self, delta: f64) -> Result<()> {
+        if delta == 0.0 { return Ok(()); }
+        let active: Vec<(String, String)> = self.work_attempts.iter().filter_map(|(task, entity)| {
+            let attempt = self.ecs.get::<WorkAttempt>(*entity)?;
+            matches!(attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { .. }, .. }).then(|| (task.clone(), attempt.worker.clone()))
+        }).collect();
+        for (task, worker) in active {
+            let process = match self.ecs.get::<WorkAttempt>(*self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?).and_then(|attempt| match &attempt.phase { AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, .. } => Some(process.clone()), _ => None }) { Some(process) => process, None => continue };
+            let worker_entity = self.entity(&worker)?;
+            let process_entity = self.entity(&process)?;
+            let station = self.ecs.get::<StagedProcess>(process_entity).ok_or("process is missing staged state")?.station.clone();
+            let station_entity = self.entity(&station)?;
+            let unavailable = self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || self.ecs.get::<Traversal>(worker_entity).is_none() || self.ecs.get::<Support>(worker_entity).is_some() || self.ecs.get::<Destination>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some();
+            let access_lost = self.contact(worker_entity, station_entity).is_err();
+            if unavailable || access_lost {
+                let entity = *self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?;
+                let attempt = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
+                let operation = attempt.current_operation().cloned().ok_or("process attendance operation is missing")?;
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, result: WorkOutcome::Blocked { reason: if access_lost { WorkBlockReason::AccessLost } else { WorkBlockReason::WorkerUnavailable } } })?;
+                continue;
+            }
+            self.attend_process(&worker, &process, delta)?;
+            let state = self.ecs.get::<StagedProcess>(self.entity(&process)?).ok_or("process is missing staged state")?;
+            if state.phase != ProcessPhase::Working {
+                let entity = *self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?;
+                let attempt = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
+                let operation = attempt.current_operation().cloned().ok_or("process attendance operation is missing")?;
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, result: WorkOutcome::Completed })?;
+            }
+        }
+        Ok(())
+    }
     fn settle_attempt(&mut self, task: &str, phase: AttemptPhase) -> Result<()> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
         let worker = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.worker.clone();
+        let retain_worker = matches!(&phase, AttemptPhase::Outcome { result: WorkOutcome::Completed, .. });
         self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = phase;
-        self.attempts_by_worker.remove(&worker);
+        if !retain_worker { self.attempts_by_worker.remove(&worker); }
         Ok(())
     }
     fn entity(&self, id: &str) -> Result<Entity> {
@@ -3523,7 +3587,7 @@ impl Kernel {
         Ok(zone)
     }
 
-    fn request_process(&mut self, definition_id: &str, station_id: &str) -> Result<String> {
+    fn request_process(&mut self, definition_id: &str, station_id: &str, scope: &ActionScope) -> Result<String> {
         if !crate::components::valid_id(definition_id) || !crate::components::valid_id(station_id) {
             return Err("invalid process request identity".into());
         }
@@ -3548,11 +3612,19 @@ impl Kernel {
             }
         }
         let process_id = format!("process:{station_id}:{definition_id}");
+        let owner = match scope {
+            ActionScope::Party { party } => {
+                if self.ecs.get::<OwnedByParty>(station).map(|value| value.party.as_str()) != Some(party.as_str()) { return Err("process station is outside party".into()); }
+                Some(party.clone())
+            }
+            ActionScope::Host => None,
+        };
         if !crate::components::valid_id(&process_id) || self.ids.len() >= 16_384 {
             return Err("process identity or state capacity exceeded".into());
         }
         if let Some(existing) = self.ids.get(&process_id).copied() {
             if self.ecs.get::<StagedProcess>(existing).is_some_and(|process| process.phase != ProcessPhase::Complete) {
+                if let Some(party) = owner.as_deref() && self.ecs.get::<OwnedByParty>(existing).map(|value| value.party.as_str()) != Some(party) { return Err("process ownership mismatch on replay".into()); }
                 return Ok(process_id);
             }
             self.remove_process_bindings(&process_id)?;
@@ -3568,6 +3640,7 @@ impl Kernel {
                 blocked_reason: String::new(),
                 worker: None,
             });
+            if let Some(party) = owner.clone() { self.ecs.entity_mut(existing).insert(OwnedByParty { party }); }
             self.refresh_state_weight();
             return Ok(process_id);
         }
@@ -3578,6 +3651,7 @@ impl Kernel {
             entered_tick: self.revision, phase: ProcessPhase::Waiting, blocked_reason: String::new(),
             worker: None,
         })).id();
+        if let Some(party) = owner { self.ecs.entity_mut(entity).insert(OwnedByParty { party }); }
         self.ids.insert(process_id.clone(), entity);
         self.known.insert(process_id.clone());
         self.refresh_state_weight();
@@ -3736,6 +3810,15 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
+        if let crate::work_attempt::ActivityRef::ProcessAttendance { process } = &activity {
+            if process != &task { return Err("process attendance task mismatch".into()); }
+            self.attend_process(&worker, process, 0.0)?;
+            let entity = task_entity;
+            self.ecs.entity_mut(entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
+            self.work_attempts.insert(task, entity);
+            self.attempts_by_worker.insert(worker, key.clone());
+            return Ok(key);
+        }
         let crate::work_attempt::ActivityRef::Route { destination } = &activity else { return Err("unsupported initial work activity".into()); };
         let actor = worker_entity;
         let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
@@ -3809,6 +3892,25 @@ impl Kernel {
         let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
         let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
         if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
+        if let crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } = next_activity.clone() {
+            if from != current.worker { return Err("material transfer source is not attempt worker".into()); }
+            self.transfer(&lot, &from, &to, quantity)?;
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::ProcessAttendance { process } = next_activity.clone() {
+            if process != task { return Err("process attendance task mismatch".into()); }
+            self.attend_process(&current.worker, &process, 0.0)?;
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            let state = self.ecs.get::<StagedProcess>(self.entity(&process)?).ok_or("process is missing staged state")?;
+            if state.phase == ProcessPhase::Working {
+                self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            } else {
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            }
+            return Ok(());
+        }
         let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };
         if site != task { return Err("construction continuation task mismatch".into()); }
         let site_entity = self.entity(&site)?;
@@ -3857,7 +3959,7 @@ impl Kernel {
         self.refresh_state_weight(); Ok(party)
     }
 
-    fn apply_action(&mut self, action: Action, delta: f64) -> Result<ActionEffect> {
+    fn apply_action(&mut self, action: Action, delta: f64, scope: &ActionScope) -> Result<ActionEffect> {
         match action {
             Action::EstablishParty { binding_id, player, party, records } => self.establish_party(binding_id, player, party, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
@@ -3871,7 +3973,7 @@ impl Kernel {
             }
             Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
-            Action::RequestProcess { definition, station } => self.request_process(&definition, &station).map(ActionEffect::Entity),
+            Action::RequestProcess { definition, station } => self.request_process(&definition, &station, scope).map(ActionEffect::Entity),
             Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
             Action::AttendProcess { worker, process } => { self.attend_process(&worker, &process, delta)?; Ok(ActionEffect::None) },
             Action::Excavate { entity, x, y, z, expected, replacement } => {
