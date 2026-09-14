@@ -140,7 +140,7 @@ export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orien
     return Object.freeze({ kind: "footprint", ...transform });
   }
   if (subjectPlacement.kind === "stair" && artPlacement.kind === "stair") {
-    return Object.freeze({ kind: "stair", ...resolveStairArtEndpoints3d({
+    const endpoints = resolveStairArtEndpoints3d({
       entrance: artPlacement.entrance,
       landing: artPlacement.landing,
       physicalEntrance: [
@@ -155,7 +155,8 @@ export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orien
       ],
       orientation: turns,
       rotationPivot: artPlacement.rotationPivot,
-    }) });
+    });
+    return Object.freeze({ kind: "stair", ...endpoints, offset: Object.freeze([0, 0]) });
   }
   throw new Error("original art placement metadata kinds differ");
 }
