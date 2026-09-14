@@ -469,7 +469,6 @@ export const colonyPack: GamePack = {
           const attempt = attemptForWorker(context, worker);
           if (!attempt || attempt.worker !== worker || attempt.party !== admittedParty(context, worker)) return [];
           if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }];
-          if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
           return [];
         });
         return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };

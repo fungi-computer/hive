@@ -125,6 +125,7 @@ mod work_attempt_laws {
         restored.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
         let retained: Value = serde_json::from_str(&restored.work_attempts_json("[\"task\"]").unwrap()).unwrap();
         assert_eq!(retained[0]["phase"]["kind"], "outcome");
+        assert_eq!(restored.attempts_by_worker.get("worker").map(|key| key.task.as_str()), Some("task"));
         restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"task","generation":key["generation"],"sequence":1}}]}).to_string()).unwrap();
         let reassigned: Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(reassigned["results"][0]["accepted"], true);
@@ -3124,10 +3125,10 @@ impl Kernel {
             let entity = candidate.entity(&task)?;
             candidate.ecs.entity_mut(entity).insert(attempt.clone());
             candidate.work_attempts.insert(task, entity);
-            // A retained terminal outcome no longer owns its worker. Providers
-            // may acknowledge it after that worker has started unrelated work;
-            // restore must rebuild the same active-only ownership index.
-            if !matches!(attempt.phase, AttemptPhase::Outcome { .. })
+            // Completed outcomes retain worker ownership until their provider
+            // reconciles and acknowledges them. Blocked/interrupted outcomes
+            // release the worker and may be acknowledged after reassignment.
+            if matches!(attempt.phase, AttemptPhase::Executing { .. } | AttemptPhase::Outcome { result: WorkOutcome::Completed, .. })
                 && candidate.attempts_by_worker.insert(attempt.worker.clone(), attempt.key.clone()).is_some()
             {
                 return Err("competing work attempt workers".into());
