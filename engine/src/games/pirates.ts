@@ -198,6 +198,7 @@ function controlledCrew(
 export const piratesPack: GamePack = {
   id: "pirates",
   version: 1,
+  localScope: { kind: "player", player: "local", party: entity("pirates.local-party") },
   components: pirateComponents,
   systems: [deliverySystem],
   commands: {

@@ -114,6 +114,7 @@ const formationInitial = [
 export const formationsPack: GamePack = {
   id: "formations",
   version: 1,
+  localScope: { kind: "player", player: "local", party: entity("formations.local-party") },
   components: [
     Position,
     Destination,
