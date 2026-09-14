@@ -73,9 +73,25 @@ mod work_attempt_laws {
     fn world() -> Kernel {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
-            {"id":"task","components":{}},{"id":"task2","components":{}},{"id":"worker","components":{"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{}}
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
         ]}).to_string()).unwrap();
         kernel
+    }
+
+    #[test]
+    fn begin_requires_one_real_party_to_own_worker_and_task() {
+        let mut kernel = world();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
+            {"id":"task","components":{"hive.owned-by-party":{"party":"other"}}},
+            {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
+            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"other","components":{"hive.party":{"ownerPlayer":"other-player"}}}
+        ]}).to_string()).unwrap();
+        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], false);
+        assert_eq!(result["results"][0]["reason"], "work attempt task is outside party");
+        assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), "[]");
+        assert_eq!(kernel.query_json("[\"hive.destination\"]").unwrap(), "[]");
     }
 
     #[test]
@@ -3230,19 +3246,25 @@ impl Kernel {
     fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
         if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
         if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
+        let party_entity = self.entity(&party)?;
+        self.ecs.get::<Party>(party_entity).ok_or("work attempt party is not a party")?;
+        let worker_entity = self.entity(&worker)?;
+        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("work attempt worker is outside party".into()); }
+        let task_entity = self.entity(&task)?;
+        if self.ecs.get::<OwnedByParty>(task_entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("work attempt task is outside party".into()); }
         let generation = self.next_work_generation;
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
         let crate::work_attempt::ActivityRef::Route { destination } = &activity;
-        let actor = self.entity(&worker)?;
+        let actor = worker_entity;
         let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
         let route = self.route_for(actor, position, destination)?;
         self.direct.remove(&actor);
         self.ecs.entity_mut(actor).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
         self.install_route(actor, route);
-        let entity = self.entity(&key.task)?;
+        let entity = task_entity;
         self.ecs.entity_mut(entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
         self.work_attempts.insert(task, entity);
         self.attempts_by_worker.insert(worker.clone(), key.clone());
