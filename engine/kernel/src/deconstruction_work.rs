@@ -95,3 +95,32 @@ impl Kernel {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn saved(task_owner: Option<&str>, site_owner: &str) -> String {
+        let task_owner = task_owner.map(|party| json!({"party": party}));
+        let mut initial = vec![json!({"id":"site","components":{"hive.owned-by-party":{"party":site_owner}}}), json!({"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}})];
+        let mut task = json!({"id":"task","components":{"hive.deconstruction-work":{"site":"site","contactX":0.0,"contactY":0.0,"contactZ":0.0,"seconds":1.0,"requiredSeconds":2.0}}});
+        if let Some(owner) = task_owner { task["components"]["hive.owned-by-party"] = owner; }
+        initial.push(task);
+        json!({"format":"hive-game","version":1,"game":"deconstruction-tests","components":[{"id":"hive.deconstruction-work","version":1,"fields":{"site":"entity","contactX":"number","contactY":"number","contactZ":"number","seconds":"number","requiredSeconds":"number"}}],"initial":initial}).to_string()
+    }
+
+    #[test]
+    fn parked_progress_restores_without_attempt() {
+        let mut kernel = Kernel::new();
+        assert!(kernel.restore_json(&saved(Some("party"), "party")).is_ok());
+    }
+
+    #[test]
+    fn parked_progress_rejects_missing_or_foreign_task_owner() {
+        let mut missing = Kernel::new();
+        assert!(missing.restore_json(&saved(None, "party")).is_err());
+        let mut foreign = Kernel::new();
+        assert!(foreign.restore_json(&saved(Some("other"), "party")).is_err());
+    }
+}
