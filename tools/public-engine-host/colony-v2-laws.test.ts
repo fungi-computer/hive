@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { DatabaseSync } from "node:sqlite";
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { colonyBindingId, colonyWorldRoute } from "./protocol";
 import { createColonyPartyPlan } from "../../engine/src/games/colony-party";
 import { entity } from "../../engine/src/sdk/authoring";
@@ -22,4 +25,24 @@ test("binding and party plans are deterministic and retry safe", async () => {
   assert.equal(plan.people.length, 2);
   assert.equal(plan.records.filter(record => record.components["hive.party-member"] !== undefined).length, 2);
   assert.equal(plan.records.filter(record => record.components["hive.owned-by-party"] !== undefined).length, 3);
+});
+
+test("participant binding is atomic, idempotent, and survives reopen", () => {
+  const directory = mkdtempSync("/tmp/hive-party-laws-");
+  const file = join(directory, "world.sqlite");
+  const db = new DatabaseSync(file);
+  db.exec("CREATE TABLE hive_public_participants (credential_hash TEXT PRIMARY KEY, principal TEXT UNIQUE, player_id TEXT UNIQUE, party_id TEXT UNIQUE)");
+  const insert = db.prepare("INSERT INTO hive_public_participants VALUES (?,?,?,?)");
+  db.exec("BEGIN");
+  insert.run("a", "participant:a", "player:a", "party:a");
+  db.exec("ROLLBACK");
+  assert.equal(db.prepare("SELECT count(*) AS count FROM hive_public_participants").get().count, 0);
+  insert.run("a", "participant:a", "player:a", "party:a");
+  assert.throws(() => insert.run("a", "participant:a", "player:a", "party:a"));
+  assert.throws(() => insert.run("b", "participant:b", "player:a", "party:b"));
+  db.close();
+  const reopened = new DatabaseSync(file);
+  assert.equal(reopened.prepare("SELECT count(*) AS count FROM hive_public_participants").get().count, 1);
+  reopened.close();
+  rmSync(directory, { recursive: true, force: true });
 });
