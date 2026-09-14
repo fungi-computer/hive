@@ -18,7 +18,7 @@ function manifest() {
   };
 }
 
-test("multipart manifest part owner is canonical and strictly validated", () => {
+test("v6 multipart manifest loads and strictly validates canonical part owners", () => {
   const parsed = parseStaticArtManifest(manifest());
   assert.equal(parsed.entries[1].part.owner, '["buildings","stair","finished",0]');
   const malformed = manifest();

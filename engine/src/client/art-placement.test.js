@@ -133,13 +133,7 @@ test("canonical stair datum resolves to the native cardinal directions", () => {
   }
 });
 
-test("v5 manifest retains recipe placement for every bed, brewer, and stair frame", () => {
-  const manifest = parseStaticArtManifest(JSON.parse(readFileSync("public/generated-art/goblin-static-art-v5/manifest.json", "utf8")));
-  const recipes = new Map([["bed", BED_PLACEMENT], ["brew-station", BREW_PLACEMENT], ["stair", STAIR_PLACEMENT]]);
-  const entries = manifest.entries.filter((entry) => recipes.has(entry.path[1]));
-  assert.equal(entries.length, 82);
-  for (const entry of entries) assert.deepEqual(entry.placement, recipes.get(entry.path[1]));
-  for (const type of ["bed", "brew-station"])
-    assert.deepEqual(new Set(entries.filter((entry) => entry.path[1] === type && entry.path.length === 4).map((entry) => entry.path.at(-1))), new Set([0, 1]));
-  assert.deepEqual(new Set(entries.filter((entry) => entry.path[1] === "stair" && entry.path.length === 4).map((entry) => entry.path.at(-1))), new Set([0, 1, 2, 3]));
+test("superseded v5 manifest is rejected instead of being silently accepted", () => {
+  const input = JSON.parse(readFileSync("public/generated-art/goblin-static-art-v5/manifest.json", "utf8"));
+  assert.throws(() => parseStaticArtManifest(input), /unsupported/);
 });
