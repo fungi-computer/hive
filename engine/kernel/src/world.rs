@@ -471,6 +471,16 @@ mod construction_tests {
         let _ = surface;
     }
 
+    #[test]
+    fn transfer_contacts_reject_container_custody_cycles() {
+        let (mut kernel, _, _) = world();
+        let a = kernel.ecs.spawn((ExternalId("cycle-a".into()), Container { capacity: 1 }, Lot { kind: "wood".into(), quantity: 1, container: "cycle-b".into() })).id();
+        let b = kernel.ecs.spawn((ExternalId("cycle-b".into()), Container { capacity: 1 }, Lot { kind: "wood".into(), quantity: 1, container: "cycle-a".into() })).id();
+        kernel.ids.insert("cycle-a".into(), a); kernel.ids.insert("cycle-b".into(), b);
+        kernel.known.insert("cycle-a".into()); kernel.known.insert("cycle-b".into());
+        assert_eq!(kernel.transfer_contacts_json(r#"{"worker":"worker-1","container":"cycle-a"}"#).unwrap_err(), "container custody cycle");
+    }
+
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
             {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
@@ -2271,16 +2281,16 @@ impl Kernel {
         }
         self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
         let frame = self.support_id(worker);
-        if self.support_id(container) != frame {
+        let container_frame = if self.ecs.get::<Position>(container).is_none() && self.ecs.get::<ConstructionSite>(container).is_some() { None } else { self.contact_frame(container)? };
+        if container_frame != frame {
             return serde_json::to_string(&json!({"kind":"blocked","reason":"unavailable-frame"})).map_err(|error| error.to_string());
         }
         let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
-        let resolved_pose = if self.ecs.get::<Position>(container).is_some() {
-            Some(self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?)
-        } else {
-            let holder = self.ecs.query::<(Entity, &Lot)>().iter(&self.ecs).find_map(|(entity, lot)| (lot.container == request.container).then_some(entity));
-            holder.map(|entity| self.contact_pose(entity)).transpose().map_err(|reason| reason.to_string())?
+        let resolved_pose = match self.contact_pose(container) {
+            Ok(pose) => Some(pose),
+            Err(reason) if reason == "no position" => None,
+            Err(reason) => return Err(reason),
         };
         let (source_points, contact_reference) = if self.ecs.get::<Position>(container).is_none() {
             if let Some(site) = self.ecs.get::<ConstructionSite>(container).cloned() {
@@ -2957,6 +2967,21 @@ impl Kernel {
                 }
                 Err(reason) => return Err(reason),
             }
+        }
+        Err("container custody chain exceeds depth 16".into())
+    }
+    fn contact_frame(&self, entity: Entity) -> Result<Option<String>> {
+        let mut current = entity;
+        let mut seen = Vec::new();
+        for _ in 0..=16 {
+            if self.ecs.get::<Position>(current).is_some() {
+                return Ok(self.support_id(current));
+            }
+            if seen.contains(&current) { return Err("container custody cycle".into()); }
+            seen.push(current);
+            if self.ecs.get::<Container>(current).is_none() { return Err("no position".into()); }
+            let lot = self.ecs.get::<Lot>(current).ok_or("no position")?;
+            current = self.entity(&lot.container)?;
         }
         Err("container custody chain exceeds depth 16".into())
     }
