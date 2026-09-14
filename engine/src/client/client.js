@@ -980,7 +980,7 @@ export function createHiveClient({
       worldDepthLayer.update(terrainLayer.drawItem ? [terrainLayer.drawItem, ...opaqueItems] : opaqueItems, WORLD_TOWARD_CAMERA);
       worldDepthLayer.render(app.renderer);
       if (terrainLayer.drawItem || opaqueItems.length)
-        worldDepthLayer.renderTransparent(app.renderer, terrainLayer.transparentContainer);
+        worldDepthLayer.renderTransparent(app.renderer, terrainLayer.transparentItems);
       worldDepthSprite.visible = opaqueItems.length > 0 || Boolean(terrainLayer.drawItem);
     }
     const drag = gesture.getSnapshot().context;

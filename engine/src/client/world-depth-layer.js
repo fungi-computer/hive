@@ -255,21 +255,6 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
       if (renderer?.name !== "webgl" || renderer.context?.webGLVersion !== 2)
         throw new Error("world-depth-requires-webgl2");
       if (!activeBounds) throw new Error("transparent world requires opaque pass");
-      // Terrain owns the projected water geometry; the depth owner owns its
-      // composition. A container is accepted only for that one bounded caller
-      // and is still rendered into this target with depth writes disabled.
-      if (items instanceof Container) {
-        const state = State.for2d();
-        Object.assign(state, TRANSPARENT_WORLD_STATE);
-        items.state = state;
-        for (const child of items.children) {
-          const childState = State.for2d();
-          Object.assign(childState, TRANSPARENT_WORLD_STATE);
-          child.state = childState;
-        }
-        renderer.render({ target, container: items, clear: false });
-        return;
-      }
       const ordered = transparentWorldComposition(items, roleOrder);
       const layer = new Container();
       for (const item of ordered) {
