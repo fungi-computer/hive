@@ -63,8 +63,7 @@ export function createColonyPerformancePack(
       "colony.tree-policy": { designated: true },
     } });
     initial.push({ id: `${id}.order`, components: {
-      "colony.tree-order": { tree: id, actor: null, phase: "blocked", stage: "fell", seconds: 0,
-        approachX: 0, approachY: 0, approachZ: 0, reason: "Not designated" },
+      "colony.tree-order": { tree: id, phase: "queued", stage: "fell", seconds: 0, reason: "" },
     } });
     placements.push({ entity: id, column: [x, z] });
   }

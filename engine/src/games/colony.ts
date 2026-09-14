@@ -57,13 +57,6 @@ const trees = [
   { id: entity("colony.tree.pine"), x: -5, z: 4 },
   { id: entity("colony.tree.willow"), x: 4, z: -5 },
 ] as const;
-const TREE_CONTACT_TOLERANCE = 0.05;
-export function treeWorkerAtApproach(
-  actor: { readonly x: number; readonly y: number; readonly z: number },
-  order: { readonly approachX: number; readonly approachY: number; readonly approachZ: number },
-): boolean {
-  return Math.hypot(actor.x - order.approachX, actor.y - order.approachY, actor.z - order.approachZ) <= TREE_CONTACT_TOLERANCE;
-}
 export function treeWorkProgress(order: { readonly seconds: number; readonly stage: "fell" | "chop" }): number {
   return Math.max(0, Math.min(1, order.seconds / (order.stage === "fell" ? 3 : 2)));
 }
@@ -100,7 +93,7 @@ const colonyInitial = [
     [FiniteResource.id]: { kind: "wood", quantity: 6 },
     "colony.tree-policy": { designated: false },
   } }, { id: entity(`${id}.order`), components: {
-    "colony.tree-order": { tree: id, actor: null, phase: "blocked", stage: "fell", seconds: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "Not designated" },
+    "colony.tree-order": { tree: id, phase: "blocked", stage: "fell", seconds: 0, reason: "Not designated" },
   } }]),
 ];
 
@@ -475,7 +468,9 @@ export const colonyPack: GamePack = {
         const actions: ActionRequest[] = selected.flatMap((worker): ActionRequest[] => {
           const attempt = attemptForWorker(context, worker);
           if (!attempt || attempt.worker !== worker || attempt.party !== admittedParty(context, worker)) return [];
-          return attempt.phase.kind === "executing" ? [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }] : [];
+          if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }];
+          if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
+          return [];
         });
         return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
       },
@@ -550,7 +545,16 @@ export const colonyPack: GamePack = {
         const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
         if (context.scope.kind === "player" && context.query(query(OwnedByParty)).some(owner => selected.has(owner.id) && owner.get(OwnedByParty).party !== context.scope.party)) throw new Error("tree belongs to another party");
         if (!rows.length) throw new Error("no matching tree");
-        return { actions: [], writes: rows.map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: false } })) };
+        const orders = context.query(query(ColonyTreeOrder));
+        const attempts = new Map((context.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+        const actions: ActionRequest[] = orders.flatMap(row => {
+          const order = row.get(ColonyTreeOrder), attempt = attempts.get(row.id);
+          if (!selected.has(order.tree) || !attempt) return [];
+          if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" as const }];
+          if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
+          return [];
+        });
+        return { actions, writes: rows.map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: false } })) };
       },
     }),
     cancelDig: command({
@@ -602,11 +606,13 @@ export const colonyPack: GamePack = {
   presentation: {
     activities: context => {
       const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
-      const trees = context.query(query(ColonyTreeOrder)).flatMap(row => {
-        const order = row.get(ColonyTreeOrder), position = positions.get(order.tree);
-        const actorPosition = order.actor === null ? undefined : positions.get(order.actor);
-        return order.phase === "working" && order.actor !== null && position && actorPosition && treeWorkerAtApproach(actorPosition, order)
-          ? [{ actor: order.actor, kind: "chop" as const, target: [position.x, position.z] as const, progress: treeWorkProgress(order) }]
+      const treeOrders = context.query(query(ColonyTreeOrder));
+      const treeAttempts = new Map((context.workAttempts?.(treeOrders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+      const trees = treeOrders.flatMap(row => {
+        const order = row.get(ColonyTreeOrder), position = positions.get(order.tree), attempt = treeAttempts.get(row.id);
+        const activity = attempt?.phase.kind === "outcome" && attempt.phase.result.kind === "completed" ? attempt.phase.activity : null;
+        return order.phase === "working" && attempt && position && activity?.kind === "route"
+          ? [{ actor: attempt.worker, kind: "chop" as const, target: [position.x, position.z] as const, progress: treeWorkProgress(order) }]
           : [];
       });
       const excavationAttempts = new Map((context.workAttempts?.(context.query(query(ExcavationWork)).map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt.worker]));
@@ -791,7 +797,7 @@ export const colonyPack: GamePack = {
 
 const neutralColonyInitial = [
   { id: guestId, components: { "hive.position": { x: 3, y: 0, z: 1, facing: 0 }, "hive.body": { speed: 1 }, "hive.container": { capacity: 4 }, "hive.traversal": { clearanceCells: 1, maxStepCells: 1 }, "hive.visual": { sprite: "goblin.guest", label: "Guest" }, "colony.guest": { hungry: true } } },
-  ...trees.flatMap(({ id, x, z }) => [{ id, components: { "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 }, "colony.tree": { phase: "standing" }, [FiniteResource.id]: { kind: "wood", quantity: 6 }, "colony.tree-policy": { designated: false } } }, { id: entity(`${id}.order`), components: { "colony.tree-order": { tree: id, actor: null, phase: "blocked", stage: "fell", seconds: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "Not designated" } } }]),
+  ...trees.flatMap(({ id, x, z }) => [{ id, components: { "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 }, "colony.tree": { phase: "standing" }, [FiniteResource.id]: { kind: "wood", quantity: 6 }, "colony.tree-policy": { designated: false } } }, { id: entity(`${id}.order`), components: { "colony.tree-order": { tree: id, phase: "blocked", stage: "fell", seconds: 0, reason: "Not designated" } } }]),
 ];
 const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
   ...colonyEnvironment,

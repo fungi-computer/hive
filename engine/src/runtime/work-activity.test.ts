@@ -83,13 +83,14 @@ test("actual Colony tree attendance projects chop only while its order is workin
       sawApproach = false;
     for (let i = 0; i < 80; i++) {
       session.step(0.25);
-      const order = session
+      const orderRow = session
         .query(query(ColonyTreeOrder))
-        .find((row) => row.get(ColonyTreeOrder).tree === "colony.tree.oak")
-        ?.get(ColonyTreeOrder);
-      if (order?.phase === "working" && order.actor) {
+        .find((row) => row.get(ColonyTreeOrder).tree === "colony.tree.oak");
+      const order = orderRow?.get(ColonyTreeOrder);
+      const attempt = orderRow ? session.workAttempts([orderRow.id])[0] : undefined;
+      if (order?.phase === "working" && attempt) {
         const view = observe(),
-          activity = view.facts.find((f) => f.id === order.actor)?.activity;
+          activity = view.facts.find((f) => f.id === attempt.worker)?.activity;
         if (activity?.kind !== "chop") {
           sawApproach = true;
           continue;

@@ -30,7 +30,6 @@ import {
   Support,
   Surface,
   Traversal,
-  extractResource,
   move,
   cancelWork,
 } from "../sdk/common";
@@ -153,27 +152,20 @@ export const ColonyTree = component<{ phase: ColonyTreePhase }>("colony.tree", {
   version: 1,
   fields: { phase: "string" },
 });
-export const ColonyTreeOrder = component<{
+type TreeOrderState = {
   tree: EntityId;
-  actor: EntityId | null;
   phase: "queued" | "working" | "blocked" | "complete";
   stage: "fell" | "chop";
   seconds: number;
-  approachX: number;
-  approachY: number;
-  approachZ: number;
   reason: string;
-}>("colony.tree-order", {
-  version: 2,
+};
+export const ColonyTreeOrder = component<TreeOrderState>("colony.tree-order", {
+  version: 3,
   fields: {
     tree: "entity",
-    actor: "nullable-entity",
     phase: "string",
     stage: "string",
     seconds: "number",
-    approachX: "number",
-    approachY: "number",
-    approachZ: "number",
     reason: "string",
   },
 });
@@ -245,282 +237,101 @@ const treeWorkProvider = (
   ctx: WriteContext,
   suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<TreeCandidate> => {
-  const workers = ctx
-    .query(query(Worker))
-    .filter((row) => !row.get(Worker).guest)
-    .map((row) => row.id);
-  const memberships = new Map(ctx.query(query(PartyMember)).map((row) => [row.id, row.get(PartyMember).party]));
-  const trees = ctx.query(
-    query(ColonyTree, Position, Container, FiniteResource),
-  );
-  const orders = ctx.query(query(ColonyTreeOrder));
-  const treeOwners = new Map(ctx.query(query(OwnedByParty)).map((row) => [row.id, row.get(OwnedByParty).party]));
-  const policies = new Map(
-    ctx
-      .query(query(ColonyTreePolicy))
-      .map((row) => [row.id, row.get(ColonyTreePolicy)]),
-  );
-  for (const orderRow of orders) {
-    const state = orderRow.get(ColonyTreeOrder),
-      policy = policies.get(state.tree);
-    const owner = treeOwners.get(state.tree);
-    if (owner && state.actor !== null && memberships.get(state.actor) !== owner) continue;
-    if (!policy || state.phase === "complete") continue;
-    if (policy.designated) {
-      if (state.phase === "blocked" && state.reason === "Not designated")
-        ctx.write(ColonyTreeOrder, orderRow.id, {
-          ...state,
-          actor: null,
-          phase: "queued",
-          reason: "Designated",
-        });
-      continue;
-    }
-    if (state.actor !== null) ctx.action(cancelWork(state.actor));
-    if (state.phase !== "blocked" || state.reason !== "Not designated")
-      ctx.write(ColonyTreeOrder, orderRow.id, {
-        ...state,
-        actor: null,
-        phase: "blocked",
-        reason: "Not designated",
-      });
-  }
-  const positions = new Map(
-    ctx.query(query(Position)).map((row) => [row.id, row.get(Position)]),
-  );
-  const destinations = new Set(
-    ctx.query(query(Destination)).map((row) => row.id),
-  );
-  const active = new Map(
-    orders.map((row) => [
-      row.get(ColonyTreeOrder).tree,
-      { id: row.id, state: row.get(ColonyTreeOrder) },
-    ]),
-  );
-  const poses = new Map(
-    ctx
-      .worldPoses([...new Set([...workers, ...trees.map((row) => row.id)])])
-      .map((p) => [p.id, p]),
-  );
-  const candidates = trees.flatMap((row) => {
-    const tree = row.get(ColonyTree),
-      order = active.get(row.id);
-    if (
-      !order ||
-      !policies.get(row.id)?.designated ||
-      order.state.phase !== "queued" ||
-      (order.state.stage === "fell" && tree.phase !== "standing") ||
-      (order.state.stage === "chop" && tree.phase !== "felled")
-    )
-      return [];
-    const pose = poses.get(row.id),
-      position = positions.get(row.id);
-    if (!pose || !position) return [];
+  const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest).map(row => row.id);
+  const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
+  const trees = ctx.query(query(ColonyTree, Position, Container, FiniteResource));
+  const orders = [...ctx.query(query(ColonyTreeOrder))].sort((a, b) => a.id.localeCompare(b.id));
+  const treeOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const policies = new Map(ctx.query(query(ColonyTreePolicy)).map(row => [row.id, row.get(ColonyTreePolicy)]));
+  const attempts = new Map((ctx.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
+  const active = new Map<EntityId, { id: EntityId; state: TreeOrderState }>(orders.map(row => [row.get(ColonyTreeOrder).tree, { id: row.id, state: row.get(ColonyTreeOrder) }]));
+  const positions = new Map(ctx.query(query(Position)).map(row => [row.id, row.get(Position)]));
+  const poses = new Map(ctx.worldPoses([...new Set([...workers, ...trees.map(row => row.id)])]).map(p => [p.id, p]));
+  const candidates: TreeCandidate[] = [];
+  for (const row of trees) {
+    const tree = row.get(ColonyTree), order = active.get(row.id), policy = policies.get(row.id), party = treeOwners.get(row.id), position = positions.get(row.id), pose = poses.get(row.id);
+    const retryBlocked = order?.state.phase === "blocked" && order.state.reason !== "Not designated" && ctx.clock.tick % 8 === 0;
+    if (!order || !policy?.designated || !position || !pose || attempts.has(order.id) || (order.state.phase !== "queued" && !retryBlocked) || (order.state.stage === "fell" && tree.phase !== "standing") || (order.state.stage === "chop" && tree.phase !== "felled")) continue;
     const approaches = [
-      { x: position.x + 1, y: position.y, z: position.z },
-      { x: position.x - 1, y: position.y, z: position.z },
-      { x: position.x, y: position.y, z: position.z + 1 },
-      { x: position.x, y: position.y, z: position.z - 1 },
+      { x: position.x + 1, y: position.y, z: position.z, frame: pose.support },
+      { x: position.x - 1, y: position.y, z: position.z, frame: pose.support },
+      { x: position.x, y: position.y, z: position.z + 1, frame: pose.support },
+      { x: position.x, y: position.y, z: position.z - 1, frame: pose.support },
     ];
-    return workers
-      .filter(
-        (worker) =>
-          !suspendedActors.has(worker) &&
-          (!treeOwners.get(row.id) || memberships.get(worker) === treeOwners.get(row.id)) &&
-          poses.get(worker)?.support === pose.support,
-      )
-      .flatMap((worker) => {
-        const targets = approaches.map((target) => ({
-          ...target,
-          frame: pose.support,
-        }));
-        return [
-          {
-            worker,
-            task: order.id,
-            tree: row.id,
-            target: targets[0],
-            approaches: targets,
-          },
-        ];
-      });
-  });
-  const occupiedActors = orders.flatMap((row) => {
-    const state = row.get(ColonyTreeOrder);
-    return state.phase === "working" && state.actor ? [state.actor] : [];
-  });
-  const claimed = orders.map((row) => ({
-    task: row.id,
-    actor: row.get(ColonyTreeOrder).actor,
-  }));
-  const assigned = new Set<EntityId>();
-  const selectedApproaches = new Map<string, TreeCandidate["target"]>();
+    for (const worker of workers) {
+      const workerPose = poses.get(worker);
+      if (suspendedActors.has(worker) || (party && memberships.get(worker) !== party) || workerPose?.support !== pose.support) continue;
+      candidates.push({ worker, task: order.id, tree: row.id, target: approaches[0], approaches });
+    }
+  }
+  const selected = new Map<string, TreeCandidate["target"]>();
   return {
-    claims: claimed,
-    occupiedActors,
+    claims: orders.map(row => ({ task: row.id, actor: attempts.get(row.id)?.worker ?? null })),
+    occupiedActors: [...attempts.values()].map(attempt => attempt.worker),
     candidates,
-    lowerBound: (candidate) => {
-      const actor = poses.get(candidate.worker)?.local;
-      return actor
-        ? Math.min(
-            ...candidate.approaches.map((target) => distance(actor, target)),
-          )
-        : 0;
+    lowerBound: candidate => {
+      const pose = poses.get(candidate.worker)?.local;
+      return pose ? Math.min(...candidate.approaches.map(target => distance(pose, target))) : Number.POSITIVE_INFINITY;
     },
-    estimate: (candidate) => {
-      const result = ctx.routeToAny({
-        actor: candidate.worker,
-        targets: candidate.approaches,
-      });
+    estimate: candidate => {
+      const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches });
       if (result.status !== "reachable") return null;
-      selectedApproaches.set(
-        `${candidate.worker}\0${candidate.task}`,
-        candidate.approaches[result.targetIndex],
-      );
+      selected.set(`${candidate.worker}\0${candidate.task}`, candidate.approaches[result.targetIndex]);
       return result.cost;
     },
-    apply: (assignments) => {
+    apply: assignments => {
       for (const assignment of assignments) {
-        const candidate = candidates.find(
-          (item) =>
-            item.worker === assignment.worker && item.task === assignment.task,
-        );
-        if (!candidate) continue;
-        assigned.add(assignment.task);
-        const target =
-          selectedApproaches.get(`${candidate.worker}\0${candidate.task}`) ??
-          candidate.target;
-        ctx.write(ColonyTreeOrder, candidate.task, {
-          tree: candidate.tree,
-          actor: candidate.worker,
-          phase: "working",
-          stage: active.get(candidate.tree)!.state.stage,
-          seconds: 0,
-          approachX: target.x,
-          approachY: target.y,
-          approachZ: target.z,
-          reason: "",
-        });
-        ctx.action(move(candidate.worker, target));
+        const candidate = candidates.find(item => item.worker === assignment.worker && item.task === assignment.task), party = candidate && treeOwners.get(candidate.tree);
+        if (!candidate || !party) continue;
+        beginRouteWorkAttempt(ctx, candidate.task, candidate.worker, party, selected.get(`${candidate.worker}\0${candidate.task}`) ?? candidate.target);
       }
     },
     progress: () => {
       for (const row of orders) {
-        const order = row.get(ColonyTreeOrder),
-          treeRow = trees.find((tree) => tree.id === order.tree);
-        const owner = treeOwners.get(order.tree);
-        if (owner && order.actor !== null && memberships.get(order.actor) !== owner) continue;
-        if (!treeRow) {
-          if (order.actor !== null)
-            ctx.write(ColonyTreeOrder, row.id, {
-              ...order,
-              actor: null,
-              phase: "blocked",
-              reason: "Tree unavailable",
-            });
-          continue;
-        }
-        if (order.actor === null || assigned.has(row.id)) continue;
-        if (order.phase === "blocked" && order.reason === "Extracting") {
-          const accepted = ctx.outcomes.find(
-            (outcome) =>
-              outcome.action.kind === "extract-resource" && outcome.action.operation === `colony.tree:${row.id}:${order.stage}` &&
-              outcome.action.source === order.tree,
-          );
-          if (
-            accepted?.result.accepted ||
-            treeRow.get(FiniteResource).quantity === 0
-          ) {
+        const state = row.get(ColonyTreeOrder), treeRow = trees.find(tree => tree.id === state.tree), attempt = attempts.get(row.id), policy = policies.get(state.tree);
+        if (state.phase === "complete") continue;
+        if (attempt?.phase.kind === "outcome") {
+          const phase = attempt.phase;
+          if (phase.result.kind !== "completed") {
+            ctx.write(ColonyTreeOrder, row.id, { ...state, phase: policy?.designated ? "blocked" : "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : phase.result.cause });
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            continue;
+          }
+          if (!treeRow || !policy?.designated) {
+            ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: !treeRow ? "Tree unavailable" : "Not designated" });
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            continue;
+          }
+          const phaseActivity = phase.activity;
+          if (phaseActivity.kind === "route") {
+            const total = state.stage === "fell" ? 3 : 2;
+            const next = Math.min(total, state.seconds + Math.max(0, ctx.clock.delta));
+            if (next < total) {
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "working", seconds: next, reason: state.stage === "fell" ? "Felling" : "Chopping" });
+              continue;
+            }
+            if (state.stage === "fell") {
+              ctx.write(ColonyTree, treeRow.id, { phase: "felled" });
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "queued", stage: "chop", seconds: 0, reason: "Ready to chop" });
+              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            } else {
+              continueResourceExtractWorkAttempt(ctx, attempt.key, phase.operation.sequence, treeRow.id);
+              ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "working", reason: "Extracting" });
+            }
+            continue;
+          }
+          if (phaseActivity.kind === "resource-extract") {
             ctx.write(ColonyTree, treeRow.id, { phase: "chopped" });
-            ctx.write(ColonyTreeOrder, row.id, {
-              ...order,
-              actor: null,
-              phase: "complete",
-              reason: "",
-            });
-          } else if (accepted && !accepted.result.accepted) {
-            ctx.write(ColonyTreeOrder, row.id, {
-              ...order,
-              actor: null,
-              reason: accepted.result.reason ?? "Extraction refused",
-            });
+            ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "complete", seconds: 0, reason: "" });
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
           }
           continue;
         }
-        if (order.phase !== "working") continue;
-        const rejected = ctx.outcomes.some(
-          (outcome) =>
-            outcome.action.kind === "move" &&
-            outcome.action.entity === order.actor &&
-            outcome.action.destination.x === order.approachX &&
-            outcome.action.destination.z === order.approachZ &&
-            !outcome.result.accepted,
-        );
-        if (rejected) {
-          ctx.write(ColonyTreeOrder, row.id, {
-            ...order,
-            actor: null,
-            phase: "blocked",
-            reason: "Adjacent approach unreachable",
-          });
+        if (!treeRow || !policy?.designated) continue;
+        if (!attempt) {
+          if (state.phase === "working") ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: "Waiting for worker" });
           continue;
         }
-        const position = positions.get(order.tree),
-          pose = poses.get(order.tree),
-          actorPose = poses.get(order.actor);
-        if (!position || !pose || !actorPose) {
-          ctx.write(ColonyTreeOrder, row.id, {
-            ...order,
-            actor: null,
-            phase: "blocked",
-            reason: "Tree contact unavailable",
-          });
-          continue;
-        }
-        if (destinations.has(order.actor)) continue;
-        if (
-          Math.hypot(
-            actorPose.world.x - position.x,
-            actorPose.world.z - position.z,
-          ) > 1.5
-        ) {
-          ctx.action(
-            move(order.actor, {
-              x: order.approachX,
-              y: order.approachY,
-              z: order.approachZ,
-              frame: pose.support,
-            }),
-          );
-          continue;
-        }
-        const total = order.stage === "fell" ? 3 : 2;
-        const next = Math.min(
-          total,
-          order.seconds + Math.max(0, ctx.clock.delta),
-        );
-        if (next < total) {
-          ctx.write(ColonyTreeOrder, row.id, { ...order, seconds: next });
-          continue;
-        }
-        if (order.stage === "fell") {
-          ctx.write(ColonyTree, treeRow.id, { phase: "felled" });
-          ctx.write(ColonyTreeOrder, row.id, {
-            ...order,
-            actor: null,
-            phase: "queued",
-            stage: "chop",
-            seconds: 0,
-            reason: "Ready to chop",
-          });
-          continue;
-        }
-        ctx.action(extractResource(`colony.tree:${row.id}:${order.stage}`, order.actor, treeRow.id));
-        ctx.write(ColonyTreeOrder, row.id, {
-          ...order,
-          phase: "blocked",
-          reason: "Extracting",
-        });
       }
     },
   };

@@ -31,9 +31,10 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
     let sawTravel = false;
     for (let i = 0; i < 80; i++) {
       session.step(0.25);
-      const order = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree)?.get(ColonyTreeOrder);
-      if (!order) throw new Error("tree order missing");
-      if (session.query(query(Destination)).some(row => row.id === order.actor)) {
+      const orderRow = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree);
+      const order = orderRow?.get(ColonyTreeOrder);
+      if (!order || !orderRow) throw new Error("tree order missing");
+      if (session.workAttempts([orderRow.id]).some(attempt => attempt.worker === "colony.worker.1")) {
         sawTravel = true;
         assert.equal(order.seconds, 0, "travel does not earn work");
       }
@@ -43,7 +44,8 @@ test("tree work reaches chop, extracts one native wood lot, and survives reload"
     const stage = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree)!.get(ColonyTreeOrder);
     assert.equal(stage.phase, "queued");
     assert.equal(stage.stage, "chop");
-    assert.equal(stage.actor, null, "fell completion releases worker");
+    const stageRow = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree);
+    assert.equal(stageRow && session.workAttempts([stageRow.id]).length, 0, "fell completion releases worker");
     session.step(0.25);
     const afterClaim = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === tree)!.get(ColonyTreeOrder);
     assert.equal(afterClaim.stage, "chop");
