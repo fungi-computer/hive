@@ -33,6 +33,7 @@ test("water provider interleaves two queued demands across held pails", () => {
       if (spec.components.includes(Destination)) return [];
       return demands;
     },
+    workAttempts: () => [],
     workMaterialFacts: () => ({ version: 1, containers: pails.map(pail => ({ id: id(pail.id), capacity: 7, sealed: false })), lots: pails }),
     worldPoses: (entities: readonly string[]) => entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: entity.endsWith("a") ? 0 : 2, y: 0, z: 0, facing: 0 }, support: null, surface: null })),
     waterContacts: () => [
@@ -66,7 +67,7 @@ test("water provider interleaves two queued demands across held pails", () => {
 test("water provider skips contact query with no eligible held pail workers and bounds centers", () => {
   let calls = 0;
   const base: any = {
-    query: (spec: any) => spec.components.includes(Worker) ? [] : spec.components.includes(Destination) ? [] : [],
+    query: (spec: any) => spec.components.includes(Worker) ? [] : spec.components.includes(Destination) ? [] : [], workAttempts: () => [],
     workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }), worldPoses: () => { throw new Error("should not query poses"); }, waterContacts: () => { calls++; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [],
   };
   const prepared = waterSupplyProvider(base, new Set());
@@ -81,6 +82,7 @@ test("water provider sends at most sixteen authoritative centers", () => {
   let poseCount = 0, centerCount = 0;
   const context: any = {
     query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? workers.map(worker => row(worker, new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }]]))) : spec.components.includes(OwnedByParty) ? [demand] : spec.components.includes(Destination) ? [] : [demand],
+    workAttempts: () => [],
     workMaterialFacts: () => ({ version: 1, containers: lots.map(lot => ({ id: lot.id, capacity: 7, sealed: false })), lots }),
     worldPoses: (entities: readonly string[]) => { poseCount = entities.length; return entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })); },
     waterContacts: (centers: readonly unknown[]) => { centerCount = centers.length; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [],
@@ -93,7 +95,7 @@ test("water provider sends at most sixteen authoritative centers", () => {
 test("completed demand does not invoke provider-side contact queries", () => {
   const demand = row("done", new Map([[WaterSupplyOrder, { revision: 1, process: null, party: id("party") }], [WaterSupplyWork, { request: 1, phase: "complete", x: 0, y: 0, z: 0, reason: "" }], [OwnedByParty, { party: id("party") }]]));
   let removed = "", facts = 0, contacts = 0;
-  const context: any = { query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? [] : spec.components.includes(OwnedByParty) ? [demand] : spec.components.includes(Destination) ? [] : [demand], workMaterialFacts: () => { facts++; return { version: 1, containers: [], lots: [] }; }, worldPoses: () => { throw new Error("should not query poses"); }, waterContacts: () => { contacts++; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, removeAuthoredEntity: (id: string) => { removed = id; }, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], };
+  const context: any = { query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? [] : spec.components.includes(OwnedByParty) ? [demand] : spec.components.includes(Destination) ? [] : [demand], workAttempts: () => [], workMaterialFacts: () => { facts++; return { version: 1, containers: [], lots: [] }; }, worldPoses: () => { throw new Error("should not query poses"); }, waterContacts: () => { contacts++; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, removeAuthoredEntity: (id: string) => { removed = id; }, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], };
   waterSupplyProvider(context, new Set()).progress();
   assert.equal(removed, "");
   assert.equal(facts, 1, "the provider reads canonical material facts before scheduling");
@@ -114,6 +116,7 @@ test("queued planning stays bounded with many demands and keeps an active bound 
   let posed: string[] = [], actions: any[] = [], progressWrites: any[] = [];
   const context: any = {
     query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? [worker, active, ...extraWorkers] : spec.components.includes(OwnedByParty) ? demands.filter(row => row.get(OwnedByParty)) : spec.components.includes(Destination) ? [] : demands,
+    workAttempts: () => [],
     workMaterialFacts: () => ({ version: 1, containers: pails.map((pail) => ({ id: pail.id, capacity: 7, sealed: false })), lots: pails }),
     worldPoses: (entities: readonly string[]) => { posed = [...entities]; return entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })); },
     waterContacts: () => [{ at: [0, 1, 0], approaches: [{ x: 0, y: 1, z: 0, frame: null }] }], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }), routeCosts: () => [], action: (value: any) => actions.push(value), write: (_definition: any, entity: any, value: any) => progressWrites.push([entity, value]), outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [], removeAuthoredEntity: () => {},
