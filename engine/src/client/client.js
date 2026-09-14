@@ -243,8 +243,6 @@ export function createHiveClient({
   const overlay = new Container();
   const groundEffects = new Container();
   groundEffects.eventMode = "none";
-  const actorLayer = new Container();
-  actorLayer.sortableChildren = true;
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
   const terrainMarksGraphic = new Graphics();
