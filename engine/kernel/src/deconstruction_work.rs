@@ -15,10 +15,13 @@ impl Kernel {
     pub(super) fn validate_deconstruction_work(&mut self) -> Result<()> {
         let mut query = self.ecs.query::<(Entity, &ExternalId, &DeconstructionWork)>();
         for (task_entity, _id, work) in query.iter(&self.ecs) {
-            if !work.site.is_empty() && (!work.seconds.is_finite() || work.seconds < 0.0 || !work.required_seconds.is_finite() || work.required_seconds < work.seconds) { return Err("invalid deconstruction progress".into()); }
+            if work.site.is_empty() || !work.seconds.is_finite() || work.seconds < 0.0 || !work.required_seconds.is_finite() || work.required_seconds < work.seconds { return Err("invalid deconstruction progress".into()); }
+            let task_owner = self.ecs.get::<OwnedByParty>(task_entity).ok_or("deconstruction progress task has no party owner")?;
             let site_entity = self.entity(&work.site)?;
-            let _owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction progress site has no party owner")?;
+            let site_owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction progress site has no party owner")?;
+            if task_owner.party != site_owner.party { return Err("deconstruction progress party mismatch".into()); }
             if let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity) {
+                if attempt.party != task_owner.party { return Err("deconstruction progress attempt party mismatch".into()); }
                 match &attempt.phase {
                     AttemptPhase::Executing { activity: ActivityRef::Deconstruction { site, contact }, .. }
                     | AttemptPhase::Outcome { activity: ActivityRef::Deconstruction { site, contact }, .. } => {
@@ -39,8 +42,10 @@ impl Kernel {
         let task_entity = self.entity(task)?;
         let attempt = self.ecs.get::<WorkAttempt>(task_entity).ok_or("deconstruction requires a work attempt")?;
         let site_entity = self.entity(&site)?;
-        let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction site has no party owner")?;
-        if owner.party != attempt.party { return Err("deconstruction continuation party mismatch".into()); }
+        let site_party = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction site has no party owner")?.party.clone();
+        if site_party != attempt.party { return Err("deconstruction continuation party mismatch".into()); }
+        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|task_owner| task_owner.party != site_party) { return Err("deconstruction task party mismatch".into()); }
+        if self.ecs.get::<OwnedByParty>(task_entity).is_none() { self.ecs.entity_mut(task_entity).insert(OwnedByParty { party: site_party }); }
         let work = DeconstructionWork { site, contact_x: contact.x, contact_y: contact.y, contact_z: contact.z, seconds: 0.0, required_seconds };
         if let Some(existing) = self.ecs.get::<DeconstructionWork>(task_entity) {
             if existing.site != work.site || existing.contact_x != work.contact_x || existing.contact_y != work.contact_y || existing.contact_z != work.contact_z || existing.required_seconds != work.required_seconds { return Err("task already has different deconstruction work".into()); }
