@@ -3968,7 +3968,17 @@ impl Kernel {
         if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
         if let crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } = next_activity.clone() {
             if from != current.worker { return Err("material transfer source is not attempt worker".into()); }
+            if let Some(owner) = self.ecs.get::<OwnedByParty>(self.entity(&to)?).map(|owner| owner.party.as_str()) && owner != current.party { return Err("material transfer destination is outside attempt party".into()); }
             self.transfer(&lot, &from, &to, quantity)?;
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
+            return Ok(());
+        }
+        if let crate::work_attempt::ActivityRef::MaterialDrop { lot } = next_activity.clone() {
+            let lot_entity = self.entity(&lot)?;
+            let lot_state = self.ecs.get::<Lot>(lot_entity).ok_or("material drop lot is missing")?;
+            if lot_state.container != current.worker { return Err("material drop lot is not held by attempt worker".into()); }
+            self.drop_lot(&current.worker, &lot)?;
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
             self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             return Ok(());
