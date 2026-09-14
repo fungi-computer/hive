@@ -9,10 +9,10 @@ import {
 } from "./terrain-faces.js";
 import * as THREE from "three";
 import { scene, mesh } from "./geometry.js";
+import { terrainPatchEmissions, cliffEmissions } from "./terrain-patches.js";
 
 // Original clearing palette, shared by generated terrain and asset authoring.
-const colours = { grass: "#758947", soil: "#9a744f", stone: "#777b68" };
-const greens = ["#758947", "#8f9e53", "#a7ad60", "#627b46"];
+const colours = { soil: "#9a744f", stone: "#777b68" };
 const DEFAULT_CHUNK_SIZE = 8;
 export const TERRAIN_DETAIL_HEIGHT = 0.25;
 
@@ -62,51 +62,80 @@ function buildChunk(surfaces, verticalMetres, soilMaterial, columnIndex) {
   }
   for (const face of terrainFaces(surfaces, verticalMetres, columnIndex)) {
     const soil = face.surface.material === soilMaterial;
-    const intact = soil && face.surface.cell[1] === face.surface.generatedTop;
     polygon(
-      soil ? (face.top ? intact ? colours.grass : "#806143" : colours.soil) : colours.stone,
+      soil ? colours.soil : colours.stone,
       face.vertices,
     );
-    if (face.top && intact) groundCover(face.surface, face.vertices[0][1], polygon);
   }
   const result = new THREE.Group();
+  for (const placement of terrainPatchPlacements(surfaces, columnIndex, soilMaterial, verticalMetres))
+    for (const emission of terrainPatchEmissions(placement.kind, placement.mask, placement.variant))
+      polygon(emission.color, emission.vertices.map(([x, y, z]) => [x + placement.x + 0.5, y + placement.y, z + placement.z + 0.5]));
+  for (const placement of terrainCliffPlacements(surfaces, columnIndex, soilMaterial, verticalMetres)) {
+    for (const emission of cliffEmissions(placement.kind, placement.facing, placement.variant)) {
+      const angle = placement.facing * Math.PI / 2;
+      polygon(emission.color, emission.vertices.map(([x, y, z]) => [placement.x + x * Math.cos(angle) + z * Math.sin(angle), placement.y + y, placement.z - x * Math.sin(angle) + z * Math.cos(angle)]));
+    }
+  }
   for (const [colour, points] of buckets) {
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(points, 3),
-    );
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
     geometry.computeVertexNormals();
     mesh(result, geometry, colour, 0, 0, 0);
   }
   return result;
 }
 
-/** Original palette and low-poly detail on the real surface, batched with its chunk.
- * This is cosmetic paint, not another world generator or plant inventory. */
-function groundCover(surface, height, polygon) {
-  const [x, , z] = surface.cell;
-  let seed = (Math.imul(x, 73856093) ^ Math.imul(z, 19349663)) >>> 0;
-  seed = Math.imul(seed ^ (seed >>> 16), 0x45d9f3b) >>> 0;
-  seed = (seed ^ (seed >>> 16)) >>> 0;
-  const y = height + 0.003;
-  const cx = x + (((seed >>> 5) & 7) - 3) * 0.018;
-  const cz = z + (((seed >>> 9) & 7) - 3) * 0.018;
-  const vertices = Array.from({ length: 7 }, (_, index) => {
-    const angle = -index * Math.PI * 2 / 7 + (seed % 13) * 0.1;
-    const radius = 0.58 + ((seed >>> (index * 3)) & 7) * 0.024;
-    // Keep paint on its own physical top; neighboring holes stay bare.
-    return [Math.max(x - 0.5, Math.min(x + 0.5, cx + Math.cos(angle) * radius)), y,
-      Math.max(z - 0.5, Math.min(z + 0.5, cz + Math.sin(angle) * radius))];
-  });
-  polygon(greens[seed % greens.length], vertices);
-  if (seed % 3 !== 0) return;
-  const tx = x + (((seed >>> 3) & 7) - 3) * 0.1;
-  const tz = z + (((seed >>> 7) & 7) - 3) * 0.1;
-  const tip = [tx + 0.045, y + 0.17 + (seed % 4) * 0.025, tz];
-  const base = [[tx - 0.065, y, tz - 0.04], [tx + 0.065, y, tz - 0.04], [tx, y, tz + 0.075]];
-  for (let index = 0; index < 3; index++)
-    polygon(greens[(seed + index) % greens.length], [base[(index + 1) % 3], base[index], tip]);
+function terrainKind(surface, soilMaterial) {
+  if (!surface) return null;
+  if (surface.material === soilMaterial)
+    return surface.cell[1] === surface.generatedTop ? "grass" : "earth";
+  return surface.material === 2 ? "rock" : "earth";
+}
+
+function stableVariant(x, z) {
+  return ((Math.imul(x, 73856093) ^ Math.imul(z, 19349663)) >>> 0) % 3;
+}
+
+/** Pure dual-grid placement facts. Missing or stepped corners stay bare. */
+export function terrainPatchPlacements(surfaces, columnIndex = terrainColumnMap(surfaces), soilMaterial = 1, verticalMetres = 0.54) {
+  const placements = [];
+  const vertices = new Set();
+  for (const { cell: [x, y, z] } of surfaces) for (const [dx, dz] of [[0, 0], [1, 0], [1, 1], [0, 1]]) vertices.add(`${x + dx},${y},${z + dz}`);
+  for (const key of [...vertices].sort()) {
+    const [vx, y, vz] = key.split(",").map(Number), x = vx - 1, z = vz - 1;
+    const neighbors = [[x, z], [x + 1, z], [x + 1, z + 1], [x, z + 1]].map(([cx, cz]) => columnIndex.get(`${cx},${cz}`));
+    const kinds = neighbors.map((neighbor) => neighbor?.cell[1] === y ? terrainKind(neighbor, soilMaterial) : null);
+    for (const kind of ["grass", "rock"]) {
+      const mask = kinds.reduce((bits, value, index) => bits | (value === kind ? 1 << index : 0), 0);
+      if (mask) placements.push({ x, y: (y + 0.5) * verticalMetres, z, kind, mask, variant: stableVariant(x, z) });
+    }
+  }
+  return placements;
+}
+
+/** Pure exposed-face placement facts; buried neighboring stacks get no lip. */
+export function terrainCliffPlacements(surfaces, columnIndex = terrainColumnMap(surfaces), soilMaterial = 1, verticalMetres = 0.54) {
+  const placements = [];
+  const selected = [...surfaces].sort((a, b) => a.cell[0] - b.cell[0] || a.cell[2] - b.cell[2]);
+  for (const surface of selected) {
+    const [x, y, z] = surface.cell;
+    const top = (y + 0.5) * verticalMetres;
+    const variant = stableVariant(x, z);
+    const kind = surface.material === 2 ? "stone" : "earth";
+    for (const [dx, dz, facing] of [[-1, 0, 3], [1, 0, 1], [0, -1, 2], [0, 1, 0]]) {
+      const neighbor = columnIndex.get(`${x + dx},${z + dz}`);
+      const bottom = neighbor ? neighbor.cell[1] : y - 1;
+      if (bottom >= y) continue;
+      for (let segment = 0; segment < y - bottom; segment++) {
+        const segmentTop = top - segment * verticalMetres;
+        placements.push({ x: x + dx * 0.5, y: segmentTop, z: z + dz * 0.5, kind, facing, variant, segment });
+        if (segment === 0 && terrainKind(surface, soilMaterial) === "grass")
+          placements.push({ x: x + dx * 0.5, y: segmentTop, z: z + dz * 0.5, kind: "grass-lip", facing, variant, segment });
+      }
+    }
+  }
+  return placements;
 }
 
 function disposeObject(object) {
@@ -164,14 +193,14 @@ export function terrainColumnsScene(
 export function terrainBandScene(
   surfaces,
   level,
-  { verticalMetres, soilMaterial = 1 } = {},
+  { verticalMetres, soilMaterial = 1, columnIndex = terrainColumnMap(surfaces) } = {},
 ) {
   validateScale(verticalMetres);
   validateSurfaces(surfaces);
   if (!Number.isSafeInteger(level)) throw new Error("invalid terrain band level");
   const selected = surfaces.filter(({ cell: [, y] }) => y === level);
   const result = scene();
-  result.add(buildChunk(selected, verticalMetres, soilMaterial, terrainColumnMap(surfaces)));
+  result.add(buildChunk(selected, verticalMetres, soilMaterial, columnIndex));
   return result;
 }
 

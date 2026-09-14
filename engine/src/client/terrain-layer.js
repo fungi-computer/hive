@@ -3,7 +3,7 @@ import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { renderBakeCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { terrainBandScene, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
-import { terrainFaceBounds, terrainColumnMap } from "../../../src/art/terrain-faces.js";
+import { terrainFaceBounds, terrainColumnMap, terrainChunkKey } from "../../../src/art/terrain-faces.js";
 import { project } from "./geometry.js";
 import { registerVisibleTexture, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { planTerrainBandUpdates } from "./terrain-band-plan.js";
@@ -89,23 +89,31 @@ export function createTerrainLayer() {
     projectionKey = undefined;
   }
 
-  function fullBake(frame, rebuildLevels = null, removedLevels = []) {
+  function fullBake(frame, rebuildChunks = null, removedLevels = []) {
     canonicalCamera = artCamera(WIDTH, HEIGHT, 1.03, 256);
     cachedVerticalMetres = frame.verticalMetres;
-    if (!rebuildLevels) {
+    if (!rebuildChunks) {
       for (const { sprite } of bandCache.values()) sprite.destroy({ children: true, texture: true, textureSource: true });
       bandCache.clear();
     }
-    for (const level of removedLevels) {
-      const prior = bandCache.get(level);
-      prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
-      bandCache.delete(level);
+    for (const [key, prior] of bandCache) if (removedLevels.includes(prior.record.storeyBand)) {
+      prior.sprite.destroy({ children: true, texture: true, textureSource: true }); bandCache.delete(key);
     }
-    const levelsToBuild = rebuildLevels ?? [...new Set(terrainSurfaces.map(({ cell: [, y] }) => y))];
-    for (const level of levelsToBuild.sort((a, b) => a - b)) {
-      const selected = terrainSurfaces.filter(({ cell: [, y] }) => y === level);
-      if (!selected.length) continue;
-      const prior = bandCache.get(level);
+    const allChunks = [...new Set(terrainSurfaces.map(({ cell: [x, y, z] }) => `${y}:${terrainChunkKey(x, z)}`))];
+    for (const [key, prior] of bandCache) if (!allChunks.includes(key)) {
+      prior.sprite.destroy({ children: true, texture: true, textureSource: true }); bandCache.delete(key);
+    }
+    const chunksToBuild = rebuildChunks ?? allChunks;
+    for (const chunkId of chunksToBuild.sort()) {
+      const [levelText, chunk] = chunkId.split(":");
+      const level = Number(levelText);
+      const selected = terrainSurfaces.filter(({ cell: [x, y, z] }) => y === level && terrainChunkKey(x, z) === chunk);
+      const prior = bandCache.get(chunkId);
+      if (!selected.length) {
+        prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
+        bandCache.delete(chunkId);
+        continue;
+      }
       prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
       const raw = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
       const detail = Math.abs(projectedPoint(canonicalCamera, 0, TERRAIN_DETAIL_HEIGHT, 0).y - projectedPoint(canonicalCamera, 0, 0, 0).y);
@@ -114,7 +122,7 @@ export function createTerrainLayer() {
       if (!bounds) continue;
       const bandCamera = canonicalCamera.clone();
       bandCamera.setViewOffset(WIDTH, HEIGHT, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
-      const baked = renderBakeCanvas(renderer, terrainBandScene(terrainSurfaces, level, { verticalMetres: frame.verticalMetres }), bandCamera, bounds.right - bounds.left, bounds.bottom - bounds.top, { ink: false, releaseGeometry: true });
+      const baked = renderBakeCanvas(renderer, terrainBandScene(selected, level, { verticalMetres: frame.verticalMetres, columnIndex: terrainColumnMap(terrainSurfaces) }), bandCamera, bounds.right - bounds.left, bounds.bottom - bounds.top, { ink: false, releaseGeometry: true });
       const sprite = new Sprite(Texture.from(baked.canvas));
       sprite.texture.source.scaleMode = "nearest";
       const pixels = baked.context.getImageData(0, 0, baked.canvas.width, baked.canvas.height).data;
@@ -123,7 +131,7 @@ export function createTerrainLayer() {
       container.addChild(sprite);
       sprite.__terrainBounds = bounds;
       const hitArea = visibleHitAreaFor(sprite.texture, { x: 0, y: 0 });
-      bandCache.set(level, { sprite, bounds, record: { id: `terrain:${level}`, part: "ground", role: "terrain", relationPolicy: "terrain-band", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains((point.x - sprite.x) / sprite.scale.x, (point.y - sprite.y) / sprite.scale.y) } });
+      bandCache.set(chunkId, { sprite, bounds, record: { id: `terrain:${chunkId}`, part: "ground", role: "terrain", relationPolicy: "terrain-band", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains((point.x - sprite.x) / sprite.scale.x, (point.y - sprite.y) / sprite.scale.y) } });
     }
     sortableItems = [...bandCache.values()].sort((a, b) => a.record.storeyBand - b.record.storeyBand).map(({ record }) => record);
   }
@@ -149,7 +157,7 @@ export function createTerrainLayer() {
       if (needsFull) fullBake(frame);
       else if (revision !== frame.revision) {
         const plan = planTerrainBandUpdates(previousSurfaces, frame.surfaces);
-        fullBake(frame, plan.rebuildLevels, plan.removedLevels);
+        fullBake(frame, plan.rebuildChunks, plan.removedLevels);
       }
       revision = frame.revision;
       previousSurfaces = frame.surfaces;
