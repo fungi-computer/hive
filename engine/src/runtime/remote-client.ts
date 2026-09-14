@@ -28,6 +28,10 @@ export interface RemoteRuntimeOptions {
   /** Authentication is supplied by the caller; this function adds no secret. */
   readonly fetch: AuthorizedFetch;
   readonly token: string;
+  /** Shared Colony v2 world invitation. When present, token is ignored for auth. */
+  readonly world?: string;
+  readonly invite?: string;
+  readonly storage?: Storage;
   readonly requestTimeoutMs?: number;
   readonly createCommandId?: () => string;
   readonly createSocket?: (url: string) => SocketLike;
@@ -382,6 +386,21 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let socket: SocketLike | undefined;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let admissionAttempts = 0;
+  let sharedCredential = options.token;
+  const shared = options.game === "colony" && options.world !== undefined && options.invite !== undefined;
+  const sharedBase = () => endpointUrl(options.endpoint, `/v2/colony/worlds/${options.world}`);
+  const prepareShared = async () => {
+    if (!shared) return;
+    const storage = options.storage ?? globalThis.localStorage;
+    const key = `hive:colony-v2:credential:${options.world}`;
+    sharedCredential = storage.getItem(key) ?? "";
+    if (!/^[a-f0-9]{64}$/.test(sharedCredential)) {
+      sharedCredential = [...crypto.getRandomValues(new Uint8Array(32))].map(byte => byte.toString(16).padStart(2, "0")).join("");
+      storage.setItem(key, sharedCredential);
+    }
+    const response = await options.fetch(`${sharedBase()}/join`, { method: "POST", headers: { Authorization: `Bearer ${sharedCredential}`, "Content-Type": "application/json" }, body: JSON.stringify({ invite: options.invite }) });
+    if (!response.ok) throw new Error("shared Colony join failed");
+  };
 
   const emit = (event: WorkerEvent) => { if (!disposed) for (const listener of listeners) listener(event); };
   const emitConnection = (status: "online" | "recovering" | "unavailable") =>
@@ -420,6 +439,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   const openSocket = async () => {
     let connectedSocket: SocketLike;
     try {
+      await prepareShared();
+      if (shared) {
+        const url = new URL(`${sharedBase()}/socket/client`);
+        url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+        connectedSocket = options.createSocket ? options.createSocket(url.toString()) : new PartySocket(url.toString(), [], { maxEnqueuedMessages: 0, maxRetries: 8 });
+        socket = connectedSocket;
+      } else {
       const handleResponse = await requestJson(options.fetch, endpointUrl(options.endpoint, "/connect"), { method: "GET" }, abort.signal, 16 * 1024, requestTimeoutMs);
       if (!handleResponse.response.ok) {
         const reason = isRecord(handleResponse.value) && typeof handleResponse.value.error === "string" ? handleResponse.value.error : "remote socket admission failed";
@@ -434,6 +460,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
         ? options.createSocket(url.toString())
         : new PartySocket(url.toString(), [], { maxEnqueuedMessages: 0, maxRetries: 8 });
       socket = connectedSocket;
+      }
     } catch (error) {
       if (!disposed && error instanceof Error && error.message === "unsupported-world") {
         emit({ type: "error", message: "This saved demo uses an older engine. New world starts separately; saved data retained." });
@@ -482,7 +509,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       // reference must begin with no baseline even when the world revision matches.
       cachedTerrain = undefined;
       cachedWhistle = undefined;
-      connectedSocket.send(JSON.stringify({ type: "authenticate", token: options.token }));
+      connectedSocket.send(JSON.stringify({ type: "authenticate", token: shared ? sharedCredential : options.token }));
       if (heartbeatTimer !== undefined) clearInterval(heartbeatTimer);
       heartbeatTimer = setInterval(() => { if (!disposed && socket === connectedSocket) connectedSocket.send(JSON.stringify({ type: "heartbeat" })); }, 5_000);
     });
@@ -534,7 +561,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       }
       while (!disposed && !blocked) {
         try {
-          const responseData = await requestJson(options.fetch, endpointUrl(options.endpoint, "/command"), {
+          const responseData = await requestJson(options.fetch, shared ? `${sharedBase()}/command` : endpointUrl(options.endpoint, "/command"), {
             method: "POST", headers: { "Content-Type": "application/json" }, body: item.body,
           }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
           const response = responseData.response;

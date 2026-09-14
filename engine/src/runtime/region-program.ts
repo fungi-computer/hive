@@ -80,7 +80,8 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
-      const scope = options.scopeForPrincipal(options.hostPrincipal) ?? { kind: "host" as const };
+      const scope = options.scopeForPrincipal(options.hostPrincipal);
+      if (!scope || scope.kind !== "host") throw new Error("region-host-scope-unbound");
       const session = new GameSession({ port, pack: options.pack, seed: options.seed, scope });
       session.restore(snapshot);
       return { session, port };
