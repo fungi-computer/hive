@@ -646,6 +646,7 @@ test("full destination puts held goods down before releasing the worker", () => 
   let holder = worker;
   const actions: unknown[] = [];
   let contactsReady = true;
+  let contactX = 0;
   const step = () => {
     const values = new Map<string, readonly unknown[]>([
       [DeliveryTask.id, [row(task, DeliveryTask, state)]],
@@ -776,6 +777,7 @@ function rejectedDeliveryFixture(initial: {
   const ground = entity("rejected.ground");
   const writes: unknown[][] = [];
   const actions: unknown[] = [];
+  let contactX = 0;
   let contactsReady = true;
   const positions = new Map([
     [worker, { x: 1, y: 0, z: 0, facing: 0 }],
@@ -803,12 +805,12 @@ function rejectedDeliveryFixture(initial: {
     workMaterialFacts: () => materialFacts(values),
     worldPoses: (ids: readonly ReturnType<typeof entity>[]) => ids.map((id) => ({ id, local: positions.get(id)!, world: positions.get(id)!, support: null, surface: null })),
     routeCosts: () => { throw new Error("unexpected route query"); }, routeToAny: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], transferContacts: () => contactsReady ? ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }) : ({ kind: "blocked", reason: "no-contact" }), terrainMaterials: () => [], terrainSurfaces: () => [],
+    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], transferContacts: () => contactsReady ? ({ kind: "ready", targets: [{ x: contactX, y: 0, z: 0, frame: null }] }) : ({ kind: "blocked", reason: "no-contact" }), terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: () => [], createAuthoredEntity: () => { throw new Error("unexpected creation"); }, removeAuthoredEntity: () => { throw new Error("unexpected removal"); },
     write: (_definition: unknown, id: unknown, value: unknown) => { assert.equal(id, task); state = value as typeof state; writes.push([id, value]); },
     action: (value: unknown) => actions.push(value),
   } as never;
-  return { task, worker, ground, state: () => state, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, setContactsReady: (value: boolean) => { contactsReady = value; }, writes, actions, context };
+  return { task, worker, ground, state: () => state, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, setContactsReady: (value: boolean) => { contactsReady = value; }, setContactX: (value: number) => { contactX = value; }, writes, actions, context };
 }
 
 test("lost selected contact releases labor while preserving carried cargo and obligation", () => {
@@ -817,7 +819,7 @@ test("lost selected contact releases labor while preserving carried cargo and ob
   const destination = entity("j2.destination");
   const lot = entity("j2.lot");
   const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination" });
-  fixture.setContactsReady(false);
+  fixture.setContactX(1);
   deliverySystem.run(fixture.context);
   assert.equal(fixture.state().phase, "putting-down");
   assert.equal(fixture.state().actor, worker);
@@ -848,7 +850,4 @@ test("manual participation leaves a ready delivery obligation unclaimed", () => 
   const destination = entity("manual.destination");
   const lot = entity("manual.lot");
   const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "idle" }, { automatic: false });
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().actor, null);
-  assert.equal(fixture.state().phase, "idle");
-})
+  deliverySystem.run(fixture.co
