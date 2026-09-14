@@ -2,11 +2,11 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import { STATIC_ART_BASE } from "../src/art/static-manifest.js";
+import { STATIC_ART_DIRECTORY } from "../src/art/static-manifest.js";
 
 const engine = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(engine, "..");
-const artDirectory = STATIC_ART_BASE.replace(/^\.\//, "").replace(/\/$/, "");
+const artDirectory = STATIC_ART_DIRECTORY;
 
 // The original checked bank is copied byte-for-byte, never baked at startup.
 function originalAssetsAndAuthorSource() {

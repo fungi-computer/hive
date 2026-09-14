@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  STATIC_ART_BASE,
   STATIC_ART_RENDER,
   STATIC_ART_SCHEMA,
   completeStaticArtManifest,
@@ -12,6 +13,13 @@ import {
 } from "../visual-hit-geometry.js";
 
 const HASH = "a".repeat(64);
+
+test("static art resolves from the host root on nested game routes", () => {
+  assert.equal(
+    new URL(STATIC_ART_BASE, "https://game.example/engine/colony").href,
+    "https://game.example/generated-art/goblin-static-art-v2/",
+  );
+});
 
 function emptySilhouette(width, height) {
   return { rows: Array(height + 1).fill(0), spans: [] };

@@ -1,5 +1,6 @@
 export const STATIC_ART_SCHEMA = "goblin-static-art-v2";
-export const STATIC_ART_BASE = "./generated-art/goblin-static-art-v2/";
+export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v2";
+export const STATIC_ART_BASE = `/${STATIC_ART_DIRECTORY}/`;
 
 export const STATIC_ART_LIMITS = Object.freeze({
   manifestBytes: 8 * 1024 * 1024,

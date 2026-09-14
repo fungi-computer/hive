@@ -13,14 +13,14 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { chromium } from "playwright";
 import {
-  STATIC_ART_BASE,
+  STATIC_ART_DIRECTORY,
   STATIC_ART_LIMITS,
   completeStaticArtManifest,
 } from "../src/art/static-manifest.js";
 
 const run = promisify(execFile);
 const url = process.argv[2] || "http://127.0.0.1:5187/static-art-export.html";
-const artDirectory = STATIC_ART_BASE.replace(/^\.\//, "").replace(/\/$/, "");
+const artDirectory = STATIC_ART_DIRECTORY;
 const output = path.resolve("public", artDirectory);
 const parent = path.dirname(output);
 const bankName = path.basename(output);
