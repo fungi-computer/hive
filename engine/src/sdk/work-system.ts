@@ -1,9 +1,14 @@
 import { system, type SystemOptions } from "./authoring";
 import { allocateWork, type WorkClaim } from "./work-allocation";
 import { WorkParticipation } from "./work-control";
-import type { AssignmentPair, AssignmentCandidate, EntityId, WriteContext } from "../contracts";
+import type { AssignmentPair, AssignmentCandidate, EntityId, MoveDestination, WriteContext, WorkAttempt, WorkMaterialFacts } from "../contracts";
 
 export type WorkCandidate = Pick<AssignmentCandidate, "worker" | "task">;
+export interface ReadyTask { readonly task: EntityId; readonly party: EntityId; readonly contacts: readonly MoveDestination[]; }
+export type WorkOperation = { readonly kind: "route"; readonly destination: MoveDestination };
+export interface WorkContext extends WriteContext {
+  readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
+}
 type TaggedCandidate = WorkCandidate & { readonly providerIndex: number };
 type TaggedAssignment = AssignmentPair & { readonly providerIndex: number };
 
@@ -20,13 +25,20 @@ export type PreparedWorkProvider<Candidate extends WorkCandidate = WorkCandidate
   readonly progress: () => void;
 };
 
-export type WorkProvider<Candidate extends WorkCandidate = WorkCandidate> =
+export type PreparedWorkProviderFactory<Candidate extends WorkCandidate = WorkCandidate> =
   (context: WriteContext, suspendedActors: ReadonlySet<EntityId>) => PreparedWorkProvider<Candidate>;
+/** Native-attempt provider contract. Providers observe and propose; the native
+ * owner admits operations and retains terminal outcomes. */
+export interface WorkProvider {
+  reconcile(context: WorkContext): void;
+  discover(context: WorkContext): readonly ReadyTask[];
+  next(task: EntityId, worker: EntityId, facts: WorkMaterialFacts): WorkOperation;
+}
 
 export type WorkSystemOptions = Omit<SystemOptions, "run"> & {
   /** Providers have distinct private candidate payloads; the shared owner only
    * relies on the common worker/task/cost shape. */
-  readonly providers: readonly WorkProvider<any>[];
+  readonly providers: readonly PreparedWorkProviderFactory<any>[];
   /** Deterministic authored planning phases owned by this work composition. */
   readonly phases?: readonly ((context: WriteContext) => void)[];
 };
