@@ -72,7 +72,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       if (stationVisual) stationVisuals.add(stationVisual);
       const state = session.query(query(StagedProcess))[0]?.get(StagedProcess);
       const processWaterDemands = session.query(query(WaterSupplyOrder)).filter(row => row.get(WaterSupplyOrder).process === process.id);
-      const activeProcessWaterDemands = processWaterDemands.filter(order => session.query(query(WaterSupplyWork)).some(work => work.id === order.id && ["approaching", "submitting"].includes(work.get(WaterSupplyWork).phase)));
+      const activeProcessWaterDemands = processWaterDemands.filter(order => session.query(query(WaterSupplyWork)).some(work => work.id === order.id && work.get(WaterSupplyWork).phase === "queued"));
       assert(processWaterDemands.length <= 1, "one active process must have at most one water demand");
       const kettleWater = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === `${station.id}:kettle` && row.get(MaterialLot).kind === "water").reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
       const waterDelivery = session.query(query(DeliveryTask)).filter(row => { const task = row.get(DeliveryTask); return task.custody !== "delivered" && task.destination === `${station.id}:kettle` && task.material === "water"; }).reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);

@@ -38,13 +38,14 @@ import { colonyEnvironment } from "./colony-environment";
 import { OwnedByParty, PartyMember } from "../sdk/party";
 import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, workAttempt } from "../sdk/work-attempt";
 
-export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
+export type ColonyResourceStage = "sow" | "tend" | "harvest";
+export type ColonyResourceStatus = "queued" | "blocked" | "complete";
 type ColonyResourceOrderState = {
   definition: string; cellX: number; cellY: number; cellZ: number; site: EntityId;
-  actor: EntityId | null; vessel: EntityId | null; phase: ColonyResourcePhase; workSeconds: number; reason: string; approachX: number; approachY: number; approachZ: number; attempt: number; operation: string;
+  stage: ColonyResourceStage; status: ColonyResourceStatus; workSeconds: number; reason: string;
 };
-export const ColonyResourceOrder = component<ColonyResourceOrderState>("colony.resource-order", { version: 1, fields: {
-  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", actor: "nullable-entity", vessel: "nullable-entity", phase: "string", workSeconds: "number", reason: "string", approachX: "number", approachY: "number", approachZ: "number", attempt: "number", operation: "string",
+export const ColonyResourceOrder = component<ColonyResourceOrderState>("colony.resource-order", { version: 2, fields: {
+  definition: "string", cellX: "number", cellY: "number", cellZ: "number", site: "entity", stage: "string", status: "string", workSeconds: "number", reason: "string",
 } });
 
 type ResourceOrderRow = QueryRow<ColonyResourceOrderState>;
@@ -58,9 +59,6 @@ type ResourceCandidate = {
 
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
 export function resourceWorkProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<ResourceCandidate> {
-  // WorkAttempt is the sole lifecycle owner. The legacy authored fields below
-  // remain definition/progress data until their current-format recut lands;
-  // they never claim a worker or settle a physical operation.
   const nativeOrders = [...ctx.query(query(ColonyResourceOrder))].sort((a, b) => a.id.localeCompare(b.id));
   const nativeSites = new Map(ctx.query(query(ResourceSite)).map(row => [row.id, row.get(ResourceSite)]));
   const nativeDefinitions = new Map(colonyEnvironment.resourceSites?.map(definition => [definition.id, definition]) ?? []);
@@ -74,22 +72,25 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   for (const row of nativeOrders) {
     if (nativeAttempts.has(row.id)) continue;
     const state = row.get(ColonyResourceOrder), site = nativeSites.get(state.site), definition = nativeDefinitions.get(state.definition), party = nativeOwners.get(row.id);
-    if (!site || !definition || !party || (state.phase !== "sow" && state.phase !== "tend" && state.phase !== "harvest")) continue;
-    if (state.phase !== "harvest" && site.nextDue > ctx.clock.now) continue;
+    const stage = site && definition ? (site.stage >= definition.stages.length ? "harvest" : "tend") : "sow";
+    const retryBlocked = state.status === "blocked" && ctx.clock.tick % 8 === 0;
+    if (!definition || !party || (state.status !== "queued" && !retryBlocked)) continue;
+    if (stage !== "sow" && !site) continue;
+    if (stage !== "sow" && stage !== "harvest" && site!.nextDue > ctx.clock.now) continue;
     for (const worker of nativeWorkers) {
-      if (nativeMembers.get(worker.id) !== party || (state.phase === "tend" && !nativePails.has(worker.id))) continue;
+      if (nativeMembers.get(worker.id) !== party || (stage === "tend" && !nativePails.has(worker.id))) continue;
       nativeCandidates.push({ worker: worker.id, task: row.id, vessel: nativePails.get(worker.id), approaches: [{ x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null }] });
     }
   }
-  const nativePoses = new Map(ctx.worldPoses(nativeWorkers.map(row => row.id)).map(pose => [pose.id, pose.local]));
+  const nativePoses = new Map((nativeWorkers.length ? ctx.worldPoses(nativeWorkers.map(row => row.id)) : []).map(pose => [pose.id, pose.local]));
   const nativeSelected = new Map<string, ResourceCandidate["approaches"][number]>();
   return {
     claims: nativeOrders.filter(row => nativeAttempts.has(row.id)).map(row => ({ task: row.id, actor: nativeAttempts.get(row.id)?.worker ?? null })),
     candidates: nativeCandidates,
     lowerBound: candidate => { const pose = nativePoses.get(candidate.worker), target = candidate.approaches[0]; return pose ? Math.hypot(pose.x - target.x, pose.z - target.z) : Number.POSITIVE_INFINITY; },
     estimate: candidate => { const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches }); if (result.status !== "reachable") return null; nativeSelected.set(`${candidate.task}\0${candidate.worker}`, candidate.approaches[result.targetIndex]); return result.cost; },
-    apply: assignments => { for (const assignment of assignments) { const candidate = nativeCandidates.find(item => item.task === assignment.task && item.worker === assignment.worker), party = nativeOwners.get(assignment.task); if (!candidate || !party) continue; beginRouteWorkAttempt(ctx, assignment.task, assignment.worker, party, nativeSelected.get(`${assignment.task}\0${assignment.worker}`) ?? candidate.approaches[0]); if (candidate.vessel) ctx.write(ColonyResourceOrder, assignment.task, { ...ctx.query(query(ColonyResourceOrder)).find(row => row.id === assignment.task)!.get(ColonyResourceOrder), vessel: candidate.vessel }); } },
-    progress: () => { for (const row of nativeOrders) { const attempt = nativeAttempts.get(row.id); if (!attempt || attempt.phase.kind !== "outcome") continue; const state = row.get(ColonyResourceOrder), phase = attempt.phase; if (phase.result.kind !== "completed") { acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } if (phase.activity.kind === "route") { const cell = [state.cellX, state.cellY, state.cellZ] as const, vessel = nativePails.get(attempt.worker); if (state.phase === "sow") continueResourceEstablishWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site, state.definition, cell); else if (state.phase === "tend" && vessel) continueResourceTendWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site, vessel); else if (state.phase === "harvest") continueResourceExtractWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site); else acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } else if (phase.activity.kind === "resource-extract") { ctx.write(ColonyResourceOrder, row.id, { ...state, phase: "complete", actor: null, vessel: null, reason: "", workSeconds: 0 }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } else if (phase.activity.kind === "resource-establish" || phase.activity.kind === "resource-tend") { ctx.write(ColonyResourceOrder, row.id, { ...state, phase: "waiting", actor: null, vessel: null, reason: "", workSeconds: 0 }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } } },
+    apply: assignments => { for (const assignment of assignments) { const candidate = nativeCandidates.find(item => item.task === assignment.task && item.worker === assignment.worker), party = nativeOwners.get(assignment.task); if (!candidate || !party) continue; beginRouteWorkAttempt(ctx, assignment.task, assignment.worker, party, nativeSelected.get(`${assignment.task}\0${assignment.worker}`) ?? candidate.approaches[0]); } },
+    progress: () => { for (const row of nativeOrders) { const attempt = nativeAttempts.get(row.id); if (!attempt || attempt.phase.kind !== "outcome") continue; const state = row.get(ColonyResourceOrder), phase = attempt.phase, definition = nativeDefinitions.get(state.definition), site = nativeSites.get(state.site), stage = site && definition ? (site.stage >= definition.stages.length ? "harvest" : "tend") : state.stage; if (suspendedActors.has(attempt.worker)) { ctx.write(ColonyResourceOrder, row.id, { ...state, status: "blocked", reason: "Drafted" }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } if (phase.result.kind !== "completed") { ctx.write(ColonyResourceOrder, row.id, { ...state, status: "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : phase.result.cause }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; } if (phase.activity.kind === "route") { const cell = [state.cellX, state.cellY, state.cellZ] as const, vessel = nativePails.get(attempt.worker); if (stage === "sow") continueResourceEstablishWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site, state.definition, cell); else if (stage === "tend" && vessel) continueResourceTendWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site, vessel); else if (stage === "harvest") continueResourceExtractWorkAttempt(ctx, attempt.key, phase.operation.sequence, state.site); else { ctx.write(ColonyResourceOrder, row.id, { ...state, status: "blocked", reason: "worker unavailable" }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } } else if (phase.activity.kind === "resource-extract") { ctx.write(ColonyResourceOrder, row.id, { ...state, status: "complete", reason: "", workSeconds: 0 }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } else if (phase.activity.kind === "resource-establish" || phase.activity.kind === "resource-tend") { ctx.write(ColonyResourceOrder, row.id, { ...state, stage: "tend", status: "queued", reason: "", workSeconds: 0 }); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); } } },
   };
 }
 
@@ -142,7 +143,7 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     const owner = ctx.query(query(OwnedByParty)).find(candidate => candidate.id === row.id)?.get(OwnedByParty);
     ctx.createAuthoredEntity({ id, components: {
       [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id, party: owner?.party ?? null },
-      [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
+      [WaterSupplyWork.id]: { request: nextRevision, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
     } }, owner ? { kind: "party", party: owner.party } : { kind: "host" });
     ordersByProcess.set(row.id, []);
   }
@@ -292,6 +293,11 @@ const treeWorkProvider = (
         if (state.phase === "complete") continue;
         if (attempt?.phase.kind === "outcome") {
           const phase = attempt.phase;
+          if (suspendedActors.has(attempt.worker)) {
+            ctx.write(ColonyTreeOrder, row.id, { ...state, phase: "blocked", reason: "Drafted" });
+            acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
+            continue;
+          }
           if (phase.result.kind !== "completed") {
             ctx.write(ColonyTreeOrder, row.id, { ...state, phase: policy?.designated ? "blocked" : "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : phase.result.cause });
             acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);

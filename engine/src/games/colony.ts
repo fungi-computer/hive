@@ -368,7 +368,7 @@ export const colonyPack: GamePack = {
         const id = entity(`colony.water-demand.${revision}`);
         return { actions: [], writes: [], creates: [{ id, components: {
           [WaterSupplyOrder.id]: { revision, process: null, party: context.scope.kind === "party" ? context.scope.party : null },
-          [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
+          [WaterSupplyWork.id]: { request: revision, phase: "queued", x: 0, y: 0, z: 0, reason: "" },
         } }] };
       },
     }),
@@ -393,7 +393,7 @@ export const colonyPack: GamePack = {
         const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`);
         const occupiedOrder = context.query(query(ColonyResourceOrder)).some(row => {
           const order = row.get(ColonyResourceOrder);
-          return order.cellX === x && order.cellY === y && order.cellZ === z && order.phase !== "complete";
+          return order.cellX === x && order.cellY === y && order.cellZ === z && order.status !== "complete";
         });
         const occupiedResource = context.query(query(ResourceSite)).some(row => row.id === id);
         const occupiedStructure = context.query(query(ConstructionSite)).some(row => {
@@ -402,7 +402,7 @@ export const colonyPack: GamePack = {
         });
         if (occupiedOrder || occupiedResource || occupiedStructure)
           throw new Error("mugwort cell already has an active designation");
-      return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] };
+      return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, stage: "sow", status: "queued", workSeconds: 0, reason: "" } } }] };
       },
     }),
     requestBrew: command({

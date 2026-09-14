@@ -57,7 +57,7 @@ test("empty resource work does not ask native poses for an empty batch", () => {
 });
 
 test("player sow intent is workerless and blocked tend creates one stable shared water demand", () => {
-  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), actor: null, vessel: null, phase: "waiting", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" };
+  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "queued", workSeconds: 0, reason: "" };
   const { context, created } = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 0 }, []);
   resourceWorkProvider(context, new Set());
   assert.equal(created.length, 1);
@@ -67,7 +67,7 @@ test("player sow intent is workerless and blocked tend creates one stable shared
 });
 
 test("tend candidates require the exact worker-held pail and nested sufficient water", () => {
-  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), actor: null, vessel: null, phase: "tend", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" };
+  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "queued", workSeconds: 0, reason: "" };
   const { context } = providerContext(order, { kind: "mugwort", stage: 1, nextDue: 0 }, [
     { id: id("pail-empty"), kind: "pail", quantity: 1, container: id("worker") },
     { id: id("pail-empty-water"), kind: "water", quantity: 0, container: id("pail-empty") },
@@ -86,17 +86,11 @@ test("tend candidates require the exact worker-held pail and nested sufficient w
   assert.equal(selected.candidates[0].worker, "worker");
 });
 
-test("rejected native approach releases the claim and accepted operation settles once", () => {
-  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), actor: id("worker"), vessel: id("pail"), phase: "tend", workSeconds: 2, reason: "", approachX: 1, approachY: 1.5, approachZ: 0, attempt: 3, operation: "order:tend:3" };
-  const rejected = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 99 }, [], [{ action: { kind: "move", entity: id("worker"), destination: { x: 1, y: 1.5, z: 0 } }, result: { accepted: false, reason: "blocked" } }]);
-  resourceWorkProvider(rejected.context, new Set());
-  assert.equal(rejected.writes.at(-1)[1].actor, null);
-  assert.equal(rejected.writes.at(-1)[1].workSeconds, 0);
-
-  const settled = providerContext({ ...order, phase: "submitting-tend" }, { kind: "mugwort", stage: 0, nextDue: 99 }, [], [{ action: { kind: "tend-resource-site", operation: order.operation, worker: id("worker"), site: id("site"), vessel: id("pail") }, result: { accepted: true } }]);
-  resourceWorkProvider(settled.context, new Set());
-  assert.equal(settled.writes.at(-1)[1].phase, "waiting");
-  assert.equal(settled.writes.at(-1)[1].actor, null);
+test("blocked resource work remains a retryable domain state without authored actor fields", () => {
+  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "blocked", workSeconds: 2, reason: "blocked" };
+  const result = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 99 }, [], []);
+  resourceWorkProvider(result.context, new Set());
+  assert.deepEqual(result.writes, []);
 });
 
 test("GameSession preserves a finite mugwort harvest through extraction and reload", async (t) => {
@@ -126,23 +120,23 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
     const savedBeforeWork = session.save();
     session.restore(savedBeforeWork);
     assert.deepEqual(session.save(), savedBeforeWork);
-    let restoredSubmittingOperation = false;
+    let restoredNativeAttempt = false;
     for (let tick = 0; tick < 4000; tick++) {
       try { session.step(0.25); } catch (error) {
         throw new Error(`resource step ${tick} failed: ${String(error)}`, { cause: error as Error });
       }
       const current = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
-      if (!restoredSubmittingOperation && current?.phase.startsWith("submitting-")) {
+      if (!restoredNativeAttempt && current?.status === "queued" && current?.stage !== "sow") {
         const pending = session.save();
         session.restore(pending);
         assert.deepEqual(session.save(), pending, "an admitted physical operation must survive exact save/reload");
-        restoredSubmittingOperation = true;
+        restoredNativeAttempt = true;
       }
-      if (current?.phase === "complete") break;
+      if (current?.status === "complete") break;
     }
-    assert(restoredSubmittingOperation, "the real consumer must cross a durable submitting phase");
+    assert(restoredNativeAttempt, "the real consumer must cross a durable submitting phase");
     const completed = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
-    assert.equal(completed?.phase, "complete", "resource order must complete before conservation is assessed");
+    assert.equal(completed?.status, "complete", "resource order must complete before conservation is assessed");
     const groundStocks = new Set(session.query(query(GroundStock)).map(row => row.id));
     const harvested = session.query(query(MaterialLot)).filter(row => {
       const lot = row.get(MaterialLot);
