@@ -103,6 +103,10 @@ const waitForReady = async (page) => {
   await page.getByText("Online · server saved", { exact: true }).first().waitFor({ state: "visible", timeout: 45_000 });
   await page.getByRole("button", { name: "Select Rowan", exact: true }).waitFor({ state: "visible", timeout: 20_000 });
 };
+const credentialFromPage = (page) => page.evaluate(() => {
+  const key = Object.keys(localStorage).find(candidate => candidate.startsWith("hive:colony-v2:credential:"));
+  return key ? localStorage.getItem(key) : null;
+});
 const resizeAndResetCamera = async (page) => {
   const viewport = await page.viewportSize();
   assert(viewport, "browser viewport is unavailable");
@@ -128,6 +132,7 @@ await writeFile(resolve(output, "source-inventory.json"), JSON.stringify(evidenc
 
 let browser;
 let context;
+let secondContext;
 let latestObservation;
 try {
   browser = await chromium.launch({
@@ -155,6 +160,7 @@ try {
   page.on("console", message => { if (message.type() === "error") evidence.errors.push(`console: ${message.text()}`); });
   page.on("requestfailed", request => evidence.errors.push(`request: ${request.url()} · ${request.failure()?.errorText ?? "failed"}`));
   let joinUrl;
+  let joinResponseCount = 0;
   context.on("response", async response => {
     if (!response.url().includes("/v2/colony/worlds/")) return;
     if (response.url().endsWith("/command")) {
@@ -173,6 +179,7 @@ try {
     if (!response.url().endsWith("/join")) return;
     try {
       const value = await response.json();
+      joinResponseCount++;
       joinUrl = response.url();
       evidence.join = { status: response.status(), player: value.player, party: value.party, people: value.people };
     } catch (error) {
@@ -193,10 +200,7 @@ try {
   assert.equal(response?.status(), 200, `Clearing frontend returned ${response?.status()}`);
   await waitForReady(page);
   const resetCanvas = await resizeAndResetCamera(page);
-  const credential = await page.evaluate(() => {
-    const key = Object.keys(localStorage).find(candidate => candidate.startsWith("hive:colony-v2:credential:"));
-    return key ? localStorage.getItem(key) : null;
-  });
+  const credential = await credentialFromPage(page);
   if (!joinUrl) {
     const worldHandle = createHash("sha256").update(invite).digest("hex");
     joinUrl = new URL(`/v2/colony/worlds/${worldHandle}/join`, publicHost).toString();
@@ -564,6 +568,92 @@ try {
   assert((await page.locator("body").boundingBox())?.width <= 390, "390px viewport did not render");
   await screenshot(page, "mobile-390.png");
   record("same build captured at 390px", { viewport: [390, 844] });
+
+  const firstJoin = {
+    player: evidence.join.player,
+    party: evidence.join.party,
+    people: [...evidence.join.people],
+  };
+  const firstRevision = latestObservation.revision;
+  const joinsBeforeReload = joinResponseCount;
+  const firstStructureIds = latestObservation.observation.facts
+    .filter(fact => typeof fact.visual === "string" && /^colony\.(?:floor|bed|brew-station|wall|stair)\b/.test(fact.visual))
+    .map(fact => fact.id)
+    .sort();
+  assert(firstStructureIds.length > 0, "completed hosted build produced no persistent structure identities");
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await waitForReady(page);
+  const reloadJoinDeadline = Date.now() + 10_000;
+  while (joinResponseCount <= joinsBeforeReload && Date.now() < reloadJoinDeadline)
+    await new Promise(resolve => setTimeout(resolve, 50));
+  assert(joinResponseCount > joinsBeforeReload, "reload did not complete a public join request");
+  const reloadedCredential = await credentialFromPage(page);
+  assert.equal(reloadedCredential, credential, "reload changed the persistent browser credential");
+  await refreshObservation();
+  assert(latestObservation.revision >= firstRevision, "reload regressed the committed world revision");
+  assert.equal(evidence.join?.player, firstJoin.player, "reload changed the persistent player identity");
+  assert.equal(evidence.join?.party, firstJoin.party, "reload changed the persistent party identity");
+  assert.deepEqual(evidence.join?.people, firstJoin.people, "reload changed the persistent two-person party");
+  const reloadedFactIds = new Set(latestObservation.observation.facts.map(fact => fact.id));
+  assert(firstStructureIds.every(id => reloadedFactIds.has(id)), "reload lost an already-built structure identity");
+  record("reload preserves credential, party, people, structures, and world revision", {
+    player: firstJoin.player,
+    party: firstJoin.party,
+    people: firstJoin.people,
+    structureCount: firstStructureIds.length,
+    revision: latestObservation.revision,
+  });
+
+  secondContext = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
+  const secondPage = await secondContext.newPage();
+  secondPage.setDefaultTimeout(20_000);
+  let secondJoin;
+  secondContext.on("response", async response => {
+    if (!response.url().endsWith("/join")) return;
+    try {
+      const value = await response.json();
+      secondJoin = { status: response.status(), player: value.player, party: value.party, people: value.people };
+    } catch (error) {
+      evidence.errors.push(`second join response unreadable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+  const secondResponse = await secondPage.goto(worldUrl.toString(), { waitUntil: "domcontentloaded" });
+  assert.equal(secondResponse?.status(), 200, `second Clearing frontend returned ${secondResponse?.status()}`);
+  await waitForReady(secondPage);
+  const secondCredential = await credentialFromPage(secondPage);
+  assert(secondCredential && secondCredential !== credential, "second browser context did not receive a distinct credential");
+  if (!secondJoin) {
+    const response = await secondContext.request.post(joinUrl, {
+      headers: { Authorization: `Bearer ${secondCredential}`, "Content-Type": "application/json" },
+      data: { invite },
+    });
+    const value = await response.json();
+    secondJoin = { status: response.status(), player: value.player, party: value.party, people: value.people };
+  }
+  assert.equal(secondJoin?.status, 200, "second fresh context did not receive a successful join");
+  assert.notEqual(secondJoin?.party, firstJoin.party, "second context joined the first persistent party");
+  assert.equal(secondJoin?.people?.length, 2, "second persistent party must contain two people");
+  assert.equal(new Set(secondJoin.people).size, 2, "second party people must be unique");
+  assert(secondJoin.people.every(person => !firstJoin.people.includes(person)), "second party reused a first-party person");
+  const secondObserve = await secondContext.request.get(joinUrl.replace(/\/join$/, "/observe"), {
+    headers: { Authorization: `Bearer ${secondCredential}` },
+  });
+  assert.equal(secondObserve.status(), 200, "second context world observation failed");
+  const secondObservation = await secondObserve.json();
+  assert(secondObservation.revision >= firstRevision, "second context observed a regressed world revision");
+  const secondFactIds = new Set(secondObservation.observation?.facts?.map(fact => fact.id) ?? []);
+  assert(firstJoin.people.every(id => secondFactIds.has(id)), "second context did not observe the first party people");
+  assert(firstStructureIds.every(id => secondFactIds.has(id)), "second context did not observe the first party structures");
+  record("second fresh context observes the first world and joins a distinct two-person party", {
+    firstParty: firstJoin.party,
+    firstPeople: firstJoin.people,
+    secondParty: secondJoin.party,
+    secondPeople: secondJoin.people,
+    revision: secondObservation.revision,
+  });
+  await secondContext.close();
+  secondContext = undefined;
   evidence.success = evidence.errors.length === 0;
 } catch (error) {
   evidence.failure = redact(error?.stack ?? error);
@@ -588,6 +678,7 @@ try {
   throw error;
 } finally {
   await writeFile(resolve(output, "REPORT.json"), JSON.stringify(evidence, null, 2));
+  await secondContext?.close();
   await context?.close();
   await browser?.close();
 }
