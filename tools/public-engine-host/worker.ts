@@ -9,7 +9,7 @@ import { buildObservation, type SessionObservation } from "../../engine/src/runt
 import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
-import { colonyPack } from "../../engine/src/games/colony";
+import { colonyServerPack } from "../../engine/src/games/colony";
 import { formationsPack } from "../../engine/src/games/formations";
 import { piratesPack } from "../../engine/src/games/pirates";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -89,7 +89,7 @@ function packFor(pack: PublicPack) {
     case "pirates":
       return piratesPack;
     case "colony":
-      return colonyPack;
+      return colonyServerPack;
     case "formations":
       return formationsPack;
   }
