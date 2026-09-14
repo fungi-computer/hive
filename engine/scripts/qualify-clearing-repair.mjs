@@ -70,6 +70,7 @@ const groups = Object.freeze({
   ]),
   drawing: Object.freeze([
     "engine/src/client/art-placement.test.js",
+    "engine/src/client/build-placement.test.js",
     "engine/src/client/construction-visuals.test.js",
     "engine/src/client/geometry.test.js",
     "engine/src/client/isometric-sorter.test.js",

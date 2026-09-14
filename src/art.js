@@ -19,7 +19,6 @@ import { scene } from "./art/geometry.js";
 import { soilPile } from "./art/soil.js";
 import { stonePile } from "./art/stone.js";
 import { rationPile } from "./art/food.js";
-import { stationScene } from "./art/brew-station.js";
 import { shipScene } from "./art/ship.js";
 import { cargoScene, rippleScene } from "./art/demo-props.js";
 import {
@@ -497,7 +496,7 @@ export async function bakeArt(
               return Array.from({ length: frames }, (_, frame) =>
                 bakeStartup(
                   renderer,
-                  stationScene("finished", direction, {
+                  building(type, "finished", direction, {
                     profile,
                     phase: frame / frames,
                   }),
