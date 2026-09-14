@@ -39,6 +39,11 @@ impl Kernel {
                 let points = crate::terrain_route::waypoints_with_stairs(&state.path, config, &stairs)?;
                 let remaining = self.routes.get(&entity).ok_or("missing occupied route")?.len();
                 let next = points.len().checked_sub(remaining).ok_or("invalid occupied route progress")?;
+                if next == 0 {
+                    // The actor has not entered the first route edge yet; its
+                    // only occupied support is the path origin.
+                    vec![state.path[0]]
+                } else {
                 let active = crate::terrain_route::active_support_index_with_stairs(&state.path, next, &stairs)?;
                 let end = state.path[active + 1];
                 let end_pose = [end.x as f64 * spacing[0],
@@ -47,6 +52,7 @@ impl Kernel {
                     vec![end]
                 } else {
                     state.path[active..=active + 1].to_vec()
+                }
                 }
             } else {
                 let raw = [position.x / spacing[0], position.y / spacing[1] - 0.5,

@@ -2236,12 +2236,14 @@ impl Kernel {
                     let remaining = self.routes.get(&entity).ok_or("missing in-flight route")?;
                     let previous_points = crate::terrain_route::waypoints_with_stairs(&previous.path, config, &stairs)?;
                     let next = previous_points.len().checked_sub(remaining.len()).ok_or("invalid retained route progress")?;
-                    if next == 0 || next >= previous_points.len()
+                    if next >= previous_points.len()
                         || !remaining.iter().eq(previous_points[next..].iter())
                     {
                         return Err("invalid retained route progress".into());
                     }
-                    contact_start = crate::terrain_route::active_support_index_with_stairs(&previous.path, next, &stairs)?;
+                    contact_start = if next == 0 { 0 } else {
+                        crate::terrain_route::active_support_index_with_stairs(&previous.path, next, &stairs)?
+                    };
                     // A route may revisit a support cell. The retained deque's
                     // cursor identifies the active waypoint; searching by
                     // coordinate can select an earlier visit in path history.
@@ -5456,9 +5458,10 @@ impl Kernel {
             return Err("saved terrain route crosses a sealed structure face".into());
         }
         if points.len() > 4096 || crate::terrain_route::path_waypoint_count(&state.path, &stairs)? > 4096 { return Err("saved terrain waypoint budget exceeded".into()); }
-        let offset = points.len().checked_sub(route.len()).filter(|index| *index > 0 && *index < points.len())
+        let offset = points.len().checked_sub(route.len()).filter(|index| *index < points.len())
             .ok_or("invalid terrain route progress")?;
-        if !route.iter().eq(points[offset..].iter()) || state.origin != points[offset - 1]
+        let origin_matches = if offset == 0 { state.origin == points[0] } else { state.origin == points[offset - 1] };
+        if !route.iter().eq(points[offset..].iter()) || !origin_matches
             || state.target.as_ref() != route.front() {
             return Err("terrain route geometry witness mismatch".into());
         }
@@ -5525,9 +5528,9 @@ impl Kernel {
             let expected_points = crate::terrain_route::waypoints_with_stairs(&path, config, &stairs)?;
             let remaining: Vec<_> = self.routes.get(&entity).map(|route| route.iter().cloned().collect()).unwrap_or_default();
             let offset = expected_points.len().checked_sub(remaining.len());
-            let correspondence = offset.filter(|offset| *offset > 0).is_some_and(|offset| {
+            let correspondence = offset.is_some_and(|offset| {
                 remaining == expected_points[offset..]
-                    && self.terrain_routes[&entity].origin == expected_points[offset - 1]
+                    && self.terrain_routes[&entity].origin == if offset == 0 { expected_points[0].clone() } else { expected_points[offset - 1].clone() }
                     && (if self.terrain_routes[&entity].suspended {
                         self.ecs.get::<Destination>(entity).is_none()
                     } else { self.ecs.get::<Destination>(entity).is_some_and(|target| {
@@ -5539,7 +5542,12 @@ impl Kernel {
                 continue;
             }
             let mut query = |cell| environment.world.traversal_material(cell);
-            let active = crate::terrain_route::active_support_index_with_stairs(&path, offset.ok_or("missing route progress")?, &stairs)?;
+            let next_waypoint = offset.ok_or("missing route progress")?;
+            let active = if next_waypoint == 0 {
+                0
+            } else {
+                crate::terrain_route::active_support_index_with_stairs(&path, next_waypoint, &stairs)?
+            };
             let boundary_valid = path[active..].windows(2).all(|pair| !structure.blocks_swept_transition(pair[0], pair[1], &stairs).unwrap_or(true));
             let valid = boundary_valid && crate::terrain_traversal::path_supported_with_stairs(&path[active..], config, &mut query, &stairs)?;
             if !valid { invalid.push(entity); }
