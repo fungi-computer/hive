@@ -51,7 +51,7 @@ export function structureSurfaceFromOrderedSprites(orderedSprites, subjects, hit
 export function buildControls(controls) {
   const groups = new Map();
   for (const control of controls ?? []) {
-    if (control.command !== "build" || control.target !== "world-surface") continue;
+    if (control.command !== "build" || !["world-surface", "world-edge"].includes(control.target)) continue;
     const input = control.input;
     const catalog = input && typeof input.catalog === "string" ? input.catalog : null;
     if (!catalog) continue;
