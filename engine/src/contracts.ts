@@ -734,8 +734,8 @@ export type GameLocalBinding = Readonly<{
   readonly selection?: "entities" | Readonly<{ readonly field: string; readonly cardinality: "one" }>;
   readonly target?: "terrain-cell" | "terrain-area" | "world-surface";
   readonly designation?: readonly ("point" | "line" | "rectangle" | "entities")[];
-  /** Optional local placement in the persistent bottom action dock. */
-  readonly placement?: "action-bar" | "selection";
+  /** Local placement in the persistent bottom action dock. */
+  readonly placement?: "action-bar";
   readonly preset?: JsonValue;
 }>;
 export type JsonValue = null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue };
