@@ -14,14 +14,15 @@ test("local floor binding turns a rectangle into one durable command input", () 
   });
 });
 
-test("generic build placement preserves point, line, and rectangle command shapes", () => {
+test("wall placement binds one canonical edge run to the shared build command", () => {
   const wall = buildControl("timber-wall");
-  assert.deepEqual(wall.designation, ["point", "line"]);
-  assert.deepEqual(buildPlacementCommand(wall, [], { mode: "point", cells: [[2, 13, 3]], start: [2, 13, 3], end: [2, 13, 3] }).input,
-    { catalog: "timber-wall", target: { cell: [2, 13, 3] } });
-  assert.deepEqual(buildPlacementCommand(wall, [], { mode: "line", cells: [[0, 13, 0], [1, 13, 0]], start: [0, 13, 0], end: [1, 13, 0] }).input,
-    { catalog: "timber-wall", target: { area: { start: [0, 13, 0], end: [1, 13, 0] } } });
-  assert.throws(() => buildPlacementCommand(wall, [], { mode: "rectangle", cells: [[0, 13, 0], [1, 13, 0], [0, 13, 1], [1, 13, 1]], start: [0, 13, 0], end: [1, 13, 1] }), /not supported/);
+  assert.equal(wall.target, "world-edge");
+  assert.deepEqual(wall.designation, ["edge-line"]);
+  const edges = [{ cell: [0, 13, 0], axis: "z" }, { cell: [1, 13, 0], axis: "z" }];
+  assert.deepEqual(buildPlacementCommand(wall, [], { mode: "edge-line", edges }).input,
+    { catalog: "timber-wall", target: { edges } });
+  assert.throws(() => buildPlacementCommand(wall, [], { mode: "edge-line", cells: [[0, 13, 0]] }), /requires an edge/);
+  assert.throws(() => buildPlacementCommand(wall, [], { mode: "edge-line", edges: [{ cell: [0, 13, 0], axis: "y" }] }), /invalid edge/);
 });
 
 test("floor and roof areas fill through the same generic binder, while stairs stay point presets", () => {
@@ -40,12 +41,12 @@ test("floor and roof areas fill through the same generic binder, while stairs st
 });
 
 test("surface bindings preserve point source validation and selected entities", () => {
-  const build = { commandId: "colony:build", preset: { catalog: "timber-wall" }, target: "world-surface", designation: ["point", "line", "rectangle"] };
+  const build = { commandId: "colony:build", preset: { catalog: "timber-floor" }, target: "world-surface", designation: ["point", "rectangle"] };
   assert.deepEqual(terrainCellCommand(build, [], { cell: [1, 13, 2], material: 2 }).input, {
-    catalog: "timber-wall", target: { cell: [1, 13, 2] },
+    catalog: "timber-floor", target: { cell: [1, 13, 2] },
   });
   assert.deepEqual(terrainCellCommand(build, [], { cell: [1, 13, 2], source: "structure" }).input, {
-    catalog: "timber-wall", target: { cell: [1, 13, 2] },
+    catalog: "timber-floor", target: { cell: [1, 13, 2] },
   });
   assert.throws(() => terrainCellCommand({ commandId: "colony:dig", target: "terrain-cell" }, [], { cell: [1, 13, 2], source: "placement" }), /placement target/);
   const selection = bindingCommand({ commandId: "colony:deposit", selection: "entities" }, ["worker", "worker"]);

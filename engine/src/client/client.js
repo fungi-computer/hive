@@ -55,7 +55,7 @@ import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
 import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
-import { acquireEdgeStroke, canonicalEdges, nearestGridSegment } from "./edge-gesture.js";
+import { acquireEdgeStroke, canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
 import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -1044,9 +1044,8 @@ export function createHiveClient({
     if (edgeStroke && displayed) {
       placementGraphic.visible = true;
       for (const edge of edgeStroke.edges) {
-        const [x, y, z] = edge.cell;
-        const a = edge.axis === "x" ? project(x, (y + 0.5) * displayed.verticalMetres, z) : project(x, (y + 0.5) * displayed.verticalMetres, z);
-        const b = edge.axis === "x" ? project(x + 1, (y + 0.5) * displayed.verticalMetres, z) : project(x, (y + 0.5) * displayed.verticalMetres, z + 1);
+        const [worldA, worldB] = edgeSegmentEndpoints(edge, displayed.verticalMetres);
+        const a = project(...worldA), b = project(...worldB);
         placementGraphic.moveTo(a.x * camera.zoom + camera.x, a.y * camera.zoom + camera.y).lineTo(b.x * camera.zoom + camera.x, b.y * camera.zoom + camera.y).stroke({ color: 0xe8c779, width: 3, alpha: 0.8 });
       }
     }
@@ -1132,15 +1131,16 @@ export function createHiveClient({
         ? { kind: "structure-top", surface: spriteSurface }
         : displayed && displayedTerrainHit(localPoint.x, localPoint.y, displayed);
       const structure = hit?.kind === "structure-top";
-      const surface = (hit?.kind === "terrain-top" || (structure && targetControl.target === "world-surface")) && hit.surface;
+      const worldStructureTarget = targetControl.target === "world-surface" || targetControl.target === "world-edge";
+      const surface = (hit?.kind === "terrain-top" || (structure && worldStructureTarget)) && hit.surface;
       if (!surface) {
-        state.message = targetControl.target === "world-surface" ? "Choose a visible ground or building surface" : "Choose a visible terrain top";
+        state.message = worldStructureTarget ? "Choose a visible ground or building surface" : "Choose a visible terrain top";
         renderHud();
         return;
       }
       if (targetControl.target === "world-edge") {
-        const segment = nearestGridSegment(localPoint, project, surface.cell[1], displayed.verticalMetres);
-        edgeStroke = { start: [...segment.cell], current: [...segment.cell], axis: segment.axis, edges: [{ cell: [...segment.cell], axis: segment.axis }] };
+        const segment = nearestGridSegment(localPoint, project, surface.cell, displayed.verticalMetres);
+        edgeStroke = { start: { cell: [...segment.cell], axis: segment.axis }, current: [...segment.cell], edges: [{ cell: [...segment.cell], axis: segment.axis }] };
         app.canvas.setPointerCapture?.(event.pointerId); draw(); return;
       }
       if (targetControl.target === "terrain-area") {
@@ -1161,7 +1161,7 @@ export function createHiveClient({
       if (targetControl.target === "world-surface" && structure) {
         terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
       }
-        executeWhistle(targetControl, terrainCellCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }).input);
+      executeWhistle(targetControl, terrainCellCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }).input);
       return;
     }
     if (isAiming()) {
@@ -1184,9 +1184,11 @@ export function createHiveClient({
       const displayed = displayedTerrainFrame();
       if (!displayed) { edgeStroke = null; draw(); return; }
       const at = point(event), local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const segment = nearestGridSegment(local, project, edgeStroke.start[1], displayed.verticalMetres, edgeStroke.axis);
-      edgeStroke.current = [...segment.cell];
-      edgeStroke.edges = acquireEdgeStroke(edgeStroke.start, edgeStroke.current, project, displayed.verticalMetres, 256, edgeStroke.axis);
+      const hovered = terrainPlaneCell(local.x, local.y, edgeStroke.start.cell[1], displayed.verticalMetres);
+      edgeStroke.current = edgeStroke.start.axis === "x"
+        ? [edgeStroke.start.cell[0], edgeStroke.start.cell[1], hovered[2]]
+        : [hovered[0], edgeStroke.start.cell[1], edgeStroke.start.cell[2]];
+      edgeStroke.edges = acquireEdgeStroke(edgeStroke.start, edgeStroke.current, 256);
       draw(); return;
     }
     if (terrainArea.getSnapshot().value === "dragging") {
@@ -1307,6 +1309,14 @@ export function createHiveClient({
       if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.id])] : [deck.id];
     }
     selectEntities(hit);
+  }
+  function pointerCancel(event) {
+    gesture.send({ type: "CANCEL" });
+    terrainArea.send({ type: "CANCEL" });
+    edgeStroke = null;
+    state.dragging = null;
+    app.canvas.releasePointerCapture?.(event.pointerId);
+    draw();
   }
   function contextMenu(event) {
     event.preventDefault();
@@ -1479,11 +1489,7 @@ export function createHiveClient({
     app.canvas.addEventListener("pointermove", pointerMove);
     app.canvas.addEventListener("pointerup", pointerUp);
     app.canvas.addEventListener("contextmenu", contextMenu);
-    app.canvas.addEventListener("pointercancel", () => {
-      gesture.send({ type: "CANCEL" });
-      terrainArea.send({ type: "CANCEL" });
-      state.dragging = null;
-    });
+    app.canvas.addEventListener("pointercancel", pointerCancel);
     window.addEventListener("keydown", keydown);
     window.addEventListener("keyup", keyup);
     window.addEventListener("blur", releaseDirect);
@@ -1746,6 +1752,7 @@ export function createHiveClient({
       app.canvas?.removeEventListener("pointerdown", pointerDown);
       app.canvas?.removeEventListener("pointermove", pointerMove);
       app.canvas?.removeEventListener("pointerup", pointerUp);
+      app.canvas?.removeEventListener("pointercancel", pointerCancel);
       app.canvas?.removeEventListener("contextmenu", contextMenu);
       terrainLayer.dispose();
       disposePlacementGhosts(placementGhosts);
