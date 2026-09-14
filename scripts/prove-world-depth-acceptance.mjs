@@ -50,15 +50,15 @@ try {
   assert(result.waterFrontChanged > result.waterBehindChanged, "water depth ordering was not visible");
 
   const browserFacts = await page.evaluate(() => {
-    const canvas = document.querySelector("canvas");
-    const gl = canvas?.getContext("webgl2");
+    const canvas = document.querySelector("canvas[data-hive-depth-capture]");
+    const renderer = globalThis.__HIVE_RETAINED_DEPTH_RENDERER__;
     const resources = performance.getEntriesByType("resource").map((entry) => ({
       name: entry.name,
       bytes: entry.decodedBodySize || entry.encodedBodySize || entry.transferSize || 0,
     }));
     return {
       canvas: canvas ? { width: canvas.width, height: canvas.height } : null,
-      webgl2: Boolean(gl),
+      webgl2: renderer?.name === "webgl" && renderer?.webGLVersion === 2,
       resources,
       heap: performance.memory ? {
         used: performance.memory.usedJSHeapSize,

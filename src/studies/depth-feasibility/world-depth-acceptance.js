@@ -42,7 +42,7 @@ function item(art, id, path, world, screen, role, subjectPlacement = null, orien
  * the real paired DrawItems used by the world-depth owner, and returns the
  * render/pick/memory counters for the caller's acceptance receipt.
  */
-export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, height = 400, load = loadStaticArtPack } = {}) {
+export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, height = 400, load = loadStaticArtPack, onVisibleCapture = () => {} } = {}) {
   if (renderer?.name !== "webgl" || renderer.context?.webGLVersion !== 2)
     throw new Error("retained-world-depth-acceptance-requires-webgl2");
   const loaded = await load();
@@ -132,6 +132,10 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
   layer.update(cutawayItems, WORLD_TOWARD_CAMERA);
   layer.render(renderer);
   layer.renderTransparent(renderer, [water]);
+  // The acceptance page owns this presentation-only copy. The Pixi depth
+  // target remains the sole renderer; this canvas is captured before the
+  // deliberate empty-scene disposal check below.
+  onVisibleCapture(renderer.extract.canvas(layer.texture));
   const lifecycleBefore = layer.diagnostics();
   layer.update(cutawayItems, WORLD_TOWARD_CAMERA);
   layer.render(renderer);
