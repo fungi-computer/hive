@@ -30,19 +30,28 @@ export const WaterSupplyOrder = component<{
 
 type WaterOption = { readonly cell: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] };
 type Candidate = { readonly worker: EntityId; readonly task: EntityId; readonly vessel: EntityId; readonly options: readonly WaterOption[] };
+const WATER_CONTACT_CENTER_LIMIT = 16;
 const distance = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
 export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<EntityId>): PreparedWorkProvider<Candidate> {
   const nativeRows = [...ctx.query(query(WaterSupplyWork, WaterSupplyOrder))].sort((a, b) => a.id.localeCompare(b.id));
   const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const members = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
-  const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspended.has(row.id));
+  const workers = [...ctx.query(query(Worker, Body, Position))]
+    .filter(row => !row.get(Worker).guest && !suspended.has(row.id))
+    .sort((a, b) => a.id.localeCompare(b.id));
   const attempts = new Map(workAttemptsFor(ctx, nativeRows.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
   const lots = ctx.workMaterialFacts().lots;
   const pails = new Map<EntityId, EntityId>(lots.filter(lot => lot.kind === "pail" && workers.some(worker => worker.id === lot.container)).map(lot => [lot.container, lot.id]));
   const poses = new Map((workers.length ? ctx.worldPoses(workers.map(row => row.id)) : []).map(pose => [pose.id, pose.local]));
   const centers = workers.flatMap(worker => { const pose = poses.get(worker.id); return pose ? [[Math.round(pose.x), Math.round(pose.y), Math.round(pose.z)] as [number, number, number]] : []; });
-  const contacts = centers.length ? ctx.waterContacts(centers).slice(0, 8) : [];
+  // KernelPort deliberately accepts at most sixteen centers. Query every
+  // current worker in stable batches so larger colonies retain the same
+  // planning coverage without turning a bounded native call into a crash.
+  const contacts: Array<ReturnType<WriteContext["waterContacts"]>[number]> = [];
+  for (let offset = 0; offset < centers.length; offset += WATER_CONTACT_CENTER_LIMIT) {
+    contacts.push(...ctx.waterContacts(centers.slice(offset, offset + WATER_CONTACT_CENTER_LIMIT)));
+  }
   const candidates: Candidate[] = [];
   for (const row of nativeRows) {
     if (attempts.has(row.id)) continue;
@@ -52,7 +61,7 @@ export function waterSupplyProvider(ctx: WriteContext, suspended: ReadonlySet<En
     for (const worker of workers) {
       const vessel = pails.get(worker.id);
       if (!vessel || members.get(worker.id) !== party) continue;
-      const options = contacts.map(contact => ({ cell: contact.at, approaches: contact.approaches })).filter(option => option.approaches.length);
+      const options = contacts.map(contact => ({ cell: contact.at, approaches: contact.approaches })).filter(option => option.approaches.length).slice(0, 8);
       if (options.length) candidates.push({ worker: worker.id, task: row.id, vessel, options });
     }
   }

@@ -104,8 +104,8 @@ test("water provider skips contact query with no eligible held pail workers and 
   assert.equal(prepared.candidates.length, 0);
 });
 
-test("water provider sends at most sixteen authoritative centers", () => {
-  const workers = Array.from({ length: 16 }, (_, index) =>
+test("water provider batches every worker into sixteen-center native queries", () => {
+  const workers = Array.from({ length: 32 }, (_, index) =>
     id(`worker-${index}`),
   );
   const lots = workers.map((worker, index) => ({
@@ -125,18 +125,18 @@ test("water provider sends at most sixteen authoritative centers", () => {
       [OwnedByParty, { party: id("party") }],
     ]),
   );
-  let poseCount = 0,
-    centerCount = 0;
+  let poseCount = 0;
+  const centerCounts: number[] = [];
   const context: any = {
     query: (spec: any) => spec.components.includes(Worker) || spec.components.includes(PartyMember) ? workers.map(worker => row(worker, new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 0, z: 0, facing: 0 }], [Container, { capacity: 3 }], [PartyMember, { party: id("party") }]]))) : spec.components.includes(OwnedByParty) ? [demand] : spec.components.includes(Destination) ? [] : [demand],
     workAttempts: () => [],
     workMaterialFacts: () => ({ version: 1, containers: lots.map(lot => ({ id: lot.id, capacity: 7, sealed: false })), lots }),
     worldPoses: (entities: readonly string[]) => { poseCount = entities.length; return entities.map(entity => ({ id: id(entity), local: { x: 0, y: 0, z: 0, facing: 0 }, world: { x: 0, y: 0, z: 0, facing: 0 }, support: null, surface: null })); },
-    waterContacts: (centers: readonly unknown[]) => { centerCount = centers.length; return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [],
+    waterContacts: (centers: readonly unknown[]) => { centerCounts.push(centers.length); return []; }, routeToAny: () => ({ status: "unavailable", reason: "none" }), routeCosts: () => [], action: () => {}, write: () => {}, outcomes: [], clock: { now: 0, delta: 0, tick: 0 }, random: { next: () => 0 }, impacts: [],
   };
   waterSupplyProvider(context, new Set());
-  assert.equal(poseCount, 16);
-  assert.equal(centerCount, 16);
+  assert.equal(poseCount, 32);
+  assert.deepEqual(centerCounts, [16, 16]);
 });
 
 test("completed demand does not invoke provider-side contact queries", () => {

@@ -50,3 +50,17 @@ test("largest sparse-world preset starts and advances the real Colony systems", 
     port.dispose();
   }
 });
+
+test("32 and 100 worker presets sustain multiple real Colony steps", () => {
+  for (const workerCount of [32, 100] as const) {
+    const port = wasmKernelPort(new WasmKernel());
+    const session = new GameSession({ port, pack: createColonyPerformancePack(128, workerCount) });
+    try {
+      session.start();
+      for (let tick = 0; tick < 3; tick++) session.step(0.1);
+      assert.equal(session.renderFacts().filter(fact => fact.visual === "colony.rowan" || fact.visual === "colony.sedge").length, workerCount);
+    } finally {
+      port.dispose();
+    }
+  }
+});
