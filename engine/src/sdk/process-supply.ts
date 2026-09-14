@@ -14,7 +14,6 @@ export const StagedProcess = component<{
 
 export const requestProcess = (definition: string, station: EntityId) => ({ kind: "request-process" as const, definition, station });
 export const admitProcess = (process: EntityId, definition: string, station: EntityId) => ({ kind: "admit-process" as const, process, definition, station });
-export const attendProcess = (worker: EntityId, process: EntityId) => ({ kind: "attend-process" as const, worker, process });
 type ProcessRow = QueryRow<{ version: number; definition: string; definitionVersion: number; station: EntityId; stageIndex: number; progressSeconds: number; enteredTick: number; phase: "waiting" | "working" | "complete" | "blocked"; blockedReason: string }>;
 
 /** Projects missing process inputs into ordinary delivery obligations, then asks native custody to bind them. */
