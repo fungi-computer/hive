@@ -7,6 +7,7 @@ import type {
   ActionRequest,
   ScopedAction,
   ScopedCreate,
+  ScopedRemove,
   AdvanceResult,
   AtmosphereSamples,
   ConstructionReadiness,
@@ -656,7 +657,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       actions: readonly ScopedAction[],
       options?: {
         readonly creates?: readonly ScopedCreate[];
-        readonly removes?: readonly EntityId[];
+        readonly removes?: readonly ScopedRemove[];
       },
     ): AdvanceResult {
       const result = JSON.parse(

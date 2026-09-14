@@ -410,6 +410,10 @@ export interface ScopedCreate {
   readonly scope: ActionScope;
   readonly record: EntityRecord;
 }
+export interface ScopedRemove {
+  readonly scope: ActionScope;
+  readonly entity: EntityId;
+}
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces" | "structureSurfaces" | "transferContacts"> & {
   readonly scope: CommandScope;
   readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
@@ -645,7 +649,7 @@ export interface KernelPort {
     actions: readonly ScopedAction[],
     options?: {
       readonly creates?: readonly ScopedCreate[];
-      readonly removes?: readonly EntityId[];
+      readonly removes?: readonly ScopedRemove[];
     },
   ) => AdvanceResult;
   readonly snapshot: () => KernelSnapshot;

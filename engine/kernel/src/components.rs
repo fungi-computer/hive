@@ -462,12 +462,18 @@ pub struct ScopedCreate {
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+pub struct ScopedRemove {
+    pub scope: ActionScope,
+    pub entity: String,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Batch {
     pub delta: f64,
     #[serde(default)]
     pub creates: Vec<ScopedCreate>,
     #[serde(default)]
-    pub removes: Vec<String>,
+    pub removes: Vec<ScopedRemove>,
     pub writes: Vec<Write>,
     pub actions: Vec<ScopedAction>,
 }
