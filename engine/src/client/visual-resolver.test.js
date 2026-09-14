@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveStaticVisual } from "./visual-resolver.js";
+import { resolveStaticVisual, resolveStaticVisualParts } from "./visual-resolver.js";
 import { CANNON_VISUAL_BINDINGS, DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 
 const texture = (name) => ({ name });
@@ -73,4 +73,15 @@ test("static resolver selects an animation frame without changing the visual ide
   const binding = { kind: "static", path: ["station", "frames"], frames: true, facing: false, anchor: "propAnchor" };
   assert.equal(resolveStaticVisual(animatedArt, binding, 0, 0)?.texture, frames[0]);
   assert.equal(resolveStaticVisual(animatedArt, binding, 0, 3)?.texture, frames[1]);
+});
+
+test("ordinary single-part visuals retain the body path while authored owners expose siblings", () => {
+  const binding = { kind: "static", path: ["buildings", "shelf", "finished", 0], facing: false, anchor: "propAnchor" };
+  const ordinary = resolveStaticVisualParts(art, binding);
+  assert.equal("parts" in ordinary, false);
+  const multipart = {
+    ...art,
+    partsByOwner: new Map([[JSON.stringify(binding.path), [{ id: "surface", texture: texture("surface") }]]]),
+  };
+  assert.deepEqual(resolveStaticVisualParts(multipart, binding).parts.map(({ id }) => id), ["surface"]);
 });

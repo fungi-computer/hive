@@ -37,6 +37,7 @@ import { BUILDINGS } from "./construction.js";
 import { loadStaticArtPack } from "./art/static-pack.js";
 import { STATIC_ART_RENDER } from "./art/static-manifest.js";
 import { registerVisibleTexture } from "./visual-hit-geometry.js";
+import { partOwnerKey, partitionCompositePixels, renderPartIdPass } from "./art/parts.js";
 
 function propScene(draw) {
   const result = scene();
@@ -326,6 +327,7 @@ export async function bakeArt(
   let completedTextures = 0;
   const bakedTextures = new Set();
   const placementByTexture = new Map();
+  const partByTexture = new Map();
   const allBakedTextures = new Set();
   let detail = "Preparing the drawing tools";
   const report = (waitingFor = null) =>
@@ -344,6 +346,69 @@ export async function bakeArt(
       args[1]?.traverse((object) => object.geometry?.dispose());
       throw error;
     }
+  }
+  function bakeMultipartStartup(source, cameraValue, width, height, ownerPath) {
+    const declarations = source.userData?.staticParts;
+    if (!Array.isArray(declarations) || declarations.length < 1)
+      throw new Error(`multipart art ${JSON.stringify(ownerPath)} has no parts`);
+    // Render all parts with the same scene, camera and datum.  Geometry stays
+    // alive until every sibling has been captured, so shared lights/materials
+    // and shadows retain the original composite appearance.
+    const composite = bake(renderer, source, cameraValue, width, height, true, false);
+    bakedTextures.add(composite);
+    allBakedTextures.add(composite);
+    placementByTexture.set(composite, source.userData?.staticPlacement);
+    completedTextures++;
+    const parts = [];
+    const partRenders = [];
+    const priorOutputColorSpace = renderer.outputColorSpace;
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+    let idPass;
+    try {
+      idPass = renderPartIdPass(renderer, source, cameraValue, width, height, declarations, {
+      createMaterial: () => {
+          const material = new THREE.MeshBasicMaterial({ color: 0, toneMapped: false });
+          material.vertexColors = false;
+        return material;
+      },
+      setMaterialColor: (material, red, green, blue) => material.color.setRGB(red, green, blue, THREE.LinearSRGBColorSpace),
+      });
+    } finally {
+      renderer.outputColorSpace = priorOutputColorSpace;
+    }
+    const visibility = new Map(declarations.map(({ group }) => [group, group.visible]));
+    try {
+      for (const declaration of declarations) {
+        for (const other of declarations) other.group.visible = other === declaration;
+        const texture = bake(renderer, source, cameraValue, width, height, false, false);
+        bakedTextures.add(texture);
+        allBakedTextures.add(texture);
+        const descriptor = Object.freeze({
+          id: declaration.id,
+          role: declaration.role,
+          owner: partOwnerKey(ownerPath),
+          geometry: declaration.geometry,
+          texture,
+        });
+        partByTexture.set(texture, descriptor);
+        parts.push(descriptor);
+        partRenders.push(texture);
+        completedTextures++;
+      }
+    } finally {
+      for (const [group, visible] of visibility) group.visible = visible;
+      source.traverse((object) => object.geometry?.dispose());
+    }
+    const compositePixels = composite.source.resource.getContext("2d").getImageData(0, 0, width, height).data;
+    const ownedPixels = partitionCompositePixels({ width, height, composite: compositePixels, partIds: idPass.pixels, parts: declarations, partCodes: idPass.codes });
+    partRenders.forEach((texture, index) => {
+      const context = texture.source.resource.getContext("2d");
+      const image = context.createImageData(width, height);
+      image.data.set(ownedPixels[index]);
+      context.putImageData(image, 0, 0);
+      texture.source.update();
+    });
+    return { composite, parts: Object.freeze(parts) };
   }
   const renderer = createArtRenderer();
   const disposeStatic = textureDisposer(allBakedTextures);
@@ -381,6 +446,7 @@ export async function bakeArt(
       tree: {},
       herbs: { mugwort: {} },
       buildings: {},
+      parts: {},
       sources: { spring: {}, cache: {} },
       pail: {},
       wood: {},
@@ -473,18 +539,18 @@ export async function bakeArt(
         type === "shelf"
           ? ["stakes", "frame", "finished", "filled"]
           : ["stakes", "frame", "finished"];
-      for (const stage of stages)
-        art.buildings[type][stage] = (
-          type === "stair" ? [0, 1, 2, 3] : [0, 1]
-        ).map((direction) =>
-          bakeStartup(
-            renderer,
-            building(type, stage, direction),
-            prop,
-            STATIC_ART_RENDER.prop.width,
-            STATIC_ART_RENDER.prop.height,
-          ),
-        );
+      for (const stage of stages) {
+        art.buildings[type][stage] = (type === "stair" ? [0, 1, 2, 3] : [0, 1]).map((direction) => {
+          const source = building(type, stage, direction);
+          if (type !== "stair") return bakeStartup(renderer, source, prop, STATIC_ART_RENDER.prop.width, STATIC_ART_RENDER.prop.height);
+          const ownerPath = ["buildings", type, stage, direction];
+          const baked = bakeMultipartStartup(source, prop, STATIC_ART_RENDER.prop.width, STATIC_ART_RENDER.prop.height, ownerPath);
+          let target = art.parts;
+          for (const segment of ownerPath) target = target[segment] ??= {};
+          for (const part of baked.parts) target[part.id] = part.texture;
+          return baked.composite;
+        });
+      }
       if (type === "brew-station")
         art.buildings[type].profiles = Object.fromEntries(
           STATION_VISUAL_PROFILES.map((profile) => [
@@ -651,6 +717,15 @@ export async function bakeArt(
       value: placementByTexture,
       enumerable: false,
     });
+    Object.defineProperties(art, {
+      partByTexture: { value: partByTexture, enumerable: false },
+      partsByOwner: { value: new Map(), enumerable: false },
+    });
+    for (const descriptor of partByTexture.values()) {
+      const list = art.partsByOwner.get(descriptor.owner) ?? [];
+      list.push(descriptor);
+      art.partsByOwner.set(descriptor.owner, list);
+    }
     return attachDynamicBakers(art, renderer, disposeStatic);
   } catch (error) {
     disposeStatic();

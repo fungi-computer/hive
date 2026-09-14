@@ -2,6 +2,7 @@
 // Local entrance (0,0,0), upper landing (0,STOREY_HEIGHT,2).
 import { box, group } from "./geometry.js";
 import { STOREY_HEIGHT } from "./scale.js";
+import { declareStaticParts } from "./parts.js";
 
 const RUN = 2;
 const slope = Math.atan2(STOREY_HEIGHT, RUN);
@@ -47,20 +48,39 @@ function side(parent, x) {
 }
 
 export function stair(parent, stage) {
+  // These are presentation groups only.  They share the stair scene's camera,
+  // anchor and transform; they never become separate physical occupants.
+  const parts = {
+    "surface": group(parent),
+    "rail.left": group(parent),
+    "rail.right": group(parent),
+  };
+  declareStaticParts(parent, [
+    { id: "surface", role: "supporting-surface", group: parts.surface,
+      geometry: { footprint: [[-0.5, 0, 0], [0.5, 0, 0], [0.5, STOREY_HEIGHT, RUN], [-0.5, STOREY_HEIGHT, RUN]], minY: 0, maxY: STOREY_HEIGHT } },
+    { id: "rail.left", role: "upright-boundary", modelSide: "left", group: parts["rail.left"],
+      geometry: { footprint: [[-0.5, 0, 0], [-0.5, 0, RUN]], minY: 0, maxY: STOREY_HEIGHT + 0.7 } },
+    { id: "rail.right", role: "upright-boundary", modelSide: "right", group: parts["rail.right"],
+      geometry: { footprint: [[0.5, 0, 0], [0.5, 0, RUN]], minY: 0, maxY: STOREY_HEIGHT + 0.7 } },
+  ]);
+  const surface = parts.surface;
+  const leftRail = parts["rail.left"];
+  const rightRail = parts["rail.right"];
   if (stage === "stakes") {
     for (const z of [0, 1, 2]) {
       for (const x of [-0.43, 0.43])
-        box(parent, "#b49a65", x, 0.14, z, 0.075, 0.28, 0.075);
-      box(parent, "#c6b783", 0, 0.14, z, 0.86, 0.018, 0.018);
+        box(surface, "#b49a65", x, 0.14, z, 0.075, 0.28, 0.075);
+      box(surface, "#c6b783", 0, 0.14, z, 0.86, 0.018, 0.018);
     }
     for (const x of [-0.43, 0.43])
-      box(parent, "#c6b783", x, 0.14, 1, 0.018, 0.018, 2);
+      box(x < 0 ? leftRail : rightRail, "#c6b783", x, 0.14, 1, 0.018, 0.018, 2);
     return;
   }
   for (const x of [-0.43, 0.43]) {
-    incline(parent, "#795838", x, 0.12, 0.17);
+    const rail = x < 0 ? leftRail : rightRail;
+    incline(rail, "#795838", x, 0.12, 0.17);
     box(
-      parent,
+      rail,
       "#795838",
       x,
       STOREY_HEIGHT / 2,
@@ -72,7 +92,7 @@ export function stair(parent, stage) {
   }
   for (const z of [0.18, 1, 1.82])
     box(
-      parent,
+      surface,
       "#8d6943",
       0,
       (z / RUN) * STOREY_HEIGHT - 0.1,
@@ -84,7 +104,7 @@ export function stair(parent, stage) {
   if (stage === "frame") return;
   for (let i = 0; i < 5; i++)
     incline(
-      parent,
+      surface,
       i % 2 ? "#b18a59" : "#bd9665",
       -0.34 + i * 0.17,
       0.165,
@@ -94,7 +114,7 @@ export function stair(parent, stage) {
   for (let i = 1; i < 10; i++) {
     const z = i * 0.2;
     const cleat = box(
-      parent,
+      surface,
       "#cea875",
       0,
       (z / RUN) * STOREY_HEIGHT + 0.008,
@@ -105,7 +125,8 @@ export function stair(parent, stage) {
     );
     cleat.rotation.x = -slope;
   }
-  landing(parent, 0, -0.23);
-  landing(parent, STOREY_HEIGHT, 2.23);
-  for (const x of [-0.43, 0.43]) side(parent, x);
+  landing(surface, 0, -0.23);
+  landing(surface, STOREY_HEIGHT, 2.23);
+  side(leftRail, -0.43);
+  side(rightRail, 0.43);
 }

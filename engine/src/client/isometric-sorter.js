@@ -147,6 +147,32 @@ function relationByFootprints(left, right, camera) {
   return null;
 }
 
+function projectedContains(shape, pointValue) {
+  if (shape.length < 3) return shape.some((point) => Math.abs(point.x - pointValue.x) <= EPSILON && Math.abs(point.y - pointValue.y) <= EPSILON);
+  let positive = false, negative = false;
+  for (let index = 0; index < shape.length; index++) {
+    const a = shape[index], b = shape[(index + 1) % shape.length];
+    const value = cross(a, b, pointValue);
+    if (value > EPSILON) positive = true;
+    if (value < -EPSILON) negative = true;
+    if (positive && negative) return false;
+  }
+  return true;
+}
+
+function uprightRelation(boundary, occupant) {
+  if (boundary.partRole !== "upright-boundary" || occupant.partRole === "upright-boundary" || (occupant.role !== "actor" && !occupant.moving)) return null;
+  if (boundary.footprint.length < 2 || occupant.footprint.length < 1) return null;
+  const [start, end] = boundary.footprint;
+  const pointValue = occupant.footprint[0];
+  const side = (end.x - start.x) * (pointValue.z - start.z) - (end.z - start.z) * (pointValue.x - start.x);
+  if (Math.abs(side) <= EPSILON) return null;
+  // Boundary footprints run from their lower/support end to their upper end.
+  // The side of that actual world line determines far/near draw order even
+  // when the isometric projection makes the two boundaries collinear.
+  return side < 0 ? [boundary, occupant] : [occupant, boundary];
+}
+
 function compareStable(a, b) {
   return stableKey(a).localeCompare(stableKey(b));
 }
@@ -207,10 +233,31 @@ function validateNode(input) {
 
 function edgeFor(left, right, camera) {
   if (!overlaps(left.screenBounds, right.screenBounds)) return null;
-  if (left.storeyBand !== right.storeyBand) return left.storeyBand < right.storeyBand ? [left, right] : [right, left];
+  // A multipart stair can cross levels.  Its local support geometry supplies
+  // the relation; a scalar band would incorrectly put every upper fragment
+  // in front of every lower fragment.
+  if (left.storeyBand !== right.storeyBand && left.relationPolicy !== "multipart-geometry" && right.relationPolicy !== "multipart-geometry")
+    return left.storeyBand < right.storeyBand ? [left, right] : [right, left];
   if ((left.role === "terrain" || left.role === "water" || right.role === "terrain" || right.role === "water") && ROLE_ORDER[left.role] !== undefined && ROLE_ORDER[right.role] !== undefined && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
     return ROLE_ORDER[left.role] < ROLE_ORDER[right.role] ? [left, right] : [right, left];
-  return relationByFootprints(left, right, camera);
+  const boundaryRelation = uprightRelation(left, right) ?? uprightRelation(right, left);
+  if (boundaryRelation) return boundaryRelation;
+  if (left.partRole === "upright-boundary" && right.partRole === "upright-boundary" && left.id === right.id) return null;
+  if ((left.partRole === "supporting-surface" && right.partRole === "upright-boundary") ||
+      (right.partRole === "supporting-surface" && left.partRole === "upright-boundary")) return null;
+  // A supporting surface owns the contact plane where an occupant's
+  // projected footprint touches/overlaps it. This generic geometric rule
+  // resolves equality at the floor without content IDs or z constants.
+  const support = left.partRole === "supporting-surface" ? left : right.partRole === "supporting-surface" ? right : null;
+  const occupant = support === left ? right : support === right ? left : null;
+  if (support && occupant) {
+    const supportShape = projectedFootprint(support, camera);
+    const occupantShape = projectedFootprint(occupant, camera);
+    if (occupantShape.some((pointValue) => projectedContains(supportShape, pointValue))) return [support, occupant];
+  }
+  const relation = relationByFootprints(left, right, camera);
+  if (relation) return relation;
+  return null;
 }
 
 function relationKey(a, b) {

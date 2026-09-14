@@ -157,6 +157,8 @@ export async function loadStaticArtPack({
       vehicleAnchor: { ...manifest.anchors.vehicle },
     };
     const placementByTexture = new Map();
+    const partByTexture = new Map();
+    const partsByOwner = new Map();
     placementByTexture.set(ground, undefined);
     for (const entry of manifest.entries) {
       const page = pageTextures.get(entry.page);
@@ -172,11 +174,30 @@ export async function loadStaticArtPack({
         ...entry.silhouette,
       });
       placementByTexture.set(texture, entry.placement);
+      if (entry.part) {
+        const descriptor = Object.freeze({
+          id: entry.part.id,
+          owner: entry.part.owner,
+          role: entry.part.role,
+          geometry: entry.part.geometry,
+          texture,
+        });
+        partByTexture.set(texture, descriptor);
+        const ownerParts = partsByOwner.get(entry.part.owner) ?? [];
+        ownerParts.push(descriptor);
+        partsByOwner.set(entry.part.owner, ownerParts);
+      }
       setTexture(art, entry.path, texture);
     }
     Object.defineProperty(art, "placementByTexture", {
       value: placementByTexture,
       enumerable: false,
+    });
+    for (const [owner, parts] of partsByOwner)
+      partsByOwner.set(owner, Object.freeze([...parts].sort((a, b) => a.id.localeCompare(b.id))));
+    Object.defineProperties(art, {
+      partByTexture: { value: partByTexture, enumerable: false },
+      partsByOwner: { value: partsByOwner, enumerable: false },
     });
     onProgress({
       detail: "Clearing art ready",

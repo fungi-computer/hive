@@ -1,5 +1,5 @@
-export const STATIC_ART_SCHEMA = "goblin-static-art-v5";
-export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v5";
+export const STATIC_ART_SCHEMA = "goblin-static-art-v6";
+export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v6";
 export function staticArtBase(base = "/") {
   return `${base.endsWith("/") ? base : `${base}/`}${STATIC_ART_DIRECTORY}/`;
 }
@@ -50,6 +50,9 @@ const RESERVED_ROOTS = new Set([
   "bakeTerrainSlice",
   "dispose",
 ]);
+
+const PART_ID = /^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$/;
+const PART_ROLES = new Set(["supporting-surface", "upright-boundary", "footprint-object"]);
 
 function problem(at, detail) {
   throw new Error(`static-art-manifest-invalid:${at}:${detail}`);
@@ -263,6 +266,36 @@ function placement(value, at) {
   problem(at, "unsupported-kind");
 }
 
+function partGeometry(value, at) {
+  keys(value, ["footprint", "maxY", "minY"], at);
+  const footprint = array(value.footprint, `${at}.footprint`, { min: 1, max: 32 }).map((pointValue, index) => {
+    const point = array(pointValue, `${at}.footprint[${index}]`, { min: 3, max: 3 });
+    return Object.freeze(point.map((entry, axis) => finite(entry, `${at}.footprint[${index}][${axis}]`, -64, 64)));
+  });
+  const minY = finite(value.minY, `${at}.minY`, -64, 64);
+  const maxY = finite(value.maxY, `${at}.maxY`, -64, 64);
+  if (maxY < minY) problem(at, "inverted-height");
+  for (const [index, entry] of footprint.entries())
+    if (entry[1] < minY || entry[1] > maxY) problem(`${at}.footprint[${index}]`, "outside-height");
+  return Object.freeze({ footprint: Object.freeze(footprint), minY, maxY });
+}
+
+function part(value, at) {
+  keys(value, ["id", "role", "geometry", "owner"], at);
+  const id = string(value.id, `${at}.id`, PART_ID, 64);
+  const role = string(value.role, `${at}.role`, /^[a-z-]+$/, 64);
+  if (!PART_ROLES.has(role)) problem(`${at}.role`, "unsupported");
+  const owner = string(value.owner, `${at}.owner`, /^[^\u0000]{1,512}$/, 512);
+  let ownerPath;
+  try { ownerPath = JSON.parse(owner); } catch { problem(`${at}.owner`, "path-encoding"); }
+  if (!Array.isArray(ownerPath) || ownerPath.length < 1 || ownerPath.length > STATIC_ART_LIMITS.pathDepth)
+    problem(`${at}.owner`, "path-encoding");
+  ownerPath.forEach((segment, index) => {
+    if (!(typeof segment === "string" || Number.isSafeInteger(segment))) problem(`${at}.owner[${index}]`, "path-encoding");
+  });
+  return Object.freeze({ id, role, owner, geometry: partGeometry(value.geometry, `${at}.geometry`) });
+}
+
 function path(value, at) {
   const result = array(value, at, {
     min: 2,
@@ -299,6 +332,7 @@ function entry(value, index, pages) {
       "width",
       "height",
       "silhouette",
+      ...(value?.part ? ["part"] : []),
       ...(requiresPlacement ? ["placement"] : []),
     ],
     at,
@@ -322,6 +356,7 @@ function entry(value, index, pages) {
   const y = integer(value.y, `${at}.y`, 0, owner.height - height);
   const checkedPath = path(value.path, `${at}.path`);
   const checkedPlacement = requiresPlacement ? placement(value.placement, `${at}.placement`) : undefined;
+  const checkedPart = value.part ? part(value.part, `${at}.part`) : undefined;
   return Object.freeze({
     path: checkedPath,
     page: pageId,
@@ -330,6 +365,7 @@ function entry(value, index, pages) {
     width,
     height,
     ...(checkedPlacement ? { placement: checkedPlacement } : {}),
+    ...(checkedPart ? { part: checkedPart } : {}),
     silhouette: silhouette(value.silhouette, width, height, `${at}.silhouette`),
   });
 }
@@ -489,6 +525,15 @@ export function parseStaticArtManifest(input) {
     problem("entries", "pixel-budget");
   validatePaths(checkedEntries);
   validatePageFrames(checkedEntries, pageIds);
+  const partIds = new Set();
+  const entryPaths = new Set(checkedEntries.map((current) => JSON.stringify(current.path)));
+  for (const current of checkedEntries) {
+    if (!current.part) continue;
+    if (!entryPaths.has(current.part.owner)) problem(`entries[${checkedEntries.indexOf(current)}].part.owner`, "unknown-owner");
+    const key = `${current.part.owner}\u0000${current.part.id}`;
+    if (partIds.has(key)) problem(`entries[${checkedEntries.indexOf(current)}].part`, "duplicate-id");
+    partIds.add(key);
+  }
   return Object.freeze({
     schema: STATIC_ART_SCHEMA,
     textureCount,

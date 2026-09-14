@@ -197,3 +197,53 @@ test("long and area footprints do not invent depth outside their projected exten
   const besideArea = node("a-point", 10, -5, { moving: true, screenBounds });
   assert.deepEqual(sorter.order([area, besideArea]).map((entry) => entry.id), ["a-point", "z-area"]);
 });
+
+test("multipart stair geometry keeps an actor between both rails at every facing and height", () => {
+  const sorter = createIsometricSorter();
+  const bounds = { left: -100, right: 100, top: -100, bottom: 100 };
+  for (const facing of [0, 1, 2, 3]) {
+    const angle = facing * Math.PI / 2;
+    const rotate = (x, z, y = 0) => ({
+      x: x * Math.cos(angle) - z * Math.sin(angle),
+      y,
+      z: x * Math.sin(angle) + z * Math.cos(angle),
+    });
+    for (const progress of [0.05, 0.5, 0.95]) {
+      const actor = rotate(0, progress * 2, progress * 2.16);
+      const surface = {
+        id: `stair-${facing}`,
+        part: "surface",
+        partRole: "supporting-surface",
+        role: "structure",
+        relationPolicy: "multipart-geometry",
+        storeyBand: 0,
+        footprint: [rotate(-0.5, 0), rotate(0.5, 0), rotate(0.5, 2, 2.16), rotate(-0.5, 2, 2.16)],
+        screenBounds: bounds,
+      };
+      const nodes = [-0.43, 0.43].map((x, index) => ({
+        id: `stair-${facing}`,
+        part: index ? "rail.right" : "rail.left",
+        partRole: "upright-boundary",
+        role: "structure",
+        relationPolicy: "multipart-geometry",
+        storeyBand: index,
+        footprint: [rotate(x, 0), rotate(x, 2, 2.16)],
+        screenBounds: bounds,
+      }));
+      nodes.unshift(surface);
+      nodes.push({ id: "actor", part: "body", role: "actor", moving: true, relationPolicy: "actor", storeyBand: 0, footprint: [actor], screenBounds: bounds });
+      const ordered = sorter.order(nodes);
+      const reversed = sorter.order([...nodes].reverse());
+      assert.deepEqual(ordered.map((node) => node.part), reversed.map((node) => node.part));
+      assert(ordered.findIndex((node) => node.part === "surface") < ordered.findIndex((node) => node.id === "actor"));
+      // In the stair's local support frame the actor remains between the two
+      // semantic rail boundaries at entrance, middle and landing contact.
+      assert(Math.abs(actor.x * Math.cos(-angle) - actor.z * Math.sin(-angle)) < 1e-9);
+      const railIndexes = ordered.map((node, index) => node.part.startsWith("rail.") ? index : -1).filter((index) => index >= 0);
+      assert.equal(railIndexes.length, 2);
+      assert.equal(ordered.filter((node) => node.id === "actor").length, 1);
+      const actorIndex = ordered.findIndex((node) => node.id === "actor");
+      assert(actorIndex > Math.min(...railIndexes) && actorIndex < Math.max(...railIndexes));
+    }
+  }
+});

@@ -37,7 +37,8 @@ import {
   formatCommandBindings,
 } from "@opentui/keymap/extras";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
-import { resolveStaticVisual } from "./visual-resolver.js";
+import { resolveStaticVisual, resolveStaticVisualParts } from "./visual-resolver.js";
+import { createMultipartVisualOwner, multipartOverlayZIndex } from "./multipart-visual-owner.js";
 import { terrainCameraFocus } from "./camera-focus.js";
 import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js";
 
@@ -877,6 +878,7 @@ export function createHiveClient({
         texture: false,
         textureSource: false,
       });
+      entry.multipart?.dispose();
       actorCache.delete(id);
       spriteSorter.invalidate([id]);
     }
@@ -925,7 +927,7 @@ export function createHiveClient({
       const staticVisual = isStatic
         ? (subject.projectile?.state === "embedded" && art.projectiles?.cannonballEmbedded
           ? { texture: art.projectiles.cannonballEmbedded, anchor: art.propAnchor }
-          : resolveStaticVisual(art, binding, physicalFacing, animation?.frame ?? 0))
+          : resolveStaticVisualParts(art, binding, physicalFacing, animation?.frame ?? 0))
         : undefined;
       const texture = reactionFrames?.length
         ? reactionFrames[Math.min(reactionFrames.length - 1, Math.floor((effectClock() - reaction.started) / 45))]
@@ -956,10 +958,51 @@ export function createHiveClient({
           (shifted.y - base.y) * camera.zoom,
         ] };
       }
-      entry.sprite.texture = texture ?? Texture.EMPTY;
+      // Every static visual uses the same owner lifecycle; a one-part visual
+      // simply produces one sibling record.
+      const multipart = isStatic && staticVisual?.parts?.length ? staticVisual.parts : null;
+      entry.multipartRecords = [];
+      if (!multipart) entry.multipart?.sync({ entityId: subject.id, parts: [] });
+      entry.sprite.texture = multipart ? Texture.EMPTY : texture ?? Texture.EMPTY;
       const canSort = Boolean(terrainFrame || Number.isFinite(subject.support?.level) || Number.isFinite(subject.surface?.level));
-      entry.sprite.visible = canSort;
-      if (texture && canSort) {
+      entry.sprite.visible = canSort && !multipart;
+      if (multipart && canSort) {
+        entry.multipart ??= createMultipartVisualOwner({ parent: terrainLayer.container, createSprite: () => new Sprite(), emptyTexture: Texture.EMPTY });
+        const partRecords = entry.multipart.sync({
+          entityId: subject.id,
+          parts: multipart.map((part) => ({
+            ...part,
+            screenBounds: {
+              left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * part.texture.width * camera.zoom,
+              right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * part.texture.width * camera.zoom,
+              top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * part.texture.height * camera.zoom,
+              bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * part.texture.height * camera.zoom,
+            },
+            storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
+          })),
+          anchor,
+          screen: { x: subject.screen.x + (placement?.screenOffset?.[0] ?? 0), y: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) },
+          scale: camera.zoom,
+          transform: (point) => {
+            const angle = physicalFacing * Math.PI / 2;
+            const x = point.x * Math.cos(angle) - point.z * Math.sin(angle);
+            const z = point.x * Math.sin(angle) + point.z * Math.cos(angle);
+            return { x: subject.x + x + (resolvedPlacement?.offset?.[0] ?? 0), y: subject.y + point.y, z: subject.z + z + (resolvedPlacement?.offset?.[1] ?? 0) };
+          },
+          pickable: subject.pickable !== false,
+          hitAreaFor: (partTexture) => visibleHitAreaFor(partTexture, anchor),
+        });
+        entry.multipartRecords = partRecords;
+        for (const record of partRecords) sortableSprites.push({
+          ...record,
+          relationPolicy: "multipart-geometry",
+          partRole: record.role,
+          role: "structure",
+          moving: false,
+          contains: (point) => record.hitArea?.contains((point.x - record.display.x) / camera.zoom, (point.y - record.display.y) / camera.zoom) === true,
+        });
+      } else if (multipart) entry.multipart?.sync({ entityId: subject.id, parts: [] });
+      if (texture && canSort && !multipart) {
         entry.sprite.anchor.set(anchor.x, anchor.y);
         entry.sprite.scale.set(camera.zoom);
         entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);
@@ -1003,6 +1046,12 @@ export function createHiveClient({
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
     orderedSprites = spriteSorter.apply([...terrainLayer.sortableItems, ...sortableSprites]);
+    // The entity adornment is one shared overlay owner. It follows the
+    // foremost sorted part without becoming another physical/sort record.
+    for (const entry of actorCache.values()) {
+      if (!entry.multipartRecords?.length) continue;
+      entry.container.zIndex = multipartOverlayZIndex(entry.multipartRecords);
+    }
     const drag = gesture.getSnapshot().context;
     if (
       gesture.getSnapshot().value === "dragging" &&
