@@ -18,11 +18,11 @@ const HASH = "a".repeat(64);
 test("static art resolves from the host root on nested game routes", () => {
   assert.equal(
     new URL(STATIC_ART_BASE, "https://game.example/engine/colony").href,
-    "https://game.example/generated-art/goblin-static-art-v2/",
+    "https://game.example/generated-art/goblin-static-art-v3/",
   );
   assert.equal(
     staticArtBase("/engine/"),
-    "/engine/generated-art/goblin-static-art-v2/",
+    "/engine/generated-art/goblin-static-art-v3/",
   );
 });
 
@@ -46,6 +46,13 @@ function manifest() {
       height: 400,
       silhouette: emptySilhouette(640, 400),
     },
+    groundDepth: {
+      file: "ground-depth.png",
+      sha256: HASH,
+      width: 640,
+      height: 400,
+    },
+    depth: { file: "depth.png", sha256: HASH, width: 16, height: 16 },
     pages: [
       {
         id: "atlas-0",
@@ -63,6 +70,9 @@ function manifest() {
         y: 1,
         width: 2,
         height: 2,
+        depth: { x: 1, y: 1, width: 2, height: 2 },
+        depthRange: { min: 1, max: 2 },
+        visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 },
         silhouette: { rows: [0, 1, 1], spans: [0, 1] },
       },
       {
@@ -72,6 +82,9 @@ function manifest() {
         y: 1,
         width: 2,
         height: 2,
+        depth: { x: 4, y: 1, width: 2, height: 2 },
+        depthRange: { min: 2, max: 3 },
+        visualBounds: { minX: 0, minY: 0, minZ: 0, maxX: 1, maxY: 1, maxZ: 1 },
         silhouette: { rows: [0, 0, 1], spans: [1, 1] },
       },
     ],
@@ -114,7 +127,12 @@ test("manifest completion binds output and source byte identities", () => {
   };
   const parsed = completeStaticArtManifest(
     draft,
-    { "ground.png": HASH, "atlas-0.png": HASH },
+    {
+      "ground.png": HASH,
+      "ground-depth.png": HASH,
+      "atlas-0.png": HASH,
+      "depth.png": HASH,
+    },
     input.provenance.sources,
   );
   assert.equal(parsed.ground.sha256, HASH);
@@ -140,6 +158,18 @@ test("static art manifest rejects unknown data and malformed finite bounds", () 
     },
   });
   assert.throws(() => parseStaticArtManifest(getter), /plain-data-required/);
+});
+
+test("static art depth bank is a required matched atlas with its own identity", () => {
+  const missing = manifest();
+  delete missing.depth;
+  assert.throws(() => parseStaticArtManifest(missing), /unexpected-fields/);
+  const mismatch = manifest();
+  mismatch.depth.width = 15;
+  assert.throws(() => parseStaticArtManifest(mismatch), /atlas-size-mismatch/);
+  const alias = manifest();
+  alias.depth.file = "ground.png";
+  assert.throws(() => parseStaticArtManifest(alias), /duplicate-file/);
 });
 
 test("texture paths have one container shape and cannot overlap or alias", () => {
@@ -182,6 +212,7 @@ test("silhouette rows own ordered, bounded nonadjacent spans", () => {
   assert.throws(() => parseStaticArtManifest(count), /span-count/);
   const adjacent = manifest();
   adjacent.entries[0].width = 4;
+  adjacent.entries[0].depth.width = 4;
   adjacent.entries[0].silhouette = { rows: [0, 2, 2], spans: [0, 0, 1, 1] };
   assert.throws(() => parseStaticArtManifest(adjacent), /overlap-or-adjacency/);
   const outside = manifest();
@@ -227,7 +258,12 @@ test("manifest completion preserves actual camelCase art paths", () => {
   });
   const complete = completeStaticArtManifest(
     input,
-    { "ground.png": HASH, "atlas-0.png": HASH },
+    {
+      "ground.png": HASH,
+      "ground-depth.png": HASH,
+      "atlas-0.png": HASH,
+      "depth.png": HASH,
+    },
     input.provenance.sources,
   );
   assert.deepEqual(
@@ -242,10 +278,13 @@ test("manifest preserves new cannon prop and projectile families", () => {
   input.entries[0].path = ["props", "cannon", 0];
   input.entries[1].path = ["projectiles", "cannonball"];
   const parsed = parseStaticArtManifest(input);
-  assert.deepEqual(parsed.entries.map((entry) => entry.path), [
-    ["props", "cannon", 0],
-    ["projectiles", "cannonball"],
-  ]);
+  assert.deepEqual(
+    parsed.entries.map((entry) => entry.path),
+    [
+      ["props", "cannon", 0],
+      ["projectiles", "cannonball"],
+    ],
+  );
 });
 
 test("camelCase path admission retains inherited, reserved and size rejection", () => {
