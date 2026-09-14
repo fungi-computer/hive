@@ -205,6 +205,7 @@ export function createHiveClient({
   function changeViewLevel(level) {
     closeActionBar();
     terrainArea.send({ type: "CANCEL" });
+    edgeGesture.send({ type: "CANCEL" });
     clearPlacement();
     const next = setWorldViewLevel(state.view, level);
     if (next.level === state.view.level) return;
@@ -221,6 +222,7 @@ export function createHiveClient({
   function setCutaway(value) {
     closeActionBar();
     terrainArea.send({ type: "CANCEL" });
+    edgeGesture.send({ type: "CANCEL" });
     clearPlacement();
     state.view = toggleWorldCutaway(state.view, value);
     spriteSorter.invalidate(["cutaway"]);
@@ -422,6 +424,7 @@ export function createHiveClient({
       exitAim();
       gesture.send({ type: "CANCEL" });
       terrainArea.send({ type: "CANCEL" });
+      edgeGesture.send({ type: "CANCEL" });
       terrainTarget.send({ type: "ARM", control });
       actionBarState.set(null);
       state.message = control.target === "terrain-area"
@@ -433,7 +436,7 @@ export function createHiveClient({
     const chooseBuild = (group, orientation = group.orientations[0]) => {
       const control = selectedBuildControl(group, orientation);
       if (!control || control.availability?.status === "unavailable") return;
-      exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" });
+      exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" }); edgeGesture.send({ type: "CANCEL" });
       terrainTarget.send({ type: selectedGroup?.catalog === group.catalog ? "ROTATE" : "ARM", control });
       actionBarState.set(null);
       state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
@@ -442,7 +445,7 @@ export function createHiveClient({
     const activeControl = terrainTarget.getSnapshot().context.control;
     const activeBuildGroup = selectedGroup;
     const cancelPlacement = () => {
-      terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
+      terrainArea.send({ type: "CANCEL" }); edgeGesture.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
       state.message = "Selection"; actionBarState.set(null); renderHud(); draw();
     };
     const renderBuildPalette = () => buildGroups.length && actionBarState.get() === "build" ? React.createElement("section", { className: "hive-action-palette", "aria-label": "Build palette" },
@@ -1379,6 +1382,7 @@ export function createHiveClient({
     event.preventDefault();
     if (terrainTarget.getSnapshot().value === "armed") {
       terrainArea.send({ type: "CANCEL" });
+      edgeGesture.send({ type: "CANCEL" });
       terrainTarget.send({ type: "CANCEL" }); closeActionBar(); state.message = "Selection"; renderHud(); return;
     }
     if (isAiming()) return;
