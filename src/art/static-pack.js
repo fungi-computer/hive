@@ -190,6 +190,24 @@ export async function loadStaticArtPack({
       propAnchor: { ...manifest.anchors.prop },
       vehicleAnchor: { ...manifest.anchors.vehicle },
     };
+    const depthByTexture = new Map();
+    depthByTexture.set(
+      ground,
+      Object.freeze({
+        texture: groundDepth,
+        pixels: groundDepthPixels,
+        atlasWidth: manifest.groundDepth.width,
+        atlasHeight: manifest.groundDepth.height,
+        frame: Object.freeze({
+          x: 0,
+          y: 0,
+          width: manifest.ground.width,
+          height: manifest.ground.height,
+        }),
+        depthRange: manifest.groundDepthRange,
+        visualBounds: manifest.groundVisualBounds,
+      }),
+    );
     for (const entry of manifest.entries) {
       const source = pageTextures.get(entry.page).source;
       const texture = new Texture({
@@ -202,8 +220,24 @@ export async function loadStaticArtPack({
         height: entry.height,
         ...entry.silhouette,
       });
+      depthByTexture.set(
+        texture,
+        Object.freeze({
+          texture: depth,
+          pixels: depthPixels,
+          atlasWidth: manifest.depth.width,
+          atlasHeight: manifest.depth.height,
+          frame: entry.depth,
+          depthRange: entry.depthRange,
+          visualBounds: entry.visualBounds,
+        }),
+      );
       setTexture(art, entry.path, texture);
     }
+    Object.defineProperty(art, "depthByTexture", {
+      value: depthByTexture,
+      enumerable: false,
+    });
     onProgress({
       detail: "Clearing art ready",
       completedTextures: manifest.textureCount,

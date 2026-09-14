@@ -1,5 +1,5 @@
-export const STATIC_ART_SCHEMA = "goblin-static-art-v3";
-export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v3";
+export const STATIC_ART_SCHEMA = "goblin-static-art-v4";
+export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v4";
 export function staticArtBase(base = "/") {
   return `${base.endsWith("/") ? base : `${base}/`}${STATIC_ART_DIRECTORY}/`;
 }
@@ -502,6 +502,8 @@ export function parseStaticArtManifest(input) {
       "anchors",
       "ground",
       "groundDepth",
+      "groundDepthRange",
+      "groundVisualBounds",
       "depth",
       "pages",
       "entries",
@@ -580,6 +582,11 @@ export function parseStaticArtManifest(input) {
       exactSize: STATIC_ART_RENDER.ground,
     }),
     groundDepth: checkedGroundDepth,
+    groundDepthRange: depthRange(input.groundDepthRange, "groundDepthRange"),
+    groundVisualBounds: visualBounds(
+      input.groundVisualBounds,
+      "groundVisualBounds",
+    ),
     depth: checkedDepth,
     pages: Object.freeze(checkedPages),
     entries: Object.freeze(checkedEntries),
@@ -609,6 +616,8 @@ export function completeStaticArtManifest(draft, fileSha256, sources) {
       ...draft.groundDepth,
       sha256: hashes[draft.groundDepth.file],
     },
+    groundDepthRange: draft.groundDepthRange,
+    groundVisualBounds: draft.groundVisualBounds,
     depth: { ...draft.depth, sha256: hashes[draft.depth.file] },
     pages: draft.pages.map((page) => ({
       ...page,

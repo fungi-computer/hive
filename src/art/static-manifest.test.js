@@ -18,11 +18,11 @@ const HASH = "a".repeat(64);
 test("static art resolves from the host root on nested game routes", () => {
   assert.equal(
     new URL(STATIC_ART_BASE, "https://game.example/engine/colony").href,
-    "https://game.example/generated-art/goblin-static-art-v3/",
+    "https://game.example/generated-art/goblin-static-art-v4/",
   );
   assert.equal(
     staticArtBase("/engine/"),
-    "/engine/generated-art/goblin-static-art-v3/",
+    "/engine/generated-art/goblin-static-art-v4/",
   );
 });
 
@@ -51,6 +51,15 @@ function manifest() {
       sha256: HASH,
       width: 640,
       height: 400,
+    },
+    groundDepthRange: { min: -8, max: 8 },
+    groundVisualBounds: {
+      minX: -8,
+      minY: -1,
+      minZ: -8,
+      maxX: 8,
+      maxY: 2,
+      maxZ: 8,
     },
     depth: { file: "depth.png", sha256: HASH, width: 16, height: 16 },
     pages: [
@@ -170,6 +179,18 @@ test("static art depth bank is a required matched atlas with its own identity", 
   const alias = manifest();
   alias.depth.file = "ground.png";
   assert.throws(() => parseStaticArtManifest(alias), /duplicate-file/);
+  const missingGroundRange = manifest();
+  delete missingGroundRange.groundDepthRange;
+  assert.throws(
+    () => parseStaticArtManifest(missingGroundRange),
+    /unexpected-fields/,
+  );
+  const invertedGroundBounds = manifest();
+  invertedGroundBounds.groundVisualBounds.maxY = -2;
+  assert.throws(
+    () => parseStaticArtManifest(invertedGroundBounds),
+    /inverted-bounds/,
+  );
 });
 
 test("texture paths have one container shape and cannot overlap or alias", () => {

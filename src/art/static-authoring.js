@@ -107,6 +107,9 @@ export async function createStaticArtDraft(onProgress = () => {}) {
     )
       throw new Error("Static art must contain one ground texture");
     const groundCanvas = textureCanvas(ground.texture, "ground");
+    const groundDepthBake = art.depthByTexture?.get(ground.texture);
+    if (!groundDepthBake)
+      throw new Error("Static art ground has no depth bake");
     if (
       groundCanvas.width !== STATIC_ART_RENDER.ground.width ||
       groundCanvas.height !== STATIC_ART_RENDER.ground.height
@@ -198,6 +201,8 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         width: groundCanvas.width,
         height: groundCanvas.height,
       },
+      groundDepthRange: groundDepthBake.depthRange,
+      groundVisualBounds: groundDepthBake.visualBounds,
       depth: {
         file: "depth.png",
         width: depthAtlas.width,
@@ -221,10 +226,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
         ["ground.png", groundCanvas],
         [
           "ground-depth.png",
-          textureCanvas(
-            art.depthByTexture.get(ground.texture).texture,
-            "ground depth",
-          ),
+          textureCanvas(groundDepthBake.texture, "ground depth"),
         ],
         ["depth.png", depthAtlas.canvas],
         ...atlases.map(({ file, canvas }) => [file, canvas]),
