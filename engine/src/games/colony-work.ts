@@ -105,6 +105,7 @@ function advanceResourceAtContact(ctx: WriteContext, row: ResourceOrderRow, stat
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
 export function resourceWorkProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<ResourceCandidate> {
   const orders = ctx.query(query(ColonyResourceOrder));
+  const orderOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty)]));
   const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspendedActors.has(row.id));
   const sites = new Map(ctx.query(query(ResourceSite)).map(row => [row.id, row.get(ResourceSite)]));
   const definitions = new Map(colonyEnvironment.resourceSites?.map(definition => [definition.id, definition]) ?? []);
@@ -123,7 +124,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       if (!enough && site.stage < definition.stages.length) {
         const supplyId = entity(`colony.resource-water.${row.id}.${site.stage}`);
         if (!ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) {
-          ctx.createAuthoredEntity({ id: supplyId, components: { [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
+          ctx.createAuthoredEntity({ id: supplyId, components: { ...(orderOwners.get(row.id) ? { [OwnedByParty.id]: orderOwners.get(row.id)! } : {}), [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
         }
       }
       ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
