@@ -252,7 +252,7 @@ impl Kernel {
             StructureShape::Stair { run, rise } => StaticInstance::Stair { id: site.into(), origin: crate::generation::Cell { x, y, z }, orientation, run: *run, rise: *rise },
         }
     }
-    fn current_contact_candidate_rows(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Result<Vec<([f64; 3], &'static str)>> {
+    pub(super) fn current_contact_candidate_rows(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Result<Vec<([f64; 3], &'static str)>> {
         let candidates = self.contact_candidate_cells(site, definition, spacing)?;
         let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: 1, max_step_cells: 1 };
         let environment = self.environment.as_mut().ok_or("construction needs environment")?;
