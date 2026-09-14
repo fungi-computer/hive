@@ -3761,7 +3761,9 @@ impl Kernel {
         let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
         let attempt = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.clone();
         if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
-        let operation = match attempt.phase { AttemptPhase::Executing { operation, .. } if operation.sequence == sequence => operation, _ => return Err("work attempt operation is not executing".into()) };
+        if attempt.key.task != attempt.worker { return Err("only a worker-owned manual route may be retargeted".into()); }
+        let operation = match &attempt.phase { AttemptPhase::Executing { operation, .. } if operation.sequence == sequence => operation.clone(), _ => return Err("work attempt operation is not executing".into()) };
+        if !matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { .. }, .. }) { return Err("only a route work attempt may be retargeted".into()); }
         let worker = self.entity(&attempt.worker)?;
         let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;

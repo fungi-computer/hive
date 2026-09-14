@@ -394,7 +394,7 @@ export type CommandScope =
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
   readonly scope: CommandScope;
   readonly workAttempts?: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
-  readonly workAttemptForWorker?: (worker: EntityId) => WorkAttempt | null;
+  readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
 };
 export interface WriteContext extends ReadContext {
@@ -616,7 +616,8 @@ export interface KernelPort {
   ) => readonly QueryRow<T>[];
   /** Compact native owner projection for shared work/material planning. */
   readonly workMaterialFacts: () => WorkMaterialFacts;
-  readonly workAttemptForWorker?: (worker: EntityId) => WorkAttempt | null;
+  readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
+  readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly processRequirements: (definition: string, station: EntityId) => ProcessRequirements;
   readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
   readonly advance: (

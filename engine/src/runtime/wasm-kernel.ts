@@ -76,6 +76,12 @@ const entityIdWireSchema = z.custom<EntityId>(
     value.length <= 128 &&
     /^[A-Za-z0-9._:-]+$/.test(value),
 );
+const workAttemptWireSchema = z.object({
+  key: z.object({ task: entityIdWireSchema, generation: z.number().int().positive() }),
+  worker: entityIdWireSchema,
+  party: entityIdWireSchema,
+  phase: z.object({ kind: z.enum(["ready", "executing", "outcome", "settling"]) }).passthrough(),
+}).passthrough();
 const routeToAnyResultSchema = z.discriminatedUnion("status", [
   z
     .object({
@@ -617,7 +623,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       const result = JSON.parse(binding.work_attempt_for_worker(JSON.stringify(worker))) as unknown;
       if (result === null) return null;
       if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error("invalid worker work attempt projection");
-      return result as WorkAttempt;
+      return workAttemptWireSchema.parse(result) as WorkAttempt;
     },
     processRequirements(definition, station): ProcessRequirements {
       if (!entityIdWireSchema.safeParse(definition).success || !entityIdWireSchema.safeParse(station).success)

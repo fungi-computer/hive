@@ -355,7 +355,7 @@ export class GameSession {
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
         workAttempts: (taskIds) => this.port.workAttempts(taskIds),
-        workAttemptForWorker: (worker) => this.port.workAttemptForWorker?.(worker) ?? null,
+        workAttemptForWorker: (worker) => this.port.workAttemptForWorker(worker),
         query: (spec) => {
           for (const component of spec.components)
             if (!reads.has(component.id))
@@ -795,7 +795,7 @@ export class GameSession {
           return (committedWorkMaterialFacts ??= this.port.workMaterialFacts());
         },
         workAttempts: (taskIds) => this.port.workAttempts(taskIds),
-        workAttemptForWorker: (worker) => this.port.workAttemptForWorker?.(worker) ?? null,
+        workAttemptForWorker: (worker) => this.port.workAttemptForWorker(worker),
         processRequirements: (definition, station) => this.port.processRequirements(definition, station),
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });

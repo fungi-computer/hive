@@ -226,15 +226,15 @@ const mugwortTargetInput = z.object({
 
 function selectedWorkers(context: CommandContext, raw: readonly EntityId[]): readonly EntityId[] {
   const selected = [...new Set(raw)];
-  if (
-    selected.length !== raw.length ||
-    selected.some((id) => !workers.includes(id))
-  )
+  if (selected.length !== raw.length)
     throw new Error("selection must contain distinct colony workers");
-  const rows = context.query(query(Worker));
+  const rows = context.query(query(Worker, PartyMember));
   for (const id of selected) {
-    const worker = rows.find((row) => row.id === id)?.get(Worker);
-    if (!worker || worker.guest) throw new Error("guests cannot deliver");
+    const row = rows.find((candidate) => candidate.id === id);
+    const worker = row?.get(Worker);
+    const member = row?.get(PartyMember);
+    if (!worker || worker.guest || !member) throw new Error("selection must contain admitted colony workers");
+    if (context.scope.kind === "player" && member.party !== context.scope.party) throw new Error("selection contains a worker outside the command party");
   }
   return selected;
 }
@@ -497,28 +497,28 @@ export const colonyPack: GamePack = {
     deliver: command({
       title: "Deliver goods", category: "Colony", description: "Enable delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, Container, DeliveryTask, DeliveryControl],
+      reads: [Worker, PartyMember, Container, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
     }),
     pauseDelivery: command({
       title: "Pause delivery", category: "Colony", description: "Pause delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, DeliveryTask, DeliveryControl],
+      reads: [Worker, PartyMember, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, false) }),
     }),
     resumeDelivery: command({
       title: "Resume delivery", category: "Colony", description: "Resume delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, DeliveryTask, DeliveryControl],
+      reads: [Worker, PartyMember, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
     go: command({
       title: "Move workers", category: "Colony", description: "Move selected workers to a destination under manual control.",
       input: goInput,
-      reads: [Worker, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
+      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
       run: (context, input) => {
         const parsed = input;
@@ -536,7 +536,7 @@ export const colonyPack: GamePack = {
       title: "Draft workers", category: "Colony", description: "Draft selected workers for manual control.",
       localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities" }] },
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
+      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
@@ -552,7 +552,7 @@ export const colonyPack: GamePack = {
       title: "Undraft workers", category: "Colony", description: "Return selected workers to automatic work.",
       localPresentation: { bindings: [{ id: "undraft", label: "Undraft", selection: "entities" }] },
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation],
+      reads: [Worker, PartyMember, WorkParticipation],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
@@ -571,7 +571,7 @@ export const colonyPack: GamePack = {
       localPresentation: { bindings: [{ id: "resume-work", label: "Resume work", selection: "entities" }] },
       subjects: () => workers,
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation],
+      reads: [Worker, PartyMember, WorkParticipation],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
