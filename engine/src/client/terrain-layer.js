@@ -214,8 +214,6 @@ export function createTerrainLayer() {
         };
       }
     },
-    get drawItem() { return null; },
-    get transparentItems() { return waterItems; },
     get sortableItems() { return sortableItems; },
     get waterTile() { return waterTile; },
     dispose() {
