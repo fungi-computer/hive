@@ -35,6 +35,7 @@ import type {
   WorldPose,
   Impact,
   WorkMaterialFacts,
+  CommandScope,
 } from "../contracts";
 
 class DeterministicRandom implements RandomSource {
@@ -60,6 +61,8 @@ export interface SessionOptions {
   readonly seed?: number;
   readonly port: KernelPort;
   readonly pack: GamePack;
+  /** Host supplied admission scope. Local sessions use an explicit local player. */
+  readonly scope?: CommandScope;
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
@@ -169,6 +172,7 @@ export class GameSession {
   private readonly port: KernelPort;
   private readonly random: DeterministicRandom;
   private readonly seed: number;
+  private readonly scope: CommandScope;
   private paused = false;
   private now = 0;
   private tick = 0;
@@ -188,6 +192,7 @@ export class GameSession {
     this.pack = options.pack;
     this.port = options.port;
     this.seed = (options.seed ?? 1) >>> 0;
+    this.scope = options.scope ?? { kind: "player", player: "local", party: "local" as EntityId };
     this.random = new DeterministicRandom(this.seed);
     this.whistleProjection = createWhistleObservationProjector(this.pack);
     const consumers = new Set<string>();
@@ -332,7 +337,7 @@ export class GameSession {
       throw new Error("pending action limit reached");
     this.pendingActions.push(checkedAction(action));
   }
-  command(name: string, input: unknown): void {
+  command(name: string, input: unknown, scope: CommandScope = this.scope): void {
     this.ensureLive();
     const handler = this.pack.commands?.[name];
     if (!handler || !Object.hasOwn(this.pack.commands ?? {}, name))
@@ -342,6 +347,7 @@ export class GameSession {
     );
     const result: GameCommandResult = handler.invoke(
       {
+        scope,
         physicalContacts: (cells) => this.port.physicalContacts(cells),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),

@@ -6,6 +6,7 @@ import { entity } from "../sdk/authoring";
 test("building command preserves four stair directions without selecting a contact", () => {
   for (const orientation of ["north", "east", "south", "west"] as const) {
     const result = colonyBuildCommand.invoke({
+      scope: { kind: "host" as const },
       query: () => [],
       physicalContacts: () => [],
       terrainMaterials: () => [], terrainSurfaces: () => [],
@@ -29,11 +30,11 @@ test("local build detail follows the authoritative definition supplied at compos
   assert.equal(colonyBuildBindingDetail("thing", "north", environment, placement), "7 wood · 2×2 · click point · north");
 });
 test("building designation leaves support and access to native staging", () => {
-  assert.equal(colonyBuildCommand.invoke({ query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] },
+  assert.equal(colonyBuildCommand.invoke({ scope: { kind: "host" }, query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] },
     { catalog: "timber-wall", orientation: "north", target: { cell: [0, 17, 0] } }).actions.length, 1);
 });
 test("structures use one shape-owned support-to-origin convention", () => {
-  const context = { query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] };
+  const context = { scope: { kind: "host" as const }, query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] };
   for (const [catalog, expectedY] of [
     ["timber-floor", 17], ["timber-roof", 17], ["timber-stair", 17],
     ["timber-wall", 18], ["timber-bed", 18], ["timber-shelf", 18],
@@ -49,6 +50,7 @@ test("structures use one shape-owned support-to-origin convention", () => {
 test("oversized build area rejects before terrain queries and leaves subsequent orders usable", () => {
   let queries = 0;
   const context = {
+    scope: { kind: "host" as const },
     query: () => [],
     physicalContacts: (cells: readonly unknown[]) => {
       queries += 1;
@@ -69,6 +71,7 @@ test("oversized build area rejects before terrain queries and leaves subsequent 
 
 test("building expands deterministic point, line and rectangle designations without workers", () => {
   const context = {
+    scope: { kind: "host" as const },
     query: () => [],
     physicalContacts: (cells: readonly unknown[]) => cells.map((_, index) => ({ solid: index === 0, sealedTop: false, outside: false })),
     terrainMaterials: () => [], terrainSurfaces: () => [],
@@ -86,6 +89,7 @@ test("building expands deterministic point, line and rectangle designations with
 
 test("building skips an already planned site deterministically", () => {
   const duplicate = colonyBuildCommand.invoke({
+    scope: { kind: "host" },
     query: () => [{ id: entity("colony.build.timber-wall.0.18.0.north") }],
     physicalContacts: (cells: readonly unknown[]) => cells.map(() => ({ solid: true, sealedTop: false, outside: false })),
     terrainMaterials: () => [], terrainSurfaces: () => [],

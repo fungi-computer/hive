@@ -88,7 +88,7 @@ export function createQuarryRegionProgram(): RegionProgram<State, Command> {
     parseState,
     parseCommand: (value) => commandSchema.parse(value),
     authorize: (principal) => principal === "quarry-builder",
-    execute(candidate, command) {
+    execute(candidate, command, _records, _baseRevision, _context) {
       const world = worldFrom(candidate.world);
       const stock = materials.restore(candidate.materials, []);
       const at = command.at;

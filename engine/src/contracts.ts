@@ -369,6 +369,12 @@ export interface ReadContext {
     maxEdges?: number,
   ): readonly AssignmentPair[];
 }
+export type CommandScope =
+  | { readonly kind: "host" }
+  | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
+export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
+  readonly scope: CommandScope;
+};
 export interface WriteContext extends ReadContext {
   write<T extends object>(
     definition: ComponentDefinition<T>,
@@ -645,7 +651,7 @@ export interface GameCommandDefinition {
   readonly writes: readonly ComponentDefinition<any>[];
   /** Erased invocation closes over the parsed handler input in the authoring factory. */
   readonly invoke: (
-    context: Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces">,
+    context: GameCommandContext,
     input: unknown,
   ) => GameCommandResult;
 }

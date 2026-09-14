@@ -306,7 +306,7 @@ export function createBrewhouseAirProgram(): RegionProgram<State, Command> {
       command.kind === "advance"
         ? principal === "room-host"
         : principal === "room-player",
-    execute(candidate, command) {
+    execute(candidate, command, _records, _baseRevision, _context) {
       if (dryRoomProblem(candidate))
         return {
           status: "rejected",

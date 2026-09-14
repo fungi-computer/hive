@@ -48,7 +48,7 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
 });
 
 test("stockpile policy commands require a stable zone identity", () => {
-  assert.throws(() => colonyPack.commands?.updateStockpile.invoke({ query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] }, { area: { start: [1, 1, 1], end: [1, 1, 1] }, filterProfile: "wood", priority: 50 }), /Invalid input/);
+  assert.throws(() => colonyPack.commands?.updateStockpile.invoke({ scope: { kind: "host" }, query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] }, { area: { start: [1, 1, 1], end: [1, 1, 1] }, filterProfile: "wood", priority: 50 }), /Invalid input/);
 });
 
 

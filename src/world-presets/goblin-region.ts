@@ -69,7 +69,7 @@ export function createGoblinRegionProgram(
         : principal === "goblin-player" &&
             (input.kind === "set-paused" || input.command.party === "home");
     },
-    execute(candidate, input): RegionTransition {
+    execute(candidate, input, _records, _baseRevision, _context): RegionTransition {
       const clearing = parseLiveClearing(candidate.clearing);
       if (input.kind === "return-field-water") {
         const returned = returnFieldWater(clearing, input);

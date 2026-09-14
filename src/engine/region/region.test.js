@@ -388,7 +388,7 @@ test("opaque records initialize, replace, remove, and account bytes without rewr
       initial: () => ({ state: base.initial().state, records: [{ key: "water/page/0", bytes: new Uint8Array([1, 2]) }] }),
       execute(state, command, reader) {
         retainedReader = reader;
-        const transition = base.execute(state, command, reader);
+        const transition = base.execute(state, command, reader, 0, { principal });
         if (transition.status !== "applied") return transition;
         return state.excavated === 1
           ? { ...transition, records: { puts: [{ key: "water/page/0", bytes: new Uint8Array([3, 4, 5]).buffer }], removes: [] } }
@@ -418,7 +418,7 @@ test("record writes roll back with a failed receipt and leave the frontier reusa
       ...base,
       id: "quarry-record-failure-v1",
       execute(state, command, reader) {
-        const transition = base.execute(state, command, reader);
+        const transition = base.execute(state, command, reader, 0, { principal });
         return transition.status === "applied"
           ? { ...transition, records: { puts: [{ key: "water/page/0", bytes: new Uint8Array([7]) }], removes: [] } }
           : transition;
@@ -440,7 +440,7 @@ test("record duplicate keys and changed-byte caps reject without changing state"
   const f = fixture(t, { changedRecords: 3 }, () => {
     const base = createQuarryRegionProgram();
     return { ...base, id: "quarry-record-conflict-v1", execute(state, command, reader) {
-      const transition = base.execute(state, command, reader);
+      const transition = base.execute(state, command, reader, 0, { principal });
       return transition.status === "applied"
         ? { ...transition, records: { puts: [{ key: "same", bytes: new Uint8Array([1]) }, { key: "same", bytes: new Uint8Array([2]) }], removes: [] } }
         : transition;
@@ -452,7 +452,7 @@ test("record duplicate keys and changed-byte caps reject without changing state"
   const capped = fixture(t, { changedRecords: 5 }, () => {
     const base = createQuarryRegionProgram();
     return { ...base, id: "quarry-record-cap-v1", execute(state, command, reader) {
-      const transition = base.execute(state, command, reader);
+      const transition = base.execute(state, command, reader, 0, { principal });
       return transition.status === "applied"
         ? { ...transition, records: { puts: Array.from({ length: 5 }, (_, index) => ({ key: `too-many/${index}`, bytes: new Uint8Array(250_000) })), removes: [] } }
         : transition;
@@ -481,7 +481,7 @@ test("failed occurrence record write preserves frontier and retries once", (t) =
   const f = fixture(t, undefined, () => {
     const base = createQuarryRegionProgram();
     return { ...base, id: "quarry-record-clock-v1", authorize: (who, command, state) => who === clockPrincipal ? base.authorize(principal, command, state) : base.authorize(who, command, state), execute(state, command, reader) {
-      const transition = base.execute(state, command, reader);
+      const transition = base.execute(state, command, reader, 0, { principal });
       return transition.status === "applied" ? { ...transition, records: { puts: [{ key: "clock/page", bytes: new Uint8Array([4]) }], removes: [] } } : transition;
     } };
   });

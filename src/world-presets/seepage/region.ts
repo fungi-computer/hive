@@ -28,7 +28,7 @@ export function createWetRegionProgram(): RegionProgram<State, Command> {
     parseCommand: value => commandSchema.parse(value),
     authorize: (principal, command) => command.kind === "advance"
       ? principal === "wet-world-host" : principal === "wet-world-player",
-    execute(candidate, command) {
+    execute(candidate, command, _records, _baseRevision, _context) {
       const next = command.kind === "excavate"
         ? adapter.excavate(candidate.environment, { at: command.at })
         : adapter.advance(candidate.environment, command.seconds);

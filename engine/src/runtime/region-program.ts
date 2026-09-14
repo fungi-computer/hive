@@ -1,6 +1,6 @@
 import { z } from "zod";
-import type { RegionProgram, Json, RegionRecordReader, RegionTransition } from "../../../src/engine/region/index.ts";
-import type { GamePack, KernelPort, ActionRequest } from "../contracts";
+import type { RegionProgram, Json, RegionRecordReader, RegionTransition, RegionExecutionContext } from "../../../src/engine/region/index.ts";
+import type { GamePack, KernelPort, ActionRequest, CommandScope } from "../contracts";
 import { GameSession, type SessionSnapshot } from "./session";
 import { checkedAction } from "./actions";
 import { checkedStoredSession, storeSession, hydrateSession, changedSessionRecords, type StoredSession } from "./session-record-store";
@@ -37,21 +37,23 @@ export type SessionResidentOptions = {
   readonly ownerPrincipal: string;
   readonly hostPrincipal: string;
   readonly seed: number;
+  /** Authenticated host resolver; returning null rejects an unbound principal. */
+  readonly scopeForPrincipal: (principal: string) => CommandScope | null;
 };
 
 export interface SessionResident {
   readonly begin: (revision: number, state: SessionRegionState, records: RegionRecordReader) => void;
-  readonly execute: (candidate: SessionRegionState, command: RegionCommand, records: RegionRecordReader, baseRevision: number) => RegionTransition;
+  readonly execute: (candidate: SessionRegionState, command: RegionCommand, records: RegionRecordReader, baseRevision: number, context: RegionExecutionContext) => RegionTransition;
   readonly accept: (revision: number) => void;
   readonly discard: () => void;
   readonly dispose: () => void;
   readonly observe: <T>(revision: number, state: SessionRegionState, records: RegionRecordReader, use: (session: GameSession) => T) => T;
 }
 
-function applyCommand(session: GameSession, command: RegionCommand): unknown {
+function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope): unknown {
   switch (command.kind) {
     case "action": session.request(command.action); return [];
-    case "command": session.command(command.name, command.input); return [];
+    case "command": session.command(command.name, command.input, scope); return [];
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];
     case "resume": session.resume(); return [];
@@ -65,7 +67,9 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
-      const session = new GameSession({ port, pack: options.pack, seed: options.seed });
+      const scope = options.scopeForPrincipal(options.ownerPrincipal);
+      if (!scope) throw new Error("region-principal-unbound");
+      const session = new GameSession({ port, pack: options.pack, seed: options.seed, scope });
       session.restore(snapshot);
       return { session, port };
     } catch (error) {
@@ -131,11 +135,13 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       const made = make(hydrated);
       attempt = { provisionalRevision: revision, ...made, capture: hydrated };
     },
-    execute(candidate, command, records, baseRevision) {
+    execute(candidate, command, records, baseRevision, context) {
       if (!attempt || attempt.provisionalRevision !== baseRevision) throw new Error("resident-attempt-missing");
       try {
         const before = attempt.capture;
-        const results = applyCommand(attempt.session, command);
+        const scope = options.scopeForPrincipal(context.principal);
+        if (!scope) throw new Error("region-principal-unbound");
+        const results = applyCommand(attempt.session, command, context, scope);
         const after = attempt.session.save();
         candidate.session = storeSession(after).session;
         attempt.capture = after;
@@ -247,12 +253,12 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
         : command;
     },
     authorize(principal, command) {
-      return (
-        principal === (command.kind === "step" ? hostPrincipal : ownerPrincipal)
-      );
+      if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action")
+        return principal === hostPrincipal;
+      return principal === ownerPrincipal;
     },
-    execute(candidate, command, records, baseRevision) {
-      return options.resident.execute(candidate, command, records, baseRevision);
+    execute(candidate, command, records, baseRevision, context) {
+      return options.resident.execute(candidate, command, records, baseRevision, context);
     },
   };
 }
