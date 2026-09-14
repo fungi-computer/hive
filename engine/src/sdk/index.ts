@@ -7,7 +7,7 @@ export * from "./work-attempt";
 export * from "./party";
 export * from "./combat";
 export * from "../contracts";
-export { colonyPack } from "../games/colony";
+export { colonyPack, colonyServerPack } from "../games/colony";
 export { survivalPack } from "../games/survival";
 export { formationsPack } from "../games/formations";
 export { piratesPack } from "../games/pirates";

@@ -105,17 +105,26 @@ function advanceResourceAtContact(ctx: WriteContext, row: ResourceOrderRow, stat
 /** Shared finite tended-resource work owner. It emits only native physical actions. */
 export function resourceWorkProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<ResourceCandidate> {
   const orders = ctx.query(query(ColonyResourceOrder));
+  const orderOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty)]));
+  const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
+  const entityOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const workers = ctx.query(query(Worker, Body, Position)).filter(row => !row.get(Worker).guest && !suspendedActors.has(row.id));
+  const eligible = (row: ResourceOrderRow) => {
+    const owner = orderOwners.get(row.id)?.party;
+    const actor = row.get(ColonyResourceOrder).actor;
+    return !owner || (actor === null ? true : memberships.get(actor) === owner);
+  };
+  const ownedOrders = orders.filter(eligible);
   const sites = new Map(ctx.query(query(ResourceSite)).map(row => [row.id, row.get(ResourceSite)]));
   const definitions = new Map(colonyEnvironment.resourceSites?.map(definition => [definition.id, definition]) ?? []);
   const materialFacts = ctx.workMaterialFacts();
   const heldPails = new Map<EntityId, { vessel: EntityId; water: number }>();
-  for (const pail of materialFacts.lots.filter(lot => lot.kind === "pail" && workers.some(worker => worker.id === lot.container))) {
+  for (const pail of materialFacts.lots.filter(lot => lot.kind === "pail" && workers.some(worker => worker.id === lot.container) && (!entityOwners.get(lot.id) || memberships.get(lot.container) === entityOwners.get(lot.id)))) {
     const water = materialFacts.lots.filter(lot => lot.kind === "water" && lot.container === pail.id).reduce((sum, lot) => sum + lot.quantity, 0);
     if (water > 0) heldPails.set(pail.container, { vessel: pail.id, water });
   }
-  reconcileResourceOutcomes(ctx, orders);
-  for (const row of orders) {
+  reconcileResourceOutcomes(ctx, ownedOrders);
+  for (const row of ownedOrders) {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
     if ((state.phase === "waiting" || (state.phase === "tend" && state.actor === null)) && site && definition && ctx.clock.now >= site.nextDue) {
       const required = site.stage < definition.stages.length ? definition.stages[site.stage].waterPortions : 0;
@@ -123,20 +132,20 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       if (!enough && site.stage < definition.stages.length) {
         const supplyId = entity(`colony.resource-water.${row.id}.${site.stage}`);
         if (!ctx.query(query(WaterSupplyOrder)).some(candidate => candidate.id === supplyId)) {
-          ctx.createAuthoredEntity({ id: supplyId, components: { [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
+          ctx.createAuthoredEntity({ id: supplyId, components: { ...(orderOwners.get(row.id) ? { [OwnedByParty.id]: orderOwners.get(row.id)! } : {}), [WaterSupplyOrder.id]: { revision: ctx.clock.tick + 1, process: null }, [WaterSupplyWork.id]: { request: ctx.clock.tick + 1, attempt: 0, phase: "queued", actor: null, vessel: null, x: state.cellX, y: state.cellY, z: state.cellZ, approachX: state.cellX, approachY: state.cellY, approachZ: state.cellZ, reason: "" } } });
         }
       }
       ctx.write(ColonyResourceOrder, row.id, { ...state, phase: site.stage >= definition.stages.length ? "harvest" : "tend", actor: null, reason: "", workSeconds: 0 });
     }
   }
   const claims = orders.filter(row => row.get(ColonyResourceOrder).phase !== "complete").map(row => ({ task: row.id, actor: row.get(ColonyResourceOrder).actor }));
-  const workerIds = workers.map(row => row.id);
-  const poses = new Map((workerIds.length ? ctx.worldPoses(workerIds) : []).map(p => [p.id, p]));
-  const candidates = orders.flatMap(row => {
+  const poses = new Map(ctx.worldPoses(workers.map(row => row.id)).map(p => [p.id, p]));
+  const candidates = ownedOrders.flatMap(row => {
     const state = row.get(ColonyResourceOrder); const site = sites.get(state.site); const definition = definitions.get(state.definition);
+    const owner = orderOwners.get(row.id)?.party;
     const approach = { x: state.cellX + 1, y: (state.cellY + 0.5) * colonyEnvironment.world.verticalMetres, z: state.cellZ, frame: null as EntityId | null };
     return state.actor === null && (["sow", "harvest"].includes(state.phase) || (state.phase === "tend" && site && definition && heldPails.size > 0))
-      ? workers.filter(worker => state.phase !== "tend" || (site && definition && (heldPails.get(worker.id)?.water ?? 0) >= definition.stages[site.stage]?.waterPortions)).map(worker => ({ worker: worker.id, task: row.id, vessel: heldPails.get(worker.id)?.vessel, approaches: [approach] })) : [];
+      ? workers.filter(worker => (!owner || memberships.get(worker.id) === owner) && (state.phase !== "tend" || (site && definition && (heldPails.get(worker.id)?.water ?? 0) >= definition.stages[site.stage]?.waterPortions))).map(worker => ({ worker: worker.id, task: row.id, vessel: heldPails.get(worker.id)?.vessel, approaches: [approach] })) : [];
   });
   const selected = new Map<string, { x: number; y: number; z: number; frame: EntityId | null }>();
   return { claims, candidates, lowerBound: candidate => { const p = poses.get(candidate.worker)?.local; return p ? Math.hypot(p.x - candidate.approaches[0].x, p.z - candidate.approaches[0].z) : 0; }, estimate: candidate => { const result = ctx.routeToAny({ actor: candidate.worker, targets: candidate.approaches }); if (result.status !== "reachable") return null; selected.set(`${candidate.worker}\0${candidate.task}`, candidate.approaches[result.targetIndex]); return result.cost; }, apply: assignments => {
@@ -152,7 +161,7 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
       advanceResourceAtContact(ctx, row, state, definition, assignment.worker, vessel);
     }
   }, progress: () => {
-    for (const row of orders) {
+    for (const row of ownedOrders) {
       const state = row.get(ColonyResourceOrder);
       if (!state.actor || !["sow", "tend", "harvest"].includes(state.phase)) continue;
       const definition = definitions.get(state.definition); if (!definition) continue;
@@ -209,7 +218,9 @@ function colonyProcessWaterPhase(ctx: WriteContext): void {
     // A multi-portion requirement therefore cannot reuse the first fetch's
     // accepted operation receipt for a later portion.
     const id = entity(`colony.water-process.${row.id}.${quantity + inFlight}`);
+    const owner = ctx.query(query(OwnedByParty)).find(candidate => candidate.id === row.id)?.get(OwnedByParty);
     ctx.createAuthoredEntity({ id, components: {
+      ...(owner ? { [OwnedByParty.id]: owner } : {}),
       [WaterSupplyOrder.id]: { revision: nextRevision, process: row.id },
       [WaterSupplyWork.id]: { request: nextRevision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
     } });
@@ -340,10 +351,12 @@ const treeWorkProvider = (
     .query(query(Worker))
     .filter((row) => !row.get(Worker).guest)
     .map((row) => row.id);
+  const memberships = new Map(ctx.query(query(PartyMember)).map((row) => [row.id, row.get(PartyMember).party]));
   const trees = ctx.query(
     query(ColonyTree, Position, Container, FiniteResource),
   );
   const orders = ctx.query(query(ColonyTreeOrder));
+  const treeOwners = new Map(ctx.query(query(OwnedByParty)).map((row) => [row.id, row.get(OwnedByParty).party]));
   const policies = new Map(
     ctx
       .query(query(ColonyTreePolicy))
@@ -352,6 +365,8 @@ const treeWorkProvider = (
   for (const orderRow of orders) {
     const state = orderRow.get(ColonyTreeOrder),
       policy = policies.get(state.tree);
+    const owner = treeOwners.get(state.tree);
+    if (owner && state.actor !== null && memberships.get(state.actor) !== owner) continue;
     if (!policy || state.phase === "complete") continue;
     if (policy.designated) {
       if (state.phase === "blocked" && state.reason === "Not designated")
@@ -413,6 +428,7 @@ const treeWorkProvider = (
       .filter(
         (worker) =>
           !suspendedActors.has(worker) &&
+          (!treeOwners.get(row.id) || memberships.get(worker) === treeOwners.get(row.id)) &&
           poses.get(worker)?.support === pose.support,
       )
       .flatMap((worker) => {
@@ -494,6 +510,8 @@ const treeWorkProvider = (
       for (const row of orders) {
         const order = row.get(ColonyTreeOrder),
           treeRow = trees.find((tree) => tree.id === order.tree);
+        const owner = treeOwners.get(order.tree);
+        if (owner && order.actor !== null && memberships.get(order.actor) !== owner) continue;
         if (!treeRow) {
           if (order.actor !== null)
             ctx.write(ColonyTreeOrder, row.id, {
@@ -784,6 +802,8 @@ function digProvider(
   suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
+  const orderOwners = new Map(ctx.query(query(OwnedByParty)).map((row) => [row.id, row.get(OwnedByParty).party]));
+  const memberships = new Map(ctx.query(query(PartyMember)).map((row) => [row.id, row.get(PartyMember).party]));
   const workers = new Set(
     ctx
       .query(query(Worker))
@@ -872,7 +892,10 @@ function digProvider(
       currentMaterial.get(row.id),
       candidateFacts,
     ),
-  );
+  ).filter((candidate) => {
+    const owner = orderOwners.get(candidate.order)?.party;
+    return !owner || memberships.get(candidate.worker) === owner;
+  });
   const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
   const prepared = candidates.filter(
     (candidate) =>
@@ -950,6 +973,8 @@ function digProvider(
     progress() {
       for (const row of activeOrders) {
         const state = row.get(ColonyDigOrder);
+        const owner = orderOwners.get(row.id)?.party;
+        if (owner && state.actor !== null && memberships.get(state.actor) !== owner) continue;
         if (state.actor !== null && suspendedActors.has(state.actor)) continue;
         if (obstructed(state)) {
           if (state.actor && excavating.has(state.actor))
@@ -979,10 +1004,9 @@ function digProvider(
 }
 
 function planGroundStockDeliveries(ctx: WriteContext) {
-  const pantry = entity("colony.pantry");
-  const stockContainers = new Set(
-    ctx.query(query(GroundStock)).map((row) => row.id),
-  );
+  const ownedStores = ctx.query(query(Container, OwnedByParty));
+  const stockOwners = new Map(ctx.query(query(GroundStock, OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const stockContainers = new Set(stockOwners.keys());
   const tasks = ctx.query(query(DeliveryTask));
   const existing = new Set(tasks.map((row) => row.get(DeliveryTask).sourceLot));
   const taskIds = new Set(tasks.map((row) => row.id));
@@ -996,6 +1020,9 @@ function planGroundStockDeliveries(ctx: WriteContext) {
     )
       continue;
     const source = lot.container;
+    const party = stockOwners.get(source);
+    const pantry = ownedStores.filter(row => row.get(OwnedByParty).party === party).map(row => row.id).sort()[0];
+    if (!pantry) continue;
     const taskId = entity(`${row.id}.delivery`);
     if (taskIds.has(taskId)) continue;
     ctx.createAuthoredEntity({
@@ -1011,6 +1038,7 @@ function planGroundStockDeliveries(ctx: WriteContext) {
           quantity: lot.quantity,
           phase: "idle",
         },
+        ...(party ? { [OwnedByParty.id]: { party } } : {}),
       },
     });
     existing.add(row.id);
@@ -1037,11 +1065,17 @@ function colonySiteSuppliesPhase(ctx: WriteContext) {
     { length: Math.min(3, sites.length) },
     (_, offset) => sites[(start + offset) % sites.length],
   );
-  planSiteSupplies(ctx, {
-    sourceContainers: [entity("colony.lumber"), entity("colony.pantry")],
+  const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+  const grouped = new Map<EntityId, typeof active>();
+  for (const row of active) {
+    const party = owners.get(row.id);
+    if (party) grouped.set(party, [...(grouped.get(party) ?? []), row]);
+  }
+  for (const [party, partySites] of grouped) planSiteSupplies(ctx, {
+    sourceContainers: ctx.query(query(Container, OwnedByParty)).filter(row => row.get(OwnedByParty).party === party).map(row => row.id).sort(),
     batchQuantity: 3,
     requirements: [
-      ...active.flatMap((row) => {
+      ...partySites.flatMap((row) => {
         const site = row.get(ConstructionSite);
         const definition = colonyEnvironment.structures.catalog.find(
           (item) => item.id === site.catalog,
@@ -1062,6 +1096,8 @@ export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
   reads: [
+    OwnedByParty,
+    PartyMember,
     GroundStock,
     StockpileCell,
     ColonyDigOrder,
@@ -1090,8 +1126,6 @@ export const colonyWorkSystem = createWorkSystem({
     ExcavationWork,
     DeliveryTask,
     DeliveryControl,
-    OwnedByParty,
-    PartyMember,
     WaterSupplyOrder,
     WaterSupplyWork,
   ],

@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "./authoring";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, interruptWorkAttempt, workAttempt } from "./work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, interruptWorkAttempt, retargetRouteWorkAttempt, workAttempt } from "./work-attempt";
 import type { WorkAttempt, WriteContext } from "../contracts";
 
 const task = entity("attempt.task");
@@ -33,4 +33,10 @@ test("acknowledgement requires the exact terminal projection", () => {
   assert.throws(() => acknowledgeWorkAttempt(fake([outcome]), attempt, 6), /stale/);
   assert.throws(() => interruptWorkAttempt(fake(), attempt, 0, "cancelled"), /positive integer/);
   assert.throws(() => beginRouteWorkAttempt(fake(), task, worker, party, { x: Number.NaN, y: 0, z: 0, frame: null }), /Invalid|finite/);
+});
+
+test("retarget emits one native exact-key operation", () => {
+  const context = fake();
+  retargetRouteWorkAttempt(context, attempt, 4, { x: 2, y: 0, z: 1, frame: null });
+  assert.deepEqual(context.actions, [{ kind: "retarget-work-attempt", task, generation: 3, sequence: 4, destination: { x: 2, y: 0, z: 1, frame: null } }]);
 });

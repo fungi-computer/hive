@@ -2,6 +2,7 @@ import { component, query } from "./authoring";
 import { GroundStock } from "./ground-stock";
 import { ConstructionSite, SealedContainer } from "./construction";
 import { WorkParticipation } from "./work-control";
+import { OwnedByParty, PartyMember } from "./party";
 import { createWorkSystem, type PreparedWorkProvider } from "./work-system";
 import {
   MaterialLot,
@@ -80,6 +81,8 @@ type DeliveryCandidate = {
 /** Provider for the shared work owner; delivery claims remain task.actor. */
 export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet<EntityId>): PreparedWorkProvider<DeliveryCandidate> {
     const tasks = ctx.query(query(DeliveryTask));
+    const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+    const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
     const groundStocks = new Set(ctx.query(query(GroundStock)).map(row => row.id));
     const materialFacts = ctx.workMaterialFacts();
     const sealed = new Set(materialFacts.containers.filter(row => row.sealed).map(row => row.id));
@@ -201,6 +204,8 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       if (!actorPosition) return [];
       return idleTasks.flatMap((taskRow) => {
         const task = taskRow.get(DeliveryTask);
+        const party = owners.get(taskRow.id) ?? owners.get(task.source) ?? owners.get(task.destination);
+        if (party && memberships.get(controlRow.id) !== party) return [];
         if (
           sealed.has(task.source) || sealed.has(task.destination) ||
           task.source === task.destination ||
@@ -516,6 +521,8 @@ export const deliverySystem = createWorkSystem({
     MaterialLot,
     ExcavationWork,
     DeliveryControl,
+    OwnedByParty,
+    PartyMember,
   ],
   writes: [DeliveryTask],
   providers: [deliveryProvider],

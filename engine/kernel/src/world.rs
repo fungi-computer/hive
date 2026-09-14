@@ -3046,7 +3046,7 @@ impl Kernel {
             || self.projectile_count > 0 || !self.direct.is_empty()
             || batch.actions.iter().any(|action| {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
-                    | Action::BeginWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
+                    | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
@@ -3162,7 +3162,7 @@ impl Kernel {
         )?;
         Ok(prepared)
     }
-    fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>) -> Result<PreparedMaterialOutput> {
+    fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>, owner_party: Option<String>) -> Result<PreparedMaterialOutput> {
         self.ensure_ready()?;
         if self.ids.len() + 2 > 16384 { return Err("region entity capacity".into()); }
         if ![position.x, position.y, position.z, position.facing].iter().all(|v| v.is_finite()) {
@@ -3181,7 +3181,7 @@ impl Kernel {
         let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
             self.revision, self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")),
             quantity, 0, self.state_weight, added, STATE_BYTES)?;
-        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity });
+        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity, owner_party });
         Ok(output)
     }
     // Private tokens are prepared and consumed within one synchronous Kernel
@@ -3189,6 +3189,7 @@ impl Kernel {
     fn publish_material_output(&mut self, prepared: PreparedMaterialOutput) -> String {
         if let Some(ground) = prepared.ground {
             let entity = self.ecs.spawn((ExternalId(ground.id.clone()), ground.position, Container { capacity: ground.capacity }, GroundStock {})).id();
+            if let Some(party) = ground.owner_party { self.ecs.entity_mut(entity).insert(OwnedByParty { party }); }
             self.ids.insert(ground.id.clone(), entity);
             self.known.insert(ground.id.clone());
             self.contents.entry(ground.id).or_default();
@@ -3224,7 +3225,7 @@ impl Kernel {
         let water_kg = (excavation.water_kg() > 0.0).then_some(excavation.water_kg());
         let output = match location {
             material_output::MaterialOutputLocation::Container(container) => self.prepare_material_output(MaterialOutputSpec { container, kind: rule.output_kind.clone(), quantity: rule.units_per_cell, water_kg })?,
-            material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg)?,
+            material_output::MaterialOutputLocation::Ground(position) => self.prepare_ground_output(position, rule.output_kind.clone(), rule.units_per_cell, water_kg, None)?,
         };
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.apply_excavation(excavation)?;
@@ -3398,7 +3399,8 @@ impl Kernel {
         let resource = self.ecs.get::<FiniteResource>(source).cloned().ok_or("not a finite resource")?;
         if resource.quantity == 0 { return Err("finite resource is exhausted".into()); }
         let position = *self.ecs.get::<Position>(source).ok_or("finite resource has no physical position")?;
-        let prepared = self.prepare_ground_output(position, resource.kind, resource.quantity, None)?;
+        let owner_party = self.ecs.get::<OwnedByParty>(worker).map(|owner| owner.party.clone());
+        let prepared = self.prepare_ground_output(position, resource.kind, resource.quantity, None, owner_party)?;
         self.ecs.entity_mut(source).insert(FiniteResource { kind: prepared.lot.kind.clone(), quantity: 0 });
         Ok(self.publish_material_output(prepared))
     }
@@ -3695,6 +3697,14 @@ impl Kernel {
         let rows = tasks.into_iter().filter_map(|task| self.work_attempts.get(&task).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity))).cloned().collect::<Vec<_>>();
         serde_json::to_string(&rows).map_err(|e| e.to_string())
     }
+    pub fn work_attempt_for_worker_json(&self, input: &str) -> Result<String> {
+        let worker: String = serde_json::from_str(input).map_err(|e| e.to_string())?;
+        if !valid_id(&worker) { return Err("invalid worker identity".into()); }
+        let row = self.attempts_by_worker.get(&worker)
+            .and_then(|key| self.work_attempts.get(&key.task))
+            .and_then(|entity| self.ecs.get::<WorkAttempt>(*entity));
+        serde_json::to_string(&row).map_err(|e| e.to_string())
+    }
     fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
         if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
         if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
@@ -3748,6 +3758,23 @@ impl Kernel {
             _ => return Err("work attempt operation is already settled".into()),
         };
         self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Interrupted { cause } })
+    }
+    fn retarget_work_attempt(&mut self, task: String, generation: u64, sequence: u32, destination: Point) -> Result<()> {
+        let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
+        let attempt = self.ecs.get::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.clone();
+        if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
+        if attempt.key.task != attempt.worker { return Err("only a worker-owned manual route may be retargeted".into()); }
+        let operation = match &attempt.phase { AttemptPhase::Executing { operation, .. } if operation.sequence == sequence => operation.clone(), _ => return Err("work attempt operation is not executing".into()) };
+        if !matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { .. }, .. }) { return Err("only a route work attempt may be retargeted".into()); }
+        let worker = self.entity(&attempt.worker)?;
+        let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
+        self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
+        let route = self.route_for(worker, position, &destination)?;
+        self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_route(worker, route);
+        let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.into_inner();
+        attempt.phase = AttemptPhase::Executing { operation: OperationKey { attempt: operation.attempt, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? }, activity: crate::work_attempt::ActivityRef::Route { destination } };
+        Ok(())
     }
     fn acknowledge_work_attempt(&mut self, task: String, generation: u64, sequence: u32) -> Result<()> {
         {
@@ -3816,6 +3843,7 @@ impl Kernel {
         match action {
             Action::EstablishParty { binding_id, player, party, records } => self.establish_party(binding_id, player, party, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
+            Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
             Action::ContinueWorkAttempt { task, generation, sequence, next_activity } => self.continue_work_attempt(task, generation, sequence, next_activity).map(|_| ActionEffect::None),
@@ -4400,6 +4428,7 @@ impl Kernel {
         // Admission above is complete. Move the same lot and its water, never
         // create a replacement lot or consume a delivery's stock.
         let ground = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity }, GroundStock {})).id();
+        if let Some(owner) = self.ecs.get::<OwnedByParty>(actor).cloned() { self.ecs.entity_mut(ground).insert(owner); }
         if let Some(support) = support { self.ecs.entity_mut(ground).insert(support); }
         self.ids.insert(id.clone(), ground);
         self.known.insert(id.clone());

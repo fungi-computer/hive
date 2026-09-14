@@ -14,7 +14,6 @@ import {
   Position,
   Traversal,
   cancelWork,
-  move as moveAction,
   encodeDefinition,
   transfer,
   FiniteResource,
@@ -30,11 +29,13 @@ import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
+import { createColonyPartyPlan } from "./colony-party";
+import { beginRouteWorkAttempt, retargetRouteWorkAttempt } from "../sdk/work-attempt";
 import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
-import type { ConstructionReadinessStatus, EntityId, GamePack, ReadContext, GameCommandContext } from "../contracts";
+import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, ReadContext, GameCommandContext } from "../contracts";
 
 export { Worker } from "./colony-components";
 export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
@@ -44,21 +45,12 @@ export const Guest = component<{ hungry: boolean }>("colony.guest", {
   fields: { hungry: "boolean" },
 });
 
-const workerOne = entity("colony.worker.1");
-const workerTwo = entity("colony.worker.2");
-const workers = [workerOne, workerTwo] as const;
-const workerVisuals = [
-  { sprite: "colony.rowan", label: "Rowan" },
-  { sprite: "colony.sedge", label: "Sedge" },
-] as const;
+const localPartyPlan = createColonyPartyPlan("local", entity("colony.local-party"), { x: 0, y: 0, z: 0 });
+const workerOne = localPartyPlan.people[0];
+const MAX_PARTY_SELECTION = 32;
 const guestId = entity("colony.guest.1");
-const pantryId = entity("colony.pantry");
-const colonyLumberId = entity("colony.lumber");
-const lotOne = entity("colony.food.1");
-const lotTwo = entity("colony.food.2");
-const taskOne = entity("colony.delivery.1");
-const taskTwo = entity("colony.delivery.2");
-const tasks = [taskOne, taskTwo] as const;
+const pantryId = entity("colony.local-party.starter-store");
+const colonyLumberId = pantryId;
 const catId = entity("colony.cat.1");
 const trees = [
   { id: entity("colony.tree.oak"), x: 2, z: 2 },
@@ -89,24 +81,7 @@ export function constructionStatusLabel(
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
   { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
-  ...workers.map((id, index) => ({
-    id,
-    components: {
-      "hive.position": { x: 0, y: 0, z: index * 2, facing: 0 },
-      "hive.body": { speed: 2 },
-      "hive.container": { capacity: 4 },
-      "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
-      "hive.visual": workerVisuals[index],
-      "colony.worker": { guest: false },
-      "hive.work-participation": { automatic: true },
-      "hive.delivery-control": { enabled: true, quantity: 3 },
-    },
-  })),
-  ...workers.map((worker, index) => ({ id: entity(`colony.pail.${index + 1}`), components: {
-    "hive.lot": { quantity: 1, kind: "pail", container: worker },
-    "hive.container": { capacity: 7 },
-    "hive.visual": { sprite: "pail", label: "Pail" },
-  }})),
+  ...localPartyPlan.records,
   {
     id: guestId,
     components: {
@@ -118,52 +93,6 @@ const colonyInitial = [
       "colony.guest": { hungry: true },
     },
   },
-  {
-    id: pantryId,
-    components: {
-      "hive.position": { x: -2, y: 0, z: 0, facing: 0 },
-      "hive.container": { capacity: 20 },
-      "hive.visual": { sprite: "crate", label: "Pantry" },
-    },
-  },
-  {
-    id: colonyLumberId,
-    components: {
-      "hive.position": { x: -3, y: 0, z: 1, facing: 0 },
-      "hive.container": { capacity: 48 },
-      "hive.visual": { sprite: "crate", label: "Starter lumber" },
-    },
-  },
-  {
-    id: entity("colony.lumber.initial"),
-    components: {
-      "hive.lot": { quantity: 48, kind: "wood", container: colonyLumberId },
-    },
-  },
-  ...([lotOne, lotTwo] as const).map((id) => ({
-    id,
-    components: {
-      "hive.lot": { quantity: 3, kind: "bread", container: pantryId },
-    },
-  })),
-  { id: entity("colony.brew.malt"), components: { "hive.lot": { quantity: 4, kind: "malt", container: pantryId } } },
-  { id: entity("colony.brew.barm"), components: { "hive.lot": { quantity: 1, kind: "barm", container: pantryId }, "hive.container": { capacity: 1 } } },
-  { id: entity("colony.brew.keg"), components: { "hive.lot": { quantity: 1, kind: "keg", container: pantryId }, "hive.container": { capacity: 4 } } },
-  ...([taskOne, taskTwo] as const).map((id, index) => ({
-    id,
-    components: {
-      "hive.delivery-task": {
-        actor: null,
-        sourceLot: index === 0 ? lotOne : lotTwo,
-        source: pantryId,
-        destination: guestId,
-        destinationContactX: 0, destinationContactY: 0, destinationContactZ: 0, destinationContactFrame: null, destinationContactSet: false,
-        material: "bread",
-        quantity: 2,
-        phase: "idle",
-      },
-    },
-  })),
   ...trees.flatMap(({ id, x, z }) => [{ id, components: {
     "hive.position": { x, y: 0, z, facing: 0 },
     "hive.container": { capacity: 6 },
@@ -175,10 +104,10 @@ const colonyInitial = [
   } }]),
 ];
 
-type CommandContext = Pick<GameCommandContext, "query" | "scope">;
+type CommandContext = Pick<GameCommandContext, "query" | "scope" | "workAttempts" | "workAttemptForWorker">;
 
 const goInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
   destination: z.object({
     x: z.number().finite().min(-1_000_000).max(1_000_000), y: z.number().finite().min(-1_000_000).max(1_000_000), z: z.number().finite().min(-1_000_000).max(1_000_000),
     frame: z.string().transform(entity).nullable(),
@@ -198,10 +127,10 @@ function availableBrewStations(context: Pick<ReadContext, "query">) {
 }
 
 const workerSelectionInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
 }).strict();
 const deliveryInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
   quantity: z.number().int().positive().max(0xffffffff).optional(),
 }).strict();
 const pointInput = z.tuple([
@@ -214,7 +143,7 @@ const emptyInput = z.object({}).strict();
 const digInput = z.object({ area: areaInput }).strict();
 const treeSelectionInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(32) }).strict();
 const cancelDigInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(workers.length).optional(),
+  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION).optional(),
   area: areaInput.optional(),
 }).strict().refine(value => value.entities !== undefined || value.area !== undefined, "cancel dig requires workers or an area");
 const depositInput = z.object({ entities: z.array(z.string().min(1).max(128).transform(entity)).length(1) }).strict();
@@ -226,17 +155,45 @@ const mugwortTargetInput = z.object({
 
 function selectedWorkers(context: CommandContext, raw: readonly EntityId[]): readonly EntityId[] {
   const selected = [...new Set(raw)];
-  if (
-    selected.length !== raw.length ||
-    selected.some((id) => !workers.includes(id))
-  )
+  if (selected.length !== raw.length)
     throw new Error("selection must contain distinct colony workers");
-  const rows = context.query(query(Worker));
+  const rows = context.query(query(Worker, PartyMember));
   for (const id of selected) {
-    const worker = rows.find((row) => row.id === id)?.get(Worker);
-    if (!worker || worker.guest) throw new Error("guests cannot deliver");
+    const row = rows.find((candidate) => candidate.id === id);
+    const worker = row?.get(Worker);
+    const member = row?.get(PartyMember);
+    if (!worker || worker.guest || !member) throw new Error("selection must contain admitted colony workers");
+    if (context.scope.kind === "player" && member.party !== context.scope.party) throw new Error("selection contains a worker outside the command party");
   }
   return selected;
+}
+
+function attemptForWorker(context: CommandContext, worker: EntityId) {
+  return context.workAttemptForWorker?.(worker) ?? null;
+}
+
+function admittedParty(context: CommandContext, worker: EntityId): EntityId {
+  const membership = context.query(query(PartyMember)).find(row => row.id === worker)?.get(PartyMember);
+  if (context.scope.kind === "player") {
+    if (!membership || membership.party !== context.scope.party) throw new Error("worker is outside the command party");
+    return context.scope.party;
+  }
+  if (!membership) throw new Error("worker has no admitted party");
+  return membership.party;
+}
+
+function exactRouteReplacement(context: CommandContext, worker: EntityId, party: EntityId, destination: MoveDestination): readonly ActionRequest[] {
+  const current = attemptForWorker(context, worker);
+  if (!current) {
+    const actions: ActionRequest[] = [];
+    beginRouteWorkAttempt({ action: request => actions.push(request) }, worker, worker, party, destination);
+    return actions;
+  }
+  if (current.worker !== worker || current.party !== party || current.key.task !== worker) throw new Error("worker has an incompatible active work attempt");
+  if (current.phase.kind !== "executing") throw new Error("worker route is waiting for work-attempt reconciliation");
+  const actions: ActionRequest[] = [];
+  retargetRouteWorkAttempt({ action: request => actions.push(request) }, current.key, current.phase.operation.sequence, destination);
+  return actions;
 }
 
 function activeTaskFor(context: CommandContext, actor: EntityId) {
@@ -285,9 +242,10 @@ function deliveryWrites(
 
 function selectedDigWorker(context: CommandContext, input: z.infer<typeof depositInput>): EntityId {
   const worker = input.entities[0];
-  if (!workers.includes(worker)) throw new Error("selection must contain a colony worker");
-  const workerState = context.query(query(Worker)).find((row) => row.id === worker)?.get(Worker);
-  if (!workerState || workerState.guest) throw new Error("guests cannot act");
+  const row = context.query(query(Worker, PartyMember)).find((candidate) => candidate.id === worker);
+  const workerState = row?.get(Worker);
+  const member = row?.get(PartyMember);
+  if (!workerState || workerState.guest || !member || (context.scope.kind === "player" && member.party !== context.scope.party)) throw new Error("selection must contain an admitted colony worker");
   return worker;
 }
 
@@ -310,10 +268,13 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
   if (!carried.length) throw new Error("worker has no carried goods");
   if (carried.some((lot) => !Number.isSafeInteger(lot.quantity) || lot.quantity <= 0 || lot.quantity > 0xffffffff))
     throw new Error("worker cargo is invalid");
-  const pantry = context.query(query(Container)).find((row) => row.id === pantryId)?.get(Container);
+  const party = context.query(query(PartyMember)).find((row) => row.id === worker)?.get(PartyMember).party;
+  const pantryRow = context.query(query(Container, OwnedByParty)).find((row) => row.get(OwnedByParty).party === party);
+  const pantry = pantryRow?.get(Container);
   if (!pantry) throw new Error("pantry is unavailable");
+  const destination = pantryRow!.id;
   const pantryQuantity = lots
-    .filter((lot) => lot.container === pantryId)
+    .filter((lot) => lot.container === destination)
     .reduce((sum, lot) => sum + lot.quantity, 0);
   const carriedQuantity = carried.reduce((sum, lot) => sum + lot.quantity, 0);
   if (!Number.isSafeInteger(pantryQuantity) || !Number.isSafeInteger(carriedQuantity) ||
@@ -321,7 +282,7 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
     throw new Error("pantry lacks capacity");
   return carried
     .sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
-    .map((lot) => transfer(lot.id, worker, pantryId, lot.quantity));
+    .map((lot) => transfer(lot.id, worker, destination, lot.quantity));
 }
 
 const colonyComponents = [
@@ -368,7 +329,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
   for (let x = minX; x <= maxX; x++) for (let z = minZ; z <= maxZ; z++) {
     const id = `colony.dig.${x}.${y}.${z}` as EntityId;
     if (existing.has(id)) continue;
-    creates.push({ id, components: { [ColonyDigOrder.id]: {
+    creates.push({ id, components: { ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}), [ColonyDigOrder.id]: {
       cellX: x, cellY: y, cellZ: z, expected: -1,
       actor: null, phase: "queued", reason: "", approachX: 0, approachY: 0, approachZ: 0,
     }}});
@@ -380,6 +341,7 @@ function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
 export const colonyPack: GamePack = {
   id: "colony",
   version: 6,
+  localScope: { kind: "player", player: "local", party: entity("colony.local-party") },
   components: colonyComponents,
   systems: [colonyWorkSystem, colonyCatSystem],
   environmentDefinition: colonyEnvironmentDefinition,
@@ -394,26 +356,28 @@ export const colonyPack: GamePack = {
         ? { status: "available" } : { status: "unavailable", reason: "No finished construction is available to deconstruct." },
       subjects: context => context.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase === "finished").map(row => row.id),
       input: z.object({ site: z.string().min(1).max(128) }).strict(),
-      reads: [ConstructionSite, DeconstructionOrder], writes: [], lifecycle: [DeconstructionOrder],
+      reads: [ConstructionSite, DeconstructionOrder, OwnedByParty], writes: [], lifecycle: [DeconstructionOrder],
       run(context, input) {
         const site = context.query(query(ConstructionSite)).find((row) => row.id === input.site);
         if (!site) throw new Error("Unknown construction site");
         if (site.get(ConstructionSite).phase !== "finished") throw new Error("Construction site is not finished");
         if (context.query(query(DeconstructionOrder)).some((row) => row.get(DeconstructionOrder).site === input.site)) return { creates: [], actions: [], writes: [] };
-        return { creates: [queueDeconstruction(entity(input.site))], actions: [], writes: [] };
+        const record = queueDeconstruction(entity(input.site));
+        return { creates: [{ ...record, components: { ...record.components, ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}) } }], actions: [], writes: [] };
       },
     }),
     designateStockpile: colonyStockpileCommand,
     updateStockpile: colonyStockpilePolicyCommand,
     requestWater: command({
       title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
-      input: emptyInput, reads: [WaterSupplyOrder], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork],
+      input: emptyInput, reads: [WaterSupplyOrder, OwnedByParty], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork, OwnedByParty],
       run(context) {
         const orders = context.query(query(WaterSupplyOrder));
         if (orders.length >= 256) throw new Error("water demand capacity exhausted");
         const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
         const id = entity(`colony.water-demand.${revision}`);
         return { actions: [], writes: [], creates: [{ id, components: {
+          ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}),
           [WaterSupplyOrder.id]: { revision, process: null },
           [WaterSupplyWork.id]: { request: revision, attempt: 0, phase: "queued", actor: null, vessel: null, x: 0, y: 0, z: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "" },
         } }] };
@@ -449,7 +413,7 @@ export const colonyPack: GamePack = {
         });
         if (occupiedOrder || occupiedResource || occupiedStructure)
           throw new Error("mugwort cell already has an active designation");
-        return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] };
+        return { actions: [], writes: [], creates: [{ id, components: { ...(context.scope.kind === "player" ? { [OwnedByParty.id]: { party: context.scope.party } } : {}), [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, actor: null, vessel: null, phase: "sow", workSeconds: 0, reason: "", approachX: 0, approachY: 0, approachZ: 0, attempt: 0, operation: "" } } }] };
       },
     }),
     requestBrew: command({
@@ -469,48 +433,37 @@ export const colonyPack: GamePack = {
     deliver: command({
       title: "Deliver goods", category: "Colony", description: "Enable delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, Container, DeliveryTask, DeliveryControl],
+      reads: [Worker, PartyMember, Container, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
     }),
     pauseDelivery: command({
       title: "Pause delivery", category: "Colony", description: "Pause delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, DeliveryTask, DeliveryControl],
+      reads: [Worker, PartyMember, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, false) }),
     }),
     resumeDelivery: command({
       title: "Resume delivery", category: "Colony", description: "Resume delivery work for selected workers.",
       input: deliveryInput,
-      reads: [Worker, DeliveryTask, DeliveryControl],
+      reads: [Worker, PartyMember, DeliveryTask, DeliveryControl],
       writes: [DeliveryControl],
       run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
     }),
     go: command({
       title: "Move workers", category: "Colony", description: "Move selected workers to a destination under manual control.",
       input: goInput,
-      reads: [Worker, Position, WorkParticipation, ExcavationWork, ConstructionSite],
+      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
       run: (context, input) => {
         const parsed = input;
         const selected = selectedWorkers(context, parsed.entities);
-        const positions = new Map(context.query(query(Position)).map(row => [row.id, row.get(Position)]));
-        const excavating = new Set(context.query(query(ExcavationWork)).map(row => row.id));
-        const building = new Set(context.query(query(ConstructionSite)).flatMap(row => {
-          const worker = row.get(ConstructionSite).worker;
-          return worker === null ? [] : [worker];
-        }));
         const participation = new Map(context.query(query(WorkParticipation)).map(row => [row.id, row.get(WorkParticipation)]));
         if (selected.some(worker => participation.get(worker)?.automatic !== false))
           throw new Error("go requires drafted workers");
         return {
-          actions: selected.flatMap(worker => (excavating.has(worker) || building.has(worker)) ? [cancelWork(worker)] : [])
-            .concat(selected.map(worker => {
-              const position = positions.get(worker);
-              if (!position) throw new Error("selected worker position is unavailable");
-              return moveAction(worker, parsed.destination, position.facing);
-            })),
+          actions: selected.flatMap(worker => exactRouteReplacement(context, worker, admittedParty(context, worker), parsed.destination)),
           writes: [],
         };
       },
@@ -519,30 +472,42 @@ export const colonyPack: GamePack = {
       title: "Draft workers", category: "Colony", description: "Draft selected workers for manual control.",
       localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities" }] },
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation],
+      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask, ProcessAttendanceWork],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
+        const actions = selected.flatMap(worker => {
+          const attempt = attemptForWorker(context, worker);
+          if (!attempt || attempt.worker !== worker || attempt.party !== admittedParty(context, worker)) return [];
+          return attempt.phase.kind === "executing" ? [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }] : [];
+        });
+        return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: false } })) };
       },
     }),
     undraft: command({
       title: "Undraft workers", category: "Colony", description: "Return selected workers to automatic work.",
       localPresentation: { bindings: [{ id: "undraft", label: "Undraft", selection: "entities" }] },
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation],
+      reads: [Worker, PartyMember, WorkParticipation],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
-        return { actions: [], writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
+        const actions = selected.flatMap(worker => {
+          const attempt = attemptForWorker(context, worker);
+          if (!attempt || attempt.key.task !== worker || attempt.party !== admittedParty(context, worker)) return [];
+          if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" as const }];
+          if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
+          throw new Error("worker route is waiting for work-attempt reconciliation");
+        });
+        return { actions, writes: selected.map(worker => ({ component: WorkParticipation.id, entity: worker, value: { automatic: true } })) };
       },
     }),
     resumeWork: command({
       title: "Resume automatic work", category: "Colony", description: "Return selected workers to automatic work assignment.",
       localPresentation: { bindings: [{ id: "resume-work", label: "Resume work", selection: "entities" }] },
-      subjects: () => workers,
+      subjects: context => context.query(query(Worker, PartyMember)).map(row => row.id),
       input: workerSelectionInput,
-      reads: [Worker, WorkParticipation],
+      reads: [Worker, PartyMember, WorkParticipation],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
@@ -561,13 +526,17 @@ export const colonyPack: GamePack = {
     designateTrees: command({
       title: "Fell selected trees", category: "Colony", description: "Designate standing trees for felling and chopping.",
       localPresentation: { bindings: [{ id: "designate-trees", label: "Fell selected trees", selection: "entities" }] },
-      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing").map(row => row.id),
+      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing" && (context.scope.kind !== "player" || !context.query(query(OwnedByParty)).some(owner => owner.id === row.id && owner.get(OwnedByParty).party !== context.scope.party))).map(row => row.id),
       input: treeSelectionInput,
-      reads: [ColonyTree], writes: [ColonyTreePolicy],
+      reads: [ColonyTree, OwnedByParty], writes: [ColonyTreePolicy, OwnedByParty],
       run(context, input) {
         const selected = new Set(input.entities);
         const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
-        const writes = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing").map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }));
+        const owners = new Map(context.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+        const selectedRows = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing");
+        if (context.scope.kind === "player" && selectedRows.some(row => owners.get(row.id) && owners.get(row.id) !== context.scope.party))
+          throw new Error("tree belongs to another party");
+        const writes = selectedRows.flatMap(row => [{ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }, ...(context.scope.kind === "player" && !owners.has(row.id) ? [{ component: OwnedByParty.id, entity: row.id, value: { party: context.scope.party } }] : [])]);
         if (!writes.length) throw new Error("no standing trees selected");
         return { actions: [], writes };
       },
@@ -576,13 +545,14 @@ export const colonyPack: GamePack = {
       title: "Cancel tree work", category: "Colony", description: "Remove the felling designation from selected trees.",
       localPresentation: { bindings: [{ id: "cancel-trees", label: "Cancel tree work", selection: "entities" }] },
       subjects: context => context.query(query(ColonyTree, ColonyTreePolicy))
-        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped")
+        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped" && (context.scope.kind !== "player" || !context.query(query(OwnedByParty)).some(owner => owner.id === row.id && owner.get(OwnedByParty).party !== context.scope.party)))
         .map(row => row.id),
       input: treeSelectionInput,
-      reads: [ColonyTree, ColonyTreePolicy], writes: [ColonyTreePolicy],
+      reads: [ColonyTree, ColonyTreePolicy, OwnedByParty], writes: [ColonyTreePolicy],
       run(context, input) {
         const selected = new Set(input.entities);
         const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
+        if (context.scope.kind === "player" && context.query(query(OwnedByParty)).some(owner => selected.has(owner.id) && owner.get(OwnedByParty).party !== context.scope.party)) throw new Error("tree belongs to another party");
         if (!rows.length) throw new Error("no matching tree");
         return { actions: [], writes: rows.map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: false } })) };
       },
@@ -620,7 +590,7 @@ export const colonyPack: GamePack = {
     deposit: command({
       title: "Deposit carried goods", category: "Colony", description: "Deposit carried materials into their assigned destination.",
       localPresentation: { bindings: [{ id: "deposit", label: "Deposit carried goods", selection: "entities" }] },
-      subjects: () => workers,
+      subjects: context => context.query(query(Worker, PartyMember)).map(row => row.id),
       input: depositInput,
       reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
       writes: [],
@@ -722,6 +692,7 @@ export const colonyPack: GamePack = {
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const pails = new Map(lots.filter((lot) => lot.kind === "pail").map((lot) => [lot.container, lot]));
       const taskRows = context.query(query(DeliveryTask));
+      const partyWorkers = context.query(query(Worker, PartyMember)).map(row => row.id).sort();
       const stationFacts = finishedBrewStations(context).slice(0, 8).flatMap((site) => {
         const hearth = entity(`${site.id}:hearth`);
         const stationAir = context.atmosphereSamples([[
@@ -778,26 +749,25 @@ export const colonyPack: GamePack = {
             return tree ? [{ id: `tree-${order.tree}`, subjects: [order.tree], label: "Tree work", value: `${tree.phase} · ${order.stage} · ${order.phase}` }] : [];
           });
         })(),
-        { id: "pantry-quantity", subjects: [pantryId], label: "Pantry", value: total(pantryId) },
-        { id: "lumber-quantity", subjects: [colonyLumberId], label: "Starter lumber", value: total(colonyLumberId) },
+        ...context.query(query(Container, OwnedByParty)).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `party-store-${index}`, subjects: [row.id], label: "Party store", value: total(row.id) })),
         ...stationFacts,
-        { id: "worker-carried", subjects: workers, label: "Workers carry", value: workers.reduce((sum, worker) => sum + total(worker), 0) },
-        ...workers.map((worker, index) => ({
-          id: `worker-${index + 1}-control`, subjects: [worker],
-          label: workerVisuals[index].label,
+        { id: "worker-carried", subjects: partyWorkers, label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
+        ...partyWorkers.map((worker, index) => ({
+          id: `worker-${worker}-control`, subjects: [worker],
+          label: "Party worker",
           value: context.query(query(WorkParticipation)).find(row => row.id === worker)?.get(WorkParticipation).automatic === false ? "manual" : "automatic",
         })),
-        ...workers.map((worker, index) => ({
-          id: `worker-${index + 1}-pail`, subjects: [worker], label: "Pail",
+        ...partyWorkers.map((worker) => ({
+          id: `worker-${worker}-pail`, subjects: [worker], label: "Pail",
           value: pails.has(worker) ? "Carried · in this worker's custody" : "None",
         })),
         { id: "guest-quantity", subjects: [guestId], label: "Guest meal", value: total(guestId) },
-        ...workers.map((worker, index) => ({
-          id: `dig-progress-${index + 1}`, subjects: [worker],
-          label: `Worker ${index + 1} digging`,
+        ...partyWorkers.map((worker) => ({
+          id: `dig-progress-${worker}`, subjects: [worker],
+          label: "Worker digging",
           value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
         })),
-        { id: "spoil-carried", subjects: workers, label: "Spoil carried", value: workers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
+        { id: "spoil-carried", subjects: partyWorkers, label: "Spoil carried", value: partyWorkers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
         { id: "spoil-ground", label: "Loose spoil", value: (() => {
           const stockContainers = new Set(context.query(query(GroundStock)).map(row => row.id));
           return context.query(query(MaterialLot)).reduce((sum, row) => {
@@ -807,9 +777,29 @@ export const colonyPack: GamePack = {
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).phase === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
-        ...tasks.map((id, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [guestId], label: `Delivery ${index + 1}`, value: taskRows.find((row) => row.id === id)?.get(DeliveryTask).phase ?? "missing" })),
+        ...taskRows.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).phase })),
       ];
     },
   },
   definition: encodeDefinition("colony", colonyComponents, colonyInitial),
+};
+
+const neutralColonyInitial = [
+  { id: guestId, components: { "hive.position": { x: 3, y: 0, z: 1, facing: 0 }, "hive.body": { speed: 1 }, "hive.container": { capacity: 4 }, "hive.traversal": { clearanceCells: 1, maxStepCells: 1 }, "hive.visual": { sprite: "goblin.guest", label: "Guest" }, "colony.guest": { hungry: true } } },
+  ...trees.flatMap(({ id, x, z }) => [{ id, components: { "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 }, "colony.tree": { phase: "standing" }, [FiniteResource.id]: { kind: "wood", quantity: 6 }, "colony.tree-policy": { designated: false } } }, { id: entity(`${id}.order`), components: { "colony.tree-order": { tree: id, actor: null, phase: "blocked", stage: "fell", seconds: 0, approachX: 0, approachY: 0, approachZ: 0, reason: "Not designated" } } }]),
+];
+const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
+  ...colonyEnvironment,
+  initialPlacements: [
+    { entity: guestId, column: [3, 1] },
+    ...trees.map(({ id, x, z }) => ({ entity: id, column: [x, z] as [number, number] })),
+  ],
+});
+
+/** Host pack: the same Colony behavior over neutral shared world content. */
+export const colonyServerPack: GamePack = {
+  ...colonyPack,
+  localScope: undefined,
+  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial),
+  environmentDefinition: neutralColonyEnvironmentDefinition,
 };

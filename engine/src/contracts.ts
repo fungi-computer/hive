@@ -153,6 +153,7 @@ export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type ActionRequest =
   | { readonly kind: "establish-party"; readonly bindingId: string; readonly player: string; readonly party: EntityId; readonly records: readonly EntityRecord[] }
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
+  | { readonly kind: "retarget-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly destination: MoveDestination }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
   | { readonly kind: "acknowledge-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number }
   | { readonly kind: "continue-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly nextActivity: WorkActivityRef }
@@ -392,6 +393,8 @@ export type CommandScope =
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
 export type GameCommandContext = Pick<ReadContext, "query" | "physicalContacts" | "terrainMaterials" | "terrainSurfaces"> & {
   readonly scope: CommandScope;
+  readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
+  readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly floorOperations: (requests: readonly FloorOperationRequest[]) => readonly FloorOperation[];
 };
 export interface WriteContext extends ReadContext {
@@ -613,6 +616,8 @@ export interface KernelPort {
   ) => readonly QueryRow<T>[];
   /** Compact native owner projection for shared work/material planning. */
   readonly workMaterialFacts: () => WorkMaterialFacts;
+  readonly workAttempts: (taskIds: readonly EntityId[]) => readonly WorkAttempt[];
+  readonly workAttemptForWorker: (worker: EntityId) => WorkAttempt | null;
   readonly processRequirements: (definition: string, station: EntityId) => ProcessRequirements;
   readonly entityMembership: (ids: readonly EntityId[]) => readonly boolean[];
   readonly advance: (
@@ -636,6 +641,7 @@ export interface KernelPort {
 export interface GamePack {
   readonly id: GameId;
   readonly version: number;
+  readonly localScope?: CommandScope;
   readonly definition: Uint8Array;
   readonly environmentDefinition?: Uint8Array;
   readonly presentationWindow?: {

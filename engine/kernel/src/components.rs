@@ -375,6 +375,7 @@ where
 pub enum Action {
     EstablishParty { #[serde(rename = "bindingId")] binding_id: String, player: String, party: String, records: Vec<EntityRecord> },
     BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
+    RetargetWorkAttempt { task: String, generation: u64, sequence: u32, destination: Point },
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },
     AcknowledgeWorkAttempt { task: String, generation: u64, sequence: u32 },
     ContinueWorkAttempt { task: String, generation: u64, sequence: u32, #[serde(rename = "nextActivity")] next_activity: crate::work_attempt::ActivityRef },

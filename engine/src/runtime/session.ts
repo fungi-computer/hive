@@ -192,7 +192,7 @@ export class GameSession {
     this.pack = options.pack;
     this.port = options.port;
     this.seed = (options.seed ?? 1) >>> 0;
-    this.scope = options.scope ?? { kind: "player", player: "local", party: "local" as EntityId };
+    this.scope = options.scope ?? this.pack.localScope ?? (() => { throw new Error("GameSession requires an explicit command scope"); })();
     this.random = new DeterministicRandom(this.seed);
     this.whistleProjection = createWhistleObservationProjector(this.pack);
     const consumers = new Set<string>();
@@ -354,6 +354,8 @@ export class GameSession {
         floorOperations: (requests) => this.port.floorOperations(requests),
         terrainMaterials: (cells) => this.port.terrainMaterials(cells),
         terrainSurfaces: (columns) => this.port.terrainSurfaces(columns),
+        workAttempts: (taskIds) => this.port.workAttempts(taskIds),
+        workAttemptForWorker: (worker) => this.port.workAttemptForWorker(worker),
         query: (spec) => {
           for (const component of spec.components)
             if (!reads.has(component.id))
@@ -793,6 +795,7 @@ export class GameSession {
           return (committedWorkMaterialFacts ??= this.port.workMaterialFacts());
         },
         workAttempts: (taskIds) => this.port.workAttempts(taskIds),
+        workAttemptForWorker: (worker) => this.port.workAttemptForWorker(worker),
         processRequirements: (definition, station) => this.port.processRequirements(definition, station),
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });
