@@ -24,10 +24,10 @@ provider arrays supplement but cannot replace physical evidence.
 | P3 | A disconnects, B renews existing world lease, A work advances with no per-party presence check; reconnect same IDs/progress | one bounded actual DO two-client witness |
 | P4 | Draft/Undraft visible, selection no side effect, Go requires Draft, mixed-party selection rejected | shared client controls + command tests |
 | D1 | physical/art datum agrees for bed/brewer/stair all directions | construction-visuals + original-model transform laws |
-| D2 | color/depth pairs aligned; terrain and two opaque sprites in permuted draw orders give same front pixels/picks | minimal GPU fixture before bulk bank export |
-| D3 | person behind/front furniture and stair bottom/mid/landing, upper/lower storeys/cutaways | bounded actual original-art capture, lead viewed |
-| D4 | nearest visible opaque pixel determines click, including nonpickable occluder; previews don't steal selection | client picking law + D3 input |
-| D5 | same scene timing/memory before/after; no per-frame rebake/readback/all-world sort | changed draw-owner counters and short measured fixture |
+| D2 | point/line/bounds sorter gives the same order for every input permutation; static relations cache and moving relations refresh | isometric sorter laws |
+| D3 | person behind/front furniture and stair bottom/mid/landing, upper/lower storeys/cutaways; original art remains intact | bounded actual original-art capture, lead viewed |
+| D4 | shared final draw order plus alpha silhouette determines entity click, including nonpickable occluder; terrain tools still reach support planes; previews don't steal selection | client picking law + D3 input |
+| D5 | no per-pixel depth runtime, per-frame terrain rebake/readback or all-world comparison; static invalidation and moving-neighborhood cost are bounded | source deletion audit, sorter counters and short measured fixture |
 | R1 | actual engine HTML/JS/WASM/bank hashes served; correct DO API origin and credentials | exact artifact HTTP readback + bounded game join |
 
 Useful baseline: corrected simple runtime floor fixture in work-contact-repair

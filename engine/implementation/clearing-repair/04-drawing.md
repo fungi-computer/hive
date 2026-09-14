@@ -1,169 +1,137 @@
-# Spatial drawing: align the art, then use its actual depth
+# Spatial drawing: lawful isometric sprite order
 
 [Packet index](README.md) · [Coordinates](02-construction.md)
 
-## Why a better z-index alone is insufficient
+## Decision
 
-`client.js` currently sorts support ancestry, x+z, ID, then sets zIndex/renderRank.
-`controls.js::selectionFromSubjects` uses that rank. Long sprites reduce to a
-single anchor, so no ordering can show one person behind one section and in front
-of another when those pixel relations conflict. Do not ship a bounding-box graph
-with an arbitrary cycle-break and claim it solves that case. Excalibur's elevation
-band + screen Y is a useful baseline, but also ranks whole sprites.
+The Clearing uses ordinary Pixi sprites and `zIndex`. The renderer derives a
+deterministic partial order from canonical voxel placement, physical footprints,
+visible projected bounds and stable identities. It does not use sprite pixels as
+physical truth and does not write or sample a per-pixel world-depth buffer.
 
-Chosen implementation: preserve original Three -> low-resolution bake -> Pixi
-artwork. Bake a matching visual depth image per opaque frame, and use that depth
-for the shared world render pass and picking. No simulation geometry is generated
-from sprite pixels. Canonical footprints/endpoints remain for placement, support,
-culling and inspection. This refines/supersedes the earlier whole-sprite-sort
-proposal in the sprint for opaque geometry. Avoid a new scene engine or physics.
+This decision supersedes the failed paired color/depth runtime. Remove that
+runtime and its picker rather than retaining a fallback. Keep the original Three
+to low-resolution bake to Pixi art pipeline, alpha silhouettes, placement datums,
+terrain geometry queries, cutaways and current world facts.
 
-## First bounded feasibility checkpoint (before whole-bank export)
+## One render record
 
-Use existing Pixi WebGL path: installed Pixi has Mesh/Shader/State.depthTest and
-State.depthMask; RenderTarget has a depth attachment. These source APIs establish
-an implementation route, NOT an accepted render witness. Force the maintained
-WebGL2 renderer for this slice; do not silently fall back to anchor sorting if
-fragment depth/depth attachment is unavailable. Display explicit renderer failure.
-
-Build an overlap including real terrain, the retained bed or stair and person with
-one matched color/depth pair. One shared depth attachment must correctly render
-all relevant input submission orders and CPU pick the same frontmost pixels. This is the
-lead's difficult renderer checkpoint; complete it before a Luna bulk manifest/caller
-migration. If Pixi cannot attach/write depth through its public render-target/mesh
-path, stop that expansion and report the exact API failure for lead correction;
-do not reach into renderer private GL state or invent a second live Three renderer.
-The required rendering behavior stays fixed; an API obstacle is not permission to
-ship a lower-quality algorithm.
-
-## Datum alignment before depth
-
-Source: native `structure_geometry.rs::fixture_cells` transforms local x/z:
-N=(x,z), E=(-z,x), S=(-x,-z), W=(z,-x). `home.js::building` rotates model around
-origin using Three positive Y (x,z)->(z,-x) at direction1. `colonyPlacement` maps
-axial N/S to art0 and E/W to art1. Native fixture direction must not be inferred
-from visual facing. Brewer `stationScene` rotates around (.5,0,.5); bed around
-origin with its length centered at z=.5. North happens to align, east/south can
-put the rendered footprint on the wrong side of the anchor.
-
-Implement one pure placement-art transform helper, fed by original art recipe data:
-physical local footprint, requested native orientation, available art-facing's
-footprint and rotation pivot. Compute oriented footprint centroids and translate
-render origin by `physicalCentroid - bakedFootprintCentroid`. For rectangular
-axial assets this aligns occupied footprint even when equivalent two-facing art
-is used. Verify the full transformed cell set, not centroid alone. If shapes do
-not match under translation, use the matching original four-facing bake instead;
-never stretch/mirror pixels or change native geometry to fit. Original art facing
-selection remains content data, not renderer branches for bed/east.
-
-Stairs use the existing four-facing model, local entrance (0,0,0) and landing
-(0,2.16,2). Native endpoints use run2/rise4 and native cardinal direction. Assert
-that baked entrance and landing transform to those exact metric positions for
-all directions. Bed, brewer and shelf datum metadata belongs beside their original
-art builder/export recipe. Compute visual bounds with Three Box3 during export;
-do not hand-enter a 'brewer height' in the game sorter. New metadata describes
-existing artwork; it does not add inventory/collision capability.
-
-## Baked frame format
-
-Extend `src/art/bake.js`, static authoring/export/manifest/loader together with a
-new explicit manifest version. Each opaque frame has color rect, matching depth
-rect, common anchor, local depth range and local visual bounds. Compute bounds and
-image depth from the SAME posed geometry, animation frame, rotation and camera.
-The depth atlas uses linear raw channels, nearest sampling, no mipmaps, no sRGB
-conversion and no lossy compression. Color retains current palette/outline.
-
-Let `towardCamera` be normalized camera.position minus camera target from the shared
-`src/art/prop-camera.js`; expose that basis there, do not duplicate constants.
-For a local geometry surface point p, store d=dot(p,towardCamera). Encode d linearly
-into 24 bits RGB over the frame's min/max; alpha=occupied. Depth zero is not empty.
-Opaque colored pixel and depth coverage MUST match. During existing one-pixel ink
-outline, give a new outline pixel the depth of the nearest adjacent source pixel
-using a deterministic neighbor order; never an unrelated constant depth.
-
-Depth bake is an additional override-material render of the same scene before
-geometry disposal. Preserve material alpha-test/visibility masks for any cutout
-geometry. Separate semitransparent particle art from this opaque format. Do not
-bake glow/smoke into opaque depth-writing pixels. Restore renderer target/materials
-and dispose owned temporary resources on success/error. Exporter writes hashes,
-source inventory, color+depth atlas pairing atomically in the existing bank flow.
-Manifest validation rejects missing/mismatched dimensions, invalid finite ranges,
-nonexistent rects and unsupported versions; no runtime guessing from sprite name.
-
-## Runtime render owner
-
-Add one client module `world-depth-layer.js` consuming resolved baked frames and
-existing projected/interpolated poses. It owns meshes, shared depth render target,
-texture lifetime, resize and disposal. No game state or authoritative time advances
-inside it. It uses the same camera projection as geometry.js. Per-frame input:
+Every visible world part contributes this presentation record:
 
 ```ts
-DrawItem = {
-  entityId, visualPartId, colorFrame, depthFrame,
-  worldOrigin, screenTransform, visible, pickable
+type IsoRenderRecord = {
+  entityId: string
+  partId: string
+  role: "terrain" | "floor" | "structure" | "actor" | "item" | "water"
+  storeyBand: number
+  footprint: readonly WorldPoint[]
+  projectedBounds: ScreenBounds
+  display: PIXI.DisplayObject
+  moving: boolean
+  visible: boolean
+  pickable: boolean
+  hitArea?: AlphaSilhouette
 }
 ```
 
-For each opaque pixel compute `worldDepth = dot(worldOrigin,towardCamera) + localDepth`.
-Choose common near/far depth bounds from the visible item/terrain extents, with
-finite margin; normalize consistently for all meshes and the CPU picker. Write
-`gl_FragDepth = (nearDepth - worldDepth)/(nearDepth - farDepth)` (nearDepth is the
-larger toward-camera coordinate). Clear depth to1, enable depth test/write, discard
-transparent pixels. Verify convention with a near/far fixture; never use zIndex
-as a second contradicting depth rule. Equal quantized depth uses deterministic
-submission order by physical role then stable identity: finished floor surface
-wins over underlying terrain; other ties stable entity/part ID. This is an exact
-coplanar policy, not a per-item depth bias.
+The record is derived from the same canonical placement and orientation used by
+construction. A person or compact prop supplies a support point. A bed, wall,
+shelf, brewer or stair supplies its full oriented footprint endpoints. Stairs use
+their entrance and landing. If one sprite can genuinely interleave with another,
+split it into stable render parts at the content boundary; do not invent a scalar
+depth that discards the long footprint.
 
-Draw opaque world once into the owned target, then compose it into existing Pixi
-camera/UI. Terrain's current whole bake behind actors must gain the same matching
-depth bake and origin; otherwise cliff/stair-floor comparisons remain wrong. Avoid
-world-size targets: retain current bounded visible terrain residency/bake sizes.
-Actor interpolation changes worldOrigin every frame, not depth-bank contents.
-Camera zoom changes screenTransform only; it does not scale metric depth. If a
-visual uses model scale, apply that SAME model scale in depth reconstruction and
-bounds as in the color quad; no cosmetic scale may silently change only one.
-Depth frame follows the SAME animation index as color. Static resources cache;
-no per-frame Three scene construction, CPU full-world sort or GPU readback.
+Visual bounds cover the complete current pose, including carried props. They only
+cull comparisons. Collision bounds, support, reachability and saved geometry
+remain owned by their physical systems.
 
-Transparent water/smoke/effects: depth-test against opaque geometry but do not write
-opaque depth; preserve their current bounded visual ordering and alpha. Split water
-out of opaque terrain bake where necessary. They are not selectable opaque solids.
-UI labels/highlights/placement previews remain deliberate overlays after world draw;
-they do not mutate physical ordering. Keep previews visibly distinct/translucent.
+## Ordering
 
-## Picking, extents and cutaways
+First partition records into explicit voxel storey bands. Terrain and floor faces
+form the base of their band. Structures, actors and items occupy the bands covered
+by their physical vertical extent. Cutaway and selected level filter records before
+ordering, so a hidden upper floor cannot occlude a lower actor.
 
-Decode depth atlas once into CPU bytes alongside existing alpha silhouettes. On a
-pointer query, use screen-space spatial index to find containing visible frame
-rects, map through the same screenTransform/anchor to pixel UV, reject transparent
-pixels, compute the same worldDepth and tie policy. Choose nearest opaque visible
-surface first, THEN decide whether it is selectable. A nonpickable opaque wall can
-occlude a pickable person; filtering nonpickables before occlusion is wrong.
-Multiple parts map to one entity ID. No GPU readPixels on mousemove.
+Within relevant bands:
 
-Floor-tool acquisition intentionally targets visible support plane through furniture
-as specified by tool semantics; do not confuse that with ordinary person picking.
-Use canonical geometry.js ray/plane owner and XState target plane. Entity selection
-and context menus use pixel depth. Rectangle selection uses existing semantics over
-owned actors; it need not inspect every image pixel.
+1. Compare only visible records whose projected bounds overlap.
+2. Compare point/point, point/line or line/line footprints in the shared camera
+   coordinate system and add a `behind -> in front` edge only when geometry
+   establishes it.
+3. Leave ambiguous non-interleaving pairs to the stable total key
+   `(storeyBand, role, entityId, partId)`.
+4. Resolve the graph with deterministic Kahn topological ordering. The ready queue
+   and edge traversal use stable keys, never insertion order.
+5. Report cycles in development with the involved parts. The release path removes
+   the least authoritative ambiguous edge by a documented stable edge key; a
+   recurring real cycle requires splitting the offending render part.
 
-Cutaway visibility controls both color/depth coverage before picking. A hidden
-upper storey must not occlude lower pixels. Asset local bounds describe actual art;
-physical footprint/height still comes from original structure definitions. Stair
-endpoints and fixture footprint are passed through existing visual projection with
-explicit native orientation, and validated on remote wire. No rendered pixels
-become saved physical facts. Non-Colony demos use the same draw owner and pipeline.
+The sorter owns these rules behind one narrow operation. Callers submit records
+and receive the final back-to-front order; they do not coordinate private maps or
+apply a competing rank formula.
 
-## Deletions and acceptance
+## Cache and invalidation
 
-Delete supportDepth/anchor-only subject sort as opaque occlusion authority, rank-only
-point picking, any obsolete ordering offsets, and one-big-terrain-behind-all-subjects
-assumption. Retain layering only for explicit UI/translucent passes. Do not retain a
-parallel legacy renderer as the default after failure.
+Cache static-to-static relationships. Invalidate affected relationships after a
+terrain/topology revision, construction, destruction, replacement, rotation,
+footprint or level change, cutaway change, and camera projection/orientation
+change. Camera translation or uniform zoom may update screen bounds without
+changing footprint relations when the projection basis is unchanged.
 
-Acceptance D1-D5 in delivery: original art across orientations, worker behind/front
-and on all stair sections, storeys/cutaways, correct click, same output on input
-permutation. Measure changed frame CPU/GPU time and asset memory on the same visible
-scene. No per-frame exports/readbacks, no quadratic all-world comparisons. A color
-screenshot without depth-pick evidence is insufficient. Lead personally inspects.
+Actors and other moving records bypass the static relation cache. Recompute their
+relationships only against overlapping visible statics and movers in the current
+neighborhood. Animation, facing or carried-prop changes invalidate visual bounds;
+support cell and level changes invalidate storey/neighborhood membership.
+
+Static cache contents are disposable presentation data. They rebuild from current
+world facts and are never saved or broadcast.
+
+## Terrain, water and overlays
+
+Terrain is ordinary Pixi imagery produced by the existing bounded terrain
+scene/cache. It occupies explicit terrain/storey bands instead of a depth-writing
+render target. Water remains a translucent, nonpickable presentation layer derived
+from the authoritative 0-7 water facts. It follows cutaway/level visibility,
+writes no physical state and never becomes an opaque picking surface.
+
+Selection markers, labels, progress bars, placement ghosts, designations and aim
+arcs are deliberate overlays. Their display order cannot alter physical ordering,
+admission or authoritative time.
+
+## Picking
+
+Entity picking consumes the same render records and final order used for drawing.
+At one pointer/frame snapshot, filter by projected bounds, apply the existing alpha
+silhouette, then inspect front to back. Determine the visible frontmost record
+before applying pickability so a visible nonpickable wall can occlude an actor.
+Resolve a render part back to its entity identity.
+
+Terrain tools intentionally use the canonical support-plane/voxel query so a floor
+can be targeted beneath furniture. That acquisition rule does not create a second
+entity ordering system. Rectangle selection keeps its existing owned-actor
+semantics.
+
+## Art datum alignment
+
+`structure_geometry.rs::fixture_cells` owns physical orientation. Art recipes own
+their original pivot, facing and footprint metadata. `resolveWorldArtPlacement`
+maps those facts and supplies the render origin and oriented footprint. The sorter
+must not infer placement from a depth atlas or sprite name.
+
+Verify bed, brewer, shelf and wall footprint endpoints in every supported facing.
+Verify stairs from entrance to landing in all four directions. Fix a mismatch at
+the placement/art datum boundary; never change native geometry to fit a sprite.
+
+## Acceptance
+
+Focused laws cover input-order independence; point and line relations; actor
+front/behind both bed facings; stair entrance/midpoint/landing; walls, shelves,
+brewers, trees, floors and actors; cache invalidation; two moving actors; and
+front-to-back alpha picking including a nonpickable occluder.
+
+One bounded real game witness must show intact original terrain, trees, goblins,
+water, furniture and animation while exercising Draft, Go, Undraft, drag-dig,
+floors, walls, furniture, floor replacement beneath furniture, stairs and layer
+controls. It also proves party-derived Rowan/Sedge selection, current-format
+save/reload and the hosted DO path. The lead personally inspects desktop and narrow
+captures. A source test or screenshot alone does not prove the full interaction.
