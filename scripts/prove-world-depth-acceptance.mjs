@@ -7,7 +7,12 @@ try {
   await page.goto(base, { waitUntil: "networkidle" });
   await page.waitForFunction(() => globalThis.__HIVE_RETAINED_DEPTH_ACCEPTANCE__?.status === "rendered" || globalThis.__HIVE_RETAINED_DEPTH_ACCEPTANCE__?.status === "FAIL", null, { timeout: 120000 });
   const result = await page.evaluate(() => globalThis.__HIVE_RETAINED_DEPTH_ACCEPTANCE__);
-  if (!result || result.status !== "rendered" || !result.permutationStable || result.waterChanged < 1)
+  const required = result?.pointPicks;
+  if (!result || result.status !== "rendered" || !result.permutationStable ||
+      required?.bed?.entityId !== "bed" || required?.person?.entityId !== "person-front" ||
+      required?.bottom?.entityId !== "stair-bottom" || required?.mid?.entityId !== "stair-mid" ||
+      required?.landing?.entityId !== "stair-landing" || required?.opaque?.entityId !== "opaque-wall" ||
+      required?.opaque?.target !== null || result.waterFrontChanged <= result.waterBehindChanged)
     throw new Error(`retained-depth-acceptance-failed:${JSON.stringify(result)}`);
   console.log(JSON.stringify(result));
 } finally {
