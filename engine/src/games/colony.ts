@@ -526,13 +526,17 @@ export const colonyPack: GamePack = {
     designateTrees: command({
       title: "Fell selected trees", category: "Colony", description: "Designate standing trees for felling and chopping.",
       localPresentation: { bindings: [{ id: "designate-trees", label: "Fell selected trees", selection: "entities" }] },
-      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing").map(row => row.id),
+      subjects: context => context.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase === "standing" && (context.scope.kind !== "player" || !context.query(query(OwnedByParty)).some(owner => owner.id === row.id && owner.get(OwnedByParty).party !== context.scope.party))).map(row => row.id),
       input: treeSelectionInput,
       reads: [ColonyTree, OwnedByParty], writes: [ColonyTreePolicy, OwnedByParty],
       run(context, input) {
         const selected = new Set(input.entities);
         const trees = new Map(context.query(query(ColonyTree)).map(row => [row.id, row.get(ColonyTree)]));
-        const writes = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing").flatMap(row => [{ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }, ...(context.scope.kind === "player" ? [{ component: OwnedByParty.id, entity: row.id, value: { party: context.scope.party } }] : [])]);
+        const owners = new Map(context.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
+        const selectedRows = context.query(query(ColonyTree)).filter(row => selected.has(row.id) && trees.get(row.id)?.phase === "standing");
+        if (context.scope.kind === "player" && selectedRows.some(row => owners.get(row.id) && owners.get(row.id) !== context.scope.party))
+          throw new Error("tree belongs to another party");
+        const writes = selectedRows.flatMap(row => [{ component: ColonyTreePolicy.id, entity: row.id, value: { designated: true } }, ...(context.scope.kind === "player" && !owners.has(row.id) ? [{ component: OwnedByParty.id, entity: row.id, value: { party: context.scope.party } }] : [])]);
         if (!writes.length) throw new Error("no standing trees selected");
         return { actions: [], writes };
       },
@@ -541,13 +545,14 @@ export const colonyPack: GamePack = {
       title: "Cancel tree work", category: "Colony", description: "Remove the felling designation from selected trees.",
       localPresentation: { bindings: [{ id: "cancel-trees", label: "Cancel tree work", selection: "entities" }] },
       subjects: context => context.query(query(ColonyTree, ColonyTreePolicy))
-        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped")
+        .filter(row => row.get(ColonyTreePolicy).designated && row.get(ColonyTree).phase !== "chopped" && (context.scope.kind !== "player" || !context.query(query(OwnedByParty)).some(owner => owner.id === row.id && owner.get(OwnedByParty).party !== context.scope.party)))
         .map(row => row.id),
       input: treeSelectionInput,
-      reads: [ColonyTree, ColonyTreePolicy], writes: [ColonyTreePolicy],
+      reads: [ColonyTree, ColonyTreePolicy, OwnedByParty], writes: [ColonyTreePolicy],
       run(context, input) {
         const selected = new Set(input.entities);
         const rows = context.query(query(ColonyTree)).filter(row => selected.has(row.id));
+        if (context.scope.kind === "player" && context.query(query(OwnedByParty)).some(owner => selected.has(owner.id) && owner.get(OwnedByParty).party !== context.scope.party)) throw new Error("tree belongs to another party");
         if (!rows.length) throw new Error("no matching tree");
         return { actions: [], writes: rows.map(row => ({ component: ColonyTreePolicy.id, entity: row.id, value: { designated: false } })) };
       },
