@@ -386,9 +386,9 @@ mod construction_tests {
 
         kernel.ecs.entity_mut(destination).remove::<SealedContainer>();
         kernel.ecs.entity_mut(kernel.entity("worker-1").unwrap()).insert(Position { x: contact.x + 100.0, y: contact.y, z: contact.z, facing: 0.0 });
-        let blocked: serde_json::Value = serde_json::from_str(&kernel.transfer_contacts_json(r#"{"worker":"worker-1","container":"transfer-destination"}"#).unwrap()).unwrap();
-        assert_eq!(blocked["kind"], "blocked");
-        assert_eq!(blocked["reason"], "no-contact");
+        let remote: serde_json::Value = serde_json::from_str(&kernel.transfer_contacts_json(r#"{"worker":"worker-1","container":"transfer-destination"}"#).unwrap()).unwrap();
+        assert_eq!(remote["kind"], "ready");
+        assert_eq!(remote["targets"], ready["targets"]);
         let _ = surface;
     }
 
@@ -2182,19 +2182,31 @@ impl Kernel {
         if self.ecs.get::<SealedContainer>(container).is_some() {
             return serde_json::to_string(&json!({"kind":"blocked","reason":"sealed"})).map_err(|error| error.to_string());
         }
-        let worker_pose = self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
+        self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
         let frame = self.support_id(worker);
         if self.support_id(container) != frame {
             return serde_json::to_string(&json!({"kind":"blocked","reason":"unavailable-frame"})).map_err(|error| error.to_string());
         }
         let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
-        let source_points = if self.ecs.get::<Position>(container).is_none() {
+        let resolved_pose = if self.ecs.get::<Position>(container).is_some() {
+            Some(self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?)
+        } else {
+            let holder = self.ecs.query::<(Entity, &Lot)>().iter(&self.ecs).find_map(|(entity, lot)| (lot.container == request.container).then_some(entity));
+            holder.map(|entity| self.contact_pose(entity)).transpose().map_err(|reason| reason.to_string())?
+        };
+        let (source_points, contact_reference) = if self.ecs.get::<Position>(container).is_none() {
             if let Some(site) = self.ecs.get::<ConstructionSite>(container).cloned() {
                 let definition = self.environment.as_ref().and_then(|environment| environment.structures.get(&site.catalog)).cloned().ok_or("construction catalog binding is missing")?;
-                self.current_contact_candidate_rows(&site, &definition, spacing)?.into_iter().map(|(point, _)| point).collect::<Vec<_>>()
+                (self.current_contact_candidate_rows(&site, &definition, spacing)?.into_iter().map(|(point, _)| point).collect::<Vec<_>>(), None)
+            } else if let Some(container_pose) = resolved_pose {
+                let raw = [container_pose.x / spacing[0], container_pose.y / spacing[1] - 0.5, container_pose.z / spacing[2]];
+                if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) { (Vec::new(), None) } else {
+                    let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
+                    ([(0_i64, 0_i64), (1, 0), (0, 1), (-1, 0), (0, -1)].into_iter().filter_map(|(dx, dz)| Some([center.x.checked_add(dx)? as f64 * spacing[0], (f64::from(center.y) + 0.5) * spacing[1], center.z.checked_add(dz)? as f64 * spacing[2]])).collect(), Some([container_pose.x, container_pose.y, container_pose.z]))
+                }
             } else {
-                Vec::new()
+                (Vec::new(), None)
             }
         } else {
             let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
@@ -2203,9 +2215,9 @@ impl Kernel {
                 return serde_json::to_string(&json!({"kind":"blocked","reason":"no-contact"})).map_err(|error| error.to_string());
             }
             let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
-            [(0_i64, 0_i64), (1, 0), (0, 1), (-1, 0), (0, -1)].into_iter().filter_map(|(dx, dz)| {
+            ([(0_i64, 0_i64), (1, 0), (0, 1), (-1, 0), (0, -1)].into_iter().filter_map(|(dx, dz)| {
                 Some([center.x.checked_add(dx)? as f64 * spacing[0], (f64::from(center.y) + 0.5) * spacing[1], center.z.checked_add(dz)? as f64 * spacing[2]])
-            }).collect::<Vec<_>>()
+            }).collect::<Vec<_>>(), Some([container_pose.x, container_pose.y, container_pose.z]))
         };
         let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.clearance_cells, max_step_cells: traversal.max_step_cells };
         let mut targets = Vec::new();
@@ -2215,7 +2227,7 @@ impl Kernel {
             let environment = self.environment.as_mut().ok_or("world has no environment")?;
             let mut query = |at| environment.world.traversal_material(at);
             if crate::terrain_traversal::node(cell, config, &mut query)?.is_none() { continue; }
-            if !interaction_contact::within_transfer_reach([worker_pose.x, worker_pose.y, worker_pose.z], point) { continue; }
+            if contact_reference.is_some_and(|reference| !interaction_contact::within_transfer_reach(reference, point)) { continue; }
             targets.push(json!({"x":point[0],"y":point[1],"z":point[2],"frame":frame.as_deref()}));
         }
         if targets.is_empty() {
