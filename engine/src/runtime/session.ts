@@ -303,8 +303,12 @@ export class GameSession {
     const candidates: readonly [number, number][] = [[0,0],[2,0],[-2,0],[0,2],[0,-2],[2,2],[-2,2],[2,-2],[-2,-2]];
     for (const [x, z] of candidates) {
       const surface = this.port.terrainSurfaces([[x, z]])[0];
-      const contact = this.port.physicalContacts([[x, 0, z]])[0];
-      if (surface && contact && !contact.sealedTop && contact.outside)
+      if (!surface) continue;
+      const [sx, sy, sz] = surface.cell;
+      const contacts = this.port.physicalContacts([[sx, sy, sz], [sx, sy + 1, sz]]);
+      const support = contacts[0];
+      const standing = contacts[1];
+      if (support?.solid && !support.sealedTop && support.outside && standing && !standing.solid && !standing.sealedTop && standing.outside)
         return { x, y: surface.cell[1], z };
     }
     return null;
