@@ -13,6 +13,22 @@ const WIDTH = 2304,
   HEIGHT = 1536,
   CHUNK_SIZE = 8;
 
+export function terrainScreenTransform(camera) {
+  const zoom = camera?.zoom ?? 1;
+  return {
+    x: camera?.x + ((640 - WIDTH) / 2) * zoom,
+    y: camera?.y + ((400 - HEIGHT) / 2) * zoom,
+    scale: zoom,
+  };
+}
+
+export function copyTerrainDepthPixels(target, source) {
+  if (!(target instanceof Uint8Array) || target.length !== source.length)
+    throw new Error("terrain depth pixel buffers differ");
+  target.set(source);
+  return target;
+}
+
 function projectedPoint(camera, x, y, z) {
   const point = new Vector3(x, y, z).project(camera);
   return { x: ((point.x + 1) * WIDTH) / 2, y: ((1 - point.y) * HEIGHT) / 2 };
@@ -81,7 +97,7 @@ export function createTerrainLayer() {
   water.eventMode = "none";
   let renderer, colorTexture, depthTexture, colorCanvas, colorContext, depthCanvas, depthContext;
   let depthPixels, depthRange, drawItem;
-  let screenTransform = { x: (640 - WIDTH) / 2, y: (400 - HEIGHT) / 2, scale: 1 };
+  let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
   let terrainCache, canonicalCamera, cachedVerticalMetres;
   let revision, epoch, projectionKey;
 
@@ -125,7 +141,7 @@ export function createTerrainLayer() {
     colorContext = colorCanvas.getContext("2d", { willReadFrequently: true });
     depthCanvas = rendered.depthCanvas;
     depthContext = depthCanvas.getContext("2d", { willReadFrequently: true });
-    depthPixels = rendered.depthPixels;
+    depthPixels = new Uint8Array(rendered.depthPixels);
     depthRange = rendered.depthRange;
     colorTexture?.destroy(true);
     depthTexture?.destroy(true);
@@ -178,8 +194,7 @@ export function createTerrainLayer() {
     }
     colorTexture.source.update();
     depthTexture.source.update();
-    depthPixels = depthContext.getImageData(0, 0, WIDTH, HEIGHT).data;
-    drawItem.depthFrame.pixels = depthPixels;
+    copyTerrainDepthPixels(depthPixels, depthContext.getImageData(0, 0, WIDTH, HEIGHT).data);
   }
 
   function makeDrawItem() {
@@ -249,7 +264,7 @@ export function createTerrainLayer() {
     position(camera) {
       container.position.set(camera.x, camera.y);
       container.scale.set(camera.zoom);
-      screenTransform = { x: (640 - WIDTH) / 2 + camera.x, y: (400 - HEIGHT) / 2 + camera.y, scale: camera.zoom };
+      screenTransform = terrainScreenTransform(camera);
       if (drawItem) drawItem.screenTransform = screenTransform;
     },
     get drawItem() { return drawItem; },
