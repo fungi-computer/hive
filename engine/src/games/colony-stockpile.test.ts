@@ -6,6 +6,8 @@ import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { Container, MaterialLot, Position, query } from "../sdk";
 import { entity } from "../sdk/authoring";
+import { Worker } from "./colony-components";
+import { PartyMember } from "../sdk/party";
 import { StockpileCell } from "../sdk/stockpile";
 import { colonyPack } from "./colony";
 
@@ -16,7 +18,7 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
   const session = new GameSession({ port, pack: colonyPack });
   try {
     session.start();
-    session.command("pauseDelivery", { entities: ["colony.worker.1", "colony.worker.2"] });
+    session.command("pauseDelivery", { entities: session.query(query(Worker, PartyMember)).map(row => row.id) });
     const surface = session.terrainSurfaces([[2, 2]])[0];
     assert.ok(surface, "fixture must expose an authored floor surface");
     const [x, y, z] = surface.cell;
@@ -60,7 +62,7 @@ test("Colony command leaves a conflicting native zone untouched", () => {
     const surface = session.terrainSurfaces([[2, 2]])[0];
     assert.ok(surface);
     const [x, y, z] = surface.cell;
-    session.request({ kind: "designate-stockpile", zone: entity("foreign.zone"), cells: [{ x, y, z, priority: 1, filterProfile: "wood", capacity: 6 }] });
+    session.request({ kind: "designate-stockpile", party: entity("colony.local-party"), zone: entity("foreign.zone"), cells: [{ x, y, z, priority: 1, filterProfile: "wood", capacity: 6 }] });
     session.step(0);
     session.command("designateStockpile", { area: { start: [x, y, z], end: [x + 1, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);

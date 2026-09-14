@@ -79,9 +79,11 @@ test("an obstructed construction delivery chooses a lawful contact or releases i
       if (delivery) break;
     }
     assert(delivery, `floor delivery was never assigned: ${stateDump(session)}`);
-    const task = delivery.get(DeliveryTask);
+    const access = port.constructionAccess([floor.id])[0];
+    assert(access?.contacts.length, `floor has no lawful contacts: ${stateDump(session)}`);
+    const contact = access.contacts[0];
     const spacing = [1, 0.54, 1];
-    const obstructionCell: [number, number, number] = [Math.round(task.destinationContactX / spacing[0]), Math.round(task.destinationContactY / spacing[1] - 0.5), Math.round(task.destinationContactZ / spacing[2])];
+    const obstructionCell: [number, number, number] = [Math.round(contact.x / spacing[0]), Math.round(contact.y / spacing[1] - 0.5), Math.round(contact.z / spacing[2])];
     session.command("build", { catalog: "timber-bed", orientation: "north", target: { cell: obstructionCell } });
     session.step(0);
     const obstruction = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-bed");

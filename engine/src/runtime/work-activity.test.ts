@@ -10,6 +10,8 @@ import { buildObservation } from "./observation";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { ColonyTreeOrder } from "../games/colony-work";
+import { Worker } from "../games/colony-components";
+import { PartyMember } from "../sdk/party";
 import { decorateWorkActivity } from "./work-activity";
 import type {
   EntityId,
@@ -43,8 +45,10 @@ test("actual Colony attendance projects work poses only while native work exists
           "animation projection must not mutate work or custody",
         );
         for (const row of work) {
+          const attempt = session.workAttempts([row.id])[0];
+          assert(attempt, "native excavation work retains its attempt owner");
           const activity = view.facts.find(
-            (fact) => fact.id === row.id,
+            (fact) => fact.id === attempt.worker,
           )?.activity;
           assert.equal(activity?.kind, "dig");
           const progress = activity?.progress;
@@ -73,8 +77,9 @@ test("actual Colony tree attendance projects chop only while its order is workin
   try {
     const session = new GameSession({ pack: colonyPack, port });
     session.start();
+    const workers = session.query(query(Worker, PartyMember)).map(row => row.id);
     session.command("pauseDelivery", {
-      entities: ["colony.worker.1", "colony.worker.2"],
+      entities: workers,
     });
     session.command("designateTrees", { entities: ["colony.tree.oak"] });
     const observe = () => buildObservation(session, { epoch: 0, sequence: 0 });
@@ -88,13 +93,14 @@ test("actual Colony tree attendance projects chop only while its order is workin
         .find((row) => row.get(ColonyTreeOrder).tree === "colony.tree.oak");
       const order = orderRow?.get(ColonyTreeOrder);
       const attempt = orderRow ? session.workAttempts([orderRow.id])[0] : undefined;
-      if (order?.phase === "working" && attempt) {
+      if (attempt) {
         const view = observe(),
           activity = view.facts.find((f) => f.id === attempt.worker)?.activity;
         if (activity?.kind !== "chop") {
           sawApproach = true;
           continue;
         }
+        if (order?.phase !== "working") continue;
         const before = session.save();
         assert.deepEqual(session.save(), before);
         const progress = order.seconds / (order.stage === "fell" ? 3 : 2);
@@ -145,7 +151,20 @@ test("activity projection rejects competing native and game attendance", () => {
     id: actor as never,
     get: () => ({ x: 1, y: 0, z: 2, expected: 1, replacement: 0, seconds: 1 }),
   };
-  const context = { query: (() => [row]) as unknown as ReadContext["query"] };
+  const attempt: WorkAttempt = {
+    key: { task: actor, generation: 1 },
+    worker: actor,
+    party: entity("party.activity"),
+    phase: {
+      kind: "executing",
+      operation: { attempt: { task: actor, generation: 1 }, sequence: 1 },
+      activity: { kind: "excavation", cell: [1, 0, 2], expectedMaterial: 1, replacementMaterial: 0 },
+    },
+  };
+  const context = {
+    query: (() => [row]) as unknown as ReadContext["query"],
+    workAttempts: () => [attempt],
+  };
   assert.throws(
     () =>
       decorateWorkActivity([], context, [
@@ -176,7 +195,7 @@ test("native delivery operations project without a client-owned phase", () => {
             destination: entity("delivery.destination"),
             material: "wood",
             quantity: 1,
-            custody: "available", ground: null,
+            custody: "available",
             ground: null,
           },
         ],

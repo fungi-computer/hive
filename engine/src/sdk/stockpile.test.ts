@@ -84,6 +84,20 @@ test("planner claims one lot and cell, respects existing capacity and reloadable
   assert.equal(state.created.length, 1);
 });
 
+test("planner never creates a party task for another party's stock", () => {
+  const zone = entity("zone.owned");
+  const destination = plannerCellFixtures([{ zone, cell: [0, 3, 2], priority: 2, filterProfile: "wood", capacity: 3, verticalMetres: 0.54 }])[0];
+  const source = entity("ground.foreign");
+  const lot = entity("lot.foreign");
+  const rows = [
+    row(destination.id, StockpileCell, destination.components[StockpileCell.id]),
+    row(destination.id, Container, { capacity: 3 }), row(destination.id, OwnedByParty, { party: stockpileParty }), row(destination.id, Position, { x: 0, y: 1.89, z: 2, facing: 0 }),
+    row(source, GroundStock, {}), row(source, Container, { capacity: 3 }), row(source, OwnedByParty, { party: entity("party.other") }),
+    row(lot, MaterialLot, { kind: "wood", quantity: 2, container: source }),
+  ];
+  assert.deepEqual(planStockpileDeliveries(fake(rows).context, { filterProfiles: { wood: { materialCategories: { wood: "building" }, allowedCategories: ["building"] } } }), []);
+});
+
 test("rehauled stock only moves to a strictly better cell, with capacity and claim bounds", () => {
   const zone = entity("zone");
   const low = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 1, filterProfile: "materials", capacity: 3, verticalMetres: 0.54 }])[0];
@@ -94,7 +108,7 @@ test("rehauled stock only moves to a strictly better cell, with capacity and cla
   const looseLot = entity("lot.loose");
   const rows = [
     ...[low, high, equal].flatMap(record => [
-      row(record.id, StockpileCell, record.components[StockpileCell.id]), row(record.id, Container, { capacity: 3 }), row(record.id, Position, { x: 0, y: 3, z: 0, facing: 0 }),
+      row(record.id, StockpileCell, record.components[StockpileCell.id]), row(record.id, Container, { capacity: 3 }), row(record.id, Position, { x: 0, y: 3, z: 0, facing: 0 }), row(record.id, OwnedByParty, { party: stockpileParty }),
     ]),
     row(source, GroundStock, {}), row(source, Container, { capacity: 5 }),
     row(lowerLot, MaterialLot, { kind: "wood", quantity: 2, container: low.id }),
@@ -115,7 +129,7 @@ test("profile deny and malformed profile leave physical lots untouched", () => {
   const record = plannerCellFixtures([{ zone, cell: [0, 3, 0], priority: 2, filterProfile: "food", capacity: 3, verticalMetres: 0.54 }])[0];
   const source = entity("ground.source.deny");
   const lot = entity("lot.stone.deny");
-  const rows = [row(record.id, StockpileCell, record.components[StockpileCell.id]), row(record.id, Container, { capacity: 3 }), row(record.id, Position, { x: 0, y: 3, z: 0, facing: 0 }), row(source, GroundStock, {}), row(source, Container, { capacity: 3 }), row(lot, MaterialLot, { kind: "stone", quantity: 2, container: source })];
+  const rows = [row(record.id, StockpileCell, record.components[StockpileCell.id]), row(record.id, Container, { capacity: 3 }), row(record.id, Position, { x: 0, y: 3, z: 0, facing: 0 }), row(record.id, OwnedByParty, { party: stockpileParty }), row(source, GroundStock, {}), row(source, Container, { capacity: 3 }), row(lot, MaterialLot, { kind: "stone", quantity: 2, container: source })];
   const state = fake(rows);
   assert.deepEqual(planStockpileDeliveries(state.context, { filterProfiles: { food: { materialCategories: { stone: "building" }, allowedCategories: ["food"], deniedMaterials: ["stone"] } } }), []);
   assert.equal((rows.find(r => r.id === lot)!.values.get(MaterialLot.id) as { container: EntityId }).container, source);
@@ -128,8 +142,8 @@ test("capacity limits the planned partial quantity and equal priority is not a r
   const sourceCell = plannerCellFixtures([{ zone, cell: [1, 3, 0], priority: 2, filterProfile: "materials", capacity: 2, verticalMetres: 0.54 }])[0];
   const source = entity("ground.capacity");
   const rows = [
-    row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 3 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
-    row(sourceCell.id, StockpileCell, sourceCell.components[StockpileCell.id]), row(sourceCell.id, Container, { capacity: 2 }), row(sourceCell.id, Position, { x: 1, y: 1.89, z: 0, facing: 0 }),
+    row(destination.id, StockpileCell, destination.components[StockpileCell.id]), row(destination.id, Container, { capacity: 3 }), row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }), row(destination.id, OwnedByParty, { party: stockpileParty }),
+    row(sourceCell.id, StockpileCell, sourceCell.components[StockpileCell.id]), row(sourceCell.id, Container, { capacity: 2 }), row(sourceCell.id, Position, { x: 1, y: 1.89, z: 0, facing: 0 }), row(sourceCell.id, OwnedByParty, { party: stockpileParty }),
     row(entity("lot.in-cell"), MaterialLot, { kind: "wood", quantity: 2, container: sourceCell.id }),
     row(source, GroundStock, {}), row(source, Container, { capacity: 5 }), row(entity("lot.ground"), MaterialLot, { kind: "wood", quantity: 4, container: source }),
     row(entity("lot.already"), MaterialLot, { kind: "wood", quantity: 2, container: destination.id }),
@@ -153,6 +167,7 @@ test("one stockpile demand expands into independent legs and counts incoming cap
     row(destination.id, StockpileCell, destination.components[StockpileCell.id]),
     row(destination.id, Container, { capacity: 3 }),
     row(destination.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+    row(destination.id, OwnedByParty, { party: stockpileParty }),
     row(source, GroundStock, {}), row(source, Container, { capacity: 8 }),
     row(first, MaterialLot, { kind: "wood", quantity: 1, container: source }),
     row(second, MaterialLot, { kind: "wood", quantity: 1, container: source }),
@@ -180,6 +195,7 @@ test("parallel stockpile demands never double-claim a source lot across destinat
       row(cell.id, StockpileCell, cell.components[StockpileCell.id]),
       row(cell.id, Container, { capacity: 1 }),
       row(cell.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }),
+      row(cell.id, OwnedByParty, { party: stockpileParty }),
     ]),
     row(source, GroundStock, {}), row(source, Container, { capacity: 4 }),
     row(first, MaterialLot, { kind: "wood", quantity: 1, container: source }),
@@ -206,7 +222,7 @@ test("post-split stale stockpile reservation cannot overbook remaining source ma
   const remainder = entity("lot.split.remainder");
   const worker = entity("worker.split");
   const rows = [
-    ...cells.flatMap((cell) => [row(cell.id, StockpileCell, cell.components[StockpileCell.id]), row(cell.id, Container, { capacity: 1 }), row(cell.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 })]),
+    ...cells.flatMap((cell) => [row(cell.id, StockpileCell, cell.components[StockpileCell.id]), row(cell.id, Container, { capacity: 1 }), row(cell.id, Position, { x: 0, y: 1.89, z: 0, facing: 0 }), row(cell.id, OwnedByParty, { party: stockpileParty })]),
     row(source, GroundStock, {}), row(source, Container, { capacity: 4 }),
     row(moved, MaterialLot, { kind: "wood", quantity: 2, container: worker }),
     row(remainder, MaterialLot, { kind: "wood", quantity: 2, container: source }),

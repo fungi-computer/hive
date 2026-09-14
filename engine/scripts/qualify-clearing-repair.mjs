@@ -18,6 +18,11 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const outputRoot = resolve(repoRoot, ".botanical/clearing-repair-qualification");
 
 const groups = Object.freeze({
+  stockpile: Object.freeze([
+    "engine/src/sdk/stockpile.test.ts",
+    "engine/src/games/colony-stockpile.test.ts",
+    "engine/src/games/colony-trees.test.ts",
+  ]),
   work: Object.freeze([
     "engine/src/sdk/work-system.test.ts",
     "engine/src/sdk/work-attempt.test.ts",
@@ -26,10 +31,12 @@ const groups = Object.freeze({
     "engine/src/sdk/process-attendance.test.ts",
     "engine/src/sdk/process-supply.test.ts",
     "engine/src/sdk/site-supplies.test.ts",
+    "engine/src/sdk/stockpile.test.ts",
     "engine/src/games/colony-brewing.test.ts",
     "engine/src/games/colony-dig-command.test.ts",
     "engine/src/games/colony-excavation.test.ts",
     "engine/src/games/colony-mugwort-command.test.ts",
+    "engine/src/games/colony-stockpile.test.ts",
     "engine/src/games/colony-trees.test.ts",
     "engine/src/games/colony-water-work.test.ts",
     "engine/src/games/colony-work.test.ts",

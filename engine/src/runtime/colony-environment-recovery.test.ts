@@ -9,7 +9,7 @@ import { wasmKernelPort } from "./wasm-kernel";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
-test("Colony soil flow then excavation restores the exact next water/gas step", () => {
+test("Colony idle environment, excavation, and restart preserve the exact next water/gas step", () => {
   const port = wasmKernelPort(new WasmKernel());
   const recoveredPort = wasmKernelPort(new WasmKernel());
   try {
@@ -17,7 +17,7 @@ test("Colony soil flow then excavation restores the exact next water/gas step", 
     session.start();
     const initial = port.environmentFacts();
     for (let step = 0; step < 5; step++) session.step(0.1);
-    assert.notDeepEqual(port.environmentFacts(), initial, "the field must actually change before digging");
+    assert.deepEqual(port.environmentFacts(), initial, "an inactive field must not spend work inventing idle motion");
     session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
     // step(0) admits the same public intent before checking its completion.
     session.step(0);

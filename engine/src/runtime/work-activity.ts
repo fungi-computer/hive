@@ -55,9 +55,18 @@ export function decorateWorkActivity(
   extra: readonly ActivityBinding[] = [],
 ): readonly RenderFact[] {
   const activity = new Map<string, WorkActivity>();
-  for (const row of context.query(query(ExcavationWork))) {
+  const excavationRows = context.query(query(ExcavationWork));
+  const excavationAttempts = new Map(
+    (excavationRows.length
+      ? context.workAttempts?.(excavationRows.map((row) => row.id)) ?? []
+      : []
+    ).map((attempt) => [attempt.key.task, attempt]),
+  );
+  for (const row of excavationRows) {
     const work = row.get(ExcavationWork);
-    activity.set(row.id, { kind: "dig", target: [work.x, work.z] });
+    const attempt = excavationAttempts.get(row.id);
+    if (!attempt) continue;
+    activity.set(attempt.worker, { kind: "dig", target: [work.x, work.z] });
   }
   // Construction attendance is projected by its native WorkAttempt below.
   const positions = new Map(
@@ -65,7 +74,7 @@ export function decorateWorkActivity(
   );
   const deliveryRows = context.query(query(DeliveryTask));
   const attempts = new Map(
-    (context.workAttempts?.(deliveryRows.map((row) => row.id)) ?? []).map(
+    (deliveryRows.length ? context.workAttempts?.(deliveryRows.map((row) => row.id)) ?? [] : []).map(
       (attempt) => [attempt.key.task, attempt],
     ),
   );

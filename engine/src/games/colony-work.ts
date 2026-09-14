@@ -400,9 +400,9 @@ export const ColonyTreeOrder = component<TreeOrderState>("colony.tree-order", {
     reason: "string",
   },
 });
-export const ColonyTreePolicy = component<{ designated: boolean }>(
+export const ColonyTreePolicy = component<{ designated: boolean; party: EntityId | null }>(
   "colony.tree-policy",
-  { version: 1, fields: { designated: "boolean" } },
+  { version: 2, fields: { designated: "boolean", party: "nullable-entity" } },
 );
 
 type DigOrder = {
@@ -471,7 +471,6 @@ export const treeWorkProvider = (
   const memberships = new Map(ctx.query(query(PartyMember)).map(row => [row.id, row.get(PartyMember).party]));
   const trees = ctx.query(query(ColonyTree, Position, Container, FiniteResource));
   const orders = [...ctx.query(query(ColonyTreeOrder))].sort((a, b) => a.id.localeCompare(b.id));
-  const treeOwners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
   const policies = new Map(ctx.query(query(ColonyTreePolicy)).map(row => [row.id, row.get(ColonyTreePolicy)]));
   const attempts = new Map(workAttemptsFor(ctx, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
   const active = new Map<EntityId, { id: EntityId; state: TreeOrderState }>(orders.map(row => [row.get(ColonyTreeOrder).tree, { id: row.id, state: row.get(ColonyTreeOrder) }]));
@@ -479,8 +478,12 @@ export const treeWorkProvider = (
   const poses = new Map(ctx.worldPoses([...new Set([...workers, ...trees.map(row => row.id)])]).map(p => [p.id, p]));
   const candidates: TreeCandidate[] = [];
   for (const row of trees) {
-    const tree = row.get(ColonyTree), order = active.get(row.id), policy = policies.get(row.id), party = treeOwners.get(row.id), position = positions.get(row.id), pose = poses.get(row.id);
-    const retryBlocked = order?.state.phase === "blocked" && order.state.reason !== "Not designated" && shouldRetryWorkTask(order.id, ctx.clock.tick);
+    const tree = row.get(ColonyTree), order = active.get(row.id), policy = policies.get(row.id), party = policy?.party ?? null, position = positions.get(row.id), pose = poses.get(row.id);
+    const retryBlocked = order?.state.phase === "blocked" && (
+      order.state.reason === "Not designated"
+        ? policy?.designated === true
+        : shouldRetryWorkTask(order.id, ctx.clock.tick)
+    );
     if (!order || !policy?.designated || !position || !pose || attempts.has(order.id) || (order.state.phase !== "queued" && !retryBlocked) || (order.state.stage === "fell" && tree.phase !== "standing") || (order.state.stage === "chop" && tree.phase !== "felled")) continue;
     const approaches = [
       { x: position.x + 1, y: position.y, z: position.z, frame: pose.support },
@@ -490,7 +493,7 @@ export const treeWorkProvider = (
     ];
     for (const worker of workers) {
       const workerPose = poses.get(worker);
-      if (suspendedActors.has(worker) || (party && memberships.get(worker) !== party) || workerPose?.support !== pose.support) continue;
+      if (suspendedActors.has(worker) || !party || memberships.get(worker) !== party || workerPose?.support !== pose.support) continue;
       candidates.push({ worker, task: order.id, tree: row.id, target: approaches[0], approaches });
     }
   }
@@ -511,7 +514,7 @@ export const treeWorkProvider = (
     },
     apply: assignments => {
       for (const assignment of assignments) {
-        const candidate = candidates.find(item => item.worker === assignment.worker && item.task === assignment.task), party = candidate && treeOwners.get(candidate.tree);
+        const candidate = candidates.find(item => item.worker === assignment.worker && item.task === assignment.task), party = candidate && policies.get(candidate.tree)?.party;
         if (!candidate || !party) continue;
         beginRouteWorkAttempt(ctx, candidate.task, candidate.worker, party, selected.get(`${candidate.worker}\0${candidate.task}`) ?? candidate.target);
       }
@@ -927,7 +930,9 @@ export function colonyGroundStockPhase(ctx: WriteContext) {
 
 function colonySiteSuppliesPhase(ctx: WriteContext) {
   const sites = ctx.query(query(ConstructionSite));
-  const start = sites.length ? (ctx.clock.tick * 4) % sites.length : 0;
+  // Advance by one so every site enters the bounded planning window even when
+  // the site count shares a divisor with the per-tick work budget.
+  const start = sites.length ? ctx.clock.tick % sites.length : 0;
   const active = Array.from(
     { length: Math.min(3, sites.length) },
     (_, offset) => sites[(start + offset) % sites.length],
@@ -1017,7 +1022,7 @@ export const colonyWorkSystem = createWorkSystem({
     colonySiteSuppliesPhase,
     colonyGroundStockPhase,
     (ctx) =>
-      planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles }),
+      planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles, batchQuantity: 3 }),
   ],
   providers: [
     manualRouteProvider,

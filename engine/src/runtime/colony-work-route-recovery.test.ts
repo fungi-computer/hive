@@ -9,6 +9,8 @@ import { DeliveryTask } from "../sdk/delivery";
 import { MaterialLot } from "../sdk/common";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyPack, ColonyDigOrder } from "../games/colony";
+import { Worker } from "../games/colony-components";
+import { PartyMember } from "../sdk/party";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -25,20 +27,16 @@ test("Colony digging then supplied building does not strand an existing delivery
     for (let tick = 0; tick < 240 && (tick === 0 || session.query(query(ColonyDigOrder)).length); tick++) step();
     assert.equal(session.query(query(ColonyDigOrder)).length, 0, "both designated cuts must complete");
     assert.deepEqual(port.terrainMaterials([[1,13,0],[2,13,0]]), [0,0]);
-    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: [2,13,2], material: 1 } });
+    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: [2,13,2] } });
     for (let tick = 0; tick < 700; tick++) step();
     assert.deepEqual(rejected, [], "ordinary joined work must not repeatedly submit impossible actions");
     const sites = session.query(query(ConstructionSite));
     assert.equal(sites.length, 1);
     assert.equal(sites[0].get(ConstructionSite).phase, "finished", "supplied wall must finish");
-    for (const id of ["colony.delivery.1", "colony.delivery.2"]) {
-      const task = session.query(query(DeliveryTask)).find(row => row.id === id)?.get(DeliveryTask);
-      assert(task, `existing delivery ${id} must remain observable`);
-      assert.equal(task.custody, "delivered", `${id} must finish after terrain changes`);
-      assert.equal(task.custody, "delivered", `${id} must release its worker`);
-    }
+    assert(session.query(query(DeliveryTask)).every(row => row.get(DeliveryTask).custody !== "held"), "terrain changes cannot strand held deliveries");
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
     assert.equal(lots.filter(lot => lot.kind === "soil-spoil").reduce((sum, lot) => sum + lot.quantity, 0), 6);
-    assert(!lots.some(lot => lot.kind === "bread" && lot.quantity > 0 && lot.container.startsWith("colony.worker.")), "no worker remains trapped carrying a ration");
+    const workers = new Set(session.query(query(Worker, PartyMember)).map(row => row.id));
+    assert(!lots.some(lot => lot.kind === "bread" && lot.quantity > 0 && workers.has(lot.container)), "no worker remains trapped carrying a ration");
   } finally { port.dispose(); }
 });

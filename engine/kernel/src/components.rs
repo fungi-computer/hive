@@ -150,7 +150,7 @@ pub struct FloorReplacement {
     pub support_z: i64,
     pub phase: FloorReplacementPhase,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum FloorReplacementPhase { Queued, Working, Completed, Cancelled }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -394,8 +394,8 @@ pub enum Action {
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
     ExchangeFieldWater { operation: String, worker: String, vessel: String, x: i32, y: i32, z: i32, direction: crate::terrain_water::WaterExchangeDirection, portions: u8 },
-    DesignateStockpile { zone: String, cells: Vec<StockpileDesignation> },
-    UpdateStockpile { zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
+    DesignateStockpile { party: String, zone: String, cells: Vec<StockpileDesignation> },
+    UpdateStockpile { party: String, zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
     CancelWork { entity: String },
     Deconstruct { worker: String, site: String },
     PlanConstruction {

@@ -119,9 +119,9 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.process) && id(action.definition) && id(action.station);
       break;
     case "designate-stockpile": {
-      keys = ["kind", "zone", "cells"];
+      keys = ["kind", "party", "zone", "cells"];
       const cells = action.cells;
-      valid = id(action.zone) && Array.isArray(cells) && cells.length > 0 && cells.length <= 256 && cells.every(cell => {
+      valid = id(action.party) && id(action.zone) && Array.isArray(cells) && cells.length > 0 && cells.length <= 256 && cells.every(cell => {
         if (!cell || typeof cell !== "object" || Array.isArray(cell)) return false;
         const value = cell as Record<string, unknown>;
         return Object.keys(value).length === 6 && [value.x, value.y, value.z].every(item => typeof item === "number" && Number.isSafeInteger(item)) && quantity(value.priority) && quantity(value.capacity) && stream(value.filterProfile);
@@ -129,8 +129,8 @@ export function checkedAction(value: unknown): ActionRequest {
       break;
     }
     case "update-stockpile":
-      keys = ["kind", "zone", "filterProfile", "priority"];
-      valid = id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
+      keys = ["kind", "party", "zone", "filterProfile", "priority"];
+      valid = id(action.party) && id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
       break;
     case "plan-construction": {
       keys = ["kind", "catalog", "site", "party", "x", "y", "z", "orientation"];

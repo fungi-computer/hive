@@ -32,11 +32,11 @@ function addChecked(map: Map<string, number>, key: string, quantity: number): vo
   map.set(key, total);
 }
 function compareId(a: EntityId, b: EntityId): number { return a < b ? -1 : a > b ? 1 : 0; }
-export const designateStockpile = (zone: EntityId, cells: readonly { x: number; y: number; z: number; priority: number; filterProfile: string; capacity: number }[]) => ({
-  kind: "designate-stockpile" as const, zone, cells: cells.map(cell => ({ ...cell, filterProfile: cell.filterProfile })),
+export const designateStockpile = (party: EntityId, zone: EntityId, cells: readonly { x: number; y: number; z: number; priority: number; filterProfile: string; capacity: number }[]) => ({
+  kind: "designate-stockpile" as const, party, zone, cells: cells.map(cell => ({ ...cell, filterProfile: cell.filterProfile })),
 });
-export const updateStockpile = (zone: EntityId, filterProfile: string, priority: number) => ({
-  kind: "update-stockpile" as const, zone, filterProfile, priority,
+export const updateStockpile = (party: EntityId, zone: EntityId, filterProfile: string, priority: number) => ({
+  kind: "update-stockpile" as const, party, zone, filterProfile, priority,
 });
 
 export type StockpileFilterProfile = {
@@ -50,6 +50,8 @@ export type StockpileFilterProfile = {
 export type StockpilePlanningOptions = {
   /** Content-owned profile IDs; the planner never branches on item names. */
   readonly filterProfiles: Readonly<Record<string, StockpileFilterProfile>>;
+  /** Maximum quantity assigned to one ordinary carrier obligation. */
+  readonly batchQuantity?: number;
 };
 
 function taskId(cell: EntityId, lot: EntityId, leg = 0): EntityId {
@@ -61,6 +63,8 @@ function taskId(cell: EntityId, lot: EntityId, leg = 0): EntityId {
 
 /** Create ordinary DeliveryTask claims for eligible ground lots. */
 export function planStockpileDeliveries(context: WriteContext, options: StockpilePlanningOptions): readonly EntityId[] {
+  const batchQuantity = options.batchQuantity ?? MAX_QUANTITY;
+  if (!validInt(batchQuantity) || batchQuantity === 0) throw new Error("invalid stockpile delivery batch quantity");
   const cells = context.query(query(StockpileCell));
   if (cells.length > MAX_CELLS) throw new Error("stockpile cell bound exceeded");
   const cellIds = new Set(cells.map(row => row.id));
@@ -114,12 +118,15 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
     return right.priority - left.priority || compareId(a.id, b.id);
   });
   const created: EntityId[] = [];
+  const plannedIds = new Set(tasks.map(task => task.id));
   const sourceLots = lots.map(row => ({ id: row.id, lot: row.get(MaterialLot) }))
     .filter(({ id, lot }) => (ground.has(lot.container) || sourceCell.has(lot.container) || exhaustedFinite.has(lot.container)) && lot.quantity > 0 && validInt(lot.quantity))
     .sort((a, b) => compareId(a.id, b.id));
   for (const row of orderedCells) {
     if (sealed.has(row.id) || !containers.has(row.id) || !positions.has(row.id)) continue;
     const policy = row.get(StockpileCell);
+    const party = owners.get(row.id);
+    if (!party) throw new Error("stockpile cell has no party owner");
     const profile = options.filterProfiles[policy.filterProfile];
     const container = containers.get(row.id);
     if (!container || !profile || typeof profile !== "object" || !profile.materialCategories || typeof profile.materialCategories !== "object" || !Array.isArray(profile.allowedCategories) || profile.allowedCategories.length > 64 || (profile.allowedMaterials !== undefined && !Array.isArray(profile.allowedMaterials)) || (profile.deniedMaterials !== undefined && !Array.isArray(profile.deniedMaterials)) || !validText(policy.filterProfile) || !validInt(container.capacity) || container.capacity <= 0) continue;
@@ -140,27 +147,34 @@ export function planStockpileDeliveries(context: WriteContext, options: Stockpil
       if (prior && policy.priority <= prior.priority) continue;
       const sourceContainer = source.lot.container;
       if (!containers.has(sourceContainer)) continue;
+      const sourceParty = owners.get(source.id) ?? owners.get(sourceContainer);
+      if (sourceParty && sourceParty !== party) continue;
       let available = source.lot.quantity - (reservedByLot.get(source.id) ?? 0);
       const sourceKey = `${source.lot.container}\0${source.lot.kind}`;
       available = Math.min(available, (sourceMaterialTotals.get(sourceKey) ?? 0) - (reservedBySourceMaterial.get(sourceKey) ?? 0));
       if (available <= 0) continue;
       const legKey = `${row.id}\0${source.id}`;
       let leg = nextLegByLot.get(legKey) ?? 0;
-      const quantity = Math.min(available, free);
-      if (!validInt(quantity) || quantity <= 0) continue;
-      let id = taskId(row.id, source.id, leg);
-      while (tasks.some(task => task.id === id)) { leg++; id = taskId(row.id, source.id, leg); }
-      context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
-        version: 2, party: owners.get(row.id) ?? owners.get(sourceContainer) ?? entity("host"), sourceLot: source.id, source: sourceContainer, destination: row.id,
-        material: source.lot.kind, quantity, custody: "available",
+      while (available > 0 && free > 0) {
+        const quantity = Math.min(available, free, batchQuantity);
+        if (!validInt(quantity) || quantity <= 0) break;
+        let id = taskId(row.id, source.id, leg);
+        while (plannedIds.has(id)) { leg++; id = taskId(row.id, source.id, leg); }
+        context.createAuthoredEntity({ id, components: { [DeliveryTask.id]: {
+          version: 2, party, sourceLot: source.id, source: sourceContainer, destination: row.id,
+          material: source.lot.kind, quantity, custody: "available",
             ground: null,
-      }}}, { kind: "host" });
-      created.push(id);
-      reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
-      reservedBySourceMaterial.set(sourceKey, (reservedBySourceMaterial.get(sourceKey) ?? 0) + quantity);
-      free -= quantity;
-      incomingByCell.set(row.id, (incomingByCell.get(row.id) ?? 0) + quantity);
-      nextLegByLot.set(legKey, leg + 1);
+        }}}, { kind: "party", party });
+        plannedIds.add(id);
+        created.push(id);
+        reservedByLot.set(source.id, (reservedByLot.get(source.id) ?? 0) + quantity);
+        reservedBySourceMaterial.set(sourceKey, (reservedBySourceMaterial.get(sourceKey) ?? 0) + quantity);
+        available -= quantity;
+        free -= quantity;
+        incomingByCell.set(row.id, (incomingByCell.get(row.id) ?? 0) + quantity);
+        leg++;
+      }
+      nextLegByLot.set(legKey, leg);
     }
   }
   return created;

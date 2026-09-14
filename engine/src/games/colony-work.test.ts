@@ -31,7 +31,7 @@ function reconciliationContext(kind: "dig" | "tree", attempt: WorkAttempt | null
     row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 1, z: 0, facing: 0 }], [PartyMember, { party: id("party") }]])),
   ];
   if (kind === "tree") records.push(
-    row("tree", new Map([[ColonyTree, { phase: "felled" }], [ColonyTreePolicy, { designated: true }], [Position, { x: 1, y: 1, z: 1 }], [Container, { capacity: 6 }], [FiniteResource, { kind: "wood", quantity: 6 }], [OwnedByParty, { party: id("party") }]])),
+    row("tree", new Map([[ColonyTree, { phase: "felled" }], [ColonyTreePolicy, { designated: true, party: id("party") }], [Position, { x: 1, y: 1, z: 1 }], [Container, { capacity: 6 }], [FiniteResource, { kind: "wood", quantity: 6 }]])),
   );
   const writes: Array<readonly [unknown, EntityId, unknown]> = [], actions: ActionRequest[] = [], removed: EntityId[] = [];
   let projectedAttempt = attempt;

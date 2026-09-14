@@ -54,7 +54,14 @@ function buildFinished(session: GameSession, catalog: string, cell: readonly [nu
     const site = session.query(query(ConstructionSite)).find(row => !before.has(row.id) && row.get(ConstructionSite).catalog === catalog);
     if (site?.get(ConstructionSite).phase === "finished") return site;
   }
-  throw new Error(`Colony ${catalog} did not finish: ${JSON.stringify(session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite)))}`);
+  const sites = session.query(query(ConstructionSite));
+  const pending = sites.find(row => !before.has(row.id) && row.get(ConstructionSite).catalog === catalog);
+  throw new Error(`Colony ${catalog} did not finish: ${JSON.stringify({
+    sites: sites.map(row => ({ id: row.id, ...row.get(ConstructionSite) })),
+    deliveries: session.query(query(DeliveryTask)).map(row => ({ id: row.id, ...row.get(DeliveryTask) })),
+    lots: session.query(query(MaterialLot)).map(row => ({ id: row.id, ...row.get(MaterialLot) })),
+    access: pending ? session.constructionAccess([pending.id]) : [],
+  })}`);
 }
 
 function stablePortSnapshot(session: GameSession, structure: string) {

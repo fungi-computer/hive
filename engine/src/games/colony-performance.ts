@@ -37,8 +37,8 @@ export function createColonyPerformancePack(
   const treeCount = 50;
   const existingTrees = initial.filter(record => record.components["colony.tree"]);
   for (const record of existingTrees) {
-    const policy = record.components["colony.tree-policy"] as { designated: boolean } | undefined;
-    if (policy) record.components["colony.tree-policy"] = { ...policy, designated: true };
+    const policy = record.components["colony.tree-policy"] as { designated: boolean; party: string | null } | undefined;
+    if (policy) record.components["colony.tree-policy"] = { ...policy, designated: true, party: "colony.local-party" };
   }
   const visualNames = ["colony.rowan", "colony.sedge"];
   for (let index = 2; index < workerCount; index++) {
@@ -49,6 +49,8 @@ export function createColonyPerformancePack(
       "hive.body": { speed: 2 }, "hive.container": { capacity: 3 },
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: visualNames[index % visualNames.length], label: `Worker ${index + 1}` },
+      "hive.party-member": { party: "colony.local-party" },
+      "hive.owned-by-party": { party: "colony.local-party" },
       "colony.worker": { guest: false }, "hive.work-participation": { automatic: true },
       "hive.delivery-control": { enabled: false, quantity: 1 },
     } });
@@ -60,7 +62,7 @@ export function createColonyPerformancePack(
     initial.push({ id, components: {
       "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 },
       "colony.tree": { phase: "standing" }, "hive.finite-resource": { kind: "wood", quantity: 6 },
-      "colony.tree-policy": { designated: true },
+      "colony.tree-policy": { designated: true, party: "colony.local-party" },
     } });
     initial.push({ id: `${id}.order`, components: {
       "colony.tree-order": { tree: id, phase: "queued", stage: "fell", seconds: 0, reason: "" },

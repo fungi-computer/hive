@@ -166,6 +166,7 @@ export type ActionRequest =
   | { readonly kind: "admit-process"; readonly process: EntityId; readonly definition: string; readonly station: EntityId }
   | {
       readonly kind: "designate-stockpile";
+      readonly party: EntityId;
       readonly zone: EntityId;
       readonly cells: readonly {
         readonly x: number;
@@ -176,7 +177,7 @@ export type ActionRequest =
         readonly capacity: number;
       }[];
     }
-  | { readonly kind: "update-stockpile"; readonly zone: EntityId; readonly filterProfile: string; readonly priority: number }
+  | { readonly kind: "update-stockpile"; readonly party: EntityId; readonly zone: EntityId; readonly filterProfile: string; readonly priority: number }
   | {
       readonly kind: "set-structure-open";
       readonly worker: EntityId;

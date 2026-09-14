@@ -44,15 +44,18 @@ export const colonyStockpileCommand = command({
   input: colonyStockpileInputSchema,
   reads: [],
   writes: [],
-  run: (_context, value) => ({
-    writes: [],
-    actions: [designateStockpile(zoneFor(value.area), cellsFor(value.area).map(cell => ({
-      ...cell,
-      priority: value.priority,
-      filterProfile: value.filterProfile,
-      capacity: STOCKPILE_CAPACITY,
-    })))],
-  }),
+  run: (context, value) => {
+    if (context.scope.kind !== "player") throw new Error("stockpile designation requires a player party");
+    return {
+      writes: [],
+      actions: [designateStockpile(context.scope.party, zoneFor(value.area), cellsFor(value.area).map(cell => ({
+        ...cell,
+        priority: value.priority,
+        filterProfile: value.filterProfile,
+        capacity: STOCKPILE_CAPACITY,
+      })))],
+    };
+  },
 });
 
 export const colonyStockpilePolicyCommand = command({
@@ -67,11 +70,12 @@ export const colonyStockpilePolicyCommand = command({
   ] },
   input: colonyStockpilePolicyInputSchema,
   subjects: context => context.query(query(StockpileCell)).map(row => row.id),
-  reads: [], writes: [],
+  reads: [StockpileCell], writes: [],
   run: (context, value) => {
     const cell = context.query(query(StockpileCell)).find(row => row.id === value.cell);
     if (!cell) throw new Error("Choose a stockpile cell");
     const current = cell.get(StockpileCell);
-    return { writes: [], actions: [updateStockpile(entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority ?? current.priority)] };
+    if (context.scope.kind !== "player") throw new Error("stockpile update requires a player party");
+    return { writes: [], actions: [updateStockpile(context.scope.party, entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority ?? current.priority)] };
   },
 });

@@ -101,7 +101,7 @@ mod work_attempt_laws {
     }
 
     #[test]
-    fn begin_requires_one_real_party_to_own_worker_and_task() {
+    fn begin_rejects_a_task_owned_by_another_party() {
         let mut kernel = world();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"other"}}},
@@ -113,6 +113,17 @@ mod work_attempt_laws {
         assert_eq!(result.unwrap_err(), "work attempt task is outside party");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), "[]");
         assert_eq!(kernel.query_json("[\"hive.destination\"]").unwrap(), "[]");
+    }
+
+    #[test]
+    fn begin_allows_a_party_worker_to_claim_an_unowned_world_task() {
+        let mut kernel = world();
+        let mut unowned: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+        unowned.scene.initial.iter_mut().find(|record| record.id == "task").unwrap().components.remove("hive.owned-by-party");
+        kernel.restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap();
+        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap().contains("worker"), true);
     }
 
     #[test]
@@ -142,13 +153,18 @@ mod work_attempt_laws {
     }
 
     #[test]
-    fn restore_rejects_attempts_without_task_ownership_or_valid_frames() {
+    fn restore_accepts_unowned_world_tasks_but_rejects_foreign_tasks_and_invalid_frames() {
         let mut kernel = world();
         kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
 
         let mut unowned: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         unowned.scene.initial.iter_mut().find(|record| record.id == "task").unwrap().components.remove("hive.owned-by-party");
-        assert_eq!(Kernel::new().restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap_err(), "work attempt reference is outside party");
+        Kernel::new().restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap();
+
+        let mut foreign: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+        foreign["scene"]["initial"].as_array_mut().unwrap().push(json!({"id":"other","components":{"hive.party":{"ownerPlayer":"other"}}}));
+        foreign["scene"]["initial"].as_array_mut().unwrap().iter_mut().find(|record| record["id"] == "task").unwrap()["components"]["hive.owned-by-party"] = json!({"party":"other"});
+        assert_eq!(Kernel::new().restore_json(&serde_json::to_string(&foreign).unwrap()).unwrap_err(), "work attempt reference is outside party");
 
         let mut missing_frame: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         let AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { destination }, .. } = &mut missing_frame.work_attempts[0].phase else { panic!("expected route attempt") };
@@ -1047,10 +1063,8 @@ mod construction_tests {
         let floor_id = "floor-bed-0";
         let support = crate::generation::Cell { x: bed_origin.x, y: bed_origin.y, z: bed_origin.z };
         let original_floor = kernel.ecs.get::<ConstructionSite>(kernel.entity(floor_id).unwrap()).unwrap().clone();
-        let base = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
-        kernel.environment.as_mut().unwrap().structures.insert("floor-alt-2".into(), crate::environment_definition::StructureDefinition { id: "floor-alt-2".into(), ..base });
-        let replacement_cost: u64 = kernel.environment.as_ref().unwrap().structures.get("floor-alt-2").unwrap().materials.values().map(|quantity| u64::from(*quantity)).sum();
-        let queued: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"replace-floor","orderId":"replace-bed-floor","existingFloorId":"floor-bed-0","desiredCatalog":"floor-alt-2"}}]}"#).unwrap()).unwrap();
+        let replacement_cost: u64 = kernel.environment.as_ref().unwrap().structures.get("floor-alt").unwrap().materials.values().map(|quantity| u64::from(*quantity)).sum();
+        let queued: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"replace-floor","orderId":"replace-bed-floor","existingFloorId":"floor-bed-0","desiredCatalog":"floor-alt"}}]}"#).unwrap()).unwrap();
         assert_eq!(queued["results"][0]["accepted"], true, "{queued}");
         let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(r#"["replace-bed-floor"]"#).unwrap()).unwrap();
         let selected = &access[0]["contacts"][0];
@@ -1073,11 +1087,12 @@ mod construction_tests {
             kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         }
         let replaced = kernel.ecs.get::<ConstructionSite>(kernel.entity(floor_id).unwrap()).unwrap();
-        assert_eq!(replaced.catalog, "floor-alt-2");
+        let resumed_bed_entity = kernel.entity("bed-1").unwrap();
+        assert_eq!(replaced.catalog, "floor-alt");
         assert_eq!((replaced.x, replaced.y, replaced.z, replaced.orientation), (original_floor.x, original_floor.y, original_floor.z, original_floor.orientation));
         assert_eq!(kernel.environment.as_ref().unwrap().world.structure_instances().iter().filter(|instance| matches!(instance, crate::structure_geometry::StaticInstance::Floor { id, support: actual } if id == floor_id && *actual == support)).count(), 1);
-        assert_eq!(record(kernel.ecs.get::<ConstructionSite>(bed_entity).unwrap()), bed_before);
-        assert_eq!(record(kernel.ecs.get::<Position>(bed_entity).unwrap()), position_before);
+        assert_eq!(record(kernel.ecs.get::<ConstructionSite>(resumed_bed_entity).unwrap()), bed_before);
+        assert_eq!(record(kernel.ecs.get::<Position>(resumed_bed_entity).unwrap()), position_before);
         assert_eq!(record(kernel.ecs.get::<Container>(kernel.entity("bed-1:sleep").unwrap()).unwrap()), sleep_before);
         let sleep_lot_after = kernel.ecs.get::<Lot>(kernel.entity(&sleep_lot_id).unwrap()).unwrap();
         assert_eq!((&sleep_lot_after.kind, sleep_lot_after.quantity, &sleep_lot_after.container), (&sleep_lot_before.kind, sleep_lot_before.quantity, &sleep_lot_before.container));
@@ -1276,12 +1291,12 @@ mod construction_tests {
     #[test]
     fn native_stockpile_designation_creates_surface_cell_and_rejects_mixed_batch() {
         let (mut kernel, surface, _) = world();
-        let action = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}}]});
+        let action = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&action.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true);
         assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap().contains("zone-a"), true);
         let before = kernel.query_json("[\"hive.stockpile-cell\"]").unwrap();
-        let bad = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}}]});
+        let bad = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}}]});
         let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&bad.to_string()).unwrap()).unwrap();
         assert_eq!(rejected["results"][0]["accepted"], false);
         assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap(), before);
@@ -1292,7 +1307,7 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         setup(&mut kernel, surface, &contact);
         kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[]}).to_string()).unwrap();
-        let designation = |zone: &str, cell: crate::generation::Cell, capacity: u32| json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","zone":zone,"cells":[{"x":cell.x,"y":cell.y,"z":cell.z,"priority":2,"filterProfile":"materials","capacity":capacity}]}}]});
+        let designation = |zone: &str, cell: crate::generation::Cell, capacity: u32| json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":zone,"cells":[{"x":cell.x,"y":cell.y,"z":cell.z,"priority":2,"filterProfile":"materials","capacity":capacity}]}}]});
         let ground = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", surface, 4).to_string()).unwrap()).unwrap();
         assert_eq!(ground["results"][0]["accepted"], true);
         let stockpile_id = ground["results"][0]["entityId"].as_str().unwrap();
@@ -1317,7 +1332,7 @@ mod construction_tests {
         assert_eq!(after_entities, before_entities);
         assert_eq!(after_shrink.environment.as_ref().map(|(_, records)| (&records.header, &records.terrain, &records.water, &records.structures)), before_shrink.environment.as_ref().map(|(_, records)| (&records.header, &records.terrain, &records.water, &records.structures)));
         let before = kernel.query_json("[\"hive.stockpile-cell\"]").unwrap();
-        let mixed = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","zone":"ground-zone","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3},{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3}]}}]});
+        let mixed = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"ground-zone","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3},{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3}]}}]});
         let rejected = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&mixed.to_string()).unwrap()).unwrap();
         assert_eq!(rejected["results"][0]["accepted"], false);
         assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap(), before);
@@ -3308,6 +3323,13 @@ impl Kernel {
         Ok(())
     }
     fn validate_work_attempt_relations(&self) -> Result<()> {
+        let not_owned_by_another_party = |id: &str, party: &str| -> Result<Entity> {
+            let entity = self.entity(id)?;
+            if self.ecs.get::<OwnedByParty>(entity).is_some_and(|owner| owner.party != party) {
+                return Err("work attempt reference is outside party".into());
+            }
+            Ok(entity)
+        };
         let owned_by_attempt_party = |id: &str, party: &str| -> Result<Entity> {
             let entity = self.entity(id)?;
             if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) {
@@ -3331,7 +3353,7 @@ impl Kernel {
             if self.ecs.get::<PartyMember>(worker).map(|member| member.party.as_str()) != Some(attempt.party.as_str()) {
                 return Err("work attempt worker is outside party".into());
             }
-            owned_by_attempt_party(task, &attempt.party)?;
+            not_owned_by_another_party(task, &attempt.party)?;
             let activity = match &attempt.phase {
                 AttemptPhase::Executing { activity, .. } | AttemptPhase::Outcome { activity, .. } => activity,
                 AttemptPhase::Ready | AttemptPhase::Settling { .. } => return Err("work attempt has no recoverable activity".into()),
@@ -4011,8 +4033,10 @@ impl Kernel {
         Ok(())
     }
 
-    fn designate_stockpile(&mut self, zone: String, cells: Vec<StockpileDesignation>) -> Result<String> {
-        if !valid_id(&zone) || cells.is_empty() || cells.len() > 256 { return Err("invalid stockpile designation".into()); }
+    fn designate_stockpile(&mut self, party: String, zone: String, cells: Vec<StockpileDesignation>) -> Result<String> {
+        if !valid_id(&party) || !valid_id(&zone) || cells.is_empty() || cells.len() > 256 { return Err("invalid stockpile designation".into()); }
+        let party_entity = self.entity(&party)?;
+        if self.ecs.get::<Party>(party_entity).is_none() { return Err("stockpile party is not a party".into()); }
         let environment = self.environment.as_mut().ok_or("stockpile designation requires generated terrain")?;
         let spacing = environment.world.cell_spacing_m();
         let mut seen = BTreeSet::new();
@@ -4032,20 +4056,23 @@ impl Kernel {
             if let Some(entity) = self.ids.get(id).copied() {
                 if self.quantity(id) > u64::from(cell.capacity) { return Err("stockpile capacity is below contained lots".into()); }
                 if self.ecs.get::<StockpileCell>(entity).is_some_and(|old| old.zone != zone) { return Err("stockpile identity belongs to another zone".into()); }
+                if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("stockpile cell belongs to another party".into()); }
             }
             let position = Position { x: f64::from(cell.x)*spacing[0], y: (f64::from(cell.y)+0.5)*spacing[1], z: f64::from(cell.z)*spacing[2], facing: 0.0 };
             let policy = StockpileCell { zone: zone.clone(), priority: cell.priority, filter_profile: cell.filter_profile.clone() };
-            if let Some(entity) = self.ids.get(id).copied() { self.ecs.entity_mut(entity).insert((position, Container { capacity: cell.capacity }, policy)); }
-            else { let entity = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity: cell.capacity }, policy)).id(); self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.contents.entry(id.clone()).or_default(); }
+            let owner = OwnedByParty { party: party.clone() };
+            if let Some(entity) = self.ids.get(id).copied() { self.ecs.entity_mut(entity).insert((position, Container { capacity: cell.capacity }, policy, owner)); }
+            else { let entity = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity: cell.capacity }, policy, owner)).id(); self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.contents.entry(id.clone()).or_default(); }
         }
         self.refresh_state_weight();
         Ok(prepared[0].0.clone())
     }
 
-    fn update_stockpile(&mut self, zone: String, filter_profile: String, priority: u32) -> Result<String> {
-        if !valid_id(&zone) || !valid_id(&filter_profile) || priority == 0 || priority > 100 { return Err("invalid stockpile policy".into()); }
+    fn update_stockpile(&mut self, party: String, zone: String, filter_profile: String, priority: u32) -> Result<String> {
+        if !valid_id(&party) || !valid_id(&zone) || !valid_id(&filter_profile) || priority == 0 || priority > 100 { return Err("invalid stockpile policy".into()); }
         let entities: Vec<_> = self.ids.values().copied().filter(|entity| self.ecs.get::<StockpileCell>(*entity).is_some_and(|cell| cell.zone == zone)).collect();
         if entities.is_empty() { return Err("stockpile zone does not exist".into()); }
+        if entities.iter().any(|entity| self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(party.as_str())) { return Err("stockpile zone belongs to another party".into()); }
         for entity in entities {
             let mut policy = self.ecs.get::<StockpileCell>(entity).cloned().ok_or("stockpile zone disappeared")?;
             policy.filter_profile = filter_profile.clone();
@@ -4297,7 +4324,7 @@ impl Kernel {
         let worker_entity = self.entity(&worker)?;
         if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("work attempt worker is outside party".into()); }
         let task_entity = self.entity(&task)?;
-        if self.ecs.get::<OwnedByParty>(task_entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("work attempt task is outside party".into()); }
+        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != party) { return Err("work attempt task is outside party".into()); }
         let generation = self.next_work_generation;
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
@@ -4599,8 +4626,8 @@ impl Kernel {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
             }
-            Action::DesignateStockpile { zone, cells } => self.designate_stockpile(zone, cells).map(ActionEffect::Entity),
-            Action::UpdateStockpile { zone, filter_profile, priority } => self.update_stockpile(zone, filter_profile, priority).map(ActionEffect::Entity),
+            Action::DesignateStockpile { party, zone, cells } => self.designate_stockpile(party, zone, cells).map(ActionEffect::Entity),
+            Action::UpdateStockpile { party, zone, filter_profile, priority } => self.update_stockpile(party, zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station, scope).map(ActionEffect::Entity),
             Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
             Action::CancelWork { entity } => {
@@ -4811,7 +4838,14 @@ impl Kernel {
             Action::RequestProcess { station, .. } => targets.push(station.as_str()),
             Action::AdmitProcess { process, station, .. } => { targets.push(process.as_str()); targets.push(station.as_str()); }
             Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
-            Action::DesignateStockpile { zone, .. } | Action::UpdateStockpile { zone, .. } => targets.push(zone.as_str()),
+            Action::DesignateStockpile { party: action_party, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+            }
+            Action::UpdateStockpile { party: action_party, zone, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+                let cells: Vec<_> = self.ids.values().copied().filter(|entity| self.ecs.get::<StockpileCell>(*entity).is_some_and(|cell| cell.zone == *zone)).collect();
+                if cells.is_empty() || cells.iter().any(|entity| self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(party.as_str())) { return Err("scoped stockpile zone is outside party".into()); }
+            }
             Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
             Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
             Action::PlanConstruction { party: action_party, .. } => {

@@ -7,11 +7,12 @@ fn plan() -> Value {
 fn plan_for(sequence: u64, first: &str, second: &str) -> Value {
     let party = format!("party:{sequence}");
     let player = format!("player:{sequence}");
+    let x = (sequence - 1) as f64 * 4.0;
     json!([
  {"id":party,"components":{"hive.party":{"ownerPlayer":player}}},
- {"id":first,"components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
- {"id":second,"components":{"hive.position":{"x":2.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
- {"id":format!("{party}:storage"),"components":{"hive.position":{"x":0.0,"y":0.0,"z":2.0,"facing":0.0},"hive.container":{"capacity":8},"hive.owned-by-party":{"party":party}}}
+ {"id":first,"components":{"hive.position":{"x":x,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
+ {"id":second,"components":{"hive.position":{"x":x + 2.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
+ {"id":format!("{party}:storage"),"components":{"hive.position":{"x":x,"y":0.0,"z":2.0,"facing":0.0},"hive.container":{"capacity":8},"hive.owned-by-party":{"party":party}}}
     ])
 }
 fn request(binding: &str, records: Value) -> Value {
