@@ -6,7 +6,7 @@ import { colonyConstructionVisuals } from "../games/colony-construction-visuals"
 import { ConstructionSite } from "../sdk/construction";
 const id = entity("site.floor");
 const contact = { position: { x: -1, y: 2, z: 0 }, facing: 0 };
-const art = { id, pose: { position: { x: 0, y: 2, z: 0 }, facing: 2 }, visual: "floor", label: "Floor" };
+const art = { id, pose: { position: { x: 0, y: 2, z: 0 }, facing: 2 }, visual: "floor", label: "Floor", pickable: false };
 test("static entity display keeps identity and contact without a second entity", () => {
   const facts = [{ id, pose: contact, local: contact, visual: null }];
   const result = appendVisualProjections(facts, [art], () => [true], 512);
@@ -20,6 +20,13 @@ test("projection rejects missing entities, duplicate projections and existing ar
   assert.throws(() => appendVisualProjections([], [art], () => [false], 512));
   assert.throws(() => appendVisualProjections([], [art, art], () => [true, true], 512));
   assert.throws(() => appendVisualProjections([{ id, visual: "worker" }], [art], () => [true], 512));
+});
+
+test("projection preserves explicit pickability for real projected entities", () => {
+  const selectable = appendVisualProjections([], [{ ...art, pickable: true }], () => [true], 512);
+  const hidden = appendVisualProjections([], [{ ...art, pickable: false }], () => [true], 512);
+  assert.equal(selectable[0].view?.pickable, true);
+  assert.equal(hidden[0].view?.pickable, false);
 });
 
 test("construction placement survives projection for fixture and stair art", () => {
@@ -36,6 +43,7 @@ test("construction placement survives projection for fixture and stair art", () 
     { kind: "footprint", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]], orientation: "east" },
     { kind: "stair", entrance: [0, 0, 0], landing: [0, 2.16, 2], orientation: "south" },
   ]);
+  assert.deepEqual(result.map(fact => fact.view?.pickable), [true, true, true]);
 });
 
 test("projection rejects malformed placement values at the boundary", () => {

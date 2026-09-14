@@ -37,7 +37,7 @@ export function colonyConstructionVisuals(context: Pick<ReadContext, "query">) {
       : shape.kind === "stair"
         ? { kind: "stair" as const, entrance: [0, 0, 0] as const, landing: [0, shape.rise * colonyEnvironment.world.verticalMetres, shape.run] as const, orientation: site.orientation }
         : undefined;
-    return { id, cutawayTop: geometry.top, visual, label: `${site.catalog} · ${site.phase}`, ...(placement ? { placement } : {}),
+    return { id, cutawayTop: geometry.top, visual, label: `${site.catalog} · ${site.phase}`, pickable: true, ...(placement ? { placement } : {}),
       pose: { position: { x: site.x, y: geometry.surface * colonyEnvironment.world.verticalMetres, z: site.z }, facing } };
   });
 }

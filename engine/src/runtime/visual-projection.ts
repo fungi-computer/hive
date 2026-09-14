@@ -6,6 +6,7 @@ export interface EntityVisualProjection {
   readonly pose: Pose;
   readonly visual: string;
   readonly label: string;
+  readonly pickable: boolean;
   readonly cutawayTop?: number;
   readonly placement?: VisualPlacement;
 }
@@ -50,6 +51,7 @@ export function appendVisualProjections(
     if (original && (original.visual || original.collision || original.direct || original.aim || original.support))
       throw new Error("visual projection cannot replace an existing visual or dynamic body");
     if (projection.cutawayTop !== undefined && !Number.isSafeInteger(projection.cutawayTop)) throw new Error("invalid visual cutaway level");
+    if (typeof projection.pickable !== "boolean") throw new Error("invalid visual pickability");
     if (projection.placement !== undefined && !validVisualPlacement(projection.placement)) throw new Error("invalid visual placement");
     const point = projection.pose?.position;
     if (!point || ![point.x, point.y, point.z, projection.pose.facing].every(Number.isFinite) ||
@@ -67,6 +69,6 @@ export function appendVisualProjections(
   for (const item of projections) existing.set(item.id, { ...existing.get(item.id), id: item.id, visual: item.visual, label: item.label,
     pose: { position: { ...item.pose.position }, facing: item.pose.facing },
     ...(item.placement === undefined ? {} : { placement: structuredClone(item.placement) }),
-    view: { pickable: false, ...(item.cutawayTop === undefined ? {} : { cutawayTop: item.cutawayTop }) } });
+    view: { pickable: item.pickable, ...(item.cutawayTop === undefined ? {} : { cutawayTop: item.cutawayTop }) } });
   return [...existing.values()];
 }
