@@ -555,6 +555,16 @@ mod construction_tests {
         let phase = kernel.ecs.get::<ConstructionSite>(kernel.entity(site).unwrap()).unwrap().phase;
         let final_access = kernel.construction_access_json(&serde_json::to_string(&[site]).unwrap()).unwrap();
         assert_eq!(phase, ConstructionPhase::Finished, "{site}: {final_access}");
+        // The fixture's finished operation has been observed; acknowledge it
+        // so later fixture construction can reuse the worker through the same
+        // durable terminal boundary as the provider.
+        if let Some(attempt_entity) = kernel.work_attempts.get(site).copied() {
+            if let Some(attempt) = kernel.ecs.get::<WorkAttempt>(attempt_entity).cloned() {
+                if let (AttemptPhase::Outcome { operation, .. }, true) = (&attempt.phase, attempt.key.task == site) {
+                    kernel.acknowledge_work_attempt(site.to_string(), attempt.key.generation, operation.sequence).expect("fixture terminal acknowledgement");
+                }
+            }
+        }
     }
 
     fn source_stone_lot(kernel: &Kernel) -> String {
@@ -1081,6 +1091,21 @@ mod construction_tests {
         assert!(lots.contains("\"quantity\":1"));
         assert_eq!(sealed, "[]");
         assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
+        let attempt: serde_json::Value = serde_json::from_str(&kernel.work_attempts_json(r#"["site-wall"]"#).unwrap()).unwrap();
+        assert!(attempt[0]["phase"]["kind"] == "outcome");
+        assert_eq!(attempt[0]["phase"]["result"]["kind"], "blocked");
+        assert!(!kernel.attempts_by_worker.contains_key("worker-1"));
+
+        // Once the physical obstruction is removed, the retained designation
+        // and staged lot can be acquired by another worker.
+        let bystander = kernel.entity("worker-2").unwrap();
+        kernel.ecs.entity_mut(bystander).insert(Position { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, facing: 0.0 });
+        let replacement_worker = kernel.entity("worker-3").unwrap();
+        kernel.ecs.entity_mut(replacement_worker).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+        kernel.rebuild_physical_indexes(true).unwrap();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-3","site":"site-wall","contact":contact}]}).to_string()).unwrap();
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        assert!(kernel.query_json(r#"["hive.sealed-container"]"#).unwrap().contains("site-wall"));
     }
 
     #[test]

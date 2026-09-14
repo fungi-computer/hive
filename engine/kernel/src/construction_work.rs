@@ -694,9 +694,11 @@ impl Kernel {
             state.seconds = earned_work_seconds(state.seconds, delta, definition.work_seconds)?;
             self.ecs.entity_mut(self.entity(&site_id)?).insert(state.clone());
             if state.seconds < definition.work_seconds { continue; }
-            if !self.complete_construction(&site_id, &state)? {
-                self.release_construction_worker(&site_id, state)?;
+            if self.complete_construction(&site_id, &state)? {
                 if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Completed })?; } }
+            } else {
+                self.release_construction_worker(&site_id, state)?;
+                if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::UnsupportedStructure } })?; } }
             }
         }
         self.refresh_state_weight();
