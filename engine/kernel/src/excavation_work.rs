@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn repeated_requests_do_not_multiply_work_and_progress_recovers() {
         let (mut kernel,work)=fixture();
-        let action=json!({"kind":"excavate","entity":"worker","x":work.x,"y":work.y,"z":work.z,"expected":work.expected,"replacement":0});
+        let action=json!({"scope":{"kind":"host"},"request":{"kind":"excavate","entity":"worker","x":work.x,"y":work.y,"z":work.z,"expected":work.expected,"replacement":0}});
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[action.clone(),action.clone(),action]}).to_string()).unwrap();
         let actor=kernel.entity("worker").unwrap();
         assert_eq!(kernel.ecs.get::<ExcavationWork>(actor).unwrap().seconds,1.0);

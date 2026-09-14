@@ -837,10 +837,6 @@ function digProvider(
     .map((row) => row.get(DeliveryTask));
   const occupied = new Set<EntityId>([
     ...excavating,
-    ...ctx.query(query(ConstructionSite)).flatMap((row) => {
-      const site = row.get(ConstructionSite);
-      return site.worker === null ? [] : [site.worker];
-    }),
     ...deliveries.flatMap((task) => (task.actor ? [task.actor] : [])),
   ]);
   const claims = orders.map((row) => ({
@@ -892,7 +888,7 @@ function digProvider(
       candidateFacts,
     ),
   ).filter((candidate) => {
-    const owner = orderOwners.get(candidate.order)?.party;
+    const owner = orderOwners.get(candidate.order);
     return !owner || memberships.get(candidate.worker) === owner;
   });
   const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
@@ -972,7 +968,7 @@ function digProvider(
     progress() {
       for (const row of activeOrders) {
         const state = row.get(ColonyDigOrder);
-        const owner = orderOwners.get(row.id)?.party;
+        const owner = orderOwners.get(row.id);
         if (owner && state.actor !== null && memberships.get(state.actor) !== owner) continue;
         if (state.actor !== null && suspendedActors.has(state.actor)) continue;
         if (obstructed(state)) {
