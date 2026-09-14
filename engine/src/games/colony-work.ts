@@ -30,7 +30,6 @@ import {
   Support,
   Surface,
   Traversal,
-  excavate,
   extractResource,
   establishResourceSite,
   tendResourceSite,
@@ -40,7 +39,7 @@ import {
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
 import { OwnedByParty, PartyMember } from "../sdk/party";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, workAttempt } from "../sdk/work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, workAttempt } from "../sdk/work-attempt";
 
 export type ColonyResourcePhase = "sow" | "waiting" | "tend" | "harvest" | "submitting-sow" | "submitting-tend" | "submitting-harvest" | "complete";
 type ColonyResourceOrderState = {
@@ -596,106 +595,6 @@ const treeWorkProvider = (
 };
 
 /** Reconcile one claimed order with native movement/work; never settle cargo. */
-function progressClaimedDig(
-  ctx: WriteContext,
-  id: EntityId,
-  state: DigOrder,
-  position: Vec3,
-) {
-  if (state.actor === null) return;
-  if (state.phase === "approaching") {
-    const failedMove = ctx.outcomes.find((outcome) => {
-      if (
-        outcome.action.kind !== "move" ||
-        outcome.action.entity !== state.actor ||
-        outcome.result.accepted
-      )
-        return false;
-      const destination = outcome.action.destination;
-      return (
-        destination.x === state.approachX &&
-        destination.y === state.approachY &&
-        destination.z === state.approachZ
-      );
-    });
-    if (failedMove) {
-      ctx.write(ColonyDigOrder, id, {
-        ...state,
-        actor: null,
-        phase: "blocked",
-        reason: failedMove.result.reason ?? "movement did not complete",
-      });
-      return;
-    }
-    if (distance(position, orderPoint(state)) <= 0.05) {
-      ctx.write(ColonyDigOrder, id, {
-        ...state,
-        phase: "excavating",
-        reason: "",
-      });
-      ctx.action(
-        excavate(
-          state.actor,
-          { x: state.cellX, y: state.cellY, z: state.cellZ },
-          state.expected,
-          air,
-        ),
-      );
-    } else {
-      const supportY = Math.round(state.approachY / verticalMetres - 0.5);
-      const [support, clearance] = ctx.terrainMaterials([
-        [Math.round(state.approachX), supportY, Math.round(state.approachZ)],
-        [
-          Math.round(state.approachX),
-          supportY + 1,
-          Math.round(state.approachZ),
-        ],
-      ]);
-      if (support === air || clearance !== air) {
-        ctx.write(ColonyDigOrder, id, {
-          ...state,
-          actor: null,
-          phase: "queued",
-          reason: "Approach changed",
-        });
-        return;
-      }
-      // Move owns route repair.  Reissuing the same destination is idempotent
-      // while its route is healthy, and asks the native owner to rebuild when
-      // topology invalidation left the retained terrain route waiting.
-      ctx.action(move(state.actor, orderPoint(state)));
-    }
-  } else if (state.phase === "excavating") {
-    if (
-      ctx.query(query(ExcavationWork)).some((item) => item.id === state.actor)
-    )
-      return;
-    const material = ctx.terrainMaterials([
-      [state.cellX, state.cellY, state.cellZ],
-    ])[0];
-    if (material !== air) {
-      const failed = ctx.outcomes.find(
-        (outcome) =>
-          outcome.action.kind === "excavate" &&
-          outcome.action.entity === state.actor &&
-          outcome.action.x === state.cellX &&
-          outcome.action.y === state.cellY &&
-          outcome.action.z === state.cellZ &&
-          !outcome.result.accepted,
-      );
-      ctx.write(ColonyDigOrder, id, {
-        ...state,
-        actor: null,
-        phase: "blocked",
-        reason: failed?.result.reason ?? "excavation did not complete",
-      });
-      return;
-    }
-    // Rust already released the finite ground pile. Hauling is independent.
-    ctx.removeAuthoredEntity(id);
-  }
-}
-
 function digApproaches(
   state: Pick<DigOrder, "cellX" | "cellY" | "cellZ">,
   designatedCells: ReadonlySet<string>,
@@ -769,6 +668,7 @@ function digProvider(
   suspendedActors: ReadonlySet<EntityId>,
 ): PreparedWorkProvider<DigCandidate> {
   const orders = ctx.query(query(ColonyDigOrder));
+  const attempts = new Map((ctx.workAttempts?.(orders.map(row => row.id)) ?? []).map(attempt => [attempt.key.task, attempt]));
   const orderOwners = new Map(ctx.query(query(OwnedByParty)).map((row) => [row.id, row.get(OwnedByParty).party]));
   const memberships = new Map(ctx.query(query(PartyMember)).map((row) => [row.id, row.get(PartyMember).party]));
   const workers = new Set(
@@ -804,10 +704,7 @@ function digProvider(
     .query(query(DeliveryTask))
     .map((row) => row.get(DeliveryTask));
   const occupied = new Set<EntityId>(excavating);
-  const claims = orders.map((row) => ({
-    task: row.id,
-    actor: row.get(ColonyDigOrder).actor,
-  }));
+  const claims = orders.map((row) => ({ task: row.id, actor: attempts.get(row.id)?.worker ?? null }));
 
   // Keep every order claimed, but only inspect a rotating bounded window.  The
   // native terrain APIs have their own input bounds and old orders must not
@@ -860,6 +757,7 @@ function digProvider(
   const prepared = candidates.filter(
     (candidate) =>
       !occupied.has(candidate.worker) &&
+      !attempts.has(candidate.task) &&
       claimByTask.get(candidate.task) === null,
   );
   const best = new Map<
@@ -917,17 +815,10 @@ function digProvider(
           .find((row) => row.id === candidate.order)
           ?.get(ColonyDigOrder);
         if (!state) continue;
-        ctx.write(ColonyDigOrder, candidate.order, {
-          ...state,
-          expected: candidate.expected,
-          actor: candidate.worker,
-          phase: "approaching",
-          reason: "",
-          approachX: approach.x,
-          approachY: approach.y,
-          approachZ: approach.z,
-        });
-        ctx.action(move(candidate.worker, approach));
+        const party = orderOwners.get(candidate.order);
+        if (!party) continue;
+        ctx.write(ColonyDigOrder, candidate.order, { ...state, expected: candidate.expected, approachX: approach.x, approachY: approach.y, approachZ: approach.z, reason: "" });
+        beginRouteWorkAttempt(ctx, candidate.order, candidate.worker, party, approach);
       }
     },
     progress() {
@@ -954,10 +845,12 @@ function digProvider(
           continue;
         }
         if (assigned.has(row.id)) continue;
-        if (!state.actor) continue;
-        const pose = positions.get(state.actor);
-        if (!pose) continue;
-        progressClaimedDig(ctx, row.id, state, pose.world);
+        const attempt = attempts.get(row.id);
+        if (!attempt || attempt.phase.kind !== "outcome") continue;
+        const phase = attempt.phase;
+        if (phase.result.kind !== "completed") { acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); continue; }
+        if (phase.activity.kind === "route") continueExcavationWorkAttempt(ctx, attempt.key, phase.operation.sequence, [state.cellX, state.cellY, state.cellZ], state.expected, air);
+        else if (phase.activity.kind === "excavation") { ctx.removeAuthoredEntity(row.id); acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence); }
       }
     },
   };
