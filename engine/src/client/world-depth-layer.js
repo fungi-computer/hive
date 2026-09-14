@@ -227,6 +227,8 @@ export function createWorldDepthLayer({ width, height, resolution = 1, roleOrder
     if (!bounds) {
       container.removeChildren();
       for (const [key, record] of records) { destroyWorldDepthRecord(record); records.delete(key); opaqueDestroyed++; }
+      transparentContainer.removeChildren();
+      for (const [key, record] of transparentRecords) { destroyWorldDepthRecord(record); transparentRecords.delete(key); transparentDestroyed++; }
       return null;
     }
     const ordered = [...visible].sort((a, b) => compareWorldDepthItems(a, b, roleOrder));

@@ -142,11 +142,18 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
     lifecycleAfter.transparent.created === lifecycleBefore.transparent.created &&
     lifecycleAfter.transparent.destroyed === lifecycleBefore.transparent.destroyed;
   const cutawayPick = layer.picker.pick(pickPoints.bed);
+  const lifecycleBeforeEmpty = layer.diagnostics();
+  layer.update([], WORLD_TOWARD_CAMERA);
+  const lifecycleAfterEmpty = layer.diagnostics();
+  const emptyLifecycleStable = lifecycleAfterEmpty.opaque.active === 0 && lifecycleAfterEmpty.transparent.active === 0 &&
+    lifecycleAfterEmpty.opaque.destroyed >= lifecycleBeforeEmpty.opaque.active &&
+    lifecycleAfterEmpty.transparent.destroyed >= lifecycleBeforeEmpty.transparent.active;
   const result = Object.freeze({
     status: "rendered",
     permutationStable: frames[0].checksum === frames[1].checksum && frames[0].nonzero === frames[1].nonzero && outputs[0]?.entityId === outputs[1]?.entityId,
     lifecycleStable,
-    diagnostics: lifecycleAfter,
+    emptyLifecycleStable,
+    diagnostics: lifecycleAfterEmpty,
     picked: outputs.map((value) => value?.entityId ?? null),
     pointPicks,
     candidates: visibleItems.length,
@@ -158,7 +165,7 @@ export async function runRetainedWorldDepthAcceptance({ renderer, width = 640, h
     waterFrontChanged,
     waterBehindChanged,
   });
-  if (!result.permutationStable || !result.lifecycleStable || result.pointPicks.bed.entityId !== "bed" || result.pointPicks.person.entityId !== "person-front" || result.pointPicks.bottom.entityId !== "stair-bottom" || result.pointPicks.mid.entityId !== "stair-mid" || result.pointPicks.landing.entityId !== "stair-landing" || result.pointPicks.opaque.entityId !== "opaque-wall" || result.pointPicks.opaque.target !== null || cutawayPick?.entityId !== "bed" || result.waterFrontChanged <= result.waterBehindChanged)
+  if (!result.permutationStable || !result.lifecycleStable || !result.emptyLifecycleStable || result.pointPicks.bed.entityId !== "bed" || result.pointPicks.person.entityId !== "person-front" || result.pointPicks.bottom.entityId !== "stair-bottom" || result.pointPicks.mid.entityId !== "stair-mid" || result.pointPicks.landing.entityId !== "stair-landing" || result.pointPicks.opaque.entityId !== "opaque-wall" || result.pointPicks.opaque.target !== null || cutawayPick?.entityId !== "bed" || result.waterFrontChanged <= result.waterBehindChanged)
     throw new Error(`retained-world-depth-acceptance-failed:${JSON.stringify(result)}`);
   layer.dispose();
   terrainLayer.dispose();
