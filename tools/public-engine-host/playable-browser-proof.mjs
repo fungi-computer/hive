@@ -95,7 +95,7 @@ const screenshot = async (page, name) => {
   evidence.screenshots.push(name);
 };
 const waitForReady = async (page) => {
-  await page.getByText(/Online · server saved|Online · server saved/i).waitFor({ state: "visible", timeout: 45_000 });
+  await page.getByText("Online · server saved", { exact: true }).first().waitFor({ state: "visible", timeout: 45_000 });
   await page.getByRole("button", { name: "Select Rowan", exact: true }).waitFor({ state: "visible", timeout: 20_000 });
 };
 const resizeAndResetCamera = async (page) => {
@@ -135,21 +135,25 @@ try {
   let latestObservation;
   let latestTerrain;
   const commandResponseById = new Map();
+  const acceptSocketPayload = (payload) => {
+    try {
+      const value = JSON.parse(Buffer.isBuffer(payload) ? payload.toString("utf8") : String(payload));
+      if (value?.type === "observation" && value.observation) {
+        if (value.observation.terrain) latestTerrain = value.observation.terrain;
+        latestObservation = { ...value, observation: { ...value.observation, terrain: latestTerrain } };
+      }
+    } catch {
+      evidence.errors.push("observation frame was not JSON");
+    }
+  };
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Network.enable");
+  cdp.on("Network.webSocketFrameReceived", ({ response }) => acceptSocketPayload(response.payloadData));
   page.on("pageerror", error => evidence.errors.push(`pageerror: ${error.message}`));
   page.on("console", message => { if (message.type() === "error") evidence.errors.push(`console: ${message.text()}`); });
   page.on("requestfailed", request => evidence.errors.push(`request: ${request.url()} · ${request.failure()?.errorText ?? "failed"}`));
   page.on("websocket", socket => {
-    socket.on("framereceived", payload => {
-      try {
-        const value = JSON.parse(String(payload));
-        if (value?.type === "observation" && value.observation) {
-          if (value.observation.terrain) latestTerrain = value.observation.terrain;
-          latestObservation = { ...value, observation: { ...value.observation, terrain: latestTerrain } };
-        }
-      } catch {
-        evidence.errors.push("observation frame was not JSON");
-      }
-    });
+    socket.on("framereceived", ({ payload }) => acceptSocketPayload(payload));
   });
   page.on("response", async response => {
     if (!response.url().includes("/v2/colony/worlds/")) return;
@@ -188,8 +192,9 @@ try {
   assert.equal(response?.status(), 200, `Clearing frontend returned ${response?.status()}`);
   await waitForReady(page);
   const resetCanvas = await resizeAndResetCamera(page);
-  await page.waitForFunction(() => true, null, { timeout: 100 });
-  await page.waitForTimeout(300);
+  const terrainDeadline = Date.now() + 20_000;
+  while (!latestObservation?.observation?.terrain?.surfaces?.length && Date.now() < terrainDeadline)
+    await new Promise(resolve => setTimeout(resolve, 100));
   assert(latestObservation?.observation?.terrain?.surfaces?.length, "authoritative terrain observation was not received");
   assert(evidence.join?.status === 200, "fresh world join receipt was not observed");
   assert.equal(evidence.join.people.length, 2, "fresh party must contain two people");

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BufferImageSource, Texture } from "pixi.js";
+import { BufferImageSource, Texture, UniformGroup } from "pixi.js";
 import { writeDepth24 } from "../../../src/art/depth-image.js";
 import { atlasFrameUV, createWorldDepthLayer, worldDepthGeometrySignature, worldDepthItemKey } from "./world-depth-layer.js";
 
@@ -25,6 +25,17 @@ test("geometry signature includes both atlas dimensions", () => {
 
 test("layer rejects invalid sizes before allocating render resources", () => {
   assert.throws(() => createWorldDepthLayer({ width: 0, height: 10 }), /invalid world depth layer size/);
+});
+
+test("Pixi depth uniforms use the live UniformGroup values", () => {
+  const group = new UniformGroup({
+    uOriginDepth: { value: 0, type: "f32" },
+  });
+  group.uniforms.uOriginDepth = 4;
+  assert.equal(group.uniforms.uOriginDepth, 4);
+  assert.equal(group.uniformStructures.uOriginDepth.value, 0,
+    "Pixi copies live values out of the declaration records");
+  assert.doesNotMatch(String(createWorldDepthLayer), /uOriginDepth\.value/);
 });
 
 function texture(r, g, b, a = 255) {
