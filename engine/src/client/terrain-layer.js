@@ -6,6 +6,7 @@ import { createTerrainSceneCache, terrainBandScene, TERRAIN_DETAIL_HEIGHT } from
 import { terrainChunkKey, terrainFaceBounds, terrainColumnMap } from "../../../src/art/terrain-faces.js";
 import { project } from "./geometry.js";
 import { registerVisibleTexture, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
+import { planTerrainBandUpdates } from "./terrain-band-plan.js";
 
 const WIDTH = 2304,
   HEIGHT = 1536,
@@ -170,7 +171,7 @@ export function createTerrainLayer() {
       container.addChild(sprite);
       sprite.__terrainBounds = bounds;
       const hitArea = visibleHitAreaFor(sprite.texture, { x: 0, y: 0 });
-      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains(point.x - sprite.x, point.y - sprite.y) });
+      sortableItems.push({ id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains((point.x - sprite.x) / sprite.scale.x, (point.y - sprite.y) / sprite.scale.y) });
     }
   }
 

@@ -963,6 +963,7 @@ export function createHiveClient({
         sortableSprites.push({
           id: subject.id,
           role: isStatic ? "structure" : "actor",
+          pickable: subject.pickable !== false,
           display: entry.container,
           moving: !isStatic,
           footprint: subjectSortFootprint(subject, resolvedPlacement),
