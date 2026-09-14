@@ -117,7 +117,7 @@ pub struct ExcavationWork {
     pub seconds: f64,
 }
 /// Native saved deconstruction progress owned by the task entity.
-#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct DeconstructionWork {
     pub site: String,

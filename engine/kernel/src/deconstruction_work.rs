@@ -1,5 +1,6 @@
 //! Native timed deconstruction progress and exactly-once physical completion.
 use super::*;
+use crate::work_attempt::ActivityRef;
 
 impl Kernel {
     pub(super) fn validate_deconstruction_work(&mut self) -> Result<()> {
@@ -24,7 +25,7 @@ impl Kernel {
         if let Some(existing) = self.ecs.get::<DeconstructionWork>(task_entity) {
             if existing.site != work.site || existing.contact_x != work.contact_x || existing.contact_y != work.contact_y || existing.contact_z != work.contact_z || existing.required_seconds != work.required_seconds { return Err("task already has different deconstruction work".into()); }
         } else {
-            self.ecs.entity_mut(task_entity).insert(work);
+            self.ecs.entity_mut(task_entity).insert(work.clone());
             self.refresh_state_weight();
         }
         Ok(())
@@ -33,7 +34,7 @@ impl Kernel {
     pub(super) fn advance_deconstruction(&mut self, delta: f64) -> Result<()> {
         if delta <= 0.0 { return Ok(()); }
         let mut query = self.ecs.query::<(&ExternalId, &DeconstructionWork)>();
-        let pending: Vec<_> = query.iter(&self.ecs).map(|(id, work)| (id.0.clone(), *work)).collect();
+        let pending: Vec<_> = query.iter(&self.ecs).map(|(id, work)| (id.0.clone(), work.clone())).collect();
         for (task, mut work) in pending {
             let task_entity = self.entity(&task)?;
             let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity).cloned() else { continue; };
@@ -44,7 +45,7 @@ impl Kernel {
             let pose = self.world_pose(&attempt.worker)?;
             if (pose.x - contact.x).powi(2) + (pose.y - contact.y).powi(2) + (pose.z - contact.z).powi(2) > 1.5_f64.powi(2) { continue; }
             work.seconds = super::earned_work_seconds(work.seconds, delta, work.required_seconds)?;
-            self.ecs.entity_mut(task_entity).insert(work);
+            self.ecs.entity_mut(task_entity).insert(work.clone());
             if work.seconds < work.required_seconds { continue; }
             match self.deconstruct_construction(&attempt.worker, &work.site) {
                 Ok(()) => {
