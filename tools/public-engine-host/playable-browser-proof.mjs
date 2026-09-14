@@ -229,6 +229,24 @@ try {
       occupied.add(`${surface.cell[0]},${surface.cell[2]}`);
     return occupied;
   };
+  const canvas = resetCanvas;
+  const selectionCanvas = await canvasBox(page);
+  const actionDock = await page.locator(".hive-action-dock").boundingBox();
+  const surfaceMargin = 40;
+  const selectionBounds = {
+    left: selectionCanvas.x + surfaceMargin,
+    right: selectionCanvas.x + selectionCanvas.width - surfaceMargin,
+    top: selectionCanvas.y + surfaceMargin,
+    bottom: Math.min(
+      selectionCanvas.y + selectionCanvas.height - surfaceMargin,
+      actionDock ? actionDock.y - surfaceMargin : selectionCanvas.y + selectionCanvas.height - surfaceMargin,
+    ),
+  };
+  const projectedSurfaceVisible = (surface) => {
+    const point = projectedCell(surface.cell, latestObservation.observation.terrain.verticalMetres, selectionCanvas);
+    return point.x >= selectionBounds.left && point.x <= selectionBounds.right &&
+      point.y >= selectionBounds.top && point.y <= selectionBounds.bottom;
+  };
   const reservedSurfaceCells = new Set();
   const freeSurface = ({ level, adjacentTo } = {}) => {
     const terrain = latestObservation?.observation?.terrain;
@@ -238,6 +256,7 @@ try {
       if (surface.material !== 1 || reservedSurfaceCells.has(cellKey(cell))) return false;
       if (level !== undefined && cell[1] !== level) return false;
       if (occupied.has(`${cell[0]},${cell[2]}`)) return false;
+      if (!projectedSurfaceVisible(surface)) return false;
       if (adjacentTo && Math.abs(cell[0] - adjacentTo[0]) + Math.abs(cell[2] - adjacentTo[2]) !== 1) return false;
       return true;
     });
@@ -252,7 +271,6 @@ try {
   assert.equal(commandCount(), afterSelection, "selecting a person issued a world command");
   record("selection has no side effect", { commandsAfterSelection: afterSelection });
 
-  const canvas = resetCanvas;
   const beforeDraft = commandCount();
   const noDraftTarget = freeSurface();
   const noDraftPoint = projectedCell(noDraftTarget.cell, latestObservation.observation.terrain.verticalMetres, canvas);
@@ -415,7 +433,8 @@ try {
     const surfaces = new Map((terrain?.surfaces ?? []).map(surface => [cellKey(surface.cell), surface]));
     const clear = (cell) => {
       const surface = surfaces.get(cellKey(cell));
-      return surface?.material === 1 && !reservedSurfaceCells.has(cellKey(cell)) && !occupied.has(`${cell[0]},${cell[2]}`);
+      return surface?.material === 1 && !reservedSurfaceCells.has(cellKey(cell)) &&
+        !occupied.has(`${cell[0]},${cell[2]}`) && projectedSurfaceVisible(surface);
     };
     for (const origin of terrain?.surfaces ?? []) {
       const [x, y, z] = origin.cell;
