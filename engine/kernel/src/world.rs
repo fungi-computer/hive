@@ -3171,6 +3171,7 @@ impl Kernel {
         candidate.ground_stock_cleanup_pending = true;
         candidate.validate_party_relations()?;
         candidate.validate_work_attempt_relations()?;
+        candidate.validate_deconstruction_work()?;
         *self = candidate;
         Ok(())
     }

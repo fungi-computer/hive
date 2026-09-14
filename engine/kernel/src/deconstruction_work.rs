@@ -44,8 +44,7 @@ impl Kernel {
         let site_entity = self.entity(&site)?;
         let site_party = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction site has no party owner")?.party.clone();
         if site_party != attempt.party { return Err("deconstruction continuation party mismatch".into()); }
-        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|task_owner| task_owner.party != site_party) { return Err("deconstruction task party mismatch".into()); }
-        if self.ecs.get::<OwnedByParty>(task_entity).is_none() { self.ecs.entity_mut(task_entity).insert(OwnedByParty { party: site_party }); }
+        if self.ecs.get::<OwnedByParty>(task_entity).map(|task_owner| task_owner.party.as_str()) != Some(site_party.as_str()) { return Err("deconstruction task party mismatch".into()); }
         let work = DeconstructionWork { site, contact_x: contact.x, contact_y: contact.y, contact_z: contact.z, seconds: 0.0, required_seconds };
         if let Some(existing) = self.ecs.get::<DeconstructionWork>(task_entity) {
             if existing.site != work.site || existing.contact_x != work.contact_x || existing.contact_y != work.contact_y || existing.contact_z != work.contact_z || existing.required_seconds != work.required_seconds { return Err("task already has different deconstruction work".into()); }
@@ -103,11 +102,13 @@ mod tests {
 
     fn saved(task_owner: Option<&str>, site_owner: &str) -> String {
         let task_owner = task_owner.map(|party| json!({"party": party}));
-        let mut initial = vec![json!({"id":"site","components":{"hive.owned-by-party":{"party":site_owner}}}), json!({"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}})];
+        let mut initial = vec![json!({"id":"site","components":{"hive.owned-by-party":{"party":site_owner}}}), json!({"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}}), json!({"id":"other","components":{"hive.party":{"ownerPlayer":"other"}}})];
         let mut task = json!({"id":"task","components":{"hive.deconstruction-work":{"site":"site","contactX":0.0,"contactY":0.0,"contactZ":0.0,"seconds":1.0,"requiredSeconds":2.0}}});
         if let Some(owner) = task_owner { task["components"]["hive.owned-by-party"] = owner; }
         initial.push(task);
-        json!({"format":"hive-game","version":1,"game":"deconstruction-tests","components":[{"id":"hive.deconstruction-work","version":1,"fields":{"site":"entity","contactX":"number","contactY":"number","contactZ":"number","seconds":"number","requiredSeconds":"number"}}],"initial":initial}).to_string()
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"deconstruction-tests","components":[],"initial":initial}).to_string()).unwrap();
+        kernel.snapshot_json().unwrap()
     }
 
     #[test]
