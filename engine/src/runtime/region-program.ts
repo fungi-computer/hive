@@ -55,14 +55,15 @@ export interface SessionResident {
 function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope): unknown {
   switch (command.kind) {
     case "action":
-      session.request(command.action);
+      const action = command.action;
+      session.request(action);
       // Party establishment is a durable join effect and must settle now.
-      if (command.action.kind === "establish-party") {
+      if (action.kind === "establish-party") {
         const result = session.step(0);
-        const party = session.query(query(Party)).find(row => row.id === command.action.party)?.get(Party);
-        const receipt = session.query(query(PartyReceipt)).find(row => row.get(PartyReceipt).bindingId === command.action.bindingId)?.get(PartyReceipt);
-        const people = session.query(query(PartyMember)).filter(row => row.get(PartyMember).party === command.action.party);
-        if (!party || !receipt || receipt.player !== command.action.player || receipt.party !== command.action.party || people.length !== 2) throw new Error("party-establish-corrupt");
+        const party = session.query(query(Party)).find(row => row.id === action.party)?.get(Party);
+        const receipt = session.query(query(PartyReceipt)).find(row => row.get(PartyReceipt).bindingId === action.bindingId)?.get(PartyReceipt);
+        const people = session.query(query(PartyMember)).filter(row => row.get(PartyMember).party === action.party);
+        if (!party || !receipt || receipt.player !== action.player || receipt.party !== action.party || people.length !== 2) throw new Error("party-establish-corrupt");
         return result;
       }
       return [];
