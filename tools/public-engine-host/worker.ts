@@ -40,6 +40,7 @@ import { PartyMember } from "../../engine/src/sdk/party";
 import { query } from "../../engine/src/sdk/authoring";
 import { Position } from "../../engine/src/sdk/common";
 import type { EntityId } from "../../engine/src/contracts";
+import { runColonyJoinTransaction } from "./colony-join-owner";
 
 type Environment = {
   REGIONS: DurableObjectNamespace;
@@ -61,8 +62,8 @@ type HostRow = {
 type WorldRow = { singleton: number; format_version: number; world_handle: string; pack: string; invite_hash: string };
 type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: string };
 
-/** Shared join transaction seam used by the DO and host law tests. */
-export async function runColonyJoinTransaction(options: {
+/* legacy local copy removed */
+/*
   readonly transaction: <T>(operation: () => T | Promise<T>) => Promise<T>;
   readonly owner: RegionSqliteOwner;
   readonly credentialHash: string;
@@ -82,7 +83,7 @@ export async function runColonyJoinTransaction(options: {
     options.owner.sql.exec("INSERT INTO hive_public_participants VALUES (?,?,?,?)", options.credentialHash, options.principal, options.player, options.party);
     return { player: options.player, party: options.party, people: options.people };
   });
-}
+}*/
 type SocketAttachment = {
   readonly pack: PublicPack;
   readonly tokenHash: string;

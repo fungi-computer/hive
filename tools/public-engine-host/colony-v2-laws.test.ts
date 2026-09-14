@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { colonyBindingId, colonyWorldRoute } from "./protocol";
 import { createColonyPartyPlan } from "../../engine/src/games/colony-party";
 import { entity } from "../../engine/src/sdk/authoring";
+import { runColonyJoinTransaction } from "./colony-join-owner";
 
 test("v2 world routing keeps world identity separate from socket handles", () => {
   const world = "a".repeat(64);
@@ -52,13 +53,17 @@ test("lost join response retries the identical membership without a second party
   const binding = await colonyBindingId(world, credential);
   const membership = { player: `player:${binding.slice(0, 24)}`, party: `party:${binding.slice(0, 24)}` };
   const db = new DatabaseSync(":memory:");
-  db.exec("CREATE TABLE participants (credential_hash TEXT PRIMARY KEY, player_id TEXT UNIQUE, party_id TEXT UNIQUE)");
-  const save = db.prepare("INSERT INTO participants VALUES (?,?,?)");
-  save.run(credential, membership.player, membership.party); // commit happened; response was lost
-  const replay = db.prepare("SELECT player_id AS player, party_id AS party FROM participants WHERE credential_hash=?").get(credential);
+  db.exec("CREATE TABLE hive_public_participants (credential_hash TEXT PRIMARY KEY, principal TEXT UNIQUE, player_id TEXT UNIQUE, party_id TEXT UNIQUE)");
+  const owner = { sql: { exec: (statement: string, ...bindings: any[]) => ({ toArray: () => db.prepare(statement).all(...bindings) }) }, transactionSync: (operation: any) => operation() } as any;
+  let dispatches = 0;
+  const join = () => runColonyJoinTransaction({ transaction: async operation => operation(), owner, credentialHash: credential, principal: `participant:${credential}`, bindingId: binding, player: membership.player, party: membership.party, people: ["party:person:0", "party:person:1"], dispatch: () => { dispatches++; return { status: "applied", result: { results: [{ accepted: true }] } }; } });
+  db.prepare("INSERT INTO hive_public_participants VALUES (?,?,?,?)").run(credential, `participant:${credential}`, membership.player, membership.party); // commit happened; response was lost
+  const replay = await join();
+  const replayAgain = await join();
   assert.equal(replay.player, membership.player);
-  assert.equal(replay.party, membership.party);
-  assert.equal(db.prepare("SELECT count(*) AS count FROM participants").get().count, 1);
+  assert.equal(replayAgain.party, membership.party);
+  assert.equal(dispatches, 0);
+  assert.equal(db.prepare("SELECT count(*) AS count FROM hive_public_participants").get().count, 1);
   db.close();
 });
 
