@@ -315,7 +315,10 @@ remains `clearing-garden`; do not quietly substitute another URL as completion.
    one stair/facing with actor between rails and exact empty recomposition. Then
    finish all facings/stages/cutaways and connected wall art. Shared client edits
    from steps 3/4 have one writer at a time or explicit nonoverlapping custody.
-5. Integrate coherent pinned chunks and run affected laws/types/Fallow. Build the
+5. Add the bounded terrain surface/cliff outcome in section I after the shared
+   geometry and art contracts are reviewed. It must not hold the independent
+   performance-page repair or a coherent playable repair release.
+6. Integrate coherent pinned chunks and run affected laws/types/Fallow. Build the
    actual artifact, inspect one bounded room interaction scene, correct defects,
    then publish/read back the pair and run the changed hosted interaction.
 
@@ -399,3 +402,81 @@ default, then cover size routes without claiming population capacity from those
 startup checks. Preserve size/worker selections and existing performance meaning.
 No performance improvement claim follows from repairing startup. Record any
 subsequent runtime error separately and correct it before calling the page usable.
+
+## I. Coherent terrain patches, dual-grid transitions and readable cliffs
+
+Levi accepted this as part of the existing terrain/edge/art work on September 14.
+The desired clearing has grassy areas, bare earth, rocky places and damp low
+ground, not independently randomized checkerboard tiles. This is a bounded
+landscape improvement, not permission for another environment simulation.
+
+### Owners and generation
+
+Read the maintained Rust generator, terrain queries and current terrain-layer
+consumer before changing their contracts. Extend the existing versioned generator;
+do not generate a competing world in the renderer. Use seeded, spatially coherent
+variation together with existing elevation/material/water facts to choose patches.
+Separate actual soil/stone material from decorative surface cover. Exposed rock
+must agree with the material queried by digging; grass tufts do not create items.
+Do not invent moisture accounting just to color damp ground. Use an existing
+authoritative moisture fact where available; otherwise describe generated wetland
+appearance honestly, without claiming live saturation. Gameplay changes follow
+the existing terrain/environment mutation owners.
+
+Same seed, version and coordinates must produce identical results regardless of
+chunk request order. Sample neighboring cells across chunk boundaries rather than
+restarting patterns at each chunk. Preserve edited terrain and current-format
+reload. A generator/format change cannot silently alter an existing world's land.
+No preset hearth, settlement or building is required to produce attractive land.
+
+### Art and transitions
+
+Reference: https://github.com/jess-hammer/dual-grid-tilemap-system-godot
+(Jess Hammer's implementation accompanying the video Levi supplied). Its binary
+four-cell choice has 16 combinations; that does not mean 16 assets cover arbitrary
+mixtures of grass, dirt, rock, heights and water. Implement independently through
+our original Three-to-Pixi authoring/bake owner.
+
+Keep physical voxel cells unchanged. Derive offset display patches from four
+neighboring same-surface cells; select their transition artwork with a stable
+four-corner mask. Start with a base material and grass cover transitions, then
+rock/bare-earth treatment with explicit deterministic layer precedence. Avoid a
+combinatorial tileset for every material mixture. Author consistent inner/outer
+corners and resolve diagonal-only contact consistently without changing movement.
+Do not smooth a transition across incompatible heights or bridge a real hole.
+Keep fixed lighting: rotating a logical mask does not justify rotating baked
+shadows. Root personally reviews representative original-art renders.
+
+Real exposed cliff faces receive a restrained grass lip at an actual grassy top,
+darker earth/root trim and soil/stone sides matching the underlying material.
+Straight edges and inside/outside corners must join; stacked drops must not repeat
+a grass cap on every buried voxel. Dig/fill and layer changes invalidate affected
+terrain artwork through the existing cache owner. A cutaway through solid ground
+gets a readable section, not a fabricated grassy cliff. No decorative physics,
+extra blocking geometry, per-pixel runtime depth or separate edge registry.
+
+The tree erased by terrain in Levi's screenshot remains a separate ordering
+defect to diagnose against the actual terrain/subject sorter. Edge art cannot
+conceal that bug or count as its correction.
+
+### Sequence, bounds and proof
+
+First review one scene containing coherent grass/dirt/rock patches, a straight
+cliff, inside/outside corner, dug notch, two elevations and trees on both sides.
+Then apply the same definitions and renderer to the actual Clearing. Reuse chunk
+residency and visible terrain caching; no whole-world scan or tile regeneration
+every frame. A changed cell invalidates its dependent display patches and exposed
+faces locally. Rendering these transitions never advances water, gas or work.
+
+Record focused evidence for seed/request-order determinism and chunk seams;
+all binary masks plus representative three-material contacts; digging/filling and
+cutaway updates; intact tree occlusion and matching picking; unchanged material
+queries; current-format reload; bounded rebuild counts and personally viewed art.
+Unit mask checks alone are not visual acceptance.
+
+Traffic-worn paths and future routes between generated encampments share this
+surface presentation but are follow-on outcomes. Paths must follow actual traffic
+or authored/generated route intent, not appear because the renderer guessed one.
+Do not add encampments, a road planner or a wear simulation to finish this slice.
+Neither future feature blocks the current repair release. Record this limitation
+explicitly rather than claiming this terrain slice implements path wear.
