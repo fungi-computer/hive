@@ -192,9 +192,9 @@ export function createTerrainLayer() {
       depthContext.drawImage(patch.depthCanvas, bounds.left, bounds.top);
       camera.clearViewOffset();
     }
+    copyTerrainDepthPixels(depthPixels, depthContext.getImageData(0, 0, WIDTH, HEIGHT).data);
     colorTexture.source.update();
     depthTexture.source.update();
-    copyTerrainDepthPixels(depthPixels, depthContext.getImageData(0, 0, WIDTH, HEIGHT).data);
   }
 
   function makeDrawItem() {
