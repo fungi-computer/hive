@@ -28,6 +28,25 @@ export function structureSurfaceFromSprite(node, subject, point, displayed, proj
   }).sort((left, right) => left.distance - right.distance || left.surface.cell.join(",").localeCompare(right.surface.cell.join(",")))[0].surface;
 }
 
+/**
+ * Pick the foremost alpha hit that resolves to a canonical structure surface.
+ * `orderedSprites` is the final sorter order (back to front), so walking it
+ * backwards preserves the same visual precedence while allowing actors,
+ * trees, and other static props to fall through.
+ */
+export function structureSurfaceFromOrderedSprites(orderedSprites, subjects, hitPoint, projectedPoint, displayed, project) {
+  const byId = subjects instanceof Map
+    ? subjects
+    : new Map((subjects ?? []).filter(subject => subject?.id !== undefined).map(subject => [subject.id, subject]));
+  for (let index = (orderedSprites?.length ?? 0) - 1; index >= 0; index -= 1) {
+    const node = orderedSprites[index];
+    if (node?.visible === false || node?.role !== "structure" || node.contains?.(hitPoint) !== true) continue;
+    const surface = structureSurfaceFromSprite(node, byId.get(node.target ?? node.id), projectedPoint, displayed, project);
+    if (surface) return surface;
+  }
+  return null;
+}
+
 /** Pure helpers for the shared, retained-style construction tool. */
 export function buildControls(controls) {
   const groups = new Map();

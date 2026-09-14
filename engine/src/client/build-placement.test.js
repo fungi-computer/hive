@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl, structureSurfaceFromSprite } from "./build-placement.js";
+import { buildControls, defaultBuildMode, nextOrientation, placementHint, placementMode, selectedBuildControl, structureSurfaceFromOrderedSprites, structureSurfaceFromSprite } from "./build-placement.js";
 
 const controls = [
   { id: "floor", command: "build", target: "world-surface", input: { catalog: "timber-floor" }, designation: ["point", "rectangle"] },
@@ -70,4 +70,31 @@ test("stair resolution follows actual step faces for every orientation", () => {
     assert.deepEqual(result.cell, faces[orientation][0]);
     assert.notDeepEqual(result.cell, [4, 13, 4]);
   }
+});
+
+test("ordered structure picking falls through actors and trees to the canonical structure", () => {
+  const bed = subject({ kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "north" });
+  const candidates = [
+    { id: "bed", target: "site", role: "structure", contains: () => true },
+    { id: "tree", target: "tree", role: "structure", contains: () => true },
+    { id: "actor", target: "actor", role: "actor", contains: () => true },
+  ];
+  const found = structureSurfaceFromOrderedSprites(candidates, [bed, { id: "tree" }, { id: "actor" }], { x: 4, y: 4 }, { x: 4, y: 4 }, frame([[4, 13, 4]]), project);
+  assert.deepEqual(found.cell, [4, 13, 4]);
+});
+
+test("ordered structure picking keeps the topmost resolvable structure", () => {
+  const lower = { ...subject({ kind: "footprint", footprint: [[0, 0]], orientation: "north" }), id: "lower" };
+  const upper = { ...subject({ kind: "footprint", footprint: [[0, 0]], orientation: "north" }), id: "upper", x: 5 };
+  const candidates = [
+    { id: "lower", target: "lower", role: "structure", contains: () => true },
+    { id: "upper", target: "upper", role: "structure", contains: () => true },
+  ];
+  const found = structureSurfaceFromOrderedSprites(candidates, [lower, upper], { x: 4, y: 4 }, { x: 4, y: 4 }, frame([[4, 13, 4], [5, 13, 4]]), project);
+  assert.deepEqual(found.cell, [5, 13, 4]);
+});
+
+test("transparent structure silhouettes miss and allow terrain fallback", () => {
+  const candidate = { id: "site", target: "site", role: "structure", contains: () => false };
+  assert.equal(structureSurfaceFromOrderedSprites([candidate], [subject({ kind: "footprint", footprint: [[0, 0]], orientation: "north" })], { x: 4, y: 4 }, { x: 4, y: 4 }, frame([[4, 13, 4]]), project), null);
 });
