@@ -8,6 +8,7 @@ const INPUTS = new Set([
 ]);
 import { createMachine, assign } from "xstate";
 import { spatialDesignationMachine } from "./spatial-designation.js";
+import { acquireEdgeStroke } from "./edge-gesture.js";
 
 export const WORLD_VIEW_CONTROLS = Object.freeze([
   { id: "view.level.down", key: "pagedown", delta: -1, label: "Lower" },
@@ -77,6 +78,49 @@ export const terrainTargetMachine = createMachine({
 // default rectangle mode. Build, Dig and future tools therefore share the
 // same deterministic preview/commit/cancel lifecycle.
 export const terrainAreaGestureMachine = spatialDesignationMachine;
+
+// Edge construction owns a canonical physical stroke while the persistent
+// terrain target machine owns the armed build tool. The machine receives
+// projected cells; it derives the locked grid line and inclusive edge list.
+export const edgeGestureMachine = createMachine(
+  {
+    id: "hive-edge-gesture",
+    initial: "idle",
+    context: { start: null, current: null, edges: [], committed: [], rejection: null },
+    states: {
+      idle: { on: { BEGIN_EDGE: { target: "dragging", actions: "beginEdge" } } },
+      dragging: {
+        on: {
+          MOVE_EDGE: { actions: "moveEdge" },
+          END: { target: "idle", actions: "finishEdge" },
+          CANCEL: { target: "idle", actions: "clearEdge" },
+          ESCAPE: { target: "idle", actions: "clearEdge" },
+        },
+      },
+    },
+  },
+  {
+    actions: {
+      beginEdge: assign(({ event }) => {
+        const start = { cell: [...event.edge.cell], axis: event.edge.axis };
+        return { start, current: [...start.cell], edges: [start], committed: [], rejection: null };
+      }),
+      moveEdge: assign(({ context, event }) => {
+        const cell = event.cell;
+        const current = context.start.axis === "x"
+          ? [context.start.cell[0], context.start.cell[1], cell[2]]
+          : [cell[0], context.start.cell[1], context.start.cell[2]];
+        try {
+          return { current, edges: acquireEdgeStroke(context.start, current, 256), rejection: null };
+        } catch (error) {
+          return { current, rejection: error instanceof Error ? error.message : String(error) };
+        }
+      }),
+      finishEdge: assign(({ context }) => ({ start: null, current: null, edges: [], committed: context.edges, rejection: context.rejection })),
+      clearEdge: assign({ start: null, current: null, edges: [], committed: [], rejection: null }),
+    },
+  },
+);
 
 // RTS aiming is a distinct gesture so a cannon click cannot accidentally
 // select a soldier or become a march order. Escape and a completed fire both

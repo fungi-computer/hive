@@ -22,6 +22,7 @@ import {
   isTypingTarget,
   selectionFromSubjects,
   pointerGestureMachine,
+  edgeGestureMachine,
   aimGestureMachine,
   terrainTargetMachine,
   terrainAreaGestureMachine,
@@ -52,7 +53,7 @@ import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
 import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
-import { acquireEdgeStroke, canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
+import { canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
 import { edgeWallGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
 import { createActionBarState } from "./action-bar-state.js";
 
@@ -81,7 +82,6 @@ export function createHiveClient({
   if (!commandDefinitions) throw new Error("Hive client requires owning command definitions");
   let directControl;
   let nativeBinding;
-  let edgeStroke = null;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
   let activeSelectionShortcuts = selectionShortcuts.filter((shortcut) => shortcut?.id);
   const state = {
@@ -110,6 +110,7 @@ export function createHiveClient({
       : "Runtime pending — waiting for the browser Worker.",
   };
   const gesture = createActor(pointerGestureMachine).start();
+  const edgeGesture = createActor(edgeGestureMachine).start();
   const aimGesture = createActor(aimGestureMachine).start();
   const terrainTarget = createActor(terrainTargetMachine).start();
   const terrainArea = createActor(terrainAreaGestureMachine).start();
@@ -1086,10 +1087,11 @@ export function createHiveClient({
     }
     placementGraphic.clear();
     placementGraphic.visible = false;
-    if (edgeStroke && displayed) {
+    const edge = edgeGesture.getSnapshot();
+    if (edge.value === "dragging" && displayed) {
       placementGraphic.visible = true;
-      for (const edge of edgeStroke.edges) {
-        const [worldA, worldB] = edgeSegmentEndpoints(edge, displayed.verticalMetres);
+      for (const segment of edge.context.edges) {
+        const [worldA, worldB] = edgeSegmentEndpoints(segment, displayed.verticalMetres);
         const a = project(...worldA), b = project(...worldB);
         placementGraphic.moveTo(a.x * camera.zoom + camera.x, a.y * camera.zoom + camera.y).lineTo(b.x * camera.zoom + camera.x, b.y * camera.zoom + camera.y).stroke({ color: 0xe8c779, width: 3, alpha: 0.8 });
       }
@@ -1097,8 +1099,8 @@ export function createHiveClient({
     clearPlacementGhosts(placementGhosts);
     const targetSnapshot = terrainTarget.getSnapshot();
     const buildControl = targetSnapshot.context.control?.command === "build" ? targetSnapshot.context.control : null;
-    if (edgeStroke && displayed)
-      syncPlacementGhosts(placementGhosts, edgeWallGhostSpec(edgeStroke.edges, state.subjects, bindings, displayed.verticalMetres), {
+    if (edge.value === "dragging" && displayed)
+      syncPlacementGhosts(placementGhosts, edgeWallGhostSpec(edge.context.edges, state.subjects, bindings, displayed.verticalMetres), {
         art, bindings, resolve: resolveStaticVisual, project,
         zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
         verticalMetres: displayed.verticalMetres,
@@ -1191,7 +1193,7 @@ export function createHiveClient({
       }
       if (targetControl.target === "world-edge") {
         const segment = nearestGridSegment(localPoint, project, surface.cell, displayed.verticalMetres);
-        edgeStroke = { start: { cell: [...segment.cell], axis: segment.axis }, current: [...segment.cell], edges: [{ cell: [...segment.cell], axis: segment.axis }] };
+        edgeGesture.send({ type: "BEGIN_EDGE", edge: { cell: [...segment.cell], axis: segment.axis } });
         app.canvas.setPointerCapture?.(event.pointerId); draw(); return;
       }
       if (targetControl.target === "terrain-area") {
@@ -1231,15 +1233,13 @@ export function createHiveClient({
     app.canvas.setPointerCapture?.(event.pointerId);
   }
   function pointerMove(event) {
-    if (edgeStroke) {
+    const edgeSnapshot = edgeGesture.getSnapshot();
+    if (edgeSnapshot.value === "dragging") {
       const displayed = displayedTerrainFrame();
-      if (!displayed) { edgeStroke = null; draw(); return; }
+      if (!displayed) { edgeGesture.send({ type: "CANCEL" }); draw(); return; }
       const at = point(event), local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const hovered = terrainPlaneCell(local.x, local.y, edgeStroke.start.cell[1], displayed.verticalMetres);
-      edgeStroke.current = edgeStroke.start.axis === "x"
-        ? [edgeStroke.start.cell[0], edgeStroke.start.cell[1], hovered[2]]
-        : [hovered[0], edgeStroke.start.cell[1], edgeStroke.start.cell[2]];
-      edgeStroke.edges = acquireEdgeStroke(edgeStroke.start, edgeStroke.current, 256);
+      const hovered = terrainPlaneCell(local.x, local.y, edgeSnapshot.context.start.cell[1], displayed.verticalMetres);
+      edgeGesture.send({ type: "MOVE_EDGE", cell: hovered });
       draw(); return;
     }
     if (terrainArea.getSnapshot().value === "dragging") {
@@ -1312,11 +1312,13 @@ export function createHiveClient({
     renderHud(); draw(); return;
   }
   function pointerUp(event) {
-    if (edgeStroke) {
-      const stroke = edgeStroke; edgeStroke = null;
+    const edgeSnapshot = edgeGesture.getSnapshot();
+    if (edgeSnapshot.value === "dragging") {
+      edgeGesture.send({ type: "END" });
+      const stroke = edgeGesture.getSnapshot().context;
       app.canvas.releasePointerCapture?.(event.pointerId);
       const control = terrainTarget.getSnapshot().context.control;
-      if (control) executeWhistle(control, buildPlacementCommand(control, state.selectedIds, { edges: canonicalEdges(stroke.edges), mode: "edge-line" }).input);
+      if (control && stroke.committed.length) executeWhistle(control, buildPlacementCommand(control, state.selectedIds, { edges: canonicalEdges(stroke.committed), mode: "edge-line" }).input);
       draw(); return;
     }
     if (terrainArea.getSnapshot().value === "dragging") {
@@ -1364,7 +1366,7 @@ export function createHiveClient({
   function pointerCancel(event) {
     gesture.send({ type: "CANCEL" });
     terrainArea.send({ type: "CANCEL" });
-    edgeStroke = null;
+    edgeGesture.send({ type: "CANCEL" });
     state.dragging = null;
     app.canvas.releasePointerCapture?.(event.pointerId);
     draw();
@@ -1432,7 +1434,7 @@ export function createHiveClient({
       return;
     }
     if (key === "escape" && terrainTarget.getSnapshot().value === "armed") {
-      event.preventDefault(); edgeStroke = null; terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
+      event.preventDefault(); edgeGesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
       state.message = "Selection"; closeActionBar(); renderHud(); return;
     }
     if (key === "escape" && isAiming()) { event.preventDefault(); toggleAim(); return; }
@@ -1584,6 +1586,7 @@ export function createHiveClient({
           desc: "Cancel selection",
           run: () => {
             gesture.send({ type: "CANCEL" });
+            edgeGesture.send({ type: "CANCEL" });
             if (terrainTarget.getSnapshot().value === "armed") {
               terrainArea.send({ type: "CANCEL" }); terrainTarget.send({ type: "ESCAPE" });
               state.message = "Selection";
@@ -1643,6 +1646,7 @@ export function createHiveClient({
         if (frameEpoch !== undefined && event.epoch > frameEpoch) {
           directControl?.reset();
           terrainArea.send({ type: "CANCEL" });
+          edgeGesture.send({ type: "CANCEL" });
     terrainTarget.send({ type: "CANCEL" });
           gesture.send({ type: "CANCEL" });
           state.selectedIds = [];
@@ -1786,6 +1790,7 @@ export function createHiveClient({
       actionBarRoot.unmount();
       actionBarHost.remove();
       gesture.stop();
+      edgeGesture.stop();
       terrainTarget.stop();
       terrainArea.stop();
       aimGesture.stop();
