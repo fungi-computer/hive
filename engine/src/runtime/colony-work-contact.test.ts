@@ -64,16 +64,6 @@ test("an obstructed construction delivery releases its worker and preserves the 
   const { port, session } = startSession();
   try {
     buildBrewer(session);
-    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: [5, 12, 1] } });
-    session.step(0);
-    const obstruction = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-wall");
-    assert(obstruction, `obstruction command was not accepted: ${stateDump(session)}`);
-    for (let tick = 0; tick < 600; tick++) {
-      if (session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase === "finished") break;
-      session.step(0.1);
-    }
-    assert.equal(session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase, "finished", `obstruction was not physically committed: ${stateDump(session)}`);
-
     session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [5, 13, 0] } });
     session.step(0);
     const floor = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-floor");
@@ -90,6 +80,17 @@ test("an obstructed construction delivery releases its worker and preserves the 
     }
     assert(delivery, `floor delivery was never assigned: ${stateDump(session)}`);
     const task = delivery.get(DeliveryTask);
+    const spacing = [1, 0.54, 1];
+    const obstructionCell: [number, number, number] = [Math.round(task.destinationContactX / spacing[0]), Math.round(task.destinationContactY / spacing[1] - 0.5), Math.round(task.destinationContactZ / spacing[2])];
+    session.command("build", { catalog: "timber-wall", orientation: "north", target: { cell: obstructionCell } });
+    session.step(0);
+    const obstruction = session.query(query(ConstructionSite)).find((row) => row.get(ConstructionSite).catalog === "timber-wall");
+    assert(obstruction, `obstruction command was not accepted: ${stateDump(session)}`);
+    for (let tick = 0; tick < 600; tick++) {
+      if (session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase === "finished") break;
+      session.step(0.1);
+    }
+    assert.equal(session.query(query(ConstructionSite)).find((row) => row.id === obstruction.id)?.get(ConstructionSite).phase, "finished", `obstruction was not physically committed: ${stateDump(session)}`);
     for (let tick = 0; tick < 300; tick++) session.step(0.1);
     const floorAfter = session.query(query(ConstructionSite)).find((row) => row.id === floor.id);
     const deliveryAfter = session.query(query(DeliveryTask)).find((row) => row.id === delivery.id);
