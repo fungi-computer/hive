@@ -1,5 +1,102 @@
 # Shared contacts and floor replacement
 
+## Current audit: reject conflicting plans at the native boundary
+
+September 14 source finding, not a reproduced diagnosis of the screenshot:
+`construction_work.rs::plan_construction` constructs `StaticGeometry` containing
+only the proposed instance, then creates its site/container. It does not compare
+the candidate against committed structures and pending intents there.
+`games/colony-building.ts` deduplicates catalog/coordinate/orientation-derived
+IDs; a rotated stair or another catalog has a different ID. Physical conflicts
+therefore are not established by this identity check. `prepare_structures`
+checks combined geometry, terrain and support later, at physical completion.
+`construction_status` resolves support for supplied pending sites; support alone
+is not occupancy compatibility or a shared placement admission decision.
+
+This permits intent that later cannot be completed. The screenshot's overlapping
+planned stair art is consistent with this gap but does not prove which sites are
+present, completed or incorrectly sorted. Inspect actual site targets/phases and
+art-part IDs before claiming the pictured cause fixed. Native stair traversal
+also recently needed correction because its own derived solid cells blocked its
+swept transition; verify this independently of drawing and placement admission.
+
+### One reusable placement decision
+
+The existing native construction/geometry owner must expose a read-only typed
+decision and use the same rules again during `plan_construction`. Preview uses
+this decision; command submission rechecks against the current world and all
+accepted pending intents, including earlier accepted operations in the batch.
+No client-only collision checker, per-catalog placement exception or second
+authoritative occupancy map. Derived intent indexes live at that owner and rebuild
+from saved sites; pending occupancy never becomes real support or blocks movement.
+
+```text
+placementDecision(definition, canonicalTarget, party, currentIntent):
+  normalize target and derive geometry from the existing definition owner
+  validate bounds, permission and supported target kind
+  compare occupied volume/faces with committed geometry and pending intents
+  resolve support against committed anchors and compatible declared prerequisites
+  return Ready | Waiting(prerequisites/reason) | Rejected(reason, conflicts)
+
+admitPlan(request):
+  repeat placementDecision inside the existing atomic world transition
+  reject before creating site/container/demand if Rejected
+  otherwise save accepted intent and its dependency information
+```
+
+Geometry rules must distinguish bulk occupancy, boundary faces, support/finish
+faces and required stair clearance. Use canonical footprint/run/rise/orientation,
+not sprite alpha or image bounds. Reject overlapping stair bodies, conflicting
+fixtures, duplicate boundary occupation and incompatible pending structures even
+when catalog/rotation/IDs differ. A floor finish beneath furniture remains legal;
+a floor on a wall's valid top support remains legal. Adjacent stairs or floors
+meeting at a valid landing are not automatically conflicts. Decorative rail art
+must agree with declared physical placement/clearance but does not create it.
+
+### Impossible versus waiting
+
+No worker, temporary access loss or unavailable material is not an invalid plan.
+Do not run paths for every worker during placement. Accept a supported pending
+floor/wall/stair dependency when a valid construction sequence exists; unfinished
+support is not current physical support. Reject an unrooted support cycle,
+out-of-bounds geometry and an occupancy conflict. A bare unsupported placement
+with no compatible declared support chain is rejected with a useful reason;
+this supersedes the blanket waiting-for-support permission below. Allow a batch
+to establish its own rooted prerequisites, regardless of input order.
+
+Structural impossibility is evaluated against the current world and submitted
+plans, not every hypothetical future excavation. Ordinary unreachable jobs may
+wait for access changes and must release labor. Cancelling/removing a prerequisite
+updates dependents to a visible blocked state without erasing paid supplies or
+claiming them completed. A worker standing in a valid build footprint temporarily
+delays completion; it does not make the placement permanently illegal.
+
+Evaluate prerequisite/overlap work within a bounded local query. Exhaustion is
+Deferred, not permission or permanent rejection. Concurrent conflicting commands
+serialize at the native/Region owner; only one incompatible intent is admitted.
+Batch results report accepted/unchanged/rejected/deferred targets explicitly;
+duplicate input is idempotent and cannot charge twice. Define compatible batch
+dependencies before mutation; conflicting targets receive stable reasons, never
+an accidental winner selected by input array order.
+
+### Required implementation proof
+
+- Same stair twice, rotated intersecting stairs, two catalogs sharing occupied
+  space, and crossing stairs at different levels with/without actual clearance.
+- Finished and pending conflicts, including two players' concurrent requests.
+- Floor under brewer/bed, floor on wall, adjacent stair landing, all orientations,
+  multiple storeys; cancellation of planned support and a cycle without anchors.
+- Preview and native admission agree at one revision; stale preview gets an
+  explicit rejection and leaves no site, supply demand, claim or material debit.
+- Building order permutations cannot create a final geometry that direct placement
+  rejects. Interrupted access frees workers and later resumes exactly once.
+- Render actual canonical sites with explicit planned/finished styling and one
+  declared set of parts per site. Inspect actors between stair rails, upper floor
+  contact and cutaways; distinguish draw-order bugs from invalid geometry.
+- Save/recovery rebuilds intent indexes and prerequisites; no phantom reservations.
+
+These checks apply to reusable geometry categories, not named timber-stair hacks.
+
 September 14: [Grid-edge buildings](06-edge-buildings-and-art-parts.md) supersedes
 cell-centered wall/aperture placement below. Floor/fixture datums and the shared
 contact/work ownership remain; new edge contacts must follow that packet.

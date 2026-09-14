@@ -1,5 +1,18 @@
 # Clearing repair implementation packet
 
+**Current job architecture correction (September 14):**
+[Rust-owned declarative job planning](01-work.md#rust-owned-declarative-job-planning-current-correction)
+supersedes the earlier TypeScript provider scheduling design. This migration is
+INCOMPLETE. Native physical operations and a shared matcher do not establish
+engine-owned planning. TypeScript declares game requirements; Rust owns bounded
+discovery, eligibility, assignment and execution of supported work. The water
+query batching patch is an interim bug fix, not acceptance of this architecture.
+
+[Native placement admission audit](02-construction.md#current-audit-reject-conflicting-plans-at-the-native-boundary)
+adds required geometric conflict and prerequisite checks before a construction
+intent is accepted. The screenshot's exact site/render cause remains unverified;
+the source admission gap is confirmed. C4/C5 remain unproved.
+
 **September 14 accepted design update:**
 [Grid-edge buildings and declarative art parts](06-edge-buildings-and-art-parts.md)
 owns the next construction/rendering implementation. Walls and doors move to

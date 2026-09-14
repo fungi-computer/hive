@@ -1,5 +1,110 @@
 # One work-attempt owner
 
+## Rust-owned declarative job planning (current correction)
+
+Status: required, not implemented or qualified. This section supersedes the
+TypeScript `WorkProvider` discovery/next-operation design below. Preserve the
+native attempt, physical operation, quantity, party and durable transaction
+owners already built; consolidate their orchestration rather than rewriting them.
+
+TypeScript defines recipes, inputs/outputs, work durations, station requirements,
+target designations and game policy. It validates/exports those definitions and
+submits semantic commands. It must not scan workers or material lots, search water
+contacts, schedule retries, maintain work cursors, or interpret movement outcomes
+to drive generic automatic jobs. Human/AI presentation and commands consume the
+same engine facts and admission boundary.
+
+Rust owns the reusable planning and execution mechanisms: ready/blocked task
+indexes, eligible workers, supply reservations, legal contacts, route costing,
+joint assignment, retained operation results and next-step selection. New content
+using supported behavior is configuration. New physical behavior needs a narrow
+typed engine operation, not saved callbacks or a generic scripting framework.
+
+### Concrete execution shape
+
+```text
+declare brew recipe(station, inputs, stages, outputs) in TypeScript
+submit requestProduction(recipe, station, party)
+
+inside the existing native world transition:
+  reconcile retained work outcomes and relevant changed facts
+  update pending supply/attendance work from declared requirements
+  select pending tasks and eligible workers within shared planning allowance
+  discover contacts and supplies only for selected planning work
+  cost selected pairs through the existing native route owner
+  match through the existing joint assignment owner
+  begin or continue typed work through the existing attempt owner
+  commit task transitions, reservations and physical results together
+```
+
+Requirement discovery, contact queries and candidate preparation consume the same
+bounded planning allowance as exact route evaluation; preparation cannot perform
+an unbounded scan before that allowance applies. Preserve existing assignment
+limits initially and measure changes. Native query size limits remain enforced;
+batching alone does not bound aggregate per-tick work. Exhaustion yields Deferred
+and fair continuation, never Unreachable, dropped work or a tick exception.
+Store authoritative pending intent/continuation with the world; rebuild query
+indexes after recovery. No second scheduler, claim owner or event ledger.
+
+No pending demand means no corresponding supply/contact search. Active work still
+reconciles independently of new demand. A water-hauling job is distinct from water
+simulation: rivers, groundwater and other environmental water continue under
+their physical owner regardless of worker count, pails or production orders.
+
+### Complete consumer migration and review order
+
+1. Freeze concrete typed native task/requirement inputs against water collection
+   and ordinary material delivery. Review one working shape before expanding.
+2. Move their discovery, eligibility and continuation into the native owner;
+   reuse current transfer, field-water, navigation and WorkAttempt operations.
+3. Migrate construction/deconstruction and process supply/attendance, including
+   brewing, then digging/chopping and resource establish/tend/harvest through the
+   same mechanisms. Keep actual differences explicit in typed requirements.
+4. Delete the replaced TypeScript provider scheduling, local retry windows,
+   worker/material scans and operation-result coordination. Retain definitions,
+   semantic command validation and presentation. Update every actual consumer,
+   including the performance pack, before declaring the migration complete.
+
+Affected current source: `games/colony-work.ts`, `games/colony-water-work.ts`,
+`sdk/work-system.ts`, `sdk/work-allocation.ts`, `sdk/delivery.ts`,
+`sdk/construction-work.ts`, `sdk/deconstruction-work.ts`,
+`sdk/process-supply.ts`, `sdk/process-attendance.ts`, `sdk/site-supplies.ts`.
+This is an audit scope, not an instruction to delete whole files indiscriminately.
+
+Acceptance requires sustained real Colony work at 32 and 100 workers, including
+hauling/completion and active water demand with more than 16 eligible workers.
+Three startup ticks do not establish sustained performance. Record simulation,
+snapshot/observation and client-render cost separately; compare the same workload
+and world sizes. Prove zero unnecessary contact searches without demand, bounded
+aggregate planning, fair deferred work, shared assignment, cancellation, party
+isolation, save/recovery and quantity conservation. Report failures honestly;
+provider unit tests or a Rust call beneath TypeScript orchestration are insufficient.
+
+### First implementation review and end-to-end exemplar
+
+Before expanding the first slice, name the actual native module/function/type
+owning each decision: eligibility, supply reservation, contact enumeration,
+route cost, assignment, operation continuation and completion. Read their callers
+and preserve one mutation owner. Freeze concrete request/result types using water
+collection plus ordinary delivery; the conceptual pseudocode above is not itself
+a completed API design. Do not delegate these unresolved decisions mechanically.
+
+Capture reproducible current failure and timings before changing algorithms.
+Require a productive first slice through both real Colony and performance packs,
+then expand using the same machinery. Rust placement alone is not optimization:
+eliminate repeated full worker/material scans with owner-maintained indexes and
+relevant change invalidation. Declare fair budget scheduling and measure its cost.
+
+Brewing is the full acceptance example: one recipe definition causes supply work,
+water collection, transport, attendance and conserved output with no brewing-only
+TypeScript coordinator. Missing ingredients/access leaves intent waiting with a
+specific reason and releases labor. Independent required deliveries may run in
+parallel with exact quantity reservations; workers do not alternate needlessly.
+Draft/Undraft, cancellation, topology changes, restart and two parties must retain
+goods, earned progress and authority. Human and AI observers receive the same
+pending/blocked/working facts through existing projections. No independent UI or
+AI job truth. Keep these obligations through every serial migration checkpoint.
+
 [Packet index](README.md) · [Contacts](02-construction.md) · [Parties](03-parties.md)
 
 ## Actual source being replaced

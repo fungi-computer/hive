@@ -16,9 +16,13 @@ provider arrays supplement but cannot replace physical evidence.
 | J3 | no contacts then reopened contact -> original job completes once, unrelated eligible work runs | same runtime fixture; prove physical obstruction really finished |
 | J4 | all dig/tree/resource/water/process/construction/deconstruction providers use same attempt owner | affected current provider laws + source deletion audit |
 | J5 | operation commit/lost ack/current-format restore/exact replay preserves progress, quantity, reference uniqueness | runtime/session-region-records.test.ts + native DO fixture |
+| J6 | Rust owns declarative planning for all eight automatic provider families; superseded TS orchestration deleted | 01-work.md current correction + actual consumer source audit; UNPROVED |
+| J7 | sustained 32/100-worker productive workloads, active water demand beyond 16 workers, bounded preparation and fair deferral; separate step/save/observation/render costs | real Colony/performance consumers and native budget laws; UNPROVED |
 | C1 | floor under brewer AND bed completes, identities/ports/contents unchanged | games/colony-construction.test.ts |
 | C2 | paid different finish replaces same support face, cancel/retry/save safe, no support gap | new native floor replacement laws + real Colony test |
 | C3 | alternate legal contact works; sealed/missing/frame/unsupported outcomes typed | native interaction_contact + SDK real consumer |
+| C4 | shared native plan admission rejects committed/pending geometry conflicts and unrooted prerequisites, preserves floor/furniture layering, reports stale previews and batch outcomes | 02-construction.md current audit; UNPROVED |
+| C5 | exact stair site/phase/part inspection distinguishes invalid placement, movement and rendering; rotated/multistorey intersections visually checked | 02-construction.md current audit + art-part witness; UNPROVED |
 | P1 | two credentials one world -> two parties/four people; same credential duplicate/concurrent join and commit-before-reply-loss -> same pair | public-engine-host party-join.test.ts with real SQLite Region |
 | P2 | no cross-party commands, claims or material spending; raw native actions/global pause rejected at HTTP and Region, including forged scope; host-tick work retains task party | party command + native material/attempt laws |
 | P3 | A disconnects, B renews existing world lease, A work advances with no per-party presence check; reconnect same IDs/progress | one bounded actual DO two-client witness |
