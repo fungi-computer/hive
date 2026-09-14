@@ -43,7 +43,7 @@ const sourceInventory = [
   "engine/src/games/colony-party.ts",
   "engine/src/runtime/remote-client.ts",
   "src/art/terrain-faces.js",
-  "public/generated-art/goblin-static-art-v4/manifest.json",
+  "public/generated-art/goblin-static-art-v5/manifest.json",
   "tools/public-engine-host/worker.ts",
   "tools/public-engine-host/protocol.ts",
 ].sort();
@@ -387,7 +387,7 @@ try {
   const structureFact = (fragment, supportCell) => latestObservation?.observation?.facts?.find(fact =>
     typeof fact.visual === "string" && fact.visual.includes(fragment) &&
     (!supportCell || (fact.pose?.position && Math.round(fact.pose.position.x) === supportCell[0] && Math.round(fact.pose.position.z) === supportCell[2])));
-  const artManifestResponse = await page.request.get(new URL("/engine/generated-art/goblin-static-art-v4/manifest.json", frontend).toString());
+  const artManifestResponse = await page.request.get(new URL("/engine/generated-art/goblin-static-art-v5/manifest.json", frontend).toString());
   assert.equal(artManifestResponse.status(), 200, "the public static-art manifest is unavailable");
   const artManifest = await artManifestResponse.json();
   const visualPathPrefix = (visual) => {

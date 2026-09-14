@@ -18,11 +18,11 @@ const HASH = "a".repeat(64);
 test("static art resolves from the host root on nested game routes", () => {
   assert.equal(
     new URL(STATIC_ART_BASE, "https://game.example/engine/colony").href,
-    "https://game.example/generated-art/goblin-static-art-v4/",
+    "https://game.example/generated-art/goblin-static-art-v5/",
   );
   assert.equal(
     staticArtBase("/engine/"),
-    "/engine/generated-art/goblin-static-art-v4/",
+    "/engine/generated-art/goblin-static-art-v5/",
   );
 });
 

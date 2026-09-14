@@ -1,5 +1,5 @@
-export const STATIC_ART_SCHEMA = "goblin-static-art-v4";
-export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v4";
+export const STATIC_ART_SCHEMA = "goblin-static-art-v5";
+export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v5";
 export function staticArtBase(base = "/") {
   return `${base.endsWith("/") ? base : `${base}/`}${STATIC_ART_DIRECTORY}/`;
 }

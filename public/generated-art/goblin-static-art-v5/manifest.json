@@ -1,5 +1,5 @@
 {
-  "schema": "goblin-static-art-v4",
+  "schema": "goblin-static-art-v5",
   "textureCount": 1781,
   "anchors": {
     "pawn": {
@@ -353984,11 +353984,11 @@
       },
       {
         "path": "src/art/static-manifest.js",
-        "sha256": "6e98eba957c89332cf2dceee53d235415bf48e13d4eb8e364499375a1e8cc015"
+        "sha256": "75d281d71d6837911e9577f002543467c6169924c7c19689c574b64006da2526"
       },
       {
         "path": "src/art/static-manifest.test.js",
-        "sha256": "b362f060c3ba08d834dcfaca41ac0b6d2071d3d9fcbc99807a99da088245e5b2"
+        "sha256": "f1b430402217a1a0ed4a86f6267d8c8d5b493841481b968ec17e840936e1a5b1"
       },
       {
         "path": "src/art/static-pack.js",
