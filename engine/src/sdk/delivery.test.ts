@@ -432,13 +432,34 @@ test("manual control removes a worker from automatic delivery without changing t
   assert.equal(f.state.custody, "available");
 });
 
-test("Draft after a completed route retains the outcome and launches no delivery operation", () => {
+test("Draft after a completed route reconciles custody and acknowledges for manual control", () => {
   const f = fixture();
   f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
   f.prepare(new Set([f.worker])).progress();
-  assert.deepEqual(f.actions, []);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
   assert.deepEqual(f.writes, []);
   assert.equal(f.state.custody, "available");
+});
+
+test("Draft at the destination route preserves held pickup custody and does not auto transfer or drop", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(route(), { kind: "completed" }));
+  f.prepare(new Set([f.worker])).progress();
+  assert.equal(f.state.custody, "held");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { kind: string }).kind, "acknowledge-work-attempt");
+});
+
+test("committed pickup persists held custody before continuing its destination route", () => {
+  const f = fixture({ lotContainer: entity("delivery.worker") });
+  f.setAttempt(f.makeAttempt(transfer(f.lot, f.source, f.worker), { kind: "completed" }));
+  f.prepare().progress();
+  assert.equal(f.state.custody, "held");
+  assert.equal(f.writes.length, 1);
+  assert.equal(f.actions.length, 1);
+  assert.equal((f.actions[0] as { nextActivity: { kind: string } }).nextActivity.kind, "route");
 });
 
 test("Draft after committed pickup acknowledges once and retains held lot custody", () => {
