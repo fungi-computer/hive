@@ -79,7 +79,7 @@ impl Registry {
             ("hive.construction-site", vec![
                 ("catalog", FieldType::String), ("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number),
                 ("orientation", FieldType::String),
-                ("worker", FieldType::NullableEntity), ("seconds", FieldType::Number), ("phase", FieldType::String),
+                ("seconds", FieldType::Number), ("phase", FieldType::String),
             ]),
             ("hive.floor-replacement", vec![("version", FieldType::Number), ("targetFloor", FieldType::Entity), ("expectedCatalog", FieldType::String), ("desiredCatalog", FieldType::String), ("supportX", FieldType::Number), ("supportY", FieldType::Number), ("supportZ", FieldType::Number), ("phase", FieldType::String)]),
             (

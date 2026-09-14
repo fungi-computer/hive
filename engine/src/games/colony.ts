@@ -2,7 +2,6 @@ import { colonyConstructionVisuals } from "./colony-construction-visuals";
 import { colonyBrewStationProfiles } from "./colony-brewing-presentation";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
-import { ConstructionApproach } from "../sdk/construction-work";
 import { DeconstructionApproach, DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
@@ -351,7 +350,6 @@ const colonyComponents = [
   FiniteResource,
   ResourceSite,
   Cat,
-  ConstructionApproach,
   DeconstructionApproach, DeconstructionOrder,
   WorkParticipation,
   StockpileCell,

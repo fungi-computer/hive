@@ -28,13 +28,20 @@ pub struct WorkAttempt {
 pub enum AttemptPhase {
     Ready,
     Executing { operation: OperationKey, activity: ActivityRef },
-    Outcome { operation: OperationKey, result: WorkOutcome },
+    Outcome { operation: OperationKey, activity: ActivityRef, result: WorkOutcome },
     Settling { operation: OperationKey, cause: InterruptCause },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
-pub enum ActivityRef { Route { destination: Point } }
+pub enum ActivityRef {
+    Route { destination: Point },
+    Construction { site: String, contact: Point, mode: ConstructionMode },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ConstructionMode { Bind, Work }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]

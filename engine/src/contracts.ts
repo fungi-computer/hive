@@ -155,6 +155,7 @@ export type ActionRequest =
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
   | { readonly kind: "acknowledge-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number }
+  | { readonly kind: "continue-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly nextActivity: WorkActivityRef }
   | { readonly kind: "establish-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
@@ -184,6 +185,7 @@ export type ActionRequest =
       readonly kind: "plan-construction";
       readonly catalog: string;
       readonly site: EntityId;
+      readonly party: EntityId;
       readonly x: number;
       readonly y: number;
       readonly z: number;
@@ -191,12 +193,6 @@ export type ActionRequest =
     }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
-  | {
-      readonly kind: "attend-construction";
-      readonly worker: EntityId;
-      readonly site: EntityId;
-      readonly contact: Vec3 & { readonly frame: null };
-    }
   | {
       readonly kind: "excavate";
       readonly entity: EntityId;
@@ -309,12 +305,12 @@ export interface ActionOutcome {
   readonly action: ActionRequest;
   readonly result: ActionResult;
 }
-export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination };
+export type WorkActivityRef = { readonly kind: "route"; readonly destination: MoveDestination } | { readonly kind: "construction"; readonly site: EntityId; readonly contact: ConstructionAccessContact; readonly mode: "bind" | "work" };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }
 export type WorkOutcome = { readonly kind: "completed" } | { readonly kind: "blocked"; readonly reason: WorkBlockReason } | { readonly kind: "interrupted"; readonly cause: WorkInterruptCause };
-export type WorkAttemptPhase = { readonly kind: "ready" } | { readonly kind: "executing"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef } | { readonly kind: "outcome"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly result: WorkOutcome } | { readonly kind: "settling"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly cause: WorkInterruptCause };
+export type WorkAttemptPhase = { readonly kind: "ready" } | { readonly kind: "executing"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef } | { readonly kind: "outcome"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef; readonly result: WorkOutcome } | { readonly kind: "settling"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly cause: WorkInterruptCause };
 export interface WorkAttempt { readonly key: WorkAttemptKey; readonly worker: EntityId; readonly party: EntityId; readonly phase: WorkAttemptPhase }
 export interface AssignmentCandidate {
   readonly worker: EntityId;

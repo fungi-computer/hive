@@ -43,8 +43,9 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     definition["structures"]["catalog"][0]["shape"] = serde_json::json!({"kind":"aperture","height":4,"openingBottom":0,"openingHeight":2});
     let mut kernel = Kernel::new();
     kernel.load(&serde_json::json!({"format":"hive-game","version":1,"game":"aperture-laws","components":[],"initial":[
-        {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
-        {"id":"worker.2","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
+        {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+        {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
+        {"id":"worker.2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
         {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":4}}},
         {"id":"lot","components":{"hive.lot":{"kind":"stone-spoil","quantity":1,"container":"source"}}}
     ]}).to_string()).unwrap();
@@ -59,10 +60,9 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     kernel.rebuild_physical_indexes(true).unwrap();
     let site_surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 1, surface.z)]).unwrap().into_iter().next().flatten().unwrap().cell;
     let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[
-        {"kind":"plan-construction","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north"},
+        {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","x":site_surface.x,"y":site_surface.y+1,"z":site_surface.z,"orientation":"north"},
         {"kind":"bind-construction-stage","site":"door","contact":contact},
         {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1},
-        {"kind":"attend-construction","worker":"worker","site":"door","contact":contact}
     ]});
     let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&setup.to_string()).unwrap()).unwrap();
     assert!(result["results"].as_array().unwrap().iter().all(|r| r["accepted"] == true));

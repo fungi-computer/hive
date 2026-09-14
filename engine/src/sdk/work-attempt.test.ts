@@ -8,7 +8,7 @@ const task = entity("attempt.task");
 const worker = entity("attempt.worker");
 const party = entity("attempt.party");
 const attempt = { task, generation: 3 } as const;
-const outcome: WorkAttempt = { key: attempt, worker, party, phase: { kind: "outcome", operation: { attempt, sequence: 7 }, result: { kind: "completed" } } };
+const outcome: WorkAttempt = { key: attempt, worker, party, phase: { kind: "outcome", operation: { attempt, sequence: 7 }, activity: { kind: "route", destination: { x: 1, y: 0, z: 0, frame: null } }, result: { kind: "completed" } } };
 
 function fake(rows: readonly WorkAttempt[] = []): Pick<WriteContext, "action" | "workAttempts"> & { actions: unknown[] } {
   const actions: unknown[] = [];

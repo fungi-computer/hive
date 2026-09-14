@@ -224,7 +224,7 @@ mod process_request_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"process-request","components":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
-        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
+        let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), x: 0, y: 0, z: 0, orientation: crate::structure_geometry::Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
         kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
         let structure = kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap();
         structure.on_complete = CompletionRecipe { components: vec![], ports: vec![PortDefinition { key: "input".into(), components: vec![("hive.container".into(), record(&Container { capacity: 4 }))], at_site_contact: false }] };
@@ -408,9 +408,10 @@ mod construction_tests {
         kernel.load(&json!({
             "format":"hive-game", "version":1, "game":"construction",
             "components":[], "initial":[
-                {"id":"worker-1","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
-                {"id":"worker-2","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
-                {"id":"worker-3","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
+                {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+                {"id":"worker-1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
+                {"id":"worker-2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
+                {"id":"worker-3","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
                 {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":64}}},
                 {"id":"lot.1","components":{"hive.lot":{"kind":"stone-spoil","quantity":1,"container":"source"}}},
                 {"id":"lot.2","components":{"hive.lot":{"kind":"stone-spoil","quantity":32,"container":"source"}}}
@@ -484,13 +485,38 @@ mod construction_tests {
 
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-1","contact":contact},
-            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
+            {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1}
         ]});
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch.to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        let route = json!({"delta":0.0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":"site-1","worker":"worker-1","party":"party","operation":{"kind":"route","destination":contact}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&route.to_string()).unwrap()).unwrap();
+        let generation = result["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        let continue_action = json!({"delta":0.0,"writes":[],"actions":[{"kind":"continue-work-attempt","task":"site-1","generation":generation,"sequence":1,"nextActivity":{"kind":"construction","site":"site-1","contact":contact,"mode":"work"}}]});
+        let continued: serde_json::Value = serde_json::from_str(&kernel.advance_json(&continue_action.to_string()).unwrap()).unwrap();
+        assert!(continued["results"][0]["accepted"] == true, "{continued}");
+    }
+
+    fn begin_construction(kernel: &mut Kernel, worker: &str, site: &str, contact: &Point) {
+        let route = json!({"delta":0,"writes":[],"actions":[{"kind":"begin-work-attempt","task":site,"worker":worker,"party":"party","operation":{"kind":"route","destination":contact}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&route.to_string()).unwrap()).unwrap();
+        assert!(result["results"][0]["accepted"] == true, "{result}");
+        let generation = result["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        let next = json!({"delta":0,"writes":[],"actions":[{"kind":"continue-work-attempt","task":site,"generation":generation,"sequence":1,"nextActivity":{"kind":"construction","site":site,"contact":contact,"mode":"work"}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&next.to_string()).unwrap()).unwrap();
+        assert!(result["results"][0]["accepted"] == true, "{result}");
+    }
+
+    fn acknowledge_attempt(kernel: &mut Kernel, task: &str) {
+        let entity = kernel.work_attempts.get(task).copied().unwrap();
+        let attempt = kernel.ecs.get::<WorkAttempt>(entity).cloned().unwrap();
+        let sequence = attempt.current_operation().unwrap().sequence;
+        if matches!(attempt.phase, AttemptPhase::Executing { .. }) {
+            kernel.interrupt_work_attempt(task.to_string(), attempt.key.generation, sequence, InterruptCause::Cancelled).unwrap();
+        }
+        kernel.acknowledge_work_attempt(task.to_string(), attempt.key.generation, sequence).unwrap();
     }
 
     fn install_floor_alt_and_furniture(kernel: &mut Kernel) {
@@ -522,7 +548,7 @@ mod construction_tests {
 
     fn finish_test_structure(kernel: &mut Kernel, site: &str, catalog: &str, at: crate::generation::Cell, worker: &str) {
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{
-            "kind":"plan-construction","catalog":catalog,"site":site,"x":at.x,"y":at.y,"z":at.z,"orientation":"north"
+            "kind":"plan-construction","party":"party","catalog":catalog,"site":site,"x":at.x,"y":at.y,"z":at.z,"orientation":"north"
         }]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true, "{planned}");
         let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(&serde_json::to_string(&[site]).unwrap()).unwrap()).unwrap();
@@ -539,9 +565,9 @@ mod construction_tests {
         let staged: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[
             {"kind":"bind-construction-stage","site":site,"contact":contact},
             {"kind":"transfer","lot":material_lot,"from":"source","to":site,"quantity":1},
-            {"kind":"attend-construction","worker":worker,"site":site,"contact":contact}
         ]}).to_string()).unwrap()).unwrap();
         assert!(staged["results"].as_array().unwrap().iter().all(|entry| entry["accepted"] == true), "{site}: {staged}");
+        begin_construction(kernel, worker, site, &contact);
         for _ in 0..16 {
             if kernel.ecs.get::<ConstructionSite>(kernel.entity(site).unwrap()).unwrap().phase == ConstructionPhase::Finished { break; }
             kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
@@ -549,6 +575,16 @@ mod construction_tests {
         let phase = kernel.ecs.get::<ConstructionSite>(kernel.entity(site).unwrap()).unwrap().phase;
         let final_access = kernel.construction_access_json(&serde_json::to_string(&[site]).unwrap()).unwrap();
         assert_eq!(phase, ConstructionPhase::Finished, "{site}: {final_access}");
+        // The fixture's finished operation has been observed; acknowledge it
+        // so later fixture construction can reuse the worker through the same
+        // durable terminal boundary as the provider.
+        if let Some(attempt_entity) = kernel.work_attempts.get(site).copied() {
+            if let Some(attempt) = kernel.ecs.get::<WorkAttempt>(attempt_entity).cloned() {
+                if let (AttemptPhase::Outcome { operation, .. }, true) = (&attempt.phase, attempt.key.task == site) {
+                    kernel.acknowledge_work_attempt(site.to_string(), attempt.key.generation, operation.sequence).expect("fixture terminal acknowledgement");
+                }
+            }
+        }
     }
 
     fn source_stone_lot(kernel: &Kernel) -> String {
@@ -670,7 +706,8 @@ mod construction_tests {
         kernel.environment.as_mut().unwrap().structures.insert("floor-alt".into(), crate::environment_definition::StructureDefinition { id: "floor-alt".into(), ..alternate });
         kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"replace-floor","orderId":"replace-cancel","existingFloorId":"site-1","desiredCatalog":"floor-alt"}]}"#).unwrap();
         let material_lot = source_stone_lot(&kernel);
-        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-cancel","contact":contact},{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-cancel","quantity":1},{"kind":"attend-construction","worker":"worker-2","site":"replace-cancel","contact":contact}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-cancel","contact":contact},{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-cancel","quantity":1}]}).to_string()).unwrap();
+        begin_construction(&mut kernel, "worker-2", "replace-cancel", &contact);
         let target_entity = kernel.entity("site-1").unwrap();
         let mut target_state = kernel.ecs.get::<ConstructionSite>(target_entity).unwrap().clone();
         target_state.catalog = "floor-alt".into();
@@ -693,8 +730,8 @@ mod construction_tests {
         cancelled.environment.as_mut().unwrap().structures.insert("floor-alt".into(), crate::environment_definition::StructureDefinition { id: "floor-alt".into(), ..alternate });
         cancelled.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"replace-floor","orderId":"replace-cancel","existingFloorId":"site-1","desiredCatalog":"floor-alt"}]}"#).unwrap();
         let material_lot = source_stone_lot(&cancelled);
-        let staged: serde_json::Value = serde_json::from_str(&cancelled.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-cancel","contact":contact},{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-cancel","quantity":1},{"kind":"attend-construction","worker":"worker-2","site":"replace-cancel","contact":contact}]}).to_string()).unwrap()).unwrap();
-        assert!(staged["results"].as_array().unwrap().iter().all(|entry| entry["accepted"] == true), "{staged}");
+        cancelled.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-cancel","contact":contact},{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-cancel","quantity":1}]}).to_string()).unwrap();
+        begin_construction(&mut cancelled, "worker-2", "replace-cancel", &contact);
         let staged_lot = cancelled.contents["replace-cancel"].iter().next().and_then(|entity| cancelled.ecs.get::<ExternalId>(*entity)).unwrap().0.clone();
         let cancelled_result: serde_json::Value = serde_json::from_str(&cancelled.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"cancel-work","entity":"worker-2"}]}"#).unwrap()).unwrap();
         assert_eq!(cancelled_result["results"][0]["accepted"], true);
@@ -734,8 +771,8 @@ mod construction_tests {
         };
         kernel.ecs.entity_mut(kernel.entity("worker-2").unwrap()).insert(Position { x: bed_contact.x, y: bed_contact.y, z: bed_contact.z, facing: 0.0 });
         let material_lot = source_stone_lot(&kernel);
-        let staged: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-1","contact":bed_contact},{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-1","quantity":1},{"kind":"attend-construction","worker":"worker-2","site":"replace-1","contact":bed_contact}]}).to_string()).unwrap()).unwrap();
-        assert!(staged["results"].as_array().unwrap().iter().all(|entry| entry["accepted"] == true), "{staged}");
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"replace-1","contact":bed_contact},{"kind":"transfer","lot":material_lot,"from":"source","to":"replace-1","quantity":1}]}).to_string()).unwrap();
+        begin_construction(&mut kernel, "worker-2", "replace-1", &bed_contact);
         let staged_lots: serde_json::Value = serde_json::from_str(&kernel.query_json(r#"["hive.lot"]"#).unwrap()).unwrap();
         for _ in 0..16 {
             if kernel.ecs.get::<FloorReplacement>(kernel.entity("replace-1").unwrap()).unwrap().phase == FloorReplacementPhase::Completed { break; }
@@ -828,7 +865,7 @@ mod construction_tests {
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
         let state = ConstructionSite {
             catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z,
-            orientation: Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished,
+            orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished,
         };
         let entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state,
             Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
@@ -893,7 +930,7 @@ mod construction_tests {
         let upper = StaticInstance::Floor { id: "dependent-floor".into(), support: crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z } };
         let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(vec![wall, upper]).unwrap().unwrap();
         kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
-        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, worker: None, seconds: 1.0, phase: ConstructionPhase::Finished };
+        let state = ConstructionSite { catalog: "wall".into(), x: surface.x, y: surface.y + 1, z: surface.z, orientation: Cardinal::North, seconds: 1.0, phase: ConstructionPhase::Finished };
         let wall_entity = kernel.ecs.spawn((ExternalId("support-wall".into()), Container { capacity: 1 }, SealedContainer {}, state, Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 })).id();
         kernel.ids.insert("support-wall".into(), wall_entity); kernel.known.insert("support-wall".into()); kernel.contents.insert("support-wall".into(), BTreeSet::new());
         let dependent_entity = kernel.ecs.spawn((ExternalId("dependent-floor".into()), Support { entity: "support-wall".into() })).id();
@@ -1019,7 +1056,8 @@ mod construction_tests {
         let released = kernel.save_records().unwrap();
         let mut resumed = Kernel::new();
         resumed.restore_records(&released).unwrap();
-        resumed.advance_json(&json!({"delta":0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-2","site":"site-1","contact":contact}]}).to_string()).unwrap();
+        acknowledge_attempt(&mut resumed, "site-1");
+        begin_construction(&mut resumed, "worker-2", "site-1", &contact);
         resumed.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
         let finished = resumed.query_json(r#"["hive.construction-site","hive.sealed-container"]"#).unwrap();
         assert!(finished.contains("finished"));
@@ -1037,13 +1075,12 @@ mod construction_tests {
     fn construction_waits_without_staged_material_and_repeated_attend_is_idempotent() {
         let (mut kernel, surface, contact) = world();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-1","contact":contact},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-1","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
-        assert_eq!(response["results"].as_array().unwrap().len(), 4);
+        assert_eq!(response["results"].as_array().unwrap().len(), 2);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        begin_construction(&mut kernel, "worker-1", "site-1", &contact);
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let state = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
         assert!(state.contains("\"seconds\":0.0"));
@@ -1058,13 +1095,13 @@ mod construction_tests {
         kernel.ecs.entity_mut(bystander).insert(Position { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 });
         kernel.rebuild_physical_indexes(true).unwrap();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-wall","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-wall","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
-        assert_eq!(response["results"].as_array().unwrap().len(), 4);
+        assert_eq!(response["results"].as_array().unwrap().len(), 3);
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        begin_construction(&mut kernel, "worker-1", "site-wall", &contact);
 
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
@@ -1072,11 +1109,26 @@ mod construction_tests {
         let sealed = kernel.query_json(r#"["hive.sealed-container"]"#).unwrap();
         assert!(site.contains("\"seconds\":1.0"));
         assert!(site.contains("\"phase\":\"planned\""));
-        assert!(site.contains("\"worker\":null"));
         assert!(lots.contains("\"container\":\"site-wall\""));
         assert!(lots.contains("\"quantity\":1"));
         assert_eq!(sealed, "[]");
         assert!(kernel.environment.as_ref().unwrap().world.structure_instances().is_empty());
+        let attempt: serde_json::Value = serde_json::from_str(&kernel.work_attempts_json(r#"["site-wall"]"#).unwrap()).unwrap();
+        assert!(attempt[0]["phase"]["kind"] == "outcome");
+        assert_eq!(attempt[0]["phase"]["result"]["kind"], "blocked");
+        assert!(!kernel.attempts_by_worker.contains_key("worker-1"));
+
+        // Once the physical obstruction is removed, the retained designation
+        // and staged lot can be acquired by another worker.
+        let bystander = kernel.entity("worker-2").unwrap();
+        kernel.ecs.entity_mut(bystander).insert(Position { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, facing: 0.0 });
+        let replacement_worker = kernel.entity("worker-3").unwrap();
+        kernel.ecs.entity_mut(replacement_worker).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+        kernel.rebuild_physical_indexes(true).unwrap();
+        acknowledge_attempt(&mut kernel, "site-wall");
+        begin_construction(&mut kernel, "worker-3", "site-wall", &contact);
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        assert!(kernel.query_json(r#"["hive.sealed-container"]"#).unwrap().contains("site-wall"));
     }
 
     #[test]
@@ -1106,12 +1158,12 @@ mod construction_tests {
         environment.definition = definition.to_string();
 
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-air-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-air-wall","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-air-wall","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-air-wall","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-air-wall","contact":contact}
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        begin_construction(&mut kernel, "worker-1", "site-air-wall", &contact);
 
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         let site = kernel.query_json(r#"["hive.construction-site"]"#).unwrap();
@@ -1130,13 +1182,13 @@ mod construction_tests {
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let target = Point { x: contact.x - 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-edge","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-edge","x":surface.x,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-edge","contact":contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-edge","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-edge","contact":contact},
             {"kind":"move","entity":"worker-2","destination":target}
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        begin_construction(&mut kernel, "worker-1", "site-edge", &contact);
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         assert!(kernel.query_json(r#"["hive.construction-site"]"#).unwrap().contains("\"phase\":\"planned\""));
     }
@@ -1152,13 +1204,13 @@ mod construction_tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-future","x":surface.x + 2,"y":surface.y + 1,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"site-future","contact":next_contact},
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1},
-            {"kind":"attend-construction","worker":"worker-1","site":"site-future","contact":next_contact},
             {"kind":"move","entity":"worker-2","destination":target}
         ]}).to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
+        begin_construction(&mut kernel, "worker-1", "site-future", &next_contact);
         kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
         assert!(kernel.query_json(r#"["hive.sealed-container"]"#).unwrap().contains("site-future"));
     }
@@ -1181,7 +1233,7 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"wall","site":"access-wall","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"north"}
+            {"kind":"plan-construction","party":"party","catalog":"wall","site":"access-wall","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"north"}
         ]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true);
         let site_entity = kernel.entity("access-wall").unwrap();
@@ -1190,10 +1242,10 @@ mod construction_tests {
         assert_eq!(rows[0]["support"], "ready");
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         assert_eq!(rows[0]["contacts"], json!([
+            {"x":(surface.x as f64 - 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"},
             {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":(surface.z as f64 - 1.0) * spacing[2], "frame":null, "kind":"origin"},
-            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"},
             {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":(surface.z as f64 + 1.0) * spacing[2], "frame":null, "kind":"origin"},
-            {"x":(surface.x as f64 - 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}
+            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}
         ]));
         let bad = Point { x: contact.x + 0.25, ..contact.clone() };
         let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"bind-construction-stage","site":"access-wall","contact":bad}]}).to_string()).unwrap()).unwrap();
@@ -1215,7 +1267,7 @@ mod construction_tests {
     fn construction_access_attendance_can_choose_other_contact() {
         let (mut kernel, surface, contact) = world();
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[
-            {"kind":"plan-construction","catalog":"floor","site":"access-floor","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"access-floor","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"north"},
             {"kind":"bind-construction-stage","site":"access-floor","contact":contact}
         ]}).to_string()).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
@@ -1223,11 +1275,9 @@ mod construction_tests {
         let worker = kernel.entity("worker-1").unwrap();
         kernel.ecs.entity_mut(worker).insert(Position { x:selected.x, y:selected.y, z:selected.z, facing:0.0 });
         kernel.rebuild_physical_indexes(true).unwrap();
-        let attended: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"attend-construction","worker":"worker-1","site":"access-floor","contact":selected}]}).to_string()).unwrap()).unwrap();
-        assert_eq!(attended["results"][0]["accepted"], true);
+        begin_construction(&mut kernel, "worker-1", "access-floor", &selected);
         let state = kernel.ecs.get::<ConstructionSite>(kernel.entity("access-floor").unwrap()).unwrap();
         assert_eq!(state.phase, ConstructionPhase::Working);
-        assert_eq!(state.worker.as_deref(), Some("worker-1"));
         assert_eq!(kernel.ecs.get::<Position>(kernel.entity("access-floor").unwrap()).unwrap().x, contact.x);
     }
 
@@ -1245,7 +1295,7 @@ mod construction_tests {
         let floor_y = surface.y + 4;
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
             "delta":0.0,"writes":[],"actions":[{
-                "kind":"plan-construction","catalog":"floor","site":"wall-top-floor",
+                "kind":"plan-construction","party":"party","catalog":"floor","site":"wall-top-floor",
                 "x":surface.x,"y":floor_y,"z":surface.z,"orientation":"north"
             }]
         }).to_string()).unwrap()).unwrap();
@@ -1303,7 +1353,7 @@ mod construction_tests {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
             materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","party":"party","catalog":"stair","site":"access-stair","x":surface.x,"y":surface.y,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
         let contacts = rows[0]["contacts"].as_array().unwrap();
         assert_eq!(contacts.len(), 4);
@@ -1317,7 +1367,7 @@ mod construction_tests {
             id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
             materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"kind":"plan-construction","party":"party","catalog":"bed","site":"access-bed","x":surface.x,"y":surface.y+1,"z":surface.z,"orientation":"east"}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let occupied = [
@@ -3068,7 +3118,7 @@ impl Kernel {
             let worker = self.entity(&attempt.worker).ok()?;
             if !matches!(attempt.phase, AttemptPhase::Executing { .. }) || !self.arrived_routes.contains(&worker) { return None; }
             let operation = attempt.current_operation()?.clone();
-            Some((task.clone(), AttemptPhase::Outcome { operation, result: WorkOutcome::Completed }))
+            Some((task.clone(), AttemptPhase::Outcome { operation, activity: match &attempt.phase { AttemptPhase::Executing { activity, .. } => activity.clone(), _ => unreachable!() }, result: WorkOutcome::Completed }))
         }).collect();
         for (task, phase) in arrived { let _ = self.settle_attempt(&task, phase); }
     }
@@ -3658,7 +3708,7 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
-        let crate::work_attempt::ActivityRef::Route { destination } = &activity;
+        let crate::work_attempt::ActivityRef::Route { destination } = &activity else { return Err("unsupported initial work activity".into()); };
         let actor = worker_entity;
         let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
@@ -3693,7 +3743,11 @@ impl Kernel {
         let attempt = self.attempt_mut(&task, generation, sequence)?;
         if !matches!(&attempt.phase, AttemptPhase::Executing { .. }) { return Err("work attempt operation is already settled".into()); }
         let operation = OperationKey { attempt: attempt.key.clone(), sequence };
-        self.settle_attempt(&task, AttemptPhase::Outcome { operation, result: WorkOutcome::Interrupted { cause } })
+        let activity = match &self.ecs.get::<WorkAttempt>(self.entity(&task)?).ok_or("work attempt component is missing")?.phase {
+            AttemptPhase::Executing { activity, .. } => activity.clone(),
+            _ => return Err("work attempt operation is already settled".into()),
+        };
+        self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Interrupted { cause } })
     }
     fn acknowledge_work_attempt(&mut self, task: String, generation: u64, sequence: u32) -> Result<()> {
         {
@@ -3704,6 +3758,34 @@ impl Kernel {
         let worker = self.ecs.get::<WorkAttempt>(entity).map(|attempt| attempt.worker.clone());
         self.ecs.entity_mut(entity).remove::<WorkAttempt>();
         if let Some(worker) = worker { self.attempts_by_worker.remove(&worker); }
+        Ok(())
+    }
+    fn continue_work_attempt(&mut self, task: String, generation: u64, sequence: u32, next_activity: crate::work_attempt::ActivityRef) -> Result<()> {
+        let entity = *self.work_attempts.get(&task).ok_or("work attempt is not current")?;
+        let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
+        if current.key.generation != generation || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence) { return Err("work attempt completed outcome is stale".into()); }
+        let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };
+        if site != task { return Err("construction continuation task mismatch".into()); }
+        let site_entity = self.entity(&site)?;
+        let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("construction site has no party owner")?;
+        if owner.party != current.party { return Err("construction continuation party mismatch".into()); }
+        let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+        match mode {
+            crate::work_attempt::ConstructionMode::Bind => {
+                self.bind_construction_stage(&site, contact.clone())?;
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode }, result: WorkOutcome::Completed })?;
+            }
+            crate::work_attempt::ConstructionMode::Work => {
+                if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction continuation requires bound stage".into()); }
+                let mut state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("construction site is missing")?;
+                state.phase = ConstructionPhase::Working;
+                self.ecs.entity_mut(site_entity).insert(state);
+                if let Some(replacement) = self.ecs.get::<FloorReplacement>(site_entity).cloned() {
+                    self.ecs.entity_mut(site_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Working, ..replacement });
+                }
+                self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode } };
+            }
+        }
         Ok(())
     }
     fn establish_party(&mut self, binding_id: String, player: String, party: String, records: Vec<EntityRecord>) -> Result<String> {
@@ -3736,6 +3818,7 @@ impl Kernel {
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
+            Action::ContinueWorkAttempt { task, generation, sequence, next_activity } => self.continue_work_attempt(task, generation, sequence, next_activity).map(|_| ActionEffect::None),
             Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
@@ -3754,23 +3837,24 @@ impl Kernel {
                 if self.ecs.get::<ExcavationWork>(actor).is_some() {
                     self.ecs.entity_mut(actor).remove::<ExcavationWork>();
                 } else {
-                    let sites: Vec<_> = self.ids.values().copied().filter(|site| self.ecs.get::<ConstructionSite>(*site).is_some_and(|state| state.worker.as_deref() == Some(entity.as_str()))).collect();
-                    for site in sites {
-                        if let Some(mut state) = self.ecs.get::<ConstructionSite>(site).cloned() {
-                            if let Some(replacement) = self.ecs.get::<FloorReplacement>(site).cloned() {
-                                self.ecs.entity_mut(site).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
-                            }
-                            state.worker = None;
-                            if state.phase == ConstructionPhase::Working { state.phase = ConstructionPhase::Planned; }
-                            self.ecs.entity_mut(site).insert(state);
+                if let Some(key) = self.attempts_by_worker.get(&entity).cloned() {
+                        let sequence = self.work_attempts.get(&key.task).and_then(|attempt| self.ecs.get::<WorkAttempt>(*attempt)).and_then(|attempt| attempt.current_operation()).map(|operation| operation.sequence).ok_or("worker attempt has no active operation")?;
+                        self.interrupt_work_attempt(key.task.clone(), key.generation, sequence, InterruptCause::Cancelled)?;
+                        if let Some(replacement) = self.ecs.get::<FloorReplacement>(self.entity(&key.task)?).cloned() {
+                            self.ecs.entity_mut(self.entity(&key.task)?).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
                         }
+                    }
+                }
+                if let Some((task, _)) = self.work_attempts.iter().find(|(_, attempt_entity)| self.ecs.get::<WorkAttempt>(**attempt_entity).is_some_and(|attempt| attempt.worker == entity)) {
+                    if let Some(replacement) = self.ecs.get::<FloorReplacement>(self.entity(task)?).cloned() {
+                        self.ecs.entity_mut(self.entity(task)?).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
                     }
                 }
                 self.refresh_state_weight();
                 Ok(ActionEffect::None)
             }
-            Action::PlanConstruction { catalog, site, x, y, z, orientation } => {
-                self.plan_construction(catalog, site, x, y, z, orientation)?;
+            Action::PlanConstruction { catalog, site, party, x, y, z, orientation } => {
+                self.plan_construction(catalog, site, party, x, y, z, orientation)?;
                 Ok(ActionEffect::None)
             }
             Action::ReplaceFloor { order_id, existing_floor_id, desired_catalog } => {
@@ -3791,10 +3875,6 @@ impl Kernel {
             }
             Action::SetStructureOpen { worker, site, open } => {
                 self.set_structure_open(&worker, &site, open)?;
-                Ok(ActionEffect::None)
-            }
-            Action::AttendConstruction { worker, site, contact } => {
-                self.attend_construction(&worker, &site, contact)?;
                 Ok(ActionEffect::None)
             }
             Action::Move {

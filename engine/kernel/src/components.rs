@@ -124,7 +124,6 @@ pub struct ConstructionSite {
     pub y: i32,
     pub z: i64,
     pub orientation: Cardinal,
-    pub worker: Option<String>,
     pub seconds: f64,
     pub phase: ConstructionPhase,
 }
@@ -378,6 +377,7 @@ pub enum Action {
     BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },
     AcknowledgeWorkAttempt { task: String, generation: u64, sequence: u32 },
+    ContinueWorkAttempt { task: String, generation: u64, sequence: u32, #[serde(rename = "nextActivity")] next_activity: crate::work_attempt::ActivityRef },
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
     AttendProcess { worker: String, process: String },
@@ -390,6 +390,7 @@ pub enum Action {
     PlanConstruction {
         catalog: String,
         site: String,
+        party: String,
         x: i64,
         y: i32,
         z: i64,
@@ -397,7 +398,6 @@ pub enum Action {
     },
     ReplaceFloor { #[serde(rename = "orderId")] order_id: String, #[serde(rename = "existingFloorId")] existing_floor_id: String, #[serde(rename = "desiredCatalog")] desired_catalog: String },
     BindConstructionStage { site: String, contact: Point },
-    AttendConstruction { worker: String, site: String, contact: Point },
     Move {
         entity: String,
         destination: Point,

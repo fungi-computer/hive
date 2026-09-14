@@ -215,7 +215,6 @@ fn fixture(blocked_air: bool) -> Kernel {
                 y: y as i32,
                 z: 0,
                 orientation: crate::structure_geometry::Cardinal::North,
-                worker: None,
                 seconds: 0.0,
                 phase: ConstructionPhase::Finished,
             },

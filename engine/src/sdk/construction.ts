@@ -6,17 +6,17 @@ export const SealedContainer = component<Record<string, never>>("hive.sealed-con
   version: 1, fields: {},
 });
 
-/** The site owns earned effort even when its worker changes. */
+/** The site owns earned effort; active worker ownership lives in WorkAttempt. */
 export const ConstructionSite = component<{
   catalog: string; x: number; y: number; z: number;
   orientation: CardinalOrientation;
-  worker: EntityId | null; seconds: number;
+  seconds: number;
   phase: "planned" | "working" | "finished";
 }>("hive.construction-site", {
   version: 1,
   fields: {
     catalog: "string", x: "number", y: "number", z: "number", orientation: "string",
-    worker: "nullable-entity", seconds: "number", phase: "string",
+    seconds: "number", phase: "string",
   },
 });
 export const FloorReplacement = component<{
@@ -35,18 +35,14 @@ export const planConstruction = (
   catalog: string,
   cell: Vec3,
   orientation: CardinalOrientation,
+  party: EntityId,
 ): ActionRequest => ({
-  kind: "plan-construction", site, catalog,
+  kind: "plan-construction", site, party, catalog,
   x: cell.x, y: cell.y, z: cell.z, orientation,
 });
 
 export const bindConstructionStage = (site: EntityId, contact: Vec3): ActionRequest => ({
   kind: "bind-construction-stage", site,
-  contact: { x: contact.x, y: contact.y, z: contact.z, frame: null },
-});
-
-export const attendConstruction = (worker: EntityId, site: EntityId, contact: Vec3): ActionRequest => ({
-  kind: "attend-construction", worker, site,
   contact: { x: contact.x, y: contact.y, z: contact.z, frame: null },
 });
 

@@ -52,6 +52,12 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "task", "generation", "sequence"];
       valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0;
       break;
+    case "continue-work-attempt": {
+      keys = ["kind", "task", "generation", "sequence", "nextActivity"];
+      const next = action.nextActivity as Record<string, unknown> | undefined;
+      valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && !!next && Object.keys(next).length === 4 && next.kind === "construction" && id(next.site) && (next.mode === "bind" || next.mode === "work") && terrainContact(next.contact);
+      break;
+    }
     case "establish-resource-site":
       keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
       valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
@@ -87,8 +93,8 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
       break;
     case "plan-construction": {
-      keys = ["kind", "catalog", "site", "x", "y", "z", "orientation"];
-      valid = id(action.catalog) && id(action.site)
+      keys = ["kind", "catalog", "site", "party", "x", "y", "z", "orientation"];
+      valid = id(action.catalog) && id(action.site) && id(action.party)
         && [action.x, action.z].every(value => typeof value === "number" && Number.isSafeInteger(value))
         && typeof action.y === "number" && Number.isInteger(action.y) && action.y >= -2147483648 && action.y <= 2147483647
         && ["north", "east", "south", "west"].includes(action.orientation as string);
@@ -105,10 +111,6 @@ export function checkedAction(value: unknown): ActionRequest {
     case "set-structure-open":
       keys = ["kind", "worker", "site", "open"];
       valid = id(action.worker) && id(action.site) && typeof action.open === "boolean";
-      break;
-    case "attend-construction":
-      keys = ["kind", "worker", "site", "contact"];
-      valid = id(action.worker) && id(action.site) && terrainContact(action.contact);
       break;
     case "deconstruct":
       keys = ["kind", "worker", "site"];
