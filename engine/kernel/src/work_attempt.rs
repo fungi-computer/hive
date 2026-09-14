@@ -38,7 +38,13 @@ pub enum ActivityRef {
     Route { destination: Point },
     Construction { site: String, contact: Point, mode: ConstructionMode },
     #[serde(rename = "excavation")]
-    Excavation { cell: [i32; 3], expected_material: u16, replacement_material: u16 },
+    Excavation {
+        cell: [i32; 3],
+        #[serde(rename = "expectedMaterial")]
+        expected_material: u16,
+        #[serde(rename = "replacementMaterial")]
+        replacement_material: u16,
+    },
     #[serde(rename = "deconstruction")]
     Deconstruction { site: String, contact: Point },
     #[serde(rename = "process-attendance")]
