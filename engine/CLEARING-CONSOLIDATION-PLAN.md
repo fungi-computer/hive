@@ -1468,6 +1468,10 @@ A useful update says what can now be played, what still fails and what is live.
 
 ## September 14 priority: dependable jobs and spatial drawing
 
+**Implementation packet:** [Start here](implementation/clearing-repair/README.md).
+The linked work, construction, parties, drawing and delivery specifications refine
+the pseudocode below and own implementation detail for this repair.
+
 This is the next bounded Clearing outcome, requested by Levi after the trapped
 floor/brewer report and incorrect sprite overlap. It supersedes older handoff
 locations below. Current integration is
