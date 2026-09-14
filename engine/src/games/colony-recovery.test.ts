@@ -36,7 +36,7 @@ test("colony delivery retains cargo and completes with restore between every hos
       }
       const taskRows = session.query(query(DeliveryTask));
       taskId ??= taskRows.find(row => port.workAttempts([row.id]).some(attempt => attempt.worker === worker))?.id;
-      if (taskRows.some(row => row.id === taskId && row.get(DeliveryTask).phase === "complete" && row.get(DeliveryTask).actor === null)) {
+      if (taskRows.some(row => row.id === taskId && row.get(DeliveryTask).custody === "delivered")) {
         complete = true;
         break;
       }
