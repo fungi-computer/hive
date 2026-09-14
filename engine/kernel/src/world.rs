@@ -3294,6 +3294,23 @@ impl Kernel {
         for record in &records { for (name, value) in &record.components { self.registry.validate(name, value, &known)?; } }
         let party_record = records.iter().find(|record| record.id == party).ok_or("party plan lacks party entity")?;
         if party_record.components.get("hive.party").and_then(|v| v.get("ownerPlayer")).and_then(|v| v.as_str()) != Some(player.as_str()) { return Err("party owner mismatch".into()); }
+        // Recheck every positioned member against the authoritative terrain
+        // owner.  Host preparation is only a hint; support, headroom and
+        // traversal legality are established again immediately before spawn.
+        if let Some(environment) = self.environment.as_mut() {
+            let spacing = environment.world.cell_spacing_m();
+            for record in &records {
+                let Some(position) = record.components.get("hive.position") else { continue };
+                let x = position.get("x").and_then(|v| v.as_f64()).ok_or("invalid party position")?;
+                let y = position.get("y").and_then(|v| v.as_f64()).ok_or("invalid party position")?;
+                let z = position.get("z").and_then(|v| v.as_f64()).ok_or("invalid party position")?;
+                let cell = crate::generation::Cell { x: (x / spacing[0]).round() as i64, y: (y / spacing[1]).floor() as i32, z: (z / spacing[2]).round() as i64 };
+                let below = crate::generation::Cell { y: cell.y - 1, ..cell };
+                let support = environment.world.traversal_material(below)?;
+                let head = environment.world.traversal_material(cell)?;
+                if !support.solid || head.solid || head.sealed_top || head.outside { return Err("party spawn lacks support or headroom".into()); }
+            }
+        }
         let mut positions = Vec::new();
         for record in &records {
             if let Some(owner) = record.components.get("hive.party-member").and_then(|v| v.get("party")).and_then(|v| v.as_str()).or_else(|| record.components.get("hive.owned-by-party").and_then(|v| v.get("party")).and_then(|v| v.as_str())) { if owner != party { return Err("party ownership mismatch".into()); } }
