@@ -1,9 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { entity } from "../sdk/authoring";
+import { isReservedComponent } from "../contracts";
 import { createColonyPartyPlan } from "./colony-party";
 
 test("Colony party plans are deterministic, finite and world-unique", () => {
+  for (const component of [
+    "hive.party",
+    "hive.party-member",
+    "hive.owned-by-party",
+    "hive.party-receipt",
+  ])
+    assert.equal(isReservedComponent(component), true);
   const first = createColonyPartyPlan(
     "player.1",
     entity("party.1"),

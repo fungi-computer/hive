@@ -8,6 +8,10 @@ export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
 export type GameId = string;
 export const RESERVED_COMPONENTS = [
+  "hive.party",
+  "hive.party-member",
+  "hive.owned-by-party",
+  "hive.party-receipt",
   "hive.stockpile-cell",
   "hive.position",
   "hive.body",

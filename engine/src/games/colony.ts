@@ -26,6 +26,7 @@ import { StagedProcess, requestProcess } from "../sdk/process-supply";
 import { ProcessAttendanceWork } from "../sdk/process-attendance";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
+import { OwnedByParty, Party, PartyMember, PartyReceipt } from "../sdk/party";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
@@ -324,6 +325,10 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
 }
 
 const colonyComponents = [
+  Party,
+  PartyMember,
+  OwnedByParty,
+  PartyReceipt,
   Position,
   Emitter,
   Body,
