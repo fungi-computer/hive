@@ -1,10 +1,25 @@
 import { strict as assert } from "node:assert";
 import test from "node:test";
-import { createLocalGameWhistle } from "./whistle-runtime.js";
+import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 
 const row = (availability = { status: "available" }) => ({
   commandId: "colony:test", sourceId: "hive.colony", title: "Test order", category: "Test", order: 0,
   availability, action: { inputSchema: { type: "object", properties: {} } },
+});
+
+test("owning command definitions bind every performance namespace exactly", () => {
+  const gameId = "colony-performance-512-200";
+  const commands = {
+    fell: {
+      localPresentation: { bindings: [{ id: "fell", label: "Fell trees" }] },
+    },
+    inspect: { localPresentation: { bindings: [] } },
+  };
+  const bindings = localBindings(gameId, commands);
+  assert(bindings.length > 0);
+  assert(bindings.every(binding => binding.commandId.startsWith(`${gameId}:`)));
+  assert(bindings.every(binding => !binding.commandId.startsWith("colony:")));
+  assert.throws(() => localBindings(gameId, undefined), /owning command definitions/);
 });
 
 test("local Whistle binds only locally acquired rows and submits once", async () => {

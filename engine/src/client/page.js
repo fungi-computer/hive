@@ -7,10 +7,15 @@ import { createHiveClient } from "./client.js";
 import { createConnectionChoice } from "./connection-choice.js";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { connectRemoteRuntime } from "../runtime/remote-client.ts";
+import { colonyPack } from "../games/colony.ts";
+import { survivalPack } from "../games/survival.ts";
+import { formationsPack } from "../games/formations.ts";
+import { piratesPack } from "../games/pirates.ts";
 
 const mode = document.body.dataset.mode || "hub";
 const configs = {
   pirates: {
+    commandDefinitions: piratesPack.commands,
     title: "Mosswake",
     environment: "water",
     visualBindings: PIRATE_VISUAL_BINDINGS,
@@ -21,6 +26,7 @@ const configs = {
     source: "./source/pirates.ts",
   },
   colony: {
+    commandDefinitions: colonyPack.commands,
     title: "The Clearing",
     visualBindings: COLONY_VISUAL_BINDINGS,
     subtitle:
@@ -32,6 +38,7 @@ const configs = {
     source: "./source/colony.ts",
   },
   survival: {
+    commandDefinitions: survivalPack.commands,
     directControlId: "survival.survivor.1",
     controlHelp: "Hold WASD or arrows to move freely. E takes bread; F eats. Compare Prediction on/off.",
     title: "Survival",
@@ -40,6 +47,7 @@ const configs = {
     source: "./source/survival.ts",
   },
   formations: {
+    commandDefinitions: formationsPack.commands,
     visualBindings: CANNON_VISUAL_BINDINGS,
     aiming: { launcherId: "formations.cannon", command: "fire" },
     selectionShortcuts: [{ id: "formations.cannon", label: "Select cannon" }],
