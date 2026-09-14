@@ -150,7 +150,7 @@ mod work_attempt_laws {
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
-            {"id":"lot","components":{"hive.lot":{"kind":"wood","quantity":2,"container":"worker"}}}
+            {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":2,"container":"worker"}}}
         ]}).to_string()).unwrap();
         let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
@@ -3995,8 +3995,10 @@ impl Kernel {
             let source = self.entity(&from)?;
             let lot_entity = self.entity(&lot)?;
             let stock = self.ecs.get::<Lot>(lot_entity).ok_or("not a material lot")?.clone();
+            if self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) != Some(current.party.as_str()) { return Err("material transfer lot is outside attempt party or unowned".into()); }
+            if quantity == 0 { return Err("invalid material transfer quantity".into()); }
             let capacity = self.ecs.get::<Container>(destination).ok_or("not a container")?.capacity;
-            let reason = if quantity == 0 || stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
+            let reason = if stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
               else if self.quantity(&to) + u64::from(quantity) > u64::from(capacity) { Some(WorkBlockReason::CapacityUnavailable) }
               else if self.contact(source, destination).is_err() { Some(WorkBlockReason::AccessLost) } else { None };
             let operation = OperationKey { attempt: current.key.clone(), sequence: next_sequence };
@@ -4012,6 +4014,7 @@ impl Kernel {
             let lot_entity = self.entity(&lot)?;
             let lot_state = self.ecs.get::<Lot>(lot_entity).ok_or("material drop lot is missing")?;
             if lot_state.container != current.worker { return Err("material drop lot is not held by attempt worker".into()); }
+            if self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) != Some(current.party.as_str()) { return Err("material drop lot is outside attempt party or unowned".into()); }
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
             self.drop_lot(&current.worker, &lot)?;
             let operation = OperationKey { attempt: current.key.clone(), sequence: next_sequence };
