@@ -5,6 +5,7 @@ import {
   STATIC_ART_LIMITS,
   parseStaticArtManifest,
 } from "./static-manifest.js";
+import { placementForStaticPath } from "./static-placement.js";
 
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
@@ -238,6 +239,7 @@ export async function loadStaticArtPack({
           frame: entry.depth,
           depthRange: entry.depthRange,
           visualBounds: entry.visualBounds,
+          placement: placementForStaticPath(entry.path),
         }),
       );
       setTexture(art, entry.path, texture);

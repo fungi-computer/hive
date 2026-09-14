@@ -97,3 +97,65 @@ export function resolveStairArtEndpoints({ entrance, landing, physicalEntrance, 
     throw new Error("original stair endpoints do not match native geometry");
   return Object.freeze({ entrance: actualEntrance, landing: actualLanding, orientation: cardinalQuarterTurns(orientation) });
 }
+
+function point3(value, at) {
+  if (!Array.isArray(value) || value.length !== 3)
+    throw new Error(`invalid art placement ${at}`);
+  return Object.freeze([finite(value[0], `${at}[0]`), finite(value[1], `${at}[1]`), finite(value[2], `${at}[2]`)]);
+}
+
+function rotatePoint3(value, orientation, pivot = [0, 0, 0]) {
+  const source = point3(value, "endpoint");
+  const pivot3 = point3(pivot, "endpoint pivot");
+  const rotated = rotatePlacementPoint([source[0], source[2]], orientation, [pivot3[0], pivot3[2]]);
+  return Object.freeze([rotated[0], source[1], rotated[1]]);
+}
+
+function samePoint3(left, right, epsilon) {
+  return left.every((value, index) => Math.abs(value - right[index]) <= epsilon);
+}
+
+export function resolveStairArtEndpoints3d({ entrance, landing, physicalEntrance, physicalLanding, orientation, rotationPivot = [0, 0, 0], epsilon = 1e-9 }) {
+  const actualEntrance = rotatePoint3(entrance, orientation, rotationPivot);
+  const actualLanding = rotatePoint3(landing, orientation, rotationPivot);
+  if (!samePoint3(actualEntrance, point3(physicalEntrance, "physical entrance"), epsilon) ||
+      !samePoint3(actualLanding, point3(physicalLanding, "physical landing"), epsilon))
+    throw new Error("original stair endpoints do not match native geometry");
+  return Object.freeze({ entrance: actualEntrance, landing: actualLanding, orientation: cardinalQuarterTurns(orientation) });
+}
+
+/** Resolve content supplied native datum against the decoded original frame. */
+export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orientation, decodedDepth }) {
+  if (!subjectPlacement || !artPlacement || !decodedDepth?.visualBounds)
+    throw new Error("original art placement metadata is unavailable");
+  const turns = cardinalQuarterTurns(orientation);
+  if (subjectPlacement.kind === "footprint" && artPlacement.kind === "footprint") {
+    const physical = subjectPlacement.footprint.map(cell => rotatePlacementPoint(cell, turns));
+    const transform = resolvePlacementArtTransform({
+      physicalFootprint: physical,
+      bakedFootprint: artPlacement.bakedFootprint,
+      orientation: turns,
+      rotationPivot: artPlacement.rotationPivot,
+    });
+    return Object.freeze({ kind: "footprint", ...transform });
+  }
+  if (subjectPlacement.kind === "stair" && artPlacement.kind === "stair") {
+    return Object.freeze({ kind: "stair", ...resolveStairArtEndpoints3d({
+      entrance: artPlacement.entrance,
+      landing: artPlacement.landing,
+      physicalEntrance: [
+        rotatePlacementPoint([subjectPlacement.entrance[0], subjectPlacement.entrance[2]], turns)[0],
+        subjectPlacement.entrance[1],
+        rotatePlacementPoint([subjectPlacement.entrance[0], subjectPlacement.entrance[2]], turns)[1],
+      ],
+      physicalLanding: [
+        rotatePlacementPoint([subjectPlacement.landing[0], subjectPlacement.landing[2]], turns)[0],
+        subjectPlacement.landing[1],
+        rotatePlacementPoint([subjectPlacement.landing[0], subjectPlacement.landing[2]], turns)[1],
+      ],
+      orientation: turns,
+      rotationPivot: artPlacement.rotationPivot,
+    }) });
+  }
+  throw new Error("original art placement metadata kinds differ");
+}
