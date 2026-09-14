@@ -3,6 +3,7 @@ import test from "node:test";
 import { entity } from "../sdk/authoring";
 import { isReservedComponent } from "../contracts";
 import { createColonyPartyPlan } from "./colony-party";
+import { colonyPack, colonyServerPack } from "./colony";
 
 test("Colony party plans are deterministic, finite and world-unique", () => {
   for (const component of [
@@ -65,4 +66,15 @@ test("party starter custody has no duplicated supply and cannot cross party", ()
   assert.equal(new Set(a.records.map(record => record.id)).size, a.records.length);
   const ownedBy = (plan: typeof a) => new Set(plan.records.filter(record => record.components["hive.owned-by-party"] !== undefined).map(record => record.id));
   assert.equal([...ownedBy(a)].some(id => ownedBy(b).has(id)), false);
+});
+
+test("local and server Colony packs keep party custody distinct", () => {
+  const local = JSON.parse(new TextDecoder().decode(colonyPack.definition)) as { initial: { id: string }[] };
+  const server = JSON.parse(new TextDecoder().decode(colonyServerPack.definition)) as { initial: { id: string }[] };
+  assert.equal(local.initial.some(record => record.id === "colony.local-party"), true);
+  assert.equal(server.initial.some(record => record.id === "colony.local-party"), false);
+  assert.equal(server.initial.some(record => record.id.startsWith("colony.local-party.")), false);
+  const first = createColonyPartyPlan("p1", entity("party.one"), { x: 0, y: 0, z: 0 });
+  const second = createColonyPartyPlan("p2", entity("party.two"), { x: 8, y: 0, z: 0 });
+  assert.equal(first.records.some(record => second.records.some(other => other.id === record.id)), false);
 });
