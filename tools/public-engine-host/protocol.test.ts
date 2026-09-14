@@ -8,6 +8,7 @@ test("public routing accepts only the four known packs and two bounded routes", 
   assert.equal(packFromPath("/v1/survival/observe"), "survival");
   assert.equal(packFromPath("/v1/formations/command"), "formations");
   assert.equal(packFromPath("/v1/unknown/observe"), null);
+  assert.equal(packFromPath("/v1/colony/observe"), null);
   assert.equal(packFromPath("/v1/survival/debug"), null);
   assert.equal(packFromPath("/v1/survival/observe/extra"), null);
 });

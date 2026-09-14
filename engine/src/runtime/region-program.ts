@@ -67,7 +67,9 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
-      const scope = options.scopeForPrincipal(options.ownerPrincipal);
+      // Hydration is a host operation.  The principal for a later command is
+      // resolved again in execute; never retain an authenticated player here.
+      const scope = options.scopeForPrincipal(options.hostPrincipal);
       if (!scope) throw new Error("region-principal-unbound");
       const session = new GameSession({ port, pack: options.pack, seed: options.seed, scope });
       session.restore(snapshot);
@@ -253,9 +255,11 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
         : command;
     },
     authorize(principal, command) {
+      const scope = options.scopeForPrincipal(principal);
+      if (!scope) return false;
       if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action")
-        return principal === hostPrincipal;
-      return principal === ownerPrincipal;
+        return scope.kind === "host";
+      return scope.kind === "host" || scope.kind === "player";
     },
     execute(candidate, command, records, baseRevision, context) {
       return options.resident.execute(candidate, command, records, baseRevision, context);
