@@ -141,6 +141,35 @@ mod work_attempt_laws {
         assert_eq!(next["results"][0]["accepted"], true);
     }
 
+    fn material_kernel(destination_capacity: u32, destination_x: f64, quantity: u32) -> (Kernel, u64) {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"attempts","components":[],"initial":[
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
+            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":destination_capacity},"hive.position":{"x":destination_x,"y":0.0,"z":0.0,"facing":0.0}}},
+            {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":quantity,"container":"worker"}}}
+        ]}).to_string()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
+        (kernel, generation)
+    }
+
+    #[test]
+    fn material_transfer_blocks_without_mutating_cargo_for_typed_availability_failures() {
+        for (capacity, destination_x, quantity, requested, reason) in [(0_u32, 0.0, 2_u32, 2_u32, "capacityUnavailable"), (8, 0.0, 1, 2, "missingInputs"), (8, 99.0, 2, 1, "accessLost"), (8, 0.0, 0, 0, "invalid")] {
+            let (mut kernel, generation) = material_kernel(capacity, destination_x, quantity);
+            let before = kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().clone();
+            let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":requested}}}]}).to_string()).unwrap();
+            let value: Value = serde_json::from_str(&result).unwrap();
+            assert_eq!(value["results"][0]["accepted"], reason != "invalid", "{value}");
+            if reason != "invalid" { assert!(kernel.work_attempts_json("[\"task\"]").unwrap().contains(reason), "reason={reason} attempt={}", kernel.work_attempts_json("[\"task\"]").unwrap()); }
+            assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, before.container);
+            assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().quantity, before.quantity);
+        }
+    }
+
     #[test]
     fn material_transfer_continuation_is_party_owned_and_exactly_once() {
         let mut kernel = Kernel::new();
@@ -159,6 +188,18 @@ mod work_attempt_laws {
         assert!(serde_json::from_str::<Value>(&transfer).unwrap()["results"][0]["accepted"].as_bool().unwrap(), "{transfer}");
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "destination");
         let duplicate = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]}).to_string()).unwrap();
+        assert_eq!(serde_json::from_str::<Value>(&duplicate).unwrap()["results"][0]["accepted"], false);
+    }
+
+    #[test]
+    fn material_drop_is_exactly_once_and_stale_replay_cannot_duplicate_ground_custody() {
+        let (mut kernel, generation) = material_kernel(8, 0.0, 1);
+        let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-drop","lot":"lot"}}}]}).to_string()).unwrap();
+        let value: Value = serde_json::from_str(&result).unwrap();
+        assert_eq!(value["results"][0]["accepted"], true, "{value}");
+        let lot = kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap();
+        assert!(lot.container.starts_with("ground."));
+        let duplicate = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-drop","lot":"lot"}}}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<Value>(&duplicate).unwrap()["results"][0]["accepted"], false);
     }
 }
