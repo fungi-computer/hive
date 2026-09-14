@@ -92,6 +92,10 @@ test("construction provider begins one owned route attempt for a planned site", 
       },
     },
   ]);
+  assert.equal(
+    f.actions.some((action) => action === undefined),
+    false,
+  );
 });
 test("construction provider rejects cross-party workers", () => {
   const f = fixture();

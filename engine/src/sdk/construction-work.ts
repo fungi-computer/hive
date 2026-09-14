@@ -175,7 +175,6 @@ export function constructionWorkProvider(
     string,
     { contact: ConstructionAccessContact; cost: number }
   >();
-  const assigned = new Set<EntityId>();
   return {
     claims,
     occupiedActors,
@@ -209,7 +208,6 @@ export function constructionWorkProvider(
           c.party,
           target(chosen.contact),
         );
-        assigned.add(a.task);
       }
     },
     progress: () => {
