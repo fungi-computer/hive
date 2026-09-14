@@ -32,6 +32,21 @@ function materialTotal(session: GameSession) {
   return session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
 }
 
+function buildFinished(session: GameSession, catalog: string, cell: readonly [number, number, number]) {
+  const before = new Set(session.query(query(ConstructionSite)).map(row => row.id));
+  session.command("build", { catalog, orientation: "north", target: { cell } });
+  for (let tick = 0; tick < 800; tick++) {
+    session.step(0.25);
+    const site = session.query(query(ConstructionSite)).find(row => !before.has(row.id) && row.get(ConstructionSite).catalog === catalog);
+    if (site?.get(ConstructionSite).phase === "finished") return site;
+  }
+  throw new Error(`Colony ${catalog} did not finish: ${JSON.stringify(session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite)))}`);
+}
+
+function stablePortSnapshot(session: GameSession, structure: string) {
+  return session.query(query(Container)).filter(row => row.id.startsWith(`${structure}:`)).map(row => [row.id, row.get(Container)] as const).sort(([left], [right]) => left.localeCompare(right));
+}
+
 test("brew station is absent initially and completion creates stable retained ports", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
@@ -66,6 +81,43 @@ test("brew station teardown waits for a process-owned occupied hearth port", () 
     for (let tick = 0; tick < 80; tick++) session.step(0.25);
     assert(session.query(query(ConstructionSite)).some(row => row.id === site.id), "occupied port must block teardown");
     assert.equal(materialTotal(session), beforeBlocked, "blocked teardown cannot lose port contents");
+  } finally { port.dispose(); }
+});
+
+test("Colony floor designation preserves finished brewer and bed callers and their support faces", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+    // Four actual timber floors establish the support faces for two finished
+    // fixtures through the public Colony command, rather than direct native
+    // actions. The brewer and bed occupy different 2x2/1x2 footprints.
+    for (const cell of [[1, 13, -1], [2, 13, -1], [1, 13, 0], [2, 13, 0], [5, 13, -1], [5, 13, 0]] as const) {
+      buildFinished(session, "timber-floor", cell);
+    }
+    const brewer = buildFinished(session, "brew-station", [1, 13, -1]);
+    const bed = buildFinished(session, "timber-bed", [5, 13, -1]);
+    session.command("requestBrew", { station: brewer.id });
+    for (let tick = 0; tick < 160 && !session.query(query(MaterialLot)).some(row => row.get(MaterialLot).container.startsWith(`${brewer.id}:`)); tick++) session.step(0.25);
+    const brewerPorts = stablePortSnapshot(session, brewer.id);
+    const bedPorts = stablePortSnapshot(session, bed.id);
+    const beforeLots = session.query(query(MaterialLot)).map(row => [row.id, row.get(MaterialLot)] as const).filter(([, lot]) => lot.container.startsWith(`${brewer.id}:`) || lot.container.startsWith(`${bed.id}:`));
+    const beforeSurfaces = port.structureSurfaces([[1, -1], [5, -1]]);
+
+    // This is the actual public floor operation. With the current Colony
+    // catalog it resolves to an unchanged finish, but it still exercises the
+    // floor resolver and native provider beneath occupied furniture.
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [1, 13, -1] } });
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { cell: [5, 13, -1] } });
+    session.step(0.25);
+
+    assert.equal(session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).phase !== "finished").length, 0, "same-finish floor designation must not create a second job");
+    assert.deepEqual(stablePortSnapshot(session, brewer.id), brewerPorts);
+    assert.deepEqual(stablePortSnapshot(session, bed.id), bedPorts);
+    assert.deepEqual(session.query(query(MaterialLot)).map(row => [row.id, row.get(MaterialLot)] as const).filter(([, lot]) => lot.container.startsWith(`${brewer.id}:`) || lot.container.startsWith(`${bed.id}:`)), beforeLots);
+    assert.deepEqual(port.structureSurfaces([[1, -1], [5, -1]]), beforeSurfaces);
+    assert(session.query(query(ConstructionSite)).some(row => row.id === brewer.id && row.get(ConstructionSite).phase === "finished"));
+    assert(session.query(query(ConstructionSite)).some(row => row.id === bed.id && row.get(ConstructionSite).phase === "finished"));
   } finally { port.dispose(); }
 });
 
