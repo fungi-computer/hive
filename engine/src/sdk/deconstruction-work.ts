@@ -31,7 +31,6 @@ type DeconstructionOrderState = {
   contactX: number;
   contactY: number;
   contactZ: number;
-  seconds: number;
   salvageQuantity: number;
   workSeconds: number;
   status: "queued" | "complete" | "blocked";
@@ -47,7 +46,6 @@ export const DeconstructionOrder = component<DeconstructionOrderState>(
       contactX: "number",
       contactY: "number",
       contactZ: "number",
-      seconds: "number",
       salvageQuantity: "number",
       workSeconds: "number",
       status: "string",
@@ -118,7 +116,6 @@ export const queueDeconstruction = (site: EntityId): EntityRecord => {
         contactX: 0,
         contactY: 0,
         contactZ: 0,
-        seconds: 0,
         salvageQuantity: 0,
         workSeconds: 0,
         status: "queued",

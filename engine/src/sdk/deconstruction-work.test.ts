@@ -25,7 +25,6 @@ test("deconstruction intent stores task-owned target, progress, and status facts
     unknown
   >;
   assert.equal(state.site, site);
-  assert.equal(state.seconds, 0);
   assert.equal(state.salvageQuantity, 0);
   assert.equal(state.workSeconds, 0);
   assert.equal(state.status, "queued");
@@ -55,7 +54,6 @@ test("native attempt routes, performs timed deconstruction, and records one term
       contactX: 0,
       contactY: 0,
       contactZ: 0,
-      seconds: 0,
       salvageQuantity: 0,
       workSeconds: 0,
       seconds: 0,

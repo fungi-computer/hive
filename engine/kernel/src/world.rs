@@ -27,6 +27,8 @@ mod interaction_contact;
 mod aperture_tests;
 #[path = "construction_work.rs"]
 mod construction_work;
+#[path = "deconstruction_work.rs"]
+mod deconstruction_work;
 #[path = "route_query.rs"]
 mod route_query;
 #[path = "process_transition.rs"]
@@ -3369,6 +3371,7 @@ impl Kernel {
         // Work sees the pre-movement occupation. Arriving this tick does not
         // retroactively earn a full tick of effort after spending it travelling.
         self.advance_excavation(batch.delta)?;
+        self.advance_deconstruction(batch.delta)?;
         self.advance_construction(batch.delta)?;
         self.advance_movement(batch.delta)?;
         self.settle_arrived_work_attempts()?;
@@ -4207,12 +4210,12 @@ impl Kernel {
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::Deconstruction { site, contact } = next_activity.clone() {
-            let site_entity = self.entity(&site)?;
-            let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("deconstruction site has no party owner")?;
-            if owner.party != current.party { return Err("deconstruction continuation party mismatch".into()); }
-            self.deconstruct_construction(&current.worker, &site)?;
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::Deconstruction { site, contact }, result: WorkOutcome::Completed })?;
+            let access = self.deconstruction_access(&serde_json::to_string(&vec![site.clone()]).map_err(|e| e.to_string())?)?;
+            let rows: serde_json::Value = serde_json::from_str(&access).map_err(|error| error.to_string())?;
+            let required = rows[0]["workSeconds"].as_f64().ok_or("deconstruction access duration missing")?;
+            self.request_deconstruction_for_attempt(&task, site.clone(), contact.clone(), required)?;
+            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Deconstruction { site, contact } };
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::Excavation { cell, expected_material, replacement_material } = next_activity.clone() {
