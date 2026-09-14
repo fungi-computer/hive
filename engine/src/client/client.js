@@ -928,10 +928,10 @@ export function createHiveClient({
         });
         const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);
         const base = project(subject.x, subject.y, subject.z);
-        placement = { offset: resolved.offset, screenOffset: {
-          x: (shifted.x - base.x) * camera.zoom,
-          y: (shifted.y - base.y) * camera.zoom,
-        } };
+        placement = { offset: resolved.offset, screenOffset: [
+          (shifted.x - base.x) * camera.zoom,
+          (shifted.y - base.y) * camera.zoom,
+        ] };
       }
       if (texture) opaqueItems.push(subjectWorldDepthItem({
         subject,
