@@ -644,6 +644,7 @@ test("full destination puts held goods down before releasing the worker", () => 
   };
   let holder = worker;
   const actions: unknown[] = [];
+  let contactsReady = true;
   const step = () => {
     const values = new Map<string, readonly unknown[]>([
       [DeliveryTask.id, [row(task, DeliveryTask, state)]],
@@ -774,6 +775,7 @@ function rejectedDeliveryFixture(initial: {
   const ground = entity("rejected.ground");
   const writes: unknown[][] = [];
   const actions: unknown[] = [];
+  let contactsReady = true;
   const positions = new Map([
     [worker, { x: 1, y: 0, z: 0, facing: 0 }],
     [initial.source, { x: 0, y: 0, z: 0, facing: 0 }],
@@ -799,13 +801,31 @@ function rejectedDeliveryFixture(initial: {
     workMaterialFacts: () => materialFacts(values),
     worldPoses: (ids: readonly ReturnType<typeof entity>[]) => ids.map((id) => ({ id, local: positions.get(id)!, world: positions.get(id)!, support: null, surface: null })),
     routeCosts: () => { throw new Error("unexpected route query"); }, routeToAny: () => { throw new Error("unexpected route query"); },
-    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], transferContacts: () => ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }), terrainMaterials: () => [], terrainSurfaces: () => [],
+    environmentFacts: () => { throw new Error("unexpected environment query"); }, constructionReadiness: () => [], constructionAccess: () => [], deconstructionAccess: () => [], atmosphereSamples: () => { throw new Error("unexpected air query"); }, physicalContacts: () => [], transferContacts: () => contactsReady ? ({ kind: "ready", targets: [{ x: 0, y: 0, z: 0, frame: null }] }) : ({ kind: "blocked", reason: "no-contact" }), terrainMaterials: () => [], terrainSurfaces: () => [],
     assign: () => [], createAuthoredEntity: () => { throw new Error("unexpected creation"); }, removeAuthoredEntity: () => { throw new Error("unexpected removal"); },
     write: (_definition: unknown, id: unknown, value: unknown) => { assert.equal(id, task); state = value as typeof state; writes.push([id, value]); },
     action: (value: unknown) => actions.push(value),
   } as never;
-  return { task, worker, ground, state: () => state, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, writes, actions, context };
+  return { task, worker, ground, state: () => state, setLotContainer: (value: ReturnType<typeof entity>) => { lotContainer = value; values.set(MaterialLot.id, [row(initial.sourceLot, MaterialLot, { kind: initial.material, quantity: initial.quantity, container: lotContainer })]); }, setContactsReady: (value: boolean) => { contactsReady = value; }, writes, actions, context };
 }
+
+test("lost selected contact releases labor while preserving carried cargo and obligation", () => {
+  const worker = entity("j2.worker");
+  const source = entity("j2.source");
+  const destination = entity("j2.destination");
+  const lot = entity("j2.lot");
+  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "wood", quantity: 1, phase: "to-destination" });
+  fixture.setContactsReady(false);
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().phase, "putting-down");
+  assert.equal(fixture.state().actor, worker);
+  assert.deepEqual(fixture.actions, [{ kind: "drop-lot", entity: worker, lot }]);
+  fixture.setLotContainer(fixture.ground);
+  fixture.actions.length = 0;
+  deliverySystem.run(fixture.context);
+  assert.equal(fixture.state().actor, null);
+  assert.equal(fixture.state().phase, "idle");
+});
 
 test("rejected delivery move before pickup returns the task to idle without retrying", () => {
   const worker = entity("rejected.worker.source");
@@ -817,33 +837,4 @@ test("rejected delivery move before pickup returns the task to idle without retr
   });
   deliverySystem.run(fixture.context);
   assert.deepEqual(fixture.state(), { actor: null, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "idle" });
-  assert.equal(fixture.actions.length, 0);
-  assert.equal(fixture.state().actor, null);
-});
-
-test("rejected delivery move after pickup drops the conserved lot before releasing worker", () => {
-  const worker = entity("rejected.worker.destination");
-  const source = entity("rejected.source.destination");
-  const destination = entity("rejected.destination.destination");
-  const lot = entity("rejected.lot.destination");
-  const fixture = rejectedDeliveryFixture({ actor: worker, sourceLot: lot, source, destination, material: "sedge", quantity: 1, phase: "to-destination" }, {
-    destinationGround: true,
-    outcomes: [{ action: { kind: "move", entity: worker, destination: { x: 4, y: 0, z: 0, frame: null }, facing: 0 }, result: { accepted: false, reason: "blocked" } }],
-  });
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().actor, worker);
-  assert.equal(fixture.state().phase, "putting-down");
-  assert.deepEqual(fixture.actions, [{ kind: "drop-lot", entity: worker, lot }]);
-  fixture.actions.length = 0;
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().actor, worker, "uncommitted drop retains custody");
-  assert.equal(fixture.actions.length, 1);
-  fixture.setLotContainer(fixture.ground);
-  fixture.writes.length = 0;
-  fixture.actions.length = 0;
-  deliverySystem.run(fixture.context);
-  assert.equal(fixture.state().actor, null, "worker releases after ground custody is observed");
-  assert.equal(fixture.state().phase, "idle");
-  assert.equal(fixture.state().source, fixture.ground);
-  assert.equal(fixture.actions.length, 0);
-});
+  assert.equal(fixture.actions.length,
