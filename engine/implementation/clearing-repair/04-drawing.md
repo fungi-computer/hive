@@ -35,9 +35,10 @@ type IsoRenderRecord = {
 ```
 
 The record is derived from the same canonical placement and orientation used by
-construction. A person or compact prop supplies a support point. A bed, wall,
-shelf, brewer or stair supplies its full oriented footprint endpoints. Stairs use
-their entrance and landing. If one sprite can genuinely interleave with another,
+construction. A person, one-voxel wall or other compact prop supplies one support
+point. Only an object that actually spans several voxels supplies a line or area:
+a bed uses its two cells, a stair uses its entrance and landing, and a 2×2 brewer
+uses its oriented footprint bounds. If one sprite can genuinely interleave with another,
 split it into stable render parts at the content boundary; do not invent a scalar
 depth that discards the long footprint.
 
@@ -55,9 +56,8 @@ ordering, so a hidden upper floor cannot occlude a lower actor.
 Within relevant bands:
 
 1. Compare only visible records whose projected bounds overlap.
-2. Compare point/point, point/line or line/line footprints in the shared camera
-   coordinate system and add a `behind -> in front` edge only when geometry
-   establishes it.
+2. Compare point, line and multi-cell bounds in the shared camera coordinate
+   system and add a `behind -> in front` edge only when geometry establishes it.
 3. Leave ambiguous non-interleaving pairs to the stable total key
    `(storeyBand, role, entityId, partId)`.
 4. Resolve the graph with deterministic Kahn topological ordering. The ready queue
@@ -118,14 +118,14 @@ their original pivot, facing and footprint metadata. `resolveWorldArtPlacement`
 maps those facts and supplies the render origin and oriented footprint. The sorter
 must not infer placement from a depth atlas or sprite name.
 
-Verify bed, brewer, shelf and wall footprint endpoints in every supported facing.
-Verify stairs from entrance to landing in all four directions. Fix a mismatch at
+Verify the one-point wall datum and the bed, brewer and shelf multi-cell footprints
+in every supported facing. Verify stairs from entrance to landing in all four directions. Fix a mismatch at
 the placement/art datum boundary; never change native geometry to fit a sprite.
 
 ## Acceptance
 
-Focused laws cover input-order independence; point and line relations; actor
-front/behind both bed facings; stair entrance/midpoint/landing; walls, shelves,
+Focused laws cover input-order independence; point, line and area relations; actor
+front/behind both bed facings; stair entrance/midpoint/landing; one-cell walls, shelves,
 brewers, trees, floors and actors; cache invalidation; two moving actors; and
 front-to-back alpha picking including a nonpickable occluder.
 

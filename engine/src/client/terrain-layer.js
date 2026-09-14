@@ -1,22 +1,17 @@
 import { WebGLRenderer, Vector3 } from "three";
-import { BufferImageSource, Container, Texture } from "pixi.js";
-import { renderBakePairCanvas } from "../../../src/art/bake.js";
+import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
+import { renderBakeCanvas } from "../../../src/art/bake.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
-import { createTerrainSceneCache, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
-import {
-  terrainChunkKey,
-  terrainFaceBounds,
-} from "../../../src/art/terrain-faces.js";
-import { project, WORLD_TOWARD_CAMERA } from "./geometry.js";
-import { worldDepthBasis } from "./world-depth.js";
+import { terrainBandScene, TERRAIN_DETAIL_HEIGHT } from "../../../src/art/terrain-columns.js";
+import { terrainFaceBounds, terrainColumnMap } from "../../../src/art/terrain-faces.js";
+import { project } from "./geometry.js";
+import { registerVisibleTexture, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
+import { planTerrainBandUpdates } from "./terrain-band-plan.js";
 
 const WIDTH = 2304,
   HEIGHT = 1536,
-  CHUNK_SIZE = 8,
   WATER_TILE_WIDTH = 32,
-  WATER_TILE_HEIGHT = 16,
-  WATER_DEPTH_MIN = -1,
-  WATER_DEPTH_MAX = 1;
+  WATER_TILE_HEIGHT = 16;
 
 export function waterTileWorldOffset(pixelX, pixelY) {
   if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY)) throw new Error("invalid water tile pixel");
@@ -34,16 +29,8 @@ export function waterTileWorldOffset(pixelX, pixelY) {
   };
 }
 
-function encodeDepth24(value) {
-  const normalized = Math.max(0, Math.min(1, (value - WATER_DEPTH_MIN) / (WATER_DEPTH_MAX - WATER_DEPTH_MIN)));
-  const encoded = Math.round(normalized * 16777215);
-  return [encoded >> 16, (encoded >> 8) & 255, encoded & 255, 255];
-}
-
-function createWaterTilePair() {
+function createWaterTile() {
   const colorPixels = new Uint8Array(WATER_TILE_WIDTH * WATER_TILE_HEIGHT * 4);
-  const depthPixels = new Uint8Array(colorPixels.length);
-  const basis = worldDepthBasis(WORLD_TOWARD_CAMERA);
   for (let y = 0; y < WATER_TILE_HEIGHT; y++) {
     for (let x = 0; x < WATER_TILE_WIDTH; x++) {
       const screenX = x + 0.5 - WATER_TILE_WIDTH / 2;
@@ -55,13 +42,10 @@ function createWaterTilePair() {
       colorPixels[offset + 1] = 125;
       colorPixels[offset + 2] = 136;
       colorPixels[offset + 3] = 178;
-      const world = waterTileWorldOffset(x + 0.5, y + 0.5);
-      depthPixels.set(encodeDepth24(basis[0] * world.x + basis[2] * world.z), offset);
     }
   }
   const colorTexture = new Texture({ source: new BufferImageSource({ resource: colorPixels, width: WATER_TILE_WIDTH, height: WATER_TILE_HEIGHT, format: "rgba8unorm", alphaMode: "no-premultiply-alpha", scaleMode: "nearest" }) });
-  const depthTexture = new Texture({ source: new BufferImageSource({ resource: depthPixels, width: WATER_TILE_WIDTH, height: WATER_TILE_HEIGHT, format: "rgba8unorm", alphaMode: "no-premultiply-alpha", scaleMode: "nearest" }) });
-  return Object.freeze({ colorTexture, depthTexture, depthPixels });
+  return Object.freeze({ colorTexture });
 }
 
 export function terrainScreenTransform(camera) {
@@ -73,195 +57,75 @@ export function terrainScreenTransform(camera) {
   };
 }
 
-export function copyTerrainDepthPixels(target, source) {
-  if (!(target instanceof Uint8Array) || target.length !== source.length)
-    throw new Error("terrain depth pixel buffers differ");
-  target.set(source);
-  return target;
-}
-
 function projectedPoint(camera, x, y, z) {
   const point = new Vector3(x, y, z).project(camera);
   return { x: ((point.x + 1) * WIDTH) / 2, y: ((1 - point.y) * HEIGHT) / 2 };
-}
-
-function clippedBounds(bounds, padding) {
-  if (!bounds) return null;
-  const left = Math.max(0, Math.floor(bounds.left) - padding);
-  const top = Math.max(0, Math.floor(bounds.top) - padding);
-  const right = Math.min(WIDTH, Math.ceil(bounds.right) + padding);
-  const bottom = Math.min(HEIGHT, Math.ceil(bounds.bottom) + padding);
-  return right > left && bottom > top
-    ? { left, top, width: right - left, height: bottom - top }
-    : null;
-}
-
-function regionForChunk(
-  chunk,
-  changed,
-  previous,
-  current,
-  previousIndex,
-  currentIndex,
-  verticalMetres,
-  camera,
-) {
-  const columns = changed.filter(
-    ({ x, z }) => terrainChunkKey(x, z, CHUNK_SIZE) === chunk,
-  );
-  const oldBounds = terrainFaceBounds(
-    previous,
-    columns,
-    verticalMetres,
-    (x, y, z) => projectedPoint(camera, x, y, z),
-    previousIndex,
-  );
-  const newBounds = terrainFaceBounds(
-    current,
-    columns,
-    verticalMetres,
-    (x, y, z) => projectedPoint(camera, x, y, z),
-    currentIndex,
-  );
-  if (!oldBounds && !newBounds) return null;
-  const bounds = {
-    left: Math.min(oldBounds?.left ?? Infinity, newBounds?.left ?? Infinity),
-    top: Math.min(oldBounds?.top ?? Infinity, newBounds?.top ?? Infinity),
-    right: Math.max(
-      oldBounds?.right ?? -Infinity,
-      newBounds?.right ?? -Infinity,
-    ),
-    bottom: Math.max(
-      oldBounds?.bottom ?? -Infinity,
-      newBounds?.bottom ?? -Infinity,
-    ),
-  };
-  const detailPixels = Math.abs(projectedPoint(camera, 0, TERRAIN_DETAIL_HEIGHT, 0).y - projectedPoint(camera, 0, 0, 0).y);
-  return clippedBounds(bounds, Math.ceil(detailPixels) + 3);
 }
 
 /** Client-only cached image of the host's exterior projection. */
 export function createTerrainLayer() {
   const container = new Container();
   container.eventMode = "none";
-  let renderer, colorTexture, depthTexture, colorCanvas, colorContext, depthCanvas, depthContext;
-  let depthPixels, depthRange, drawItem, waterItems = [];
-  const waterTile = createWaterTilePair();
+  container.sortableChildren = true;
+  let renderer;
+  const bandCache = new Map();
+  let waterItems = [], sortableItems = [], terrainSurfaces = [], previousSurfaces = [];
+  const waterTile = createWaterTile();
   let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
-  let terrainCache, canonicalCamera, cachedVerticalMetres;
+  let canonicalCamera, cachedVerticalMetres;
   let revision, epoch, projectionKey;
 
   function clear() {
-    colorTexture?.destroy(true);
-    depthTexture?.destroy(true);
-    colorTexture = undefined;
-    depthTexture = undefined;
-    colorCanvas = undefined;
-    colorContext = undefined;
-    depthCanvas = undefined;
-    depthContext = undefined;
-    depthPixels = undefined;
-    depthRange = undefined;
-    drawItem = undefined;
-    terrainCache?.dispose();
-    terrainCache = undefined;
+    for (const { sprite } of bandCache.values()) sprite.destroy({ children: true, texture: true, textureSource: true });
+    bandCache.clear();
     canonicalCamera = undefined;
     cachedVerticalMetres = undefined;
     revision = undefined;
+    for (const item of waterItems) item.destroy();
     waterItems = [];
+    sortableItems = [];
+    terrainSurfaces = [];
+    previousSurfaces = [];
     projectionKey = undefined;
   }
 
-  function fullBake(frame) {
-    terrainCache ??= createTerrainSceneCache({
-      verticalMetres: frame.verticalMetres,
-    });
-    terrainCache.update(frame.surfaces, frame.verticalMetres);
-    cachedVerticalMetres = frame.verticalMetres;
+  function fullBake(frame, rebuildLevels = null, removedLevels = []) {
     canonicalCamera = artCamera(WIDTH, HEIGHT, 1.03, 256);
-    const rendered = renderBakePairCanvas(
-      renderer,
-      terrainCache.scene,
-      canonicalCamera,
-      WIDTH,
-      HEIGHT,
-      { ink: false, releaseGeometry: false },
-    );
-    colorCanvas = rendered.colorCanvas;
-    colorContext = colorCanvas.getContext("2d", { willReadFrequently: true });
-    depthCanvas = rendered.depthCanvas;
-    depthContext = depthCanvas.getContext("2d", { willReadFrequently: true });
-    depthPixels = new Uint8Array(rendered.depthPixels);
-    depthRange = rendered.depthRange;
-    colorTexture?.destroy(true);
-    depthTexture?.destroy(true);
-    colorTexture = Texture.from(colorCanvas);
-    colorTexture.source.scaleMode = "nearest";
-    depthTexture = new Texture({ source: new BufferImageSource({ resource: depthPixels, width: WIDTH, height: HEIGHT, format: "rgba8unorm", alphaMode: "no-premultiply-alpha", scaleMode: "nearest" }) });
-    drawItem = makeDrawItem();
-  }
-
-  function patchBake(frame, update) {
-    if (!update.dirtyChunks.length || !canonicalCamera) return;
-    for (const chunk of update.dirtyChunks) {
-      const bounds = regionForChunk(
-        chunk,
-        update.affectedColumns,
-        update.previous,
-        update.surfaces,
-        update.previousIndex,
-        update.columnIndex,
-        frame.verticalMetres,
-        canonicalCamera,
-      );
-      if (!bounds) continue;
-      const camera = canonicalCamera.clone();
-      camera.setViewOffset(
-        WIDTH,
-        HEIGHT,
-        bounds.left,
-        bounds.top,
-        bounds.width,
-        bounds.height,
-      );
-      const patch = renderBakePairCanvas(
-        renderer,
-        terrainCache.scene,
-        camera,
-        bounds.width,
-        bounds.height,
-        { ink: false, releaseGeometry: false },
-      );
-      if (patch.depthRange.min !== depthRange.min || patch.depthRange.max !== depthRange.max) {
-        fullBake(frame);
-        return;
-      }
-      colorContext.clearRect(bounds.left, bounds.top, bounds.width, bounds.height);
-      colorContext.drawImage(patch.colorCanvas, bounds.left, bounds.top);
-      depthContext.clearRect(bounds.left, bounds.top, bounds.width, bounds.height);
-      depthContext.drawImage(patch.depthCanvas, bounds.left, bounds.top);
-      camera.clearViewOffset();
+    cachedVerticalMetres = frame.verticalMetres;
+    if (!rebuildLevels) {
+      for (const { sprite } of bandCache.values()) sprite.destroy({ children: true, texture: true, textureSource: true });
+      bandCache.clear();
     }
-    copyTerrainDepthPixels(depthPixels, depthContext.getImageData(0, 0, WIDTH, HEIGHT).data);
-    colorTexture.source.update();
-    depthTexture.source.update();
-  }
-
-  function makeDrawItem() {
-    return {
-      entityId: "terrain",
-      visualPartId: "opaque",
-      physicalRole: "terrain",
-      colorTexture,
-      depthTexture,
-      colorFrame: { frame: { x: 0, y: 0, width: WIDTH, height: HEIGHT } },
-      depthFrame: { frame: { x: 0, y: 0, width: WIDTH, height: HEIGHT }, pixels: depthPixels, atlasWidth: WIDTH, atlasHeight: HEIGHT, depthRange },
-      worldOrigin: { x: 0, y: 0, z: 0 },
-      screenTransform,
-      anchor: { x: 0, y: 0 },
-      visible: true,
-      pickable: false,
-    };
+    for (const level of removedLevels) {
+      const prior = bandCache.get(level);
+      prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
+      bandCache.delete(level);
+    }
+    const levelsToBuild = rebuildLevels ?? [...new Set(terrainSurfaces.map(({ cell: [, y] }) => y))];
+    for (const level of levelsToBuild.sort((a, b) => a - b)) {
+      const selected = terrainSurfaces.filter(({ cell: [, y] }) => y === level);
+      if (!selected.length) continue;
+      const prior = bandCache.get(level);
+      prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
+      const raw = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
+      const detail = Math.abs(projectedPoint(canonicalCamera, 0, TERRAIN_DETAIL_HEIGHT, 0).y - projectedPoint(canonicalCamera, 0, 0, 0).y);
+      const padding = Math.ceil(detail) + 2;
+      const bounds = raw && { left: Math.max(0, Math.floor(raw.left) - padding), top: Math.max(0, Math.floor(raw.top) - padding), right: Math.min(WIDTH, Math.ceil(raw.right) + padding), bottom: Math.min(HEIGHT, Math.ceil(raw.bottom) + padding) };
+      if (!bounds) continue;
+      const bandCamera = canonicalCamera.clone();
+      bandCamera.setViewOffset(WIDTH, HEIGHT, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+      const baked = renderBakeCanvas(renderer, terrainBandScene(terrainSurfaces, level, { verticalMetres: frame.verticalMetres }), bandCamera, bounds.right - bounds.left, bounds.bottom - bounds.top, { ink: false, releaseGeometry: true });
+      const sprite = new Sprite(Texture.from(baked.canvas));
+      sprite.texture.source.scaleMode = "nearest";
+      const pixels = baked.context.getImageData(0, 0, baked.canvas.width, baked.canvas.height).data;
+      registerVisibleTexture(sprite.texture, pixels, baked.canvas.width, baked.canvas.height);
+      sprite.eventMode = "none";
+      container.addChild(sprite);
+      sprite.__terrainBounds = bounds;
+      const hitArea = visibleHitAreaFor(sprite.texture, { x: 0, y: 0 });
+      bandCache.set(level, { sprite, bounds, record: { id: `terrain:${level}`, part: "ground", role: "terrain", display: sprite, footprint: selected.map(({ cell: [x, y, z] }) => ({ x, y, z })), screenBounds: bounds, storeyBand: level, pickable: false, visible: true, contains: (point) => hitArea.contains((point.x - sprite.x) / sprite.scale.x, (point.y - sprite.y) / sprite.scale.y) } });
+    }
+    sortableItems = [...bandCache.values()].sort((a, b) => a.record.storeyBand - b.record.storeyBand).map(({ record }) => record);
   }
 
   return {
@@ -277,23 +141,21 @@ export function createTerrainLayer() {
         return;
       }
       container.visible = true;
+      terrainSurfaces = frame.surfaces;
       renderer ??= new WebGLRenderer({ alpha: true, antialias: false });
       const needsFull =
-        !terrainCache ||
-        !colorTexture ||
         projectionKey !== nextProjectionKey ||
         cachedVerticalMetres !== frame.verticalMetres;
       if (needsFull) fullBake(frame);
       else if (revision !== frame.revision) {
-        const update = terrainCache.update(
-          frame.surfaces,
-          frame.verticalMetres,
-        );
-        patchBake(frame, update);
+        const plan = planTerrainBandUpdates(previousSurfaces, frame.surfaces);
+        fullBake(frame, plan.rebuildLevels, plan.removedLevels);
       }
       revision = frame.revision;
+      previousSurfaces = frame.surfaces;
       projectionKey = nextProjectionKey;
-      // Water is composed by the shared world-depth owner after opaque terrain.
+      sortableItems = sortableItems.filter((item) => item.id.startsWith("terrain:"));
+      for (const item of waterItems) item.destroy();
       waterItems = [];
       for (const cell of frame.water) {
         if (cell.liquidVolumeM3 <= 0) continue;
@@ -301,40 +163,64 @@ export function createTerrainLayer() {
         const top = (y - 0.5) * frame.verticalMetres +
           (cell.level / 7) * frame.verticalMetres;
         const projected = project(x, top, z);
-        waterItems.push({
-          entityId: `water:${x}:${y}:${z}`,
-          visualPartId: "surface",
-          physicalRole: "terrain",
-          colorTexture: waterTile.colorTexture,
-          depthTexture: waterTile.depthTexture,
-          colorFrame: { frame: { x: 0, y: 0, width: WATER_TILE_WIDTH, height: WATER_TILE_HEIGHT } },
-          depthFrame: { frame: { x: 0, y: 0, width: WATER_TILE_WIDTH, height: WATER_TILE_HEIGHT }, pixels: waterTile.depthPixels, atlasWidth: WATER_TILE_WIDTH, atlasHeight: WATER_TILE_HEIGHT, depthRange: { min: WATER_DEPTH_MIN, max: WATER_DEPTH_MAX } },
-          worldOrigin: { x, y: top, z },
-          screenTransform: { x: projected.x, y: projected.y, scale: 1 },
-          anchor: { x: 0.5, y: 0.5 },
-          visible: true,
+        const water = new Sprite(waterTile.colorTexture);
+        water.anchor.set(0.5);
+        water.position.set(projected.x, projected.y);
+        water.eventMode = "none";
+        waterItems.push(water);
+        sortableItems.push({
+          id: `water:${x}:${y}:${z}`,
+          part: "surface",
+          role: "water",
+          display: water,
+          footprint: [{ x, y: top, z }],
+          screenBounds: { left: projected.x - 16, right: projected.x + 16, top: projected.y - 8, bottom: projected.y + 8 },
+          storeyBand: y,
           pickable: false,
-          alpha: 1,
+          visible: true,
         });
+        container.addChild(water);
       }
     },
     position(camera) {
-      container.position.set(camera.x, camera.y);
-      container.scale.set(camera.zoom);
+      container.position.set(0, 0);
+      container.scale.set(1);
       screenTransform = terrainScreenTransform(camera);
-      if (drawItem) drawItem.screenTransform = screenTransform;
-      for (const item of waterItems) {
-        const projected = project(item.worldOrigin.x, item.worldOrigin.y, item.worldOrigin.z);
-        item.screenTransform = { x: projected.x * camera.zoom + camera.x, y: projected.y * camera.zoom + camera.y, scale: camera.zoom };
+      for (const { sprite } of bandCache.values()) {
+        sprite.position.set(
+          camera.x + ((640 - WIDTH) / 2 + (sprite.__terrainBounds?.left ?? 0)) * camera.zoom,
+          camera.y + ((400 - HEIGHT) / 2 + (sprite.__terrainBounds?.top ?? 0)) * camera.zoom,
+        );
+        sprite.scale.set(camera.zoom);
+      }
+      for (const terrain of sortableItems.filter((item) => item.id.startsWith("terrain:"))) {
+        const bounds = terrain.display.__terrainBounds;
+        terrain.screenBounds = {
+          left: camera.x + ((640 - WIDTH) / 2 + bounds.left) * camera.zoom,
+          right: camera.x + ((640 - WIDTH) / 2 + bounds.right) * camera.zoom,
+          top: camera.y + ((400 - HEIGHT) / 2 + bounds.top) * camera.zoom,
+          bottom: camera.y + ((400 - HEIGHT) / 2 + bounds.bottom) * camera.zoom,
+        };
+      }
+      for (const item of sortableItems) if (!item.id.startsWith("terrain:")) {
+        const projected = project(item.footprint[0].x, item.footprint[0].y, item.footprint[0].z);
+        item.display.position.set(projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y);
+        item.display.scale.set(camera.zoom);
+        item.screenBounds = {
+          left: projected.x * camera.zoom + camera.x - 16,
+          right: projected.x * camera.zoom + camera.x + 16,
+          top: projected.y * camera.zoom + camera.y - 8,
+          bottom: projected.y * camera.zoom + camera.y + 8,
+        };
       }
     },
-    get drawItem() { return drawItem; },
+    get drawItem() { return null; },
     get transparentItems() { return waterItems; },
+    get sortableItems() { return sortableItems; },
     get waterTile() { return waterTile; },
     dispose() {
       clear();
       waterTile.colorTexture.destroy(true);
-      waterTile.depthTexture.destroy(true);
       renderer?.dispose();
       renderer?.forceContextLoss();
       container.destroy({ children: true });

@@ -1,8 +1,7 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
-import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker, WORLD_TOWARD_CAMERA } from "./geometry.js";
-import { createWorldDepthLayer } from "./world-depth-layer.js";
-import { subjectWorldDepthItem } from "./world-depth-items.js";
+import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
+import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
 import { resolveWorldArtPlacement } from "./art-placement.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
@@ -10,7 +9,7 @@ import { createMotionCueOwner } from "./motion.js";
 import { createAudioOwner } from "./audio.js";
 import { figureFrame, createAnimationClock } from "./animation.js";
 import { createInterpolationBuffer } from "./interpolation.js";
-import { Application, Container, Graphics, Sprite, Text } from "pixi.js";
+import { Application, Container, Graphics, Sprite, Text, Texture } from "pixi.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Button } from "@fungi.computer/caps/components/button";
@@ -82,7 +81,7 @@ export function createHiveClient({
   let directControl;
   let nativeBinding;
   const bindings = { ...DEFAULT_VISUAL_BINDINGS, ...visualBindings };
-  let activeSelectionShortcuts = [...selectionShortcuts];
+  let activeSelectionShortcuts = selectionShortcuts.filter((shortcut) => shortcut?.id);
   const state = {
     ready: false,
     connection: { status: "online", pending: 0 },
@@ -244,7 +243,6 @@ export function createHiveClient({
   const overlay = new Container();
   const groundEffects = new Container();
   groundEffects.eventMode = "none";
-  const actorLayer = new Container();
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
   const terrainMarksGraphic = new Graphics();
@@ -269,8 +267,8 @@ export function createHiveClient({
   let awaitingEpochTransition = false;
   let groundSprite = null;
   const terrainLayer = createTerrainLayer();
-  let worldDepthLayer;
-  let worldDepthSprite;
+  const spriteSorter = createIsometricSorter({ camera: { x: 1, y: 0, z: 1 } });
+  let orderedSprites = [];
   let terrainFrame;
   let markSurfaceSource;
   let markSurfaces;
@@ -826,7 +824,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, worldDepthSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, actorLayer, environmentGraphic, transientLayer);
+      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -878,7 +876,7 @@ export function createHiveClient({
       });
       actorCache.delete(id);
     }
-    const opaqueItems = [];
+    const sortableSprites = [];
     const orderedSubjects = [...state.subjects].sort((a, b) => a.id.localeCompare(b.id));
     for (const subject of orderedSubjects) {
       subject.screen = screenPoint(subject);
@@ -892,6 +890,7 @@ export function createHiveClient({
       if (!entry) {
         entry = {
           container: new Container(),
+          sprite: new Sprite(),
           marker: new Graphics()
             .ellipse(0, 0, 18, 9)
             .stroke({ color: 0xe8c779, width: 2 }),
@@ -905,8 +904,9 @@ export function createHiveClient({
           progress: new Graphics(),
         };
         entry.container.eventMode = "none";
-        entry.container.addChild(entry.marker, entry.label, entry.progress);
-        actorLayer.addChild(entry.container);
+        entry.sprite.eventMode = "none";
+        entry.container.addChild(entry.sprite, entry.marker, entry.label, entry.progress);
+        terrainLayer.container.addChild(entry.container);
         actorCache.set(subject.id, entry);
       }
       const animation = animationById.get(subject.id);
@@ -936,6 +936,7 @@ export function createHiveClient({
         ? visibleHitAreaFor(texture, anchor)
         : undefined;
       let placement;
+      let resolvedPlacement;
       if (texture && isStatic && subject.placement) {
         const decodedDepth = art.depthByTexture?.get(texture);
         const resolved = resolveWorldArtPlacement({
@@ -944,6 +945,7 @@ export function createHiveClient({
           orientation: subject.placement.orientation,
           decodedDepth,
         });
+        resolvedPlacement = resolved;
         const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);
         const base = project(subject.x, subject.y, subject.z);
         placement = { offset: resolved.offset, screenOffset: [
@@ -951,15 +953,35 @@ export function createHiveClient({
           (shifted.y - base.y) * camera.zoom,
         ] };
       }
-      if (texture) opaqueItems.push(subjectWorldDepthItem({
-        subject,
-        texture,
-        anchor,
-        art,
-        scale: camera.zoom,
-        physicalRole: binding.worldRole,
-        placement,
-      }));
+      entry.sprite.texture = texture ?? Texture.EMPTY;
+      const canSort = Boolean(terrainFrame || Number.isFinite(subject.support?.level) || Number.isFinite(subject.surface?.level));
+      entry.sprite.visible = canSort;
+      if (texture && canSort) {
+        entry.sprite.anchor.set(anchor.x, anchor.y);
+        entry.sprite.scale.set(camera.zoom);
+        entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);
+        sortableSprites.push({
+          id: subject.id,
+          role: isStatic ? "structure" : "actor",
+          pickable: subject.pickable !== false,
+          display: entry.container,
+          moving: !isStatic,
+          footprint: subjectSortFootprint(subject, resolvedPlacement),
+          storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
+          screenBounds: {
+            left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * texture.width * camera.zoom,
+            right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * texture.width * camera.zoom,
+            top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * texture.height * camera.zoom,
+            bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * texture.height * camera.zoom,
+          },
+          hitArea: subject.hitArea,
+          contains: (point) => subject.hitArea?.contains(
+            (point.x - entry.container.x - entry.sprite.x) / camera.zoom,
+            (point.y - entry.container.y - entry.sprite.y) / camera.zoom,
+          ) === true,
+          visible: true,
+        });
+      }
       entry.label.text = subject.name;
       entry.label.anchor.set(0.5, 1);
       entry.label.position.set(0, -12);
@@ -975,15 +997,7 @@ export function createHiveClient({
       entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
-    if (worldDepthLayer) {
-      if (worldDepthLayer.target.width !== app.screen.width || worldDepthLayer.target.height !== app.screen.height)
-        worldDepthLayer.resize(app.screen.width, app.screen.height);
-      worldDepthLayer.update(terrainLayer.drawItem ? [terrainLayer.drawItem, ...opaqueItems] : opaqueItems, WORLD_TOWARD_CAMERA);
-      worldDepthLayer.render(app.renderer);
-      if (terrainLayer.drawItem || opaqueItems.length)
-        worldDepthLayer.renderTransparent(app.renderer, terrainLayer.transparentItems);
-      worldDepthSprite.visible = opaqueItems.length > 0 || Boolean(terrainLayer.drawItem);
-    }
+    orderedSprites = spriteSorter.apply([...terrainLayer.sortableItems, ...sortableSprites]);
     const drag = gesture.getSnapshot().context;
     if (
       gesture.getSnapshot().value === "dragging" &&
@@ -1231,8 +1245,9 @@ export function createHiveClient({
       box.left = box.right = end.x;
       box.top = box.bottom = end.y;
     }
-    const depthHit = click ? worldDepthLayer?.picker.pick(end) ?? null : null;
-    const directHit = depthHit?.target ? [depthHit.target] : [];
+    const candidates = click ? orderedSprites.filter((candidate) => candidate.contains?.(end) === true) : [];
+    const picked = pickFromOrdered(orderedSprites, candidates);
+    const directHit = picked?.target ? [picked.target] : [];
     let hit = click
       ? directHit.length
         ? drag.additive
@@ -1242,7 +1257,7 @@ export function createHiveClient({
           : directHit
         : drag.additive ? state.selectedIds : []
       : selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds);
-    if (click && depthHit === null) {
+    if (click && !picked) {
       const local = {
         x: (end.x - camera.x) / camera.zoom,
         y: (end.y - camera.y) / camera.zoom,
@@ -1373,9 +1388,6 @@ export function createHiveClient({
       preference: "webgl",
       preferWebGLVersion: 2,
     });
-    worldDepthLayer = createWorldDepthLayer({ width: app.screen.width, height: app.screen.height });
-    worldDepthSprite = new Sprite(worldDepthLayer.texture);
-    worldDepthSprite.eventMode = "none";
     app.canvas.tabIndex = 0;
     canvasHost.appendChild(app.canvas);
     app.stage.addChild(overlay);
@@ -1693,9 +1705,6 @@ export function createHiveClient({
       app.canvas?.removeEventListener("pointerup", pointerUp);
       app.canvas?.removeEventListener("contextmenu", contextMenu);
       terrainLayer.dispose();
-      worldDepthSprite?.removeFromParent();
-      worldDepthSprite?.destroy({ texture: false, textureSource: false });
-      worldDepthLayer?.dispose();
       disposePlacementGhosts(placementGhosts);
       state.disposeArt?.();
       for (const child of overlay.removeChildren())

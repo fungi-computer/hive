@@ -71,10 +71,8 @@ const groups = Object.freeze({
     "engine/src/client/art-placement.test.js",
     "engine/src/client/construction-visuals.test.js",
     "engine/src/client/geometry.test.js",
+    "engine/src/client/isometric-sorter.test.js",
     "engine/src/client/terrain-layer.test.js",
-    "engine/src/client/world-depth.test.js",
-    "engine/src/client/world-depth-items.test.js",
-    "engine/src/client/world-depth-layer.test.js",
   ]),
 });
 
