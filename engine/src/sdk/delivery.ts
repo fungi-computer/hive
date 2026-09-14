@@ -66,6 +66,8 @@ export const DeliveryTask = component<{
 });
 const distance = (a: Vec3, b: Vec3) =>
   Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+const sameContact = (a: MoveDestination, b: MoveDestination) =>
+  a.x === b.x && a.y === b.y && a.z === b.z && a.frame === b.frame;
 type DeliveryCandidate = {
   readonly worker: EntityId;
   readonly task: EntityId;
@@ -344,7 +346,8 @@ export function deliveryProvider(ctx: WriteContext, suspendedActors: ReadonlySet
       }
       if (state.destinationContactSet && (state.phase === "carrying" || state.phase === "to-destination")) {
         const contacts = ctx.transferContacts({ worker: state.actor, container: state.destination });
-        if (contacts.kind !== "ready") {
+        const selected = { x: state.destinationContactX, y: state.destinationContactY, z: state.destinationContactZ, frame: state.destinationContactFrame };
+        if (contacts.kind !== "ready" || !contacts.targets.some(target => sameContact(target, selected))) {
           if (lotState?.container === state.actor) {
             ctx.write(DeliveryTask, task.id, { ...state, phase: "putting-down" });
             ctx.action(dropLot(state.actor, state.sourceLot));
