@@ -161,6 +161,10 @@ impl Kernel {
     }
 
     pub(super) fn publish_authored_entities(&mut self, prepared: PreparedAuthoredEntities) {
+        let mut touched = BTreeSet::new();
+        touched.extend(prepared.removes.iter().cloned());
+        touched.extend(prepared.creates.iter().map(|row| row.id.clone()));
+        touched.extend(prepared.writes.iter().map(|write| write.entity.clone()));
         let writes_can_release_reference = prepared.writes.iter().any(|write| {
             self.registry.schemas.get(&write.component).is_some_and(|schema|
                 schema.fields.values().any(|kind| matches!(kind, FieldType::Entity | FieldType::NullableEntity)))
@@ -184,5 +188,6 @@ impl Kernel {
                 .expect("prepared authored write");
         }
         self.state_weight = prepared.weight;
+        for id in touched { self.refresh_planner_index(&id); }
     }
 }

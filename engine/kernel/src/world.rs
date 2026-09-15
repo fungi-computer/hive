@@ -59,6 +59,7 @@ use sha2::{Digest, Sha256};
 use crate::terrain_water::WaterExchangeDirection;
 use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
 use crate::work_planner::PlannerState;
+use crate::work_candidates::NativeIndexes;
 #[cfg(test)]
 #[path = "party_tests.rs"]
 mod party_tests;
@@ -1928,6 +1929,7 @@ pub struct Kernel {
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
+    planner_indexes: NativeIndexes,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -2095,6 +2097,7 @@ impl Kernel {
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
+            planner_indexes: NativeIndexes::default(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -2103,6 +2106,16 @@ impl Kernel {
     }
 
     pub(crate) fn ecs(&self) -> &World { &self.ecs }
+    pub(crate) fn refresh_planner_index(&mut self, id: &str) {
+        let entity = self.ids.get(id).copied();
+        self.planner_indexes.refresh_entity(&self.ecs, id, entity);
+    }
+    pub(crate) fn rebuild_planner_index(&mut self) {
+        self.planner_indexes.rebuild(&self.ecs, &self.ids);
+    }
+    pub(crate) fn next_native_planning_window(&mut self, tick: u64) -> crate::work_candidates::PlanningWindow {
+        crate::work_candidates::next_fair_indexed_window(&mut self.planner, &self.planner_indexes, tick)
+    }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
         self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<SupplyAllocation>(*entity).map(|allocation| (id.as_str(), allocation)))
@@ -3478,6 +3491,7 @@ impl Kernel {
         candidate.next_party_sequence = state.next_party_sequence;
         state.planner.validate().map_err(str::to_owned)?;
         candidate.planner = state.planner;
+        candidate.rebuild_planner_index();
         candidate.validate_party_receipts()?;
         for (task, attempt) in attempts {
             let entity = candidate.entity(&task)?;
@@ -4912,7 +4926,7 @@ impl Kernel {
         for record in records { let id = record.id; let entity = self.ecs.spawn(ExternalId(id.clone())).id(); for (name, value) in record.components { self.registry.insert(&mut self.ecs, entity, &name, &value)?; } handles.push((id, entity)); }
         let party_entity = handles.iter().find(|(id, _)| id == &party).map(|(_, entity)| *entity).ok_or("party entity missing")?;
         self.ecs.entity_mut(party_entity).insert(PartyReceipt { binding_id, player, party: party.clone(), digest });
-        for (id, entity) in handles { self.ids.insert(id.clone(), entity); self.known.insert(id); }
+        for (id, entity) in handles { self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_planner_index(&id); }
         self.next_party_sequence = next_sequence;
         self.refresh_state_weight(); Ok(party)
     }
