@@ -2,6 +2,7 @@ import { levelLabel, type Placement } from "./game-space.ts";
 import type { FieldWaterReference } from "./field-water-source.ts";
 import type { BuildingKind, Cell, Command } from "./model.ts";
 import { setup } from "xstate";
+import type { DesignationOverlayKind } from "./designation-overlays.ts";
 
 export type TerrainToolKind = "dig";
 export type ToolKind = "chop" | BuildingKind | "herb" | TerrainToolKind;
@@ -366,6 +367,7 @@ export type UiAction =
   | { kind: "commit-result"; accepted: number }
   | { kind: "cutaway"; value: boolean }
   | { kind: "air-overlay" }
+  | { kind: "designation-overlay"; overlay: DesignationOverlayKind }
   | { kind: "debug-picking" }
   | { kind: "level"; level: LogicalLevel }
   | { kind: "command"; command: UiCommand | Command }
@@ -589,6 +591,7 @@ export function dispatchUiAction(
     case "download-raw-save":
     case "pan-mode":
     case "air-overlay":
+    case "designation-overlay":
     case "debug-picking":
     case "help":
     case "rotate":

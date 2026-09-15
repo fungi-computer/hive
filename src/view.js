@@ -34,6 +34,7 @@ import {
   clearingAirLayer,
   clearingAirPresentation,
 } from "./air-presentation.ts";
+import { designationOverlayVisible } from "./designation-overlays.ts";
 
 function label(text, size = 8) {
   const result = new Text({
@@ -759,19 +760,28 @@ export function createView(app, world, camera, art, initial, input) {
         !selection.box
           ? "static"
           : "none";
-      if (selection.tree === tree.id || preview.has(tree.id))
+      if (
+        designationOverlayVisible(selection.designationOverlays, "work-plans") &&
+        (selection.tree === tree.id || preview.has(tree.id))
+      )
         marks.ellipse(at.x, at.y, 14, 7).stroke({
           width: 2,
           color: preview.has(tree.id) ? 0xb9e3a6 : 0xe6c477,
         });
-      if (state.jobs.some((j) => j.target === tree.id))
+      if (
+        designationOverlayVisible(selection.designationOverlays, "work-plans") &&
+        state.jobs.some((j) => j.target === tree.id)
+      )
         marks
           .moveTo(at.x - 3, at.y - 14)
           .lineTo(at.x + 3, at.y - 8)
           .moveTo(at.x + 3, at.y - 14)
           .lineTo(at.x - 3, at.y - 8)
           .stroke({ width: 1, color: 0xffdd83 });
-      if (active)
+      if (
+        designationOverlayVisible(selection.designationOverlays, "work-plans") &&
+        active
+      )
         for (let i = 0; i < 3; i++) {
           const t = (state.tick + i * 5) % 18;
           marks
@@ -863,7 +873,10 @@ export function createView(app, world, camera, art, initial, input) {
         orientation: herb.stage,
         target: { ...view.target, level: viewLayer(herb) },
       });
-      if (herb.stage === "ordered") {
+      if (
+        designationOverlayVisible(selection.designationOverlays, "work-plans") &&
+        herb.stage === "ordered"
+      ) {
         marks
           .moveTo(projected.x, projected.y)
           .lineTo(projected.x, projected.y - 17)
@@ -878,10 +891,12 @@ export function createView(app, world, camera, art, initial, input) {
           color: 0xe6c477,
         });
       const progress = herbGrowthProgress(herb, state.tick);
-      marks.rect(projected.x - 10, projected.y + 7, 20, 2).fill(0x21362e);
-      marks
-        .rect(projected.x - 10, projected.y + 7, 20 * progress, 1)
-        .fill(herb.stage === "ready" ? 0xe8c679 : 0x9bc99a);
+      if (designationOverlayVisible(selection.designationOverlays, "work-plans")) {
+        marks.rect(projected.x - 10, projected.y + 7, 20, 2).fill(0x21362e);
+        marks
+          .rect(projected.x - 10, projected.y + 7, 20 * progress, 1)
+          .fill(herb.stage === "ready" ? 0xe8c679 : 0x9bc99a);
+      }
     }
     for (const lot of groundMugwortLots) {
       if (!bundles.has(lot.id)) {
@@ -1025,15 +1040,21 @@ export function createView(app, world, camera, art, initial, input) {
         .filter((job) => job.kind === "dig")
         .map((job) => job.voxel.join()),
     );
-    for (const face of terrainFaces)
-      if (
-        face.cell.level === selection.level &&
-        pending.has(face.ownerVoxel.join())
-      )
-        markFace(face, 0xdcb56c, 0.18);
+    if (designationOverlayVisible(selection.designationOverlays, "work-plans"))
+      for (const face of terrainFaces)
+        if (
+          face.cell.level === selection.level &&
+          pending.has(face.ownerVoxel.join())
+        )
+          markFace(face, 0xdcb56c, 0.18);
     if (selection.fieldWater && selection.level === 0)
       tile(worldView(selection.fieldWater), 0xe6c477, 0.12);
-    if (selection.tool !== "dig" || !selection.terrainStroke?.end) return;
+    if (
+      !designationOverlayVisible(selection.designationOverlays, "work-plans") ||
+      selection.tool !== "dig" ||
+      !selection.terrainStroke?.end
+    )
+      return;
     const faces = camera.terrainSelection(
       selection.terrainStroke.start,
       selection.terrainStroke.end,

@@ -231,7 +231,10 @@ export function createConstructionView(world, art, bodies, input, picking) {
       if (cutawayWall) view.alpha = 0.28;
       if (site.type === "roof" && selection.cutaway)
         view.alpha = finished ? 0.12 : 0.24;
-      if (!finished) {
+      if (
+        !finished &&
+        (selection.designationOverlays?.["work-plans"] ?? true)
+      ) {
         for (const cell of footprint(site))
           tile(grid, cell, delivered ? 0xdfc486 : 0x9ccbc1, 0.12);
         bars.rect(at.x - 10, at.y + 7, 20, 3).fill(0x21362e);
