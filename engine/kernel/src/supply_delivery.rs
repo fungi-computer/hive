@@ -6,6 +6,7 @@
 use super::Kernel;
 use crate::components::{Lot, Point, Position, Result, SupplyAllocation, SupplyAllocationState};
 use crate::work_attempt::{ActivityRef, AttemptPhase, OperationKey, WorkAttempt, WorkOutcome};
+use crate::world::TransferContactError;
 
 impl Kernel {
     fn supply_carrier(&self, container: &str) -> Option<String> {
@@ -21,19 +22,28 @@ impl Kernel {
     /// Contribute an authored allocation to the shared planner. Physical lot
     /// custody, carrier binding, and the source contact stay in this owner;
     /// the planner only receives a typed requirement.
-    pub(crate) fn supply_work_requirement(&self, task: &str, party: &str) -> Result<Option<crate::work_planner::WorkRequirement>> {
+    pub(crate) fn supply_work_requirement(&mut self, task: &str, party: &str) -> Result<Option<crate::work_planner::WorkRequirement>> {
         let entity = self.entity(task)?;
         let Some(allocation) = self.ecs.get::<SupplyAllocation>(entity).cloned() else { return Ok(None); };
         if allocation.state != SupplyAllocationState::Reserved || allocation.party != party || self.work_attempts.contains_key(task) { return Ok(None); }
-        let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).ok_or("supply allocation has no work policy")?;
+        let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned().ok_or("supply allocation has no work policy")?;
         if !policy.enabled || policy.party != party { return Ok(None); }
         let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().ok_or("supply allocation has no work schedule")?;
         let lot = self.ecs.get::<Lot>(self.entity(&allocation.portion)?).cloned().ok_or("supply portion disappeared")?;
         let source = self.entity(&lot.container)?;
-        let position = self.world_pose_entity(source, 0)?;
+        self.world_pose_entity(source, 0)?;
+        let contacts = self.transfer_contact_candidates(
+            &lot.container,
+            crate::terrain_traversal::TraversalConfig {
+                spacing: [0.0; 3],
+                clearance_cells: 1,
+                max_step_cells: 1,
+            },
+            self.support_id(source),
+        ).map_err(TransferContactError::into_string)?;
         Ok(Some(crate::work_planner::WorkRequirement {
             task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
-            contacts: vec![Point { x: position.x, y: position.y, z: position.z, frame: self.support_id(source) }],
+            contacts,
             required_worker: self.supply_carrier(&lot.container), free_capacity_required: allocation.quantity,
             operation: crate::work_planner::WorkOperation::SupplyAllocation { allocation: task.to_owned() },
         }))
@@ -41,13 +51,13 @@ impl Kernel {
 
     /// Resolve an ordinary container through the typed standing-contact owner
     /// shared with the public transfer query.
-    fn generic_destination_contacts(&mut self, worker: &str, destination: &str) -> Result<Vec<Point>> {
+    fn generic_destination_contacts(&mut self, worker: &str, destination: &str) -> std::result::Result<Vec<Point>, TransferContactError> {
         let contacts = self.transfer_contacts(worker, destination)?;
-        if contacts.is_empty() { return Err("generic supply destination has no standing contact".into()); }
+        if contacts.is_empty() { return Err(TransferContactError::NoContact); }
         Ok(contacts)
     }
 
-    fn destination_contacts(&mut self, worker: &str, destination: &str) -> Result<Vec<Point>> {
+    fn destination_contacts(&mut self, worker: &str, destination: &str) -> std::result::Result<Vec<Point>, TransferContactError> {
         let entity = self.entity(destination)?;
         // A container is a physical transfer boundary. Resolve its standing
         // contact through the same owner as the public transfer query. This
@@ -57,8 +67,8 @@ impl Kernel {
         if self.ecs.get::<crate::components::Container>(entity).is_some() {
             self.generic_destination_contacts(worker, destination)
         } else {
-            let contacts = self.native_supply_contacts(destination)?;
-            if contacts.is_empty() { return Err("supply destination has no native contact".into()); }
+            let contacts = self.native_supply_contacts(destination).map_err(TransferContactError::from)?;
+            if contacts.is_empty() { return Err(TransferContactError::NoContact); }
             Ok(contacts)
         }
     }
@@ -172,12 +182,12 @@ impl Kernel {
                     }
                     let destinations = match self.destination_contacts(&attempt.worker, &allocation.destination) {
                         Ok(destinations) => destinations,
-                        Err(reason) if matches!(reason.as_str(), "sealed" | "unavailable-frame" | "no-contact" | "generic supply destination has no standing contact") => {
+                        Err(TransferContactError::Sealed | TransferContactError::UnavailableFrame | TransferContactError::NoContact) => {
                             self.continue_work_attempt(task.clone(), operation.attempt.generation, operation.sequence, ActivityRef::MaterialDrop { lot: allocation.portion.clone() })?;
                             advanced += 1;
                             continue;
                         }
-                        Err(reason) => return Err(reason),
+                        Err(TransferContactError::Internal(reason)) => return Err(reason),
                     };
                     let worker = self.entity(&attempt.worker)?;
                     let position = *self
@@ -277,7 +287,6 @@ impl Kernel {
         self.planner_indexes.refresh_entity(&self.ecs, task, None);
         self.supply_index.refresh(task, None);
         self.ecs.despawn(entity);
-        self.refresh_state_weight();
         Ok(())
     }
 

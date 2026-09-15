@@ -1,6 +1,6 @@
 //! Canonical Job/Task admission, validation, readiness, completion and cancellation.
 
-use crate::components::{ActionScope, Container, ExternalId, FiniteResource, JobSnapshot, Lot, OwnedByParty, Party, Point, SupplyAllocationState, TaskSnapshot};
+use crate::components::{ActionScope, Container, ExternalId, FiniteResource, JobSnapshot, Lot, OwnedByParty, Party, Point, TaskSnapshot};
 use crate::work_attempt::{AttemptPhase, InterruptCause, WorkAttempt};
 use crate::world::Kernel;
 use bevy_ecs::prelude::Entity;
