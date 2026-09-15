@@ -42,6 +42,9 @@ impl Registry {
             ("hive.party-member", vec![("party", FieldType::Entity)]),
             ("hive.owned-by-party", vec![("party", FieldType::Entity)]),
             ("hive.party-receipt", vec![("bindingId", FieldType::String), ("player", FieldType::String), ("party", FieldType::Entity), ("digest", FieldType::String)]),
+            ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
+            ("hive.work-policy", vec![("party", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
+            ("hive.work-schedule", vec![("nextReviewTick", FieldType::Number), ("lastConsidered", FieldType::Number)]),
             (
                 "hive.position",
                 vec![
@@ -220,6 +223,9 @@ impl Registry {
                 "hive.party-member" => world.register_component::<PartyMember>(),
                 "hive.owned-by-party" => world.register_component::<OwnedByParty>(),
                 "hive.party-receipt" => world.register_component::<PartyReceipt>(),
+                "hive.work-participation" => world.register_component::<crate::work_planner::WorkParticipation>(),
+                "hive.work-policy" => world.register_component::<crate::work_planner::WorkPolicy>(),
+                "hive.work-schedule" => world.register_component::<crate::work_planner::WorkSchedule>(),
                 _ => {
                     // All dynamic insertions use AuthoredRecord, a Send+Sync
                     // layout. The destructor matches exactly; no relationships.
@@ -271,6 +277,7 @@ impl Registry {
                 | "hive.emitter"
                 | "hive.projectile"
                 | "hive.visual"
+                | "hive.work-schedule"
         )
     }
     /// Conservative canonical JSON size. Numeric poses can advance without
@@ -506,6 +513,9 @@ impl Registry {
                     return Err("invalid projectile".into());
                 }
             }
+            "hive.work-participation" => { let _: crate::work_planner::WorkParticipation = decode(value)?; }
+            "hive.work-policy" => { let policy: crate::work_planner::WorkPolicy = decode(value)?; if !valid_id(&policy.party) { return Err("invalid work policy party".into()); } }
+            "hive.work-schedule" => { let schedule: crate::work_planner::WorkSchedule = decode(value)?; if schedule.next_review_tick < schedule.last_considered { return Err("invalid work schedule".into()); } }
             _ => {}
         }
         Ok(())
@@ -593,6 +603,9 @@ impl Registry {
             "hive.party-member" => { world.entity_mut(entity).insert(decode::<PartyMember>(value)?); }
             "hive.owned-by-party" => { world.entity_mut(entity).insert(decode::<OwnedByParty>(value)?); }
             "hive.party-receipt" => { world.entity_mut(entity).insert(decode::<PartyReceipt>(value)?); }
+            "hive.work-participation" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkParticipation>(value)?); }
+            "hive.work-policy" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkPolicy>(value)?); }
+            "hive.work-schedule" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkSchedule>(value)?); }
             _ => {
                 let id = *self.ids.get(name).ok_or("unknown component")?;
                 OwningPtr::make(AuthoredRecord(value.clone()), |ptr| {
@@ -611,6 +624,9 @@ impl Registry {
             "hive.party-member" => world.get::<PartyMember>(entity).map(record),
             "hive.owned-by-party" => world.get::<OwnedByParty>(entity).map(record),
             "hive.party-receipt" => world.get::<PartyReceipt>(entity).map(record),
+            "hive.work-participation" => world.get::<crate::work_planner::WorkParticipation>(entity).map(record),
+            "hive.work-policy" => world.get::<crate::work_planner::WorkPolicy>(entity).map(record),
+            "hive.work-schedule" => world.get::<crate::work_planner::WorkSchedule>(entity).map(record),
             "hive.position" => world.get::<Position>(entity).map(record),
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),
