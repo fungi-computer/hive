@@ -1,5 +1,12 @@
 # Architecture implementation plan
 
+**Current breaking-change policy (Levi, September 9):** favor the clean composed
+engine and update its real callers together. No backward-compatibility shims,
+legacy adapters, migration readers or duplicate old implementations are required.
+Older passages describing migrations are superseded unless Levi explicitly asks
+for compatibility. Persist/version the current state and preserve same-version
+recovery and resource laws; reject unsupported older formats.
+
 ## Opaque engine contracts and composed tools — September 9
 
 Levi's standard is Watchdog's actual **payload-blind job engine**, not a

@@ -11,6 +11,16 @@ hosted interaction, performance or full simulation-completion claim.
 
 ## Current release and active outcome
 
+**Latest development policy, Levi September 9:** breaking engine/game APIs and
+save formats are allowed. Do not implement legacy shims, compatibility wrappers,
+old-save migrations or parallel old execution paths unless Levi explicitly asks
+for them. Update current consumers together and delete what they replace. This
+supersedes predecessor migration requirements in the historical plans and earlier
+v0 wording below. Current-version saves, DO restart/replay, physical conservation
+and rejection of unsupported formats remain required. Reference snapshots may
+remain test evidence; they do not require a live predecessor reader. The new
+finite-work representation and soil/world join should use this simpler policy.
+
 **Primary runtime constraint, reaffirmed by Levi September 9:** Hive's engine
 will run in Cloudflare Durable Objects. This governs the current extraction;
 it is not a later hosting optimization. A process may disappear between any
