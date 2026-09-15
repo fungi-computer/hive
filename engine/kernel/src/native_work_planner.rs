@@ -10,7 +10,7 @@ use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
 use crate::staged_process::{InputPolicy, ProcessPhase, StagedProcess};
 use crate::work_planner::{MAX_ASSIGNMENTS, WorkParticipation};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_CARRY_PORTION: u32 = 3;
 
@@ -295,37 +295,44 @@ impl Kernel {
             return Ok(Vec::new());
         }
 
-        let workers = self
-            .ids
+        let parties = requirements
             .iter()
-            .filter_map(|(id, entity)| {
-                let member = self.ecs.get::<PartyMember>(*entity)?;
-                let container = self.ecs.get::<Container>(*entity)?;
-                let position = *self.ecs.get::<Position>(*entity)?;
+            .map(|requirement| requirement.party.as_str())
+            .collect::<BTreeSet<_>>();
+        let indexed_workers = parties
+            .into_iter()
+            .flat_map(|party| {
+                crate::work_candidates::eligible_workers(
+                    &self.planner_indexes,
+                    party,
+                    crate::work_planner::MAX_ELIGIBLE_WORKERS,
+                )
+            })
+            .collect::<Vec<_>>();
+        let workers = indexed_workers
+            .into_iter()
+            .filter_map(|candidate| {
+                let entity = self.entity(&candidate.id).ok()?;
+                let container = self.ecs.get::<Container>(entity)?;
+                let position = *self.ecs.get::<Position>(entity)?;
                 let free_capacity = container.capacity.saturating_sub(
-                    u32::try_from(self.quantity_in_container(id)).unwrap_or(u32::MAX),
+                    u32::try_from(self.quantity_in_container(&candidate.id)).unwrap_or(u32::MAX),
                 );
                 (requirements
                     .iter()
-                    .any(|requirement| requirement.party == member.party)
-                    && self
-                        .ecs
-                        .get::<WorkParticipation>(*entity)
-                        .is_some_and(|participation| participation.automatic)
+                    .any(|requirement| requirement.party == candidate.party)
                     && free_capacity > 0
                     && self
                         .ecs
-                        .get::<Body>(*entity)
+                        .get::<Body>(entity)
                         .is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
-                    && self.ecs.get::<Traversal>(*entity).is_some()
-                    && !self.attempts_by_worker.contains_key(id)
-                    && self.ecs.get::<Destination>(*entity).is_none()
-                    && !self.direct.contains_key(entity)
-                    && self.ecs.get::<Support>(*entity).is_none()
-                    && self.ecs.get::<ExcavationWork>(*entity).is_none())
-                .then(|| (id.clone(), member.party.clone(), position, free_capacity))
+                    && !self.attempts_by_worker.contains_key(&candidate.id)
+                    && self.ecs.get::<Destination>(entity).is_none()
+                    && !self.direct.contains_key(&entity)
+                    && self.ecs.get::<Support>(entity).is_none()
+                    && self.ecs.get::<ExcavationWork>(entity).is_none())
+                .then(|| (candidate.id, candidate.party, position, free_capacity))
             })
-            .take(crate::work_planner::MAX_ELIGIBLE_WORKERS)
             .collect::<Vec<_>>();
         if workers.is_empty() {
             return Ok(Vec::new());
