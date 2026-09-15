@@ -52,6 +52,7 @@ pub(super) fn prepare(
     known: impl Fn(&str) -> bool,
     container_capacity: u32,
     container_quantity: u64,
+    output_volume: u64,
     state_weight: usize,
     fixed_added_weight: usize,
     state_limit: usize,
@@ -62,7 +63,7 @@ pub(super) fn prepare(
     if spec.quantity == 0 {
         return Err("material output quantity must be positive".into());
     }
-    if container_quantity.saturating_add(u64::from(spec.quantity)) > u64::from(container_capacity) {
+    if container_quantity.checked_add(output_volume).ok_or("material volume overflow")? > u64::from(container_capacity) {
         return Err("material output exceeds container capacity".into());
     }
     let water = spec.water_kg.map(|mass| -> Result<LotWater, String> {

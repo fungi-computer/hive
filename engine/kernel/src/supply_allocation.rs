@@ -11,8 +11,10 @@ pub(crate) fn reserved_source(kernel: &crate::world::Kernel, lot: &str, ignore: 
     kernel.supply_allocations().filter(|(id, a)| matches!(a.state, SupplyAllocationState::Reserved) && a.portion == lot && Some(*id) != ignore).map(|(_, a)| a.quantity).sum()
 }
 
-pub(crate) fn reserved_destination(kernel: &crate::world::Kernel, destination: &str, ignore: Option<&str>) -> u32 {
-    kernel.supply_allocations().filter(|(id, a)| matches!(a.state, SupplyAllocationState::Reserved) && a.destination == destination && Some(*id) != ignore).map(|(_, a)| a.quantity).sum()
+pub(crate) fn reserved_destination_volume(kernel: &crate::world::Kernel, destination: &str, ignore: Option<&str>) -> Result<u64, String> {
+    kernel.supply_allocations().filter(|(id, a)| matches!(a.state, SupplyAllocationState::Reserved) && a.destination == destination && Some(*id) != ignore).try_fold(0_u64, |sum, (_, a)| {
+        sum.checked_add(kernel.material_volume(&a.material, a.quantity)?).ok_or("material volume overflow".into())
+    })
 }
 
 pub(crate) fn validate_capacity(kernel: &crate::world::Kernel, source: Entity, destination: Entity, quantity: u32, ignore: Option<&str>) -> Result<(), String> {
@@ -21,8 +23,7 @@ pub(crate) fn validate_capacity(kernel: &crate::world::Kernel, source: Entity, d
     let source_reserved = reserved_source(kernel, &kernel.external_id(source)?, ignore);
     if quantity > lot.quantity.saturating_sub(source_reserved) { return Err("supply source portion is overbooked".into()); }
     let present = kernel.occupied_volume(&kernel.external_id(destination)?)?;
-    let incoming = reserved_destination(kernel, &kernel.external_id(destination)?, ignore);
-    let incoming_volume = kernel.material_volume(&lot.kind, incoming)?;
+    let incoming_volume = reserved_destination_volume(kernel, &kernel.external_id(destination)?, ignore)?;
     let moved_volume = kernel.material_volume(&lot.kind, quantity)?;
     if present.checked_add(incoming_volume).and_then(|v| v.checked_add(moved_volume)).ok_or("material volume overflow")? > u64::from(target.capacity) { return Err("supply destination capacity is overbooked".into()); }
     Ok(())

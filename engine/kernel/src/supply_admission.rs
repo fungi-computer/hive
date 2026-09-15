@@ -127,20 +127,12 @@ impl Kernel {
             if request.quantity > available {
                 return Err("supply admission source portion is overbooked".into());
             }
-            let occupied = self
-                .quantity_in_container(&request.destination_container)
-                .saturating_add(crate::supply_allocation::reserved_destination(
-                    self,
-                    &request.destination_container,
-                    None,
-                ))
+            let occupied = self.occupied_volume(&request.destination_container)?
+                .saturating_add(crate::supply_allocation::reserved_destination_volume(self, &request.destination_container, None)?)
                 .saturating_add(
-                    destination_promises
-                        .get(&request.destination_container)
-                        .copied()
-                        .unwrap_or(0),
+                    self.material_volume(&request.material, destination_promises.get(&request.destination_container).copied().unwrap_or(0))?,
                 );
-            if request.quantity > capacity.saturating_sub(occupied) {
+            if occupied.saturating_add(self.material_volume(&request.material, request.quantity)?) > u64::from(capacity) {
                 return Err("supply admission destination capacity is overbooked".into());
             }
             let worker = self.entity(&request.worker)?;
@@ -152,9 +144,8 @@ impl Kernel {
                 .ecs
                 .get::<Container>(worker)
                 .ok_or("supply admission worker cannot carry material")?;
-            let free_capacity = worker_container
-                .capacity
-                .saturating_sub(self.quantity_in_container(&request.worker));
+            let free_capacity = u64::from(worker_container.capacity).saturating_sub(self.occupied_volume(&request.worker)?);
+            let request_volume = self.material_volume(&request.material, request.quantity)?;
             if self
                 .ecs
                 .get::<PartyMember>(worker)
@@ -169,7 +160,7 @@ impl Kernel {
                     .ecs
                     .get::<WorkParticipation>(worker)
                     .is_none_or(|participation| !participation.automatic)
-                || request.quantity > free_capacity
+                || request_volume > free_capacity
                 || self.attempts_by_worker.contains_key(&request.worker)
                 || self.ecs.get::<Destination>(worker).is_some()
                 || self.direct.contains_key(&worker)

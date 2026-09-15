@@ -102,8 +102,8 @@ impl Kernel {
         }
         let target = worker;
         if self.ids.values().any(|entity| self.ecs.get::<Support>(*entity).is_some_and(|support| support.entity == site_id)) { return Err("supported dependent prevents deconstruction".into()); }
-        let salvage_total: u32 = definition.on_remove.salvage.values().try_fold(0u32, |sum, q| sum.checked_add(*q)).ok_or("salvage quantity overflow")?;
-        if self.quantity(worker_id).saturating_add(u64::from(salvage_total)) > u64::from(self.ecs.get::<Container>(target).unwrap().capacity) { return Err("worker lacks salvage capacity".into()); }
+        let salvage_volume: u64 = definition.on_remove.salvage.iter().try_fold(0_u64, |sum, (kind, q)| self.material_volume(kind, *q).and_then(|v| sum.checked_add(v).ok_or("material volume overflow".into())))?;
+        if self.occupied_volume(worker_id)?.saturating_add(salvage_volume) > u64::from(self.ecs.get::<Container>(target).unwrap().capacity) { return Err("worker lacks salvage capacity".into()); }
         let instances: Vec<_> = self.environment.as_ref().unwrap().world.structure_instances().into_iter().filter(|instance| match instance { crate::structure_geometry::StaticInstance::Floor { id, .. } | crate::structure_geometry::StaticInstance::Cover { id, .. } | crate::structure_geometry::StaticInstance::Fixture { id, .. } | crate::structure_geometry::StaticInstance::Wall { id, .. } | crate::structure_geometry::StaticInstance::ApertureWall { id, .. } | crate::structure_geometry::StaticInstance::Stair { id, .. } => id != site_id }).collect();
         let prepared = { let environment = self.environment.as_mut().unwrap(); match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("deconstruction geometry is invalid".into()) } };
         let salvage: Vec<_> = definition.on_remove.salvage.iter().map(|(kind, quantity)| self.prepare_material_output(MaterialOutputSpec { container: worker_id.to_owned(), kind: kind.clone(), quantity: *quantity, water_kg: None })).collect::<Result<Vec<_>>>()?;
@@ -438,7 +438,7 @@ impl Kernel {
                 ConstructionPhase::Working => if geometry_ids.contains(id) { return Err("working construction geometry is invalid".into()); },
             }
             if site.seconds > definition.work_seconds { return Err("construction progress exceeds catalog work".into()); }
-            let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
+            let capacity = u32::try_from(definition.materials.iter().try_fold(0_u64, |sum, (kind, quantity)| self.material_volume(kind, *quantity).and_then(|v| sum.checked_add(v).ok_or("material volume overflow".into())))?).map_err(|_| "construction material capacity overflow")?;
             if self.ecs.get::<Container>(*entity).is_some_and(|container| container.capacity != capacity) {
                 return Err("construction site capacity mismatch".into());
             }
@@ -479,7 +479,7 @@ impl Kernel {
         self.environment.as_mut().ok_or("construction needs environment")?
             .world.admit_construction_placement(instance, &pending)?;
         let staged = ConstructionSite { catalog, target, seconds: 0.0, phase: ConstructionPhase::Planned };
-        let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
+        let capacity = u32::try_from(definition.materials.iter().try_fold(0_u64, |sum, (kind, quantity)| self.material_volume(kind, *quantity).and_then(|v| sum.checked_add(v).ok_or("material volume overflow".into())))?).map_err(|_| "construction material capacity overflow")?;
         let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
             + self.registry.weight("hive.construction-site", &record(&staged))
             + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))
@@ -505,7 +505,7 @@ impl Kernel {
         if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
         let ConstructionTarget::Cell { cell, orientation } = target.target else { return Err("floor replacement target must be cell construction".into()); };
         let staged = ConstructionSite { catalog: desired_catalog.clone(), target: ConstructionTarget::Cell { cell, orientation }, seconds: 0.0, phase: ConstructionPhase::Planned };
-        let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
+        let capacity = u32::try_from(desired.materials.iter().try_fold(0_u64, |sum, (kind, quantity)| self.material_volume(kind, *quantity).and_then(|v| sum.checked_add(v).ok_or("material volume overflow".into())))?).map_err(|_| "replacement material capacity overflow")?;
         let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, owner, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: cell.x, support_y: i64::from(cell.y), support_z: cell.z, phase: FloorReplacementPhase::Queued })).id();
         self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id, BTreeSet::new());
         self.refresh_state_weight();

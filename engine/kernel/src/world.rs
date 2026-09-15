@@ -3957,7 +3957,7 @@ impl Kernel {
         }
         let capacity = self.ecs.get::<Container>(container).ok_or("not a container")?.capacity;
         let quantity = self.occupied_volume(&spec.container)?
-            .checked_add(self.material_volume(&spec.kind, crate::supply_allocation::reserved_destination(self, &spec.container, None))?)
+            .checked_add(crate::supply_allocation::reserved_destination_volume(self, &spec.container, None)?)
             .ok_or("material output destination reservation overflow")?;
         let lot = Lot { kind: spec.kind.clone(), quantity: spec.quantity, container: spec.container.clone() };
         let water = spec.water_kg.map(|mass| LotWater { water_kg: mass });
@@ -3966,6 +3966,7 @@ impl Kernel {
             + self.registry.weight("hive.lot", &record(&lot))
             + owner_party.as_ref().map(|party| self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))).unwrap_or(0)
             + water.as_ref().map(|value| self.registry.weight("hive.lot-water", &record(value))).unwrap_or(0);
+        let output_volume = self.material_volume(&spec.kind, spec.quantity)?;
         let mut prepared = material_output::prepare(
             spec,
             self.revision,
@@ -3973,6 +3974,7 @@ impl Kernel {
             |id| self.known.contains(id),
             capacity,
             quantity,
+            output_volume,
             self.state_weight,
             added_weight,
             STATE_BYTES,
@@ -3990,17 +3992,19 @@ impl Kernel {
         let ground_id = format!("ground.{lot_id}");
         let lot = Lot { kind: kind.clone(), quantity, container: ground_id.clone() };
         let water = water_kg.map(|water_kg| LotWater { water_kg });
+        let ground_capacity = u32::try_from(self.material_volume(&kind, quantity)?).map_err(|_| "material volume exceeds container capacity")?;
         let added = 256 + ground_id.len()
             + self.registry.weight("hive.position", &record(&position))
-            + self.registry.weight("hive.container", &record(&Container { capacity: quantity }))
+            + self.registry.weight("hive.container", &record(&Container { capacity: ground_capacity }))
             + self.registry.weight("hive.ground-stock", &record(&GroundStock {}))
             + self.registry.weight("hive.lot", &record(&lot))
             + owner_party.as_ref().map(|party| self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))).unwrap_or(0)
             + water.as_ref().map(|v| self.registry.weight("hive.lot-water", &record(v))).unwrap_or(0);
-        let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
+        let output_volume = self.material_volume(&kind, quantity)?;
+        let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind: kind.clone(), quantity, water_kg },
             self.revision, self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")),
-            quantity, 0, self.state_weight, added, STATE_BYTES)?;
-        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity, owner_party });
+            ground_capacity, 0, output_volume, self.state_weight, added, STATE_BYTES)?;
+        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: ground_capacity, owner_party });
         output.owner_party = output.ground.as_ref().and_then(|ground| ground.owner_party.clone());
         Ok(output)
     }
@@ -4778,7 +4782,7 @@ impl Kernel {
             }
             let capacity = self.ecs.get::<Container>(destination).ok_or("not a container")?.capacity;
             let reason = if stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
-              else if self.quantity(&to) + u64::from(quantity) > u64::from(capacity) { Some(WorkBlockReason::CapacityUnavailable) }
+              else if self.occupied_volume(&to).and_then(|occupied| self.material_volume(&stock.kind, quantity).map(|moved| occupied.saturating_add(moved))).is_ok_and(|volume| volume > u64::from(capacity)) { Some(WorkBlockReason::CapacityUnavailable) }
               else if self.contact(source, destination).is_err() { Some(WorkBlockReason::AccessLost) }
               else if allocation.is_some() {
                   match crate::supply_allocation::validate_capacity(self, lot_entity, destination, quantity, Some(task.as_str())) {

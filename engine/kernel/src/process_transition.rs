@@ -86,7 +86,7 @@ impl Kernel {
             if let Some(lot) = self.ecs.get::<Lot>(self.entity(&portion.lot)?) {
                 *released_by_container
                     .entry(lot.container.clone())
-                    .or_default() += u64::from(portion.quantity);
+                    .or_default() += self.material_volume(&lot.kind, portion.quantity)?;
             }
         }
         let mut prepared_outputs = Vec::new();
@@ -115,7 +115,7 @@ impl Kernel {
                     .clone(),
             };
             let destination_quantity = self
-                .quantity(&container)
+                .occupied_volume(&container)?
                 .saturating_sub(*released_by_container.get(&container).unwrap_or(&0))
                 .saturating_add(*planned_destinations.get(&container).unwrap_or(&0));
             let capacity = self
@@ -146,13 +146,14 @@ impl Kernel {
                 },
                 capacity,
                 destination_quantity,
+                self.material_volume(&output.material, output.quantity)?,
                 planned_weight,
                 added_weight,
                 STATE_BYTES,
             )?;
             planned_next_lot = prepared.next_lot;
             planned_weight = prepared.state_weight;
-            *planned_destinations.entry(container).or_default() += u64::from(output.quantity);
+            *planned_destinations.entry(container).or_default() += self.material_volume(&output.material, output.quantity)?;
             prepared_outputs.push(prepared);
         }
         let emission_source = if let Some(emission) = &transition.emission {
