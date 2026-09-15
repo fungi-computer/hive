@@ -37,6 +37,157 @@ struct SupplySlot {
 }
 
 impl Kernel {
+    /// Run the first native automatic labor slice. Domain modules contribute
+    /// requirements; this owner alone chooses workers, verifies routes and
+    /// advances the keyed attempt lifecycle. The current checkpoint keeps the
+    /// older party field on the policy until the access/work-pool conversion.
+    pub(crate) fn advance_native_work_planner(&mut self, tick: u64) -> Result<usize> {
+        let _ = self.reconcile_supply_allocations()?;
+        let window = self.next_native_planning_window(tick);
+        // Persist review progress before any early return. A witnessed
+        // no-path/deferred route therefore waits for the normal retry window,
+        // while accepted mutations can wake it by updating its schedule.
+        for task in &window.tasks {
+            if let Ok(entity) = self.entity(&task.id) {
+                if let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() {
+                    let next_review_tick = tick.checked_add(crate::work_planner::DEFAULT_REVIEW_INTERVAL).ok_or("native work review tick exhausted")?;
+                    self.ecs.entity_mut(entity).insert(crate::work_planner::WorkSchedule { next_review_tick, last_considered: tick });
+                    self.refresh_planner_index(&task.id);
+                }
+            }
+        }
+        if window.tasks.is_empty() {
+            return Ok(0);
+        }
+
+        // First consume retained outcomes from the selected bounded window.
+        // A completed route is continued into the domain operation using the
+        // exact contact it reached; terminal domain outcomes are acknowledged
+        // only after their physical owner has published them.
+        let mut progressed = 0;
+        for task in &window.tasks {
+            let Some(attempt) = self.work_attempt(&task.id).cloned() else { continue; };
+            let crate::work_attempt::AttemptPhase::Outcome { operation, activity, result } = attempt.phase else { continue; };
+            match (activity, result) {
+                (crate::work_attempt::ActivityRef::Route { destination }, crate::work_attempt::WorkOutcome::Completed) => {
+                    let next = if self.ecs.get::<ConstructionSite>(self.entity(&task.id)?).is_some() {
+                        crate::work_planner::WorkOperation::Construction {
+                            site: task.id.clone(),
+                            mode: crate::work_attempt::ConstructionMode::Work,
+                        }
+                    } else if self.ecs.get::<StagedProcess>(self.entity(&task.id)?).is_some() {
+                        crate::work_planner::WorkOperation::ProcessAttendance { process: task.id.clone() }
+                    } else {
+                        continue;
+                    };
+                    self.continue_work_attempt(
+                        task.id.clone(),
+                        operation.attempt.generation,
+                        operation.sequence,
+                        next.activity_for_contact(&destination),
+                    )?;
+                    progressed += 1;
+                }
+                (_, _) => {
+                    self.acknowledge_work_attempt(
+                        task.id.clone(),
+                        operation.attempt.generation,
+                        operation.sequence,
+                    )?;
+                    progressed += 1;
+                }
+            }
+        }
+
+        let mut requirements = Vec::new();
+        for task in &window.tasks {
+            let entity = self.entity(&task.id)?;
+            let party = task.party.clone();
+            // Supply discovery is deliberately behind the same task review
+            // window. Its owner accounts for existing reservations, so calling
+            // both domains in one pass cannot duplicate an allocation.
+            if self.ecs.get::<ConstructionSite>(entity).is_some() {
+                let _ = self.plan_construction_supply(&task.id, &party)?;
+                if let Some(requirement) = self.construction_work_requirement(&task.id, &party)? {
+                    requirements.push(requirement);
+                }
+            } else if self.ecs.get::<StagedProcess>(entity).is_some() {
+                let _ = self.plan_process_supply(&task.id, &party)?;
+                if let Some(requirement) = self.process_work_requirement(&task.id, &party)? {
+                    requirements.push(requirement);
+                }
+            }
+        }
+        if requirements.is_empty() {
+            return Ok(progressed);
+        }
+
+        let workers = window.workers.iter().filter_map(|worker| {
+            let entity = self.entity(&worker.id).ok()?;
+            let position = *self.ecs.get::<Position>(entity)?;
+            (self.ecs.get::<Body>(entity).is_some()
+                && self.ecs.get::<Traversal>(entity).is_some()
+                && !self.attempts_by_worker.contains_key(&worker.id)
+                && self.ecs.get::<Destination>(entity).is_none()
+                && self.ecs.get::<Support>(entity).is_none()
+                && self.ecs.get::<ExcavationWork>(entity).is_none())
+                .then_some((worker.id.clone(), worker.party.clone(), position))
+        }).collect::<Vec<_>>();
+        if workers.is_empty() {
+            return Ok(progressed);
+        }
+
+        let requirements_by_task = requirements.into_iter().map(|requirement| (requirement.task.clone(), requirement)).collect::<BTreeMap<_, _>>();
+        let candidates = workers.iter().flat_map(|(worker, party, position)| {
+            requirements_by_task.values().filter_map(move |requirement| {
+                (requirement.party == *party && !requirement.contacts.is_empty()).then(|| {
+                    let bound = requirement.contacts.iter().map(|contact| {
+                        (position.x - contact.x).hypot(position.z - contact.z)
+                    }).fold(f64::INFINITY, f64::min);
+                    crate::assign::Candidate { worker: worker.clone(), task: requirement.task.clone(), cost: bound }
+                })
+            })
+        }).collect::<Vec<_>>();
+        if candidates.is_empty() {
+            return Ok(progressed);
+        }
+
+        let selected = crate::work_candidates::assign_verified(
+            &window,
+            &candidates,
+            |candidate| {
+                let requirement = requirements_by_task.get(&candidate.task).ok_or("native work requirement disappeared")?;
+                let worker = self.entity(&candidate.worker)?;
+                let position = *self.ecs.get::<Position>(worker).ok_or("native work worker lost position")?;
+                match super::route_query::classify_route(self.route_for_any(worker, position, &requirement.contacts))? {
+                    super::route_query::SearchOutcome::Reachable((index, route)) => {
+                        let contact = requirement.contacts.get(index).ok_or("native work route contact index is invalid")?;
+                        let mut points = vec![crate::navigation::point(position)];
+                        points.extend(route.points.iter().cloned());
+                        let cost = crate::terrain_route::waypoint_cost_micrometres(points)? as f64 / 1_000_000.0;
+                        Ok(super::route_query::SearchOutcome::Reachable((cost, (contact.clone(), route))))
+                    }
+                    super::route_query::SearchOutcome::NoPath(error) => Ok(super::route_query::SearchOutcome::NoPath(error)),
+                    super::route_query::SearchOutcome::Deferred(error) => Ok(super::route_query::SearchOutcome::Deferred(error)),
+                }
+            },
+        ).map_err(|error| format!("native work assignment failed: {error:?}"))?;
+
+        for assignment in selected.assignments {
+            let task = assignment.task.clone();
+            let (contact, route) = assignment.witness;
+            self.begin_work_attempt_with_prepared_route(
+                task.clone(),
+                assignment.worker,
+                requirements_by_task.get(&task).ok_or("native work requirement disappeared")?.party.clone(),
+                contact,
+                route,
+            )?;
+            progressed += 1;
+        }
+        Ok(progressed)
+    }
+
     /// Process inputs contribute ordinary finite supply requirements. The
     /// process owner remains responsible for binding them once they arrive;
     /// this method only joins the shared supply planner.
@@ -656,6 +807,22 @@ mod tests {
             0
         );
         assert!(kernel.supply_allocations().next().is_none());
+    }
+
+    #[test]
+    fn native_tick_hook_reviews_supplied_construction_and_starts_labor() {
+        let (mut kernel, _, contact) = construction_world(2);
+        finish_active_deliveries(&mut kernel);
+        let reviewed = kernel.advance_native_work_planner(8).unwrap();
+        assert_eq!(reviewed, 1);
+        let attempt = kernel.work_attempt("site").expect("native hook must admit site labor");
+        assert!(matches!(
+            &attempt.phase,
+            crate::work_attempt::AttemptPhase::Executing {
+                activity: crate::work_attempt::ActivityRef::Route { destination }, ..
+            } if destination == &contact
+        ));
+        assert_eq!(kernel.attempts_by_worker.len(), 1);
     }
 
     #[test]
