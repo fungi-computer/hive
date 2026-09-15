@@ -1673,6 +1673,30 @@ mod tests {
     }
 
     #[test]
+    fn two_workers_claim_distinct_portions_from_public_ground() {
+        let (mut kernel, _, _) = construction_world(2);
+        let source = kernel.entity("source").unwrap();
+        let wood = kernel.entity("wood").unwrap();
+        kernel.ecs.entity_mut(source).remove::<OwnedByParty>();
+        kernel.ecs.entity_mut(wood).remove::<OwnedByParty>();
+        kernel.rebuild_physical_indexes(true).unwrap();
+
+        let admitted = kernel.plan_construction_supply("site", "party").unwrap();
+        assert_eq!(admitted.len(), 2);
+        finish_active_deliveries(&mut kernel);
+
+        assert_eq!(kernel.quantity_in_container("site"), 6);
+        for lot in kernel.contents.get("site").into_iter().flatten() {
+            assert_eq!(
+                kernel.ecs.get::<OwnedByParty>(*lot).unwrap().party,
+                "party",
+                "pickup atomically claims each public portion for its carrier's party",
+            );
+        }
+        kernel.save_records().unwrap();
+    }
+
+    #[test]
     fn native_tick_hook_reviews_supplied_construction_and_starts_labor() {
         let (mut kernel, _, contact) = construction_world(2);
         assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 2);

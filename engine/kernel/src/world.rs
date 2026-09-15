@@ -6346,7 +6346,20 @@ impl Kernel {
             } else {
                 self.ecs.spawn((ExternalId(id.clone()), extra_lot)).id()
             };
-            if let Some(owner) = owner.clone() { self.ecs.entity_mut(remainder).insert(owner); }
+            if let Some(owner) = owner.clone() {
+                self.ecs.entity_mut(remainder).insert(owner);
+            } else if !moved_retains_identity
+                && source_is_ground_stock
+                && self.ecs.get::<PartyMember>(dest).is_some()
+            {
+                let party = self
+                    .ecs
+                    .get::<PartyMember>(dest)
+                    .expect("party member checked")
+                    .party
+                    .clone();
+                self.ecs.entity_mut(remainder).insert(OwnedByParty { party });
+            }
             self.next_lot = next;
             self.state_weight += extra;
             self.ids.insert(id.clone(), remainder);
