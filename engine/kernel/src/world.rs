@@ -2176,6 +2176,9 @@ impl Kernel {
     pub(crate) fn next_native_planning_window(&mut self, tick: u64) -> crate::work_candidates::PlanningWindow {
         crate::work_candidates::next_fair_indexed_window(&mut self.planner, &self.planner_indexes, tick)
     }
+    fn native_planner_may_mutate(&self, tick: u64) -> bool {
+        self.planner_indexes.has_due_task(tick) || self.supply_allocations().next().is_some()
+    }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
         self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<SupplyAllocation>(*entity).map(|allocation| (id.as_str(), allocation)))
@@ -3805,6 +3808,7 @@ impl Kernel {
         let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
         let needs_staging = !batch.creates.is_empty() || !batch.removes.is_empty()
             || self.projectile_count > 0 || !self.direct.is_empty()
+            || self.native_planner_may_mutate(self.revision.saturating_add(1))
             || batch.actions.iter().any(|action| {
                 let action = &action.request;
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }

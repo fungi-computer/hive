@@ -182,6 +182,13 @@ impl NativeIndexes {
     #[cfg(test)]
     pub(crate) fn rebuild_count(&self) -> u64 { self.rebuilds }
 
+    pub(crate) fn has_due_task(&self, tick: u64) -> bool {
+        self.tasks_by_party
+            .values()
+            .flatten()
+            .any(|task| task.due_tick <= tick)
+    }
+
     fn remove_id(&mut self, id: &str) {
         if let Some(party) = self.worker_party_by_id.remove(id) {
             if let Some(values) = self.workers_by_party.get_mut(&party) { values.retain(|candidate| candidate.id != id); }
