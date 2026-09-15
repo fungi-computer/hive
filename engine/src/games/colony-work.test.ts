@@ -68,7 +68,7 @@ test("player sow intent remains workerless while resource scheduling uses owned 
   resourceWorkProvider(context, new Set());
   assert.equal(created.length, 0);
   resourceWorkProvider(context, new Set());
-  assert.equal(created.length, 0, "water demand creation belongs to the process water phase");
+  assert.equal(created.length, 0, "resource work does not author process water demand");
 });
 
 test("tend candidates require the exact worker-held pail and nested sufficient water", () => {

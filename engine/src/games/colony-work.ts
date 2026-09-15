@@ -164,103 +164,6 @@ import {
   type StockpileFilterProfile,
 } from "../sdk/stockpile";
 
-/** Give a waiting process one finite field-water demand when its kettle is short.
- * The water order owns only the fetch; ordinary delivery still stages the lot. */
-function colonyProcessWaterPhase(ctx: WriteContext): void {
-  const facts = ctx.workMaterialFacts();
-  const lots = facts.lots;
-  const orders = ctx.query(query(WaterSupplyOrder, WaterSupplyWork));
-  const attempts = new Set(
-    workAttemptsFor(
-      ctx,
-      orders.map((row) => row.id),
-    ).map((attempt) => attempt.key.task),
-  );
-  const deliveries = ctx
-    .query(query(DeliveryTask))
-    .map((row) => row.get(DeliveryTask));
-  const ordersByProcess = new Map<EntityId, typeof orders>();
-  for (const order of orders) {
-    const process = order.get(WaterSupplyOrder).consumer;
-    if (process)
-      ordersByProcess.set(process, [
-        ...(ordersByProcess.get(process) ?? []),
-        order,
-      ]);
-  }
-  const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0);
-  const processes = ctx.query(query(StagedProcess)).slice().sort((a, b) => a.id.localeCompare(b.id));
-  let nextRevision = revision;
-  for (const row of processes) {
-    const process = row.get(StagedProcess);
-    if (process.phase !== "waiting") continue;
-    const requirements = ctx.processRequirements(process.definition, process.station);
-    const water = requirements.inputs.find(input => input.material === "water");
-    if (!water) continue;
-    const destination = `${process.station}:${water.port}`;
-    const quantity = lots.filter(lot => lot.container === destination && lot.kind === "water" && lot.quantity > 0)
-      .reduce((sum, lot) => sum + lot.quantity, 0);
-    const inFlight = deliveries.filter(task =>
-      task.custody !== "delivered" && task.destination === destination && task.material === "water"
-    ).reduce((sum, task) => sum + task.quantity, 0);
-    const existing = ordersByProcess.get(row.id) ?? [];
-    const active = existing.filter(
-      (order) =>
-        order.get(WaterSupplyWork).phase !== "complete" ||
-        attempts.has(order.id),
-    );
-    for (const order of existing)
-      if (
-        order.get(WaterSupplyWork).phase === "complete" &&
-        !attempts.has(order.id)
-      )
-        ctx.removeAuthoredEntity(order.id);
-    if (quantity + inFlight >= water.quantity) {
-      for (const order of active)
-        if (
-          order.get(WaterSupplyWork).phase === "queued" &&
-          !attempts.has(order.id)
-        )
-          ctx.removeAuthoredEntity(order.id);
-      continue;
-    }
-    if (active.length) continue;
-    if (orders.length >= 256 || nextRevision >= 0xffffffff)
-      throw new Error("water demand capacity exhausted");
-    nextRevision += 1;
-    // The supplied/in-flight amount is part of the durable demand identity.
-    // A multi-portion requirement therefore cannot reuse the first fetch's
-    // accepted operation receipt for a later portion.
-    const id = entity(`colony.water-process.${row.id}.${quantity + inFlight}`);
-    const owner = ctx
-      .query(query(OwnedByParty))
-      .find((candidate) => candidate.id === row.id)
-      ?.get(OwnedByParty);
-    ctx.createAuthoredEntity(
-      {
-        id,
-        components: {
-          [WaterSupplyOrder.id]: {
-            revision: nextRevision,
-            consumer: row.id,
-            party: owner?.party ?? null,
-          },
-          [WaterSupplyWork.id]: {
-            request: nextRevision,
-            phase: "queued",
-            x: 0,
-            y: 0,
-            z: 0,
-            reason: "",
-          },
-        },
-      },
-      owner ? { kind: "party", party: owner.party } : { kind: "host" },
-    );
-    ordersByProcess.set(row.id, []);
-  }
-}
-
 /** Tended resources request finite field water through the same visible fetch
  * work as brewing. A pail must actually contain enough water before tending is
  * eligible; the scheduler never invents water or retries a doomed deposit. */
@@ -456,7 +359,6 @@ export const colonyWorkSystem = createWorkSystem({
     ColonyResourceOrder,
   ],
   phases: [
-    colonyProcessWaterPhase,
     colonyResourceWaterPhase,
     colonyGroundStockPhase,
     (ctx) =>

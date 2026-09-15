@@ -90,6 +90,7 @@ export function createColonyPartyPlan(
         components: {
           "hive.lot": { quantity: 1, kind: "pail", container: holder },
           "hive.container": { capacity: 7 },
+          "hive.vessel-capability": { acceptsWater: true },
           "hive.owned-by-party": { party },
           "hive.visual": { sprite: "pail", label: "Pail" },
         },
