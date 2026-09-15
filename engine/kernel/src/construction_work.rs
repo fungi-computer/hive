@@ -371,6 +371,25 @@ impl Kernel {
     }
 
     pub(super) fn native_supply_contacts(&self, site: &str) -> Result<Vec<Point>> {
+        // A process input port is a declared station contact. Keep this
+        // narrow lookup beside construction contacts so both consumers feed
+        // the same delivery lifecycle and neither invents a destination.
+        if self
+            .ids
+            .get(site)
+            .is_some_and(|entity| self.ecs.get::<ConstructionSite>(*entity).is_none())
+            && let Some((station, port)) = site.split_once(':')
+        {
+            let station_entity = self.entity(station)?;
+            let state = self.ecs.get::<ConstructionSite>(station_entity).ok_or("process station is not a construction site")?;
+            let definition = self.environment.as_ref().ok_or("process supply needs environment")?.structures.get(&state.catalog).ok_or("process station catalog is missing")?;
+            let declared = definition.on_complete.ports.iter().find(|entry| entry.key == port).ok_or("process input port is not declared")?;
+            if !declared.at_site_contact || self.ecs.get::<Container>(self.entity(site)?).is_none() {
+                return Err("process input port is not a native contact container".into());
+            }
+            let position = *self.ecs.get::<Position>(self.entity(site)?).ok_or("process input port lost its contact")?;
+            return Ok(vec![Point { x: position.x, y: position.y, z: position.z, frame: None }]);
+        }
         let state = self.ecs.get::<ConstructionSite>(self.entity(site)?).ok_or("not a construction site")?;
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?;
         let spacing = self.environment.as_ref().ok_or("construction needs environment")?.world.cell_spacing_m();
