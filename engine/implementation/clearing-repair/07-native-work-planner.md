@@ -225,6 +225,25 @@ Definitions may sequence supported tasks and name their physical results. The
 native job owner materializes only newly ready tasks, within a bounded continuation
 budget, after their dependencies have actually committed.
 
+The task identity is never the domain target identity. `chop trunk-7`, `supply
+site-4` and `attend batch-2` are task records whose operations refer to those
+physical targets. `WorkAttempt.task` always names the task record. It must not name
+the tree, trunk, construction site or process merely because an early single-step
+implementation used that entity as both concepts. Domain owners validate the
+operation's target and perform its mutation; the job owner validates dependency,
+result binding and task lifecycle. This lets separate jobs or stages lawfully touch
+one target without sharing progress, retry identity or worker custody.
+
+Admission compiles the complete bounded plan and creates all of its stable step
+records atomically. A pending step is observable but contributes no labor until
+its dependencies and result bindings resolve. Readiness is derived rather than a
+second writable fact. A terminal step stores either its committed result bindings
+or cancellation; job completion is derived from its terminal steps and may be
+published as a checked summary in the same transaction. A `supply` step is a
+bounded controller: it creates independently schedulable delivery child tasks as
+capacity and material portions are reserved. The controller itself never holds a
+worker.
+
 Conceptual native records, to be fitted to the existing component registry rather
 than copied verbatim:
 
@@ -250,6 +269,38 @@ struct TaskResult {
     entity: EntityId,                // reference to ordinary committed matter
 }
 ```
+
+The initial admitted shape is equivalent to the following closed records. Names
+are illustrative; fit them to the existing native registry and action parser
+without exporting Rust representation details to game code.
+
+```rust
+struct JobPlan {
+    definition: DefinitionRef,
+    party: EntityId,
+    steps: Vec<StepSpec>,             // bounded and stable-keyed
+}
+
+struct StepSpec {
+    key: StepKey,
+    after: Option<StepKey>,           // sequence only in the first compiler
+    operation: TypedWorkOperation,
+}
+
+enum EntityBinding {
+    Exact(EntityId),
+    Result { step: StepKey, slot: ResultSlot },
+}
+```
+
+The trusted GamePack command compiles content definitions and selected targets
+into this closed plan, then submits one native create-job operation through the
+existing durable command transaction. Rust validates the whole plan before any
+record appears: definition/version, party authority, unique step keys, backward
+dependencies, compatible result slots, supported operation variants and the
+fixed plan bound. It allocates stable job/task identities once. Command replay
+therefore returns the existing committed job rather than creating a second one.
+No browser callback or TypeScript system resumes the plan after admission.
 
 `TaskResult` is a reference/binding, not inventory. The referenced entity remains
 owned by its physical component and custody owner. A task result is created in the
