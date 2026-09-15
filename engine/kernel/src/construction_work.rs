@@ -74,6 +74,89 @@ fn construction_status(
 }
 
 impl Kernel {
+    /// Contribute a ready construction task to the shared labor planner.
+    ///
+    /// Construction owns support, material readiness, and contact discovery;
+    /// this method only describes the resulting typed work intent.  It never
+    /// selects a worker or creates an attempt.
+    pub(super) fn construction_work_requirement(
+        &mut self,
+        site: &str,
+        party: &str,
+    ) -> Result<Option<crate::work_planner::WorkRequirement>> {
+        self.ensure_ready()?;
+        let entity = self.entity(site)?;
+        let state = self
+            .ecs
+            .get::<ConstructionSite>(entity)
+            .cloned()
+            .ok_or("not a construction site")?;
+        let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned() else {
+            return Ok(None);
+        };
+        let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() else {
+            return Ok(None);
+        };
+        if !policy.enabled || policy.party != party || state.phase != ConstructionPhase::Planned {
+            return Ok(None);
+        }
+        if self.work_attempts.contains_key(site) {
+            return Ok(None);
+        }
+        let definition = self
+            .environment
+            .as_ref()
+            .ok_or("construction needs environment")?
+            .structures
+            .get(&state.catalog)
+            .ok_or("construction catalog binding is missing")?
+            .clone();
+        if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party)
+            || self.ecs.get::<Position>(entity).is_none()
+            || !self.construction_materials_ready(site, &definition)
+        {
+            return Ok(None);
+        }
+        let status = construction_status(self, &[site.to_owned()])?
+            .get(site)
+            .copied()
+            .unwrap_or("unknown");
+        if status != "ready" {
+            return Ok(None);
+        }
+        let spacing = self
+            .environment
+            .as_ref()
+            .ok_or("construction needs environment")?
+            .world
+            .cell_spacing_m();
+        let contacts = self
+            .current_contact_candidate_rows(&state, &definition, spacing)?
+            .into_iter()
+            .map(|(point, _)| crate::components::Point {
+                x: point[0],
+                y: point[1],
+                z: point[2],
+                frame: None,
+            })
+            .collect::<Vec<_>>();
+        let Some(contact) = contacts.first().cloned() else {
+            return Ok(None);
+        };
+        Ok(Some(crate::work_planner::WorkRequirement {
+            task: site.to_owned(),
+            party: party.to_owned(),
+            priority: policy.priority,
+            schedule,
+            contacts,
+            next_activity: crate::work_attempt::ActivityRef::Construction {
+                site: site.to_owned(),
+                contact,
+                mode: crate::work_attempt::ConstructionMode::Work,
+            },
+        }))
+    }
+
     /// Low-level completion primitive. A shared work owner must approach the
     /// site, spend its teardown work, then invoke this synchronously; Colony
     /// controls do not call it directly. Custody is always the attending

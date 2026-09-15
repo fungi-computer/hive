@@ -2012,6 +2012,11 @@ impl Kernel {
                 || (process.phase == ProcessPhase::Blocked) != !process.blocked_reason.is_empty()
                 || (process.phase != ProcessPhase::Blocked) && !process.blocked_reason.is_empty()
             { return Err("saved process fact is invalid".into()); }
+            if let Some(owner) = self.ecs.get::<OwnedByParty>(*entity) {
+                let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(*entity) else { return Err("saved party process has no work policy".into()); };
+                let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(*entity) else { return Err("saved party process has no work schedule".into()); };
+                if policy.party != owner.party || schedule.next_review_tick < schedule.last_considered { return Err("saved party process scheduling is invalid".into()); }
+            }
             let station = self.entity(&process.station)?;
             let site = self.ecs.get::<ConstructionSite>(station).ok_or("saved process station is missing")?;
             if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() { return Err("saved process station binding is invalid".into()); }
@@ -4367,7 +4372,11 @@ impl Kernel {
                 phase: ProcessPhase::Waiting,
                 blocked_reason: String::new(),
             });
-            if let Some(party) = owner.clone() { self.ecs.entity_mut(existing).insert(OwnedByParty { party }); }
+            if let Some(party) = owner.clone() {
+                self.ecs.entity_mut(existing).insert(OwnedByParty { party: party.clone() });
+                self.ecs.entity_mut(existing).insert(crate::work_planner::WorkPolicy { party, priority: 0, enabled: true });
+                self.ecs.entity_mut(existing).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
+            }
             self.refresh_state_weight();
             return Ok(process_id);
         }
@@ -4377,7 +4386,11 @@ impl Kernel {
             station: station_id.into(), stage_index: 0, progress_seconds: 0.0,
             entered_tick: self.revision, phase: ProcessPhase::Waiting, blocked_reason: String::new(),
         })).id();
-        if let Some(party) = owner { self.ecs.entity_mut(entity).insert(OwnedByParty { party }); }
+        if let Some(party) = owner {
+            self.ecs.entity_mut(entity).insert(OwnedByParty { party: party.clone() });
+            self.ecs.entity_mut(entity).insert(crate::work_planner::WorkPolicy { party, priority: 0, enabled: true });
+            self.ecs.entity_mut(entity).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
+        }
         self.ids.insert(process_id.clone(), entity);
         self.known.insert(process_id.clone());
         self.refresh_state_weight();

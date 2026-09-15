@@ -1,7 +1,7 @@
 use super::*;
 use crate::emission_definition::EmissionDefinition;
 use crate::staged_process::{
-    InputDisposition, InputPolicy, OutputDestination, ProcessDefinition, ProcessEmission,
+    InputDisposition, InputPolicy, OutputDestination, ProcessCatalog, ProcessDefinition, ProcessEmission,
     ProcessInput, ProcessOutput, ProcessPhase, ProcessStage, ProcessTransition, StageMode,
     StagedProcess,
 };
@@ -373,7 +373,12 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
     }
     let process = kernel.request_process("herbal-ale-v1", "station", &ActionScope::Host).unwrap();
     assert!(kernel.native_supply_contacts("station:kettle").is_ok());
-    kernel.ecs.entity_mut(kernel.entity(&process).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+    let process_entity = kernel.entity(&process).unwrap();
+    kernel.ecs.entity_mut(process_entity).insert((
+        OwnedByParty { party: "party:process".into() },
+        crate::work_planner::WorkPolicy { party: "party:process".into(), priority: 0, enabled: true },
+        crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
+    ));
     for (id, quantity) in [("partial-keg-a", 2), ("partial-keg-b", 3)] {
         let entity = kernel.ecs.spawn((ExternalId(id.into()), OwnedByParty { party: "party:process".into() }, Lot {
             kind: "keg".into(), quantity, container: "station:keg".into(),
@@ -456,9 +461,56 @@ fn admitted() -> (Kernel, String) {
     kernel.known.insert("party:process".into());
     let worker = kernel.entity("worker").unwrap();
     kernel.ecs.entity_mut(worker).insert(PartyMember { party: "party:process".into() });
-    kernel.ecs.entity_mut(kernel.entity(&process).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+    let process_entity = kernel.entity(&process).unwrap();
+    kernel.ecs.entity_mut(process_entity).insert((
+        OwnedByParty { party: "party:process".into() },
+        crate::work_planner::WorkPolicy { party: "party:process".into(), priority: 0, enabled: true },
+        crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
+    ));
     kernel.refresh_state_weight();
     (kernel, process)
+}
+
+#[test]
+fn attended_process_contributes_one_deterministic_labor_requirement() {
+    let (mut kernel, process) = admitted();
+    let requirement = kernel
+        .process_work_requirement(&process, "party:process")
+        .unwrap()
+        .expect("admitted attended process should contribute labor");
+    assert_eq!(requirement.task, process);
+    assert_eq!(requirement.party, "party:process");
+    assert!(!requirement.contacts.is_empty());
+    assert!(matches!(&requirement.next_activity, crate::work_attempt::ActivityRef::ProcessAttendance { process: target } if target == &requirement.task));
+
+    let process_entity = kernel.entity(&requirement.task).unwrap();
+    kernel.ecs.entity_mut(process_entity).get_mut::<StagedProcess>().unwrap().phase = ProcessPhase::Complete;
+    assert!(kernel.process_work_requirement(&requirement.task, "party:process").unwrap().is_none());
+}
+
+#[test]
+fn process_labor_contribution_waits_for_attendance_contact_and_unclaimed_task() {
+    let (mut elapsed, process) = admitted();
+    let mut definition = elapsed.environment.as_ref().unwrap().processes.get("herbal-ale-v1").unwrap().definition().clone();
+    definition.stages[0].mode = StageMode::Elapsed;
+    let structures = elapsed.environment.as_ref().unwrap().structures.clone();
+    let emissions = elapsed.environment.as_ref().unwrap().emissions.clone();
+    elapsed.environment.as_mut().unwrap().processes = ProcessCatalog::from_definitions(vec![definition], &structures, &emissions).unwrap();
+    assert!(elapsed.process_work_requirement(&process, "party:process").unwrap().is_none());
+
+    let (mut no_contact, process) = admitted();
+    no_contact.ecs.entity_mut(no_contact.entity("station").unwrap()).remove::<Position>();
+    assert!(no_contact.process_work_requirement(&process, "party:process").unwrap().is_none());
+
+    let (mut claimed, process) = admitted();
+    let attempt = claimed.ecs.spawn(crate::work_attempt::WorkAttempt {
+        key: crate::work_attempt::AttemptKey { task: process.clone(), generation: 1 },
+        worker: "worker".into(),
+        party: "party:process".into(),
+        phase: crate::work_attempt::AttemptPhase::Ready,
+    }).id();
+    claimed.work_attempts.insert(process.clone(), attempt);
+    assert!(claimed.process_work_requirement(&process, "party:process").unwrap().is_none());
 }
 
 /// Advance one native attendance operation through the durable attempt owner.
@@ -693,7 +745,12 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
         let party = k.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
         k.ids.insert("party:process".into(), party); k.known.insert("party:process".into());
         k.ecs.entity_mut(k.entity("worker").unwrap()).insert(PartyMember { party: "party:process".into() });
-        k.ecs.entity_mut(k.entity(&p).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+        let process_entity = k.entity(&p).unwrap();
+        k.ecs.entity_mut(process_entity).insert((
+            OwnedByParty { party: "party:process".into() },
+            crate::work_planner::WorkPolicy { party: "party:process".into(), priority: 0, enabled: true },
+            crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
+        ));
         k.refresh_state_weight();
         (k, p)
     };
