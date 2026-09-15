@@ -296,8 +296,9 @@ function relationKey(a, b) {
 
 /**
  * Keep static relations in a small cache. `invalidate` accepts an optional set
- * of IDs; omitting it invalidates every cached relation. Moving nodes bypass
- * the cache, so actor motion never leaves stale edges behind.
+ * of IDs and removes only relations incident to those IDs; omitting it
+ * invalidates every cached relation. Moving nodes bypass the cache, so actor
+ * motion never leaves stale edges behind.
  */
 export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
   const basis = point(camera, "camera basis");
@@ -311,7 +312,9 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
   const staticRelations = new Map();
   const bucketSize = 64;
   let staticIndex = new Map();
-  let staticSetSignature = null;
+  let staticNodeSignatures = new Map();
+  let staticIndexSignature = null;
+  let invalidateAll = false;
   let relationTests = 0;
 
   function bucketRange(screenBounds) {
@@ -358,14 +361,31 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     return [stableKey(node), geometrySignature(node)];
   }
 
+  function nodeIdFromKey(key) {
+    return key.slice(0, key.indexOf("\u0000"));
+  }
+
+  function relationInvolves(key, ids) {
+    const separator = key.indexOf("\u0000\u0000");
+    if (separator < 0) return false;
+    return ids.has(nodeIdFromKey(key.slice(0, separator)))
+      || ids.has(nodeIdFromKey(key.slice(separator + 2)));
+  }
+
+  function dropRelations(predicate) {
+    for (const key of staticRelations.keys())
+      if (predicate(key)) staticRelations.delete(key);
+  }
+
   function invalidate(ids) {
-    // A static graph is one coherent cache. A scoped invalidation therefore
-    // drops the whole graph, while the optional IDs document the transition
-    // that caused it and keep the public operation useful to callers.
-    void ids;
-    staticRelations.clear();
-    staticIndex = new Map();
-    staticSetSignature = null;
+    if (ids === undefined) {
+      staticRelations.clear();
+      invalidateAll = true;
+      return;
+    }
+    const affected = new Set([...ids].map(String));
+    if (affected.size === 0) return;
+    dropRelations((key) => relationInvolves(key, affected));
   }
 
   function relation(left, right) {
@@ -381,14 +401,37 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
   }
 
   function ensureStaticGraph(staticNodes) {
-    const signature = JSON.stringify(staticNodes.map(nodeSignature));
-    if (signature === staticSetSignature) return;
-    staticRelations.clear();
-    staticIndex = makeIndex(staticNodes);
-    staticSetSignature = signature;
+    const currentSignatures = new Map(staticNodes.map((node) => {
+      const [key, signature] = nodeSignature(node);
+      return [key, signature];
+    }));
+    const currentKeys = new Set(currentSignatures.keys());
+    const changedKeys = new Set();
+    for (const [key, signature] of staticNodeSignatures) {
+      if (currentSignatures.get(key) !== signature) changedKeys.add(key);
+    }
+    for (const key of staticNodeSignatures.keys())
+      if (!currentKeys.has(key)) changedKeys.add(key);
+    if (invalidateAll) staticRelations.clear();
+    else {
+      dropRelations((key) => {
+        const separator = key.indexOf("\u0000\u0000");
+        if (separator < 0) return true;
+        const left = key.slice(0, separator), right = key.slice(separator + 2);
+        return !currentKeys.has(left) || !currentKeys.has(right)
+          || changedKeys.has(left) || changedKeys.has(right);
+      });
+    }
+    const indexSignature = JSON.stringify([...currentSignatures]);
+    if (indexSignature !== staticIndexSignature || invalidateAll) {
+      staticIndex = makeIndex(staticNodes);
+      staticIndexSignature = indexSignature;
+    }
     for (const left of staticNodes)
       for (const right of indexedCandidates(staticIndex, left))
         if (compareStable(left, right) < 0) relation(left, right);
+    staticNodeSignatures = currentSignatures;
+    invalidateAll = false;
   }
 
   function order(inputs) {
@@ -419,11 +462,6 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
         addRelation(relation(moving, candidate));
       for (const candidate of indexedCandidates(movingIndex, moving))
         if (compareStable(moving, candidate) < 0) addRelation(relation(moving, candidate));
-    }
-    const activeKeys = new Set(nodes.map(stableKey));
-    for (const key of staticRelations.keys()) {
-      const [left, right] = key.split("\u0000\u0000");
-      if (!activeKeys.has(left) || !activeKeys.has(right)) staticRelations.delete(key);
     }
     const ready = nodes
       .filter((node) => indegree.get(stableKey(node)) === 0)
