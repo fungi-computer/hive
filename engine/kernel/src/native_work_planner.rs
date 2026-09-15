@@ -203,9 +203,8 @@ impl Kernel {
                 let member = self.ecs.get::<PartyMember>(*entity)?;
                 let container = self.ecs.get::<Container>(*entity)?;
                 let position = *self.ecs.get::<Position>(*entity)?;
-                let free_capacity = container.capacity.saturating_sub(
-                    u32::try_from(self.quantity_in_container(id)).unwrap_or(u32::MAX),
-                );
+                let occupied = self.occupied_volume(id).ok()?;
+                let free_capacity = u64::from(container.capacity).saturating_sub(occupied);
                 (requirements
                     .iter()
                     .any(|requirement| requirement.party == member.party)
@@ -238,7 +237,7 @@ impl Kernel {
         // has at least one possible worker. Later reviews can admit the
         // remainder when this bounded window is full.
         let carry_limit_by_party = workers.iter().fold(
-            BTreeMap::<String, u32>::new(),
+            BTreeMap::<String, u64>::new(),
             |mut limits, (_, party, _, capacity)| {
                 limits
                     .entry(party.clone())
@@ -252,10 +251,20 @@ impl Kernel {
             let Some(limit) = carry_limit_by_party.get(&slot.requirement.party).copied() else {
                 continue;
             };
-            let limit = limit.min(MAX_CARRY_PORTION);
-            let mut remaining = slot.quantity;
-            while remaining > 0 && carryable_slots.len() < MAX_ASSIGNMENTS {
-                let quantity = remaining.min(limit);
+            let limit = limit.min(u64::from(MAX_CARRY_PORTION));
+                let mut remaining = slot.quantity;
+                while remaining > 0 && carryable_slots.len() < MAX_ASSIGNMENTS {
+                let mut quantity = remaining.min(MAX_CARRY_PORTION);
+                while quantity > 0
+                    && self
+                        .material_volume(&slot.requirement.material, quantity)
+                        .is_ok_and(|volume| volume > limit)
+                {
+                    quantity -= 1;
+                }
+                if quantity == 0 {
+                    break;
+                }
                 let mut carryable = slot.clone();
                 carryable.task = format!("supply-slot-{}", carryable_slots.len());
                 carryable.quantity = quantity;
@@ -290,15 +299,23 @@ impl Kernel {
                     last_considered: 0,
                     due_tick: 0,
                 })
-                .collect(),
+            .collect(),
         };
+        let slot_volumes = slots
+            .iter()
+            .map(|slot| Ok((slot.task.clone(), self.material_volume(&slot.requirement.material, slot.quantity)?)))
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        let slot_volumes = &slot_volumes;
         let candidates = workers
             .iter()
             .flat_map(|(worker, party, position, capacity)| {
                 slots
                     .iter()
                     .filter(move |slot| {
-                        slot.requirement.party == *party && slot.quantity <= *capacity
+                        slot.requirement.party == *party
+                            && slot_volumes
+                                .get(&slot.task)
+                                .is_some_and(|volume| *volume <= *capacity)
                     })
                     .map(move |slot| crate::assign::Candidate {
                         worker: worker.clone(),

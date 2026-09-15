@@ -103,26 +103,26 @@ mod tests {
 
     #[test]
     fn prepares_finite_dry_and_wet_output_without_mutation() {
-        let dry = prepare(spec(None), 4, 1, |id| id == "lot.1", 10, 2, 100, 40, 8 * 1024 * 1024).unwrap();
+        let dry = prepare(spec(None), 4, 1, |id| id == "lot.1", 10, 2, 3, 100, 40, 8 * 1024 * 1024).unwrap();
         assert_eq!(dry.lot_id, "lot.2");
         assert_eq!(dry.lot.quantity, 3);
         assert!(dry.water.is_none());
-        let wet = prepare(spec(Some(2.5)), 4, 1, |_| false, 10, 2, 100, 48, 8 * 1024 * 1024).unwrap();
+        let wet = prepare(spec(Some(2.5)), 4, 1, |_| false, 10, 2, 3, 100, 48, 8 * 1024 * 1024).unwrap();
         assert_eq!(wet.water.unwrap().water_kg, 2.5);
     }
 
     #[test]
     fn preparation_rejects_capacity_invalid_content_and_water() {
-        assert!(prepare(spec(None), 0, 1, |_| false, 4, 2, 100, 40, 8 * 1024 * 1024).is_err());
+        assert!(prepare(spec(None), 0, 1, |_| false, 4, 2, 3, 100, 40, 8 * 1024 * 1024).is_err());
         let mut invalid = spec(None);
         invalid.kind = "bad kind".into();
-        assert!(prepare(invalid, 0, 1, |_| false, 10, 0, 100, 40, 8 * 1024 * 1024).is_err());
-        assert!(prepare(spec(Some(f64::NAN)), 0, 1, |_| false, 10, 0, 100, 40, 8 * 1024 * 1024).is_err());
+        assert!(prepare(invalid, 0, 1, |_| false, 10, 0, 3, 100, 40, 8 * 1024 * 1024).is_err());
+        assert!(prepare(spec(Some(f64::NAN)), 0, 1, |_| false, 10, 0, 3, 100, 40, 8 * 1024 * 1024).is_err());
     }
 
     #[test]
     fn preparation_rejects_state_budget_before_publication() {
-        assert!(prepare(spec(None), 0, 1, |_| false, 10, 0, 8 * 1024 * 1024, 1, 8 * 1024 * 1024).is_err());
+        assert!(prepare(spec(None), 0, 1, |_| false, 10, 0, 3, 8 * 1024 * 1024, 1, 8 * 1024 * 1024).is_err());
     }
 
     fn kernel() -> Kernel {
@@ -143,6 +143,7 @@ mod tests {
         use crate::generation::Cell;
         let mut kernel = kernel();
         let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("wet-output")).unwrap();
+        definition["materialVolumes"].as_array_mut().unwrap().push(json!({"kind":"spoil","unitVolume":1}));
         for material in definition["materials"].as_array_mut().unwrap() {
             if material["diggable"] == true {
                 material["excavation"] = json!({"workSeconds":2.0,"outputKind":"spoil","unitsPerCell":3});

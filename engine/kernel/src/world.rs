@@ -1941,7 +1941,13 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 
 impl Kernel {
     pub(crate) fn material_volume(&self, kind: &str, quantity: u32) -> Result<u64> {
-        self.environment.as_ref().ok_or("material volume requires environment")?.material_handling.quantity_volume(kind, quantity)
+        // Environment-backed worlds use the authored catalog. The small
+        // environment-less kernel fixtures exercise generic supply laws and
+        // retain the historical one-unit material measure.
+        match self.environment.as_ref() {
+            Some(environment) => environment.material_handling.quantity_volume(kind, quantity),
+            None => Ok(u64::from(quantity)),
+        }
     }
     pub(crate) fn occupied_volume(&self, container: &str) -> Result<u64> {
         self.contents.get(container).into_iter().flatten().try_fold(0_u64, |sum, entity| {
@@ -2862,7 +2868,7 @@ impl Kernel {
         let indexed_entities: Vec<_> = self.ids.iter().map(|(id, entity)| (id.clone(), *entity)).collect();
         for (id, entity) in indexed_entities {
             if let Some(container) = self.ecs.get::<Container>(entity) {
-                if self.quantity(&id) > u64::from(container.capacity) {
+                if self.occupied_volume(&id)? > u64::from(container.capacity) {
                     return Err("container over capacity".into());
                 }
             }
@@ -4322,7 +4328,7 @@ impl Kernel {
         }
         for (id, cell) in &prepared {
             if let Some(entity) = self.ids.get(id).copied() {
-                if self.quantity(id) > u64::from(cell.capacity) { return Err("stockpile capacity is below contained lots".into()); }
+                if self.occupied_volume(id)? > u64::from(cell.capacity) { return Err("stockpile capacity is below contained lots".into()); }
                 if self.ecs.get::<StockpileCell>(entity).is_some_and(|old| old.zone != zone) { return Err("stockpile identity belongs to another zone".into()); }
                 if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("stockpile cell belongs to another party".into()); }
             }
@@ -5557,7 +5563,7 @@ impl Kernel {
         let (identity, next_lot) = material_output::allocate_lot_id(self.next_lot, |id| self.known.contains(&format!("ground.{id}")))?;
         let id = format!("ground.{identity}");
         if self.ids.len() >= 16384 { return Err("region entity capacity".into()); }
-        let capacity = lot.quantity;
+        let capacity = u32::try_from(self.material_volume(&lot.kind, lot.quantity)?).map_err(|_| "material volume exceeds ground capacity")?;
         let old_weight = self.registry.weight("hive.lot", &record(&lot));
         lot.container = id.clone();
         let weight = self.state_weight.saturating_sub(old_weight)

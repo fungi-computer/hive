@@ -26,6 +26,18 @@ fn valid_stair_shape(run: u8, rise: u8, vertical_metres: f64) -> bool {
         && (f64::from(rise) * vertical_metres) / f64::from(run) <= MAX_STAIR_GRADE
 }
 
+fn require_material_volume(
+    catalog: &crate::material_handling::Catalog,
+    kind: &str,
+    context: &str,
+) -> Result<(), String> {
+    catalog
+        .unit_volume(kind)
+        .filter(|volume| *volume > 0)
+        .map(|_| ())
+        .ok_or_else(|| format!("{context} references material without a positive unit volume: {kind}"))
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct DefinitionInput {
@@ -42,7 +54,6 @@ struct DefinitionInput {
     resource_sites: Vec<ResourceDefinitionInput>,
     #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
-    #[serde(default)]
     material_volumes: Vec<MaterialVolumeInput>,
 }
 #[derive(Debug, Deserialize)]
@@ -549,6 +560,35 @@ fn prepare_definition_mode(
         }).collect::<Result<Vec<_>, String>>()?;
         resources.insert(entry.id.clone(), ResourceDefinition { id: entry.id, output_kind: entry.output_kind, output_quantity: entry.output_quantity, sow_seconds: entry.sow_seconds, tend_seconds: entry.tend_seconds, harvest_seconds: entry.harvest_seconds, stages });
     }
+    // Every authored producer/consumer is admitted against the same material
+    // catalog. This keeps missing volume declarations a load-time error.
+    for structure in structures.values() {
+        for kind in structure.materials.keys() {
+            require_material_volume(&material_handling, kind, "structure material")?;
+        }
+        for kind in structure.on_remove.salvage.keys() {
+            require_material_volume(&material_handling, kind, "structure salvage")?;
+        }
+    }
+    for rule in excavation_rules.values() {
+        require_material_volume(&material_handling, &rule.output_kind, "excavation output")?;
+    }
+    for emission in emissions.definitions() {
+        require_material_volume(&material_handling, &emission.material_kind, "emission")?;
+    }
+    for process in processes.definitions() {
+        for input in &process.inputs {
+            require_material_volume(&material_handling, &input.material, "process input")?;
+        }
+        for stage in &process.stages {
+            for output in &stage.transition.outputs {
+                require_material_volume(&material_handling, &output.material, "process output")?;
+            }
+        }
+    }
+    for resource in resources.values() {
+        require_material_volume(&material_handling, &resource.output_kind, "resource output")?;
+    }
     Ok(PreparedDefinition {
         terrain,
         geometry,
@@ -569,7 +609,7 @@ pub(crate) mod tests {
     use super::*;
     pub(crate) fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1,"workReachBelowCells":0}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"materialVolumes":[{{"kind":"water","unitVolume":1}},{{"kind":"pail","unitVolume":1}},{{"kind":"wood","unitVolume":1}},{{"kind":"stone-spoil","unitVolume":1}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1,"workReachBelowCells":0}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"materialVolumes":[{{"kind":"water","unitVolume":1}},{{"kind":"pail","unitVolume":1}},{{"kind":"wood","unitVolume":1}},{{"kind":"stone-spoil","unitVolume":1}},{{"kind":"soil-spoil","unitVolume":1}},{{"kind":"spoil","unitVolume":1}},{{"kind":"grain","unitVolume":1}},{{"kind":"malt","unitVolume":1}},{{"kind":"ale","unitVolume":1}},{{"kind":"beer","unitVolume":1}},{{"kind":"keg","unitVolume":1}},{{"kind":"mugwort","unitVolume":1}},{{"kind":"barm","unitVolume":1}},{{"kind":"spent-grain","unitVolume":1}},{{"kind":"bread","unitVolume":1}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
         )
     }
     #[test]
@@ -640,6 +680,17 @@ pub(crate) mod tests {
         assert!(prepare_definition(&input.to_string()).is_ok());
         input["structures"]["catalog"][0]["shape"] = json!({"kind":"stair","run":1,"rise":4});
         assert!(prepare_definition(&input.to_string()).is_err());
+    }
+
+    #[test]
+    fn material_volume_catalog_is_required_and_covers_referenced_outputs() {
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("volume-required")).unwrap();
+        input.as_object_mut().unwrap().remove("materialVolumes");
+        assert!(prepare_definition(&input.to_string()).is_err());
+        let mut input: serde_json::Value = serde_json::from_str(&fixture("volume-reference")).unwrap();
+        input["materials"][1]["excavation"] = serde_json::json!({"workSeconds":1,"outputKind":"unlisted","unitsPerCell":1});
+        let error = prepare_definition(&input.to_string()).err().expect("missing referenced volume must reject");
+        assert!(error.contains("without a positive unit volume"));
     }
 
     #[test]

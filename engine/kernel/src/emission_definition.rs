@@ -86,6 +86,10 @@ impl EmissionCatalog {
     pub fn len(&self) -> usize {
         self.definitions.len()
     }
+
+    pub fn definitions(&self) -> impl Iterator<Item = &EmissionDefinition> {
+        self.definitions.values().map(CompiledEmissionDefinition::definition)
+    }
 }
 
 pub fn compile(definition: EmissionDefinition) -> Result<CompiledEmissionDefinition, String> {

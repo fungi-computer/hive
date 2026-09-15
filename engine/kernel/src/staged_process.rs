@@ -145,6 +145,10 @@ impl ProcessCatalog {
     pub fn get(&self, id: &str) -> Option<&CompiledProcessDefinition> {
         self.definitions.get(id)
     }
+
+    pub fn definitions(&self) -> impl Iterator<Item = &ProcessDefinition> {
+        self.definitions.values().map(CompiledProcessDefinition::definition)
+    }
     pub fn len(&self) -> usize {
         self.definitions.len()
     }

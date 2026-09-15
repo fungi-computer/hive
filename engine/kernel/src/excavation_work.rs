@@ -184,6 +184,7 @@ mod tests {
             {"id":"worker","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1},"hive.container":{"capacity":10},"hive.party-member":{"party":"party"}}}
         ]}).to_string()).unwrap();
         let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("timed-work")).unwrap();
+        definition["materialVolumes"].as_array_mut().unwrap().push(json!({"kind":"spoil","unitVolume":1}));
         for material in definition["materials"].as_array_mut().unwrap() {
             if material["diggable"] == true { material["excavation"] = json!({"workSeconds":2,"outputKind":"spoil","unitsPerCell":3}); }
         }
