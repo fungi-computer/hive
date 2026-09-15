@@ -8,6 +8,7 @@ use super::Kernel;
 use super::route_query::SearchOutcome;
 use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
+use crate::staged_process::{ProcessPhase, StagedProcess};
 use crate::work_planner::{MAX_ASSIGNMENTS, WorkParticipation};
 use std::collections::BTreeMap;
 
@@ -34,6 +35,78 @@ struct SupplySlot {
 }
 
 impl Kernel {
+    /// Process inputs contribute ordinary finite supply requirements. The
+    /// process owner remains responsible for binding them once they arrive;
+    /// this method only joins the shared supply planner.
+    pub(crate) fn plan_process_supply(&mut self, process: &str, party: &str) -> Result<Vec<String>> {
+        self.ensure_ready()?;
+        let process_entity = self.entity(process)?;
+        let state = self
+            .ecs
+            .get::<StagedProcess>(process_entity)
+            .cloned()
+            .ok_or("not a staged process")?;
+        if state.phase != ProcessPhase::Waiting {
+            return Err("process supply requires a waiting process".into());
+        }
+        if self.ecs.get::<OwnedByParty>(process_entity).map(|owner| owner.party.as_str()) != Some(party) {
+            return Err("process supply process is outside party".into());
+        }
+        let definition = self
+            .environment
+            .as_ref()
+            .ok_or("process supply needs environment")?
+            .processes
+            .get(&state.definition)
+            .ok_or("process definition is missing")?
+            .definition()
+            .clone();
+        let generation = u64::from(state.stage_index).saturating_add(1);
+        let requirements = definition
+            .inputs
+            .iter()
+            .filter_map(|input| {
+                let destination = format!("{}:{}", state.station, input.port);
+                let present = self
+                    .contents
+                    .get(&destination)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(|entity| {
+                        let lot = self.ecs.get::<Lot>(*entity)?;
+                        (lot.container == destination && lot.kind == input.material
+                            && !self.ecs.get::<LotWater>(*entity).is_some_and(|water| water.water_kg > 0.0))
+                            .then_some(lot.quantity)
+                    })
+                    .sum::<u32>();
+                let incoming = self
+                    .supply_allocations()
+                    .filter(|(_, allocation)| {
+                        allocation.requirement_owner == process
+                            && allocation.requirement_role == input.role
+                            && allocation.requirement_generation == generation
+                            && allocation.party == party
+                            && allocation.material == input.material
+                            && allocation.destination == destination
+                            && allocation.state == SupplyAllocationState::Reserved
+                    })
+                    .map(|(_, allocation)| allocation.quantity)
+                    .sum::<u32>();
+                let missing = input.quantity.saturating_sub(present.saturating_add(incoming));
+                (missing > 0).then(|| SupplyRequirement {
+                    owner: process.into(),
+                    role: input.role.clone(),
+                    generation,
+                    party: party.into(),
+                    material: input.material.clone(),
+                    destination,
+                    missing,
+                })
+            })
+            .collect::<Vec<_>>();
+        self.plan_supply_requirements(&requirements)
+    }
+
     /// Construction contributes requirements; it does not select workers or
     /// create a second delivery lifecycle.
     pub(crate) fn plan_construction_supply(
