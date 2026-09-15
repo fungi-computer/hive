@@ -26,7 +26,7 @@ import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyBrewOrder, ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
+import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, Worker, colonyWorkSystem } from "./colony-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
@@ -74,7 +74,6 @@ export function treeWorkProgress(order: { readonly seconds: number; readonly sta
 
 const brewStationId = entity("colony.brew-station");
 const brewProcessId = entity("colony.brew.process.1");
-const brewOrderId = entity("colony.brew.order.1");
 const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
   { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
@@ -375,22 +374,24 @@ export const colonyPack: GamePack = {
     }),
     startBrew: command({
       input: brewStartInput,
-      reads: [ColonyBrewOrder],
-      writes: [ColonyBrewOrder],
+      reads: [MaterialLot],
+      writes: [],
       run(context, input) {
         if (input.station !== brewStationId) throw new Error("This Colony brew station is unavailable");
-        if (context.query(query(ColonyBrewOrder)).some(row => row.id === brewOrderId)) throw new Error("Herbal ale order already exists");
-        context.createAuthoredEntity({ id: brewOrderId, components: { [ColonyBrewOrder.id]: { recipe: HERBAL_ALE_V1.id, station: input.station, process: brewProcessId, phase: "queued", reason: "Waiting for ingredients" } } });
-        return { actions: [], writes: [] };
+        const binding = herbalAleProcessBinding(context.query(query(MaterialLot)).map(row => ({ id: row.id, ...row.get(MaterialLot) })), input.station);
+        if (!binding) throw new Error("Stage malt, water, mugwort, wood, barm, and a keg at the station first");
+        return { actions: [beginStagedProcess(brewProcessId, {
+          id: HERBAL_ALE_V1.id,
+          version: HERBAL_ALE_V1.version,
+          stages: HERBAL_ALE_V1.stages,
+        }, binding)], writes: [] };
       },
     }),
     cancelBrew: command({
       input: emptyInput,
-      reads: [StagedProcess, ColonyBrewOrder],
+      reads: [StagedProcess],
       writes: [],
       run(context) {
-        const order = context.query(query(ColonyBrewOrder)).find(row => row.id === brewOrderId);
-        if (order) { context.removeAuthoredEntity(order.id); return { actions: [], writes: [] }; }
         if (!context.query(query(StagedProcess)).some(row => row.id === brewProcessId)) throw new Error("No active herbal ale batch");
         return { actions: [cancelStagedProcess(brewProcessId)], writes: [] };
       },
