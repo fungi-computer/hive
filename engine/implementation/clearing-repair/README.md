@@ -134,9 +134,10 @@ the historical status and earlier construction/drawing instructions below.
 It is an implementation plan, not a claim of landed code or hosted acceptance.
 
 Status: active integration on `engine/clearing-edge-integration-20260914`.
-The reviewed native checkpoint is `13abeb0c`; later source must still be reported
-separately until accepted. The native scheduler remains intentionally inactive in
-the GamePack until every current work family has migrated.
+The reviewed and pushed native checkpoint is `b54b8ad7`; later source must still
+be reported separately until accepted. The native scheduler is active for the
+migrated work families while the remaining TypeScript providers are removed one
+consumer at a time.
 Historical branches and receipts remain evidence; they are not the active queue.
 
 The joined source now contains the native WorkAttempt identity/lifecycle owner,
@@ -154,9 +155,13 @@ planner and one allocation/pickup/delivery lifecycle. Two workers can reserve an
 carry distinct portions without overbooking; Draft preserves actual carried cargo;
 restore resumes the same allocation. Process inputs preserve `portion` versus
 `whole-lot` policy, so mugwort, barm and kegs cannot be assembled from fragments.
-The real process lifecycle fixture carries finite `LotWater` into the kettle and
-then admits the original brewing recipe. This is accepted source foundation, not
-a GamePack cutover or a claim that the TypeScript planner has been removed yet.
+The real process lifecycle fixture obtains finite 0--7 field water with a declared
+vessel, converts that same durable task into an ordinary native allocation, carries
+the exact water portion into the kettle, and admits the original brewing recipe.
+Mugwort harvested by native physical work enters that same supply owner. The dead
+TypeScript `processSupplyPhase`/`planSiteSupplies` planner and its duplicate tests
+are deleted. Stockpile planning, tended-resource water and general resource worker
+selection remain TypeScript-owned at this checkpoint and are the next cutovers.
 
 Original retained art placement metadata is owned beside the bed, brewer and stair
 recipes and survives the v5 static pack. The client converts canonical point and
@@ -167,10 +172,10 @@ existing alpha silhouette. The superseded per-pixel depth renderer is deleted.
 Terrain and water occupy explicit storey bands rather than pretending to be
 physical sprites.
 
-The current native checkpoint passes all 346 Rust library laws and all 14 public
-kernel integration laws (`run-u8338` and `run-u8334`). Earlier drawing laws pass
-46/46, party laws pass 70/70, and the immutable frontend version `2b0f54e3` matches
-all 176 frozen files.
+The current field-water/process checkpoint passes the exact real brewing and
+finite mugwort harvest/reload laws (`run-u94`), the recut process group 22/22
+(`run-u98`), and strict TypeScript (`run-u95`, `run-u96`). Earlier accepted Rust,
+drawing and party receipts remain evidence for their unchanged source.
 The DO backend version `ff3a9d97` is live with the Clearing preview origin. Hosted
 playability remains open because Cloudflare's `clearing-garden` alias still serves
 the older `c4393a6f` HTML even though the current uploaded version records that
