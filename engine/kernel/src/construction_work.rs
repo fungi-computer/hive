@@ -277,6 +277,7 @@ impl Kernel {
         for (id, entity) in &self.ids {
             let Some(state) = self.ecs.get::<ConstructionSite>(*entity) else { continue; };
             if state.phase == ConstructionPhase::Finished { continue; }
+            if self.ecs.get::<FloorReplacement>(*entity).is_some() { continue; }
             let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?;
             pending.push(self.construction_instance(id, definition, state.target)?);
         }
@@ -435,6 +436,9 @@ impl Kernel {
                 return Err("construction site capacity mismatch".into());
             }
         }
+        drop(environment);
+        let pending = self.pending_construction_instances()?;
+        self.environment.as_mut().ok_or("construction needs environment")?.world.validate_construction_pending(&pending)?;
         Ok(())
     }
 

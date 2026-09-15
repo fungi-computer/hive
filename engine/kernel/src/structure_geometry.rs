@@ -371,6 +371,27 @@ impl StaticGeometry {
     }
 }
 
+/// Check compatibility that cannot be inferred from the projection alone.
+/// Floors and covers both occupy a canonical support face; projection indexes
+/// intentionally deduplicate that face, so ordinary construction intents must
+/// reject a second claimant explicitly. A fixture may still share the face's
+/// cell, and a stair landing is a support contact rather than a face claimant.
+pub(crate) fn validate_construction_intents(instances: &[StaticInstance]) -> Result<(), String> {
+    let mut support_faces = BTreeMap::<Cell, (&'static str, String)>::new();
+    for instance in instances {
+        let (kind, support) = match instance {
+            StaticInstance::Floor { support, .. } => ("floor", *support),
+            StaticInstance::Cover { support, .. } => ("cover", *support),
+            _ => continue,
+        };
+        if let Some((prior_kind, prior_id)) = support_faces.get(&support) {
+            return Err(format!("conflicting construction support face: {prior_kind} {prior_id} and {kind} {}", instance.id()));
+        }
+        support_faces.insert(support, (kind, instance.id().to_owned()));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GeometryProjection {
     solids: BTreeSet<Cell>,
