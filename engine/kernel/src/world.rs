@@ -1622,8 +1622,8 @@ mod construction_tests {
         assert_eq!(rows[0]["support"], "ready");
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         assert_eq!(rows[0]["contacts"], json!([
-            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"edge"},
-            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"edge"}
+            {"x":surface.x as f64 * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"},
+            {"x":(surface.x as f64 + 1.0) * spacing[0], "y":contact.y, "z":surface.z as f64 * spacing[2], "frame":null, "kind":"origin"}
         ]));
         let bad = Point { x: contact.x + 0.25, ..contact.clone() };
         let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"bind-construction-stage","site":"access-wall","contact":bad}}]}).to_string()).unwrap()).unwrap();
@@ -1681,6 +1681,18 @@ mod construction_tests {
         environment.definition = serde_json::to_string(&definition).unwrap();
 
         let floor_y = surface.y + 4;
+        // A floor four voxels above ground requires a declared physical wall
+        // support. Establish that completed support before admitting the
+        // floor; bare unsupported pending intents are rejected at admission.
+        let wall = crate::structure_geometry::StaticInstance::Wall {
+            id: "completed-wall".into(),
+            edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X },
+            height: 4,
+        };
+        let prepared = kernel.environment.as_mut().unwrap().world
+            .prepare_structures(vec![wall]).unwrap().unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
             "delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
                 "kind":"plan-construction","party":"party","catalog":"floor","site":"wall-top-floor",
@@ -1691,16 +1703,7 @@ mod construction_tests {
         let before: serde_json::Value = serde_json::from_str(
             &kernel.construction_access_json("[\"wall-top-floor\"]").unwrap(),
         ).unwrap();
-        assert_eq!(before[0]["support"], "waitingForSupport");
-
-        let wall = crate::structure_geometry::StaticInstance::Wall {
-            id: "completed-wall".into(),
-            edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X },
-            height: 4,
-        };
-        let prepared = kernel.environment.as_mut().unwrap().world
-            .prepare_structures(vec![wall]).unwrap().unwrap();
-        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+        assert_eq!(before[0]["support"], "ready");
 
         let after: serde_json::Value = serde_json::from_str(
             &kernel.construction_access_json("[\"wall-top-floor\"]").unwrap(),
@@ -2756,6 +2759,7 @@ impl Kernel {
             if self.ecs.get::<Container>(*entity).is_some()
                 && position.is_none()
                 && self.ecs.get::<Lot>(*entity).is_none()
+                && !self.ecs.get::<ConstructionSite>(*entity).is_some_and(|site| site.phase == ConstructionPhase::Planned)
             {
                 return Err("container needs position or lot custody".into());
             }
