@@ -64,6 +64,11 @@ pub enum ActivityRef {
     ResourceExtract { source: String },
     #[serde(rename = "field-water")]
     FieldWater { vessel: String, cell: [i32; 3], direction: WaterDirection, portions: u8 },
+    /// A generic Job Task's committed physical transform. The Task entity
+    /// remains the operation identity; its source is resolved by the job
+    /// owner when this activity is admitted.
+    #[serde(rename = "job-transform")]
+    JobTransform { task: String, contact: Point },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -1,4 +1,4 @@
-import type { ActionRequest } from "../contracts";
+import type { ActionRequest, JobPlan, JobOperation, JobEntityBinding, JobContinuation } from "../contracts";
 
 const id = (value: unknown): boolean =>
   typeof value === "string" && /^[A-Za-z0-9._:-]{1,128}$/.test(value);
@@ -50,6 +50,37 @@ const constructionTarget = (value: unknown): boolean => {
   }
   return false;
 };
+const jobBinding = (value: unknown): value is JobEntityBinding => {
+  if (!record(value) || !("kind" in value) || !("value" in value)) return false;
+  if (value.kind === "exact") return exactKeys(value, ["kind", "value"]) && id(value.value);
+  if (value.kind === "result") return exactKeys(value, ["kind", "value"]) && record(value.value)
+    && exactKeys(value.value, ["step", "slot"]) && id(value.value.step) && id(value.value.slot);
+  return false;
+};
+const jobOperation = (value: unknown): value is JobOperation => {
+  if (!record(value) || !["finiteToItem", "itemToItems"].includes(value.kind as string)) return false;
+  return exactKeys(value, ["kind", "source", "inputKind", "inputQuantity", "outputKind", "outputQuantity", "workSeconds", "resultSlot"])
+    && jobBinding(value.source) && id(value.inputKind) && quantity(value.inputQuantity)
+    && id(value.outputKind) && quantity(value.outputQuantity)
+    && typeof value.workSeconds === "number" && Number.isFinite(value.workSeconds) && value.workSeconds > 0 && value.workSeconds <= 86400
+    && id(value.resultSlot);
+};
+const jobContinuation = (value: unknown): value is JobContinuation =>
+  value === "any-eligible" || value === "prefer-starter" || value === "bind-on-first-progress"
+  || (record(value) && exactKeys(value, ["assigned-actor"]) && id(value["assigned-actor"]));
+const jobPlan = (value: unknown): value is JobPlan => {
+  if (!record(value) || !exactKeys(value, ["definition", "definitionVersion", "steps"]) || !id(value.definition)
+    || typeof value.definitionVersion !== "number" || !Number.isSafeInteger(value.definitionVersion) || value.definitionVersion <= 0
+    || !Array.isArray(value.steps) || value.steps.length < 1 || value.steps.length > 32) return false;
+  const keys = new Set<string>();
+  return value.steps.every((step, index) => {
+    if (!record(step) || !(exactKeys(step, ["key", "after", "operation"]) || exactKeys(step, ["key", "after", "operation", "continuation"]))
+      || !id(step.key) || keys.has(step.key) || !jobOperation(step.operation)
+      || !(step.after === null || (id(step.after) && value.steps.slice(0, index).some(previous => record(previous) && previous.key === step.after)))
+      || (Object.hasOwn(step, "continuation") && !jobContinuation(step.continuation))) return false;
+    keys.add(step.key); return true;
+  });
+};
 const destination = (value: unknown): boolean =>
   record(value) && exactKeys(value, ["x", "y", "z", "frame"]) &&
   coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
@@ -79,6 +110,8 @@ const activity = (value: unknown): boolean => {
       return exactKeys(value, ["kind", "source"]) && id(value.source);
     case "field-water":
       return exactKeys(value, ["kind", "vessel", "cell", "direction", "portions"]) && id(value.vessel) && cell(value.cell) && (value.direction === "withdraw" || value.direction === "deposit") && typeof value.portions === "number" && Number.isInteger(value.portions) && value.portions >= 1 && value.portions <= 7;
+    case "job-transform":
+      return exactKeys(value, ["kind", "task", "contact"]) && id(value.task) && destination(value.contact);
     default:
       return false;
   }
@@ -119,6 +152,18 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.task) && typeof action.generation === "number" && Number.isSafeInteger(action.generation) && action.generation > 0 && typeof action.sequence === "number" && Number.isSafeInteger(action.sequence) && action.sequence > 0 && activity(action.nextActivity);
       break;
     }
+    case "create-job":
+      keys = ["kind", "id", "plan"];
+      valid = id(action.id) && jobPlan(action.plan);
+      break;
+    case "resume-job":
+      keys = ["kind", "id", "plan"];
+      valid = id(action.id) && jobPlan(action.plan);
+      break;
+    case "cancel-job":
+      keys = ["kind", "id"];
+      valid = id(action.id);
+      break;
     case "establish-resource-site":
       keys = ["kind", "operation", "worker", "site", "definition", "x", "y", "z"];
       valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));

@@ -1,6 +1,7 @@
 use super::*;
 use crate::job::{ContinuationPolicy, EntityBinding, JobPlan, JobState, StepSpec, TaskState, TaskResultBinding, TypedWorkOperation};
 use crate::components::{ActionScope, Lot, Position};
+use crate::work_planner::WorkPolicy;
 use serde_json::json;
 
 fn plan() -> JobPlan {
@@ -54,6 +55,8 @@ fn admission_is_atomic_replayable_and_rebuilds_dependency_readiness_after_reload
     kernel.complete_job_task("job-1:task:prepare", result).unwrap();
     kernel.create_job("job-1".into(), plan(), &scope).unwrap();
     assert_eq!(kernel.ready_job_tasks().unwrap(), vec!["job-1:task:refine"]);
+    assert!(!kernel.ecs.get::<WorkPolicy>(kernel.entity("job-1:task:prepare").unwrap()).unwrap().enabled);
+    assert!(kernel.ecs.get::<WorkPolicy>(kernel.entity("job-1:task:refine").unwrap()).unwrap().enabled);
     let saved = kernel.snapshot_json().unwrap();
     let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap();
     assert_eq!(restored.ready_job_tasks().unwrap(), vec!["job-1:task:refine"]);
@@ -75,8 +78,7 @@ fn cancellation_releases_attempt_and_preserves_completed_matter() {
     assert_eq!(job.state, JobState::Cancelled);
     assert!(matches!(kernel.ecs.get::<crate::job::Task>(kernel.entity("job-2:task:prepare").unwrap()).unwrap().state, TaskState::Completed(_)));
     assert!(matches!(kernel.ecs.get::<crate::job::Task>(kernel.entity("job-2:task:refine").unwrap()).unwrap().state, TaskState::Cancelled));
-    let attempt = kernel.work_attempt("job-2:task:refine").expect("interrupted attempt remains for settlement");
-    assert!(matches!(attempt.phase, AttemptPhase::Outcome { result: WorkOutcome::Interrupted { cause: InterruptCause::Cancelled }, .. }));
+    assert!(kernel.work_attempt("job-2:task:refine").is_none(), "job cancellation owns terminal attempt cleanup");
     assert!(!kernel.attempts_by_worker.contains_key("worker"));
 }
 

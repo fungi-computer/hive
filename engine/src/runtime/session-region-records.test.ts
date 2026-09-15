@@ -14,7 +14,8 @@ import { entity, query } from "../sdk/authoring";
 import { PartyMember } from "../sdk/party";
 import { WorkParticipation } from "../sdk/work-control";
 import { Worker } from "../games/colony-components";
-import { ColonyTreeOrder } from "../games/colony-work";
+import { ColonyTreePolicy } from "../games/colony-work";
+import { JobTaskWork } from "../sdk/common";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -118,8 +119,11 @@ test("disconnected party residents remain eligible for automatic work while anot
       const workers = session.query(query(Worker, PartyMember, WorkParticipation)).filter(row => row.get(PartyMember).party === "party:1");
       assert.equal(workers.length, 2);
       assert.ok(workers.every(row => row.get(WorkParticipation).automatic), "disconnected residents remain automatic workers");
-      const tree = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === "colony.tree.oak");
-      assert.ok(tree && tree.get(ColonyTreeOrder).phase !== "blocked", "the surviving party's order remains eligible and advances");
+      const tree = session.query(query(ColonyTreePolicy)).find(row => row.id === "colony.tree.oak")?.get(ColonyTreePolicy);
+      assert.equal(tree?.designated, true, "the surviving party's designation remains committed");
+      assert.equal(tree?.party, "party:1");
+      assert.ok(tree?.job, "the designation retains its durable native job identity");
+      assert.ok(session.query(query(JobTaskWork)).some(row => row.id.startsWith(`${tree?.job}:task:`)), "native job tasks survive without a player connection");
     });
   } finally {
     resident.dispose();

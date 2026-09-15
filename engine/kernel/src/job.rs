@@ -44,7 +44,7 @@ pub enum EntityBinding {
 /// The initial closed operation set is enough for a future finite-input to
 /// physical-item consumer. It contains no content-specific workflow.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", tag = "kind", deny_unknown_fields)]
+#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "kind", deny_unknown_fields)]
 pub enum TypedWorkOperation {
     FiniteToItem {
         source: EntityBinding,
@@ -155,7 +155,20 @@ pub struct Task {
     pub bound_actor: Option<String>,
 }
 
+/// Durable earned work for one generic task. It is owned by the Task entity,
+/// while the WorkAttempt remains only the temporary worker lease.
+#[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JobTaskWork {
+    pub seconds: f64,
+}
+
 impl Task {
+    pub fn operation_work_seconds(&self) -> f64 {
+        match &self.operation {
+            TypedWorkOperation::FiniteToItem { work_seconds, .. } | TypedWorkOperation::ItemToItems { work_seconds, .. } => *work_seconds,
+        }
+    }
     pub(crate) fn operation_source(&self) -> Option<&EntityBinding> { Some(self.operation.source_binding()) }
 
     pub fn is_ready(&self, completed_after: bool, result_ready: bool) -> bool {
@@ -251,6 +264,15 @@ mod tests {
     }
     fn plan() -> JobPlan {
         JobPlan { definition: "smelt".into(), definition_version: 1, steps: vec![StepSpec { key: "melt".into(), after: None, operation: operation(), continuation: ContinuationPolicy::AnyEligible }] }
+    }
+
+    #[test]
+    fn public_plan_wire_uses_camel_case_for_tagged_operation_fields() {
+        let value = serde_json::to_value(plan()).unwrap();
+        assert_eq!(value["steps"][0]["operation"]["inputKind"], "ore");
+        assert!(value["steps"][0]["operation"].get("input_kind").is_none());
+        let decoded: JobPlan = serde_json::from_value(value).unwrap();
+        assert_eq!(decoded, plan());
     }
 
     #[test] fn rejects_duplicate_and_forward_dependencies() {

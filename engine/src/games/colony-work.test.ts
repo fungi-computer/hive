@@ -6,44 +6,18 @@ import { Body, Container, FiniteResource, MaterialLot, Position, ResourceSite } 
 import { GroundStock } from "../sdk/ground-stock";
 import { query } from "../sdk/authoring";
 import { colonyPack } from "./colony";
-import { ColonyResourceOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, resourceWorkProvider, treeWorkProvider } from "./colony-work";
+import { ColonyResourceOrder, resourceWorkProvider } from "./colony-work";
 import { OwnedByParty, PartyMember } from "../sdk/party";
 import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { ConstructionSite } from "../sdk/construction";
 import { DeliveryTask } from "../sdk/delivery";
 import { StagedProcess } from "../sdk/process-supply";
-import type { ActionRequest, EntityId, QueryRow, WorkActivityRef, WorkAttempt, WorkOutcome } from "../contracts";
+import type { EntityId } from "../contracts";
 
 const id = (value: string) => value as import("../contracts").EntityId;
 const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
 const clock = { now: 20, delta: 0.25, tick: 80 };
-
-type ReconciliationState = { tree: EntityId; phase: "queued" | "working" | "blocked" | "complete"; stage: "fell" | "chop"; seconds: number; reason: string };
-function reconciliationContext(attempt: WorkAttempt | null, stateOverride: Partial<ReconciliationState> = {}) {
-  const task = id("tree-order"), worker = id("worker"), tree = id("tree");
-  const state: ReconciliationState = { tree, phase: "queued", stage: "chop", seconds: 0, reason: "" };
-  Object.assign(state, stateOverride);
-  const records: Array<QueryRow> = [
-    row(task as string, new Map([[ColonyTreeOrder, state], [OwnedByParty, { party: id("party") }]])),
-    row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 0, y: 1, z: 0, facing: 0 }], [PartyMember, { party: id("party") }]])),
-  ];
-  records.push(row("tree", new Map([[ColonyTree, { phase: "felled" }], [ColonyTreePolicy, { designated: true, party: id("party") }], [Position, { x: 1, y: 1, z: 1 }], [Container, { capacity: 6 }], [FiniteResource, { kind: "wood", quantity: 6 }]])));
-  const writes: Array<readonly [unknown, EntityId, unknown]> = [], actions: ActionRequest[] = [], removed: EntityId[] = [];
-  let projectedAttempt = attempt;
-  const context: any = {
-    clock, query: (spec: any) => records.filter(record => spec.components.every((component: any) => record.get(component) !== undefined)),
-    workAttempts: (taskIds: readonly EntityId[]) => projectedAttempt && taskIds.includes(projectedAttempt.key.task) ? [projectedAttempt] : [],
-    worldPoses: () => [{ id: worker, local: { x: 0, y: 1, z: 0, facing: 0 }, world: { x: 0, y: 1, z: 0, facing: 0 }, support: null, surface: null }],
-    terrainMaterials: () => [2], routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }),
-    action: (action: ActionRequest) => { actions.push(action); if (action.kind === "acknowledge-work-attempt") projectedAttempt = null; }, write: (definition: unknown, entity: EntityId, value: unknown) => writes.push([definition, entity, value]),
-    removeAuthoredEntity: (entity: any) => removed.push(entity),
-  };
-  return { context, task, worker, tree, writes, actions, removed, state };
-}
-function outcome(task: EntityId, worker: EntityId, activity: WorkActivityRef, result: WorkOutcome = { kind: "completed" }): WorkAttempt {
-  return { key: { task, generation: 1 }, worker, party: id("party"), phase: { kind: "outcome", operation: { attempt: { task, generation: 1 }, sequence: 1 }, activity, result } };
-}
 
 function providerContext(order: unknown, site: unknown, lots: unknown[] = [], outcomes: unknown[] = []) {
   const writes: unknown[] = [], created: unknown[] = [], removed: string[] = [], actions: unknown[] = [];
@@ -122,19 +96,6 @@ test("blocked resource work remains a retryable domain state without authored ac
   const result = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 99 }, [], []);
   resourceWorkProvider(result.context, new Set());
   assert.deepEqual(result.writes, []);
-});
-
-test("drafted tree route remains queued, then committed extraction completes exactly once", () => {
-  const route = reconciliationContext(outcome(id("tree-order"), id("worker"), { kind: "route", destination: { x: 1, y: 1, z: 1, frame: null } }));
-  treeWorkProvider(route.context, new Set([route.worker])).progress();
-  assert.equal(route.writes[0][2].phase, "queued");
-  assert.equal(route.actions.length, 1);
-  const physical = reconciliationContext(outcome(id("tree-order"), id("worker"), { kind: "resource-extract", source: route.tree }));
-  treeWorkProvider(physical.context, new Set([physical.worker])).progress();
-  treeWorkProvider(physical.context, new Set([physical.worker])).progress();
-  assert.equal(physical.writes.filter(write => write[0] === ColonyTree).length, 1);
-  assert.equal(physical.writes[1][2].phase, "complete");
-  assert.equal(physical.actions.length, 1);
 });
 
 test("GameSession preserves a finite mugwort harvest through extraction and reload", async (t) => {

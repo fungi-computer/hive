@@ -2,16 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import { colonyPack, ExcavationOrder } from "../games/colony";
+import { colonyPack, ExcavationOrder, treeJob } from "../games/colony";
 import { entity, query } from "../sdk/authoring";
-import { ExcavationWork, Position } from "../sdk/common";
+import { ExcavationWork, FiniteResource, JobTaskWork, Position } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
 import { buildObservation } from "./observation";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
-import { ColonyTreeOrder } from "../games/colony-work";
-import { Worker } from "../games/colony-components";
-import { PartyMember } from "../sdk/party";
 import { decorateWorkActivity } from "./work-activity";
 import type {
   EntityId,
@@ -72,27 +69,22 @@ test("actual Colony attendance projects work poses only while native work exists
   }
 });
 
-test("actual Colony tree attendance projects chop only while its order is working and stays read-only across reload", () => {
+test("actual Colony tree attendance projects chop only during native task work and stays read-only across reload", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ pack: colonyPack, port });
     session.start();
-    const workers = session.query(query(Worker, PartyMember)).map(row => row.id);
-    session.command("pauseDelivery", {
-      entities: workers,
-    });
-    session.command("designateTrees", { entities: ["colony.tree.oak"] });
+    const tree = entity("colony.tree.oak");
+    const job = treeJob(tree);
+    const fell = entity(`${job}:task:fell`), chop = entity(`${job}:task:chop`);
+    session.command("designateTrees", { entities: [tree] });
     const observe = () => buildObservation(session, { epoch: 0, sequence: 0 });
     assert(!observe().facts.some((f) => f.activity?.kind === "chop"));
     let working = false,
       sawApproach = false;
     for (let i = 0; i < 80; i++) {
       session.step(0.25);
-      const orderRow = session
-        .query(query(ColonyTreeOrder))
-        .find((row) => row.get(ColonyTreeOrder).tree === "colony.tree.oak");
-      const order = orderRow?.get(ColonyTreeOrder);
-      const attempt = orderRow ? session.workAttempts([orderRow.id])[0] : undefined;
+      const attempt = session.workAttempts([fell, chop])[0];
       if (attempt) {
         const view = observe(),
           activity = view.facts.find((f) => f.id === attempt.worker)?.activity;
@@ -100,10 +92,10 @@ test("actual Colony tree attendance projects chop only while its order is workin
           sawApproach = true;
           continue;
         }
-        if (order?.phase !== "working") continue;
         const before = session.save();
         assert.deepEqual(session.save(), before);
-        const progress = order.seconds / (order.stage === "fell" ? 3 : 2);
+        const work = session.query(query(JobTaskWork)).find(row => row.id === attempt.key.task)?.get(JobTaskWork).seconds ?? 0;
+        const progress = work / (attempt.key.task === fell ? 3 : 2);
         assert.deepEqual(activity, { kind: "chop", target: [2, 2], progress });
         assert(progress >= 0 && progress <= 1);
         working = true;
@@ -126,19 +118,8 @@ test("actual Colony tree attendance projects chop only while its order is workin
     );
     for (let i = 0; i < 80; i++) {
       session.step(0.25);
-      const order = session
-        .query(query(ColonyTreeOrder))
-        .find((row) => row.get(ColonyTreeOrder).tree === "colony.tree.oak")
-        ?.get(ColonyTreeOrder);
-      if (order?.phase === "complete") break;
+      if (session.query(query(FiniteResource)).find(row => row.id === tree)?.get(FiniteResource).quantity === 0 && !session.workAttempts([fell, chop]).length) break;
     }
-    assert.equal(
-      session
-        .query(query(ColonyTreeOrder))
-        .find((row) => row.get(ColonyTreeOrder).tree === "colony.tree.oak")
-        ?.get(ColonyTreeOrder).phase,
-      "complete",
-    );
     assert(!observe().facts.some((f) => f.activity?.kind === "chop"));
   } finally {
     port.dispose();

@@ -45,6 +45,7 @@ impl Registry {
             ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
             ("hive.work-policy", vec![("party", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
             ("hive.work-schedule", vec![("nextReviewTick", FieldType::Number), ("lastConsidered", FieldType::Number)]),
+            ("hive.job-task-work", vec![("seconds", FieldType::Number)]),
             (
                 "hive.position",
                 vec![
@@ -232,6 +233,7 @@ impl Registry {
                 "hive.work-participation" => world.register_component::<crate::work_planner::WorkParticipation>(),
                 "hive.work-policy" => world.register_component::<crate::work_planner::WorkPolicy>(),
                 "hive.work-schedule" => world.register_component::<crate::work_planner::WorkSchedule>(),
+                "hive.job-task-work" => world.register_component::<crate::job::JobTaskWork>(),
                 _ => {
                     // All dynamic insertions use AuthoredRecord, a Send+Sync
                     // layout. The destructor matches exactly; no relationships.
@@ -286,6 +288,7 @@ impl Registry {
                 | "hive.projectile"
                 | "hive.visual"
                 | "hive.work-schedule"
+                | "hive.job-task-work"
         )
     }
     /// Conservative canonical JSON size. Numeric poses can advance without
@@ -540,6 +543,7 @@ impl Registry {
             "hive.work-participation" => { let _: crate::work_planner::WorkParticipation = decode(value)?; }
             "hive.work-policy" => { let policy: crate::work_planner::WorkPolicy = decode(value)?; if !valid_id(&policy.party) { return Err("invalid work policy party".into()); } }
             "hive.work-schedule" => { let schedule: crate::work_planner::WorkSchedule = decode(value)?; if schedule.next_review_tick < schedule.last_considered { return Err("invalid work schedule".into()); } }
+            "hive.job-task-work" => { let work: crate::job::JobTaskWork = decode(value)?; if !work.seconds.is_finite() || work.seconds < 0.0 { return Err("invalid job task work".into()); } }
             "hive.excavation-order" => {
                 let order: ExcavationOrder = decode(value)?;
                 if !matches!(order.status.as_str(), "queued" | "blocked" | "cancelling") || order.reason.len() > 256 { return Err("invalid excavation order".into()); }
@@ -637,6 +641,7 @@ impl Registry {
             "hive.work-participation" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkParticipation>(value)?); }
             "hive.work-policy" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkPolicy>(value)?); }
             "hive.work-schedule" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkSchedule>(value)?); }
+            "hive.job-task-work" => { world.entity_mut(entity).insert(decode::<crate::job::JobTaskWork>(value)?); }
             _ => {
                 let id = *self.ids.get(name).ok_or("unknown component")?;
                 OwningPtr::make(AuthoredRecord(value.clone()), |ptr| {
@@ -658,6 +663,7 @@ impl Registry {
             "hive.work-participation" => world.get::<crate::work_planner::WorkParticipation>(entity).map(record),
             "hive.work-policy" => world.get::<crate::work_planner::WorkPolicy>(entity).map(record),
             "hive.work-schedule" => world.get::<crate::work_planner::WorkSchedule>(entity).map(record),
+            "hive.job-task-work" => world.get::<crate::job::JobTaskWork>(entity).map(record),
             "hive.position" => world.get::<Position>(entity).map(record),
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),

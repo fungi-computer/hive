@@ -84,6 +84,7 @@ impl Kernel {
         creates: Vec<EntityRecord>,
         removes: Vec<String>,
         writes: Vec<Write>,
+        action_created_references: BTreeSet<String>,
     ) -> Result<PreparedAuthoredEntities> {
         if creates.len() > 256 || removes.len() > 256 || writes.len() > 4096 {
             return Err("authored record edit exceeds budget".into());
@@ -121,6 +122,8 @@ impl Kernel {
             weight += row.id.len() + 128;
         }
         if known.len() > 16384 { return Err("region entity capacity".into()); }
+        let mut reference_known = known.as_ref().clone();
+        reference_known.extend(action_created_references);
         // Overlay all final authored records before checking references. A batch
         // may release a claim and remove its task together, but cannot leave a
         // surviving reference to the removed task.
@@ -128,7 +131,7 @@ impl Kernel {
         for row in &creates {
             for (name, value) in &row.components {
                 if Registry::is_physical(name) { return Err("physical component is not game-writable".into()); }
-                self.registry.validate(name, value, &known)?;
+                self.registry.validate(name, value, &reference_known)?;
                 weight += self.registry.weight(name, value);
                 final_values.insert((row.id.clone(), name.clone()), value.clone());
             }
@@ -136,7 +139,7 @@ impl Kernel {
         for write in &writes {
             if !known.contains(&write.entity) { return Err("unknown authored write target".into()); }
             if Registry::is_physical(&write.component) { return Err("physical component is not game-writable".into()); }
-            self.registry.validate(&write.component, &write.value, &known)?;
+            self.registry.validate(&write.component, &write.value, &reference_known)?;
             let key = (write.entity.clone(), write.component.clone());
             let old = final_values.get(&key).cloned().or_else(|| {
                 self.ids.get(&write.entity).and_then(|entity| self.registry.read(&self.ecs, *entity, &write.component))

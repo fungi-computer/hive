@@ -1,6 +1,6 @@
 //! Canonical Job/Task admission, validation, readiness, completion and cancellation.
 
-use crate::components::{ActionScope, Container, ExternalId, FiniteResource, JobSnapshot, Lot, OwnedByParty, Party, SupplyAllocationState, TaskSnapshot};
+use crate::components::{ActionScope, Container, ExternalId, FiniteResource, JobSnapshot, Lot, OwnedByParty, Party, Point, SupplyAllocationState, TaskSnapshot};
 use crate::work_attempt::{AttemptPhase, InterruptCause, WorkAttempt};
 use crate::world::Kernel;
 use bevy_ecs::prelude::Entity;
@@ -16,6 +16,42 @@ pub(crate) struct JobIndex {
 }
 
 impl Kernel {
+    /// Resolve a dependent task's result binding to the exact committed
+    /// physical entity. This is deliberately performed by the job owner at
+    /// dispatch time, after the item may have been moved or stored.
+    pub(crate) fn resolve_job_result_source(&self, task: &crate::job::Task, step: &str, slot: &str) -> Result<String> {
+        let job = self.ecs.get::<crate::job::Job>(self.entity(&task.job)?).ok_or("job is missing")?;
+        let producer = job.task_ids.iter().find_map(|id| self.ids.get(id).and_then(|entity| self.ecs.get::<crate::job::Task>(*entity)).filter(|candidate| candidate.step == step));
+        let producer = producer.ok_or("job result producer is missing")?;
+        match &producer.state {
+            crate::job::TaskState::Completed(results) => results.iter().find(|result| result.slot == slot).map(|result| result.entity.clone()).ok_or("job result slot is missing".into()),
+            _ => Err("job result is not complete".into()),
+        }
+    }
+
+    pub(crate) fn job_work_contacts(&self, task: &crate::job::Task) -> Result<Vec<Point>> {
+        let source = match task.operation.source_binding() {
+            crate::job::EntityBinding::Exact(source) => source.clone(),
+            crate::job::EntityBinding::Result { step, slot } => self.resolve_job_result_source(task, step, slot)?,
+        };
+        let source_entity = self.entity(&source)?;
+        let contact_entity = if self.ecs.get::<FiniteResource>(source_entity).is_some() {
+            source_entity
+        } else {
+            let lot = self.ecs.get::<Lot>(source_entity).ok_or("job source is not a material lot")?;
+            self.entity(&lot.container)?
+        };
+        let pose = self.world_pose_entity(contact_entity, 0)?;
+        let frame = self.support_id(contact_entity);
+        let spacing = self.environment.as_ref().map(|environment| environment.world.cell_spacing_m()).unwrap_or([1.0, 1.0, 1.0]);
+        Ok(vec![
+            Point { x: pose.x + spacing[0], y: pose.y, z: pose.z, frame: frame.clone() },
+            Point { x: pose.x - spacing[0], y: pose.y, z: pose.z, frame: frame.clone() },
+            Point { x: pose.x, y: pose.y, z: pose.z + spacing[2], frame: frame.clone() },
+            Point { x: pose.x, y: pose.y, z: pose.z - spacing[2], frame },
+        ])
+    }
+
     pub(crate) fn rebuild_job_index(&mut self) -> Result<()> {
         let mut ready = BTreeSet::new();
         let job_ids = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<crate::job::Job>(*entity).map(|_| id.clone())).collect::<Vec<_>>();
@@ -64,11 +100,13 @@ impl Kernel {
                 if !valid_id(task_id) || !keys.insert(task_id.clone()) { return Err("saved job task identities are not unique".into()); }
                 let task_entity = self.entity(task_id)?;
                 let task = self.ecs.get::<crate::job::Task>(task_entity).ok_or("saved job task is missing")?;
+                let work = self.ecs.get::<crate::job::JobTaskWork>(task_entity).ok_or("saved job task work is missing")?;
+                if !work.seconds.is_finite() || work.seconds < 0.0 || work.seconds > task.operation_work_seconds() { return Err("saved job task work is invalid".into()); }
                 if task.version != crate::job::CURRENT_VERSION || task.job != *job_id || !valid_id(&task.step) || !steps.insert(task.step.clone()) { return Err("saved job task relationship is invalid".into()); }
                 if self.ecs.get::<OwnedByParty>(task_entity).map(|owned| owned.party.as_str()) != job_owner { return Err("saved job task authority is invalid".into()); }
                 if task.after.as_ref().is_some_and(|after| !job.task_ids[..index].iter().any(|candidate_id| self.ids.get(candidate_id).and_then(|entity| self.ecs.get::<crate::job::Task>(*entity)).is_some_and(|candidate| candidate.step == *after))) { return Err("saved job dependency is invalid".into()); }
                 task.operation.validate_shape()?;
-                if let crate::job::EntityBinding::Exact(source) = task.operation.source_binding() {
+                if matches!(&task.state, crate::job::TaskState::Pending) && let crate::job::EntityBinding::Exact(source) = task.operation.source_binding() {
                     let source_entity = self.entity(source)?;
                     if !self.task_source_matches_operation(&task.operation, source_entity) { return Err("saved job operation source type or quantity is invalid".into()); }
                 }
@@ -104,7 +142,7 @@ impl Kernel {
         if self.ecs.get::<Container>(container).is_none() { return Ok(false); }
         self.world_pose_entity(container, 0).map(|_| true).or(Ok(false))
     }
-    fn task_source_matches_operation(&self, operation: &crate::job::TypedWorkOperation, entity: Entity) -> bool {
+    pub(crate) fn task_source_matches_operation(&self, operation: &crate::job::TypedWorkOperation, entity: Entity) -> bool {
         match operation {
             crate::job::TypedWorkOperation::FiniteToItem { input_kind, input_quantity, .. } => self.ecs.get::<FiniteResource>(entity).is_some_and(|source| source.kind == *input_kind && source.quantity >= *input_quantity),
             crate::job::TypedWorkOperation::ItemToItems { input_kind, input_quantity, .. } => self.ecs.get::<Lot>(entity).is_some_and(|source| source.kind == *input_kind && source.quantity >= *input_quantity),
@@ -112,12 +150,22 @@ impl Kernel {
     }
     pub(crate) fn create_job(&mut self, id: String, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<String> {
         crate::job::validate_plan(&id, &plan)?;
-        let owner = match scope { ActionScope::Party { party } => { self.ecs.get::<Party>(self.entity(party)?).ok_or("job scope is not a party")?; Some(party.clone()) }, ActionScope::Host => None };
+        let owner = match scope {
+            ActionScope::Party { party } => { self.ecs.get::<Party>(self.entity(party)?).ok_or("job scope is not a party")?; Some(party.clone()) },
+            ActionScope::Host => plan.steps.iter().find_map(|step| match step.operation.source_binding() {
+                crate::job::EntityBinding::Exact(source) => self.ids.get(source).and_then(|entity| self.ecs.get::<OwnedByParty>(*entity)).map(|owner| owner.party.clone()),
+                crate::job::EntityBinding::Result { .. } => None,
+            }),
+        };
         if self.ids.contains_key(&id) {
             let entity = self.entity(&id)?;
             let existing = self.ecs.get::<crate::job::Job>(entity).ok_or("job identity is already in use")?;
             if existing.definition != plan.definition || existing.definition_version != plan.definition_version || existing.task_ids.len() != plan.steps.len() { return Err("job replay identity conflicts with committed plan".into()); }
-            if self.ecs.get::<OwnedByParty>(entity).map(|owned| owned.party.as_str()) != owner.as_deref() { return Err("job replay authority conflicts with committed plan".into()); }
+            if let ActionScope::Party { party } = scope
+                && self.ecs.get::<OwnedByParty>(entity).map(|owned| owned.party.as_str()) != Some(party.as_str())
+            {
+                return Err("job replay authority conflicts with committed plan".into());
+            }
             for (step, task_id) in plan.steps.iter().zip(&existing.task_ids) {
                 let task = self.ecs.get::<crate::job::Task>(self.entity(task_id)?).ok_or("job replay task is missing")?;
                 if task.step != step.key || task.after != step.after || task.operation != step.operation || task.continuation != step.continuation { return Err("job replay identity conflicts with committed plan".into()); }
@@ -142,11 +190,46 @@ impl Kernel {
         self.ids.insert(id.clone(), job_entity); self.known.insert(id.clone());
         if let Some(party) = owner.clone() { self.ecs.entity_mut(job_entity).insert(OwnedByParty { party }); }
         for (step, task_id) in plan.steps.into_iter().zip(task_ids.iter()) {
-            let task_entity = self.ecs.spawn((ExternalId(task_id.clone()), crate::job::Task { version: crate::job::CURRENT_VERSION, job: id.clone(), step: step.key, after: step.after, operation: step.operation, state: crate::job::TaskState::Pending, continuation: step.continuation.clone(), bound_actor: match step.continuation { crate::job::ContinuationPolicy::AssignedActor(actor) => Some(actor), _ => None } })).id();
+            let task_entity = self.ecs.spawn((ExternalId(task_id.clone()), crate::job::Task { version: crate::job::CURRENT_VERSION, job: id.clone(), step: step.key, after: step.after, operation: step.operation, state: crate::job::TaskState::Pending, continuation: step.continuation.clone(), bound_actor: match step.continuation { crate::job::ContinuationPolicy::AssignedActor(actor) => Some(actor), _ => None } }, crate::job::JobTaskWork { seconds: 0.0 })).id();
             self.ids.insert(task_id.clone(), task_entity); self.known.insert(task_id.clone());
-            if let Some(party) = owner.clone() { self.ecs.entity_mut(task_entity).insert(OwnedByParty { party }); }
+            if let Some(party) = owner.clone() {
+                self.ecs.entity_mut(task_entity).insert((OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { party, priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }));
+            }
+            self.refresh_planner_index(task_id);
         }
         self.rebuild_job_index()?; self.refresh_state_weight(); Ok(id)
+    }
+    pub(crate) fn resume_job(&mut self, id: &str, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<()> {
+        if !self.ids.contains_key(id) {
+            self.create_job(id.to_owned(), plan, scope)?;
+            return Ok(());
+        }
+        crate::job::validate_plan(id, &plan)?;
+        let job_entity = self.entity(id)?;
+        let job = self.ecs.get::<crate::job::Job>(job_entity).cloned().ok_or("job is missing")?;
+        if job.definition != plan.definition || job.definition_version != plan.definition_version || job.task_ids.len() != plan.steps.len() { return Err("job replay identity conflicts with committed plan".into()); }
+        for (step, task_id) in plan.steps.iter().zip(&job.task_ids) {
+            let task = self.ecs.get::<crate::job::Task>(self.entity(task_id)?).ok_or("job replay task is missing")?;
+            if task.step != step.key || task.after != step.after || task.operation != step.operation || task.continuation != step.continuation { return Err("job replay identity conflicts with committed plan".into()); }
+        }
+        if job.state != crate::job::JobState::Cancelled { return Err("only a cancelled job can resume".into()); }
+        if let ActionScope::Party { party } = scope
+            && self.ecs.get::<OwnedByParty>(job_entity).map(|value| value.party.as_str()) != Some(party.as_str())
+        {
+            return Err("job scope authority mismatch".into());
+        }
+        self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Active;
+        for task_id in job.task_ids {
+            let task_entity = self.entity(&task_id)?;
+            if let Some(mut task) = self.ecs.get_mut::<crate::job::Task>(task_entity) {
+                if matches!(&task.state, crate::job::TaskState::Cancelled) { task.state = crate::job::TaskState::Pending; }
+            }
+            if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).cloned() {
+                self.ecs.entity_mut(task_entity).insert(crate::work_planner::WorkPolicy { enabled: true, ..policy });
+            }
+            self.refresh_planner_index(&task_id);
+        }
+        self.rebuild_job_index()?; self.refresh_state_weight(); Ok(())
     }
     pub(crate) fn cancel_job(&mut self, id: &str) -> Result<()> {
         let job_entity = self.entity(id)?;
@@ -161,10 +244,13 @@ impl Kernel {
                 let attempt = self.ecs.get::<WorkAttempt>(attempt_entity).cloned().ok_or("job attempt is missing")?;
                 let sequence = attempt.current_operation().map(|operation| operation.sequence).ok_or("job attempt has no current operation")?;
                 if matches!(attempt.phase, AttemptPhase::Executing { .. }) { self.interrupt_work_attempt(task_id.clone(), attempt.key.generation, sequence, InterruptCause::Cancelled)?; }
+                if matches!(self.work_attempt(task_id).map(|current| &current.phase), Some(AttemptPhase::Outcome { .. })) {
+                    self.acknowledge_work_attempt(task_id.clone(), attempt.key.generation, sequence)?;
+                }
             }
         }
         self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Cancelled;
-        for task_id in task_ids { let task_entity = self.entity(&task_id)?; if let Some(mut task) = self.ecs.get_mut::<crate::job::Task>(task_entity) { if matches!(&task.state, crate::job::TaskState::Pending) { task.state = crate::job::TaskState::Cancelled; } } }
+        for task_id in task_ids { let task_entity = self.entity(&task_id)?; if let Some(mut task) = self.ecs.get_mut::<crate::job::Task>(task_entity) { if matches!(&task.state, crate::job::TaskState::Pending) { task.state = crate::job::TaskState::Cancelled; } } if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).cloned() { self.ecs.entity_mut(task_entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy }); } self.refresh_planner_index(&task_id); }
         self.rebuild_job_index()?; self.refresh_state_weight(); Ok(())
     }
     pub(crate) fn complete_job_task(&mut self, id: &str, results: Vec<crate::job::TaskResultBinding>) -> Result<()> {
@@ -175,16 +261,26 @@ impl Kernel {
             replay.complete(results)?;
             return Ok(());
         }
+        let admitted_transform = self.work_attempt(id).is_some_and(|attempt| matches!(
+            &attempt.phase,
+            AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::JobTransform { task, .. }, .. } if task == id
+        ));
         self.rebuild_job_index()?;
-        if !self.job_index.ready_tasks.contains(id) { return Err("task dependencies or result bindings are not ready".into()); }
+        if !admitted_transform && !self.job_index.ready_tasks.contains(id) { return Err("task dependencies or result bindings are not ready".into()); }
         for result in &results { if !self.task_result_matches_operation(&existing.operation, &result.entity)? { return Err("task result must bind a matching physical lot".into()); } }
         let mut task = existing;
         task.complete(results)?;
         self.ecs.entity_mut(task_entity).insert(task);
+        if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).cloned() {
+            self.ecs.entity_mut(task_entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy });
+        }
+        self.refresh_planner_index(id);
         let job_id = self.ecs.get::<crate::job::Task>(task_entity).ok_or("task is missing")?.job.clone();
         let job_entity = self.entity(&job_id)?;
         let all_completed = self.ecs.get::<crate::job::Job>(job_entity).ok_or("job is missing")?.task_ids.iter().all(|task_id| self.ids.get(task_id).and_then(|entity| self.ecs.get::<crate::job::Task>(*entity)).is_some_and(|task| matches!(&task.state, crate::job::TaskState::Completed(_))));
-        if all_completed { self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Completed; }
+        if all_completed {
+            self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Completed;
+        }
         self.rebuild_job_index()?; self.refresh_state_weight(); Ok(())
     }
 
