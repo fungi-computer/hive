@@ -8,7 +8,10 @@ fn retryable_deconstruction_failure(reason: &str) -> bool {
         | "worker lacks salvage capacity"
         | "deconstruction geometry is invalid"
         | "supported dependent prevents deconstruction"
-        | "required empty port contains live contents")
+        | "required empty port contains live contents"
+        | "not a construction site"
+        | "deconstruction requires a finished site"
+        | "construction catalog binding is missing")
 }
 
 impl Kernel {
@@ -58,16 +61,31 @@ impl Kernel {
     pub(super) fn advance_deconstruction(&mut self, delta: f64) -> Result<()> {
         if delta <= 0.0 { return Ok(()); }
         let mut query = self.ecs.query::<(&ExternalId, &DeconstructionWork)>();
-        let pending: Vec<_> = query.iter(&self.ecs).map(|(id, work)| (id.0.clone(), work.clone())).collect();
+        let mut pending: Vec<_> = query.iter(&self.ecs).map(|(id, work)| (id.0.clone(), work.clone())).collect();
+        pending.sort_by(|a, b| a.0.cmp(&b.0));
         for (task, mut work) in pending {
             let task_entity = self.entity(&task)?;
             let Some(attempt) = self.ecs.get::<WorkAttempt>(task_entity).cloned() else { continue; };
             let AttemptPhase::Executing { operation, activity: ActivityRef::Deconstruction { site, contact } } = attempt.phase else { continue; };
-            if site != work.site || contact.x != work.contact_x || contact.y != work.contact_y || contact.z != work.contact_z { continue; }
+            if site != work.site || contact.x != work.contact_x || contact.y != work.contact_y || contact.z != work.contact_z {
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: ActivityRef::Deconstruction { site: work.site.clone(), contact }, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                continue;
+            }
             let worker = self.entity(&attempt.worker)?;
-            if self.ecs.get::<Destination>(worker).is_some() || self.ecs.get::<Support>(worker).is_some() { continue; }
+            if self.ecs.get::<Destination>(worker).is_some() { continue; }
+            if self.direct.contains_key(&worker) || self.ecs.get::<ExcavationWork>(worker).is_some() {
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: ActivityRef::Deconstruction { site: work.site.clone(), contact }, result: WorkOutcome::Blocked { reason: WorkBlockReason::WorkerUnavailable } })?;
+                continue;
+            }
+            if self.ecs.get::<Support>(worker).is_some() {
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: ActivityRef::Deconstruction { site: work.site.clone(), contact }, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                continue;
+            }
             let pose = self.world_pose(&attempt.worker)?;
-            if (pose.x - contact.x).powi(2) + (pose.y - contact.y).powi(2) + (pose.z - contact.z).powi(2) > 1.5_f64.powi(2) { continue; }
+            if (pose.x - contact.x).powi(2) + (pose.y - contact.y).powi(2) + (pose.z - contact.z).powi(2) > 1.5_f64.powi(2) {
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: ActivityRef::Deconstruction { site: work.site.clone(), contact }, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                continue;
+            }
             work.seconds = super::earned_work_seconds(work.seconds, delta, work.required_seconds)?;
             self.ecs.entity_mut(task_entity).insert(work.clone());
             if work.seconds < work.required_seconds { continue; }
