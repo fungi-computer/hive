@@ -29,8 +29,6 @@ const groups = Object.freeze({
     "engine/src/sdk/work-allocation.test.ts",
     "engine/src/sdk/delivery.test.ts",
     "engine/src/sdk/process-attendance.test.ts",
-    "engine/src/sdk/process-supply.test.ts",
-    "engine/src/sdk/site-supplies.test.ts",
     "engine/src/sdk/stockpile.test.ts",
     "engine/src/games/colony-brewing.test.ts",
     "engine/src/games/colony-dig-command.test.ts",
@@ -48,7 +46,7 @@ const groups = Object.freeze({
   ]),
   process: Object.freeze([
     "engine/src/sdk/process-attendance.test.ts",
-    "engine/src/sdk/process-supply.test.ts",
+    "engine/src/games/colony-brewing.test.ts",
     "engine/src/games/colony-work.test.ts",
     "engine/src/games/colony-water-work.test.ts",
   ]),
