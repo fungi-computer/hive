@@ -58,6 +58,7 @@ impl Registry {
             ("hive.body", vec![("speed", FieldType::Number)]),
             ("hive.traversal", vec![("clearanceCells", FieldType::Number), ("maxStepCells", FieldType::Number)]),
             ("hive.container", vec![("capacity", FieldType::Number)]),
+            ("hive.vessel-capability", vec![("acceptsWater", FieldType::Boolean)]),
             ("hive.sealed-container", vec![]),
             ("hive.ground-stock", vec![]),
             (
@@ -70,6 +71,7 @@ impl Registry {
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
             ("hive.supply-allocation", vec![("requirementOwner", FieldType::Entity), ("requirementRole", FieldType::String), ("requirementGeneration", FieldType::Number), ("party", FieldType::Entity), ("material", FieldType::String), ("portion", FieldType::Entity), ("destination", FieldType::Entity), ("quantity", FieldType::Number), ("state", FieldType::String)]),
+            ("hive.field-water-work", vec![("process", FieldType::Entity), ("role", FieldType::String), ("generation", FieldType::Number), ("party", FieldType::Entity), ("destination", FieldType::Entity), ("vessel", FieldType::NullableEntity), ("cellX", FieldType::Number), ("cellY", FieldType::Number), ("cellZ", FieldType::Number), ("lot", FieldType::NullableEntity)]),
             ("hive.staged-process", vec![
                 ("version", FieldType::Number), ("definition", FieldType::String), ("definitionVersion", FieldType::Number),
                 ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number),
@@ -200,11 +202,13 @@ impl Registry {
                 "hive.body" => world.register_component::<Body>(),
                 "hive.traversal" => world.register_component::<Traversal>(),
                 "hive.container" => world.register_component::<Container>(),
+                "hive.vessel-capability" => world.register_component::<VesselCapability>(),
                 "hive.sealed-container" => world.register_component::<SealedContainer>(),
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.supply-allocation" => world.register_component::<SupplyAllocation>(),
+                "hive.field-water-work" => world.register_component::<FieldWaterWork>(),
                 "hive.staged-process" => world.register_component::<crate::staged_process::StagedProcess>(),
                 "hive.process-binding" => world.register_component::<crate::staged_process::ProcessBinding>(),
                 "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
@@ -262,11 +266,13 @@ impl Registry {
                 | "hive.body"
                 | "hive.traversal"
                 | "hive.container"
+                | "hive.vessel-capability"
                 | "hive.sealed-container"
                 | "hive.ground-stock"
                 | "hive.lot"
                 | "hive.lot-water"
                 | "hive.supply-allocation"
+                | "hive.field-water-work"
                 | "hive.staged-process"
                 | "hive.process-binding"
                 | "hive.stockpile-cell"
@@ -351,6 +357,9 @@ impl Registry {
             "hive.container" => {
                 let _: Container = decode(value)?;
             }
+            "hive.vessel-capability" => {
+                let _: VesselCapability = decode(value)?;
+            }
             "hive.ground-stock" => { let _: GroundStock = decode(value)?; }
             "hive.sealed-container" => {
                 let _: SealedContainer = decode(value)?;
@@ -399,6 +408,14 @@ impl Registry {
                     || !valid_id(&allocation.material) || !valid_id(&allocation.portion)
                     || !valid_id(&allocation.destination) || allocation.quantity == 0
                 { return Err("invalid supply allocation".into()); }
+            }
+            "hive.field-water-work" => {
+                let work: FieldWaterWork = decode(value)?;
+                if !valid_id(&work.process) || !valid_id(&work.role) || work.generation == 0
+                    || !valid_id(&work.party) || !valid_id(&work.destination)
+                    || work.vessel.as_deref().is_some_and(|id| !valid_id(id))
+                    || work.lot.as_deref().is_some_and(|id| !valid_id(id))
+                { return Err("invalid field water work".into()); }
             }
             "hive.staged-process" => {
                 let process: crate::staged_process::StagedProcess = decode(value)?;
@@ -572,6 +589,9 @@ impl Registry {
             "hive.container" => {
                 world.entity_mut(entity).insert(decode::<Container>(value)?);
             }
+            "hive.vessel-capability" => {
+                world.entity_mut(entity).insert(decode::<VesselCapability>(value)?);
+            }
             "hive.ground-stock" => { world.entity_mut(entity).insert(decode::<GroundStock>(value)?); }
             "hive.sealed-container" => {
                 world.entity_mut(entity).insert(decode::<SealedContainer>(value)?);
@@ -593,6 +613,7 @@ impl Registry {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
             "hive.supply-allocation" => { world.entity_mut(entity).insert(decode::<SupplyAllocation>(value)?); }
+            "hive.field-water-work" => { world.entity_mut(entity).insert(decode::<FieldWaterWork>(value)?); }
             "hive.staged-process" => { world.entity_mut(entity).insert(decode::<crate::staged_process::StagedProcess>(value)?); }
             "hive.process-binding" => { world.entity_mut(entity).insert(decode::<crate::staged_process::ProcessBinding>(value)?); }
             "hive.stockpile-cell" => { world.entity_mut(entity).insert(decode::<StockpileCell>(value)?); }
@@ -668,11 +689,13 @@ impl Registry {
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),
             "hive.container" => world.get::<Container>(entity).map(record),
+            "hive.vessel-capability" => world.get::<VesselCapability>(entity).map(record),
             "hive.sealed-container" => world.get::<SealedContainer>(entity).map(record),
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
             "hive.supply-allocation" => world.get::<SupplyAllocation>(entity).map(record),
+            "hive.field-water-work" => world.get::<FieldWaterWork>(entity).map(record),
             "hive.staged-process" => world.get::<crate::staged_process::StagedProcess>(entity).map(record),
             "hive.process-binding" => world.get::<crate::staged_process::ProcessBinding>(entity).map(record),
             "hive.stockpile-cell" => world.get::<StockpileCell>(entity).map(record),

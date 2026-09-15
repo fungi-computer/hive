@@ -79,6 +79,12 @@ export const MaterialLot = component<{
   version: 1,
   fields: { quantity: "number", kind: "string", container: "entity" },
 });
+/** Native vessel eligibility; physical capability is authored as content and
+ * consumed by the native field-water planner. */
+export const VesselCapability = component<{ acceptsWater: boolean }>("hive.vessel-capability", {
+  version: 1,
+  fields: { acceptsWater: "boolean" },
+});
 export const LotWater = component<{ waterKg: number }>("hive.lot-water", {
   version: 1,
   fields: { waterKg: "number" },

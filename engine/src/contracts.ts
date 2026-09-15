@@ -30,6 +30,8 @@ export const RESERVED_COMPONENTS = [
   "hive.excavation-order",
   "hive.deconstruction-work",
   "hive.supply-allocation",
+  "hive.field-water-work",
+  "hive.vessel-capability",
   "hive.work-policy",
   "hive.work-schedule",
   "hive.job-task-work",
