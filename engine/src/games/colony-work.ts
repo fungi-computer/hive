@@ -1,11 +1,7 @@
-import { constructionWorkProvider } from "../sdk/construction-work";
 import { DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
-import { planSiteSupplies } from "../sdk/site-supplies";
-import { StagedProcess, processSupplyPhase } from "../sdk/process-supply";
-import { processAttendanceProvider } from "../sdk/process-attendance";
+import { StagedProcess } from "../sdk/process-supply";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
-import { ConstructionSite, SealedContainer } from "../sdk/construction";
 import { component, entity, query } from "../sdk/authoring";
 import {
   createWorkSystem,
@@ -928,47 +924,6 @@ export function colonyGroundStockPhase(ctx: WriteContext) {
   }
 }
 
-function colonySiteSuppliesPhase(ctx: WriteContext) {
-  const sites = ctx.query(query(ConstructionSite));
-  // Advance by one so every site enters the bounded planning window even when
-  // the site count shares a divisor with the per-tick work budget.
-  const start = sites.length ? ctx.clock.tick % sites.length : 0;
-  const active = Array.from(
-    { length: Math.min(3, sites.length) },
-    (_, offset) => sites[(start + offset) % sites.length],
-  );
-  const owners = new Map(ctx.query(query(OwnedByParty)).map(row => [row.id, row.get(OwnedByParty).party]));
-  const grouped = new Map<EntityId, typeof active>();
-  for (const row of active) {
-    const party = owners.get(row.id);
-    if (party) grouped.set(party, [...(grouped.get(party) ?? []), row]);
-  }
-  for (const [party, partySites] of grouped)
-    planSiteSupplies(ctx, {
-      sourceContainers: ctx
-        .query(query(GroundStock, Container, OwnedByParty))
-        .filter((row) => row.get(OwnedByParty).party === party)
-        .map((row) => row.id)
-        .sort(),
-      batchQuantity: 3,
-      requirements: [
-        ...partySites.flatMap((row) => {
-          const site = row.get(ConstructionSite);
-          const definition = colonyEnvironment.structures.catalog.find(
-            (item) => item.id === site.catalog,
-          );
-          return definition
-            ? definition.materials.map(({ kind: material, quantity }) => ({
-                destination: row.id,
-                material,
-                quantity,
-              }))
-            : [];
-        }),
-      ],
-    });
-}
-
 export const colonyWorkSystem = createWorkSystem({
   id: "colony.work",
   version: 1,
@@ -988,8 +943,6 @@ export const colonyWorkSystem = createWorkSystem({
     Traversal,
     Position,
     Container,
-    SealedContainer,
-    ConstructionSite,
     DeconstructionOrder,
     LotWater,
     Destination,
@@ -1016,10 +969,8 @@ export const colonyWorkSystem = createWorkSystem({
     ColonyResourceOrder,
   ],
   phases: [
-    processSupplyPhase,
     colonyProcessWaterPhase,
     colonyResourceWaterPhase,
-    colonySiteSuppliesPhase,
     colonyGroundStockPhase,
     (ctx) =>
       planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles, batchQuantity: 3 }),
@@ -1030,21 +981,9 @@ export const colonyWorkSystem = createWorkSystem({
     digProvider,
     (ctx, suspendedActors) => treeWorkProvider(ctx, suspendedActors),
     (ctx, suspendedActors) =>
-      constructionWorkProvider(
-        ctx,
-        {
-          workers: ctx
-            .query(query(Worker))
-            .filter((row) => !row.get(Worker).guest)
-            .map((row) => row.id),
-        },
-        suspendedActors,
-      ),
-    (ctx, suspendedActors) =>
       deconstructionWorkProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
     (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
     resourceWorkProvider,
-    (ctx, suspendedActors) => processAttendanceProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
   ],
 });
 

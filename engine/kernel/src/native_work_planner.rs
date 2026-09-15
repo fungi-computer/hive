@@ -107,14 +107,20 @@ impl Kernel {
             // window. Its owner accounts for existing reservations, so calling
             // both domains in one pass cannot duplicate an allocation.
             if self.ecs.get::<ConstructionSite>(entity).is_some() {
-                let _ = self.plan_construction_supply(&task.id, &party)?;
-                if let Some(requirement) = self.construction_work_requirement(&task.id, &party)? {
-                    requirements.push(requirement);
+                let phase = self.ecs.get::<ConstructionSite>(entity).ok_or("construction site disappeared")?.phase;
+                if phase == ConstructionPhase::Planned {
+                    let _ = self.plan_construction_supply(&task.id, &party)?;
+                    if let Some(requirement) = self.construction_work_requirement(&task.id, &party)? {
+                        requirements.push(requirement);
+                    }
                 }
             } else if self.ecs.get::<StagedProcess>(entity).is_some() {
-                let _ = self.plan_process_supply(&task.id, &party)?;
-                if let Some(requirement) = self.process_work_requirement(&task.id, &party)? {
-                    requirements.push(requirement);
+                let phase = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.phase;
+                if phase == ProcessPhase::Waiting {
+                    let _ = self.plan_process_supply(&task.id, &party)?;
+                    if let Some(requirement) = self.process_work_requirement(&task.id, &party)? {
+                        requirements.push(requirement);
+                    }
                 }
             }
         }
@@ -215,11 +221,13 @@ impl Kernel {
             .definition()
             .clone();
         let station = self.entity(&state.station)?;
-        let station_site = self.ecs.get::<ConstructionSite>(station).ok_or("process station is not a construction site")?;
+        let Some(station_site) = self.ecs.get::<ConstructionSite>(station) else {
+            return Ok(Vec::new());
+        };
         if station_site.phase != ConstructionPhase::Finished || station_site.catalog != definition.station_catalog
             || self.ecs.get::<SealedContainer>(station).is_none()
         {
-            return Err("process station is not a completed sealed matching catalog".into());
+            return Ok(Vec::new());
         }
         let generation = u64::from(state.stage_index).saturating_add(1);
         let requirements = definition
@@ -823,6 +831,21 @@ mod tests {
             } if destination == &contact
         ));
         assert_eq!(kernel.attempts_by_worker.len(), 1);
+    }
+
+    #[test]
+    fn native_tick_hook_treats_finished_construction_as_idle_and_is_repeatable() {
+        let (mut kernel, _, _) = construction_world(1);
+        let site = kernel.entity("site").unwrap();
+        let state = kernel.ecs.get::<ConstructionSite>(site).unwrap().clone();
+        kernel.ecs.entity_mut(site).insert(ConstructionSite {
+            phase: ConstructionPhase::Finished,
+            ..state
+        });
+        assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 0);
+        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 0);
+        assert!(kernel.work_attempt("site").is_none());
+        assert!(kernel.supply_allocations().next().is_none());
     }
 
     #[test]
