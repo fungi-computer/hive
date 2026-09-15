@@ -150,11 +150,11 @@ export interface SystemDefinition {
 export interface RenderFact {
   readonly id: EntityId;
   readonly pose?: Pose;
-  readonly local?: WorldPosition;
+  readonly local?: Pose;
   readonly support?: EntityId | null;
   readonly surface?: SupportSurface | null;
-  readonly visual?: string;
-  readonly label?: string;
+  readonly visual?: string | null;
+  readonly label?: string | null;
   readonly selected?: boolean;
 }
 export interface KernelSnapshot {

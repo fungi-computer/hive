@@ -85,11 +85,11 @@ function renderFact(value: unknown): value is RenderFact {
   if (!isRecord(value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 160)
     return false;
   if (value.pose !== undefined && !pose(value.pose)) return false;
-  if (value.local !== undefined && !worldPosition(value.local)) return false;
+  if (value.local !== undefined && !pose(value.local)) return false;
   if (value.support !== undefined && value.support !== null && typeof value.support !== "string") return false;
   if (value.surface !== undefined && value.surface !== null && !surface(value.surface)) return false;
   for (const key of ["visual", "label"] as const)
-    if (value[key] !== undefined && (typeof value[key] !== "string" || value[key].length > 512)) return false;
+    if (value[key] !== undefined && value[key] !== null && (typeof value[key] !== "string" || value[key].length > 512)) return false;
   return value.selected === undefined || typeof value.selected === "boolean";
 }
 function presentationFact(value: unknown): value is ObservationWire["observation"]["presentationFacts"][number] {
