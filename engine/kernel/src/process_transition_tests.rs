@@ -493,6 +493,28 @@ fn attended_process_contributes_one_deterministic_labor_requirement() {
 }
 
 #[test]
+fn process_attendance_retains_selected_contact_and_blocks_after_geometry_change() {
+    let (mut kernel, process) = admitted();
+    let requirement = kernel.process_work_requirement(&process, "party:process").unwrap().unwrap();
+    let anchor = kernel.ecs.get::<crate::components::Position>(kernel.entity("station").unwrap()).unwrap();
+    let contact = requirement.contacts.iter().find(|point| point.x != anchor.x || point.y != anchor.y || point.z != anchor.z).cloned().unwrap_or_else(|| requirement.contacts[0].clone());
+    kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(crate::components::Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+    let activity = requirement.operation.activity_for_contact(&contact);
+    kernel.begin_work_attempt(process.clone(), "worker".into(), "party:process".into(), activity).unwrap();
+    let saved = kernel.save_records().unwrap();
+    let (mut restored, _) = admitted();
+    restored.restore_records(&saved).unwrap();
+    let attempt_entity = restored.work_attempts[&process];
+    let attempt = restored.ecs.get::<crate::work_attempt::WorkAttempt>(attempt_entity).unwrap();
+    assert!(matches!(&attempt.phase, crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { contact: selected, .. }, .. } if selected == &contact));
+    let station = restored.entity("station").unwrap();
+    restored.ecs.entity_mut(station).get_mut::<crate::components::ConstructionSite>().unwrap().target = crate::components::ConstructionTarget::Cell { cell: crate::generation::Cell { x: 99, y: 99, z: 0 }, orientation: crate::structure_geometry::Cardinal::North };
+    restored.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
+    let attempt = restored.ecs.get::<crate::work_attempt::WorkAttempt>(attempt_entity).unwrap();
+    assert!(matches!(&attempt.phase, crate::work_attempt::AttemptPhase::Outcome { result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost }, .. }));
+}
+
+#[test]
 fn process_labor_contribution_waits_for_attendance_contact_and_unclaimed_task() {
     let (mut elapsed, process) = admitted();
     let mut definition = elapsed.environment.as_ref().unwrap().processes.get("herbal-ale-v1").unwrap().definition().clone();
@@ -508,6 +530,7 @@ fn process_labor_contribution_waits_for_attendance_contact_and_unclaimed_task() 
 
     let (mut claimed, process) = admitted();
     let attempt = claimed.ecs.spawn(crate::work_attempt::WorkAttempt {
+        version: crate::work_attempt::CURRENT_VERSION,
         key: crate::work_attempt::AttemptKey { task: process.clone(), generation: 1 },
         worker: "worker".into(),
         party: "party:process".into(),
@@ -521,15 +544,19 @@ fn process_labor_contribution_waits_for_attendance_contact_and_unclaimed_task() 
 /// The first call begins the process operation; later calls continue its exact
 /// operation or acknowledge a retained terminal result before retrying.
 fn attend_tick(kernel: &mut Kernel, process: &str, delta: f64) -> String {
+    let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap();
+    let worker = kernel.entity("worker").unwrap();
+    kernel.ecs.entity_mut(worker).insert(crate::components::Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+    let contact_json = serde_json::to_value(&contact).unwrap();
     let action = if let Some(entity) = kernel.work_attempts.get(process).copied() {
         let attempt = kernel.ecs.get::<WorkAttempt>(entity).unwrap();
         match &attempt.phase {
-            AttemptPhase::Executing { operation, .. } => json!({"kind":"continue-work-attempt","task":process,"generation":attempt.key.generation,"sequence":operation.sequence,"nextActivity":{"kind":"process-attendance","process":process}}),
+            AttemptPhase::Executing { operation, .. } => json!({"kind":"continue-work-attempt","task":process,"generation":attempt.key.generation,"sequence":operation.sequence,"nextActivity":{"kind":"process-attendance","process":process,"contact":contact_json}}),
             AttemptPhase::Outcome { operation, .. } => json!({"kind":"acknowledge-work-attempt","task":process,"generation":attempt.key.generation,"sequence":operation.sequence}),
             _ => panic!("unexpected process attempt phase"),
         }
     } else {
-        json!({"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process}})
+        json!({"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process,"contact":contact_json}})
     };
     kernel.advance_json(&json!({"delta":delta,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:process"},"request":action}]}).to_string()).unwrap()
 }
@@ -725,7 +752,8 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
         .count();
     attend_tick(&mut kernel, &process, 0.0);
     let before_replay = kernel.save_records().unwrap();
-    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process}}}]}).to_string());
+    let contact_json = serde_json::to_value(kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap()).unwrap();
+    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process,"contact":contact_json}}}]}).to_string());
     assert_eq!(repeated.unwrap_err(), "process is complete");
     assert_eq!(kernel.save_records().unwrap().entities, before_replay.entities);
     assert_eq!(
