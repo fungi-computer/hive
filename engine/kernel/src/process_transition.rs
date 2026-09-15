@@ -63,9 +63,14 @@ impl Kernel {
         {
             return Ok(None);
         }
+        let Some(anchor) = self.ecs.get::<crate::components::Position>(station_entity).cloned() else {
+            return Ok(None);
+        };
+        if ![anchor.x, anchor.y, anchor.z, anchor.facing].iter().all(|value| value.is_finite()) {
+            return Ok(None);
+        }
         let bindings = self.process_bindings(process);
-        if bindings.is_empty()
-            || crate::staged_process::validate_bindings_at_stage(
+        if crate::staged_process::validate_bindings_at_stage(
                 &definition,
                 usize::from(state.stage_index),
                 process,
@@ -77,25 +82,20 @@ impl Kernel {
         {
             return Ok(None);
         }
-        let Some(position) = self.ecs.get::<crate::components::Position>(station_entity).cloned() else {
-            return Ok(None);
+        // Use the construction geometry owner's legal perimeter contacts. A
+        // multi-cell station's entity position is only an anchor and may not
+        // be a reachable interaction point.
+        let contacts = match self.native_supply_contacts(&state.station) {
+            Ok(contacts) if !contacts.is_empty() => contacts,
+            Ok(_) | Err(_) => return Ok(None),
         };
-        if ![position.x, position.y, position.z, position.facing].iter().all(|value| value.is_finite()) {
-            return Ok(None);
-        }
-        let contacts = vec![crate::components::Point {
-            x: position.x,
-            y: position.y,
-            z: position.z,
-            frame: None,
-        }];
         Ok(Some(crate::work_planner::WorkRequirement {
             task: process.to_owned(),
             party: party.to_owned(),
             priority: policy.priority,
             schedule,
             contacts,
-            next_activity: crate::work_attempt::ActivityRef::ProcessAttendance {
+            operation: crate::work_planner::WorkOperation::ProcessAttendance {
                 process: process.to_owned(),
             },
         }))

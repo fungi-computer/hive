@@ -481,7 +481,11 @@ fn attended_process_contributes_one_deterministic_labor_requirement() {
     assert_eq!(requirement.task, process);
     assert_eq!(requirement.party, "party:process");
     assert!(!requirement.contacts.is_empty());
-    assert!(matches!(&requirement.next_activity, crate::work_attempt::ActivityRef::ProcessAttendance { process: target } if target == &requirement.task));
+    let anchor = *kernel.ecs.get::<Position>(kernel.entity("station").unwrap()).unwrap();
+    assert!(requirement.contacts.iter().any(|contact| {
+        [contact.x, contact.y, contact.z] != [anchor.x, anchor.y, anchor.z]
+    }));
+    assert!(matches!(&requirement.operation, crate::work_planner::WorkOperation::ProcessAttendance { process: target } if target == &requirement.task));
 
     let process_entity = kernel.entity(&requirement.task).unwrap();
     kernel.ecs.entity_mut(process_entity).get_mut::<StagedProcess>().unwrap().phase = ProcessPhase::Complete;
