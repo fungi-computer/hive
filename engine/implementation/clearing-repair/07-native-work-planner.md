@@ -39,6 +39,33 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 These are responsibility divisions, not new public packages. One writer owns
 the coupled native stack and dispatch/registration changes at a time.
 
+### Concrete Rust file shape
+
+Do not implement the native planner by extending `world.rs` into another
+scheduler. Keep the coupled implementation in these private modules:
+
+- `work_planner.rs` owns saved scheduling policy, budgets, dirty/due review and
+  deterministic fairness cursors;
+- `work_candidates.rs` owns direct ECS membership/spatial queries, bounded pair
+  generation and lazy route-corrected Hungarian matching;
+- `supply_allocation.rs` owns exact source-portion and incoming-capacity
+  reservation laws shared by every material mutator;
+- `native_work_planner.rs` owns requirement expansion plus the automatic
+  construction/process/resource/dig/haul reconciliation state machine;
+- existing domain modules such as `construction_work.rs`, `staged_process.rs`,
+  `resource_work.rs`, material transfer and terrain route remain the physical
+  fact and mutation owners.
+
+`world.rs` is the composition and transaction boundary. It may declare the
+private modules, call one bounded planner hook from `advance_batch`, and expose
+narrow internal mutation operations needed by those modules. It must not contain
+candidate scans, requirement-family branches, Hungarian orchestration or the
+automatic pickup/deposit state machine. If an implementation checkpoint adds
+those responsibilities to `world.rs`, extract them before accepting that stage.
+The narrow WorkAttempt publication/continuation seam may stay with the existing
+WorkAttempt mutation owner only where it enforces the atomic physical transition;
+planner decisions and family-specific policy do not belong there.
+
 ## 3. Canonical records: intent, execution, supplies
 
 Use existing ConstructionSite, FloorReplacement, excavation, deconstruction,
@@ -337,11 +364,21 @@ all supported work families are ready. No permanent dual scheduler or fallback.
 Version the changed current records and reject unsupported formats explicitly;
 do not silently reset existing player worlds or write migration adapters.
 
-Deletion checklist: automatic runtime paths in `colony-work.ts`,
-`colony-water-work.ts`, `sdk/work-system.ts`, `sdk/work-allocation.ts`, delivery,
-construction/deconstruction providers, process-supply/attendance and site-supplies.
-Preserve definitions, commands and useful projections by moving them to their
-actual owner. Audit imports across all four games and test/benchmark consumers.
+Deletion checklist: remove the automatic provider phases from `colony-work.ts`
+(`resourceWorkProvider`, `treeWorkProvider`, `digProvider`,
+`colonyGroundStockPhase`, `colonySiteSuppliesPhase`, and the automatic water
+demand phases), `colony-water-work.ts`, `sdk/work-system.ts`,
+`sdk/work-allocation.ts`, `sdk/site-supplies.ts`, `sdk/process-supply.ts`,
+`sdk/process-attendance.ts`, and the automatic portions of `sdk/delivery.ts`,
+`sdk/construction-work.ts`, `sdk/deconstruction-work.ts`, and `sdk/stockpile.ts`.
+Replace `manualRouteProvider` with native manual-result reconciliation. Preserve
+definitions, command schemas, intent admission, presentation/projections and the
+existing native physical operations. `deliverySystem` is also consumed by the
+Pirates pack, so separate its reusable physical/custody operations from its
+TypeScript automatic planner before deleting the latter. The performance pack
+uses the same `colonyPack`; do not create a performance-only planner or cutover.
+Audit imports across all four games and recut provider-specific tests around the
+single native lifecycle scenario described below.
 
 ## 11. Evidence that earns completion
 

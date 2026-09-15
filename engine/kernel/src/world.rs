@@ -2086,8 +2086,8 @@ impl Kernel {
         self.ids.values().filter_map(|entity| self.ecs.get::<Lot>(*entity)).filter(|lot| lot.container == container).fold(0, |total, lot| total.saturating_add(lot.quantity))
     }
 
-    /// Atomically reserve one exact lot portion and the matching destination
-    /// capacity. No quantity is moved until `deliver_supply_allocation`.
+    /// Reserve one exact lot portion and the matching destination capacity.
+    /// No quantity moves until the allocation's WorkAttempt performs pickup.
     pub(crate) fn reserve_supply_allocation(&mut self, requirement_owner: String, requirement_role: String, requirement_generation: u64, party: String, material: String, portion: String, destination: String, quantity: u32) -> Result<String> {
         self.ensure_ready()?;
         if !valid_id(&requirement_owner) || !valid_id(&requirement_role) || requirement_generation == 0 || !valid_id(&party) || !valid_id(&material) || !valid_id(&portion) || !valid_id(&destination) || quantity == 0 { return Err("invalid supply allocation request".into()); }
@@ -4690,7 +4690,7 @@ impl Kernel {
             let capacity = self.ecs.get::<Container>(destination).ok_or("not a container")?.capacity;
             let reason = if stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
               else if self.quantity(&to) + u64::from(quantity) > u64::from(capacity) { Some(WorkBlockReason::CapacityUnavailable) }
-              else if let Some(allocation) = &allocation {
+              else if allocation.is_some() {
                   match crate::supply_allocation::validate_capacity(self, lot_entity, destination, quantity, Some(task.as_str())) {
                       Ok(()) => None,
                       Err(reason) if reason.contains("source") => Some(WorkBlockReason::MissingInputs),
