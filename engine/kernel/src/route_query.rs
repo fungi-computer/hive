@@ -35,6 +35,7 @@ impl FailureCache {
         }
     }
     fn remember(&mut self, key: Vec<(String, FailureKey)>, reason: String) {
+        if deferred_error(&reason) { return; }
         if self.entries.len() >= 64 { self.entries.clear(); }
         self.entries.insert(key, reason);
     }
@@ -106,6 +107,35 @@ fn unavailable_error(error: &str) -> bool {
             | "terrain route exceeds local search budget"
             | "terrain route waypoint budget exceeded"
             | "point is outside support surface"
+    )
+}
+
+/// The wire contract intentionally keeps the historical `unavailable` shape,
+/// but callers must distinguish a witnessed dead end from a bounded search
+/// that has not finished. In particular, Deferred is never safe to cache as a
+/// topology fact.
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum SearchOutcome<T> {
+    Reachable(T),
+    NoPath(String),
+    Deferred(String),
+}
+
+pub(super) fn classify_route<T>(result: crate::components::Result<T>) -> crate::components::Result<SearchOutcome<T>> {
+    match result {
+        Ok(value) => Ok(SearchOutcome::Reachable(value)),
+        Err(error) if unavailable_error(&error) && deferred_error(&error) => Ok(SearchOutcome::Deferred(error)),
+        Err(error) if unavailable_error(&error) => Ok(SearchOutcome::NoPath(error)),
+        Err(error) => Err(error),
+    }
+}
+
+fn deferred_error(error: &str) -> bool {
+    matches!(
+        error,
+        "no route within local search budget"
+            | "terrain route exceeds local search budget"
+            | "terrain route waypoint budget exceeded"
     )
 }
 
@@ -202,33 +232,36 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
             Prepared::Search { actor, entity, start, target } => groups.entry(entity).or_default().push((index, actor, start, target)),
         }
     }
+    let mut deferred = false;
     for (entity, entries) in groups {
         let start = entries[0].2;
         let targets: Vec<_> = entries.iter().map(|entry| entry.3.clone()).collect();
-        let routes = match kernel.route_for_many(entity, start, &targets) {
-            Ok(routes) => routes,
-            Err(error) if unavailable_error(&error) => {
+        let routes = match classify_route(kernel.route_for_many(entity, start, &targets))? {
+            SearchOutcome::Reachable(routes) => routes,
+            SearchOutcome::NoPath(error) | SearchOutcome::Deferred(error) => {
+                deferred = deferred || deferred_error(&error);
                 for (index, actor, _, _) in entries {
                     results[index] = Some(Result::Unavailable { actor, reason: error.clone() });
                 }
                 continue;
             }
-            Err(error) => return Err(error),
         };
         for ((index, actor, _, _), route) in entries.into_iter().zip(routes) {
-            match route {
-                Ok(prepared) => {
+            match classify_route(route)? {
+                SearchOutcome::Reachable(prepared) => {
                     let cost = route_cost(start, prepared.points)?;
                     results[index] = Some(Result::Reachable { actor, cost });
                 }
-                Err(error) if unavailable_error(&error) => results[index] = Some(Result::Unavailable { actor, reason: error }),
-                Err(error) => return Err(error),
+                SearchOutcome::NoPath(error) | SearchOutcome::Deferred(error) => {
+                    deferred = deferred || deferred_error(&error);
+                    results[index] = Some(Result::Unavailable { actor, reason: error });
+                }
             }
         }
     }
     let results: Vec<_> = results.into_iter().map(|result| result.ok_or("route-cost result missing".into())).collect::<crate::components::Result<_>>()?;
     let response = serde_json::to_string(&results).map_err(|error| error.to_string())?;
-    if results.iter().any(|result| matches!(result, Result::Unavailable { .. })) {
+    if !deferred && results.iter().any(|result| matches!(result, Result::Unavailable { .. })) {
         if let Some(key) = batch_key { kernel.route_cost_failures.remember(key, response.clone()); }
     }
     Ok(response)
@@ -274,14 +307,13 @@ pub(super) fn execute_any(kernel: &mut super::Kernel, input: &str) -> crate::com
         return serde_json::to_string(&AnyResult::Unavailable { actor:request.actor, reason:reason.into() }).map_err(|error| error.to_string());
     }
     let targets: Vec<_> = indexed.iter().map(|(_,target)| target.clone()).collect();
-    let result = match kernel.route_for_any(entity,start,&targets) {
-        Ok((local_index,prepared)) => AnyResult::Reachable {
+    let result = match classify_route(kernel.route_for_any(entity,start,&targets))? {
+        SearchOutcome::Reachable((local_index,prepared)) => AnyResult::Reachable {
             actor:request.actor,
             target_index:indexed.get(local_index).ok_or("route-to-any selected an unknown target")?.0,
             cost:route_cost(start,prepared.points)?,
         },
-        Err(error) if unavailable_error(&error) => AnyResult::Unavailable { actor:request.actor, reason:error },
-        Err(error) => return Err(error),
+        SearchOutcome::NoPath(error) | SearchOutcome::Deferred(error) => AnyResult::Unavailable { actor:request.actor, reason:error },
     };
     serde_json::to_string(&result).map_err(|error| error.to_string())
 }
@@ -322,6 +354,42 @@ mod tests {
 
     fn query_any(kernel: &mut Kernel, request: Value) -> Value {
         serde_json::from_str(&kernel.route_to_any_json(&request.to_string()).unwrap()).unwrap()
+    }
+
+    #[test]
+    fn bounded_search_is_deferred_while_a_witnessed_dead_end_is_no_path() {
+        assert_eq!(classify_route::<()>(Err("terrain route exceeds local search budget".into())).unwrap(),
+            SearchOutcome::Deferred("terrain route exceeds local search budget".into()));
+        assert_eq!(classify_route::<()>(Err("no supported terrain route".into())).unwrap(),
+            SearchOutcome::NoPath("no supported terrain route".into()));
+    }
+
+    #[test]
+    fn deferred_route_failures_never_enter_the_failure_cache() {
+        let mut cache = super::FailureCache::default();
+        cache.synchronize(1, &Default::default());
+        let key = vec![("actor".into(), super::FailureKey { coordinates: [7; 6], clearance: 1, step: 1 })];
+        cache.remember(key.clone(), "terrain route exceeds local search budget".into());
+        assert!(cache.entries.is_empty());
+        cache.remember(key, "no supported terrain route".into());
+        assert_eq!(cache.entries.len(), 1);
+    }
+
+    #[test]
+    fn native_deferred_caller_outcome_stays_visible_without_cache_entry() {
+        let outcome = classify_route::<()>(Err("terrain route exceeds local search budget".into())).unwrap();
+        let mut cache = super::FailureCache::default();
+        cache.synchronize(1, &Default::default());
+        let key = vec![("actor".into(), super::FailureKey { coordinates: [9; 6], clearance: 1, step: 1 })];
+        match outcome {
+            SearchOutcome::Deferred(reason) => {
+                let wire = Result::Unavailable { actor: "actor".into(), reason };
+                assert!(matches!(wire, Result::Unavailable { .. }));
+                assert!(cache.entries.is_empty());
+            }
+            SearchOutcome::Reachable(_) | SearchOutcome::NoPath(_) => panic!("budget exhaustion lost its deferred outcome"),
+        }
+        assert!(cache.entries.get(&key).is_none());
     }
 
     fn climbing_world() -> (Kernel, Point) {
