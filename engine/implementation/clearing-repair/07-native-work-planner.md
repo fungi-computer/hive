@@ -388,7 +388,6 @@ without exporting Rust representation details to game code.
 ```rust
 struct JobPlan {
     definition: DefinitionRef,
-    party: EntityId,
     steps: Vec<StepSpec>,             // bounded and stable-keyed
 }
 
@@ -406,12 +405,19 @@ enum EntityBinding {
 
 The trusted GamePack command compiles content definitions and selected targets
 into this closed plan, then submits one native create-job operation through the
-existing durable command transaction. Rust validates the whole plan before any
-record appears: definition/version, party authority, unique step keys, backward
-dependencies, compatible result slots, supported operation variants and the
-fixed plan bound. It allocates stable job/task identities once. Command replay
-therefore returns the existing committed job rather than creating a second one.
-No browser callback or TypeScript system resumes the plan after admission.
+existing durable command transaction. A party is an actor; it is not a field in
+generic `JobPlan`. The checked command scope supplies the current commissioning
+principal/work context, and the admitted Job/WorkPolicy records retain that
+context separately from the reusable task graph. Section 12 F1 owns the later
+replacement of the temporary party-equality scheduler fields with explicit work
+pool and execution context.
+
+Rust validates the whole plan before any record appears: definition/version,
+command authority, unique step keys, backward dependencies, compatible result
+slots, supported operation variants and the fixed plan bound. It allocates stable
+job/task identities once. Command replay therefore returns the existing committed
+job rather than creating a second one. No browser callback or TypeScript system
+resumes the plan after admission.
 
 `TaskResult` is a reference/binding, not inventory. The referenced entity remains
 owned by its physical component and custody owner. A task result is created in the
