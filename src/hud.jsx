@@ -75,10 +75,6 @@ import {
   clearingAirLayer,
   clearingAirPresentation,
 } from "./air-presentation.ts";
-import {
-  DEFAULT_DESIGNATION_OVERLAY_VISIBILITY,
-  toggleDesignationOverlay,
-} from "./designation-overlays.ts";
 
 const ACTIVITIES = {
   idle: "Waiting for work",
@@ -596,7 +592,6 @@ const preferencesAtom = atom({
   cutaway: true,
   airOverlay: true,
   debugPicking: false,
-  designationOverlays: DEFAULT_DESIGNATION_OVERLAY_VISIBILITY,
   panMode: false,
   help: true,
   direction: 0,
@@ -1974,7 +1969,6 @@ function Hud({ machineSnapshot, send, portraits }) {
     cutaway: preferences.cutaway,
     airOverlay: preferences.airOverlay,
     debugPicking: preferences.debugPicking,
-    designationOverlays: preferences.designationOverlays,
     panMode: preferences.panMode,
     level: preferences.level,
     levels: facts.levels,
@@ -2105,24 +2099,6 @@ function Hud({ machineSnapshot, send, portraits }) {
           onClick={() => send(AIR_OVERLAY_CONTROL.action)}
         >
           {AIR_OVERLAY_CONTROL.label}
-        </Button>
-        <Button
-          variant={m.designationOverlays["work-plans"] ? "secondary" : "outline"}
-          size="sm"
-          aria-pressed={m.designationOverlays["work-plans"]}
-          title="Show or hide dig, build, planting, chopping, and progress marks"
-          onClick={() => send({ kind: "designation-overlay", overlay: "work-plans" })}
-        >
-          Work plans
-        </Button>
-        <Button
-          variant={m.designationOverlays["storage-areas"] ? "secondary" : "outline"}
-          size="sm"
-          aria-pressed={m.designationOverlays["storage-areas"]}
-          title="Show or hide painted stockpile cells"
-          onClick={() => send({ kind: "designation-overlay", overlay: "storage-areas" })}
-        >
-          Storage areas
         </Button>
         <span
           data-air-facts="visible-layer"
@@ -2648,7 +2624,6 @@ export function createHud(host, art, effect) {
           cutaway: true,
           airOverlay: true,
           debugPicking: false,
-          designationOverlays: DEFAULT_DESIGNATION_OVERLAY_VISIBILITY,
           panMode: false,
           help: true,
           direction: 0,
@@ -2674,15 +2649,6 @@ export function createHud(host, art, effect) {
         setPreferences((value) => ({
           ...value,
           airOverlay: !value.airOverlay,
-        }));
-        return;
-      case "designation-overlay":
-        setPreferences((value) => ({
-          ...value,
-          designationOverlays: toggleDesignationOverlay(
-            value.designationOverlays,
-            action.overlay,
-          ),
         }));
         return;
       case "debug-picking":
@@ -2827,7 +2793,6 @@ export function createHud(host, art, effect) {
       cutaway: preferences.cutaway,
       airOverlay: preferences.airOverlay,
       debugPicking: preferences.debugPicking,
-      designationOverlays: preferences.designationOverlays,
       panMode: preferences.panMode,
       direction: preferences.direction,
       level: preferences.level,
