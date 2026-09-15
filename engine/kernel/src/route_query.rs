@@ -343,8 +343,8 @@ mod tests {
             }));
         }
         serde_json::to_string(&json!({
-            "format": "hive-game", "version": 1, "game": "route-cost",
-            "components": [], "initial": initial
+            "format": "hive-game", "version": 2, "game": "route-cost",
+            "components": [], "materialCatalog":[], "initial": initial
         })).unwrap()
     }
 
@@ -395,8 +395,8 @@ mod tests {
     fn climbing_world() -> (Kernel, Point) {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format": "hive-game", "version": 1, "game": "climbing-cost",
-            "components": [], "initial": [{ "id": "walker", "components": {
+            "format": "hive-game", "version": 2, "game": "climbing-cost",
+            "components": [], "materialCatalog":[], "initial": [{ "id": "walker", "components": {
                 "hive.position": { "x": 0, "y": 0, "z": 0, "facing": 0 },
                 "hive.body": { "speed": 1 },
                 "hive.traversal": { "clearanceCells": 1, "maxStepCells": 1 }

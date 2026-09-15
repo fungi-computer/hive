@@ -94,7 +94,7 @@ fn prepared_party_replay_and_mismatches_are_atomic() {
 #[test]
 fn scoped_authored_creation_attaches_party_ownership_atomically() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"party-create","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"initial":[]}).to_string()).unwrap();
+    kernel.load(&json!({"format":"hive-game","version":2,"game":"party-create","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[]}).to_string()).unwrap();
     assert!(accepted(&mut kernel, request("bind:1", plan())));
     let batch = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
     assert!(kernel.advance_json(&batch.to_string()).is_ok());
@@ -133,7 +133,7 @@ fn scoped_batch_rejects_malformed_scope_before_mutation() {
 #[test]
 fn scoped_authored_removal_enforces_party_and_preserves_physical_entities() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"scoped-remove","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"initial":[
+    kernel.load(&json!({"format":"hive-game","version":2,"game":"scoped-remove","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[
         {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
         {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
         {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}}

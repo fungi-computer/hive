@@ -291,7 +291,7 @@ export const piratesPack: GamePack = {
       },
     }),
   },
-  definition: encodeDefinition("pirates", pirateComponents, piratesInitial, []),
+  definition: encodeDefinition("pirates", pirateComponents, piratesInitial, [{ kind: "bread", unitVolume: 1 }, { kind: "wood", unitVolume: 1 }]),
   presentation: {
     inspect: (context) => {
       const lots = context

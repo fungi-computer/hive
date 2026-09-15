@@ -127,8 +127,8 @@ mod tests {
     fn kernel() -> Kernel {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":1, "game":"output-test", "components":[],
-            "initial":[{"id":"bin","components":{
+            "format":"hive-game", "version":2, "game":"output-test", "components":[],
+            "materialCatalog":[], "initial":[{"id":"bin","components":{
                 "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
                 "hive.container":{"capacity":10}
             }}]

@@ -20,10 +20,11 @@ export interface KernelEntitySnapshot {
   readonly time: number;
   readonly scene: {
     readonly format: "hive-game";
-    readonly version: 1;
+    readonly version: 2;
     readonly game: string;
     readonly components: readonly unknown[];
     readonly initial: readonly unknown[];
+    readonly materialCatalog: readonly unknown[];
   };
   readonly [key: string]: unknown;
 }
