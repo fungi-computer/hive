@@ -339,6 +339,51 @@ keys, forward/incompatible result bindings, unsupported operations and excessive
 size/depth. Pinned definition version plus stable step/result keys supply durable
 retry identity.
 
+### Task continuity and authored workpieces
+
+Worker eligibility, the current WorkAttempt lease and durable task continuity are
+three different facts. A task definition selects one closed continuity policy:
+
+```rust
+enum ContinuationPolicy {
+    AnyEligible,                 // any currently eligible actor may resume
+    PreferStarter,              // scheduling preference only; never blocks another actor
+    BindOnFirstProgress,        // first committed labor binds this task to that actor
+    AssignedActor(EntityId),    // explicit player/content decision before work starts
+}
+
+struct TaskContinuity {
+    policy: ContinuationPolicy,
+    bound_actor: Option<EntityId>,
+}
+```
+
+`WorkAttempt` remains the temporary exclusive lease while an actor executes a
+task. Ending an attempt always releases that lease. `bound_actor` is different:
+for `BindOnFirstProgress`, the same transaction that first commits meaningful
+labor sets the actor once. Later candidate discovery admits only that actor until
+the task completes, is cancelled, or a game-defined explicit reassignment
+operation lawfully changes it. Waiting for an absent bound actor does not hold a
+worker, station, route or unrelated job task.
+
+Quality-sensitive authored crafting is the first intended consumer. Once leather
+and other inputs become an unfinished shield, that workpiece is an ordinary
+physical entity with custody, position, recipe identity and progress. The shield
+task may bind to its first leatherworker while separate supply and haul tasks stay
+open to other eligible workers. Cancelling preserves or salvages the workpiece as
+the recipe defines; it never silently returns pristine ingredients. Construction,
+digging, tree felling and ordinary hauling default to `AnyEligible` unless their
+definitions demonstrate a real continuity requirement.
+
+This also keeps multi-stage animal processing composable: slaughter or skinning
+may be one open task producing an exact carcass/hide result; tanning may be a
+later open task; crafting a quality-bearing leather shield may bind only when its
+own workpiece receives first labor. The parent job never becomes actor-owned.
+Skill/tool requirements are evaluated for the current task before assignment and
+again on admission. Continuity does not waive eligibility, and a worker becoming
+ineligible leaves the task visibly waiting rather than letting another worker
+silently change authorship.
+
 ```rust
 // Derived key into an existing domain owner; not a second saved task universe.
 enum WorkRef {
