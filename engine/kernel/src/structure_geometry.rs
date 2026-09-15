@@ -349,13 +349,7 @@ impl StaticGeometry {
         let mut stair_edges = Vec::new();
         for instance in &self.instances {
             if let StaticInstance::Stair { id, origin, orientation, run, rise } = instance {
-                let (dx, dz) = orientation.delta();
-                let landing = Cell {
-                    x: origin.x.checked_add(dx.checked_mul(i64::from(*run)).ok_or("structure stair coordinate overflow")?).ok_or("structure stair coordinate overflow")?,
-                    y: origin.y.checked_add(i32::from(*rise)).ok_or("structure stair coordinate overflow")?,
-                    z: origin.z.checked_add(dz.checked_mul(i64::from(*run)).ok_or("structure stair coordinate overflow")?).ok_or("structure stair coordinate overflow")?,
-                };
-                stair_edges.push(StairEdge { id: id.clone(), entrance: *origin, landing, orientation: *orientation, run: *run, rise: *rise });
+                stair_edges.push(stair_edge(id, *origin, *orientation, *run, *rise)?);
             }
         }
         stair_edges.sort();
@@ -378,18 +372,192 @@ impl StaticGeometry {
 /// cell, and a stair landing is a support contact rather than a face claimant.
 pub(crate) fn validate_construction_intents(instances: &[StaticInstance]) -> Result<(), String> {
     let mut support_faces = BTreeMap::<Cell, (&'static str, String)>::new();
+    let mut boundary_claims = BTreeMap::<(i64, i64, FaceAxis, i32), String>::new();
+    let mut boundary_faces = BTreeMap::<(i64, i64, FaceAxis, i32), String>::new();
+    let mut fixtures = BTreeMap::<Cell, String>::new();
+    let mut stairs = Vec::new();
     for instance in instances {
         let (kind, support) = match instance {
             StaticInstance::Floor { support, .. } => ("floor", *support),
             StaticInstance::Cover { support, .. } => ("cover", *support),
-            _ => continue,
+            _ => {
+                match instance {
+                    StaticInstance::Wall { edge, height, .. } => {
+                        for offset in 0..u32::from(*height) {
+                            let y = edge.cell.y.checked_add(i32::try_from(offset).map_err(|_| "construction wall interval overflow")?)
+                                .ok_or("construction wall interval overflow")?;
+                            insert_boundary_claim(&mut boundary_claims, Face { cell: Cell { y, ..edge.cell }, axis: edge.axis }, instance.id())?;
+                            insert_boundary_face(&mut boundary_faces, Face { cell: Cell { y, ..edge.cell }, axis: edge.axis }, instance.id())?;
+                        }
+                    }
+                    StaticInstance::ApertureWall { edge, height, opening_bottom, opening_height, open, .. } => {
+                        for offset in 0..u32::from(*height) {
+                            let opening = *open && offset >= u32::from(*opening_bottom) && offset < u32::from(*opening_bottom + *opening_height);
+                            let y = edge.cell.y.checked_add(i32::try_from(offset).map_err(|_| "construction aperture interval overflow")?)
+                                .ok_or("construction aperture interval overflow")?;
+                            insert_boundary_claim(&mut boundary_claims, Face { cell: Cell { y, ..edge.cell }, axis: edge.axis }, instance.id())?;
+                            if !opening {
+                                insert_boundary_face(&mut boundary_faces, Face { cell: Cell { y, ..edge.cell }, axis: edge.axis }, instance.id())?;
+                            }
+                        }
+                    }
+                    StaticInstance::Fixture { origin, orientation, footprint, .. } => {
+                        for cell in fixture_cells(*origin, *orientation, footprint)? {
+                            if let Some(prior) = fixtures.insert(cell, instance.id().to_owned()) {
+                                return Err(format!("conflicting construction fixture cells: {prior} and {}", instance.id()));
+                            }
+                        }
+                    }
+                    StaticInstance::Stair { .. } => stairs.push(stair_sweep(instance)?),
+                    StaticInstance::Floor { .. } | StaticInstance::Cover { .. } => unreachable!(),
+                }
+                continue;
+            }
         };
         if let Some((prior_kind, prior_id)) = support_faces.get(&support) {
             return Err(format!("conflicting construction support face: {prior_kind} {prior_id} and {kind} {}", instance.id()));
         }
         support_faces.insert(support, (kind, instance.id().to_owned()));
     }
+
+    // A stair's intermediate ramp is a reserved horizontal interval. A floor
+    // at its entrance and an ordinary floor at its landing are the two lawful
+    // contacts; a cover never supplies a stair landing.
+    for stair in &stairs {
+        for step in &stair.segments {
+            for cell in [step.from, step.to] {
+                for instance in instances {
+                    let (kind, support) = match instance {
+                        StaticInstance::Floor { support, .. } => ("floor", *support),
+                        StaticInstance::Cover { support, .. } => ("cover", *support),
+                        _ => continue,
+                    };
+                    if support.x != cell.x || support.z != cell.z || support.y < step.low || support.y > step.high { continue; }
+                    if support == stair.entrance { continue; }
+                    if support == stair.landing && kind == "floor" { continue; }
+                    return Err(format!("{kind} {} cuts stair {} intermediate interval", instance.id(), stair.id));
+                }
+                for (fixture, fixture_id) in &fixtures {
+                    if fixture.x == cell.x && fixture.z == cell.z && fixture.y >= step.low && fixture.y <= step.high {
+                        return Err(format!("fixture {fixture_id} occupies stair {} swept corridor", stair.id));
+                    }
+                }
+            }
+        }
+        for other in &stairs {
+            if stair.id >= other.id { continue; }
+            if stair_corridors_intersect(stair, other) {
+                return Err(format!("conflicting construction stair swept corridors: {} and {}", stair.id, other.id));
+            }
+        }
+        for (key, owner) in &boundary_faces {
+            let (x, z, axis, y) = *key;
+            for segment in &stair.segments {
+                if segment.axis != axis || segment.from.x != x || segment.from.z != z || y < segment.low + 1 || y > segment.high + 1 { continue; }
+                return Err(format!("boundary {owner} crosses stair {} required corridor", stair.id));
+            }
+        }
+    }
     Ok(())
+}
+
+fn insert_boundary_face(
+    faces: &mut BTreeMap<(i64, i64, FaceAxis, i32), String>,
+    face: Face,
+    owner: &str,
+) -> Result<(), String> {
+    let key = (face.cell.x, face.cell.z, face.axis, face.cell.y);
+    if let Some(prior) = faces.insert(key, owner.to_owned()) {
+        return Err(format!("conflicting construction boundary intervals: {prior} and {owner}"));
+    }
+    Ok(())
+}
+
+fn insert_boundary_claim(
+    claims: &mut BTreeMap<(i64, i64, FaceAxis, i32), String>,
+    face: Face,
+    owner: &str,
+) -> Result<(), String> {
+    let key = (face.cell.x, face.cell.z, face.axis, face.cell.y);
+    if let Some(prior) = claims.insert(key, owner.to_owned()) {
+        return Err(format!("conflicting construction boundary intervals: {prior} and {owner}"));
+    }
+    Ok(())
+}
+
+#[derive(Clone, Debug)]
+struct StairSweep {
+    id: String,
+    entrance: Cell,
+    landing: Cell,
+    segments: Vec<StairStep>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct StairStep {
+    from: Cell,
+    to: Cell,
+    axis: FaceAxis,
+    low: i32,
+    high: i32,
+    index: u32,
+}
+
+fn stair_sweep(instance: &StaticInstance) -> Result<StairSweep, String> {
+    let StaticInstance::Stair { id, origin, orientation, run, rise } = instance else { unreachable!() };
+    let edge = stair_edge(id, *origin, *orientation, *run, *rise)?;
+    let steps = stair_trace(&edge)?;
+    Ok(StairSweep { id: id.to_owned(), entrance: edge.entrance, landing: edge.landing, segments: steps })
+}
+
+fn stair_corridors_intersect(first: &StairSweep, second: &StairSweep) -> bool {
+    for left in &first.segments {
+        for right in &second.segments {
+            let common = [left.from, left.to].into_iter().any(|point| {
+                point.x == right.from.x && point.z == right.from.z
+                    || point.x == right.to.x && point.z == right.to.z
+            });
+            if !common || left.low > right.high || right.low > left.high { continue; }
+            let valid_landing_contact =
+                (first.landing == second.entrance && left.index as usize + 1 == first.segments.len() && right.index == 0)
+                    || (second.landing == first.entrance && right.index as usize + 1 == second.segments.len() && left.index == 0);
+            if !valid_landing_contact { return true; }
+        }
+    }
+    false
+}
+
+fn stair_edge(id: &str, origin: Cell, orientation: Cardinal, run: u8, rise: u8) -> Result<StairEdge, String> {
+    let (dx, dz) = orientation.delta();
+    let landing = Cell {
+        x: origin.x.checked_add(dx.checked_mul(i64::from(run)).ok_or("stair landing x overflow")?).ok_or("stair landing x overflow")?,
+        y: origin.y.checked_add(i32::from(rise)).ok_or("stair landing y overflow")?,
+        z: origin.z.checked_add(dz.checked_mul(i64::from(run)).ok_or("stair landing z overflow")?).ok_or("stair landing z overflow")?,
+    };
+    Ok(StairEdge { id: id.to_owned(), entrance: origin, landing, orientation, run, rise })
+}
+
+/// The one canonical stair interpolation used by movement and construction
+/// admission. Each step carries both its route edge and its vertical interval.
+fn stair_trace(stair: &StairEdge) -> Result<Vec<StairStep>, String> {
+    if stair.run == 0 { return Err("stair trace has zero run".into()); }
+    let (dx, dz) = stair.orientation.delta();
+    let mut trace = Vec::with_capacity(usize::from(stair.run));
+    for index in 0..u32::from(stair.run) {
+        let next = index + 1;
+        let from = Cell {
+            x: stair.entrance.x.checked_add(dx.checked_mul(i64::from(index)).ok_or("stair trace x overflow")?).ok_or("stair trace x overflow")?,
+            y: stair.entrance.y.checked_add(i32::try_from((i64::from(index) * i64::from(stair.rise)) / i64::from(stair.run)).map_err(|_| "stair trace y overflow")?).ok_or("stair trace y overflow")?,
+            z: stair.entrance.z.checked_add(dz.checked_mul(i64::from(index)).ok_or("stair trace z overflow")?).ok_or("stair trace z overflow")?,
+        };
+        let to = Cell {
+            x: stair.entrance.x.checked_add(dx.checked_mul(i64::from(next)).ok_or("stair trace x overflow")?).ok_or("stair trace x overflow")?,
+            y: stair.entrance.y.checked_add(i32::try_from((i64::from(next) * i64::from(stair.rise)) / i64::from(stair.run)).map_err(|_| "stair trace y overflow")?).ok_or("stair trace y overflow")?,
+            z: stair.entrance.z.checked_add(dz.checked_mul(i64::from(next)).ok_or("stair trace z overflow")?).ok_or("stair trace z overflow")?,
+        };
+        trace.push(StairStep { from, to, axis: if dx != 0 { FaceAxis::X } else { FaceAxis::Z }, low: from.y.min(to.y), high: from.y.max(to.y), index });
+    }
+    Ok(trace)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -458,31 +626,15 @@ impl GeometryProjection {
     /// open voxel above that support.
     pub fn blocks_swept_transition(&self, from: Cell, to: Cell, stairs: &[StairEdge]) -> Result<bool, String> {
         if let Some(stair) = stairs.iter().find(|stair| (stair.entrance == from && stair.landing == to) || (stair.entrance == to && stair.landing == from)) {
-            let forward = stair.entrance == from;
-            let start = if forward { stair.entrance } else { stair.landing };
-            let (mut dx, mut dz) = stair.orientation.delta();
-            let run = i64::from(stair.run);
-            if run == 0 { return Err("stair sweep has zero run".into()); }
-            let (sdx, sdz) = stair.orientation.delta();
-            let ignored = (1..=run).map(|index| {
-                let x = stair.entrance.x.checked_add(sdx.checked_mul(index).ok_or("stair sweep x overflow")?).ok_or("stair sweep x overflow")?;
-                let z = stair.entrance.z.checked_add(sdz.checked_mul(index).ok_or("stair sweep z overflow")?).ok_or("stair sweep z overflow")?;
-                let y = stair.entrance.y.checked_add(i32::try_from(index.checked_mul(i64::from(stair.rise)).ok_or("stair sweep height overflow")? / run).map_err(|_| "stair sweep height overflow")?).ok_or("stair sweep height overflow")?;
-                Ok(Cell { x, y, z })
-            }).collect::<Result<BTreeSet<_>, String>>()?;
-            let rise = if forward { i64::from(stair.rise) } else { -i64::from(stair.rise) };
-            if !forward { dx = -dx; dz = -dz; }
-            for step in 0..run {
-                let x = start.x.checked_add(dx.checked_mul(step).ok_or("stair sweep x overflow")?).ok_or("stair sweep x overflow")?;
-                let z = start.z.checked_add(dz.checked_mul(step).ok_or("stair sweep z overflow")?).ok_or("stair sweep z overflow")?;
-                let next = Cell { x: x.checked_add(dx).ok_or("stair sweep x overflow")?, y: start.y, z: z.checked_add(dz).ok_or("stair sweep z overflow")? };
-                let y0 = start.y.checked_add(i32::try_from((step * rise) / run).map_err(|_| "stair sweep y overflow")?).ok_or("stair sweep y overflow")?;
-                let y1 = start.y.checked_add(i32::try_from(((step + 1) * rise) / run).map_err(|_| "stair sweep y overflow")?).ok_or("stair sweep y overflow")?;
-                let low = y0.min(y1);
-                let high = y0.max(y1);
-                for support_y in low..=high {
+            let trace = stair_trace(stair)?;
+            let ignored = trace.iter().map(|step| step.to).collect::<BTreeSet<_>>();
+            for step in trace {
+                for support_y in step.low..=step.high {
                     let y = support_y.checked_add(1).ok_or("structure sweep height overflow")?;
-                    if self.blocks_crossing_except_stair(Cell { y, ..Cell { x, y: start.y, z } }, Cell { y, ..next }, &ignored)? { return Ok(true); }
+                    if self.blocks_crossing_except_stair(
+                        Cell { y, ..step.from }, Cell { y, ..step.to }, &ignored)? {
+                        return Ok(true);
+                    }
                 }
             }
             return Ok(false);
@@ -816,6 +968,56 @@ mod tests {
         let west = edge_for_cell(Cell { x: 5, y: 14, z: 2 }, Cardinal::West).unwrap();
         assert_eq!(east, west);
         assert_eq!(east.axis, FaceAxis::X);
+    }
+
+    #[test]
+    fn construction_ledger_rejects_wall_crossing_stair_route_but_allows_side_wall() {
+        let stair = StaticInstance::Stair { id: "stairs".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        let crossing = StaticInstance::Wall { id: "crossing".into(), edge: Face { cell: Cell { x: 1, y: 2, z: 0 }, axis: FaceAxis::X }, height: 1 };
+        assert!(validate_construction_intents(&[stair.clone(), crossing]).unwrap_err().contains("crosses stair"));
+        let side = StaticInstance::Wall { id: "side".into(), edge: Face { cell: Cell { x: 1, y: 1, z: 0 }, axis: FaceAxis::Z }, height: 1 };
+        validate_construction_intents(&[stair, side]).unwrap();
+    }
+
+    #[test]
+    fn construction_ledger_rejects_intermediate_floor_and_preserves_landing_floor() {
+        let stair = StaticInstance::Stair { id: "stairs".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 3, rise: 3 };
+        let intermediate = StaticInstance::Floor { id: "middle".into(), support: Cell { x: 1, y: 1, z: 0 } };
+        assert!(validate_construction_intents(&[stair.clone(), intermediate]).unwrap_err().contains("intermediate interval"));
+        let landing = StaticInstance::Floor { id: "landing".into(), support: Cell { x: 3, y: 3, z: 0 } };
+        validate_construction_intents(&[stair, landing]).unwrap();
+    }
+
+    #[test]
+    fn construction_ledger_allows_disjoint_aperture_boundary_intervals_and_rejects_overlap() {
+        let aperture = StaticInstance::ApertureWall { id: "door".into(), edge: Face { cell: Cell { x: 0, y: 0, z: 0 }, axis: FaceAxis::X }, height: 5, opening_bottom: 1, opening_height: 2, open: true };
+        let disjoint = StaticInstance::Wall { id: "lintel".into(), edge: Face { cell: Cell { x: 0, y: 5, z: 0 }, axis: FaceAxis::X }, height: 1 };
+        validate_construction_intents(&[aperture.clone(), disjoint]).unwrap();
+        let overlap = StaticInstance::Wall { id: "inside-opening".into(), edge: Face { cell: Cell { x: 0, y: 1, z: 0 }, axis: FaceAxis::X }, height: 1 };
+        assert!(validate_construction_intents(&[aperture, overlap]).unwrap_err().contains("boundary intervals"));
+    }
+
+    #[test]
+    fn construction_ledger_allows_stair_through_open_aperture_and_rejects_closed_one() {
+        let stair = StaticInstance::Stair { id: "stairs".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        let open = StaticInstance::ApertureWall { id: "open-door".into(), edge: Face { cell: Cell { x: 1, y: 0, z: 0 }, axis: FaceAxis::X }, height: 5, opening_bottom: 1, opening_height: 3, open: true };
+        validate_construction_intents(&[stair.clone(), open]).unwrap();
+        let closed = StaticInstance::ApertureWall { id: "closed-door".into(), edge: Face { cell: Cell { x: 1, y: 0, z: 0 }, axis: FaceAxis::X }, height: 5, opening_bottom: 1, opening_height: 3, open: false };
+        assert!(validate_construction_intents(&[stair, closed]).unwrap_err().contains("crosses stair"));
+    }
+
+    #[test]
+    fn construction_ledger_rejects_stair_corridor_crossing_without_bulk_overlap() {
+        let first = StaticInstance::Stair { id: "first".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        let second = StaticInstance::Stair { id: "second".into(), origin: Cell { x: 1, y: 0, z: -1 }, orientation: Cardinal::South, run: 2, rise: 4 };
+        assert!(validate_construction_intents(&[first, second]).unwrap_err().contains("swept corridors"));
+    }
+
+    #[test]
+    fn construction_ledger_allows_stairs_joining_at_one_valid_landing() {
+        let first = StaticInstance::Stair { id: "first".into(), origin: Cell { x: 0, y: 0, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        let second = StaticInstance::Stair { id: "second".into(), origin: Cell { x: 2, y: 2, z: 0 }, orientation: Cardinal::East, run: 2, rise: 2 };
+        validate_construction_intents(&[first, second]).unwrap();
     }
 
     #[test]
