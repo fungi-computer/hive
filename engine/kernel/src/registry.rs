@@ -45,6 +45,8 @@ impl Registry {
             ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
             ("hive.work-policy", vec![("party", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
             ("hive.work-schedule", vec![("nextReviewTick", FieldType::Number), ("lastConsidered", FieldType::Number)]),
+            ("hive.job", vec![]),
+            ("hive.task", vec![]),
             (
                 "hive.position",
                 vec![
@@ -228,6 +230,8 @@ impl Registry {
                 "hive.work-participation" => world.register_component::<crate::work_planner::WorkParticipation>(),
                 "hive.work-policy" => world.register_component::<crate::work_planner::WorkPolicy>(),
                 "hive.work-schedule" => world.register_component::<crate::work_planner::WorkSchedule>(),
+                "hive.job" => world.register_component::<crate::job::JobComponent>(),
+                "hive.task" => world.register_component::<crate::job::TaskComponent>(),
                 _ => {
                     // All dynamic insertions use AuthoredRecord, a Send+Sync
                     // layout. The destructor matches exactly; no relationships.
@@ -526,6 +530,8 @@ impl Registry {
             "hive.work-participation" => { let _: crate::work_planner::WorkParticipation = decode(value)?; }
             "hive.work-policy" => { let policy: crate::work_planner::WorkPolicy = decode(value)?; if !valid_id(&policy.party) { return Err("invalid work policy party".into()); } }
             "hive.work-schedule" => { let schedule: crate::work_planner::WorkSchedule = decode(value)?; if schedule.next_review_tick < schedule.last_considered { return Err("invalid work schedule".into()); } }
+            "hive.job" => { let job: crate::job::JobComponent = decode(value)?; if job.version != crate::job::JOB_VERSION || !valid_id(&job.definition) || !valid_id(&job.party) || job.task_ids.is_empty() || job.task_ids.len() > crate::job::MAX_STEPS { return Err("invalid job".into()); } }
+            "hive.task" => { let task: crate::job::TaskComponent = decode(value)?; if task.version != crate::job::JOB_VERSION || !valid_id(&task.job) || !valid_id(&task.key) { return Err("invalid task".into()); } }
             _ => {}
         }
         Ok(())
@@ -617,6 +623,8 @@ impl Registry {
             "hive.work-participation" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkParticipation>(value)?); }
             "hive.work-policy" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkPolicy>(value)?); }
             "hive.work-schedule" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkSchedule>(value)?); }
+            "hive.job" => { world.entity_mut(entity).insert(decode::<crate::job::JobComponent>(value)?); }
+            "hive.task" => { world.entity_mut(entity).insert(decode::<crate::job::TaskComponent>(value)?); }
             _ => {
                 let id = *self.ids.get(name).ok_or("unknown component")?;
                 OwningPtr::make(AuthoredRecord(value.clone()), |ptr| {
@@ -638,6 +646,8 @@ impl Registry {
             "hive.work-participation" => world.get::<crate::work_planner::WorkParticipation>(entity).map(record),
             "hive.work-policy" => world.get::<crate::work_planner::WorkPolicy>(entity).map(record),
             "hive.work-schedule" => world.get::<crate::work_planner::WorkSchedule>(entity).map(record),
+            "hive.job" => world.get::<crate::job::JobComponent>(entity).map(record),
+            "hive.task" => world.get::<crate::job::TaskComponent>(entity).map(record),
             "hive.position" => world.get::<Position>(entity).map(record),
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),
