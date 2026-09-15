@@ -108,6 +108,7 @@ impl Kernel {
     /// older party field on the policy until the access/work-pool conversion.
     pub(crate) fn advance_native_work_planner(&mut self, tick: u64) -> Result<usize> {
         let mut progressed = self.reconcile_supply_allocations()?;
+        progressed += self.reconcile_manual_attempts()?;
         // Physical completion disables a construction site's assignment
         // policy immediately. Reap its completed attempt independently of
         // the candidate index so the worker is released even though the
@@ -380,7 +381,9 @@ impl Kernel {
             // Supply discovery is deliberately behind the same task review
             // window. Its owner accounts for existing reservations, so calling
             // both domains in one pass cannot duplicate an allocation.
-            if self.ecs.get::<ConstructionSite>(entity).is_some() {
+            if self.ecs.get::<SupplyAllocation>(entity).is_some() {
+                if let Some(requirement) = self.supply_work_requirement(&task.id, &party)? { requirements.push(requirement); }
+            } else if self.ecs.get::<ConstructionSite>(entity).is_some() {
                 let phase = self.ecs.get::<ConstructionSite>(entity).ok_or("construction site disappeared")?.phase;
                 if phase == ConstructionPhase::Planned {
                     supply_requirements.extend(self.construction_supply_requirements(&task.id, &party)?);
@@ -440,7 +443,10 @@ impl Kernel {
         self.ecs.entity_mut(entity).remove::<FieldWaterWork>();
         self.ecs.entity_mut(entity).remove::<WorkPolicy>();
         self.ecs.entity_mut(entity).remove::<WorkSchedule>();
-        self.ecs.entity_mut(entity).insert(SupplyAllocation {
+        self.ecs.entity_mut(entity).insert((
+            WorkPolicy { party: work.party.clone(), priority: 0, enabled: true },
+            WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
+            SupplyAllocation {
             requirement_owner: work.process,
             requirement_role: work.role,
             requirement_generation: work.generation,
@@ -450,8 +456,10 @@ impl Kernel {
             destination: work.destination,
             quantity: u32::from(work.portions),
             state: SupplyAllocationState::Reserved,
-        });
+            },
+        ));
         self.refresh_planner_index(task);
+        self.refresh_supply_index(task);
         Ok(())
     }
 
@@ -525,7 +533,6 @@ impl Kernel {
                 && !self.attempts_by_worker.contains_key(&worker.id)
                 && self.ecs.get::<Destination>(entity).is_none()
                 && !self.direct.contains_key(&entity)
-                && self.ecs.get::<Support>(entity).is_none()
                 && self.ecs.get::<ExcavationWork>(entity).is_none())
                 .then_some(PlannerWorker { id: worker.id.clone(), party: worker.party.clone(), position, free_capacity })
         }).collect::<Vec<_>>();
@@ -900,17 +907,11 @@ impl Kernel {
                         }
                     });
                 let incoming = self
-                    .supply_allocations()
-                    .filter(|(_, allocation)| {
-                        allocation.requirement_owner == process
-                            && allocation.requirement_role == input.role
-                            && allocation.requirement_generation == generation
-                            && allocation.party == party
-                            && allocation.material == input.material
-                            && allocation.destination == destination
-                            && allocation.state == SupplyAllocationState::Reserved
-                    })
-                    .map(|(_, allocation)| allocation.quantity)
+                    .supply_index()
+                    .ids_for_requirement(process, &input.role, generation, &destination, &input.material)
+                    .filter_map(|id| self.supply_allocation(id))
+                    .filter(|allocation| allocation.party == party)
+                    .map(|allocation| allocation.quantity)
                     .sum::<u32>()
                     .saturating_add(self.ids.values().filter_map(|entity| {
                         let work = self.ecs.get::<FieldWaterWork>(*entity)?;
@@ -1068,15 +1069,10 @@ impl Kernel {
                     })
                     .sum::<u32>();
                 let incoming = self
-                    .supply_allocations()
-                    .filter(|(_, allocation)| {
-                        allocation.requirement_owner == site
-                            && allocation.requirement_generation == 1
-                            && allocation.material == *material
-                            && allocation.destination == site
-                            && allocation.state == SupplyAllocationState::Reserved
-                    })
-                    .map(|(_, allocation)| allocation.quantity)
+                    .supply_index()
+                    .ids_for_requirement(site, material, 1, site, material)
+                    .filter_map(|id| self.supply_allocation(id))
+                    .map(|allocation| allocation.quantity)
                     .sum::<u32>();
                 let missing = required.saturating_sub(present.saturating_add(incoming));
                 (missing > 0).then(|| SupplyRequirement {
@@ -1235,7 +1231,6 @@ impl Kernel {
                     && !self.attempts_by_worker.contains_key(&candidate.id)
                     && self.ecs.get::<Destination>(entity).is_none()
                     && !self.direct.contains_key(&entity)
-                    && self.ecs.get::<Support>(entity).is_none()
                     && self.ecs.get::<ExcavationWork>(entity).is_none())
                 .then(|| (candidate.id, candidate.party, position, free_capacity))
             })

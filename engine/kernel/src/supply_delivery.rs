@@ -5,17 +5,69 @@
 //! a reservation as physical custody.
 use super::Kernel;
 use crate::components::{Lot, Point, Position, Result, SupplyAllocation, SupplyAllocationState};
-use crate::work_attempt::{ActivityRef, AttemptPhase, WorkAttempt, WorkOutcome};
-use std::collections::BTreeSet;
+use crate::work_attempt::{ActivityRef, AttemptPhase, OperationKey, WorkAttempt, WorkOutcome};
 
 impl Kernel {
+    fn supply_carrier(&self, container: &str) -> Option<String> {
+        let mut current = container.to_owned();
+        for _ in 0..16 {
+            let entity = self.entity(&current).ok()?;
+            if self.ecs.get::<crate::components::PartyMember>(entity).is_some() { return Some(current); }
+            current = self.ecs.get::<Lot>(entity)?.container.clone();
+        }
+        None
+    }
+
+    /// Contribute an authored allocation to the shared planner. Physical lot
+    /// custody, carrier binding, and the source contact stay in this owner;
+    /// the planner only receives a typed requirement.
+    pub(crate) fn supply_work_requirement(&self, task: &str, party: &str) -> Result<Option<crate::work_planner::WorkRequirement>> {
+        let entity = self.entity(task)?;
+        let Some(allocation) = self.ecs.get::<SupplyAllocation>(entity).cloned() else { return Ok(None); };
+        if allocation.state != SupplyAllocationState::Reserved || allocation.party != party || self.work_attempts.contains_key(task) { return Ok(None); }
+        let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).ok_or("supply allocation has no work policy")?;
+        if !policy.enabled || policy.party != party { return Ok(None); }
+        let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().ok_or("supply allocation has no work schedule")?;
+        let lot = self.ecs.get::<Lot>(self.entity(&allocation.portion)?).cloned().ok_or("supply portion disappeared")?;
+        let source = self.entity(&lot.container)?;
+        let position = self.world_pose_entity(source, 0)?;
+        Ok(Some(crate::work_planner::WorkRequirement {
+            task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
+            contacts: vec![Point { x: position.x, y: position.y, z: position.z, frame: self.support_id(source) }],
+            required_worker: self.supply_carrier(&lot.container), free_capacity_required: allocation.quantity,
+            operation: crate::work_planner::WorkOperation::SupplyAllocation { allocation: task.to_owned() },
+        }))
+    }
+
+    /// Resolve an ordinary container through the typed standing-contact owner
+    /// shared with the public transfer query.
+    fn generic_destination_contacts(&mut self, worker: &str, destination: &str) -> Result<Vec<Point>> {
+        let contacts = self.transfer_contacts(worker, destination)?;
+        if contacts.is_empty() { return Err("generic supply destination has no standing contact".into()); }
+        Ok(contacts)
+    }
+
+    fn destination_contacts(&mut self, worker: &str, destination: &str) -> Result<Vec<Point>> {
+        let entity = self.entity(destination)?;
+        // A container is a physical transfer boundary. Resolve its standing
+        // contact through the same owner as the public transfer query. This
+        // keeps ordinary containers (including generated process ports) free
+        // of identifier-shape policy. Native construction/stockpile contact
+        // discovery remains the owner for their requirements and callers.
+        if self.ecs.get::<crate::components::Container>(entity).is_some() {
+            self.generic_destination_contacts(worker, destination)
+        } else {
+            let contacts = self.native_supply_contacts(destination)?;
+            if contacts.is_empty() { return Err("supply destination has no native contact".into()); }
+            Ok(contacts)
+        }
+    }
+
     fn carrier_worker(&self, container: &str) -> Option<String> {
         let mut current = container.to_owned();
         for _ in 0..16 {
             let entity = self.entity(&current).ok()?;
-            if self.ecs.get::<crate::components::PartyMember>(entity).is_some() {
-                return Some(current);
-            }
+            if self.ecs.get::<crate::components::PartyMember>(entity).is_some() { return Some(current); }
             current = self.ecs.get::<Lot>(entity)?.container.clone();
         }
         None
@@ -27,11 +79,12 @@ impl Kernel {
     /// allocation retained, so interruption cannot erase or duplicate it.
     pub(crate) fn reconcile_supply_allocations(&mut self) -> Result<usize> {
         let tasks = self
-            .supply_allocations()
+            .work_attempts
+            .iter()
+            .filter(|(_, entity)| self.ecs.get::<SupplyAllocation>(**entity).is_some())
             .map(|(id, _)| id.to_owned())
             .collect::<Vec<_>>();
         let mut advanced = 0;
-        let mut failed_this_pass = BTreeSet::new();
         for task in tasks {
             let Some(attempt_entity) = self.work_attempts.get(&task).copied() else {
                 continue;
@@ -62,7 +115,6 @@ impl Kernel {
                     operation.attempt.generation,
                     operation.sequence,
                 )?;
-                failed_this_pass.insert(task);
                 advanced += 1;
                 continue;
             }
@@ -105,6 +157,11 @@ impl Kernel {
                     )?;
                     self.retire_terminal_supply_allocation(&task)?;
                 }
+                ActivityRef::MaterialDrop { lot } if lot == allocation.portion => {
+                    self.acknowledge_work_attempt(task.clone(), operation.attempt.generation, operation.sequence)?;
+                    self.cancel_supply_allocation(&task)?;
+                    self.retire_terminal_supply_allocation(&task)?;
+                }
                 ActivityRef::MaterialTransfer { .. } => {
                     let lot = self
                         .ecs
@@ -113,29 +170,39 @@ impl Kernel {
                     if lot.container != attempt.worker {
                         return Err("completed supply pickup has invalid custody".into());
                     }
-                    let site = self.entity(&allocation.destination)?;
-                    let destination_position = *self
-                        .ecs
-                        .get::<Position>(site)
-                        .ok_or("supply destination lost its bound contact")?;
-                    let destination = Point {
-                        x: destination_position.x,
-                        y: destination_position.y,
-                        z: destination_position.z,
-                        frame: None,
+                    let destinations = match self.destination_contacts(&attempt.worker, &allocation.destination) {
+                        Ok(destinations) => destinations,
+                        Err(reason) if matches!(reason.as_str(), "sealed" | "unavailable-frame" | "no-contact" | "generic supply destination has no standing contact") => {
+                            self.continue_work_attempt(task.clone(), operation.attempt.generation, operation.sequence, ActivityRef::MaterialDrop { lot: allocation.portion.clone() })?;
+                            advanced += 1;
+                            continue;
+                        }
+                        Err(reason) => return Err(reason),
                     };
-                    if !self
-                        .native_supply_contacts(&allocation.destination)?
-                        .contains(&destination)
-                    {
-                        return Err("supply destination contact is no longer valid".into());
-                    }
                     let worker = self.entity(&attempt.worker)?;
                     let position = *self
                         .ecs
                         .get::<Position>(worker)
                         .ok_or("supply worker lost position")?;
-                    let route = self.route_for(worker, position, &destination)?;
+                    let next_operation = operation.sequence.saturating_add(1);
+                    let (target_index, route) = match super::route_query::classify_route(self.route_for_any(worker, position, &destinations))? {
+                        super::route_query::SearchOutcome::Reachable(route) => route,
+                        super::route_query::SearchOutcome::NoPath(_) => {
+                            self.continue_work_attempt(task.clone(), operation.attempt.generation, operation.sequence, ActivityRef::MaterialDrop { lot: allocation.portion.clone() })?;
+                            advanced += 1;
+                            continue;
+                        }
+                        super::route_query::SearchOutcome::Deferred(_) => {
+                            self.settle_attempt(&task, AttemptPhase::Outcome {
+                                operation: OperationKey { attempt: attempt.key.clone(), sequence: next_operation },
+                                activity: ActivityRef::MaterialTransfer { lot: allocation.portion.clone(), from: attempt.worker.clone(), to: allocation.destination.clone(), quantity: allocation.quantity },
+                                result: WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost },
+                            })?;
+                            advanced += 1;
+                            continue;
+                        }
+                    };
+                    let destination = destinations.get(target_index).cloned().ok_or("supply destination route target disappeared")?;
                     self.continue_work_attempt_with_prepared_route(
                         &task,
                         operation.attempt.generation,
@@ -147,82 +214,6 @@ impl Kernel {
                 _ => return Err("supply attempt completed an unsupported activity".into()),
             }
             advanced += 1;
-        }
-        let recoveries = self
-            .supply_allocations()
-            .filter(|(task, allocation)| {
-                allocation.state == SupplyAllocationState::Reserved
-                    && !self.work_attempts.contains_key(*task)
-                    && !failed_this_pass.contains(*task)
-            })
-            .filter_map(|(task, allocation)| {
-                let lot = self.ecs.get::<Lot>(self.entity(&allocation.portion).ok()?)?;
-                let worker_id = self.carrier_worker(&lot.container)?;
-                let worker = self.entity(&worker_id).ok()?;
-                let member = self.ecs.get::<crate::components::PartyMember>(worker)?;
-                (member.party == allocation.party
-                    && lot.quantity == allocation.quantity
-                    && self
-                        .ecs
-                        .get::<crate::work_planner::WorkParticipation>(worker)
-                        .is_some_and(|participation| participation.automatic)
-                    && self
-                        .ecs
-                        .get::<crate::components::Body>(worker)
-                        .is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
-                    && self.ecs.get::<crate::components::Traversal>(worker).is_some()
-                    && self.ecs.get::<crate::components::Position>(worker).is_some()
-                    && self.ecs.get::<crate::components::Container>(worker).is_some()
-                    && !self.attempts_by_worker.contains_key(&worker_id)
-                    && self.ecs.get::<crate::components::Destination>(worker).is_none()
-                    && !self.direct.contains_key(&worker)
-                    && self.ecs.get::<crate::components::Support>(worker).is_none()
-                    && self.ecs.get::<crate::components::ExcavationWork>(worker).is_none())
-                .then(|| (task.to_owned(), allocation.clone(), worker_id))
-            })
-            .take(crate::work_planner::MAX_ASSIGNMENTS)
-            .collect::<Vec<_>>();
-        for (task, allocation, worker_id) in recoveries {
-            let destination_entity = self.entity(&allocation.destination)?;
-            let position = *self
-                .ecs
-                .get::<Position>(destination_entity)
-                .ok_or("supply recovery destination lost its bound contact")?;
-            let destination = Point {
-                x: position.x,
-                y: position.y,
-                z: position.z,
-                frame: None,
-            };
-            if !self
-                .native_supply_contacts(&allocation.destination)?
-                .contains(&destination)
-            {
-                return Err("supply recovery destination contact is no longer valid".into());
-            }
-            let worker = self.entity(&worker_id)?;
-            let position = *self
-                .ecs
-                .get::<Position>(worker)
-                .ok_or("supply recovery worker lost position")?;
-            match super::route_query::classify_route(self.route_for(
-                worker,
-                position,
-                &destination,
-            ))? {
-                super::route_query::SearchOutcome::Reachable(route) => {
-                    self.begin_work_attempt_with_prepared_route(
-                        task,
-                        worker_id,
-                        allocation.party,
-                        destination,
-                        route,
-                    )?;
-                    advanced += 1;
-                }
-                super::route_query::SearchOutcome::NoPath(_)
-                | super::route_query::SearchOutcome::Deferred(_) => {}
-            }
         }
         Ok(advanced)
     }
@@ -283,6 +274,8 @@ impl Kernel {
         }
         self.ids.remove(task);
         self.known.remove(task);
+        self.planner_indexes.refresh_entity(&self.ecs, task, None);
+        self.supply_index.refresh(task, None);
         self.ecs.despawn(entity);
         self.refresh_state_weight();
         Ok(())

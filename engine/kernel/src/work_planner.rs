@@ -82,6 +82,7 @@ pub(crate) enum WorkOperation {
     /// Execute the closed operation admitted by a durable Job/Task after the
     /// worker has reached the task's currently resolved physical source.
     JobTransform { task: String },
+    SupplyAllocation { allocation: String },
 }
 
 impl WorkOperation {
@@ -111,6 +112,7 @@ impl WorkOperation {
             Self::ResourceTend { site, vessel } => ActivityRef::ResourceTend { site: site.clone(), vessel: vessel.clone() },
             Self::ResourceExtract { source } => ActivityRef::ResourceExtract { source: source.clone() },
             Self::JobTransform { task } => ActivityRef::JobTransform { task: task.clone(), contact: contact.clone() },
+            Self::SupplyAllocation { .. } => ActivityRef::Route { destination: contact.clone() },
         }
     }
 }

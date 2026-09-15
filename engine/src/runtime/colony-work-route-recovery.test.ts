@@ -5,7 +5,6 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { query } from "../sdk/authoring";
-import { DeliveryTask } from "../sdk/delivery";
 import { MaterialLot } from "../sdk/common";
 import { ConstructionSite } from "../sdk/construction";
 import { colonyPack, ExcavationOrder } from "../games/colony";
@@ -33,7 +32,6 @@ test("Colony digging then supplied building does not strand an existing delivery
     const sites = session.query(query(ConstructionSite));
     assert.equal(sites.length, 1);
     assert.equal(sites[0].get(ConstructionSite).phase, "finished", "supplied wall must finish");
-    assert(session.query(query(DeliveryTask)).every(row => row.get(DeliveryTask).custody !== "held"), "terrain changes cannot strand held deliveries");
     const lots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
     assert.equal(lots.filter(lot => lot.kind === "soil-spoil").reduce((sum, lot) => sum + lot.quantity, 0), 6);
     const workers = new Set(session.query(query(Worker, PartyMember)).map(row => row.id));

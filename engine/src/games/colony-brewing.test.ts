@@ -8,7 +8,6 @@ import { query } from "../sdk/authoring";
 import { ConstructionSite } from "../sdk/construction";
 import { Destination, MaterialLot, Position, SupplyAllocation } from "../sdk/common";
 import { FieldWaterWork, StagedProcess } from "../sdk/process-supply";
-import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
@@ -53,7 +52,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     const station = finishedStation(session);
     assert(station, JSON.stringify({
       sites: session.query(query(ConstructionSite)).map(row => row.get(ConstructionSite)),
-      deliveries: session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)),
+      deliveries: session.query(query(SupplyAllocation)).map(row => row.get(SupplyAllocation)),
     }));
     assert.equal(session.renderFacts().find(fact => fact.id === station.id)?.visual, "colony.brew-station.profile.empty");
 
@@ -122,7 +121,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     const final = session.query(query(StagedProcess))[0]?.get(StagedProcess);
     assert.equal(final?.phase, "complete", JSON.stringify({
       process: final,
-      deliveries: session.query(query(DeliveryTask)).map(row => row.get(DeliveryTask)),
+      deliveries: session.query(query(SupplyAllocation)).map(row => row.get(SupplyAllocation)),
       lots: session.query(query(MaterialLot)).map(row => row.get(MaterialLot)),
       positions: session.query(query(Position)).filter(row => row.id.startsWith("colony.worker")).map(row => [row.id, row.get(Position)]),
       destinations: session.query(query(Destination)).map(row => [row.id, row.get(Destination)]),

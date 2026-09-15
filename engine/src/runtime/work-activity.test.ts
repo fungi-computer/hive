@@ -4,8 +4,7 @@ import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { colonyPack, ExcavationOrder, treeJob } from "../games/colony";
 import { entity, query } from "../sdk/authoring";
-import { ExcavationWork, FiniteResource, JobTaskWork, Position } from "../sdk/common";
-import { DeliveryTask } from "../sdk/delivery";
+import { ExcavationWork, FiniteResource, JobTaskWork, Position, SupplyAllocation } from "../sdk/common";
 import { buildObservation } from "./observation";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
@@ -164,20 +163,20 @@ test("native delivery operations project without a client-owned phase", () => {
       new Map<EntityId, unknown>([[actor, { x: 0, y: 0, z: 0, facing: 0 }]]),
     ],
     [
-      DeliveryTask.id,
+      SupplyAllocation.id,
       new Map<EntityId, unknown>([
         [
           task,
           {
-            version: 2,
+            requirementOwner: entity("delivery.task"),
+            requirementRole: "cargo",
+            requirementGeneration: 1,
             party: entity("delivery.party"),
-            sourceLot: entity("delivery.lot"),
-            source: entity("delivery.source"),
+            portion: entity("delivery.lot"),
             destination: entity("delivery.destination"),
             material: "wood",
             quantity: 1,
-            custody: "available",
-            ground: null,
+            state: "reserved",
           },
         ],
       ]),

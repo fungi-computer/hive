@@ -117,7 +117,6 @@ pub struct SupplyAllocation {
     pub quantity: u32,
     pub state: SupplyAllocationState,
 }
-
 /// Native intent for one discrete field-water portion needed by a process.
 /// Once withdrawal commits, `lot` names the exact generated water lot and this
 /// record is replaced by the ordinary SupplyAllocation on the same entity.

@@ -12,6 +12,7 @@ import {
   ExcavationWork,
   ExcavationOrder,
   MaterialLot,
+  SupplyAllocation,
   Position,
   Traversal,
   encodeDefinition,
@@ -20,14 +21,13 @@ import {
   JobTaskWork,
   ResourceSite,
 } from "../sdk/common";
-import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
 import { FieldWaterWork, StagedProcess, requestProcess } from "../sdk/process-supply";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { OwnedByParty, Party, PartyMember, PartyReceipt } from "../sdk/party";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyTree, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+import { ColonyTree, ColonyTreePolicy } from "./colony-work";
 import { ResourceOrder } from "../sdk/resource-work";
 import { Worker } from "./colony-components";
 import { colonyPartyFootprint, createColonyPartyPlan } from "./colony-party";
@@ -52,7 +52,7 @@ export const colonyStockpileProfiles = [
 
 export { Worker } from "./colony-components";
 export { ExcavationOrder } from "../sdk/common";
-export { ColonyTree, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+export { ColonyTree, ColonyTreePolicy } from "./colony-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -167,10 +167,6 @@ function availableBrewStations(context: Pick<ReadContext, "query">) {
 const workerSelectionInput = z.object({
   entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
 }).strict();
-const deliveryInput = z.object({
-  entities: z.array(z.string().min(1).max(128).transform(entity)).min(1).max(MAX_PARTY_SELECTION),
-  quantity: z.number().int().positive().max(0xffffffff).optional(),
-}).strict();
 const pointInput = z.tuple([
   z.number().int().min(-1_000_000).max(1_000_000),
   z.number().int().min(-1_000_000).max(1_000_000),
@@ -237,49 +233,6 @@ function exactRouteReplacement(context: CommandContext, worker: EntityId, party:
   return actions;
 }
 
-function activeTaskFor(context: CommandContext, actor: EntityId) {
-  const tasks = context.query(query(DeliveryTask));
-  const attempts = workAttemptsFor(context, tasks.map(row => row.id));
-  const taskIds = new Set(attempts.filter(attempt => attempt.worker === actor).map(attempt => attempt.key.task));
-  return tasks.find(row => taskIds.has(row.id))?.get(DeliveryTask);
-}
-
-function deliveryWrites(
-  context: CommandContext,
-  input: z.infer<typeof deliveryInput>,
-  enabled: boolean,
-  preserveCurrentQuantity = false,
-) {
-  const selected = selectedWorkers(context, input.entities);
-  const quantity = input.quantity;
-  if (enabled && !preserveCurrentQuantity && quantity !== undefined) {
-    for (const worker of selected) {
-      const capacity = context.query(query(Container)).find((row) => row.id === worker)?.get(Container).capacity;
-      if (typeof capacity !== "number" || !Number.isSafeInteger(capacity) || quantity > capacity) throw new Error("delivery quantity exceeds worker capacity");
-    }
-  }
-  return selected.map((worker) => {
-    const active = activeTaskFor(context, worker);
-    const current = context.query(query(DeliveryControl)).find((row) => row.id === worker)?.get(DeliveryControl);
-    if (
-      enabled &&
-      active &&
-      current &&
-      quantity !== undefined &&
-      current.quantity !== quantity
-    )
-      throw new Error("cannot change quantity during active delivery");
-    const nextQuantity = preserveCurrentQuantity
-      ? current?.quantity ?? 1
-      : quantity ?? 1;
-    return {
-      component: DeliveryControl.id,
-      entity: worker,
-      value: { enabled, quantity: enabled ? nextQuantity : current?.quantity ?? 1 },
-    };
-  });
-}
-
 function selectedDigWorker(context: CommandContext, input: z.infer<typeof depositInput>): EntityId {
   const worker = input.entities[0];
   const row = context.query(query(Worker, PartyMember)).find((candidate) => candidate.id === worker);
@@ -297,10 +250,10 @@ function depositActions(context: CommandContext, input: z.infer<typeof depositIn
   }));
   const reservedLots = new Set(
     context
-      .query(query(DeliveryTask))
-      .map((row) => row.get(DeliveryTask))
-      .filter((task) => task.custody !== "delivered")
-      .map((task) => task.sourceLot),
+      .query(query(SupplyAllocation))
+      .map((row) => row.get(SupplyAllocation))
+      .filter((allocation) => allocation.state !== "delivered")
+      .map((allocation) => allocation.portion),
   );
   const carried = lots.filter((lot) => lot.container === worker);
   if (carried.some((lot) => reservedLots.has(lot.id)))
@@ -341,8 +294,7 @@ const colonyComponents = [
   Destination,
   Worker,
   Guest,
-  DeliveryTask,
-  DeliveryControl,
+  SupplyAllocation,
   ExcavationOrder,
   ResourceOrder,
   ColonyTree,
@@ -369,7 +321,7 @@ export const colonyPack: GamePack = {
   version: 7,
   localScope: { kind: "player", player: "local", party: entity("colony.local-party") },
   components: colonyComponents,
-  systems: [colonyWorkSystem, colonyCatSystem],
+  systems: [colonyCatSystem],
   partyJoin: Object.freeze({
     footprint: colonyPartyFootprint,
     prepare: (player, party, spawn) => {
@@ -464,31 +416,10 @@ export const colonyPack: GamePack = {
         return { actions: [requestProcess("herbal-ale-v1", input.station)], writes: [] };
       },
     }),
-    deliver: command({
-      title: "Deliver goods", category: "Colony", description: "Enable delivery work for selected workers.",
-      input: deliveryInput,
-      reads: [Worker, PartyMember, Container, DeliveryTask, DeliveryControl],
-      writes: [DeliveryControl],
-      run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true) }),
-    }),
-    pauseDelivery: command({
-      title: "Pause delivery", category: "Colony", description: "Pause delivery work for selected workers.",
-      input: deliveryInput,
-      reads: [Worker, PartyMember, DeliveryTask, DeliveryControl],
-      writes: [DeliveryControl],
-      run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, false) }),
-    }),
-    resumeDelivery: command({
-      title: "Resume delivery", category: "Colony", description: "Resume delivery work for selected workers.",
-      input: deliveryInput,
-      reads: [Worker, PartyMember, DeliveryTask, DeliveryControl],
-      writes: [DeliveryControl],
-      run: (context, input) => ({ actions: [], writes: deliveryWrites(context, input, true, true) }),
-    }),
     go: command({
       title: "Move workers", category: "Colony", description: "Move selected workers to a destination under manual control.",
       input: goInput,
-      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask],
+      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, SupplyAllocation],
       writes: [WorkParticipation],
       run: (context, input) => {
         const parsed = input;
@@ -506,7 +437,7 @@ export const colonyPack: GamePack = {
       title: "Draft workers", category: "Colony", description: "Draft selected workers for manual control.",
       localPresentation: { bindings: [{ id: "draft", label: "Draft", selection: "entities", placement: "action-bar" }] },
       input: workerSelectionInput,
-      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, DeliveryTask],
+      reads: [Worker, PartyMember, WorkParticipation, ExcavationWork, ConstructionSite, SupplyAllocation],
       writes: [WorkParticipation],
       run: (context, input) => {
         const selected = selectedWorkers(context, input.entities);
@@ -630,7 +561,7 @@ export const colonyPack: GamePack = {
       localPresentation: { bindings: [{ id: "deposit", label: "Deposit carried goods", selection: "entities" }] },
       subjects: context => context.query(query(Worker, PartyMember)).map(row => row.id),
       input: depositInput,
-      reads: [Worker, Body, Container, DeliveryTask, ExcavationWork, MaterialLot],
+      reads: [Worker, Body, Container, SupplyAllocation, ExcavationWork, MaterialLot],
       writes: [],
       run: (context, input) => ({ actions: depositActions(context, input), writes: [] }),
     }),
@@ -747,7 +678,7 @@ export const colonyPack: GamePack = {
       for (const lot of lots) lotTotals.set(lot.container, (lotTotals.get(lot.container) ?? 0) + lot.quantity);
       const total = (container: EntityId) => lotTotals.get(container) ?? 0;
       const pails = new Map(lots.filter((lot) => lot.kind === "pail").map((lot) => [lot.container, lot]));
-      const taskRows = context.query(query(DeliveryTask));
+      const taskRows = context.query(query(SupplyAllocation));
       const partyWorkers = context
         .query(query(Worker, PartyMember))
         .map((row) => row.id)
@@ -899,7 +830,7 @@ export const colonyPack: GamePack = {
         })() },
         { id: "dig-orders", label: "Dig orders", value: context.query(query(ExcavationOrder)).length },
         { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ExcavationOrder)).find((row) => row.get(ExcavationOrder).status === "blocked")?.get(ExcavationOrder).reason ?? "none" },
-        ...[...taskRows].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).custody })),
+        ...[...taskRows].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(SupplyAllocation).state })),
       ];
     },
   },
