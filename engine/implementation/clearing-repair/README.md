@@ -30,8 +30,11 @@ owns the current bucket/mixing handoff: fractional volume and additive property
 amounts, proportional pours, game-defined meanings executed through Rust material
 operations, and flavor-only mixture labels. It supersedes per-ingredient histories
 and integer remainder machinery. Includes pseudocode, real-caller migration order,
-consolidated acceptance and the paused source-lane status; implementation is not
+consolidated acceptance and the current candidate status; implementation is not
 accepted merely because this design is recorded.
+Rust stays blind to Goblin concepts such as piss, pathogens and beer: GamePack
+definitions compile bounded property IDs, predicates and transformations into the
+shared native storage/transfer mechanics. No TypeScript callback runs in the tick.
 
 **Current job architecture correction (September 14):**
 [Rust-owned declarative job planning](01-work.md#rust-owned-declarative-job-planning-current-correction)

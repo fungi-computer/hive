@@ -317,6 +317,15 @@ TypeScript. Compile definitions once at the existing GamePack admission boundary
 execute supported operations in Rust. Do not introduce a TypeScript per-tick
 mixture loop, saved callbacks, expression language or separate scheduler.
 
+**Engine blindness law:** the native engine knows only validated property IDs and
+numeric amounts. It can conserve, mix, split, query and transform those amounts,
+but it does not know that `filth` is dirt, `pathogens` are dangerous, `alcohol`
+belongs in beer or a pail contains piss. Goblin definitions give those IDs their
+meaning, author concentration predicates and name what the player sees. Those
+definitions compile into bounded native tables; they do not run arbitrary
+TypeScript during a tick. A pirate game can supply different properties without
+forking the storage or transfer engine.
+
 - Discrete goods retain integer counts, kind and custody: bread, tools, logs,
   pails and kegs. Their declared volume per unit determines storage occupancy.
 - Bulk contents have a volume and a small definition-bounded set of additive
@@ -468,10 +477,11 @@ and a game-defined property ID must work without editing the Rust dispatcher.
 Add focused rejection cases for invalid numeric inputs and stale capacity/claims.
 Reuse existing lifecycle coverage rather than cloning the full scenario per rule.
 
-Current source checkpoint: the material-vessel-catalog lane is paused with dirty
-volume corrections preserved. Its reported cargo check is compilation evidence
-only; it does not establish mixture, capacity, replay or hosted acceptance. Root
-reviews that source before integration. Do not resume the superseded ingredient
+Current source checkpoint: the material-vessel-catalog lane returned clean commit
+`efb2e833d058af48a84495405dd869cd31586799` for the volume foundation. It is an
+unaccepted candidate pending Root's focused source and behavioral review. Its
+reported cargo check is compilation evidence only; it does not establish mixture,
+capacity, replay or hosted acceptance. Do not resume the superseded ingredient
 ledger implementation when lowering the model.
 
 ```text
