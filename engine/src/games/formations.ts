@@ -235,6 +235,7 @@ export const formationsPack: GamePack = {
     "formations",
     [Position, Destination, FormationMember, Morale, FormationSettings, Health, Collider, Launcher, ImpactMaterial, MaterialLot],
     formationInitial,
+    [],
   ),
   presentation: {
     feedback: true,

@@ -148,16 +148,18 @@ export const encodeDefinition = (
   game: string,
   components: readonly ComponentDefinition<any>[],
   initial: readonly SceneEntity[] = [],
+  materialCatalog: readonly { kind: string; unitVolume: number }[] = [],
 ) =>
   new TextEncoder().encode(
     JSON.stringify({
       format: "hive-game",
-      version: 1,
+      version: 2,
       game,
       components: components
         .filter((c) => !isReservedComponent(c.id))
         .map((c) => ({ id: c.id, version: c.version, fields: c.fields })),
       initial,
+      materialCatalog,
     }),
   );
 

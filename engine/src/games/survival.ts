@@ -209,7 +209,7 @@ export const survivalPack: GamePack = {
       },
     }),
   },
-  definition: encodeDefinition("survival", survivalComponents, survivalInitial),
+  definition: encodeDefinition("survival", survivalComponents, survivalInitial, []),
   presentation: {
     inspect: (context) => {
       const condition = context.query(query(Condition))[0]?.get(Condition);

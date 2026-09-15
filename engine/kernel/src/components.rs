@@ -423,6 +423,8 @@ pub struct Scene {
     pub game: String,
     pub components: Vec<Schema>,
     pub initial: Vec<EntityRecord>,
+    #[serde(rename = "materialCatalog")]
+    pub material_catalog: Vec<crate::material_catalog::Definition>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

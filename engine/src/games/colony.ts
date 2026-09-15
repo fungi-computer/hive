@@ -911,7 +911,7 @@ export const colonyPack: GamePack = {
       ];
     },
   },
-  definition: encodeDefinition("colony", colonyComponents, colonyInitial),
+  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyEnvironment.materialVolumes),
 };
 
 const neutralColonyInitial = [
@@ -930,6 +930,6 @@ const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
 export const colonyServerPack: GamePack = {
   ...colonyPack,
   localScope: undefined,
-  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial),
+  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyEnvironment.materialVolumes),
   environmentDefinition: neutralColonyEnvironmentDefinition,
 };
