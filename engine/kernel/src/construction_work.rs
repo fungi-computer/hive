@@ -436,7 +436,6 @@ impl Kernel {
                 return Err("construction site capacity mismatch".into());
             }
         }
-        drop(environment);
         let pending = self.pending_construction_instances()?;
         self.environment.as_mut().ok_or("construction needs environment")?.world.validate_construction_pending(&pending)?;
         Ok(())

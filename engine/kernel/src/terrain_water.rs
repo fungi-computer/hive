@@ -825,10 +825,10 @@ mod tests {
 
     #[test]
     fn placement_admission_allows_floor_at_stair_landing() {
-        let mut world = support_law_world(2);
+        let (mut world, base_floor, wall) = pending_wall_and_floor();
         let stair = StaticInstance::Stair { id: "landing-stair".into(), origin: Cell { x: 0, y: 30, z: 0 }, orientation: crate::structure_geometry::Cardinal::East, run: 2, rise: 1 };
         let floor = StaticInstance::Floor { id: "landing-floor".into(), support: Cell { x: 2, y: 31, z: 0 } };
-        world.admit_construction_placement(floor, &[stair]).unwrap();
+        world.admit_construction_placement(floor, &[base_floor, wall, stair]).unwrap();
     }
 
     #[test]
