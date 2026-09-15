@@ -4,6 +4,8 @@ use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
 use crate::structure_geometry::StairEdge;
 use pathfinding::prelude::astar;
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
 fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<u64, String> {
     let dx = (i128::from(b.x) - i128::from(a.x)).unsigned_abs() as f64 * spacing[0];
@@ -16,6 +18,99 @@ fn edge_cost(a: Cell, b: Cell, spacing: [f64; 3]) -> Result<u64, String> {
         return Err("terrain metric exceeds route cost bounds".into());
     }
     Ok(cost as u64)
+}
+
+fn neighbors(
+    current: Cell,
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+    stairs: &[StairEdge],
+) -> Result<Vec<(Cell, u64)>, String> {
+    let Some(from) = terrain_traversal::node(current, config, query)? else {
+        return Ok(Vec::new());
+    };
+    let mut neighbors = Vec::with_capacity(12);
+    for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
+        for dy in [0, 1, -1] {
+            if let Some(next) = terrain_traversal::step(from, dx, dy, dz, config, query)? {
+                if !blocked(next.support) {
+                    neighbors.push((next.support, edge_cost(current, next.support, config.spacing)?));
+                }
+            }
+        }
+    }
+    for stair in stairs {
+        let target = if stair.entrance == current { stair.landing }
+            else if stair.landing == current { stair.entrance }
+            else { continue };
+        if blocked(target) { continue; }
+        if let Some(next) = terrain_traversal::stair_step(from, target, stair, config, query)? {
+            neighbors.push((next.support, edge_cost(current, next.support, config.spacing)?));
+        }
+    }
+    Ok(neighbors)
+}
+
+/// Resolve many destinations from one actor support with one bounded frontier.
+/// Results retain destination order and reconstruct the same physical cell paths
+/// used by ordinary movement. The frontier is disposable query state, never a
+/// second saved path or movement authority.
+pub fn search_many_with_blocked_and_stairs(
+    start: Cell,
+    destinations: &[Cell],
+    config: TraversalConfig,
+    query: &mut MaterialQuery<'_>,
+    blocked: &dyn Fn(Cell) -> bool,
+    stairs: &[StairEdge],
+) -> Result<Vec<Result<Vec<Cell>, String>>, String> {
+    if terrain_traversal::node(start, config, query)?.is_none() {
+        return Ok(destinations.iter().map(|_| Err("route endpoint lacks support or clearance".into())).collect());
+    }
+    let mut results: Vec<Option<Result<Vec<Cell>, String>>> = vec![None; destinations.len()];
+    let mut wanted = BTreeMap::<Cell, Vec<usize>>::new();
+    for (index, destination) in destinations.iter().copied().enumerate() {
+        if terrain_traversal::node(destination, config, query)?.is_none() {
+            results[index] = Some(Err("route endpoint lacks support or clearance".into()));
+        } else {
+            wanted.entry(destination).or_default().push(index);
+        }
+    }
+    if wanted.is_empty() {
+        return Ok(results.into_iter().map(Option::unwrap).collect());
+    }
+
+    let mut frontier = BinaryHeap::from([Reverse((0u64, start))]);
+    let mut costs = BTreeMap::from([(start, 0u64)]);
+    let mut parents = BTreeMap::<Cell, Cell>::new();
+    let mut settled = BTreeSet::new();
+    let mut expanded = 0usize;
+    let mut exceeded = false;
+    while let Some(Reverse((cost, current))) = frontier.pop() {
+        if costs.get(&current).copied() != Some(cost) || !settled.insert(current) { continue; }
+        expanded += 1;
+        if expanded > 4096 { exceeded = true; break; }
+        if let Some(indices) = wanted.remove(&current) {
+            let mut path = vec![current];
+            while let Some(parent) = parents.get(path.last().expect("path has current")).copied() {
+                path.push(parent);
+            }
+            path.reverse();
+            for index in indices { results[index] = Some(Ok(path.clone())); }
+            if wanted.is_empty() { break; }
+        }
+        for (next, edge) in neighbors(current, config, query, blocked, stairs)? {
+            let Some(next_cost) = cost.checked_add(edge) else {
+                return Err("terrain metric exceeds route cost bounds".into());
+            };
+            if costs.get(&next).is_some_and(|known| *known <= next_cost) { continue; }
+            costs.insert(next, next_cost);
+            parents.insert(next, current);
+            frontier.push(Reverse((next_cost, next)));
+        }
+    }
+    let unresolved = if exceeded { "terrain route exceeds local search budget" } else { "no supported terrain route" };
+    Ok(results.into_iter().map(|result| result.unwrap_or_else(|| Err(unresolved.into()))).collect())
 }
 
 pub fn search(
@@ -63,38 +158,10 @@ pub fn search_with_blocked_and_stairs(
                 failure = Some("terrain route exceeds local search budget".to_string());
                 return Vec::new();
             }
-            let from = match terrain_traversal::node(cell(*current), config, query) {
-                Ok(Some(node)) => node,
-                Ok(None) => return Vec::new(),
-                Err(error) => { failure = Some(error); return Vec::new(); }
-            };
-            let mut neighbors = Vec::with_capacity(12);
-            for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
-                for dy in [0, 1, -1] {
-                    match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) if !blocked(next.support) => match edge_cost(cell(*current), next.support, config.spacing) {
-                            Ok(cost) => neighbors.push((key(next.support), cost)),
-                            Err(error) => { failure = Some(error); return Vec::new(); }
-                        },
-                        Ok(Some(_)) => {},
-                        Ok(None) => {},
-                        Err(error) => { failure = Some(error); return Vec::new(); }
-                    }
-                }
+            match neighbors(cell(*current), config, query, blocked, stairs) {
+                Ok(neighbors) => neighbors.into_iter().map(|(next, cost)| (key(next), cost)).collect(),
+                Err(error) => { failure = Some(error); Vec::new() }
             }
-            for stair in stairs {
-                let target = if stair.entrance == cell(*current) { stair.landing }
-                    else if stair.landing == cell(*current) { stair.entrance }
-                    else { continue };
-                if blocked(target) { continue; }
-                if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
-                    match edge_cost(cell(*current), next.support, config.spacing) {
-                        Ok(cost) => neighbors.push((key(next.support), cost)),
-                        Err(error) => { failure = Some(error); return Vec::new(); }
-                    }
-                }
-            }
-            neighbors
         },
         |_| 0u64,
         |current| *current == key(destination),

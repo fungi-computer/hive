@@ -4,8 +4,9 @@
 //! second pathfinder or install a destination. Terrain page caches are the
 //! only rebuildable state route preparation may touch.
 
-use crate::components::{valid_id, Point, Position};
+use crate::components::{valid_id, Point, Position, Traversal};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 const MAX_BYTES: usize = 16 * 1024;
 const MAX_REQUESTS: usize = 32;
@@ -66,6 +67,64 @@ fn route_cost(start: Position, points: impl IntoIterator<Item = Point>) -> crate
         previous = point;
     }
     Ok(cost)
+}
+
+/// Terrain actors can price many possible jobs from one disposable search
+/// frontier. Unsupported movement states fall back to the ordinary route owner
+/// so in-flight prefixes and non-terrain frames keep their exact semantics.
+fn shared_terrain_costs(
+    kernel: &mut super::Kernel,
+    entity: bevy_ecs::prelude::Entity,
+    start: Position,
+    targets: &[Point],
+) -> crate::components::Result<Option<Vec<crate::components::Result<f64>>>> {
+    if kernel.support_id(entity).is_some() || kernel.ecs.get::<Traversal>(entity).is_none() {
+        return Ok(None);
+    }
+    let blocked = kernel.blocked_by_frame.get(&None).cloned().ok_or("missing obstacle frame index")?;
+    let environment = kernel.environment.as_mut().ok_or("terrain traversal needs environment")?;
+    let spacing = environment.world.cell_spacing_m();
+    let to_cell = |point: &Point| -> crate::components::Result<crate::generation::Cell> {
+        let values = [point.x / spacing[0], point.y / spacing[1] - 0.5, point.z / spacing[2]];
+        if !values.iter().all(|value| value.is_finite() && *value >= f64::from(i32::MIN) && *value <= f64::from(i32::MAX)) {
+            return Err("terrain route metric position is not finite".into());
+        }
+        Ok(crate::generation::Cell { x: values[0].round() as i64, y: values[1].round() as i32, z: values[2].round() as i64 })
+    };
+    let start_point = crate::navigation::point(start);
+    let start_cell = to_cell(&start_point)?;
+    let centered = Point {
+        x: start_cell.x as f64 * spacing[0],
+        y: (f64::from(start_cell.y) + 0.5) * spacing[1],
+        z: start_cell.z as f64 * spacing[2],
+        frame: None,
+    };
+    if start_point != centered {
+        return Ok(None);
+    }
+    let destinations = targets.iter().map(to_cell).collect::<crate::components::Result<Vec<_>>>()?;
+    let capability = *kernel.ecs.get::<Traversal>(entity).expect("checked traversal capability");
+    let config = crate::terrain_traversal::TraversalConfig {
+        spacing,
+        clearance_cells: capability.clearance_cells,
+        max_step_cells: capability.max_step_cells,
+    };
+    let stairs = environment.world.stair_edges().to_vec();
+    let obstacle = |cell: crate::generation::Cell| {
+        i32::try_from(cell.x).ok().zip(i32::try_from(cell.z).ok()).is_some_and(|(x, z)| {
+            let y = ((f64::from(cell.y) + 0.5) * spacing[1]).round() as i32;
+            blocked.contains(&(x, y, z))
+        })
+    };
+    let mut query = |cell| environment.world.traversal_material(cell);
+    let paths = crate::terrain_route::search_many_with_blocked_and_stairs(
+        start_cell, &destinations, config, &mut query, &obstacle, &stairs,
+    )?;
+    let costs = paths.into_iter().map(|path| {
+        let points = crate::terrain_route::waypoints_with_stairs(&path?, config, &stairs)?;
+        route_cost(start, points)
+    }).collect();
+    Ok(Some(costs))
 }
 
 pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
@@ -131,22 +190,38 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
         prepared.push(Prepared::Search { actor: request.actor, entity, start, target: request.target });
     }
 
-    let mut results = Vec::with_capacity(prepared.len());
-    for item in prepared {
+    let mut results: Vec<Option<Result>> = (0..prepared.len()).map(|_| None).collect();
+    let mut groups = BTreeMap::<String, Vec<(usize, bevy_ecs::prelude::Entity, Position, Point)>>::new();
+    for (index, item) in prepared.into_iter().enumerate() {
         match item {
-            Prepared::Immediate(result) => results.push(result),
-            Prepared::Search { actor, entity, start, target } => match kernel.route_for(entity, start, &target) {
-            Ok(prepared) => {
-                let cost = route_cost(start, prepared.points)?;
-                results.push(Result::Reachable { actor, cost });
+            Prepared::Immediate(result) => results[index] = Some(result),
+            Prepared::Search { actor, entity, start, target } => {
+                groups.entry(actor).or_default().push((index, entity, start, target));
             }
-            Err(error) if unavailable_error(&error) => {
-                results.push(Result::Unavailable { actor, reason: error });
-            }
-            Err(error) => return Err(error),
-            },
         }
     }
+    for (actor, group) in groups {
+        let (_, entity, start, _) = group[0];
+        let targets = group.iter().map(|(_, _, _, target)| target.clone()).collect::<Vec<_>>();
+        if let Some(costs) = shared_terrain_costs(kernel, entity, start, &targets)? {
+            for ((index, _, _, _), cost) in group.into_iter().zip(costs) {
+                results[index] = Some(match cost {
+                    Ok(cost) => Result::Reachable { actor: actor.clone(), cost },
+                    Err(reason) if unavailable_error(&reason) => Result::Unavailable { actor: actor.clone(), reason },
+                    Err(error) => return Err(error),
+                });
+            }
+            continue;
+        }
+        for (index, entity, start, target) in group {
+            results[index] = Some(match kernel.route_for(entity, start, &target) {
+                Ok(prepared) => Result::Reachable { actor: actor.clone(), cost: route_cost(start, prepared.points)? },
+                Err(reason) if unavailable_error(&reason) => Result::Unavailable { actor: actor.clone(), reason },
+                Err(error) => return Err(error),
+            });
+        }
+    }
+    let results = results.into_iter().map(|result| result.expect("every prepared route has a result")).collect::<Vec<_>>();
     serde_json::to_string(&results).map_err(|error| error.to_string())
 }
 
