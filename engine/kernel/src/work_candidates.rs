@@ -1,6 +1,7 @@
 //! Bounded, deterministic candidate/index mechanics used by the native planner.
 use crate::assign::{self, Assignment, Candidate};
 use crate::components::{Body, PartyMember, Position, Traversal};
+use crate::world::route_query::SearchOutcome;
 use crate::work_planner::{PlannerState, WorkParticipation, WorkPolicy, WorkSchedule, DEFAULT_REVIEW_INTERVAL, MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_ELIGIBLE_WORKERS, MAX_TASK_REVIEWS};
 use bevy_ecs::prelude::{Entity, World};
 use serde::{Deserialize, Serialize};
@@ -27,6 +28,145 @@ pub struct TaskCandidate {
 pub struct PlanningWindow {
     pub workers: Vec<WorkerCandidate>,
     pub tasks: Vec<TaskCandidate>,
+}
+
+const ACCEPTED_DETOUR_RATIO: f64 = 1.5;
+const ACCEPTED_DETOUR_METRES: f64 = 4.0;
+const MAX_ROUTE_VALIDATIONS: usize = 32;
+const MAX_MATCH_PASSES: usize = 8;
+
+#[derive(Debug, PartialEq)]
+pub enum PlanningError {
+    Assignment(assign::AssignmentError),
+    PairOutsideWindow { worker: String, task: String },
+    DuplicatePair { worker: String, task: String },
+    InvalidLowerBound { worker: String, task: String },
+    InvalidExactCost { worker: String, task: String },
+    ExactBelowLowerBound { worker: String, task: String },
+    Route(String),
+}
+
+impl From<assign::AssignmentError> for PlanningError {
+    fn from(value: assign::AssignmentError) -> Self { Self::Assignment(value) }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct VerifiedAssignment<Witness> {
+    pub worker: String,
+    pub task: String,
+    pub cost: f64,
+    pub witness: Witness,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PlanningResult<Witness> {
+    pub assignments: Vec<VerifiedAssignment<Witness>>,
+    pub deferred: Vec<(String, String)>,
+    pub route_validations: usize,
+    pub match_passes: usize,
+}
+
+enum ExactCost<Witness> {
+    Unverified,
+    Reachable { cost: f64, witness: Option<Witness> },
+    Excluded,
+    Deferred,
+}
+
+struct CostState<Witness> {
+    bound: f64,
+    exact: ExactCost<Witness>,
+}
+
+fn materially_worse(bound: f64, exact: f64) -> bool {
+    exact > (bound * ACCEPTED_DETOUR_RATIO).max(bound + ACCEPTED_DETOUR_METRES)
+}
+
+fn proposed_costs<Witness>(pairs: &BTreeMap<(String, String), CostState<Witness>>) -> Vec<Candidate> {
+    pairs.iter().filter_map(|((worker, task), state)| match state.exact {
+        ExactCost::Excluded | ExactCost::Deferred => None,
+        ExactCost::Unverified => Some(Candidate { worker: worker.clone(), task: task.clone(), cost: state.bound }),
+        ExactCost::Reachable { cost, .. } => Some(Candidate { worker: worker.clone(), task: task.clone(), cost }),
+    }).collect()
+}
+
+/// Run the same bounded lazy Hungarian correction that formerly lived in the
+/// TypeScript work system. Route validation remains a caller-supplied query of
+/// the one native movement owner; the returned witness can be admitted without
+/// repeating that search when its dependencies are still current.
+pub fn assign_verified<Witness>(
+    window: &PlanningWindow,
+    candidates: &[Candidate],
+    mut verify: impl FnMut(&Candidate) -> Result<SearchOutcome<(f64, Witness)>, String>,
+) -> Result<PlanningResult<Witness>, PlanningError> {
+    if candidates.len() > MAX_CANDIDATE_PAIRS {
+        return Err(assign::AssignmentError::EdgeLimitExceeded { count: candidates.len(), limit: MAX_CANDIDATE_PAIRS }.into());
+    }
+    let allowed_workers = window.workers.iter().map(|worker| worker.id.as_str()).collect::<BTreeSet<_>>();
+    let allowed_tasks = window.tasks.iter().map(|task| task.id.as_str()).collect::<BTreeSet<_>>();
+    let task_order = window.tasks.iter().enumerate().map(|(index, task)| (task.id.as_str(), index)).collect::<BTreeMap<_, _>>();
+    let mut pairs = BTreeMap::new();
+    for candidate in candidates {
+        if !allowed_workers.contains(candidate.worker.as_str()) || !allowed_tasks.contains(candidate.task.as_str()) {
+            return Err(PlanningError::PairOutsideWindow { worker: candidate.worker.clone(), task: candidate.task.clone() });
+        }
+        if !candidate.cost.is_finite() || candidate.cost < 0.0 {
+            return Err(PlanningError::InvalidLowerBound { worker: candidate.worker.clone(), task: candidate.task.clone() });
+        }
+        let key = (candidate.worker.clone(), candidate.task.clone());
+        if pairs.insert(key.clone(), CostState { bound: candidate.cost, exact: ExactCost::Unverified }).is_some() {
+            return Err(PlanningError::DuplicatePair { worker: key.0, task: key.1 });
+        }
+    }
+
+    let initial_costs = proposed_costs(&pairs);
+    let mut proposed = if initial_costs.is_empty() { Vec::new() } else { assign::optimize(&initial_costs, MAX_CANDIDATE_PAIRS)? };
+    let mut route_validations = 0;
+    let mut match_passes = usize::from(!initial_costs.is_empty());
+    while route_validations < MAX_ROUTE_VALIDATIONS {
+        let reachable = proposed.iter().filter(|assignment| matches!(pairs.get(&(assignment.worker.clone(), assignment.task.clone())).map(|state| &state.exact), Some(ExactCost::Reachable { .. }))).count();
+        if reachable >= MAX_ASSIGNMENTS { break; }
+        let next = proposed.iter().filter(|assignment| matches!(pairs.get(&(assignment.worker.clone(), assignment.task.clone())).map(|state| &state.exact), Some(ExactCost::Unverified)))
+            .min_by(|left, right| task_order.get(left.task.as_str()).cmp(&task_order.get(right.task.as_str())).then(left.worker.cmp(&right.worker)).then(left.task.cmp(&right.task)))
+            .cloned();
+        let Some(next) = next else { break; };
+        let key = (next.worker.clone(), next.task.clone());
+        let candidate = Candidate { worker: next.worker, task: next.task, cost: pairs[&key].bound };
+        let outcome = verify(&candidate).map_err(PlanningError::Route)?;
+        route_validations += 1;
+        let state = pairs.get_mut(&key).expect("selected candidate remains indexed");
+        let requires_rematch = match outcome {
+            SearchOutcome::Reachable((cost, witness)) => {
+                if !cost.is_finite() || cost < 0.0 {
+                    return Err(PlanningError::InvalidExactCost { worker: key.0, task: key.1 });
+                }
+                if cost < state.bound {
+                    return Err(PlanningError::ExactBelowLowerBound { worker: key.0, task: key.1 });
+                }
+                let corrected = materially_worse(state.bound, cost);
+                state.exact = ExactCost::Reachable { cost, witness: Some(witness) };
+                corrected
+            }
+            SearchOutcome::NoPath(_) => { state.exact = ExactCost::Excluded; true }
+            SearchOutcome::Deferred(_) => { state.exact = ExactCost::Deferred; true }
+        };
+        if requires_rematch {
+            if match_passes == MAX_MATCH_PASSES { break; }
+            let costs = proposed_costs(&pairs);
+            proposed = if costs.is_empty() { Vec::new() } else { assign::optimize(&costs, MAX_CANDIDATE_PAIRS)? };
+            if !costs.is_empty() { match_passes += 1; }
+        }
+    }
+    let mut assignments = Vec::new();
+    for assignment in proposed {
+        if assignments.len() == MAX_ASSIGNMENTS { break; }
+        let Some(state) = pairs.get_mut(&(assignment.worker.clone(), assignment.task.clone())) else { continue; };
+        let ExactCost::Reachable { cost, witness } = &mut state.exact else { continue; };
+        let Some(witness) = witness.take() else { continue; };
+        assignments.push(VerifiedAssignment { worker: assignment.worker, task: assignment.task, cost: *cost, witness });
+    }
+    let deferred = pairs.into_iter().filter_map(|(key, state)| matches!(state.exact, ExactCost::Deferred).then_some(key)).collect();
+    Ok(PlanningResult { assignments, deferred, route_validations, match_passes })
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -148,6 +288,50 @@ mod tests {
         };
         let pairs = vec![Candidate { worker: "w".into(), task: "t".into(), cost: 3.0 }, Candidate { worker: "other".into(), task: "t".into(), cost: 0.0 }];
         assert_eq!(match_window(&window, &pairs).unwrap(), vec![Assignment { worker: "w".into(), task: "t".into(), cost: 3.0 }]);
+    }
+
+    #[test]
+    fn native_lazy_matching_removes_no_path_and_reassigns_jointly() {
+        let window = PlanningWindow {
+            workers: vec![WorkerCandidate { id: "w1".into(), party: "p".into() }, WorkerCandidate { id: "w2".into(), party: "p".into() }],
+            tasks: vec![
+                TaskCandidate { id: "t1".into(), party: "p".into(), priority: 2, last_considered: 0, due_tick: 0 },
+                TaskCandidate { id: "t2".into(), party: "p".into(), priority: 1, last_considered: 0, due_tick: 0 },
+            ],
+        };
+        let candidates = vec![
+            Candidate { worker: "w1".into(), task: "t1".into(), cost: 1.0 },
+            Candidate { worker: "w1".into(), task: "t2".into(), cost: 2.0 },
+            Candidate { worker: "w2".into(), task: "t1".into(), cost: 1.0 },
+            Candidate { worker: "w2".into(), task: "t2".into(), cost: 100.0 },
+        ];
+        let result = assign_verified(&window, &candidates, |candidate| {
+            if candidate.worker == "w2" && candidate.task == "t1" {
+                Ok(SearchOutcome::NoPath("sealed".into()))
+            } else {
+                Ok(SearchOutcome::Reachable((candidate.cost, format!("{}:{}", candidate.worker, candidate.task))))
+            }
+        }).unwrap();
+        assert_eq!(result.assignments.len(), 2);
+        assert!(result.assignments.iter().any(|assignment| assignment.worker == "w1" && assignment.task == "t1"));
+        assert!(result.assignments.iter().any(|assignment| assignment.worker == "w2" && assignment.task == "t2"));
+        assert_eq!(result.route_validations, 3);
+        assert_eq!(result.match_passes, 2);
+    }
+
+    #[test]
+    fn deferred_route_stays_distinct_and_exact_cost_cannot_beat_its_bound() {
+        let window = PlanningWindow {
+            workers: vec![WorkerCandidate { id: "w".into(), party: "p".into() }],
+            tasks: vec![TaskCandidate { id: "t".into(), party: "p".into(), priority: 1, last_considered: 0, due_tick: 0 }],
+        };
+        let candidates = vec![Candidate { worker: "w".into(), task: "t".into(), cost: 3.0 }];
+        let deferred: PlanningResult<()> = assign_verified(&window, &candidates, |_| Ok::<_, String>(SearchOutcome::Deferred("budget".into()))).unwrap();
+        assert!(deferred.assignments.is_empty());
+        assert_eq!(deferred.deferred, vec![("w".into(), "t".into())]);
+        assert_eq!(deferred.route_validations, 1);
+        let invalid = assign_verified(&window, &candidates, |_| Ok::<_, String>(SearchOutcome::Reachable((2.0, ())))).unwrap_err();
+        assert_eq!(invalid, PlanningError::ExactBelowLowerBound { worker: "w".into(), task: "t".into() });
     }
 
     #[test]

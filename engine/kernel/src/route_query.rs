@@ -115,13 +115,13 @@ fn unavailable_error(error: &str) -> bool {
 /// that has not finished. In particular, Deferred is never safe to cache as a
 /// topology fact.
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum SearchOutcome<T> {
+pub(crate) enum SearchOutcome<T> {
     Reachable(T),
     NoPath(String),
     Deferred(String),
 }
 
-pub(super) fn classify_route<T>(result: crate::components::Result<T>) -> crate::components::Result<SearchOutcome<T>> {
+pub(crate) fn classify_route<T>(result: crate::components::Result<T>) -> crate::components::Result<SearchOutcome<T>> {
     match result {
         Ok(value) => Ok(SearchOutcome::Reachable(value)),
         Err(error) if unavailable_error(&error) && deferred_error(&error) => Ok(SearchOutcome::Deferred(error)),

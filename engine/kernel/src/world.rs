@@ -30,7 +30,7 @@ mod construction_work;
 #[path = "deconstruction_work.rs"]
 mod deconstruction_work;
 #[path = "route_query.rs"]
-mod route_query;
+pub(crate) mod route_query;
 #[path = "process_transition.rs"]
 mod process_transition;
 #[cfg(test)]
