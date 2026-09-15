@@ -5,8 +5,9 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { MaterialLot } from "../sdk/common";
+import { GroundStock } from "../sdk/ground-stock";
 import { query } from "../sdk/authoring";
-import { colonyPack, ColonyDigOrder } from "./colony";
+import { colonyPack, ExcavationOrder } from "./colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -17,7 +18,7 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
     session.start();
     session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
     session.step(0);
-    const orders = session.query(query(ColonyDigOrder));
+    const orders = session.query(query(ExcavationOrder));
     assert.deepEqual(
       orders.map((row) => row.id),
       ["colony.dig.1.13.0", "colony.dig.2.13.0"],
@@ -26,7 +27,7 @@ test("actual WASM accepts a compact area and saves one stable order per cell", (
     assert.ok(
       orders.every((row) =>
         ["queued", "blocked"].includes(
-          row.get(ColonyDigOrder).status,
+          row.get(ExcavationOrder).status,
         ),
       ),
     );
@@ -59,13 +60,13 @@ test("actual WASM rejects an area above the bounded designation size", () => {
         }),
       /256 cells/,
     );
-    assert.equal(session.query(query(ColonyDigOrder)).length, 0);
+    assert.equal(session.query(query(ExcavationOrder)).length, 0);
   } finally {
     port.dispose();
   }
 });
 
-test("area workers excavate and return finite spoil without manual movement", () => {
+test("area workers excavate and leave finite spoil as ordinary ground stock", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
@@ -80,17 +81,16 @@ test("area workers excavate and return finite spoil without manual movement", ()
         .map((row) => row.get(MaterialLot))
         .filter((lot) => lot.kind === "soil-spoil");
       if (
-        session.query(query(ColonyDigOrder)).length === 0 &&
-        spoil.length > 0 &&
-        spoil.every((lot) => lot.container === "colony.pantry")
+        session.query(query(ExcavationOrder)).length === 0 &&
+        spoil.length > 0
       ) {
         finished = true;
         break;
       }
     }
     const orders = session
-      .query(query(ColonyDigOrder))
-      .map((row) => row.get(ColonyDigOrder));
+      .query(query(ExcavationOrder))
+      .map((row) => row.get(ExcavationOrder));
     assert.equal(finished, true, JSON.stringify(orders));
     const spoil = session
       .query(query(MaterialLot))
@@ -100,13 +100,14 @@ test("area workers excavate and return finite spoil without manual movement", ()
       spoil.reduce((sum, lot) => sum + lot.quantity, 0),
       6,
     );
-    assert.ok(spoil.every((lot) => lot.container === "colony.pantry"));
+    const ground = new Set(session.query(query(GroundStock)).map((row) => row.id));
+    assert.ok(spoil.every((lot) => ground.has(lot.container)));
   } finally {
     port.dispose();
   }
 });
 
-test("area excavation preserves hauling across changed terrain at browser-sized steps", () => {
+test("area excavation preserves finite output across changed terrain at browser-sized steps", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
@@ -122,9 +123,8 @@ test("area excavation preserves hauling across changed terrain at browser-sized 
         .map((row) => row.get(MaterialLot))
         .filter((lot) => lot.kind === "soil-spoil");
       if (
-        session.query(query(ColonyDigOrder)).length === 0 &&
-        spoil.length > 0 &&
-        spoil.every((lot) => lot.container === "colony.pantry")
+        session.query(query(ExcavationOrder)).length === 0 &&
+        spoil.length > 0
       ) {
         finished = true;
         break;
@@ -138,7 +138,7 @@ test("area excavation preserves hauling across changed terrain at browser-sized 
     assert.equal(
       finished,
       true,
-      "both excavations unload after nearby terrain changes",
+      "both excavations finish after nearby terrain changes",
     );
     const spoil = session
       .query(query(MaterialLot))
@@ -148,7 +148,8 @@ test("area excavation preserves hauling across changed terrain at browser-sized 
       spoil.reduce((sum, lot) => sum + lot.quantity, 0),
       6,
     );
-    assert.ok(spoil.every((lot) => lot.container === "colony.pantry"));
+    const ground = new Set(session.query(query(GroundStock)).map((row) => row.id));
+    assert.ok(spoil.every((lot) => ground.has(lot.container)));
   } finally {
     port.dispose();
   }

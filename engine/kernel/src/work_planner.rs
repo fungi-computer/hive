@@ -57,6 +57,8 @@ pub(crate) struct WorkRequirement {
     pub priority: u8,
     pub schedule: WorkSchedule,
     pub contacts: Vec<Point>,
+    /// Optional exact worker affinity, enforced by the one shared matcher.
+    pub required_worker: Option<String>,
     pub free_capacity_required: u32,
     pub operation: WorkOperation,
 }
@@ -73,6 +75,7 @@ pub(crate) enum WorkOperation {
     Construction { site: String, mode: crate::work_attempt::ConstructionMode },
     ProcessAttendance { process: String },
     Deconstruction { site: String },
+    Excavation { cell: [i32; 3], expected: u16, replacement: u16 },
 }
 
 impl WorkOperation {
@@ -90,6 +93,11 @@ impl WorkOperation {
             Self::Deconstruction { site } => ActivityRef::Deconstruction {
                 site: site.clone(),
                 contact: contact.clone(),
+            },
+            Self::Excavation { cell, expected, replacement } => ActivityRef::Excavation {
+                cell: *cell,
+                expected_material: *expected,
+                replacement_material: *replacement,
             },
         }
     }

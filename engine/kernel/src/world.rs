@@ -3386,6 +3386,7 @@ impl Kernel {
             return Err("saved terrain route witness is stale".into());
         }
         candidate.validate_excavation_work()?;
+        candidate.validate_excavation_orders()?;
         candidate.validate_deconstruction_work()?;
         candidate.validate_deconstruction_orders()?;
         candidate.ground_stock_cleanup_pending = true;
@@ -3595,6 +3596,7 @@ impl Kernel {
         crate::supply_allocation::validate_relations(&candidate)?;
         candidate.validate_work_attempt_relations()?;
         candidate.validate_deconstruction_work()?;
+        candidate.validate_excavation_orders()?;
         candidate.validate_deconstruction_orders()?;
         *self = candidate;
         Ok(())
@@ -3820,7 +3822,8 @@ impl Kernel {
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
                     | Action::ReplaceFloor { .. }
-                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. })
+                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. }
+                    | Action::PlanExcavation { .. } | Action::CancelExcavation { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -4954,8 +4957,14 @@ impl Kernel {
         if let crate::work_attempt::ActivityRef::Excavation { cell, expected_material, replacement_material } = next_activity.clone() {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
             let existing = self.ecs.get::<ExcavationWork>(entity).copied();
-            self.request_excavation_for_attempt(&task, existing.unwrap_or(ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 }))?;
-            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            match self.request_excavation_for_attempt(&task, existing.unwrap_or(ExcavationWork { x: cell[0], y: cell[1], z: cell[2], expected: expected_material, replacement: replacement_material, seconds: 0.0 }))? {
+                excavation_work::ExcavationAdmission::Started => {
+                    self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+                }
+                excavation_work::ExcavationAdmission::WaitingForClearTarget => {
+                    self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                }
+            }
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::ResourceEstablish { site, definition, cell } = next_activity.clone() {
@@ -5073,6 +5082,15 @@ impl Kernel {
             }
             Action::PlanConstruction { catalog, site, party, target } => {
                 self.plan_construction(catalog, site, party, target)?;
+                Ok(ActionEffect::None)
+            }
+            Action::PlanExcavation { party, prefix, start, end } => {
+                self.plan_excavation(party, prefix, start, end)?;
+                Ok(ActionEffect::None)
+            }
+            Action::CancelExcavation { party, area, workers } => {
+                let area = area.map(|area| (area.start, area.end));
+                self.cancel_excavation(party, area, workers)?;
                 Ok(ActionEffect::None)
             }
             Action::PlanDeconstruction { site, party } => self.plan_deconstruction(site, party).map(ActionEffect::Entity),
@@ -5282,6 +5300,9 @@ impl Kernel {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
                 // Planning creates the site identity atomically, so it cannot
                 // be required to exist during scope validation.
+            }
+            Action::PlanExcavation { party: action_party, .. } | Action::CancelExcavation { party: action_party, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
             }
             Action::PlanDeconstruction { site, party: action_party } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }

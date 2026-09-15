@@ -170,4 +170,11 @@ export const ExcavationWork = component<{
   version: 1,
   fields: { x: "number", y: "number", z: "number", expected: "number", replacement: "number", seconds: "number" },
 });
+export const ExcavationOrder = component<{
+  cellX: number; cellY: number; cellZ: number; expected: number;
+  status: "queued" | "blocked" | "cancelling"; reason: string;
+}>("hive.excavation-order", {
+  version: 1,
+  fields: { cellX: "number", cellY: "number", cellZ: "number", expected: "number", status: "string", reason: "string" },
+});
 export const cancelWork = (entity: EntityId): ActionRequest => ({ kind: "cancel-work", entity });

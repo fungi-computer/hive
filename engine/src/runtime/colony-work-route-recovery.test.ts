@@ -8,7 +8,7 @@ import { query } from "../sdk/authoring";
 import { DeliveryTask } from "../sdk/delivery";
 import { MaterialLot } from "../sdk/common";
 import { ConstructionSite } from "../sdk/construction";
-import { colonyPack, ColonyDigOrder } from "../games/colony";
+import { colonyPack, ExcavationOrder } from "../games/colony";
 import { Worker } from "../games/colony-components";
 import { PartyMember } from "../sdk/party";
 
@@ -24,8 +24,8 @@ test("Colony digging then supplied building does not strand an existing delivery
     const step = () => {
       for (const result of session.step(0.1)) if (!result.accepted) rejected.push(result.reason ?? "rejected");
     };
-    for (let tick = 0; tick < 240 && (tick === 0 || session.query(query(ColonyDigOrder)).length); tick++) step();
-    assert.equal(session.query(query(ColonyDigOrder)).length, 0, "both designated cuts must complete");
+    for (let tick = 0; tick < 240 && (tick === 0 || session.query(query(ExcavationOrder)).length); tick++) step();
+    assert.equal(session.query(query(ExcavationOrder)).length, 0, "both designated cuts must complete");
     assert.deepEqual(port.terrainMaterials([[1,13,0],[2,13,0]]), [0,0]);
     session.command("build", { catalog: "timber-wall", target: { edges: [{ cell: [2, 13, 2], axis: "z" }] } });
     for (let tick = 0; tick < 700; tick++) step();

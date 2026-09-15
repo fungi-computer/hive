@@ -179,6 +179,9 @@ pub struct NativeIndexes {
 }
 
 impl NativeIndexes {
+    pub(crate) fn task_ids(&self) -> impl Iterator<Item = &str> {
+        self.task_party_by_id.keys().map(String::as_str)
+    }
     #[cfg(test)]
     pub(crate) fn rebuild_count(&self) -> u64 { self.rebuilds }
 

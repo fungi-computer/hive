@@ -2,7 +2,7 @@ import { strict as assert } from "node:assert";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import { colonyPack, ColonyDigOrder } from "../games/colony";
+import { colonyPack, ExcavationOrder } from "../games/colony";
 import { query } from "../sdk/authoring";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
@@ -21,9 +21,9 @@ test("Colony idle environment, excavation, and restart preserve the exact next w
     session.command("dig", { area: { start: [1, 13, 0], end: [2, 13, 0] } });
     // step(0) admits the same public intent before checking its completion.
     session.step(0);
-    assert.equal(session.query(query(ColonyDigOrder)).length, 2);
-    for (let step = 0; step < 240 && session.query(query(ColonyDigOrder)).length; step++) session.step(0.1);
-    assert.equal(session.query(query(ColonyDigOrder)).length, 0, "both earned dig orders must complete");
+    assert.equal(session.query(query(ExcavationOrder)).length, 2);
+    for (let step = 0; step < 240 && session.query(query(ExcavationOrder)).length; step++) session.step(0.1);
+    assert.equal(session.query(query(ExcavationOrder)).length, 0, "both earned dig orders must complete");
     const saved = session.save();
     const recovered = new GameSession({ port: recoveredPort, pack: colonyPack });
     recovered.restore(saved);
