@@ -262,6 +262,7 @@ struct Job {
     version: u8,
     definition: DefinitionRef,
     party: EntityId,
+    tasks: Vec<EntityId>,              // stable admitted order; no copied Task records
     state: JobState,                 // active | completed | cancelled
 }
 
@@ -270,15 +271,22 @@ struct Task {
     job: EntityId,
     step: StepKey,                   // stable within pinned definition
     operation: TypedWorkOperation,
-    state: TaskState,                // waiting | ready | completed | cancelled
+    state: TaskState,                // pending | completed(results) | cancelled
 }
 
-struct TaskResult {
-    task: EntityId,
+struct TaskResultBinding {
     slot: ResultSlot,
     entity: EntityId,                // reference to ordinary committed matter
 }
 ```
+
+`Job` and `Task` are canonical native ECS components on distinct job and task
+entities. `Job.tasks` contains stable task identities, not embedded copies of task
+records. `TaskState::Completed` contains that task's exact result bindings; there
+is no second result map in `Kernel` or another result entity for the same fact.
+`WorkAttempt.task` names the task entity directly. The ordinary scene/component
+save owner persists these components and rebuilds the derived ready-task index;
+do not add parallel saved `jobs`, `tasks` or `results` collections to the snapshot.
 
 The initial admitted shape is equivalent to the following closed records. Names
 are illustrative; fit them to the existing native registry and action parser
