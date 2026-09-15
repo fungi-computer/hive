@@ -1,7 +1,7 @@
 # Native work planning: implementation contract
 
 September 15, 2026. Design and staged implementation are underway. The source
-integration checkpoint for the status below is `e4f28af0`. This refines and takes
+integration checkpoint for the status below is `0c937295`. This refines and takes
 precedence over the planning pseudocode in [01-work](01-work.md). Construction and
 staged processes now run through the first accepted native planner slice; the
 whole Colony cutover remains incomplete.
@@ -34,7 +34,7 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer whole-game completion from the active native planner. At `e4f28af0`:
+Do not infer whole-game completion from the active native planner. At `0c937295`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
@@ -91,6 +91,15 @@ Do not infer whole-game completion from the active native planner. At `e4f28af0`
   create subsequent hauling work; completing a dig does not teleport spoil into
   the starter store. Current-format save/reload includes the native order,
   policy and schedule components rather than dropping their schema versions;
+- the private native Job/Task foundation now uses distinct canonical ECS entities:
+  Job retains stable task identities, Task retains one typed operation and its
+  exact result bindings, and readiness derives from committed dependencies. Its
+  admission is bounded and replayable, cancellation preserves completed matter
+  while interrupting active attempts through their existing owner, and dedicated
+  snapshot arrays rebuild the ready index after restore. Job carries no party or
+  worker field; current authority remains on existing components until the
+  documented WorkPool/access cutover. No TypeScript action surface or content
+  consumer was claimed at this foundation checkpoint;
 - focused native planner laws cover combined supply/labor, concurrent carriers,
   small carrier capacity, interruption, priority fairness, rollback and restore.
   The complete kernel proof at the prior excavation checkpoint passed 367 tests;
@@ -103,8 +112,8 @@ Do not infer whole-game completion from the active native planner. At `e4f28af0`
   route reconciliation still use TypeScript providers listed in the deletion
   checklist below. Material-source discovery also still scans canonical IDs.
 
-The next accepted checkpoint must add canonical durable Job/Task composition and
-one real tree → felled trunk → logs lifecycle, then migrate resources and water
+The next accepted checkpoint must add one real tree → felled trunk → logs consumer
+over the canonical durable Job/Task foundation, then migrate resources and water
 into the same tick-owned review without activating another scheduler. The earlier
 available-wood construction stall is fixed and the real multi-building and
 three-level construction scenarios pass. The broader resource/brewing lifecycle
