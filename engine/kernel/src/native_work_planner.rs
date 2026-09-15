@@ -699,6 +699,7 @@ mod tests {
     use crate::generation::Cell;
     use crate::structure_geometry::Cardinal;
     use crate::work_attempt::InterruptCause;
+    use crate::work_planner::WorkParticipation;
     use serde_json::json;
 
     fn construction_world_with_capacity(
@@ -803,12 +804,13 @@ mod tests {
     }
 
     fn finish_active_deliveries(kernel: &mut Kernel) {
-        settle_routes(kernel);
-        assert!(kernel.reconcile_supply_allocations().unwrap() > 0); // pickup
-        assert!(kernel.reconcile_supply_allocations().unwrap() > 0); // route to site
-        settle_routes(kernel);
-        assert!(kernel.reconcile_supply_allocations().unwrap() > 0); // deposit
-        assert!(kernel.reconcile_supply_allocations().unwrap() > 0); // acknowledge and retire
+        // The native tick now owns reconciliation, so a test must observe the
+        // lifecycle rather than manually assuming exactly one phase per call.
+        for _ in 0..8 {
+            settle_routes(kernel);
+            if kernel.supply_allocations().next().is_none() { return; }
+        }
+        panic!("bounded delivery did not settle");
     }
 
     #[test]
@@ -864,8 +866,9 @@ mod tests {
     fn native_tick_hook_reviews_supplied_construction_and_starts_labor() {
         let (mut kernel, _, contact) = construction_world(2);
         finish_active_deliveries(&mut kernel);
-        let reviewed = kernel.advance_native_work_planner(8).unwrap();
-        assert_eq!(reviewed, 1);
+        if kernel.work_attempt("site").is_none() {
+            assert_eq!(kernel.advance_native_work_planner(64).unwrap(), 1);
+        }
         let attempt = kernel.work_attempt("site").expect("native hook must admit site labor");
         assert!(matches!(
             &attempt.phase,

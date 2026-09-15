@@ -500,9 +500,9 @@ mod process_request_tests {
         kernel.ids.insert(collision_id.clone(), collision);
         kernel.known.insert(collision_id);
         kernel.refresh_state_weight();
-        let before = kernel.save_records().unwrap();
+        let before = kernel.snapshot_json().unwrap();
         assert!(kernel.admit_process(&process, "process-v1", "station").is_err());
-        assert_eq!(kernel.save_records().unwrap(), before);
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
     }
 
     #[test]
