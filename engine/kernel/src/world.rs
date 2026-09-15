@@ -2124,17 +2124,26 @@ impl Kernel {
         Ok(id)
     }
 
-    fn snapshot_jobs(&self) -> Result<Vec<crate::job::JobRecord>> {
-        self.job_entities.iter().map(|(id, entity)| {
-            let job = self.ecs.get::<crate::job::JobComponent>(*entity).ok_or("job index is stale")?;
-            let mut tasks = BTreeMap::new();
-            for task_id in &job.task_ids {
-                let entity = self.task_entities.get(task_id).ok_or("task index is stale")?;
-                let task = self.ecs.get::<crate::job::TaskComponent>(*entity).ok_or("task component is missing")?;
-                tasks.insert(task.key.clone(), crate::job::TaskRecord { id: task_id.clone(), key: task.key.clone(), after: task.after.as_ref().and_then(|value| value.strip_prefix(&format!("{id}:task:")).map(str::to_owned)), operation: task.operation.clone(), disposition: task.disposition.clone() });
+    fn rebuild_job_indexes(&mut self) -> Result<()> {
+        self.job_entities.clear();
+        self.task_entities.clear();
+        for (id, entity) in &self.ids {
+            if self.ecs.get::<crate::job::JobComponent>(*entity).is_some() {
+                self.job_entities.insert(id.clone(), *entity);
             }
-            Ok(crate::job::JobRecord { version: job.version, id: id.clone(), definition: job.definition.clone(), definition_version: job.definition_version, party: job.party.clone(), disposition: job.disposition.clone(), tasks })
-        }).collect()
+            if self.ecs.get::<crate::job::TaskComponent>(*entity).is_some() {
+                self.task_entities.insert(id.clone(), *entity);
+            }
+        }
+        for (id, entity) in &self.job_entities {
+            let job = self.ecs.get::<crate::job::JobComponent>(*entity).ok_or("job component missing")?;
+            if job.version != crate::job::JOB_VERSION || job.task_ids.is_empty() || job.task_ids.iter().any(|task| !self.task_entities.contains_key(task)) { return Err("invalid job task relation".into()); }
+            for task_id in &job.task_ids {
+                let task = self.ecs.get::<crate::job::TaskComponent>(*self.task_entities.get(task_id).unwrap()).ok_or("task component missing")?;
+                if task.job != *id || task.version != crate::job::JOB_VERSION { return Err("task job relation mismatch".into()); }
+            }
+        }
+        Ok(())
     }
 
     fn cancel_job(&mut self, id: &str) -> Result<()> {
@@ -3427,7 +3436,6 @@ impl Kernel {
             next_party_sequence: self.next_party_sequence,
             work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
             planner: self.planner.clone(),
-            jobs: self.snapshot_jobs()?,
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -3502,17 +3510,7 @@ impl Kernel {
         if candidate.state_weight > STATE_BYTES {
             return Err("projectile contact state exceeds canonical capacity".into());
         }
-        for saved in state.jobs {
-            saved.validate_restore()?;
-            if candidate.ids.contains_key(&saved.id) { return Err("saved job identity collision".into()); }
-            let job_entity = candidate.ecs.spawn((ExternalId(saved.id.clone()), crate::job::JobComponent { version: saved.version, definition: saved.definition.clone(), definition_version: saved.definition_version, party: saved.party.clone(), disposition: saved.disposition.clone(), task_ids: saved.tasks.values().map(|task| task.id.clone()).collect() }, OwnedByParty { party: saved.party.clone() })).id();
-            candidate.ids.insert(saved.id.clone(), job_entity); candidate.known.insert(saved.id.clone()); candidate.job_entities.insert(saved.id.clone(), job_entity);
-            for task in saved.tasks.values() {
-                if candidate.ids.contains_key(&task.id) { return Err("saved task identity collision".into()); }
-                let entity = candidate.ecs.spawn((ExternalId(task.id.clone()), crate::job::TaskComponent { version: crate::job::JOB_VERSION, job: saved.id.clone(), key: task.key.clone(), after: task.after.as_ref().map(|key| format!("{}:task:{}", saved.id, key)), operation: task.operation.clone(), disposition: task.disposition.clone(), continuation: crate::job::ContinuationPolicy::AnyEligible, bound_actor: None }, OwnedByParty { party: saved.party.clone() })).id();
-                candidate.ids.insert(task.id.clone(), entity); candidate.known.insert(task.id.clone()); candidate.task_entities.insert(task.id.clone(), entity);
-            }
-        }
+        candidate.rebuild_job_indexes()?;
         candidate.revision = state.revision;
         candidate.time = state.time;
         candidate.next_lot = state.next_lot;

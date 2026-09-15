@@ -442,7 +442,6 @@ pub struct Snapshot {
     pub next_party_sequence: u64,
     pub work_attempts: Vec<crate::work_attempt::WorkAttempt>,
     pub planner: crate::work_planner::PlannerState,
-    pub jobs: Vec<crate::job::JobRecord>,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
