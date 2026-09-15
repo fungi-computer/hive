@@ -1928,6 +1928,7 @@ pub struct Kernel {
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
+    jobs: BTreeMap<String, crate::job::JobRecord>,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -2095,10 +2096,29 @@ impl Kernel {
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
+            jobs: BTreeMap::new(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
         if self.discard_required { return Err("kernel attempt requires durable restore".into()); }
+        Ok(())
+    }
+
+    fn create_job(&mut self, id: String, plan: crate::job::JobPlan) -> Result<String> {
+            if let Some(existing) = self.jobs.get(&id) {
+                let candidate = crate::job::admit(&id, plan)?;
+                if existing != &candidate { return Err("job replay identity conflicts with committed plan".into()); }
+                return Ok(id);
+            }
+        if self.entity(&plan.party).is_err() { return Err("job party is missing".into()); }
+        let job = crate::job::admit(&id, plan)?;
+        self.jobs.insert(id.clone(), job);
+        Ok(id)
+    }
+
+    fn cancel_job(&mut self, id: &str) -> Result<()> {
+        let job = self.jobs.get_mut(id).ok_or("job is missing")?;
+        job.cancel();
         Ok(())
     }
 
@@ -3355,7 +3375,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 12,
+            version: 13,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -3378,6 +3398,7 @@ impl Kernel {
             next_party_sequence: self.next_party_sequence,
             work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
             planner: self.planner.clone(),
+            jobs: self.jobs.values().cloned().collect(),
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -3391,7 +3412,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 12
+            || state.version != 13
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -3478,6 +3499,12 @@ impl Kernel {
         candidate.next_party_sequence = state.next_party_sequence;
         state.planner.validate().map_err(str::to_owned)?;
         candidate.planner = state.planner;
+        let mut jobs = BTreeMap::new();
+        for job in state.jobs {
+            job.validate_restore()?;
+            if jobs.insert(job.id.clone(), job).is_some() { return Err("duplicate saved job".into()); }
+        }
+        candidate.jobs = jobs;
         candidate.validate_party_receipts()?;
         for (task, attempt) in attempts {
             let entity = candidate.entity(&task)?;
@@ -3736,7 +3763,8 @@ impl Kernel {
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
                     | Action::ReplaceFloor { .. }
-                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. })
+                    | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. }
+                    | Action::CreateJob { .. } | Action::CancelJob { .. })
             });
         if needs_staging {
             let before = self.save_records()?;
@@ -4919,6 +4947,8 @@ impl Kernel {
 
     fn apply_action(&mut self, action: Action, delta: f64, scope: &ActionScope) -> Result<ActionEffect> {
         match action {
+            Action::CreateJob { id, plan } => self.create_job(id, plan).map(ActionEffect::Entity),
+            Action::CancelJob { id } => { self.cancel_job(&id)?; Ok(ActionEffect::None) }
             Action::EstablishParty { binding_id, expected_sequence, records } => self.establish_party(binding_id, expected_sequence, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
@@ -5159,6 +5189,14 @@ impl Kernel {
             Action::ExtractResource { worker, source, .. } => { targets.push(worker.as_str()); targets.push(source.as_str()); }
             Action::EstablishResourceSite { worker, site, .. } | Action::TendResourceSite { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
             Action::Launch { launcher, ammunition, .. } => { targets.push(launcher.as_str()); targets.push(ammunition.as_str()); }
+            Action::CreateJob { plan, .. } => {
+                if plan.party != *party { return Err("scoped action party mismatch".into()); }
+                targets.push(plan.party.as_str());
+            }
+            Action::CancelJob { id } => {
+                let job = self.jobs.get(id).ok_or("job is missing")?;
+                if job.party != *party { return Err("scoped job is outside party".into()); }
+            }
         }
         for target in targets {
             let entity = self.entity(target)?;
