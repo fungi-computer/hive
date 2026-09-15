@@ -1,5 +1,7 @@
 import { colonyEnvironmentDefinition } from "./colony-environment";
 import { colonyPack, treeJob, treePlan } from "./colony";
+import { colonyPerformanceGameId } from "./colony-performance-config";
+import type { ColonyPerformanceSize, ColonyPerformanceWorkerCount } from "./colony-performance-config";
 import type { GamePack } from "../contracts";
 
 /**
@@ -8,10 +10,10 @@ import type { GamePack } from "../contracts";
  * remain the owners; this builder only supplies deterministic content data.
  */
 export function createColonyPerformancePack(
-  size: 64 | 128 | 256 | 512,
-  workerCount: 4 | 8 | 16 | 32 | 50 | 100 | 200,
+  size: ColonyPerformanceSize,
+  workerCount: ColonyPerformanceWorkerCount,
 ): GamePack {
-  const gameId = `colony-performance-${size}-${workerCount}`;
+  const gameId = colonyPerformanceGameId(size, workerCount);
   const definition = JSON.parse(new TextDecoder().decode(colonyPack.definition)) as {
     format: string; version: number; game: string; components: unknown[];
     initial: Array<{ id: string; components: Record<string, unknown> }>;
