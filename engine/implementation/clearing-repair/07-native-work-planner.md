@@ -342,7 +342,7 @@ const ingredient = {
   propertyAmountsPerVolume: { filth: 2, nutrients: 1 },
 };
 
-// Native canonical contents, owned by the existing material/container seam.
+// Native canonical contents, attached to one actual Container entity.
 type BulkContents = {
   volume: number;
   amounts: Readonly<Record<string, number>>;
@@ -355,7 +355,10 @@ its contents do not get counted again in its parent's occupied volume. Pails,
 jars and kegs share these mechanics without item-name checks or WaterVessel
 markers. A stockpile filter means wanted here; capacity means physically fits.
 
-One open compartment has one mixed bulk contents record. Adding dirty liquid
+One open compartment has at most one `BulkContents` record on that container.
+Bulk is not represented as several hidden ingredient `Lot` entities and is not a
+second contents index. The existing container is its custody and identity owner.
+Adding dirty liquid
 mixes with what is already there; the caller cannot request just the clean water
 back. Discrete items in the compartment remain individually retrievable. A loose
 solid does not dissolve merely because it fits: an explicit cleaning/processing
@@ -436,6 +439,10 @@ reads the same actual volume and properties; labels never replace those facts.
    stockpile capacity and restore validation together. Declare required material
    definitions and reject missing references; no fallback unit-volume defaults.
 2. Add bulk storage/transfer at that material owner and one real pail consumer.
+   Replace the current special `LotWater` carrier at this cutover; do not retain
+   parallel water-lot and bulk-content truths. Extend the maintained component
+   registry with one bounded structured bulk record rather than encoding property
+   maps into strings or creating one auxiliary ECS entity per property.
    Route changes through the current Region/WorkAttempt transaction and receipt.
    Resolve claims against the actual contents at final admission; do not create
    a second inventory or claim owner. A mix that invalidates an input requirement
