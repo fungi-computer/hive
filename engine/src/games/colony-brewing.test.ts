@@ -7,7 +7,7 @@ import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
 import { ConstructionSite } from "../sdk/construction";
 import { Destination, MaterialLot, Position, SupplyAllocation } from "../sdk/common";
-import { FieldWaterWork, StagedProcess, SupplyAllocation } from "../sdk/process-supply";
+import { FieldWaterWork, StagedProcess } from "../sdk/process-supply";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
 

@@ -4860,7 +4860,9 @@ impl Kernel {
         let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
         if attempt.key.generation != generation { return Err("stale work attempt key".into()); }
         let operation = attempt.current_operation().ok_or("work attempt has no operation")?;
-        if operation.sequence != sequence { return Err("unexpected work attempt sequence".into()); }
+        if operation.sequence != sequence {
+            return Err(format!("unexpected work attempt sequence for {task}: expected {}, received {sequence}", operation.sequence));
+        }
         Ok(attempt.into_inner())
     }
     fn interrupt_work_attempt(&mut self, task: String, generation: u64, sequence: u32, cause: InterruptCause) -> Result<()> {

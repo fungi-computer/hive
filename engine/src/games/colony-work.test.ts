@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";
-import { Body, Container, FiniteResource, MaterialLot, Position, ResourceSite } from "../sdk/common";
+import { Body, Container, FiniteResource, MaterialLot, Position, ResourceSite, SupplyAllocation } from "../sdk/common";
 import { GroundStock } from "../sdk/ground-stock";
 import { query } from "../sdk/authoring";
 import { colonyPack } from "./colony";
@@ -11,7 +11,6 @@ import { OwnedByParty, PartyMember } from "../sdk/party";
 import { Worker } from "./colony-components";
 import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { ConstructionSite } from "../sdk/construction";
-import { DeliveryTask } from "../sdk/delivery";
 import { StagedProcess } from "../sdk/process-supply";
 import type { EntityId } from "../contracts";
 
@@ -158,22 +157,22 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
     const station = session.query(query(ConstructionSite)).find(row => row.get(ConstructionSite).catalog === "brew-station" && row.get(ConstructionSite).phase === "finished");
     assert(station, "retained brew station must be built through ordinary construction");
     session.command("requestBrew", { station: station.id });
-    let sawHarvestDelivery = false;
+    let sawHarvestAllocation = false;
     for (let tick = 0; tick < 2400; tick++) {
       try { session.step(0.25); } catch (error) {
         const processes = session.query(query(StagedProcess)).map(row => ({ id: row.id, ...row.get(StagedProcess) }));
-        const deliveries = session.query(query(DeliveryTask)).map(row => ({ id: row.id, ...row.get(DeliveryTask) }));
+        const deliveries = session.query(query(SupplyAllocation)).map(row => ({ id: row.id, ...row.get(SupplyAllocation) }));
         const lots = session.query(query(MaterialLot)).map(row => ({ id: row.id, ...row.get(MaterialLot) }));
         throw new Error(`brew step ${tick} failed with processes=${JSON.stringify(processes)} deliveries=${JSON.stringify(deliveries)} lots=${JSON.stringify(lots)}: ${String(error)}`, { cause: error as Error });
       }
-      sawHarvestDelivery ||= session.query(query(DeliveryTask)).some(row => {
-        const delivery = row.get(DeliveryTask);
-        return delivery.material === "mugwort" && delivery.sourceLot === harvested[0]?.id;
+      sawHarvestAllocation ||= session.query(query(SupplyAllocation)).some(row => {
+        const delivery = row.get(SupplyAllocation);
+        return delivery.material === "mugwort" && delivery.portion === harvested[0]?.id;
       });
       const process = session.query(query(StagedProcess))[0]?.get(StagedProcess);
       if (process?.phase === "complete") break;
     }
-    assert(sawHarvestDelivery, "ordinary delivery must haul the newly harvested mugwort into the station");
+    assert(sawHarvestAllocation, "the shared native supply owner must haul the newly harvested mugwort into the station");
     assert.equal(session.query(query(StagedProcess))[0]?.get(StagedProcess).phase, "complete", "retained herbal-ale process must complete");
     const brewedLots = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
     assert.equal(brewedLots.filter(lot => lot.kind === "ale").reduce((sum, lot) => sum + lot.quantity, 0), 4);
