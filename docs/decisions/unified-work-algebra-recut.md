@@ -92,7 +92,8 @@ type Operation =
   | { kind: "await-process"; process: ProcessBinding };
 
 type DomainWork =
-  | { kind: "fell"; tree: TreeId }
+  | { kind: "transform-resource"; source: EntityBinding; recipe: RecipeRef }
+  | { kind: "transform-item"; item: EntityBinding; recipe: RecipeRef }
   | { kind: "construct"; site: SiteId }
   | { kind: "deconstruct"; site: SiteId }
   | { kind: "sow"; herb: HerbId }
@@ -103,7 +104,15 @@ type DomainWork =
 
 These are API sketches, not unchecked string payloads. `MaterialDemand`, `TransferRequest` and all target/binding variants must themselves be closed typed records. A demand identifies a real destination buffer, item selector, quantity in the definition's fixed unit, and allowed source policy. A transfer request either names an exact existing lot or selects a source for an admitted demand; it never means “create this many items.” `ProcessBinding` refers to a prior named, typed result slot. Configured result references must point to an earlier compatible producer; no arbitrary expression evaluation.
 
-`supply` is a reusable controller operation: discover an available portion, offer its transport to the existing scheduler, transfer it, and repeat until the destination has its required actual contents. It is not a worker activity that holds a pawn while waiting for materials. It counts actual delivered stock plus valid incoming capacity promises for planning, but it can only complete when the required real stock is present. `perform` dispatches to closed, domain-specific work effects. Felling a tree, changing a building's completion state and sowing a plant are different domain effects and should remain so. They all use the same activity lifecycle, routing, tick progression and completion contract.
+`JobPlan` is a first-class durable intention composed from first-class tasks. A
+plan step becomes a separately schedulable task with its own stable identity,
+policy, progress and result. `WorkAttempt` associates one actor with one task;
+it never associates an actor with the whole plan. When task completion produces
+something that can be hauled, stored, traded, targeted, abandoned or destroyed,
+that output is an ordinary physical entity. A named result binding refers to the
+exact committed entity; it is not a hidden stage or promised future inventory.
+
+`supply` is a reusable controller operation: discover an available portion, offer its transport to the existing scheduler, transfer it, and repeat until the destination has its required actual contents. It is not a worker activity that holds a pawn while waiting for materials. It counts actual delivered stock plus valid incoming capacity promises for planning, but it can only complete when the required real stock is present. `perform` dispatches to closed physical effects. Resource-to-item transformation, item-to-items transformation, changing a building's completion state and sowing a plant remain distinct typed effects while sharing the same activity lifecycle, routing, tick progression and completion contract. The engine never dispatches on a content name such as `tree`, `log` or `goblin`.
 
 The initial plan language supports sequencing. Do not implement arbitrary loops/condition code, speculative alternatives or general `parallel` syntax to sound compositional. `supply` has a specific bounded progress loop, with wake reasons and runtime work budget. Later independent branches may be added as an explicit `all` constructor once their resource and completion semantics are proved. No extra assignment service is implied by a plan interpreter.
 
@@ -150,9 +159,30 @@ brew(station, recipe) = sequence([
   ),
   step("ferment", awaitProcess({ outputOf: "prepare" })),
 ]);
+
+makeLogs(standingResource, recipes) = sequence([
+  step("fell", perform({
+    kind: "transform-resource",
+    source: exactEntity(standingResource.id),
+    recipe: recipes.fell,
+    // Commits a stump and a physical item result named "trunk".
+  })),
+  step("chop", perform({
+    kind: "transform-item",
+    item: resultEntity("fell", "trunk"),
+    recipe: recipes.chop,
+  })),
+]);
 ```
 
 There is no `haulWood`, `haulHerb` or `haulBeer` operation in this algebra. Art can still choose a log or bundle attachment from actual carried item appearance. The same transfer operation supplies build buffers, shelves and vessels. The first brew has finite admitted inputs, real vessel capacity, pinned conversion and an explicit output location; it does not wait for a complete fluid-field simulation.
+
+For `makeLogs`, completing `fell` ends that task and publishes the trunk before
+`chop` can become ready. Cancelling the plan after felling leaves the trunk and
+stump in the world. Stockpile policy may independently create a haul task for the
+trunk; its carry requirements may select a team, cart or donkey later. Chopping
+uses the trunk's then-current physical location and custody. It cannot teleport
+the trunk to the original tree cell or keep the felling worker claimed.
 
 ### Typed configuration boundary
 
@@ -259,7 +289,14 @@ Persist only current plan position, named result bindings, current leaf/transfer
 
 Keep job priority as the existing authoritative order. The plan interpreter exposes ready work to `jobs.ts`/libcolony; the scheduler still chooses actors and commits claims. Carried transfers are continuation obligations ahead of new automatic work. Ordinary Work flags gate new automatic transfer as Haul and construction as Build; current personal orders bypass preferences as before. Draft interrupts ordinary work and safely drops through the generic transfer path. A plan step waiting for materials/time holds no actor unless the specific domain operation requires attendance.
 
-The first migration preserves current one-active-actor-per-job behavior. Multiple independent jobs can run concurrently. Allowing several actors to supply one job later requires an explicit demand-level incoming quantity/capacity invariant and several transfer child IDs; it is not obtained by wrapping the job in `Promise.all`. Independent static read/validation work can run together. Competing reservations remain serial commits in deterministic order, even if their candidate discovery was computed independently.
+One task has at most one active actor unless that task type explicitly supports a
+team. One job may have several active child tasks when its dependency graph makes
+them independently ready. Supply already supports several concrete transfer child
+tasks guarded by demand-level incoming quantity/capacity invariants and distinct
+allocation IDs; this is not obtained by wrapping the job in `Promise.all`.
+Independent static read/validation work can run together. Competing reservations
+remain serial commits in deterministic order, even if their candidate discovery
+was computed independently.
 
 `sequence` means later effects cannot begin before earlier obligations settle. It does **not** mean the whole multi-minute job is one atomic transaction. Each pickup, delivery, work completion and process start has its own durable boundary. A failed future step does not undo already delivered or transformed material. Support/topology changes revalidate routes and interactions through the mandatory world navigation context; an operation is not allowed to reuse a path merely because its plan was valid at admission.
 

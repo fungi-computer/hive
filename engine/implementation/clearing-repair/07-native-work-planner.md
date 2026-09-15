@@ -183,6 +183,90 @@ authored dig/tree/resource orders into typed native components. Keep progress in
 its domain owner: construction seconds, process stage/time, finite stock, resource
 growth and extraction effort must each have one owner.
 
+### Jobs compose tasks; physical results separate them
+
+A `Job` is durable player intent and dependency state. A `Task` is one independently
+schedulable unit of work. `WorkAttempt` remains one worker performing one task.
+Never retain a worker merely because its task belongs to a larger job. A job may
+expose several ready independent tasks, but every task competes through the same
+bounded planner and has its own exact operation/result identity.
+
+Use a physical boundary, not a hidden stage, whenever completing work changes what
+the world can haul, store, trade, target, abandon or destroy. The completion
+transaction publishes the physical result and settles that task together. A later
+task refers to that exact committed result identity. Cancelling the job removes
+future intent and releases its reservations/attempts; it never erases or rewinds
+already published matter.
+
+The first required consumer is tree processing:
+
+```text
+job "make logs from this tree"
+  task fell-standing-resource(tree)
+    completion: standing resource -> stump + physical felled-trunk item
+  task chop-item(result(fell, "trunk"))
+    completion: consume exact felled-trunk item -> physical log lot(s)
+```
+
+The felled trunk has ordinary identity, position/custody, definition, footprint,
+volume/mass and carry requirements. It can remain in the woods indefinitely. The
+player may cancel future chopping; stockpile policy may produce a separate haul
+task; a later strong actor, team, cart or donkey may move it. Chopping resolves its
+contact and location when that separate task is planned. Do not encode the trunk
+as `TreePhase::Felled`, internal extraction progress, a visual-only record or a
+reserved future output. Rust does not know the word tree: Goblin definitions bind
+a standing resource to one supported physical transformation and bind the trunk
+item to another. Boulders, carcasses and wreckage use the same mechanics.
+
+This is the first-class multi-task mechanism also used by construction and brewing.
+It is a small closed, versioned plan of typed task definitions and result bindings,
+not a callback graph, universal state machine or scheduler inside each recipe.
+Definitions may sequence supported tasks and name their physical results. The
+native job owner materializes only newly ready tasks, within a bounded continuation
+budget, after their dependencies have actually committed.
+
+Conceptual native records, to be fitted to the existing component registry rather
+than copied verbatim:
+
+```rust
+struct Job {
+    version: u8,
+    definition: DefinitionRef,
+    party: EntityId,
+    state: JobState,                 // active | completed | cancelled
+}
+
+struct Task {
+    version: u8,
+    job: EntityId,
+    step: StepKey,                   // stable within pinned definition
+    operation: TypedWorkOperation,
+    state: TaskState,                // waiting | ready | completed | cancelled
+}
+
+struct TaskResult {
+    task: EntityId,
+    slot: ResultSlot,
+    entity: EntityId,                // reference to ordinary committed matter
+}
+```
+
+`TaskResult` is a reference/binding, not inventory. The referenced entity remains
+owned by its physical component and custody owner. A task result is created in the
+same transaction as the physical entity or not at all. Replaying completion returns
+the same binding. A dependent task pins the compatible result slot and resolves its
+current location only when considered. Removing or transforming the physical item
+invalidates or completes dependent intent through the job owner; it cannot cause a
+replacement item to be synthesized.
+
+The first compiler needs only `step`, `sequence` and the already-proved bounded
+supply expansion. Add independent `all` only for an actual job whose tasks can run
+concurrently under explicit resource-conflict rules. No loops, callbacks, arbitrary
+conditions or recursive same-tick execution. Plan admission rejects duplicate step
+keys, forward/incompatible result bindings, unsupported operations and excessive
+size/depth. Pinned definition version plus stable step/result keys supply durable
+retry identity.
+
 ```rust
 // Derived key into an existing domain owner; not a second saved task universe.
 enum WorkRef {
@@ -503,13 +587,14 @@ finite availability. A competing withdrawal can leave this allocation waiting or
 partially supplied; recompute the remaining requirement from actual conserved
 stock. Avoid repeated searches when no water demand exists.
 
-Tree chopping needs its existing felled/extraction stages moved as data plus native
-effort, not an immediate resource-extract action that skips the animation/work
-duration. Extend the existing finite-resource definition with required stages,
-duration and output policy. Herbs use the existing resource-stage definitions.
-Native facts select original animation/progress; animation never finishes a job.
-Dig yields stay on the ground under the existing material owner, with hauling a
-separate lower-priority requirement.
+Tree work is the first job/task composition proof above. Felling and chopping have
+separate authored durations and native task progress. Felling atomically publishes
+a real trunk item and stump; chopping later consumes that exact item into logs.
+Animation reads each current task and never completes it. Do not extend one native
+resource-extraction stage enum to hide the intermediate trunk. Herbs keep their
+existing resource-stage definitions because tending does not create an independently
+haulable intermediate at every timer boundary. Dig yields stay on the ground under
+the existing material owner, with hauling a separate lower-priority task.
 
 ## 6. Scheduling and direct ECS access
 
@@ -658,8 +743,10 @@ requires a reviewed typed native operation; this is not a general saved callback
 3. **Production/construction:** requirements derived from actual process and
    structure catalogs, attendance, finish replacement and deconstruction. Prove
    the complete existing brewing recipe with its original materials/ports.
-4. **Dig/tree/resource:** migrate their actual stage/progress/intent and commands,
-   including original durations, ground yields and plant water requirements.
+4. **Dig/tree/resource:** migrate their actual progress/intent and commands,
+   including original durations, ground yields and plant water requirements. Prove
+   first-class multi-task jobs with separate fell and chop tasks joined by a real
+   felled-trunk item; no hidden tree stage or automatic matter teleportation.
 5. **Single consumer cutover:** replace Colony's TS work system with compiled
    native policy; performance inherits the same pack. Update UI/AI summaries and
    manual result handling. Remove all obsolete provider imports and definitions.

@@ -36,6 +36,14 @@ Rust stays blind to Goblin concepts such as piss, pathogens and beer: GamePack
 definitions compile bounded property IDs, predicates and transformations into the
 shared native storage/transfer mechanics. No TypeScript callback runs in the tick.
 
+**September 15 multi-task correction:** [Jobs compose tasks; physical results
+separate them](07-native-work-planner.md#jobs-compose-tasks-physical-results-separate-them)
+is the current tree/brewing/construction composition law. Felling and chopping
+are separate tasks joined by a real felled-trunk item. A job never holds one worker
+across its plan, and cancelling future tasks never removes committed physical
+results. The engine executes typed resource/item transformations; Goblin supplies
+tree, trunk, log, duration and presentation definitions.
+
 **Current job architecture correction (September 14):**
 [Rust-owned declarative job planning](01-work.md#rust-owned-declarative-job-planning-current-correction)
 supersedes the earlier TypeScript provider scheduling design. This migration is
