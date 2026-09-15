@@ -553,6 +553,12 @@ try {
   await screenshot(page, "desktop-04-structures.png");
 
   // A second floor gesture over the occupied support is the replacement path.
+  const singleCellBuildTarget = (target) => {
+    if (Array.isArray(target?.cell)) return target.cell;
+    if (target?.area && JSON.stringify(target.area.start) === JSON.stringify(target.area.end))
+      return target.area.start;
+    return undefined;
+  };
   const bedSurface = await structurePoint("colony.bed", rectangle.bed);
   const brewerSurface = await structurePoint("colony.brew-station", rectangle.brewer);
   const replacementBefore = commandCount();
@@ -561,7 +567,7 @@ try {
   await page.mouse.click(bedSurface.point.x, bedSurface.point.y);
   const replacement = await waitCommandAccepted(replacementBefore, "bed floor replacement");
   assert.equal(replacement.name, "build");
-  assert.deepEqual(replacement.command.input.target.cell, rectangle.bed,
+  assert.deepEqual(singleCellBuildTarget(replacement.command.input.target), rectangle.bed,
     "bed floor replacement did not preserve its support cell");
   await waitForObservation(observation => observation.observation.facts?.some(fact => fact.id === originalFloorId), "floor identity after bed replacement");
   const brewerReplacementBefore = commandCount();
@@ -570,13 +576,13 @@ try {
   await page.mouse.click(brewerSurface.point.x, brewerSurface.point.y);
   const brewerReplacement = await waitCommandAccepted(brewerReplacementBefore, "brewer floor replacement");
   assert.equal(brewerReplacement.name, "build");
-  assert.deepEqual(brewerReplacement.command.input.target.cell, rectangle.brewer,
+  assert.deepEqual(singleCellBuildTarget(brewerReplacement.command.input.target), rectangle.brewer,
     "brewer floor replacement did not preserve its support cell");
   record("floor replacement is attempted through the same Build floor command", {
     replacementAccepted: true,
     floorIdentity: originalFloorId,
-    bedReplacementTarget: replacement.command.input.target.cell,
-    brewerReplacementTarget: brewerReplacement.command.input.target.cell,
+    bedReplacementTarget: singleCellBuildTarget(replacement.command.input.target),
+    brewerReplacementTarget: singleCellBuildTarget(brewerReplacement.command.input.target),
     bedArtHit: bedSurface.art,
     brewerArtHit: brewerSurface.art,
     limit: "The bounded browser proof observes command admission and identity; native completion remains covered by the joined construction laws.",
