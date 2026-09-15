@@ -832,6 +832,8 @@ export class GameSession {
       let systemActionCount = 0;
       let routeRequests = 0;
       let committedWorkMaterialFacts: WorkMaterialFacts | undefined;
+      let queryGeneration = 0;
+      const queryCache = new Map<string, readonly QueryRow<any>[]>();
       let activeReads: readonly ComponentDefinition<any>[] = [];
       const requireRouteReads = () => {
         if (
@@ -883,8 +885,14 @@ export class GameSession {
           return this.port.routeToAny(request);
         },
         outcomes: structuredClone(this.outcomes),
-        query: (spec) =>
-          this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves),
+        query: (spec) => {
+          const key = `${queryGeneration}:${JSON.stringify(spec.components.map(component => component.id))}`;
+          const cached = queryCache.get(key);
+          if (cached) return cached;
+          const rows = this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves);
+          queryCache.set(key, rows);
+          return rows;
+        },
         workMaterialFacts: () => {
           // Physical material actions commit at the native boundary. Authored
           // overlays cannot write reserved material components, so this
@@ -906,11 +914,15 @@ export class GameSession {
           if (queuedCreates.length >= MAX_AUTHORED_RECORDS)
             throw new Error("authored creation budget exceeded");
           queuedCreates.push({ scope, record: structuredClone(record) });
+          queryGeneration++;
+          queryCache.clear();
         },
         removeAuthoredEntity: (id) => {
           if (queuedRemoves.length >= MAX_AUTHORED_REMOVES)
             throw new Error("authored removal budget exceeded");
           queuedRemoves.push({ scope: { kind: "host" }, entity: checkedAuthoredId(id) });
+          queryGeneration++;
+          queryCache.clear();
         },
       };
       for (const definition of this.pack.systems) {
