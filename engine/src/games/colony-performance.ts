@@ -38,9 +38,9 @@ export function createColonyPerformancePack(
   const existingTrees = initial.filter(record => record.components["colony.tree"]);
   const jobActions = existingTrees.map(record => {
     const id = record.id as import("../contracts").EntityId;
-    record.components["colony.tree-policy"] = { designated: true, party: "colony.local-party", job: treeJob(id) };
+    record.components["colony.tree-policy"] = { designated: true, party: "colony.local-party", job: null };
     record.components["hive.owned-by-party"] = { party: "colony.local-party" };
-    return { kind: "resume-job" as const, id: treeJob(id), plan: treePlan(id) };
+    return { kind: "create-job" as const, id: treeJob(id), plan: treePlan(id) };
   });
   const visualNames = ["colony.rowan", "colony.sedge"];
   for (let index = 2; index < workerCount; index++) {
@@ -65,9 +65,10 @@ export function createColonyPerformancePack(
       "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 },
       "colony.tree": { kind: "wood" }, "hive.finite-resource": { kind: "wood", quantity: 6 },
       "hive.owned-by-party": { party: "colony.local-party" },
-      "colony.tree-policy": { designated: true, party: "colony.local-party", job: treeJob(id) },
+      "colony.tree-policy": { designated: true, party: "colony.local-party", job: null },
     } });
-    jobActions.push({ kind: "resume-job" as const, id: treeJob(entity(id)), plan: treePlan(entity(id)) });
+    const tree = id as import("../contracts").EntityId;
+    jobActions.push({ kind: "create-job" as const, id: treeJob(tree), plan: treePlan(tree) });
     placements.push({ entity: id, column: [x, z] });
   }
   definition.initial = initial;
