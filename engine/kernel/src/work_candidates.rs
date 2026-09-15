@@ -173,15 +173,24 @@ pub fn assign_verified<Witness>(
 pub struct NativeIndexes {
     pub workers_by_party: BTreeMap<String, Vec<WorkerCandidate>>,
     pub tasks_by_party: BTreeMap<String, Vec<TaskCandidate>>,
-    pub rebuilds: u64,
+    worker_party_by_id: BTreeMap<String, String>,
+    task_party_by_id: BTreeMap<String, String>,
+    rebuilds: u64,
 }
 
 impl NativeIndexes {
+    #[cfg(test)]
+    pub(crate) fn rebuild_count(&self) -> u64 { self.rebuilds }
+
     fn remove_id(&mut self, id: &str) {
-        for values in self.workers_by_party.values_mut() { values.retain(|candidate| candidate.id != id); }
-        self.workers_by_party.retain(|_, values| !values.is_empty());
-        for values in self.tasks_by_party.values_mut() { values.retain(|candidate| candidate.id != id); }
-        self.tasks_by_party.retain(|_, values| !values.is_empty());
+        if let Some(party) = self.worker_party_by_id.remove(id) {
+            if let Some(values) = self.workers_by_party.get_mut(&party) { values.retain(|candidate| candidate.id != id); }
+            if self.workers_by_party.get(&party).is_some_and(Vec::is_empty) { self.workers_by_party.remove(&party); }
+        }
+        if let Some(party) = self.task_party_by_id.remove(id) {
+            if let Some(values) = self.tasks_by_party.get_mut(&party) { values.retain(|candidate| candidate.id != id); }
+            if self.tasks_by_party.get(&party).is_some_and(Vec::is_empty) { self.tasks_by_party.remove(&party); }
+        }
     }
 
     fn sort(&mut self) {
@@ -191,9 +200,21 @@ impl NativeIndexes {
         }
     }
 
+    fn sort_worker_party(&mut self, party: &str) {
+        if let Some(values) = self.workers_by_party.get_mut(party) { values.sort(); }
+    }
+
+    fn sort_task_party(&mut self, party: &str) {
+        if let Some(values) = self.tasks_by_party.get_mut(party) {
+            values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id)));
+        }
+    }
+
     /// Refresh only one externally identified entity after a canonical mutation.
     /// Removal is represented by an absent id/entity and clears old membership.
     pub fn refresh_entity(&mut self, world: &World, id: &str, entity: Option<Entity>) {
+        let old_worker_party = self.worker_party_by_id.get(id).cloned();
+        let old_task_party = self.task_party_by_id.get(id).cloned();
         self.remove_id(id);
         let Some(entity) = entity else { return; };
         if let Some(worker) = world.get::<PartyMember>(entity)
@@ -202,26 +223,47 @@ impl NativeIndexes {
             && world.get::<Traversal>(entity).is_some()
             && world.get::<WorkParticipation>(entity).is_some_and(|participation| participation.automatic)
         {
+            self.worker_party_by_id.insert(id.to_owned(), worker.party.clone());
             self.workers_by_party.entry(worker.party.clone()).or_default().push(WorkerCandidate { id: id.to_owned(), party: worker.party.clone() });
         }
         if let Some(policy) = world.get::<WorkPolicy>(entity) && policy.enabled
             && let Some(schedule) = world.get::<WorkSchedule>(entity)
         {
+            self.task_party_by_id.insert(id.to_owned(), policy.party.clone());
             self.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate {
                 id: id.to_owned(), party: policy.party.clone(), priority: policy.priority,
                 last_considered: schedule.last_considered, due_tick: schedule.next_review_tick,
             });
         }
-        self.sort();
+        if let Some(party) = old_worker_party.as_deref() { self.sort_worker_party(party); }
+        if let Some(party) = old_task_party.as_deref() { self.sort_task_party(party); }
+        if let Some(party) = self.worker_party_by_id.get(id).cloned() { self.sort_worker_party(&party); }
+        if let Some(party) = self.task_party_by_id.get(id).cloned() { self.sort_task_party(&party); }
     }
 
     /// Rebuild once after initial load/reset/restore. Steady-state callers use
     /// refresh_entity so planning queries never scan the entity registry.
     pub fn rebuild(&mut self, world: &World, ids: &BTreeMap<String, Entity>) {
-        self.workers_by_party.clear();
-        self.tasks_by_party.clear();
+        self.workers_by_party.clear(); self.tasks_by_party.clear();
+        self.worker_party_by_id.clear(); self.task_party_by_id.clear();
         self.rebuilds = self.rebuilds.saturating_add(1);
-        for (id, entity) in ids { self.refresh_entity(world, id, Some(*entity)); }
+        for (id, entity) in ids {
+            if let Some(worker) = world.get::<PartyMember>(*entity)
+                && world.get::<Body>(*entity).is_some() && world.get::<Position>(*entity).is_some()
+                && world.get::<Traversal>(*entity).is_some()
+                && world.get::<WorkParticipation>(*entity).is_some_and(|participation| participation.automatic)
+            {
+                self.worker_party_by_id.insert(id.clone(), worker.party.clone());
+                self.workers_by_party.entry(worker.party.clone()).or_default().push(WorkerCandidate { id: id.clone(), party: worker.party.clone() });
+            }
+            if let Some(policy) = world.get::<WorkPolicy>(*entity) && policy.enabled
+                && let Some(schedule) = world.get::<WorkSchedule>(*entity)
+            {
+                self.task_party_by_id.insert(id.clone(), policy.party.clone());
+                self.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate { id: id.clone(), party: policy.party.clone(), priority: policy.priority, last_considered: schedule.last_considered, due_tick: schedule.next_review_tick });
+            }
+        }
+        self.sort();
     }
 }
 
