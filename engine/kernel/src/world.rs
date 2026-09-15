@@ -1896,6 +1896,7 @@ struct TerrainRouteState {
 
 pub struct Kernel {
     ecs: World,
+    material_catalog: crate::material_catalog::Catalog,
     environment: Option<KernelEnvironment>,
     discard_required: bool,
     registry: Registry,
@@ -2058,6 +2059,7 @@ impl Kernel {
         let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
         Self {
             ecs,
+            material_catalog: Default::default(),
             environment: None,
             discard_required: false,
             registry,
@@ -2160,13 +2162,15 @@ impl Kernel {
     }
     fn from_scene_mode(scene: Scene, build_routes: bool) -> Result<Self> {
         if scene.format != "hive-game"
-            || scene.version != 1
+            || scene.version != 2
             || !valid_id(&scene.game)
             || scene.initial.len() > 16384
         {
             return Err("unsupported or oversized scene".into());
         }
+        let material_catalog = crate::material_catalog::Catalog::from_definitions(scene.material_catalog.clone())?;
         let mut world = Self::new();
+        world.material_catalog = material_catalog;
         world.registry = Registry::new(&mut world.ecs, scene.components)?;
         world.game = scene.game;
         for row in &scene.initial {
@@ -3349,7 +3353,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 11,
+            version: 12,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -3357,10 +3361,11 @@ impl Kernel {
             next_impact: self.next_impact,
             scene: Scene {
                 format: "hive-game".into(),
-                version: 1,
+                version: 2,
                 game: self.game.clone(),
                 components: self.registry.schemas.values().cloned().collect(),
                 initial,
+                material_catalog: self.material_catalog.clone().into_definitions(),
             },
             routes,
             direct,
@@ -3385,7 +3390,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 11
+            || state.version != 12
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
