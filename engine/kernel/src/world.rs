@@ -64,6 +64,11 @@ use crate::work_candidates::NativeIndexes;
 #[path = "party_tests.rs"]
 mod party_tests;
 
+enum PreparedProcessBindings {
+    Waiting,
+    Ready(Vec<crate::staged_process::ProcessBinding>),
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ImpactEvent {
@@ -468,11 +473,13 @@ mod process_request_tests {
         let mut kernel = kernel_with_slot();
         let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
         assert!(kernel.admit_process(&process, "process-v1", "station").is_err());
+        assert!(!kernel.try_admit_process(&process, "process-v1", "station").unwrap());
         let lot = kernel.ecs.spawn((ExternalId("grain.1".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
         kernel.ids.insert("grain.1".into(), lot);
         kernel.known.insert("grain.1".into());
         kernel.refresh_state_weight();
         kernel.admit_process(&process, "process-v1", "station").unwrap();
+        assert!(kernel.try_admit_process(&process, "process-v1", "station").unwrap());
         assert_eq!(kernel.ecs.query::<&crate::staged_process::ProcessBinding>().iter(&kernel.ecs).count(), 1);
         let before = kernel.query_json(r#"["hive.lot","hive.process-binding","hive.staged-process"]"#).unwrap();
         kernel.admit_process(&process, "process-v1", "station").unwrap();
@@ -4455,7 +4462,7 @@ impl Kernel {
         Ok(process_id)
     }
 
-    fn admit_process(&mut self, process_id: &str, definition_id: &str, station_id: &str) -> Result<String> {
+    fn prepare_process_bindings(&self, process_id: &str, definition_id: &str, station_id: &str) -> Result<PreparedProcessBindings> {
         if !crate::components::valid_id(process_id) || !crate::components::valid_id(definition_id) || !crate::components::valid_id(station_id) {
             return Err("invalid process admission identity".into());
         }
@@ -4473,7 +4480,7 @@ impl Kernel {
         let existing: Vec<_> = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).filter(|binding| binding.process == process_id).cloned()).collect();
         if !existing.is_empty() {
             crate::staged_process::validate_bindings(&definition, process_id, station_id, &existing, &|lot_id| self.ids.get(lot_id).and_then(|entity| self.ecs.get::<Lot>(*entity).cloned()))?;
-            return Ok(process_id.into());
+            return Ok(PreparedProcessBindings::Ready(existing));
         }
         let occupied: BTreeSet<String> = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|binding| binding.lot.clone())).collect();
         let mut lots = BTreeMap::new();
@@ -4481,7 +4488,29 @@ impl Kernel {
             let Some(lot) = self.ecs.get::<Lot>(*entity) else { continue; };
             if !occupied.contains(id) { lots.insert(id.clone(), lot.clone()); }
         }
+        for input in &definition.inputs {
+            let port = format!("{station_id}:{}", input.port);
+            let matching = lots.values().filter(|lot| lot.container == port && lot.kind == input.material && lot.quantity > 0);
+            let available = if input.policy == crate::staged_process::InputPolicy::WholeLot {
+                matching.any(|lot| lot.quantity == input.quantity)
+            } else {
+                matching.map(|lot| lot.quantity).sum::<u32>() >= input.quantity
+            };
+            if !available {
+                return Ok(PreparedProcessBindings::Waiting);
+            }
+        }
         let bindings = crate::staged_process::resolve_bindings(&definition, process_id, station_id, &lots)?;
+        if bindings.is_empty() {
+            return Ok(PreparedProcessBindings::Waiting);
+        }
+        Ok(PreparedProcessBindings::Ready(bindings))
+    }
+
+    fn publish_process_bindings(&mut self, process_id: &str, bindings: Vec<crate::staged_process::ProcessBinding>) -> Result<String> {
+        if !self.process_bindings(process_id).is_empty() {
+            return Ok(process_id.into());
+        }
         let added_weight: usize = bindings.iter().map(|binding| crate::staged_process::binding_id(binding).len().saturating_add(128).saturating_add(self.registry.weight("hive.process-binding", &record(binding)))).sum();
         if self.ids.len().saturating_add(bindings.len()) > 16_384 || self.state_weight.saturating_add(added_weight) > STATE_BYTES { return Err("process binding state capacity".into()); }
         for binding in bindings {
@@ -4494,6 +4523,30 @@ impl Kernel {
         }
         self.refresh_state_weight();
         Ok(process_id.into())
+    }
+
+    pub(crate) fn try_admit_process(&mut self, process_id: &str, definition_id: &str, station_id: &str) -> Result<bool> {
+        let process_entity = self.entity(process_id)?;
+        if self.ecs.get::<StagedProcess>(process_entity).is_none_or(|process| process.phase != ProcessPhase::Waiting) {
+            return Ok(false);
+        }
+        let station = self.entity(station_id)?;
+        let Some(site) = self.ecs.get::<ConstructionSite>(station) else { return Ok(false); };
+        let Some(definition) = self.environment.as_ref().and_then(|environment| environment.processes.get(definition_id)).map(|definition| definition.definition()) else { return Err("unknown process definition".into()); };
+        if site.phase != ConstructionPhase::Finished || site.catalog != definition.station_catalog || self.ecs.get::<SealedContainer>(station).is_none() {
+            return Ok(false);
+        }
+        match self.prepare_process_bindings(process_id, definition_id, station_id)? {
+            PreparedProcessBindings::Waiting => Ok(false),
+            PreparedProcessBindings::Ready(bindings) => { self.publish_process_bindings(process_id, bindings)?; Ok(true) }
+        }
+    }
+
+    fn admit_process(&mut self, process_id: &str, definition_id: &str, station_id: &str) -> Result<String> {
+        match self.prepare_process_bindings(process_id, definition_id, station_id)? {
+            PreparedProcessBindings::Waiting => Err("process inputs are missing".into()),
+            PreparedProcessBindings::Ready(bindings) => self.publish_process_bindings(process_id, bindings),
+        }
     }
 
     fn process_bindings(&self, process: &str) -> Vec<crate::staged_process::ProcessBinding> {
