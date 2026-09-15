@@ -72,10 +72,14 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
     let site = kernel.entity("door").unwrap();
     assert_eq!(kernel.ecs.get::<ConstructionSite>(site).unwrap().phase, ConstructionPhase::Finished);
-    let attempt = kernel.ecs.get::<WorkAttempt>(site).unwrap().clone();
-    let sequence = attempt.current_operation().unwrap().sequence;
-    let acknowledged: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"door","generation":attempt.key.generation,"sequence":sequence}}]}).to_string()).unwrap()).unwrap();
-    assert_eq!(acknowledged["results"][0]["accepted"], true, "{acknowledged}");
+    // The automatic planner owns terminal construction acknowledgement. A
+    // direct fixture may still observe the outcome before that same-tick reap,
+    // but must not require a second owner to acknowledge it.
+    if let Some(attempt) = kernel.ecs.get::<WorkAttempt>(site).cloned() {
+        let sequence = attempt.current_operation().unwrap().sequence;
+        let acknowledged: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"door","generation":attempt.key.generation,"sequence":sequence}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(acknowledged["results"][0]["accepted"], true, "{acknowledged}");
+    }
     (kernel, site_surface, contact)
 }
 

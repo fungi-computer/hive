@@ -5541,6 +5541,11 @@ impl Kernel {
             crate::work_attempt::ConstructionMode::Bind => {
                 self.bind_construction_stage(&site, contact.clone())?;
                 self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::Construction { site, contact, mode }, result: WorkOutcome::Completed })?;
+                // Binding publishes the complete physical effect itself; it
+                // has no later domain result to reconcile. Release the exact
+                // attempt now so the same site can lawfully contribute its
+                // supply and construction-labor obligations.
+                self.acknowledge_work_attempt(task, current.key.generation, sequence.checked_add(1).ok_or("work attempt sequence exhausted")?)?;
             }
             crate::work_attempt::ConstructionMode::Work => {
                 if self.ecs.get::<Position>(site_entity).is_none() { return Err("construction continuation requires bound stage".into()); }

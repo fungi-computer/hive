@@ -30,21 +30,26 @@ impl Kernel {
         if !policy.enabled || policy.party != party { return Ok(None); }
         let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().ok_or("supply allocation has no work schedule")?;
         let lot = self.ecs.get::<Lot>(self.entity(&allocation.portion)?).cloned().ok_or("supply portion disappeared")?;
-        let source = self.entity(&lot.container)?;
-        self.world_pose_entity(source, 0)?;
-        let contacts = self.transfer_contact_candidates(
-            &lot.container,
-            crate::terrain_traversal::TraversalConfig {
-                spacing: [0.0; 3],
-                clearance_cells: 1,
-                max_step_cells: 1,
-            },
-            self.support_id(source),
-        ).map_err(TransferContactError::into_string)?;
+        let carrier = self.supply_carrier(&lot.container);
+        let contacts = if let Some(worker) = carrier.as_deref() {
+            self.destination_contacts(worker, &allocation.destination).map_err(TransferContactError::into_string)?
+        } else {
+            let source = self.entity(&lot.container)?;
+            self.world_pose_entity(source, 0)?;
+            self.transfer_contact_candidates(
+                &lot.container,
+                crate::terrain_traversal::TraversalConfig {
+                    spacing: [0.0; 3],
+                    clearance_cells: 1,
+                    max_step_cells: 1,
+                },
+                self.support_id(source),
+            ).map_err(TransferContactError::into_string)?
+        };
         Ok(Some(crate::work_planner::WorkRequirement {
             task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
             contacts,
-            required_worker: self.supply_carrier(&lot.container), free_capacity_required: allocation.quantity,
+            required_worker: carrier.clone(), free_capacity_required: if carrier.is_some() { 0 } else { allocation.quantity },
             operation: crate::work_planner::WorkOperation::SupplyAllocation { allocation: task.to_owned() },
         }))
     }
@@ -259,6 +264,17 @@ impl Kernel {
         }
         self.acknowledge_work_attempt(task.to_owned(), generation, sequence)?;
         if carried {
+            // Physical custody survived the interruption, so this allocation
+            // is the only lawful continuation. Make it eligible immediately;
+            // waiting for its old review deadline can strand a drafted then
+            // restored carrier while unrelated work keeps winning windows.
+            let entity = self.entity(task)?;
+            let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().ok_or("carried supply allocation has no schedule")?;
+            self.ecs.entity_mut(entity).insert(crate::work_planner::WorkSchedule {
+                next_review_tick: self.revision,
+                ..schedule
+            });
+            self.refresh_planner_index(task);
             return Ok(());
         }
         self.cancel_supply_allocation(task)?;

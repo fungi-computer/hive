@@ -1606,10 +1606,11 @@ mod tests {
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
         restored.ecs.get_mut::<WorkParticipation>(restored.entity(&worker).unwrap()).unwrap().automatic = true;
+        restored.refresh_planner_index(&worker);
         restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 0.0;
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0, "drafted carrier does not advance while stopped");
         restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 1.0;
-        assert_eq!(restored.advance_native_work_planner(8).unwrap(), 1, "saved carried allocation resumes through the shared planner");
+        assert_eq!(restored.advance_native_work_planner(restored.revision).unwrap(), 1, "saved carried allocation resumes through the shared planner");
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "deposit commits exact quantity");
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "receipt retires once");
@@ -1707,13 +1708,11 @@ mod tests {
         ));
 
         settle_routes(&mut kernel);
-        // Reconciliation must materialize the typed Bind operation at the
-        // exact reached contact, then expose the site for ordinary supply.
-        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 1);
+        // Reconciliation materializes and acknowledges the typed Bind at the
+        // exact reached contact, then admits ordinary supply in the same
+        // planner pass. No completed bind remains to lock the worker or site.
+        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 2);
         assert!(kernel.ecs.get::<Position>(site).is_some());
-        assert!(kernel.supply_allocations().next().is_none());
-        // One unit reconciles the completed bind and one admits the delivery.
-        assert_eq!(kernel.advance_native_work_planner(24).unwrap(), 2);
         assert_eq!(kernel.supply_allocations().count(), 1);
     }
 
@@ -2118,11 +2117,12 @@ mod tests {
             .get_mut::<WorkParticipation>(worker)
             .unwrap()
             .automatic = true;
+        restored.refresh_planner_index("worker-1");
         restored.ecs.get_mut::<Body>(worker).unwrap().speed = 0.0;
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0);
         assert!(restored.work_attempt(&allocation).is_none());
         restored.ecs.get_mut::<Body>(worker).unwrap().speed = 1.0;
-        assert_eq!(restored.advance_native_work_planner(8).unwrap(), 1);
+        assert_eq!(restored.advance_native_work_planner(restored.revision).unwrap(), 1);
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // deposit
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // retire

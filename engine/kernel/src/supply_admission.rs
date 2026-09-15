@@ -294,6 +294,15 @@ impl Kernel {
                     OwnedByParty {
                         party: party.clone(),
                     },
+                    crate::work_planner::WorkPolicy {
+                        party: party.clone(),
+                        priority: 0,
+                        enabled: true,
+                    },
+                    crate::work_planner::WorkSchedule {
+                        next_review_tick: self.revision,
+                        last_considered: self.revision.saturating_sub(1),
+                    },
                     item.allocation,
                     crate::work_attempt::WorkAttempt {
                         version: crate::work_attempt::CURRENT_VERSION,
@@ -311,6 +320,7 @@ impl Kernel {
                 .id();
             self.ids.insert(item.id.clone(), entity);
             self.known.insert(item.id.clone());
+            self.refresh_planner_index(&item.id);
             self.refresh_supply_index(&item.id);
             self.ecs.entity_mut(item.worker_entity).insert(Destination {
                 x: item.route_destination.x,
