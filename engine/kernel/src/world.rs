@@ -489,6 +489,23 @@ mod process_request_tests {
     }
 
     #[test]
+    fn admission_collision_preflight_leaves_canonical_state_unchanged() {
+        let mut kernel = kernel_with_slot();
+        let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
+        let lot = kernel.ecs.spawn((ExternalId("grain.collision".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id();
+        kernel.ids.insert("grain.collision".into(), lot);
+        kernel.known.insert("grain.collision".into());
+        let collision_id = format!("binding:{process}:grain:grain.collision");
+        let collision = kernel.ecs.spawn(ExternalId(collision_id.clone())).id();
+        kernel.ids.insert(collision_id.clone(), collision);
+        kernel.known.insert(collision_id);
+        kernel.refresh_state_weight();
+        let before = kernel.save_records().unwrap();
+        assert!(kernel.admit_process(&process, "process-v1", "station").is_err());
+        assert_eq!(kernel.save_records().unwrap(), before);
+    }
+
+    #[test]
     fn admitted_binding_reserves_lot_from_ordinary_transfer() {
         let mut kernel = kernel_with_slot();
         let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap();
@@ -4488,34 +4505,24 @@ impl Kernel {
             let Some(lot) = self.ecs.get::<Lot>(*entity) else { continue; };
             if !occupied.contains(id) { lots.insert(id.clone(), lot.clone()); }
         }
-        for input in &definition.inputs {
-            let port = format!("{station_id}:{}", input.port);
-            let matching = lots.values().filter(|lot| lot.container == port && lot.kind == input.material && lot.quantity > 0);
-            let available = if input.policy == crate::staged_process::InputPolicy::WholeLot {
-                matching.any(|lot| lot.quantity == input.quantity)
-            } else {
-                matching.map(|lot| lot.quantity).sum::<u32>() >= input.quantity
-            };
-            if !available {
-                return Ok(PreparedProcessBindings::Waiting);
-            }
+        match crate::staged_process::resolve_bindings_if_ready(&definition, process_id, station_id, &lots)? {
+            crate::staged_process::BindingResolution::Waiting => Ok(PreparedProcessBindings::Waiting),
+            crate::staged_process::BindingResolution::Ready(bindings) => Ok(PreparedProcessBindings::Ready(bindings)),
         }
-        let bindings = crate::staged_process::resolve_bindings(&definition, process_id, station_id, &lots)?;
-        if bindings.is_empty() {
-            return Ok(PreparedProcessBindings::Waiting);
-        }
-        Ok(PreparedProcessBindings::Ready(bindings))
     }
 
     fn publish_process_bindings(&mut self, process_id: &str, bindings: Vec<crate::staged_process::ProcessBinding>) -> Result<String> {
         if !self.process_bindings(process_id).is_empty() {
             return Ok(process_id.into());
         }
-        let added_weight: usize = bindings.iter().map(|binding| crate::staged_process::binding_id(binding).len().saturating_add(128).saturating_add(self.registry.weight("hive.process-binding", &record(binding)))).sum();
-        if self.ids.len().saturating_add(bindings.len()) > 16_384 || self.state_weight.saturating_add(added_weight) > STATE_BYTES { return Err("process binding state capacity".into()); }
-        for binding in bindings {
-            let id = crate::staged_process::binding_id(&binding);
-            if self.ids.contains_key(&id) { return Err("process binding identity collision".into()); }
+        let prepared = bindings.into_iter().map(|binding| (crate::staged_process::binding_id(&binding), binding)).collect::<Vec<_>>();
+        let mut ids = BTreeSet::new();
+        if prepared.iter().any(|(id, _)| !ids.insert(id.clone()) || self.ids.contains_key(id)) {
+            return Err("process binding identity collision".into());
+        }
+        let added_weight: usize = prepared.iter().map(|(id, binding)| id.len().saturating_add(128).saturating_add(self.registry.weight("hive.process-binding", &record(binding)))).sum();
+        if self.ids.len().saturating_add(prepared.len()) > 16_384 || self.state_weight.saturating_add(added_weight) > STATE_BYTES { return Err("process binding state capacity".into()); }
+        for (id, binding) in prepared {
             let entity = self.ecs.spawn((ExternalId(id.clone()), binding)).id();
             self.ids.insert(id.clone(), entity);
             self.known.insert(id);

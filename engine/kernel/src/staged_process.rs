@@ -365,12 +365,21 @@ pub fn binding_id(binding: &ProcessBinding) -> String {
     format!("binding:{}:{}:{}", binding.process, binding.role, binding.lot)
 }
 
-pub fn resolve_bindings(
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum BindingResolution {
+    Waiting,
+    Ready(Vec<ProcessBinding>),
+}
+
+/// Resolve every input with one unique-lot allocation pass. `Waiting` means
+/// the current lots cannot satisfy the complete set of roles; it is an
+/// ordinary retry state, not a malformed definition or world invariant.
+pub fn resolve_bindings_if_ready(
     definition: &ProcessDefinition,
     process: &str,
     station: &str,
     lots: &BTreeMap<String, crate::components::Lot>,
-) -> Result<Vec<ProcessBinding>, String> {
+) -> Result<BindingResolution, String> {
     let mut used = BTreeSet::new();
     let mut result = Vec::new();
     for input in &definition.inputs {
@@ -389,9 +398,21 @@ pub fn resolve_bindings(
             remaining -= quantity;
             if remaining == 0 { break; }
         }
-        if remaining != 0 { return Err(format!("process input is missing material: {}", input.role)); }
+        if remaining != 0 { return Ok(BindingResolution::Waiting); }
     }
-    Ok(result)
+    Ok(BindingResolution::Ready(result))
+}
+
+pub fn resolve_bindings(
+    definition: &ProcessDefinition,
+    process: &str,
+    station: &str,
+    lots: &BTreeMap<String, crate::components::Lot>,
+) -> Result<Vec<ProcessBinding>, String> {
+    match resolve_bindings_if_ready(definition, process, station, lots)? {
+        BindingResolution::Ready(bindings) => Ok(bindings),
+        BindingResolution::Waiting => Err("process input is missing material".into()),
+    }
 }
 
 pub fn validate_bindings(
@@ -715,6 +736,24 @@ mod tests {
         assert_eq!(bindings.iter().map(|binding| binding.quantity).sum::<u32>(), 2);
         assert_eq!(bindings.iter().map(|binding| binding.lot.as_str()).collect::<Vec<_>>(), vec!["malt-a", "malt-b"]);
         validate_bindings(&definition, "process:station:ale", "station", &bindings, &|id| lots.get(id).cloned()).unwrap();
+    }
+
+    #[test]
+    fn readiness_uses_unique_lot_allocation_across_competing_roles() {
+        let mut definition = herbal_ale();
+        definition.inputs = vec![
+            ProcessInput { role: "first".into(), port: "kettle".into(), material: "malt".into(), quantity: 1, policy: InputPolicy::Portion, disposition: InputDisposition::Consume },
+            ProcessInput { role: "second".into(), port: "kettle".into(), material: "malt".into(), quantity: 1, policy: InputPolicy::Portion, disposition: InputDisposition::Consume },
+        ];
+        let one = BTreeMap::from([("malt-a".into(), crate::components::Lot { kind: "malt".into(), quantity: 1, container: "station:kettle".into() })]);
+        assert_eq!(resolve_bindings_if_ready(&definition, "process:station:ale", "station", &one).unwrap(), BindingResolution::Waiting);
+        let two = BTreeMap::from([
+            ("malt-a".into(), crate::components::Lot { kind: "malt".into(), quantity: 1, container: "station:kettle".into() }),
+            ("malt-b".into(), crate::components::Lot { kind: "malt".into(), quantity: 1, container: "station:kettle".into() }),
+        ]);
+        let BindingResolution::Ready(bindings) = resolve_bindings_if_ready(&definition, "process:station:ale", "station", &two).unwrap() else { panic!("two distinct lots must satisfy both roles"); };
+        assert_eq!(bindings.len(), 2);
+        assert_ne!(bindings[0].lot, bindings[1].lot);
     }
 
     #[test]
