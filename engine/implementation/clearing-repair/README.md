@@ -1,5 +1,34 @@
 # Clearing repair implementation packet
 
+## Read first: preserve the accepted creator API
+
+**Levi's explicit direction, September 15: everything that can be expressed with
+`.with()`, `.where()` and `.do()` should use that shape.** Stop introducing a new
+authoring pattern for each capability. Actors compose capabilities with `.with()`;
+capability selections use `.where()` to describe conditions and `.do()` to describe
+intended actions. Inventory, movement, trading, production and other supported
+behaviors follow the same collection and execution contract.
+
+Named predicates and actions remain useful inside that composition. An action
+builder used by `.do()` describes an intent; it does not immediately mutate the
+world. Underlying Rust operations and module boundaries still own their invariants.
+Their existence is not a reason to expose a separate imperative creator API.
+Keep shared batched queries, explicit conflict handling and one authoritative
+mutation owner; fluent syntax alone does not establish these laws.
+
+Before proposing another public pattern, show the concrete operation that cannot
+fit this model and explain why. Do not make Levi rediscover this decision during
+each example or review. Follow [section 10](10-scripted-engine-authoring-audit.md)
+for the collection/execution contract. Inventory-grid and trade examples discussed
+with Levi illustrate this direction; they are not evidence of installed features
+or an expansion of the current Clearing delivery scope.
+
+**Actor/capability follow-through:** [Composition examples and proof obligations](10-scripted-engine-authoring-audit.md#composition-examples-and-proof-obligations)
+records physical backpacks as actors with inventory, atomic consenting trades,
+issued quests as actors with progression, and the limits of forcing every data
+structure into `.where().do()`. These are accepted design examples, not installed
+features or additional prerequisites for shipping the Clearing.
+
 **September 15 implementation handoff:** [Actor lifecycle, relationships and access](12-actor-lifecycle-relations-and-access.md)
 freezes the remaining contracts from the whole-authoring audit: atomic first-join
 creation, independent ownership/membership, native indexed relationships, explicit

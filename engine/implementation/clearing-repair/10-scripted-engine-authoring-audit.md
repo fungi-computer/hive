@@ -1,5 +1,12 @@
 # Scripted engine authoring: Godot, GameMaker and focused comparisons
 
+**Read first:** the [packet's creator API rule](README.md#read-first-preserve-the-accepted-creator-api)
+requires `.with()`, `.where()` and `.do()` wherever that composition fits. Apply
+this to each capability instead of inventing separate public authoring patterns.
+Named predicates/actions support the fluent model; underlying native operations
+continue to enforce ownership and commit laws. New syntax needs a demonstrated
+gap, not merely a new feature example.
+
 September 15, 2026. Personal research and Hive source review at `d71902d8`.
 The definition-building API and cross-behavior batching below are accepted design
 direction, not an installed API or permission to restart paused implementation.
@@ -645,6 +652,161 @@ proof rather than constructing a second demonstration runtime.
 
 The accepted creator shape is the definition builder above. Outcome delivery and
 saved wakes remain lifecycle requirements, not a separate hook framework.
+
+## Composition examples and proof obligations
+
+September 15, accepted discussion with Levi. The examples below specify design
+fit and review obligations; the helper names are pseudocode, not exported APIs.
+They do not expand the current Clearing repair into implementing a backpack UI,
+trading game or quest editor before delivery.
+
+### Actors are things; capabilities supply shared behavior
+
+A physical backpack is an actor with inventory. Inventory itself is a capability
+provided by a module: canonical component data, queries, typed intents and shared
+systems. The module registers its systems once; each actor has independent ECS
+data. No actor receives a private inventory runtime or tick loop.
+
+```ts
+const backpack = actor("backpack")
+  .with(portable)
+  .with(inventory, {
+    grid: { columns: 6, rows: 4 },
+  });
+```
+
+A person carries or equips the backpack through the physical custody owner.
+Dropping or transferring the backpack preserves its identity and its contents;
+items remain inside that same container. A chest can compose the same inventory
+capability. A person's pockets or abstract carrying space may attach inventory
+directly to the person; a separate bag actor is needed when the bag has its own
+identity, equipment relationship or lifecycle. Containment must reject cycles;
+recursive mass accounting must count each physical object once.
+
+Inventory builds on the existing lot/container/transfer owner, not a parallel
+backpack contents list. Optional grid placement adds fit and occupancy constraints
+to that owner. A sword's footprint differs from its world geometry. A pail keeps
+its footprint while its contents affect carried mass. Client placement ghosts
+are temporary UI state; Rust owns committed placement and custody. Equipment is
+a separate attachment/usage concern, not implicitly granted by inventory.
+
+### One creator shape, explicit operations underneath
+
+Actor definitions compose with `.with()`. Shared behaviors select with `.where()`
+and propose actions with `.do()`. Named predicates and action builders are useful
+inside this model. A named action does not immediately mutate the world. UI and
+headless commands enter the existing checked command boundary; behaviors use the
+same prepared queries and intent execution described earlier in this document.
+
+Do not invent an `access()` framework or unexplained `canManage` helper for an
+example. Section 12 owns authentication, explicit operation roles and supported
+access expressions. A `controlledBy(request.player)` predicate denotes a checked
+relationship/identity expression, not team membership and not arbitrary JS
+magically translated into Rust. The authenticated player comes from host context,
+never an untrusted player field supplied by the client. Use the same authored
+policy for availability and execution-time admission. A `.where()` selection is
+not authority by itself. Ordinary TS gameplay predicates still execute within
+the prepared decision phase; distinguish them from native access expressions.
+
+### Trading: consent and one physical exchange
+
+Illustrative behavior over an inventory selection:
+
+```ts
+inventories
+  .where(contains(request.item))
+  .where(controlledBy(request.player))
+  .do(offerTrade({
+    item: request.item,
+    recipient: request.recipient,
+  }));
+```
+
+Drag/drop supplies the requested item and recipient through the ordinary command
+owner. Offering creates a durable offer recording exact item/quantity, source,
+recipient and status; the item stays in its current custody. Acceptance rechecks
+authority, consent, custody, quantity, capacity and optional grid placement in
+one commit. It fails unchanged if the item was moved/consumed or the backpack is
+full. The default offer does not silently reserve goods: any reservation policy
+must use the existing claim owner and define release on decline/cancel/expiry.
+
+For reciprocal trading, both parties approve the same offer revision. Editing
+contributions clears approvals. The exchange commits all transfers and completion
+together, with durable operation identity so repeated acceptance cannot duplicate
+items. Do not implement this as independent remove/add behaviors. No transfer
+permission follows merely from sharing a team or receiving an offer.
+
+### Quests: templates and issued actors
+
+A quest definition is a template. Each issued quest is an actor with explicit
+issuer and recipient references, status, progression and any reward references.
+It need not have a body or sprite. Its existence does not imply a private ticking
+loop, network session or Durable Object. A recipient disconnecting does not remove
+the quest or its people.
+
+```ts
+const terribleErrand = actor("terrible-errand")
+  .with(quest, {
+    title: "Dinner Is Served",
+    objectives: [
+      deliver({ material: moldyBread, quantity: 3, destination: "issuer" }),
+      defeat({ target: monster, using: fryingPan }),
+    ],
+    order: "sequential",
+  });
+
+quests.where(isAccepted).where(currentObjectiveSatisfied).do(advanceObjective);
+quests.where(allObjectivesFinished).do(completeQuest);
+```
+
+Issuing binds the declared issuer/recipient roles to real identities; role names
+are not ambient globals. Objective selectors distinguish content definitions from
+particular actor IDs. Objectives observe committed outcomes: actual delivered
+quantity, a combat result with attacker/weapon identity, or another supported
+fact. Scope contributions to the quest's participants and define when tracking
+starts. Duplicate/replayed outcomes cannot count twice. Use indexed subscriptions
+or the maintained observation lifecycle, not a full event-log scan every tick.
+Progression and its consumed outcome position/identity survive the same durable
+commit. Optional statecharts use the existing progression lifecycle.
+
+Player-authored quests are validated data composed from game-supported objective
+types, parameters and reward policies. This does not authorize uploaded arbitrary
+code. Developers can author additional evaluators in TypeScript through the same
+decision/intent boundary. Existing operation owners execute physical effects.
+
+A reward from a player must name real goods and use explicit escrow/reservation
+through the material owner. A definition mentioning a reward grants no ability to
+mint it. A game-authorized spawn reward is a distinct policy. Completion and reward
+settlement require idempotent durable identity; separately authored cosmetic or
+spawn follow-ups consume a keyed completion outcome and cannot fire every tick.
+
+### Where the fluent model stops
+
+Use `.with()`, `.where()` and `.do()` wherever they fit; do not force ordered recipe
+stages, atomic exchange internals, schemas or statechart transitions into unrelated
+behavior chains. A brewing behavior starts a batch. Recipe data describes delivery,
+attendance, waiting and output stages; the existing native work/progression owners
+execute them. A creature's flee and wander actions share the movement conflict
+policy; chaining predicates does not itself establish precedence.
+
+### Evidence required before claiming the composition works
+
+- **Movement:** wander, danger, flee, safe return; explicit conflict policy,
+  retained route progress and no duplicate movement loop.
+- **Spoilage:** shared capability progression and one authored transition;
+  save/reload preserves amount, physical custody and once-only transformation.
+- **Inventory/trade:** dropped bag retains contents; cycle rejection; concurrent
+  acceptance exchanges once; full destination, revoked access or missing goods
+  changes neither inventory; source and destination constraints are both checked.
+- **Production:** concurrent deliveries, interrupted/resumed stage work, finite
+  inputs and exactly-once output through the same scheduler/material owners.
+- **Quest:** two independently issued instances, correct recipient/role matching,
+  repeated outcomes, disconnect/reload, and exactly-once reward settlement.
+
+These are cross-feature acceptance examples for the architecture, not claims of
+completed implementation. Show authoring code, compiled query/intent ownership
+and actual behavior together. Any example requiring a second scheduler or physical
+truth store exposes a design gap; attractive fluent syntax does not resolve it.
 
 ## Tight feedback loop
 
