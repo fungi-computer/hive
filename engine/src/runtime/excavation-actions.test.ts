@@ -14,6 +14,6 @@ test("excavation uses the shared WorkAttempt boundary", () => {
 test("native work and carried water stay outside authored component definitions", () => {
   assert.equal(isReservedComponent(ExcavationWork.id), true);
   assert.equal(isReservedComponent(LotWater.id), true);
-  const definition = JSON.parse(new TextDecoder().decode(encodeDefinition("test", [ExcavationWork, LotWater])));
+  const definition = JSON.parse(new TextDecoder().decode(encodeDefinition("test", [ExcavationWork, LotWater], [], [])));
   assert.deepEqual(definition.components, []);
 });

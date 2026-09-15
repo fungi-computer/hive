@@ -27,7 +27,7 @@ test("construction authoring cannot choose earned effort, cost or embedded custo
 test("construction state and sealing use reserved native components", () => {
   assert.ok(isReservedComponent(ConstructionSite.id));
   assert.ok(isReservedComponent(SealedContainer.id));
-  const encoded = JSON.parse(new TextDecoder().decode(encodeDefinition("construction", [ConstructionSite, SealedContainer])));
+  const encoded = JSON.parse(new TextDecoder().decode(encodeDefinition("construction", [ConstructionSite, SealedContainer], [], [])));
   assert.deepEqual(encoded.components, []);
 });
 

@@ -419,6 +419,7 @@ test("new TypeScript component and rule persist without rebuilding the kernel", 
           components: { "orchard.ripeness": { amount: 0, ripe: false } },
         },
       ],
+      [],
     ),
   };
   const first = wasmKernelPort(new WasmKernel());
@@ -471,6 +472,7 @@ test("authored intents survive pause restore and rollback with committed-only re
           },
         },
       ],
+      [],
     ),
     commands: {
       set: command({

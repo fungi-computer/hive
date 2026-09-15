@@ -148,7 +148,7 @@ export const encodeDefinition = (
   game: string,
   components: readonly ComponentDefinition<any>[],
   initial: readonly SceneEntity[] = [],
-  materialCatalog: readonly { kind: string; unitVolume: number }[] = [],
+  materialCatalog: readonly { kind: string; unitVolume: number }[],
 ) =>
   new TextEncoder().encode(
     JSON.stringify({

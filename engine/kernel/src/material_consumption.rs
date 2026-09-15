@@ -292,7 +292,7 @@ mod tests {
         if let Some(water) = water {
             lot["hive.lot-water"] = json!({"waterKg":water});
         }
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"consumption","components":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":2,"game":"consumption","components":[],"materialCatalog":[],"initial":[
             {"id":"store","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":20}}},
             {"id":"lot","components":lot}
         ]}).to_string()).unwrap();

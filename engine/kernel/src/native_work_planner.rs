@@ -518,7 +518,7 @@ mod tests {
         ];
         initial.extend(workers);
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"native-supply","components":[],"initial":initial}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":2,"game":"native-supply","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
         let mut definition: serde_json::Value = serde_json::from_str(
             &crate::environment_definition::tests::fixture("construction"),
         )

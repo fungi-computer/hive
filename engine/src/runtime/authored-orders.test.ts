@@ -15,7 +15,7 @@ const Order = component<{stage:string}>("example.order",{version:1,fields:{stage
 const id = entity("order.1");
 const pack: GamePack = {
   id:"authored-orders",version:1,components:[Order],systems:[],
-  definition:encodeDefinition("authored-orders",[Order]),
+  definition:encodeDefinition("authored-orders",[Order], [], []),
   commands:{
     designate:command({title:"Designate order",category:"Test",description:"Create the authored order.",input:emptyInput,writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],creates:[{id,components:{[Order.id]:{stage:"queued"}}}]})}),
     cancel:command({title:"Cancel order",category:"Test",description:"Cancel the authored order.",input:emptyInput,writes:[],lifecycle:[Order],run:()=>({actions:[],writes:[],removes:[id]})}),
