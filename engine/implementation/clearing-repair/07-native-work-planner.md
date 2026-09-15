@@ -218,6 +218,16 @@ reserved future output. Rust does not know the word tree: Goblin definitions bin
 a standing resource to one supported physical transformation and bind the trunk
 item to another. Boulders, carcasses and wreckage use the same mechanics.
 
+The Colony cutover therefore deletes `ColonyTreeOrder`, its `stage/seconds/actor`
+state, and `treeWorkProvider`. The designate command submits one native job for
+the selected finite resource; cancellation addresses that job. Standing/stump
+presentation derives from the source resource's actual remaining quantity and
+Goblin's visual definition. The fallen visual derives from the physical trunk
+lot's definition and location. Performance completion counts depleted sources and
+real output lots, not a copied `ColonyTree.phase`. If a small game-owned marker is
+still useful for species or art selection, it contains only that content identity
+and never duplicates physical or work lifecycle state.
+
 This is the first-class multi-task mechanism also used by construction and brewing.
 It is a small closed, versioned plan of typed task definitions and result bindings,
 not a callback graph, universal state machine or scheduler inside each recipe.
