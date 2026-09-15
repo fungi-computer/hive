@@ -55,13 +55,12 @@ function update(wrap) {
   wrap.querySelector("#perf-wire").textContent = `${metrics.wireBytes.toLocaleString()} B`;
 }
 function mount() {
-  const gameId = `colony-performance-${size}-${workers}`;
   runtime = connectBrowserRuntime({ worker: new Worker(new URL("../runtime/performance-worker-entry.ts", import.meta.url), {
     type: "module", name: `colony-performance:${size}:${workers}`,
   }) });
   const persistence = { online: false, statusLabel: "Local performance run", save() {}, continue() {}, newWorld(callback) { callback(false); } };
   root.className = "hive-shell";
-  createHiveClient({ root, mode: gameId, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
+  createHiveClient({ root, mode: `colony-performance-${size}-${workers}`, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
   const hud = root.querySelector(".hive-hud");
   const rail = document.createElement("div");
   rail.className = "hive-hud-rail";

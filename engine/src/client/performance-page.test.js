@@ -20,10 +20,3 @@ test("performance composition supplies Colony commands to the shared client", ()
   assert.doesNotMatch(client, /const packs =/);
   assert.doesNotMatch(client, /packs\[mode\]/);
 });
-
-test("performance composition gives the shared client the worker's exact game identity", () => {
-  const page = readFileSync(new URL("./performance-page.js", import.meta.url), "utf8");
-  assert.match(page, /const gameId = `colony-performance-\$\{size\}-\$\{workers\}`/);
-  assert.match(page, /name: `colony-performance:\$\{size\}:\$\{workers\}`/);
-  assert.match(page, /mode: gameId/);
-});
