@@ -68,6 +68,18 @@ catalog ID to infer authority. Optional labor configuration may name the party
 relation as its work-pool relation. A zombie needing only movement never installs
 that labor configuration.
 
+The current kernel already represents `Party` as an ECS component on an entity;
+fields such as `PartyMember.party`, `OwnedByParty.party` and the transitional
+`WorkPolicy.party` are references to that actor's stable external identity. Their
+current Rust representation as bare `String` must not become the public or final
+domain model. Introduce checked newtypes such as `PartyId`, `PlayerId`, `TaskId`
+and `EntityId` at parsing/registration boundaries, preserving their compact string
+wire representation where useful. A reference field does not make the referenced
+party a value object or scheduler category. Conversely, giving a party an actor
+identity does not make membership imply ownership, control, work eligibility or
+access. Section F1 replaces the planner's temporary party-equality rule with an
+explicit work-pool relationship and admitted execution context.
+
 ## C. Actor definitions and admitted creation
 
 ### C1. Prepared definitions
