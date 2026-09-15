@@ -112,6 +112,13 @@ something that can be hauled, stored, traded, targeted, abandoned or destroyed,
 that output is an ordinary physical entity. A named result binding refers to the
 exact committed entity; it is not a hidden stage or promised future inventory.
 
+Task identity and target identity are distinct. A task such as `chop trunk-7`
+owns scheduling, progress and retry identity; `trunk-7` remains the separately
+owned physical target. Domain operations validate and mutate their targets while
+the job owner validates task dependencies and result bindings. Early callers that
+used a construction site, process or tree ID as both task and target must be
+removed during the native cutover rather than preserved as another task model.
+
 `supply` is a reusable controller operation: discover an available portion, offer its transport to the existing scheduler, transfer it, and repeat until the destination has its required actual contents. It is not a worker activity that holds a pawn while waiting for materials. It counts actual delivered stock plus valid incoming capacity promises for planning, but it can only complete when the required real stock is present. `perform` dispatches to closed physical effects. Resource-to-item transformation, item-to-items transformation, changing a building's completion state and sowing a plant remain distinct typed effects while sharing the same activity lifecycle, routing, tick progression and completion contract. The engine never dispatches on a content name such as `tree`, `log` or `goblin`.
 
 The initial plan language supports sequencing. Do not implement arbitrary loops/condition code, speculative alternatives or general `parallel` syntax to sound compositional. `supply` has a specific bounded progress loop, with wake reasons and runtime work budget. Later independent branches may be added as an explicit `all` constructor once their resource and completion semantics are proved. No extra assignment service is implied by a plan interpreter.
