@@ -2,7 +2,7 @@ import { colonyConstructionVisuals } from "./colony-construction-visuals";
 import { colonyBrewStationProfiles } from "./colony-brewing-presentation";
 import { ConstructionSite, constructionCell } from "../sdk/construction";
 import { colonyBuildCommand } from "./colony-building";
-import { DeconstructionOrder, queueDeconstruction } from "../sdk/deconstruction-work";
+import { DeconstructionOrder } from "../sdk/deconstruction-work";
 import { command, component, entity, query } from "../sdk/authoring";
 import {
   Emitter,
@@ -367,8 +367,9 @@ export const colonyPack: GamePack = {
         if (!site) throw new Error("Unknown construction site");
         if (site.get(ConstructionSite).phase !== "finished") throw new Error("Construction site is not finished");
         if (context.query(query(DeconstructionOrder)).some((row) => row.get(DeconstructionOrder).site === input.site)) return { creates: [], actions: [], writes: [] };
-        const record = queueDeconstruction(entity(input.site));
-        return { creates: [{ ...record, components: { ...record.components } }], actions: [], writes: [] };
+        const party = context.query(query(OwnedByParty)).find((row) => row.id === input.site)?.get(OwnedByParty).party;
+        if (!party) throw new Error("Construction site has no party owner");
+        return { creates: [], actions: [{ kind: "plan-deconstruction", site: entity(input.site), party }], writes: [] };
       },
     }),
     designateStockpile: colonyStockpileCommand,

@@ -161,6 +161,21 @@ pub struct DeconstructionWork {
     pub seconds: f64,
     pub required_seconds: f64,
 }
+/// Durable deconstruction intent. The shared planner owns attendance while
+/// `DeconstructionWork` owns any earned physical progress.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeconstructionOrder {
+    pub site: String,
+    pub contact_x: f64,
+    pub contact_y: f64,
+    pub contact_z: f64,
+    pub salvage_quantity: u32,
+    pub work_seconds: f64,
+    pub status: String,
+    pub reason: String,
+    pub retry_key: String,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ConstructionTarget {
@@ -531,6 +546,7 @@ pub enum Action {
         party: String,
         target: ConstructionTarget,
     },
+    PlanDeconstruction { site: String, party: String },
     ReplaceFloor { #[serde(rename = "orderId")] order_id: String, #[serde(rename = "existingFloorId")] existing_floor_id: String, #[serde(rename = "desiredCatalog")] desired_catalog: String },
     BindConstructionStage { site: String, contact: Point },
     Move {

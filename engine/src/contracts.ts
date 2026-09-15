@@ -189,6 +189,7 @@ export type ActionRequest =
       readonly open: boolean;
     }
   | { readonly kind: "deconstruct"; readonly worker: EntityId; readonly site: EntityId }
+  | { readonly kind: "plan-deconstruction"; readonly site: EntityId; readonly party: EntityId }
   | {
       readonly kind: "plan-construction";
       readonly catalog: string;

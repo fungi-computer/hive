@@ -171,6 +171,10 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "worker", "site"];
       valid = id(action.worker) && id(action.site);
       break;
+    case "plan-deconstruction":
+      keys = ["kind", "site", "party"];
+      valid = id(action.site) && id(action.party);
+      break;
     case "cancel-work":
       keys = ["kind", "entity"];
       valid = id(action.entity);

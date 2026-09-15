@@ -15,6 +15,50 @@ fn retryable_deconstruction_failure(reason: &str) -> bool {
 }
 
 impl Kernel {
+    pub(super) fn validate_deconstruction_orders(&mut self) -> Result<()> {
+        let mut active_sites = std::collections::BTreeSet::new();
+        let mut query = self.ecs.query::<(Entity, &ExternalId, &DeconstructionOrder)>();
+        for (entity, id, order) in query.iter(&self.ecs) {
+            let owner = self.ecs.get::<OwnedByParty>(entity).ok_or("deconstruction order has no party owner")?;
+            let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).ok_or("deconstruction order has no work policy")?;
+            let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).ok_or("deconstruction order has no work schedule")?;
+            if id.0 != format!("deconstruction-order.{}:{}", order.site.len(), order.site)
+                || owner.party != policy.party || schedule.next_review_tick < schedule.last_considered
+                || (order.status == "complete") == policy.enabled
+            { return Err("invalid saved deconstruction order".into()); }
+            if order.status != "complete" {
+                if !active_sites.insert(order.site.clone()) { return Err("duplicate active deconstruction target".into()); }
+                let site = self.entity(&order.site)?;
+                if self.ecs.get::<ConstructionSite>(site).is_none()
+                    || self.ecs.get::<OwnedByParty>(site).map(|value| value.party.as_str()) != Some(owner.party.as_str())
+                { return Err("deconstruction order target is invalid".into()); }
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn plan_deconstruction(&mut self, site: String, party: String) -> Result<String> {
+        if !crate::components::valid_id(&site) || !crate::components::valid_id(&party) { return Err("invalid deconstruction plan identity".into()); }
+        let site_entity = self.entity(&site)?;
+        let state = self.ecs.get::<ConstructionSite>(site_entity).ok_or("not a construction site")?;
+        if state.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(site_entity).is_none() { return Err("deconstruction requires a finished site".into()); }
+        if self.ecs.get::<OwnedByParty>(site_entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("deconstruction site party mismatch".into()); }
+        let task = format!("deconstruction-order.{}:{site}", site.len());
+        if let Some(entity) = self.ids.get(&task).copied() {
+            let order = self.ecs.get::<DeconstructionOrder>(entity).ok_or("deconstruction identity collision")?;
+            if order.site != site || self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("deconstruction replay mismatch".into()); }
+            return Ok(task);
+        }
+        if self.ids.len() >= 16_384 || !crate::components::valid_id(&task) { return Err("deconstruction state capacity exceeded".into()); }
+        let order = DeconstructionOrder { site, contact_x: 0.0, contact_y: 0.0, contact_z: 0.0, salvage_quantity: 0, work_seconds: 0.0, status: "queued".into(), reason: String::new(), retry_key: String::new() };
+        let entity = self.ecs.spawn((ExternalId(task.clone()), order, OwnedByParty { party: party.clone() },
+            crate::work_planner::WorkPolicy { party, priority: 0, enabled: true },
+            crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
+        self.ids.insert(task.clone(), entity); self.known.insert(task.clone());
+        self.refresh_planner_index(&task); self.refresh_state_weight();
+        Ok(task)
+    }
+
     pub(super) fn validate_deconstruction_work(&mut self) -> Result<()> {
         let mut query = self.ecs.query::<(Entity, &ExternalId, &DeconstructionWork)>();
         for (task_entity, _id, work) in query.iter(&self.ecs) {

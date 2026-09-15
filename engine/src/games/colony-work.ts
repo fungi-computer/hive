@@ -1,4 +1,4 @@
-import { DeconstructionOrder, deconstructionWorkProvider } from "../sdk/deconstruction-work";
+import { DeconstructionOrder } from "../sdk/deconstruction-work";
 import { StagedProcess } from "../sdk/process-supply";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
@@ -980,8 +980,6 @@ export const colonyWorkSystem = createWorkSystem({
     deliveryProvider,
     digProvider,
     (ctx, suspendedActors) => treeWorkProvider(ctx, suspendedActors),
-    (ctx, suspendedActors) =>
-      deconstructionWorkProvider(ctx, ctx.query(query(Worker)).filter((row) => !row.get(Worker).guest).map((row) => row.id), suspendedActors),
     (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
     resourceWorkProvider,
   ],
