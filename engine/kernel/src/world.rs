@@ -994,6 +994,42 @@ mod construction_tests {
         environment.definition = definition.to_string();
     }
 
+    fn install_test_wall_catalog(kernel: &mut Kernel) {
+        use crate::environment_definition::{RemovalRecipe, StructureDefinition, StructureShape};
+        kernel.environment.as_mut().unwrap().structures.insert("test-wall".into(), StructureDefinition {
+            id: "test-wall".into(), shape: StructureShape::Wall { height: 4 },
+            materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0,
+            on_complete: Default::default(), on_remove: RemovalRecipe::default(),
+        });
+    }
+
+    fn install_committed_test_wall(kernel: &mut Kernel, id: &str, edge: crate::structure_geometry::Face, contact: &Point) {
+        let state = ConstructionSite {
+            catalog: "test-wall".into(), target: ConstructionTarget::Edge { edge },
+            seconds: 1.0, phase: ConstructionPhase::Finished,
+        };
+        let entity = kernel.ecs.spawn((ExternalId(id.into()), Container { capacity: 0 }, SealedContainer {}, state,
+            Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }, OwnedByParty { party: "party".into() })).id();
+        kernel.ids.insert(id.into(), entity); kernel.known.insert(id.into()); kernel.contents.insert(id.into(), BTreeSet::new());
+    }
+
+    fn apply_test_walls(kernel: &mut Kernel, walls: Vec<crate::structure_geometry::StaticInstance>) {
+        let prepared = kernel.environment.as_mut().unwrap().world.prepare_structures(walls).unwrap().unwrap();
+        kernel.environment.as_mut().unwrap().world.apply_structures(prepared).unwrap();
+        kernel.refresh_state_weight();
+        kernel.rebuild_physical_indexes(true).unwrap();
+    }
+
+    fn move_worker_to_deconstruction_contact(kernel: &mut Kernel, worker: &str, site: &str) {
+        let rows: serde_json::Value = serde_json::from_str(&kernel.deconstruction_access_json(&serde_json::to_string(&[site]).unwrap()).unwrap()).unwrap();
+        let contact = &rows[0]["contacts"][0];
+        let entity = kernel.entity(worker).unwrap();
+        kernel.ecs.entity_mut(entity).insert(Position {
+            x: contact["x"].as_f64().unwrap(), y: contact["y"].as_f64().unwrap(), z: contact["z"].as_f64().unwrap(), facing: 0.0,
+        });
+        kernel.rebuild_physical_indexes(true).unwrap();
+    }
+
     #[test]
     fn floor_operation_query_reports_invalid_and_waiting_without_inventing_support() {
         let (mut kernel, surface, contact) = world();
@@ -1297,6 +1333,127 @@ mod construction_tests {
         let after = kernel.save_records().unwrap();
         assert_eq!(after.entities, before.entities);
         assert_eq!(after.environment.unwrap().1.terrain, before.environment.unwrap().1.terrain);
+    }
+
+    #[test]
+    fn deconstruction_cancels_only_the_pending_support_cascade_and_preserves_delivered_material() {
+        use crate::environment_definition::{StructureDefinition, StructureShape};
+        use crate::structure_geometry::{Face, FaceAxis, StaticInstance};
+        let (mut kernel, surface, contact) = world();
+        install_test_wall_catalog(&mut kernel);
+        let fixture = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        kernel.environment.as_mut().unwrap().structures.insert("test-fixture".into(), StructureDefinition {
+            id: "test-fixture".into(), shape: StructureShape::Fixture { footprint: vec![[0, 0]] },
+            materials: BTreeMap::new(), ..fixture
+        });
+        let mut floor_two = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        floor_two.id = "floor-two".into();
+        floor_two.materials = [("stone-spoil".into(), 2)].into_iter().collect();
+        kernel.environment.as_mut().unwrap().structures.insert("floor-two".into(), floor_two);
+        let edge = Face { cell: crate::generation::Cell { y: surface.y + 1, ..surface }, axis: FaceAxis::X };
+        let wall = StaticInstance::Wall { id: "root-wall".into(), edge, height: 4 };
+        apply_test_walls(&mut kernel, vec![wall]);
+        install_committed_test_wall(&mut kernel, "root-wall", edge, &contact);
+
+        let upper = crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z };
+        kernel.plan_construction("floor-two".into(), "upper-floor".into(), "party".into(), ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North }).unwrap();
+        kernel.plan_construction("test-fixture".into(), "upper-fixture".into(), "party".into(), ConstructionTarget::Cell { cell: crate::generation::Cell { y: upper.y + 1, ..upper }, orientation: crate::structure_geometry::Cardinal::North }).unwrap();
+        kernel.ecs.entity_mut(kernel.entity("upper-floor").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
+        kernel.transfer("lot.2", "source", "upper-floor", 1).unwrap();
+        let delivered_lot = kernel.contents["upper-floor"].iter().next().copied().unwrap();
+        let carried_source = kernel.prepare_ground_output(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }, "stone-spoil".into(), 1, None, Some("party".into())).unwrap();
+        let carried_ground = carried_source.container.clone();
+        let carried_lot = kernel.publish_material_output(carried_source);
+        let allocation = kernel.reserve_supply_allocation("upper-floor".into(), "material".into(), 1, "party".into(), "stone-spoil".into(), carried_lot.clone(), "upper-floor".into(), 1).unwrap();
+        let moved = kernel.transfer_with_identity_excluding(&carried_lot, &carried_ground, "worker-2", 1, false, Some(&allocation)).unwrap();
+        kernel.ecs.get_mut::<SupplyAllocation>(kernel.entity(&allocation).unwrap()).unwrap().portion = moved.clone();
+        let material_total = kernel.ids.values().filter_map(|entity| kernel.ecs.get::<Lot>(*entity)).map(|lot| u64::from(lot.quantity)).sum::<u64>();
+
+        move_worker_to_deconstruction_contact(&mut kernel, "worker-1", "root-wall");
+        kernel.deconstruct_construction("worker-1", "root-wall").unwrap();
+
+        assert!(!kernel.known.contains("upper-fixture"), "dependent intent must cascade");
+        let retained = kernel.entity("upper-floor").unwrap();
+        assert!(kernel.ecs.get::<ConstructionSite>(retained).is_none());
+        assert!(kernel.ecs.get::<GroundStock>(retained).is_some(), "delivered material becomes ordinary ground stock");
+        assert_eq!(kernel.ecs.get::<Lot>(delivered_lot).unwrap().container, "upper-floor");
+        assert!(!kernel.known.contains(&allocation), "carried reservation is released");
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity(&moved).unwrap()).unwrap().container, "worker-2", "carried material remains with its carrier");
+        assert_eq!(kernel.ids.values().filter_map(|entity| kernel.ecs.get::<Lot>(*entity)).map(|lot| u64::from(lot.quantity)).sum::<u64>(), material_total);
+        assert!(!kernel.work_attempts.contains_key("upper-floor"));
+        kernel.validate_construction_sites().unwrap();
+    }
+
+    #[test]
+    fn deconstruction_preserves_pending_floor_with_alternative_root_support() {
+        use crate::structure_geometry::{Face, FaceAxis, StaticInstance};
+        let (mut kernel, surface, contact) = world();
+        install_test_wall_catalog(&mut kernel);
+        let first_edge = Face { cell: crate::generation::Cell { y: surface.y + 1, ..surface }, axis: FaceAxis::X };
+        let second_edge = Face { cell: crate::generation::Cell { x: surface.x - 1, y: surface.y + 1, z: surface.z }, axis: FaceAxis::X };
+        apply_test_walls(&mut kernel, vec![
+            StaticInstance::Wall { id: "wall-a".into(), edge: first_edge, height: 4 },
+            StaticInstance::Wall { id: "wall-b".into(), edge: second_edge, height: 4 },
+        ]);
+        install_committed_test_wall(&mut kernel, "wall-a", first_edge, &contact);
+        install_committed_test_wall(&mut kernel, "wall-b", second_edge, &contact);
+        let upper = crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z };
+        kernel.plan_construction("floor".into(), "alternative-floor".into(), "party".into(), ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North }).unwrap();
+
+        move_worker_to_deconstruction_contact(&mut kernel, "worker-1", "wall-a");
+        kernel.deconstruct_construction("worker-1", "wall-a").unwrap();
+
+        assert!(kernel.ecs.get::<ConstructionSite>(kernel.entity("alternative-floor").unwrap()).is_some());
+        let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(r#"["alternative-floor"]"#).unwrap()).unwrap();
+        assert_eq!(access[0]["support"], "ready");
+    }
+
+    #[test]
+    fn terrain_excavation_cancels_pending_intent_that_loses_its_root() {
+        use crate::structure_geometry::{Face, FaceAxis};
+        let (mut kernel, surface, contact) = world();
+        install_test_wall_catalog(&mut kernel);
+        let adjacent = crate::generation::Cell { x: surface.x + 1, ..surface };
+        let adjacent_material = kernel.environment.as_mut().unwrap().world.material(adjacent).unwrap();
+        let opened = match kernel.environment.as_mut().unwrap().world.prepare_excavation(adjacent, adjacent_material, 0).unwrap() {
+            crate::terrain_water::ExcavationResult::Prepared(prepared) => prepared,
+            _ => panic!("expected adjacent setup excavation"),
+        };
+        kernel.environment.as_mut().unwrap().world.apply_excavation(opened).unwrap();
+        let edge = Face { cell: crate::generation::Cell { y: surface.y + 1, ..surface }, axis: FaceAxis::X };
+        kernel.plan_construction("test-wall".into(), "terrain-wall".into(), "party".into(), ConstructionTarget::Edge { edge }).unwrap();
+        let expected = kernel.environment.as_mut().unwrap().world.material(surface).unwrap();
+        kernel.environment.as_mut().unwrap().excavation_rules.insert(expected, crate::environment_definition::ExcavationRule {
+            work_seconds: 1.0, output_kind: "stone-spoil".into(), units_per_cell: 1,
+        });
+        let prepared = match kernel.environment.as_mut().unwrap().world.prepare_excavation(surface, expected, 0).unwrap() {
+            crate::terrain_water::ExcavationResult::Prepared(prepared) => prepared,
+            _ => panic!("expected prepared excavation"),
+        };
+        kernel.complete_excavation_at(prepared, material_output::MaterialOutputLocation::Ground {
+            position: Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }, owner_party: Some("party".into()),
+        }).unwrap();
+        assert!(!kernel.known.contains("terrain-wall"));
+        kernel.validate_construction_sites().unwrap();
+    }
+
+    #[test]
+    fn working_construction_losing_material_returns_to_waiting_and_releases_labor() {
+        let (mut kernel, surface, contact) = world();
+        setup(&mut kernel, surface, &contact);
+        let staged_lot = kernel.contents["site-1"].iter().next().and_then(|entity| kernel.ecs.get::<ExternalId>(*entity)).unwrap().0.clone();
+        let consumption = kernel.prepare_material_consumption(&[MaterialPortion { lot: staged_lot, quantity: 1 }]).unwrap();
+        kernel.publish_material_consumption(consumption).unwrap();
+
+        kernel.advance_json(r#"{"delta":1,"writes":[],"actions":[]}"#).unwrap();
+        assert_eq!(kernel.ecs.get::<ConstructionSite>(kernel.entity("site-1").unwrap()).unwrap().phase, ConstructionPhase::Planned);
+        let attempt = kernel.work_attempt("site-1").unwrap();
+        assert!(matches!(attempt.phase, AttemptPhase::Outcome { result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::MissingInputs }, .. }));
+        acknowledge_attempt(&mut kernel, "site-1");
+        assert!(!kernel.work_attempts.contains_key("site-1"));
+        assert!(!kernel.attempts_by_worker.contains_key("worker-1"));
+        assert!(kernel.construction_work_requirement("site-1", "party").unwrap().is_none(), "missing material is waiting, not cancelled");
+        assert!(kernel.ecs.get::<ConstructionSite>(kernel.entity("site-1").unwrap()).is_some());
     }
 
     #[test]
@@ -4237,6 +4394,7 @@ impl Kernel {
         };
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.apply_excavation(excavation)?;
+        self.cancel_structurally_impossible_construction()?;
         // All material admission precedes the terrain commit. There is no
         // fallible material operation between this point and publication.
         Ok(Some(self.publish_material_output(output)))
