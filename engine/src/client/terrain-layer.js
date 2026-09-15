@@ -7,6 +7,7 @@ import { terrainFaceBounds, terrainColumnMap, terrainChunkKey } from "../../../s
 import { project } from "./geometry.js";
 import { registerVisibleTexture, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { planTerrainBandUpdates } from "./terrain-band-plan.js";
+import { reconcileWaterSprites, waterCellKey } from "./water-sprite-reconciler.js";
 
 const WIDTH = 2304,
   HEIGHT = 1536,
@@ -69,7 +70,7 @@ export function createTerrainLayer() {
   container.sortableChildren = true;
   let renderer;
   const bandCache = new Map();
-  let waterItems = [], sortableItems = [], terrainSurfaces = [], previousSurfaces = [];
+  let waterEntries = new Map(), sortableItems = [], terrainSurfaces = [], previousSurfaces = [];
   const waterTile = createWaterTile();
   let screenTransform = terrainScreenTransform({ x: 0, y: 0, zoom: 1 });
   let canonicalCamera, cachedVerticalMetres;
@@ -81,8 +82,8 @@ export function createTerrainLayer() {
     canonicalCamera = undefined;
     cachedVerticalMetres = undefined;
     revision = undefined;
-    for (const item of waterItems) item.destroy();
-    waterItems = [];
+    for (const { sprite } of waterEntries.values()) sprite.destroy();
+    waterEntries.clear();
     sortableItems = [];
     terrainSurfaces = [];
     previousSurfaces = [];
@@ -163,19 +164,31 @@ export function createTerrainLayer() {
       previousSurfaces = frame.surfaces;
       projectionKey = nextProjectionKey;
       sortableItems = sortableItems.filter((item) => item.id.startsWith("terrain:"));
-      for (const item of waterItems) item.destroy();
-      waterItems = [];
+      waterEntries = reconcileWaterSprites(waterEntries, frame.water, {
+        key: waterCellKey,
+        create: () => {
+          const water = new Sprite(waterTile.colorTexture);
+          water.anchor.set(0.5);
+          water.eventMode = "none";
+          container.addChild(water);
+          return water;
+        },
+        update: (water, cell) => {
+          const [x, y, z] = cell.at;
+          const top = (y - 0.5) * frame.verticalMetres +
+            (cell.level / 7) * frame.verticalMetres;
+          const projected = project(x, top, z);
+          water.position.set(projected.x, projected.y);
+        },
+        dispose: water => water.destroy(),
+      });
       for (const cell of frame.water) {
         if (cell.liquidVolumeM3 <= 0) continue;
         const [x, y, z] = cell.at;
         const top = (y - 0.5) * frame.verticalMetres +
           (cell.level / 7) * frame.verticalMetres;
         const projected = project(x, top, z);
-        const water = new Sprite(waterTile.colorTexture);
-        water.anchor.set(0.5);
-        water.position.set(projected.x, projected.y);
-        water.eventMode = "none";
-        waterItems.push(water);
+        const water = waterEntries.get(waterCellKey(cell)).sprite;
         sortableItems.push({
           id: `water:${x}:${y}:${z}`,
           part: "surface",
@@ -188,7 +201,6 @@ export function createTerrainLayer() {
           pickable: false,
           visible: true,
         });
-        container.addChild(water);
       }
     },
     position(camera) {

@@ -10,6 +10,7 @@ test("performance page exposes all fixed size share URLs and worker choices", ()
   assert.match(source, /name: `colony-performance:\$\{size\}:\$\{workers\}`/);
   assert.match(source, /root\.className = "hive-shell"/);
   assert.match(source, /hud\.replaceWith\(rail\)/);
+  assert.match(source, /createPerformancePersistence\(runtime\)/);
 });
 
 test("performance composition supplies Colony commands to the shared client", () => {
