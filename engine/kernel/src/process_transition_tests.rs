@@ -6,7 +6,9 @@ use crate::staged_process::{
     StagedProcess,
 };
 use crate::terrain_atmosphere::{ExteriorPolicy, TerrainAtmosphereConfig};
+use crate::work_planner::WorkParticipation;
 use serde_json::json;
+use std::collections::BTreeSet;
 
 fn herbal_definition() -> ProcessDefinition {
     let input =
@@ -292,6 +294,121 @@ fn fixture(blocked_air: bool) -> Kernel {
     kernel.refresh_state_weight();
     kernel.rebuild_physical_indexes(true).unwrap();
     kernel
+}
+
+#[test]
+fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
+    let mut kernel = fixture(false);
+    let station_position = *kernel.ecs.get::<Position>(kernel.entity("station").unwrap()).unwrap();
+    for port in ["kettle", "hearth", "barm", "keg", "tray"] {
+        let structure = kernel.environment.as_mut().unwrap().structures.get_mut("brew-station").unwrap();
+        structure.on_complete.ports.iter_mut().find(|entry| entry.key == port).unwrap().at_site_contact = true;
+    }
+    let party = kernel.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
+    kernel.ids.insert("party:process".into(), party);
+    kernel.known.insert("party:process".into());
+    kernel.ecs.entity_mut(kernel.entity("station").unwrap()).insert(OwnedByParty { party: "party:process".into() });
+    for port in ["kettle", "hearth", "barm", "keg", "tray"] {
+        kernel.ecs.entity_mut(kernel.entity(&format!("station:{port}")).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+    }
+    let source = kernel.ecs.spawn((
+        ExternalId("process-stock".into()),
+        OwnedByParty { party: "party:process".into() },
+        Position { ..station_position },
+        Container { capacity: 32 },
+        GroundStock {},
+    )).id();
+    kernel.ids.insert("process-stock".into(), source);
+    kernel.known.insert("process-stock".into());
+    kernel.contents.insert("process-stock".into(), BTreeSet::new());
+    for role in ["malt", "water", "mugwort", "wood", "barm", "keg"] {
+        let id = format!("lot:{role}");
+        let entity = kernel.entity(&id).unwrap();
+        let old = kernel.ecs.get::<Lot>(entity).unwrap().container.clone();
+        kernel.contents.get_mut(&old).unwrap().remove(&entity);
+        kernel.ecs.get_mut::<Lot>(entity).unwrap().container = "process-stock".into();
+        kernel.contents.get_mut("process-stock").unwrap().insert(entity);
+    }
+    for (role, quantity) in [("malt", 2), ("water", 2), ("mugwort", 1), ("wood", 1), ("barm", 1), ("keg", 1)] {
+        let id = format!("process-stock:{role}");
+        let entity = kernel.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: "party:process".into() }, Lot {
+            kind: role.into(), quantity, container: "process-stock".into(),
+        })).id();
+        kernel.ids.insert(id, entity);
+        kernel.known.insert(format!("process-stock:{role}"));
+        kernel.contents.get_mut("process-stock").unwrap().insert(entity);
+    }
+    let worker = kernel.ecs.spawn((
+        ExternalId("process-hauler".into()),
+        PartyMember { party: "party:process".into() },
+        WorkParticipation { automatic: true },
+        station_position,
+        Body { speed: 1.0 },
+        Traversal { clearance_cells: 1, max_step_cells: 1 },
+        Container { capacity: 16 },
+    )).id();
+    kernel.ids.insert("process-hauler".into(), worker);
+    kernel.known.insert("process-hauler".into());
+    for index in 1..=5 {
+        let id = format!("process-hauler-{index}");
+        let entity = kernel.ecs.spawn((
+            ExternalId(id.clone()),
+            PartyMember { party: "party:process".into() },
+            WorkParticipation { automatic: true },
+            station_position,
+            Body { speed: 1.0 },
+            Traversal { clearance_cells: 1, max_step_cells: 1 },
+            Container { capacity: 16 },
+        )).id();
+        kernel.ids.insert(id.clone(), entity);
+        kernel.known.insert(id);
+    }
+    let process = kernel.request_process("herbal-ale-v1", "station", &ActionScope::Host).unwrap();
+    assert!(kernel.native_supply_contacts("station:kettle").is_ok());
+    kernel.ecs.entity_mut(kernel.entity(&process).unwrap()).insert(OwnedByParty { party: "party:process".into() });
+    for (id, quantity) in [("partial-keg-a", 2), ("partial-keg-b", 3)] {
+        let entity = kernel.ecs.spawn((ExternalId(id.into()), OwnedByParty { party: "party:process".into() }, Lot {
+            kind: "keg".into(), quantity, container: "station:keg".into(),
+        })).id();
+        kernel.ids.insert(id.into(), entity);
+        kernel.known.insert(id.into());
+        kernel.contents.get_mut("station:keg").unwrap().insert(entity);
+    }
+    let wrong = kernel.ecs.spawn((ExternalId("wrong-keg".into()), OwnedByParty { party: "party:process".into() }, Lot {
+        kind: "keg".into(), quantity: 2, container: "process-stock".into(),
+    })).id();
+    kernel.ids.insert("wrong-keg".into(), wrong);
+    kernel.known.insert("wrong-keg".into());
+    kernel.contents.get_mut("process-stock").unwrap().insert(wrong);
+    kernel.refresh_state_weight();
+
+    let first = kernel.plan_process_supply(&process, "party:process").unwrap();
+    assert!(!first.is_empty());
+    assert_eq!(kernel.plan_process_supply(&process, "party:process").unwrap().len(), 0);
+    assert_eq!(kernel.supply_allocations().map(|(_, allocation)| allocation.quantity).sum::<u32>(), 8);
+    assert!(kernel.supply_allocations().all(|(_, allocation)| allocation.requirement_role != "keg" || allocation.quantity == 1));
+    assert!(kernel.supply_allocations().all(|(_, allocation)| allocation.portion != "wrong-keg"));
+    for port in ["kettle", "hearth", "barm", "keg", "tray"] {
+        kernel.ecs.entity_mut(kernel.entity(&format!("station:{port}")).unwrap()).insert(Position { ..station_position });
+    }
+    let saved = kernel.save_records().unwrap();
+    let mut restored = fixture(false);
+    restored.restore_records(&saved).unwrap();
+    for port in ["kettle", "hearth", "barm", "keg", "tray"] {
+        let structure = restored.environment.as_mut().unwrap().structures.get_mut("brew-station").unwrap();
+        structure.on_complete.ports.iter_mut().find(|entry| entry.key == port).unwrap().at_site_contact = true;
+    }
+    for _ in 0..32 {
+        restored.advance_json(&json!({"delta":0.0,"writes":[],"actions":[]}).to_string()).unwrap();
+        restored.reconcile_supply_allocations().unwrap();
+        if restored.supply_allocations().next().is_none() { break; }
+    }
+    assert!(restored.supply_allocations().next().is_none());
+    for port in ["kettle", "hearth", "barm", "keg"] {
+        assert!(restored.quantity_in_container(&format!("station:{port}")) > 0);
+    }
+    restored.admit_process(&process, "herbal-ale-v1", "station").unwrap();
+    assert_eq!(restored.process_bindings(&process).iter().map(|binding| binding.quantity).sum::<u32>(), 8);
 }
 
 fn admitted() -> (Kernel, String) {

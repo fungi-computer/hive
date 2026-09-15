@@ -8,7 +8,7 @@ use super::Kernel;
 use super::route_query::SearchOutcome;
 use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
-use crate::staged_process::{ProcessPhase, StagedProcess};
+use crate::staged_process::{InputPolicy, ProcessPhase, StagedProcess};
 use crate::work_planner::{MAX_ASSIGNMENTS, WorkParticipation};
 use std::collections::BTreeMap;
 
@@ -21,6 +21,7 @@ struct SupplyRequirement {
     generation: u64,
     party: String,
     material: String,
+    policy: InputPolicy,
     destination: String,
     missing: u32,
 }
@@ -32,6 +33,7 @@ struct SupplySlot {
     lot: String,
     source_position: Position,
     quantity: u32,
+    policy: InputPolicy,
 }
 
 impl Kernel {
@@ -61,12 +63,22 @@ impl Kernel {
             .ok_or("process definition is missing")?
             .definition()
             .clone();
+        let station = self.entity(&state.station)?;
+        let station_site = self.ecs.get::<ConstructionSite>(station).ok_or("process station is not a construction site")?;
+        if station_site.phase != ConstructionPhase::Finished || station_site.catalog != definition.station_catalog
+            || self.ecs.get::<SealedContainer>(station).is_none()
+        {
+            return Err("process station is not a completed sealed matching catalog".into());
+        }
         let generation = u64::from(state.stage_index).saturating_add(1);
         let requirements = definition
             .inputs
             .iter()
             .filter_map(|input| {
                 let destination = format!("{}:{}", state.station, input.port);
+                if self.native_supply_contacts(&destination).is_err() {
+                    return None;
+                }
                 let present = self
                     .contents
                     .get(&destination)
@@ -78,7 +90,14 @@ impl Kernel {
                             && !self.ecs.get::<LotWater>(*entity).is_some_and(|water| water.water_kg > 0.0))
                             .then_some(lot.quantity)
                     })
-                    .sum::<u32>();
+                    .filter(|quantity| input.policy == InputPolicy::Portion || *quantity == input.quantity)
+                    .fold(0_u32, |accepted, quantity| {
+                        if input.policy == InputPolicy::WholeLot && accepted > 0 {
+                            accepted
+                        } else {
+                            accepted.saturating_add(quantity)
+                        }
+                    });
                 let incoming = self
                     .supply_allocations()
                     .filter(|(_, allocation)| {
@@ -99,6 +118,7 @@ impl Kernel {
                     generation,
                     party: party.into(),
                     material: input.material.clone(),
+                    policy: input.policy,
                     destination,
                     missing,
                 })
@@ -184,6 +204,7 @@ impl Kernel {
                     generation: 1,
                     party: party.into(),
                     material: material.clone(),
+                    policy: InputPolicy::Portion,
                     destination: site.into(),
                     missing,
                 })
@@ -239,7 +260,11 @@ impl Kernel {
                             self, lot_id, None,
                         ))
                         .saturating_sub(*prospective_source.get(lot_id).unwrap_or(&0));
-                    (free > 0).then(|| (lot_id.clone(), position, free))
+                    let eligible = match requirement.policy {
+                        InputPolicy::Portion => free > 0,
+                        InputPolicy::WholeLot => free == lot.quantity && lot.quantity == requirement.missing,
+                    };
+                    eligible.then(|| (lot_id.clone(), position, free))
                 })
                 .take(MAX_ASSIGNMENTS)
                 .collect::<Vec<_>>();
@@ -247,7 +272,12 @@ impl Kernel {
             for (lot, source_position, free) in sources {
                 let mut source_remaining = free;
                 while remaining > 0 && source_remaining > 0 && slots.len() < MAX_ASSIGNMENTS {
-                    let quantity = remaining.min(source_remaining).min(MAX_CARRY_PORTION);
+                    let quantity = match requirement.policy {
+                        InputPolicy::Portion => remaining.min(source_remaining).min(MAX_CARRY_PORTION),
+                        InputPolicy::WholeLot if source_remaining == remaining => remaining,
+                        InputPolicy::WholeLot => 0,
+                    };
+                    if quantity == 0 { break; }
                     let index = slots.len();
                     slots.push(SupplySlot {
                         task: format!("supply-slot-{index}"),
@@ -255,6 +285,7 @@ impl Kernel {
                         lot: lot.clone(),
                         source_position,
                         quantity,
+                        policy: requirement.policy,
                     });
                     *prospective_source.entry(lot.clone()).or_default() += quantity;
                     remaining -= quantity;
@@ -329,6 +360,7 @@ impl Kernel {
             let mut remaining = slot.quantity;
             while remaining > 0 && carryable_slots.len() < MAX_ASSIGNMENTS {
                 let quantity = remaining.min(limit);
+                if slot.policy == InputPolicy::WholeLot && quantity != remaining { break; }
                 let mut carryable = slot.clone();
                 carryable.task = format!("supply-slot-{}", carryable_slots.len());
                 carryable.quantity = quantity;
@@ -657,6 +689,7 @@ mod tests {
             generation: 1,
             party: "party".into(),
             material: "stone-spoil".into(),
+            policy: InputPolicy::Portion,
             destination: "site".into(),
             missing: 4,
         };
