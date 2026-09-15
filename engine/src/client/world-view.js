@@ -1,6 +1,33 @@
 // Presentation-only level and cover policy. The server remains authoritative
 // for facts; this module only consumes the already filtered view projection.
 const integer = (value) => Number.isSafeInteger(value);
+export const DESIGNATION_OVERLAY_KINDS = ["work-plans", "storage-areas"];
+export const DEFAULT_DESIGNATION_OVERLAYS = Object.freeze({
+  "work-plans": true,
+  "storage-areas": true,
+});
+
+export function designationOverlayVisible(view, kind) {
+  return view.designationOverlays?.[kind] ?? true;
+}
+
+export function toggleDesignationOverlay(view, kind) {
+  if (!DESIGNATION_OVERLAY_KINDS.includes(kind)) throw new Error("unknown designation overlay");
+  return {
+    ...view,
+    designationOverlays: {
+      ...(view.designationOverlays ?? DEFAULT_DESIGNATION_OVERLAYS),
+      [kind]: !designationOverlayVisible(view, kind),
+    },
+  };
+}
+
+export function visibleDesignationMarks(marks, view) {
+  return (marks ?? []).filter((mark) => designationOverlayVisible(
+    view,
+    mark.kind === "stockpile" ? "storage-areas" : "work-plans",
+  ));
+}
 
 export function createWorldView(options = {}) {
   const range = options.range ?? { min: 0, max: 0 };
@@ -13,6 +40,10 @@ export function createWorldView(options = {}) {
     range: { min: range.min, max: range.max },
     level: current,
     cutaway: Boolean(options.cutaway),
+    designationOverlays: {
+      ...DEFAULT_DESIGNATION_OVERLAYS,
+      ...(options.designationOverlays ?? {}),
+    },
     presentedSurfaces: new Set(options.presentedSurfaces ?? []),
   };
 }

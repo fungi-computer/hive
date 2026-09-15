@@ -30,7 +30,7 @@ import {
   surfaceSubjectAt,
   eligibleSelectedIds,
 } from "./controls.js";
-import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact, createTerrainProjectionCache, terrainLevelRange, setTerrainLevelRange } from "./world-view.js";
+import { createWorldView, setWorldViewLevel, toggleWorldCutaway, toggleDesignationOverlay, designationOverlayVisible, visibleDesignationMarks, projectWorldFact, createTerrainProjectionCache, terrainLevelRange, setTerrainLevelRange } from "./world-view.js";
 import { createActor } from "xstate";
 import { createDefaultHtmlKeymap } from "@opentui/keymap/html";
 import {
@@ -612,6 +612,20 @@ export function createHiveClient({
                 "aria-label": "Toggle cutaway",
                 onClick: () => setCutaway(!state.view.cutaway),
               }, "Cutaway"),
+              React.createElement(Button, {
+                size: "sm",
+                variant: designationOverlayVisible(state.view, "work-plans") ? "secondary" : "outline",
+                "aria-pressed": designationOverlayVisible(state.view, "work-plans"),
+                title: "Show or hide dig, build, planting, chopping, and progress marks",
+                onClick: () => { state.view = toggleDesignationOverlay(state.view, "work-plans"); draw(); renderHud(); },
+              }, "Work plans"),
+              React.createElement(Button, {
+                size: "sm",
+                variant: designationOverlayVisible(state.view, "storage-areas") ? "secondary" : "outline",
+                "aria-pressed": designationOverlayVisible(state.view, "storage-areas"),
+                title: "Show or hide painted stockpile cells",
+                onClick: () => { state.view = toggleDesignationOverlay(state.view, "storage-areas"); draw(); renderHud(); },
+              }, "Storage areas"),
             ),
             aiming && selectedLauncher()
               ? React.createElement(Button, {
@@ -856,7 +870,7 @@ export function createHiveClient({
         markSurfaceSource = displayedTerrain.surfaces;
         markSurfaces = new Map(displayedTerrain.surfaces.map((surface) => [surface.cell.join(","), surface]));
       }
-      for (const mark of state.terrainMarks) {
+      for (const mark of visibleDesignationMarks(state.terrainMarks, state.view)) {
         const surface = markSurfaces.get(mark.cell.join(","));
         if (!surface) continue;
         const [x, y, z] = surface.cell;
@@ -1044,7 +1058,7 @@ export function createHiveClient({
           .rect(-10, -25, 20, 2).fill({ color: 0x253a2d, alpha: 0.9 })
           .rect(-9, -24.5, 18 * bounded, 1).fill(0xefcb7b);
       }
-      entry.progress.visible = Number.isFinite(progress);
+      entry.progress.visible = Number.isFinite(progress) && designationOverlayVisible(state.view, "work-plans");
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
     orderedSprites = spriteSorter.apply([...terrainLayer.sortableItems, ...sortableSprites]);
