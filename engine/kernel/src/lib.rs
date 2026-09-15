@@ -3,6 +3,7 @@ pub mod assign;
 pub mod work_attempt;
 mod work_planner;
 mod work_candidates;
+mod job;
 pub mod collision;
 pub mod generation;
 pub mod terrain;
