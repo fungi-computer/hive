@@ -3387,6 +3387,7 @@ impl Kernel {
         }
         candidate.validate_excavation_work()?;
         candidate.validate_deconstruction_work()?;
+        candidate.validate_deconstruction_orders()?;
         candidate.ground_stock_cleanup_pending = true;
         *self = candidate;
         Ok(())
@@ -3594,6 +3595,7 @@ impl Kernel {
         crate::supply_allocation::validate_relations(&candidate)?;
         candidate.validate_work_attempt_relations()?;
         candidate.validate_deconstruction_work()?;
+        candidate.validate_deconstruction_orders()?;
         *self = candidate;
         Ok(())
     }
@@ -5073,6 +5075,7 @@ impl Kernel {
                 self.plan_construction(catalog, site, party, target)?;
                 Ok(ActionEffect::None)
             }
+            Action::PlanDeconstruction { site, party } => self.plan_deconstruction(site, party).map(ActionEffect::Entity),
             Action::ReplaceFloor { order_id, existing_floor_id, desired_catalog } => {
                 self.replace_floor(order_id, existing_floor_id, desired_catalog)?;
                 Ok(ActionEffect::None)
@@ -5279,6 +5282,10 @@ impl Kernel {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
                 // Planning creates the site identity atomically, so it cannot
                 // be required to exist during scope validation.
+            }
+            Action::PlanDeconstruction { site, party: action_party } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+                targets.push(site.as_str());
             }
             Action::ReplaceFloor { order_id, existing_floor_id, .. } => { targets.push(order_id.as_str()); targets.push(existing_floor_id.as_str()); }
             Action::BindConstructionStage { site, .. } => targets.push(site.as_str()),

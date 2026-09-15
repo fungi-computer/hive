@@ -132,6 +132,8 @@ impl Kernel {
                         }
                     } else if self.ecs.get::<StagedProcess>(self.entity(&task.id)?).is_some() {
                         crate::work_planner::WorkOperation::ProcessAttendance { process: task.id.clone() }
+                    } else if let Some(order) = self.ecs.get::<DeconstructionOrder>(self.entity(&task.id)?).cloned() {
+                        crate::work_planner::WorkOperation::Deconstruction { site: order.site }
                     } else {
                         continue;
                     };
@@ -143,7 +145,25 @@ impl Kernel {
                     )?;
                     progressed += 1;
                 }
-                (_, _) => {
+                (activity, result) => {
+                    if let Some(mut order) = self.ecs.get::<DeconstructionOrder>(self.entity(&task.id)?).cloned() {
+                        match (&activity, &result) {
+                            (crate::work_attempt::ActivityRef::Deconstruction { contact, .. }, crate::work_attempt::WorkOutcome::Completed) => {
+                                order.contact_x = contact.x; order.contact_y = contact.y; order.contact_z = contact.z;
+                                order.status = "complete".into(); order.reason.clear(); order.retry_key.clear();
+                                self.ecs.entity_mut(self.entity(&task.id)?).insert(order);
+                                if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(self.entity(&task.id)?).cloned() {
+                                    self.ecs.entity_mut(self.entity(&task.id)?).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy });
+                                }
+                                self.refresh_planner_index(&task.id);
+                            }
+                            (_, crate::work_attempt::WorkOutcome::Blocked { reason }) => {
+                                order.status = "blocked".into(); order.reason = format!("{reason:?}");
+                                self.ecs.entity_mut(self.entity(&task.id)?).insert(order);
+                            }
+                            _ => {}
+                        }
+                    }
                     self.acknowledge_work_attempt(
                         task.id.clone(),
                         operation.attempt.generation,
@@ -180,6 +200,10 @@ impl Kernel {
                         requirements.push(requirement);
                     }
                 }
+            } else if self.ecs.get::<DeconstructionOrder>(entity).is_some()
+                && let Some(requirement) = self.deconstruction_work_requirement(&task.id, &party)?
+            {
+                requirements.push(requirement);
             }
         }
         progressed += self.assign_native_obligations(&window, &supply_requirements, requirements)?;
@@ -277,11 +301,12 @@ impl Kernel {
                         + (worker.position.z - slot.source_position.z).powi(2)).sqrt(),
                 ),
                 PlanningObligation::Supply(_) => None,
-                PlanningObligation::Labor(requirement) => requirement.contacts.iter().map(|contact| {
+                PlanningObligation::Labor(requirement) if requirement.free_capacity_required <= worker.free_capacity => requirement.contacts.iter().map(|contact| {
                     ((worker.position.x - contact.x).powi(2)
                         + (worker.position.y - contact.y).powi(2)
                         + (worker.position.z - contact.z).powi(2)).sqrt()
                 }).min_by(f64::total_cmp),
+                PlanningObligation::Labor(_) => None,
             }
         };
 
@@ -1101,6 +1126,55 @@ mod tests {
         assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 0);
         assert!(kernel.work_attempt("site").is_none());
         assert!(kernel.supply_allocations().next().is_none());
+    }
+
+    #[test]
+    fn deconstruction_order_uses_native_assignment_and_capacity() {
+        let (mut kernel, _, _) = construction_world_with_capacity(1, 8);
+        let site = kernel.entity("site").unwrap();
+        let state = kernel.ecs.get::<ConstructionSite>(site).unwrap().clone();
+        kernel.ecs.entity_mut(site).insert(ConstructionSite { phase: ConstructionPhase::Finished, ..state });
+        kernel.ecs.entity_mut(site).insert(SealedContainer {});
+        kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap().on_remove.salvage.insert("stone-spoil".into(), 6);
+        let task = kernel.plan_deconstruction("site".into(), "party".into()).unwrap();
+        assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
+        assert!(matches!(
+            &kernel.work_attempt(&task).expect("native planner must assign deconstruction").phase,
+            crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Route { .. }, .. }
+        ));
+
+        let worker = kernel.entity("worker-1").unwrap();
+        kernel.ecs.entity_mut(worker).insert(Container { capacity: 0 });
+        let operation = kernel.work_attempt(&task).unwrap().current_operation().unwrap().clone();
+        kernel.interrupt_work_attempt(task.clone(), operation.attempt.generation, operation.sequence, InterruptCause::Cancelled).unwrap();
+        kernel.acknowledge_work_attempt(task.clone(), operation.attempt.generation, operation.sequence).unwrap();
+        kernel.ecs.entity_mut(kernel.entity(&task).unwrap()).insert(crate::work_planner::WorkSchedule { next_review_tick: 16, last_considered: 8 });
+        kernel.refresh_planner_index(&task);
+        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 0, "salvage capacity is part of eligibility");
+        assert!(kernel.work_attempt(&task).is_none());
+    }
+
+    #[test]
+    fn native_deconstruction_completion_publishes_salvage_once() {
+        let (mut kernel, _, _) = construction_world_with_capacity(1, 8);
+        let site = kernel.entity("site").unwrap();
+        let state = kernel.ecs.get::<ConstructionSite>(site).unwrap().clone();
+        kernel.ecs.entity_mut(site).insert(ConstructionSite { phase: ConstructionPhase::Finished, ..state });
+        kernel.ecs.entity_mut(site).insert(SealedContainer {});
+        kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap().on_remove.salvage.insert("stone-spoil".into(), 6);
+        let task = kernel.plan_deconstruction("site".into(), "party".into()).unwrap();
+        assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
+        settle_routes(&mut kernel);
+        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 1);
+        kernel.advance_deconstruction(100.0).unwrap();
+        assert_eq!(kernel.advance_native_work_planner(24).unwrap(), 1);
+        assert!(!kernel.known.contains("site"));
+        let task_entity = kernel.entity(&task).unwrap();
+        assert_eq!(kernel.ecs.get::<DeconstructionOrder>(task_entity).unwrap().status, "complete");
+        assert_eq!(kernel.ecs.get::<crate::work_planner::WorkPolicy>(task_entity).unwrap().enabled, false);
+        assert_eq!(kernel.quantity_in_container("worker-1"), 6);
+        assert_eq!(kernel.advance_native_work_planner(32).unwrap(), 0);
+        assert_eq!(kernel.quantity_in_container("worker-1"), 6);
     }
 
     #[test]

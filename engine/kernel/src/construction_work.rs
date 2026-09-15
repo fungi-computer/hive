@@ -74,6 +74,30 @@ fn construction_status(
 }
 
 impl Kernel {
+    pub(super) fn deconstruction_work_requirement(
+        &mut self,
+        task: &str,
+        party: &str,
+    ) -> Result<Option<crate::work_planner::WorkRequirement>> {
+        let entity = self.entity(task)?;
+        let Some(order) = self.ecs.get::<DeconstructionOrder>(entity).cloned() else { return Ok(None); };
+        let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned() else { return Ok(None); };
+        let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() else { return Ok(None); };
+        if !policy.enabled || policy.party != party || order.status == "complete" || self.work_attempts.contains_key(task) {
+            return Ok(None);
+        }
+        if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) { return Ok(None); }
+        let rows = self.deconstruction_access_rows(vec![order.site.clone()])?;
+        let Some(access) = rows.into_iter().next() else { return Ok(None); };
+        if access.removal != "ready" || access.contacts.is_empty() { return Ok(None); }
+        Ok(Some(crate::work_planner::WorkRequirement {
+            task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
+            contacts: access.contacts.into_iter().map(|contact| Point { x: contact.x, y: contact.y, z: contact.z, frame: contact.frame }).collect(),
+            free_capacity_required: access.salvage_quantity,
+            operation: crate::work_planner::WorkOperation::Deconstruction { site: order.site },
+        }))
+    }
+
     /// Contribute a ready construction task to the shared labor planner.
     ///
     /// Construction owns support, material readiness, and contact discovery;
@@ -149,6 +173,7 @@ impl Kernel {
             priority: policy.priority,
             schedule,
             contacts,
+            free_capacity_required: 0,
             operation: crate::work_planner::WorkOperation::Construction {
                 site: site.to_owned(),
                 mode: crate::work_attempt::ConstructionMode::Work,
@@ -215,8 +240,7 @@ impl Kernel {
     pub(super) fn construction_access(&mut self, input: &str) -> Result<String> {
         self.construction_access_inner(input)
     }
-    pub(super) fn deconstruction_access(&mut self, input: &str) -> Result<String> {
-        let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid deconstruction access request")?;
+    fn deconstruction_access_rows(&mut self, ids: Vec<String>) -> Result<Vec<DeconstructionAccessRow>> {
         self.ensure_ready()?;
         if ids.is_empty() || ids.len() > 128 || ids.iter().any(|id| !crate::components::valid_id(id)) {
             return Err("deconstruction access needs 1..128 valid site ids".into());
@@ -266,6 +290,11 @@ impl Kernel {
             let salvage_quantity = definition.on_remove.salvage.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("salvage quantity overflow")?;
             rows.push(DeconstructionAccessRow { site, removal, salvage_quantity, work_seconds: definition.work_seconds, contacts });
         }
+        Ok(rows)
+    }
+    pub(super) fn deconstruction_access(&mut self, input: &str) -> Result<String> {
+        let ids: Vec<String> = serde_json::from_str(input).map_err(|_| "invalid deconstruction access request")?;
+        let rows = self.deconstruction_access_rows(ids)?;
         serde_json::to_string(&rows).map_err(|_| "deconstruction access encoding failed".into())
     }
     fn construction_access_inner(&mut self, input: &str) -> Result<String> {

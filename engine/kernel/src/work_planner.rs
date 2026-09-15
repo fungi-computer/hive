@@ -57,6 +57,7 @@ pub(crate) struct WorkRequirement {
     pub priority: u8,
     pub schedule: WorkSchedule,
     pub contacts: Vec<Point>,
+    pub free_capacity_required: u32,
     pub operation: WorkOperation,
 }
 
@@ -71,6 +72,7 @@ pub(crate) struct WorkRequirement {
 pub(crate) enum WorkOperation {
     Construction { site: String, mode: crate::work_attempt::ConstructionMode },
     ProcessAttendance { process: String },
+    Deconstruction { site: String },
 }
 
 impl WorkOperation {
@@ -83,6 +85,10 @@ impl WorkOperation {
             },
             Self::ProcessAttendance { process } => ActivityRef::ProcessAttendance {
                 process: process.clone(),
+                contact: contact.clone(),
+            },
+            Self::Deconstruction { site } => ActivityRef::Deconstruction {
+                site: site.clone(),
                 contact: contact.clone(),
             },
         }
