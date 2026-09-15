@@ -2,7 +2,7 @@ import { colonyPlacement } from "../games/colony-placement.ts";
 import "./client.css";
 import { PIRATE_VISUAL_BINDINGS, CANNON_VISUAL_BINDINGS, COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import "@fungi.computer/caps/styles.css";
-import "@fungi.computer/stipe/fonts.css";
+import "@fungi.computer/stipe/styles.css";
 import { createHiveClient } from "./client.js";
 import { createConnectionChoice } from "./connection-choice.js";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";

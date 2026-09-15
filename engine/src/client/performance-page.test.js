@@ -21,3 +21,8 @@ test("performance composition supplies Colony commands to the shared client", ()
   assert.doesNotMatch(client, /const packs =/);
   assert.doesNotMatch(client, /packs\[mode\]/);
 });
+
+test("performance page is included in the Vite engine entry set", () => {
+  const vite = readFileSync(new URL("../../../vite.config.js", import.meta.url), "utf8");
+  assert.match(vite, /enginePerformance: "engine\/colony-performance\.html"/);
+});

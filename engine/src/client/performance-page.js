@@ -1,6 +1,6 @@
 import "./client.css";
 import "@fungi.computer/caps/styles.css";
-import "@fungi.computer/stipe/fonts.css";
+import "@fungi.computer/stipe/styles.css";
 import { createHiveClient } from "./client.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
