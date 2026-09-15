@@ -1,6 +1,6 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { WorkerRuntime } from "./worker";
-import type { WorkerCommand, WorkerTransportEvent } from "./protocol";
+import type { WorkerCommand, WorkerPlacementCommand, WorkerTransportEvent } from "./protocol";
 import { wasmKernelPort } from "./wasm-kernel";
 import { piratesPack } from "../games/pirates";
 import { colonyServerPack } from "../games/colony";
@@ -11,7 +11,7 @@ import * as generated from "../../generated/hive_kernel.js";
 /** Install the thin browser Worker transport around an already initialized WASM kernel. */
 export function installWorkerRuntime(
   scope: {
-    onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
+    onmessage: ((event: MessageEvent<WorkerCommand | WorkerPlacementCommand>) => void) | null;
     postMessage(message: WorkerTransportEvent): void;
   },
   createKernel: () => KernelPort,
@@ -29,7 +29,7 @@ export function installWorkerRuntime(
 /** Browser Worker entry. The generated binding is the only simulation implementation. */
 export async function bootGeneratedWorker(
   scope: {
-    onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
+    onmessage: ((event: MessageEvent<WorkerCommand | WorkerPlacementCommand>) => void) | null;
     postMessage(message: WorkerTransportEvent): void;
   },
   createKernel: () => KernelPort,
@@ -43,7 +43,7 @@ export async function bootGeneratedWorker(
 }
 
 export async function bootBundledGeneratedWorker(scope: {
-  onmessage: ((event: MessageEvent<WorkerCommand>) => void) | null;
+  onmessage: ((event: MessageEvent<WorkerCommand | WorkerPlacementCommand>) => void) | null;
   postMessage(message: WorkerTransportEvent): void;
 }): Promise<WorkerRuntime> {
   await generated.default();
@@ -51,7 +51,7 @@ export async function bootBundledGeneratedWorker(scope: {
 }
 
 // This module is the browser Worker entry, not a second simulation host.
-const early: MessageEvent<WorkerCommand>[] = [];
+const early: MessageEvent<WorkerCommand | WorkerPlacementCommand>[] = [];
 self.onmessage = (event) => {
   if (early.length >= 128) {
     self.postMessage({ type: "error", message: "worker startup queue full" });

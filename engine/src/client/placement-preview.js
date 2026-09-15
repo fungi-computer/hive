@@ -1,6 +1,31 @@
 import { placementOrientation } from "../sdk/placement.ts";
 import { evaluateDesignation } from "./spatial-designation.js";
 
+/** Own one advisory preview generation so an older async reply cannot repaint a newer gesture. */
+export function createPlacementAdvisory(decide, publish) {
+  let generation = 0;
+  let currentKey = null;
+  return {
+    clear() { generation++; currentKey = null; publish(null); },
+    request(key, query, count) {
+      if (currentKey === key) return;
+      currentKey = key;
+      const requestGeneration = ++generation;
+      publish({ key, status: "checking", count });
+      Promise.resolve(decide(query)).then((result) => {
+        if (requestGeneration !== generation || currentKey !== key) return;
+        const rejected = result.decisions.find((decision) => decision.status === "rejected");
+        publish(rejected
+          ? { key, status: "rejected", reason: rejected.reason, count, revision: result.observationRevision, placementRevision: result.placementRevision }
+          : { key, status: "ready", count, revision: result.observationRevision, placementRevision: result.placementRevision });
+      }, (error) => {
+        if (requestGeneration !== generation || currentKey !== key) return;
+        publish({ key, status: "rejected", reason: error instanceof Error ? error.message : String(error), count });
+      });
+    },
+  };
+}
+
 
 /** Build the exact cells a placement gesture owns. No admission is inferred. */
 export function placementCells({ area, target, anchor, upperCandidates = [] }) {
@@ -25,7 +50,7 @@ export function placementVisualSpec(control, cells, placementVisuals, area) {
 }
 
 /** Reuse bounded sprites and destroy only the sprites owned by this pool. */
-export function syncPlacementGhosts(pool, specs, { art, bindings, resolve, project, zoom, verticalMetres }) {
+export function syncPlacementGhosts(pool, specs, { art, bindings, resolve, project, zoom, verticalMetres, status }) {
   const { visual, facing = 0, cells = [], items = cells.map((cell, index) => ({
     visual: Array.isArray(visual) ? visual[index] : visual,
     facing,
@@ -44,7 +69,8 @@ export function syncPlacementGhosts(pool, specs, { art, bindings, resolve, proje
     entry.sprite.anchor.set(resolved.anchor?.x ?? 0.5, resolved.anchor?.y ?? 1);
     entry.sprite.position.set(point.x * zoom.x + zoom.offsetX, point.y * zoom.y + zoom.offsetY);
     entry.sprite.scale.set(zoom.scale);
-    entry.sprite.alpha = 0.45;
+    entry.sprite.tint = status === "rejected" ? 0xe47c72 : status === "ready" ? 0xbde6a3 : 0xffffff;
+    entry.sprite.alpha = status === "rejected" ? 0.62 : 0.45;
     entry.sprite.visible = true;
   });
 }

@@ -14,9 +14,9 @@ test("building command preserves four stair directions without selecting a conta
     }, { catalog: "timber-stair", orientation, target: { cell: [0, 17, 0] } });
     assert.equal(result.actions.length, 1);
     const action = result.actions[0];
-    assert.equal(action.kind, "plan-construction");
-    if (action.kind !== "plan-construction") throw new Error("wrong action");
-    assert.deepEqual(action.target, { kind: "cell", cell: { x: 0, y: 17, z: 0 }, orientation });
+    assert.equal(action.kind, "plan-constructions");
+    if (action.kind !== "plan-constructions") throw new Error("wrong action");
+    assert.deepEqual(action.plans[0]?.target, { kind: "cell", cell: { x: 0, y: 17, z: 0 }, orientation });
   }
 });
 
@@ -41,9 +41,9 @@ test("structures use one shape-owned support-to-origin convention", () => {
   ] as const) {
     const result = colonyBuildCommand.invoke(context, { catalog, orientation: "east", target: { cell: [2, 17, 3] } });
     const action = result.actions[0];
-    assert.equal(action.kind, "plan-construction");
-    if (action.kind !== "plan-construction") throw new Error("wrong action");
-    assert.deepEqual(action.target, { kind: "cell", cell: { x: 2, y: expectedY, z: 3 }, orientation: "east" });
+    assert.equal(action.kind, "plan-constructions");
+    if (action.kind !== "plan-constructions") throw new Error("wrong action");
+    assert.deepEqual(action.plans[0]?.target, { kind: "cell", cell: { x: 2, y: expectedY, z: 3 }, orientation: "east" });
   }
 });
 
@@ -82,17 +82,18 @@ test("building expands deterministic point, line and rectangle designations with
   };
   const point = colonyBuildCommand.invoke(context, { catalog: "timber-floor", orientation: "north", target: { cell: [0, 17, 0] } });
   assert.equal(point.actions.length, 1);
-  assert.equal(point.actions[0].kind, "plan-construction");
+  assert.equal(point.actions[0].kind, "plan-constructions");
   const line = colonyBuildCommand.invoke(context, { catalog: "timber-wall", target: { edges: [
     { cell: [0, 17, 0], axis: "z" }, { cell: [1, 17, 0], axis: "z" }, { cell: [2, 17, 0], axis: "z" },
   ] } });
-  assert.deepEqual(line.actions.map(action => action.kind === "plan-construction" ? action.target : null), [
+  assert.deepEqual(line.actions.flatMap(action => action.kind === "plan-constructions" ? action.plans.map(plan => plan.target) : []), [
     { kind: "edge", edge: { cell: { x: 0, y: 18, z: 0 }, axis: "z" } },
     { kind: "edge", edge: { cell: { x: 1, y: 18, z: 0 }, axis: "z" } },
     { kind: "edge", edge: { cell: { x: 2, y: 18, z: 0 }, axis: "z" } },
   ]);
   const rectangle = colonyBuildCommand.invoke(context, { catalog: "timber-floor", orientation: "north", target: { area: { start: [0, 17, 0], end: [1, 17, 1] } } });
-  assert.equal(rectangle.actions.length, 4);
+  assert.equal(rectangle.actions.length, 1);
+  assert.equal(rectangle.actions[0].kind === "plan-constructions" ? rectangle.actions[0].plans.length : 0, 4);
 });
 
 test("building skips an already planned site deterministically", () => {
@@ -115,7 +116,7 @@ test("wall edge designation deduplicates and sorts before native planning", () =
     { cell: [-3, 17, 4], axis: "x" },
     { cell: [2, 17, -1], axis: "z" },
   ] } });
-  assert.deepEqual(result.actions.map(action => action.kind === "plan-construction" ? action.target : null), [
+  assert.deepEqual(result.actions.flatMap(action => action.kind === "plan-constructions" ? action.plans.map(plan => plan.target) : []), [
     { kind: "edge", edge: { cell: { x: -3, y: 18, z: 4 }, axis: "x" } },
     { kind: "edge", edge: { cell: { x: 2, y: 18, z: -1 }, axis: "z" } },
   ]);
@@ -136,10 +137,11 @@ test("door uses the same worker-free canonical edge designation as walls", () =>
     query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
   }, { catalog: "timber-door", target: { edges: [{ cell: [-3, 17, 4], axis: "z" }] } });
   assert.deepEqual(result.actions, [{
-    kind: "plan-construction",
+    kind: "plan-constructions",
     party: "party",
-    catalog: "timber-door",
-    site: "colony.build.timber-door.edge.-3.18.4.z",
-    target: { kind: "edge", edge: { cell: { x: -3, y: 18, z: 4 }, axis: "z" } },
+    plans: [{ catalog: "timber-door",
+      site: "colony.build.timber-door.edge.-3.18.4.z",
+      target: { kind: "edge", edge: { cell: { x: -3, y: 18, z: 4 }, axis: "z" } },
+    }],
   }]);
 });

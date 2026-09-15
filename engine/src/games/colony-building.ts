@@ -1,9 +1,10 @@
 import { command, entity, query } from "../sdk/authoring";
-import { ConstructionSite, FloorReplacement, planConstruction, replaceFloor } from "../sdk/construction";
+import { ConstructionSite, FloorReplacement, planConstructions, replaceFloor } from "../sdk/construction";
 import { placementOrientation, structureOriginCell } from "../sdk/placement";
 import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";
 import { z } from "zod";
+import type { PlacementCandidate } from "../contracts";
 
 const cell = z.tuple([
   z.number().int().min(-1_000_000).max(1_000_000),
@@ -53,6 +54,46 @@ function areaCells(area: { start: [number, number, number]; end: [number, number
   return cells;
 }
 
+/** One Goblin target projection shared by the preview and committing command. */
+export function colonyPlacementCandidates(value: unknown): readonly PlacementCandidate[] {
+  const input = buildInput.parse(value);
+  const definition = colonyEnvironment.structures.catalog.find(item => item.id === input.catalog);
+  if (!definition) throw new Error("Unknown building");
+  if ("edges" in input.target) {
+    if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture")
+      throw new Error("Only boundary structures accept edge placement");
+    return [...new Map(input.target.edges.map(edge => [
+      `${edge.cell[0]}:${edge.cell[1]}:${edge.cell[2]}:${edge.axis}`,
+      edge,
+    ])).values()].sort((left, right) =>
+      left.cell[0] - right.cell[0]
+      || left.cell[1] - right.cell[1]
+      || left.cell[2] - right.cell[2]
+      || left.axis.localeCompare(right.axis)).map(({ cell: [x, y, z], axis }) => {
+        const targetY = y + 1;
+        if (!Number.isSafeInteger(targetY)) throw new Error("Wall edge height exceeds bounds");
+        return {
+          site: entity(`colony.build.${definition.id}.edge.${x}.${targetY}.${z}.${axis}`),
+          catalog: definition.id,
+          target: { kind: "edge" as const, edge: { cell: { x, y: targetY, z }, axis } },
+        };
+      });
+  }
+  if (definition.shape.kind === "wall" || definition.shape.kind === "aperture")
+    throw new Error("Boundary structures require edge placement");
+  const area = "area" in input.target ? input.target.area : undefined;
+  const cells = area ? areaCells(area) : [input.target.cell];
+  return cells.map(cell => {
+    const orientation = placementOrientation(colonyPlacement[input.catalog]?.alignment ?? "fixed", area, input.orientation);
+    const [x, y, z] = structureOriginCell(definition.shape, cell);
+    return {
+      site: entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`),
+      catalog: definition.id,
+      target: { kind: "cell" as const, cell: { x, y, z }, orientation },
+    };
+  });
+}
+
 /** Player placement chooses content; native admission owns cost and geometry. */
 export const colonyBuildCommand = command({
   title: "Build structure", category: "Construction", description: "Place a construction plan on a visible world surface.",
@@ -75,35 +116,20 @@ export const colonyBuildCommand = command({
     const sites = context.query(query(ConstructionSite));
     const replacements = context.query(query(FloorReplacement));
     if ("edges" in input.target) {
-      if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture") throw new Error("Only boundary structures accept edge placement");
-      const edges = [...new Map(input.target.edges.map(edge => [
-        `${edge.cell[0]}:${edge.cell[1]}:${edge.cell[2]}:${edge.axis}`,
-        edge,
-      ])).values()].sort((left, right) =>
-        left.cell[0] - right.cell[0]
-        || left.cell[1] - right.cell[1]
-        || left.cell[2] - right.cell[2]
-        || left.axis.localeCompare(right.axis));
-      if (sites.length + edges.length > 128) throw new Error("Construction site limit reached");
-      const actions = edges.map(({ cell: [x, y, z], axis }) => {
-        const targetY = y + 1;
-        if (!Number.isSafeInteger(targetY)) throw new Error("Wall edge height exceeds bounds");
-        const id = entity(`colony.build.${definition.id}.edge.${x}.${targetY}.${z}.${axis}`);
-        return planConstruction(id, definition.id, { kind: "edge", edge: { cell: { x, y: targetY, z }, axis } }, context.scope.party);
-      });
-      return { writes: [], actions: actions.filter(action => !sites.some(site => site.id === action.site)) };
+      const candidates = colonyPlacementCandidates(input);
+      if (sites.length + candidates.length > 128) throw new Error("Construction site limit reached");
+      const plans = candidates.filter(candidate => !sites.some(site => site.id === candidate.site));
+      return { writes: [], actions: plans.length ? [planConstructions(context.scope.party, plans)] : [] };
     }
     if (definition.shape.kind === "wall" || definition.shape.kind === "aperture") throw new Error("Boundary structures require edge placement");
-    const area = "area" in input.target ? input.target.area : undefined;
-    const cells = "area" in input.target
-      ? areaCells(input.target.area)
-      : [input.target.cell];
-    if (sites.length + cells.length > 128) throw new Error("Construction site limit reached");
+    const candidates = colonyPlacementCandidates(input);
+    if (sites.length + candidates.length > 128) throw new Error("Construction site limit reached");
     const actions = [];
-    for (const cell of cells) {
-      const orientation = placementOrientation(colonyPlacement[input.catalog]?.alignment ?? "fixed", area, input.orientation);
-      if (!["north", "east", "south", "west"].includes(orientation)) throw new Error("Choose a cardinal building orientation");
-      const [x, y, z] = structureOriginCell(definition.shape, cell);
+    const plans: PlacementCandidate[] = [];
+    for (const candidate of candidates) {
+      if (candidate.target.kind !== "cell") throw new Error("Boundary structures require edge placement");
+      const { x, y, z } = candidate.target.cell;
+      const cell: [number, number, number] = definition.shape.kind === "fixture" ? [x, y - 1, z] : [x, y, z];
       if (definition.shape.kind === "floor") {
         const operation = context.floorOperations([{ cell, desiredCatalog: definition.id }])[0];
         if (operation.kind === "unchanged") continue;
@@ -115,10 +141,10 @@ export const colonyBuildCommand = command({
           continue;
         }
       }
-      const id = entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`);
-      if (sites.some(site => site.id === id)) continue;
-      actions.push(planConstruction(id, definition.id, { kind: "cell", cell: { x, y, z }, orientation }, context.scope.party));
+      if (sites.some(site => site.id === candidate.site)) continue;
+      plans.push(candidate);
     }
+    if (plans.length) actions.push(planConstructions(context.scope.party, plans));
     return { writes: [], actions };
   },
 });

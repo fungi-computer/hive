@@ -614,12 +614,7 @@ pub enum Action {
     UpdateStockpile { party: String, zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
     CancelWork { entity: String },
     Deconstruct { worker: String, site: String },
-    PlanConstruction {
-        catalog: String,
-        site: String,
-        party: String,
-        target: ConstructionTarget,
-    },
+    PlanConstructions { party: String, plans: Vec<ConstructionPlan> },
     PlanExcavation { party: String, prefix: String, start: [i32; 3], end: [i32; 3] },
     CancelExcavation { party: String, area: Option<ExcavationArea>, workers: Vec<String> },
     PlanDeconstruction { site: String, party: String },
@@ -660,6 +655,14 @@ pub enum Action {
         entity: String,
         delta: Vector3,
     },
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ConstructionPlan {
+    pub catalog: String,
+    pub site: String,
+    pub target: ConstructionTarget,
 }
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]

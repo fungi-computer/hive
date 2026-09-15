@@ -200,12 +200,9 @@ This is not completion of C4. Source review found these remaining gaps:
 - stair required crossings/clearance are not yet a first-class compatibility
   fact, so a boundary face crossing the usable stair route and an intermediate
   floor require explicit laws and any necessary native fact correction;
-- the client ghost does not yet consume a target-specific native decision;
-  command admission prevents the durable impossible job, while a stale-looking
-  ghost can still be rejected after submission;
-- multiple plan-construction actions are applied sequentially and return separate
-  action results. The required order-independent whole-selection semantics have
-  not been proved or implemented as one native batch decision;
+- the client ghost and command now share a target-specific native batch decision;
+  the advisory result carries the runtime construction-geometry epoch, while
+  final `plan-constructions` admission rechecks the complete selection atomically;
 - a crafted conflicting pending save is not yet an accepted restore test;
 - no actual multiplayer race or rendered repeated-placement witness has passed.
 

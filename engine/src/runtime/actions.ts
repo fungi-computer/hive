@@ -202,12 +202,12 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "party", "zone", "filterProfile", "priority"];
       valid = id(action.party) && id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
       break;
-    case "plan-construction": {
-      keys = ["kind", "catalog", "site", "party", "target"];
-      valid = id(action.catalog) && id(action.site) && id(action.party)
-        && constructionTarget(action.target);
+    case "plan-constructions":
+      keys = ["kind", "party", "plans"];
+      valid = id(action.party) && Array.isArray(action.plans) && action.plans.length > 0 && action.plans.length <= 256
+        && action.plans.every(plan => record(plan) && exactKeys(plan, ["catalog", "site", "target"])
+          && id(plan.catalog) && id(plan.site) && constructionTarget(plan.target));
       break;
-    }
     case "plan-excavation":
       keys = ["kind", "party", "prefix", "start", "end"];
       valid = id(action.party) && id(action.prefix) && cell(action.start) && cell(action.end);

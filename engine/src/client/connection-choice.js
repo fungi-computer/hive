@@ -161,6 +161,10 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       if (disposed) throw new Error("connection choice disposed");
       current.send(command);
     },
+    placementDecisions(query) {
+      if (disposed) return Promise.reject(new Error("connection choice disposed"));
+      return current.placementDecisions(query);
+    },
     subscribe(listener) {
       if (disposed) throw new Error("connection choice disposed");
       listeners.add(listener);

@@ -17,7 +17,7 @@ const frame = (epoch: number, terrain?: unknown): WorkerTransportEvent => ({
   type: "frame", time: 0, epoch, sequence: epoch + 1, facts: [], cues: [], terrain: terrain as never,
 });
 const baseline = {
-  revision: 4, verticalMetres: 0.5,
+  revision: 4, placementRevision: 4, verticalMetres: 0.5,
   surfaces: [{ cell: [0, 2, 0], material: 1, generatedTop: 2 }],
   structureSurfaces: [{ cell: [0, 4, 0] }], water: [],
 };
@@ -30,7 +30,7 @@ test("local terrain references hydrate geometry and replace it after an epoch", 
   worker.emit(frame(1, baseline));
   const first = events.at(-1);
   assert(first?.type === "frame" && first.terrain);
-  worker.emit(frame(1, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 4, 0], massKg: 1, liquidVolumeM3: 0.001 }] }));
+  worker.emit(frame(1, { revision: 4, placementRevision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 4, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 }] }));
   const reference = events.at(-1);
   assert(reference?.type === "frame" && reference.terrain);
   assert.equal(reference.terrain.surfaces, first.terrain.surfaces);
@@ -50,10 +50,25 @@ test("absent terrain clears local cache and malformed references become errors",
   runtime.subscribe(event => events.push(event));
   worker.emit(frame(1, baseline));
   worker.emit(frame(1, undefined));
-  worker.emit(frame(1, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [] }));
+  worker.emit(frame(1, { revision: 4, placementRevision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [] }));
   assert.equal(events.at(-1)?.type, "error");
   worker.emit(frame(3, baseline));
-  worker.emit(frame(3, { revision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 0, 0], massKg: Infinity, liquidVolumeM3: 0 }] }));
+  worker.emit(frame(3, { revision: 4, placementRevision: 4, verticalMetres: 0.5, surfacesRevision: 4, water: [{ at: [0, 0, 0], level: 1, massKg: Infinity, liquidVolumeM3: 0 }] }));
   assert.equal(events.at(-1)?.type, "error");
+  runtime.dispose();
+});
+
+test("local placement decisions are correlated and query failures stay advisory", async () => {
+  const worker = new FakeWorker();
+  const runtime = connectBrowserRuntime({ worker: worker as unknown as Worker });
+  const candidate = { site: "site:a" as never, catalog: "floor" as never, target: { kind: "cell" as const, cell: { x: 0, y: 0, z: 0 }, orientation: "north" as const } };
+  const first = runtime.placementDecisions({ party: "party" as never, candidates: [candidate] });
+  const request = worker.posted.at(-1) as { requestId: number };
+  worker.emit({ type: "placement-decisions", requestId: request.requestId, observationRevision: 3, nativeRevision: 4, placementRevision: 2, decisions: [{ site: candidate.site, status: "ready" }] });
+  assert.equal((await first).decisions[0]?.status, "ready");
+  const second = runtime.placementDecisions({ party: "party" as never, candidates: [candidate] });
+  const rejected = worker.posted.at(-1) as { requestId: number };
+  worker.emit({ type: "placement-decision-error", requestId: rejected.requestId, message: "unknown construction catalog" });
+  await assert.rejects(second, /unknown construction catalog/);
   runtime.dispose();
 });

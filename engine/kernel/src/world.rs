@@ -511,9 +511,10 @@ mod process_request_tests {
         kernel.ids.insert(collision_id.clone(), collision);
         kernel.known.insert(collision_id);
         kernel.refresh_state_weight();
-        let before = kernel.save_records().unwrap();
+        let placement_revision = kernel.placement_revision;
         assert!(kernel.admit_process(&process, "process-v1", "station").is_err());
-        assert_eq!(kernel.save_records().unwrap().entities, before.entities);
+        assert!(kernel.entity("unsupported-floor").is_err());
+        assert_eq!(kernel.placement_revision, placement_revision, "rejected admission cannot invalidate geometry");
     }
 
     #[test]
@@ -749,6 +750,106 @@ mod construction_tests {
         assert_eq!(kernel.planner_index_rebuilds(), rebuilds);
     }
 
+    fn install_placement_law_structures(kernel: &mut Kernel) {
+        use crate::environment_definition::{StructureDefinition, StructureShape};
+        let base = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
+        for (id, shape) in [
+            ("law-wall", StructureShape::Wall { height: 2 }),
+            ("law-fixture", StructureShape::Fixture { footprint: vec![[0, 0]] }),
+            ("law-stair", StructureShape::Stair { run: 1, rise: 1 }),
+        ] {
+            kernel.environment.as_mut().unwrap().structures.insert(id.into(), StructureDefinition { id: id.into(), shape, ..base.clone() });
+        }
+    }
+
+    fn placement_row(kernel: &mut Kernel, party: &str, candidate: serde_json::Value) -> serde_json::Value {
+        serde_json::from_str::<serde_json::Value>(&kernel.placement_decisions_json(&json!({"party":party,"candidates":[candidate]}).to_string()).unwrap()).unwrap()["decisions"][0].clone()
+    }
+
+    fn assert_ready_then_admitted(mut kernel: Kernel, candidate: serde_json::Value) {
+        assert_eq!(placement_row(&mut kernel, "party", candidate.clone())["status"], "ready");
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-constructions","party":"party","plans":[candidate]}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(response["results"][0]["accepted"], true, "{response}");
+    }
+
+    #[test]
+    fn placement_preview_and_atomic_admission_share_geometry_laws() {
+        for kind in ["floor", "fixture", "wall", "stair"] {
+            let (mut kernel, surface, _) = world();
+            install_placement_law_structures(&mut kernel);
+            let candidate = match kind {
+                "floor" => json!({"site":"preview-floor","catalog":"floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}),
+                "fixture" => json!({"site":"preview-fixture","catalog":"law-fixture","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"orientation":"north"}}),
+                "wall" => json!({"site":"preview-wall","catalog":"law-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}),
+                "stair" => json!({"site":"preview-stair","catalog":"law-stair","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}),
+                _ => unreachable!(),
+            };
+            assert_ready_then_admitted(kernel, candidate);
+        }
+
+        let (mut kernel, surface, _) = world();
+        let impossible = json!({"site":"unsupported-floor","catalog":"floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y+50,"z":surface.z},"orientation":"north"}});
+        let placement_revision = kernel.placement_revision;
+        let preview = placement_row(&mut kernel, "party", impossible.clone());
+        assert_eq!(preview["status"], "rejected");
+        assert!(preview["reason"].as_str().is_some_and(|reason| !reason.is_empty()));
+        let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-constructions","party":"party","plans":[impossible]}}]}).to_string()).unwrap()).unwrap();
+        assert_eq!(response["results"][0]["accepted"], false, "{response}");
+        assert!(kernel.entity("unsupported-floor").is_err());
+        assert_eq!(kernel.placement_revision, placement_revision, "rejected admission cannot invalidate geometry");
+    }
+
+    #[test]
+    fn placement_batches_are_permutation_stable_and_never_cross_party() {
+        let (mut kernel, surface, _) = world();
+        let cells = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x, surface.z), (surface.x + 1, surface.z)]).unwrap();
+        let right = cells[1].as_ref().expect("fixture has adjacent surface").cell;
+        let left = json!({"site":"batch-a","catalog":"floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}});
+        let right = json!({"site":"batch-b","catalog":"floor","target":{"kind":"cell","cell":{"x":right.x,"y":right.y,"z":right.z},"orientation":"north"}});
+        let mut reversed = world().0;
+        let forward: serde_json::Value = serde_json::from_str(&kernel.placement_decisions_json(&json!({"party":"party","candidates":[left.clone(),right.clone()]}).to_string()).unwrap()).unwrap();
+        let backward: serde_json::Value = serde_json::from_str(&reversed.placement_decisions_json(&json!({"party":"party","candidates":[right.clone(),left.clone()]}).to_string()).unwrap()).unwrap();
+        assert!(forward["decisions"].as_array().unwrap().iter().all(|row| row["status"] == "ready"));
+        assert!(backward["decisions"].as_array().unwrap().iter().all(|row| row["status"] == "ready"));
+        kernel.plan_constructions("party".into(), vec![
+            serde_json::from_value(left.clone()).unwrap(), serde_json::from_value(right).unwrap(),
+        ]).unwrap();
+        let entity = kernel.entity("batch-a").unwrap();
+        kernel.ecs.entity_mut(entity).insert(OwnedByParty { party: "other-party".into() });
+        let other = kernel.ecs.spawn((ExternalId("other-party".into()), Party { owner_player: "other-player".into() })).id();
+        kernel.ids.insert("other-party".into(), other); kernel.known.insert("other-party".into());
+        let cross = placement_row(&mut kernel, "party", left);
+        assert_eq!(cross["status"], "rejected");
+        assert_eq!(cross["reason"], "construction site belongs to another party");
+    }
+
+    #[test]
+    fn placement_revision_changes_only_with_canonical_placement_geometry() {
+        let (mut kernel, surface, _) = world();
+        let initial = kernel.placement_revision;
+        kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#).unwrap();
+        assert_eq!(kernel.placement_revision, initial, "an unchanged tick is not placement invalidation");
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan {
+            site: "revision-floor".into(), catalog: "floor".into(),
+            target: ConstructionTarget::Cell { cell: surface, orientation: crate::structure_geometry::Cardinal::North },
+        }]).unwrap();
+        assert_eq!(kernel.placement_revision, initial + 1, "pending occupancy invalidates previews");
+
+        let before_excavation = kernel.placement_revision;
+        let excavation_cell = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 2, surface.z)]).unwrap()[0].as_ref().unwrap().cell;
+        let expected = kernel.environment.as_mut().unwrap().world.surface_cells(&[(excavation_cell.x, excavation_cell.z)]).unwrap()[0].as_ref().unwrap().material;
+        kernel.environment.as_mut().unwrap().excavation_rules.insert(expected, crate::environment_definition::ExcavationRule {
+            work_seconds: 1.0, output_kind: "stone-spoil".into(), units_per_cell: 1,
+        });
+        let crate::terrain_water::ExcavationResult::Prepared(prepared) = kernel.environment.as_mut().unwrap().world.prepare_excavation(excavation_cell, expected, 0).unwrap() else { panic!("fixture excavation must prepare"); };
+        kernel.complete_excavation(prepared, "source".into()).unwrap();
+        assert_eq!(kernel.placement_revision, before_excavation + 1, "support terrain edits invalidate previews");
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.placement_revision, 1, "restore initializes a fresh runtime invalidation frontier");
+    }
+
     #[test]
     fn water_contacts_are_bounded_three_dimensional_and_stable() {
         let (mut kernel, _, _) = world();
@@ -805,7 +906,7 @@ mod construction_tests {
 
     fn setup(kernel: &mut Kernel, surface: crate::generation::Cell, contact: &Point) {
         let batch = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-1","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-1","quantity":1}
         }]});
@@ -868,8 +969,8 @@ mod construction_tests {
 
     fn finish_test_structure(kernel: &mut Kernel, site: &str, catalog: &str, at: crate::generation::Cell, worker: &str) {
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
-            "kind":"plan-construction","party":"party","catalog":catalog,"site":site,"target":{"kind":"cell","cell":{"x":at.x,"y":at.y,"z":at.z},"orientation":"north"}
-        }}]}).to_string()).unwrap()).unwrap();
+            "kind":"plan-constructions","party":"party","plans":[{"catalog":catalog,"site":site,"target":{"kind":"cell","cell":{"x":at.x,"y":at.y,"z":at.z},"orientation":"north"}
+        }]}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true, "{planned}");
         assert!(crate::work_candidates::due_tasks_from_index(
             &kernel.planner_indexes,
@@ -1125,6 +1226,8 @@ mod construction_tests {
         let kettle_before = kernel.ecs.get::<Lot>(kernel.entity(&kettle_lot).unwrap()).unwrap().clone();
         let alternate = kernel.environment.as_ref().unwrap().structures.get("floor").unwrap().clone();
         kernel.environment.as_mut().unwrap().structures.insert("floor-alt".into(), crate::environment_definition::StructureDefinition { id: "floor-alt".into(), ..alternate });
+        let preview = json!({"site":"replace-1","catalog":"floor-alt","target":{"kind":"cell","cell":{"x":brew_support.x,"y":brew_support.y,"z":brew_support.z},"orientation":"north"}});
+        assert_eq!(placement_row(&mut kernel, "party", preview)["status"], "ready", "floor replacement preview must remain lawful beneath furniture");
         let queued: serde_json::Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"replace-floor","orderId":"replace-1","existingFloorId":"floor-brew-0","desiredCatalog":"floor-alt"}}]}"#).unwrap()).unwrap();
         assert_eq!(queued["results"][0]["accepted"], true);
         let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(r#"["replace-1"]"#).unwrap()).unwrap();
@@ -1358,8 +1461,10 @@ mod construction_tests {
         install_committed_test_wall(&mut kernel, "root-wall", edge, &contact);
 
         let upper = crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z };
-        kernel.plan_construction("floor-two".into(), "upper-floor".into(), "party".into(), ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North }).unwrap();
-        kernel.plan_construction("test-fixture".into(), "upper-fixture".into(), "party".into(), ConstructionTarget::Cell { cell: crate::generation::Cell { y: upper.y + 1, ..upper }, orientation: crate::structure_geometry::Cardinal::North }).unwrap();
+        kernel.plan_constructions("party".into(), vec![
+            ConstructionPlan { catalog: "floor-two".into(), site: "upper-floor".into(), target: ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North } },
+            ConstructionPlan { catalog: "test-fixture".into(), site: "upper-fixture".into(), target: ConstructionTarget::Cell { cell: crate::generation::Cell { y: upper.y + 1, ..upper }, orientation: crate::structure_geometry::Cardinal::North } },
+        ]).unwrap();
         kernel.ecs.entity_mut(kernel.entity("upper-floor").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
         kernel.transfer("lot.2", "source", "upper-floor", 1).unwrap();
         let delivered_lot = kernel.contents["upper-floor"].iter().next().copied().unwrap();
@@ -1400,7 +1505,7 @@ mod construction_tests {
         install_committed_test_wall(&mut kernel, "wall-a", first_edge, &contact);
         install_committed_test_wall(&mut kernel, "wall-b", second_edge, &contact);
         let upper = crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z };
-        kernel.plan_construction("floor".into(), "alternative-floor".into(), "party".into(), ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North }).unwrap();
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan { catalog: "floor".into(), site: "alternative-floor".into(), target: ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North } }]).unwrap();
 
         move_worker_to_deconstruction_contact(&mut kernel, "worker-1", "wall-a");
         kernel.deconstruct_construction("worker-1", "wall-a").unwrap();
@@ -1423,7 +1528,7 @@ mod construction_tests {
         };
         kernel.environment.as_mut().unwrap().world.apply_excavation(opened).unwrap();
         let edge = Face { cell: crate::generation::Cell { y: surface.y + 1, ..surface }, axis: FaceAxis::X };
-        kernel.plan_construction("test-wall".into(), "terrain-wall".into(), "party".into(), ConstructionTarget::Edge { edge }).unwrap();
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan { catalog: "test-wall".into(), site: "terrain-wall".into(), target: ConstructionTarget::Edge { edge } }]).unwrap();
         let expected = kernel.environment.as_mut().unwrap().world.material(surface).unwrap();
         kernel.environment.as_mut().unwrap().excavation_rules.insert(expected, crate::environment_definition::ExcavationRule {
             work_seconds: 1.0, output_kind: "stone-spoil".into(), units_per_cell: 1,
@@ -1652,7 +1757,7 @@ mod construction_tests {
     fn construction_waits_without_staged_material_and_repeated_attend_is_idempotent() {
         let (mut kernel, surface, contact) = world();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-1","contact":contact}},
         ]}).to_string()).unwrap()).unwrap();
         assert_eq!(response["results"].as_array().unwrap().len(), 2);
@@ -1667,12 +1772,12 @@ mod construction_tests {
     fn conflicting_plan_creates_no_site_or_container() {
         let (mut kernel, surface, _) = world();
         let plan = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}}]});
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"site-1","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}]}}]});
         let accepted: serde_json::Value = serde_json::from_str(&kernel.advance_json(&plan.to_string()).unwrap()).unwrap();
         assert_eq!(accepted["results"][0]["accepted"], true);
         let before_sites = kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap();
         let conflict = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"site-2","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}}]});
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"site-2","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}]}}]});
         let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&conflict.to_string()).unwrap()).unwrap();
         assert_eq!(rejected["results"][0]["accepted"], false);
         assert_eq!(kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap(), before_sites);
@@ -1683,7 +1788,7 @@ mod construction_tests {
     fn valid_pending_construction_survives_save_restore_validation() {
         let (mut kernel, surface, _) = world();
         let plan = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"pending-floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}}]});
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"pending-floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}]}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&plan.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true);
         let saved = kernel.save_records().unwrap();
@@ -1701,7 +1806,7 @@ mod construction_tests {
         kernel.ecs.entity_mut(bystander).insert(Position { x: (surface.x as f64 + 0.5) * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 });
         kernel.rebuild_physical_indexes(true).unwrap();
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"wall","site":"site-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-wall","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-wall","quantity":1}},
         ]}).to_string()).unwrap()).unwrap();
@@ -1764,7 +1869,7 @@ mod construction_tests {
         environment.definition = definition.to_string();
 
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-air-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"wall","site":"site-air-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-air-wall","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-air-wall","quantity":1}},
         ]}).to_string()).unwrap()).unwrap();
@@ -1788,7 +1893,7 @@ mod construction_tests {
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let target = Point { x: contact.x - 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-edge","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"wall","site":"site-edge","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-edge","contact":contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-edge","quantity":1}},{"scope":{"kind":"host"},"request":
             {"kind":"move","entity":"worker-2","destination":target}
@@ -1810,7 +1915,7 @@ mod construction_tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         let target = Point { x: contact.x + 2.0 * spacing[0], y: contact.y, z: contact.z, frame: None };
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"site-future","target":{"kind":"edge","edge":{"cell":{"x":surface.x+1,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"wall","site":"site-future","target":{"kind":"edge","edge":{"cell":{"x":surface.x+1,"y":surface.y+1,"z":surface.z},"axis":"x"}}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"site-future","contact":next_contact}},{"scope":{"kind":"host"},"request":
             {"kind":"transfer","lot":"lot.1","from":"source","to":"site-future","quantity":1}},{"scope":{"kind":"host"},"request":
             {"kind":"move","entity":"worker-2","destination":target}
@@ -1839,7 +1944,7 @@ mod construction_tests {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"wall","site":"access-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"wall","site":"access-wall","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}]}
         }]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true);
         let site_entity = kernel.entity("access-wall").unwrap();
@@ -1881,7 +1986,7 @@ mod construction_tests {
     fn construction_access_attendance_can_choose_other_contact() {
         let (mut kernel, surface, contact) = world();
         kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-            {"kind":"plan-construction","party":"party","catalog":"floor","site":"access-floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}},{"scope":{"kind":"host"},"request":
+            {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"access-floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}]}},{"scope":{"kind":"host"},"request":
             {"kind":"bind-construction-stage","site":"access-floor","contact":contact}
         }]}).to_string()).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
@@ -1910,9 +2015,9 @@ mod construction_tests {
         let unsupported_before = kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap();
         let unsupported: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
             "delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
-                "kind":"plan-construction","party":"party","catalog":"floor","site":"wall-top-floor",
+                "kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"wall-top-floor",
                 "target":{"kind":"cell","cell":{"x":surface.x,"y":floor_y,"z":surface.z},"orientation":"north"}
-            }}]
+            }]}}]
         }).to_string()).unwrap()).unwrap();
         assert_eq!(unsupported["results"][0]["accepted"], false);
         assert_eq!(kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap(), unsupported_before);
@@ -1931,9 +2036,9 @@ mod construction_tests {
 
         let planned: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
             "delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
-                "kind":"plan-construction","party":"party","catalog":"floor","site":"wall-top-floor",
+                "kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"wall-top-floor",
                 "target":{"kind":"cell","cell":{"x":surface.x,"y":floor_y,"z":surface.z},"orientation":"north"}
-            }}]
+            }]}}]
         }).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true);
         let before: serde_json::Value = serde_json::from_str(
@@ -1981,7 +2086,7 @@ mod construction_tests {
             id: "stair".into(), shape: crate::environment_definition::StructureShape::Stair { run: 2, rise: 2 },
             materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-construction","party":"party","catalog":"stair","site":"access-stair","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"east"}}}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-constructions","party":"party","plans":[{"catalog":"stair","site":"access-stair","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"east"}}]}}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-stair\"]").unwrap()).unwrap();
         let contacts = rows[0]["contacts"].as_array().unwrap();
         assert_eq!(contacts.len(), 4);
@@ -1995,7 +2100,7 @@ mod construction_tests {
             id: "bed".into(), shape: crate::environment_definition::StructureShape::Fixture { footprint: vec![[0, 0], [0, 1]] },
             materials: BTreeMap::new(), work_seconds: 1.0, work_reach_below_cells: 0, on_complete: Default::default(), on_remove: Default::default(),
         });
-        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-construction","party":"party","catalog":"bed","site":"access-bed","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"orientation":"east"}}}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"plan-constructions","party":"party","plans":[{"catalog":"bed","site":"access-bed","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"orientation":"east"}}]}}]}).to_string()).unwrap();
         let rows: serde_json::Value = serde_json::from_str(&kernel.construction_access_json("[\"access-bed\"]").unwrap()).unwrap();
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let occupied = [
@@ -2139,6 +2244,7 @@ pub struct Kernel {
     direct: BTreeMap<Entity, DirectState>,
     game: String,
     revision: u64,
+    placement_revision: u64,
     time: f64,
     next_lot: u64,
     next_projectile: u64,
@@ -2170,6 +2276,12 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    pub(crate) fn bump_placement_revision(&mut self) {
+        self.placement_revision = self.placement_revision.checked_add(1).unwrap_or(1);
+    }
+    fn next_placement_revision(&self) -> u64 {
+        self.placement_revision.checked_add(1).unwrap_or(1)
+    }
     fn validate_resource_sites(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         for (id, entity) in &self.ids {
@@ -2365,6 +2477,7 @@ impl Kernel {
             direct: BTreeMap::new(),
             game: String::new(),
             revision: 0,
+            placement_revision: 0,
             time: 0.0,
             next_lot: 1,
             next_projectile: 1,
@@ -3367,6 +3480,7 @@ impl Kernel {
         candidate.validate_construction_sites()?;
         candidate.validate_resource_sites()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
+        candidate.placement_revision = self.next_placement_revision();
         *self = candidate;
         Ok(())
     }
@@ -3606,6 +3720,10 @@ impl Kernel {
     pub fn construction_readiness_json(&mut self, input: &str) -> Result<String> {
         self.construction_readiness(input)
     }
+
+    pub fn placement_decisions_json(&mut self, input: &str) -> Result<String> {
+        self.placement_decisions(input)
+    }
     pub fn construction_access_json(&mut self, input: &str) -> Result<String> {
         self.construction_access(input)
     }
@@ -3617,6 +3735,7 @@ impl Kernel {
         let environment = self.environment.as_ref().ok_or("world has no environment")?;
         let mut facts = serde_json::to_value(environment.world.facts()?).map_err(|error| error.to_string())?;
         facts["terrainRevision"] = json!(environment.world.terrain_revision());
+        facts["placementRevision"] = json!(self.placement_revision);
         // Bounded saved obligations drive fire presentation; they are never a
         // client clock or an instruction to add more smoke.
         facts["emissions"] = json!(environment.paid_emissions.iter().map(|(source, emission)| {
@@ -3667,6 +3786,7 @@ impl Kernel {
         candidate.validate_deconstruction_work()?;
         candidate.validate_deconstruction_orders()?;
         candidate.ground_stock_cleanup_pending = true;
+        candidate.placement_revision = self.next_placement_revision();
         *self = candidate;
         Ok(())
     }
@@ -3886,6 +4006,7 @@ impl Kernel {
         candidate.validate_deconstruction_work()?;
         candidate.validate_excavation_orders()?;
         candidate.validate_deconstruction_orders()?;
+        candidate.placement_revision = self.next_placement_revision();
         *self = candidate;
         Ok(())
     }
@@ -4117,6 +4238,7 @@ impl Kernel {
                     | Action::DesignateResource { .. }
                     | Action::RequestFieldWater { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
+                    | Action::PlanConstructions { .. }
                     | Action::ReplaceFloor { .. }
                     | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. }
                     | Action::PlanExcavation { .. } | Action::CancelExcavation { .. })
@@ -4400,6 +4522,7 @@ impl Kernel {
         let environment = self.environment.as_mut().ok_or("world has no environment")?;
         environment.apply_excavation(excavation)?;
         self.cancel_structurally_impossible_construction()?;
+        self.bump_placement_revision();
         // All material admission precedes the terrain commit. There is no
         // fallible material operation between this point and publication.
         Ok(Some(self.publish_material_output(output)))
@@ -5404,8 +5527,8 @@ impl Kernel {
                     }
                 Ok(ActionEffect::None)
             }
-            Action::PlanConstruction { catalog, site, party, target } => {
-                self.plan_construction(catalog, site, party, target)?;
+            Action::PlanConstructions { party, plans } => {
+                self.plan_constructions(party, plans)?;
                 Ok(ActionEffect::None)
             }
             Action::PlanExcavation { party, prefix, start, end } => {
@@ -5630,10 +5753,8 @@ impl Kernel {
             }
             Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
             Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
-            Action::PlanConstruction { party: action_party, .. } => {
+            Action::PlanConstructions { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
-                // Planning creates the site identity atomically, so it cannot
-                // be required to exist during scope validation.
             }
             Action::PlanExcavation { party: action_party, .. } | Action::CancelExcavation { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }

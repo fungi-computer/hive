@@ -29,6 +29,30 @@ struct ConstructionAccessRow {
     contacts: Vec<ConstructionAccessContact>,
 }
 
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct PlacementDecisionRequest {
+    party: String,
+    candidates: Vec<ConstructionPlan>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PlacementDecisionRow {
+    site: String,
+    status: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PlacementDecisionResponse {
+    revision: u64,
+    placement_revision: u64,
+    decisions: Vec<PlacementDecisionRow>,
+}
+
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct DeconstructionAccessRow {
@@ -74,6 +98,92 @@ fn construction_status(
 }
 
 impl Kernel {
+    /// Advisory construction admission for the current native revision.
+    ///
+    /// The complete candidate set is checked together so a drag may contain a
+    /// rooted support chain.  Nothing is staged, charged, reserved, or written;
+    /// `plan_construction` repeats the same owner decision when it commits.
+    pub(super) fn placement_decisions(&mut self, input: &str) -> Result<String> {
+        self.ensure_ready()?;
+        let request: PlacementDecisionRequest = serde_json::from_str(input)
+            .map_err(|_| "invalid placement decision request")?;
+        if !crate::components::valid_id(&request.party)
+            || request.candidates.is_empty()
+            || request.candidates.len() > 256
+        {
+            return Err("placement decision needs a party and 1..256 candidates".into());
+        }
+        let party = self.entity(&request.party)?;
+        if self.ecs.get::<Party>(party).is_none() {
+            return Err("construction owner is not a party".into());
+        }
+        let mut seen = BTreeSet::new();
+        if request.candidates.iter().any(|candidate| {
+            !crate::components::valid_id(&candidate.site)
+                || !crate::components::valid_id(&candidate.catalog)
+                || !seen.insert(candidate.site.clone())
+        }) {
+            return Err("placement candidates need unique valid identities".into());
+        }
+
+        let mut proposed = Vec::with_capacity(request.candidates.len());
+        let mut unchanged = BTreeSet::new();
+        let mut rejected = BTreeMap::new();
+        for candidate in &request.candidates {
+            let definition = self.environment.as_ref()
+                .ok_or("construction needs environment")?
+                .structures.get(&candidate.catalog)
+                .ok_or("unknown construction catalog")?;
+            if let Some(entity) = self.ids.get(&candidate.site).copied() {
+                let existing = self.ecs.get::<ConstructionSite>(entity)
+                    .ok_or("placement identity belongs to another entity")?;
+                if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(request.party.as_str()) {
+                    rejected.insert(candidate.site.clone(), "construction site belongs to another party".to_string());
+                    continue;
+                }
+                if existing.catalog != candidate.catalog || existing.target != candidate.target {
+                    rejected.insert(candidate.site.clone(), "placement identity belongs to another construction".to_string());
+                    continue;
+                }
+                unchanged.insert(candidate.site.clone());
+            } else {
+                if matches!(definition.shape, crate::environment_definition::StructureShape::Floor) {
+                    let ConstructionTarget::Cell { cell, .. } = candidate.target else {
+                        rejected.insert(candidate.site.clone(), "floor replacement target must be cell construction".to_string());
+                        continue;
+                    };
+                    let existing_floor = self.environment.as_ref().unwrap().world.structure_instances().into_iter().find_map(|instance| match instance {
+                        crate::structure_geometry::StaticInstance::Floor { id, support } if support == cell => Some(id),
+                        _ => None,
+                    });
+                    if let Some(existing_floor) = existing_floor {
+                        match self.validate_floor_replacement(&existing_floor, &candidate.catalog, Some(&request.party)) {
+                            Ok(()) => { unchanged.insert(candidate.site.clone()); continue; }
+                            Err(reason) => { rejected.insert(candidate.site.clone(), reason); continue; }
+                        }
+                    }
+                }
+                proposed.push(self.construction_instance(&candidate.site, definition, candidate.target)?);
+            }
+        }
+        let pending = self.pending_construction_instances()?;
+        let decision = self.environment.as_mut().ok_or("construction needs environment")?
+            .world.validate_construction_pending(&pending.iter().cloned().chain(proposed).collect::<Vec<_>>());
+        let reason = decision.err();
+        let rows = request.candidates.into_iter().map(|candidate| {
+            let is_unchanged = unchanged.contains(&candidate.site);
+            let candidate_reason = rejected.get(&candidate.site).cloned()
+                .or_else(|| if is_unchanged { None } else { reason.clone() });
+            PlacementDecisionRow {
+                site: candidate.site,
+                status: if candidate_reason.is_some() { "rejected" } else { "ready" },
+                reason: candidate_reason,
+            }
+        }).collect::<Vec<_>>();
+        serde_json::to_string(&PlacementDecisionResponse { revision: self.revision, placement_revision: self.placement_revision, decisions: rows })
+            .map_err(|_| "placement decision encoding failed".into())
+    }
+
     pub(super) fn deconstruction_work_requirement(
         &mut self,
         task: &str,
@@ -227,6 +337,7 @@ impl Kernel {
         let salvage: Vec<_> = definition.on_remove.salvage.iter().map(|(kind, quantity)| self.prepare_material_output(MaterialOutputSpec { container: worker_id.to_owned(), kind: kind.clone(), quantity: *quantity, water_kg: None })).collect::<Result<Vec<_>>>()?;
         self.environment.as_mut().unwrap().apply_structures(prepared)?;
         self.cancel_structurally_impossible_construction()?;
+        self.bump_placement_revision();
         for output in salvage { self.publish_material_output(output); }
         for port_id in port_ids {
             let entity = self.ids.remove(&port_id).ok_or("created port disappeared")?;
@@ -618,41 +729,68 @@ impl Kernel {
         self.registry.validate(name, &value, &self.known)
             .map_err(|reason| format!("finished construction {owner} has invalid component {name}: {reason}"))
     }
-    pub(super) fn plan_construction(&mut self, catalog: String, site: String, party: String, target: ConstructionTarget) -> Result<()> {
+    pub(super) fn plan_constructions(&mut self, party: String, plans: Vec<ConstructionPlan>) -> Result<()> {
         let party_entity = self.entity(&party)?;
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("construction owner is not a party".into()); }
-        if self.ids.len() >= 16384 || !crate::components::valid_id(&site) || self.known.contains(&site) { return Err("invalid or duplicate construction site".into()); }
-        let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&catalog).ok_or("unknown construction catalog")?.clone();
-        let instance = self.construction_instance(&site, &definition, target)?;
+        if plans.is_empty() || plans.len() > 256 || self.ids.len().saturating_add(plans.len()) > 16384 {
+            return Err("construction batch needs 1..256 sites within region capacity".into());
+        }
+        let mut sites = BTreeSet::new();
+        if plans.iter().any(|plan| !crate::components::valid_id(&plan.site) || self.known.contains(&plan.site) || !sites.insert(plan.site.clone())) {
+            return Err("invalid or duplicate construction site".into());
+        }
+        let mut staged = Vec::with_capacity(plans.len());
+        let mut instances = Vec::with_capacity(plans.len());
+        let mut added = 0usize;
+        for plan in plans {
+            let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&plan.catalog).ok_or("unknown construction catalog")?.clone();
+            instances.push(self.construction_instance(&plan.site, &definition, plan.target)?);
+            let site_state = ConstructionSite { catalog: plan.catalog, target: plan.target, seconds: 0.0, phase: ConstructionPhase::Planned };
+            let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
+            added = added.saturating_add(plan.site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
+                + self.registry.weight("hive.construction-site", &record(&site_state))
+                + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))
+                + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }))
+                + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })));
+            staged.push((plan.site, site_state, capacity));
+        }
         let pending = self.pending_construction_instances()?;
         self.environment.as_mut().ok_or("construction needs environment")?
-            .world.admit_construction_placement(instance, &pending)?;
-        let staged = ConstructionSite { catalog, target, seconds: 0.0, phase: ConstructionPhase::Planned };
-        let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
-        let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
-            + self.registry.weight("hive.construction-site", &record(&staged))
-            + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))
-            + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }))
-            + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }));
+            .world.validate_construction_pending(&pending.into_iter().chain(instances).collect::<Vec<_>>())?;
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, staged,
-            crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true },
-            crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
-        self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site.clone(), BTreeSet::new()); self.state_weight += added;
-        self.refresh_planner_index(&site);
+        for (site, site_state, capacity) in staged {
+            let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, site_state,
+                crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true },
+                crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
+            self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site.clone(), BTreeSet::new());
+            self.refresh_planner_index(&site);
+        }
+        self.state_weight += added;
+        self.bump_placement_revision();
+        Ok(())
+    }
+
+    fn validate_floor_replacement(&self, existing_id: &str, desired_catalog: &str, expected_party: Option<&str>) -> Result<()> {
+        let target_entity = self.entity(existing_id)?;
+        let target = self.ecs.get::<ConstructionSite>(target_entity).ok_or("existing floor is not a construction site")?;
+        let owner = self.ecs.get::<OwnedByParty>(target_entity).ok_or("existing floor has no party owner")?;
+        if expected_party.is_some_and(|party| owner.party != party) { return Err("existing floor belongs to another party".into()); }
+        if target.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(target_entity).is_none() { return Err("floor replacement requires a finished floor".into()); }
+        let desired = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(desired_catalog).ok_or("unknown replacement catalog")?;
+        if !matches!(desired.shape, crate::environment_definition::StructureShape::Floor) { return Err("replacement catalog must be a floor".into()); }
+        if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
+        if !matches!(target.target, ConstructionTarget::Cell { .. }) { return Err("floor replacement target must be cell construction".into()); }
         Ok(())
     }
 
     pub(super) fn replace_floor(&mut self, order_id: String, existing_id: String, desired_catalog: String) -> Result<()> {
         if !crate::components::valid_id(&order_id) || self.known.contains(&order_id) { return Err("invalid or duplicate floor replacement order".into()); }
+        self.validate_floor_replacement(&existing_id, &desired_catalog, None)?;
         let target_entity = self.entity(&existing_id)?;
         let target = self.ecs.get::<ConstructionSite>(target_entity).cloned().ok_or("existing floor is not a construction site")?;
         let owner = self.ecs.get::<OwnedByParty>(target_entity).cloned().ok_or("existing floor has no party owner")?;
-        if target.phase != ConstructionPhase::Finished || self.ecs.get::<SealedContainer>(target_entity).is_none() { return Err("floor replacement requires a finished floor".into()); }
         let desired = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&desired_catalog).ok_or("unknown replacement catalog")?;
-        if !matches!(desired.shape, crate::environment_definition::StructureShape::Floor) { return Err("replacement catalog must be a floor".into()); }
         if target.catalog == desired_catalog { return Ok(()); }
-        if self.ids.values().any(|entity| self.ecs.get::<FloorReplacement>(*entity).is_some_and(|replacement| replacement.target_floor == existing_id && replacement.phase != FloorReplacementPhase::Cancelled && replacement.phase != FloorReplacementPhase::Completed)) { return Err("floor already has a replacement order".into()); }
         let ConstructionTarget::Cell { cell, orientation } = target.target else { return Err("floor replacement target must be cell construction".into()); };
         let staged = ConstructionSite { catalog: desired_catalog.clone(), target: ConstructionTarget::Cell { cell, orientation }, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
@@ -809,6 +947,7 @@ impl Kernel {
             if !crate::components::valid_id(&id) || self.known.contains(&id) { return Ok(false); }
         }
         self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
+        self.bump_placement_revision();
         self.publish_material_consumption(prepared_consumption)?;
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
@@ -877,6 +1016,7 @@ impl Kernel {
         }
         let consumed = self.prepare_material_consumption(&portions)?;
         self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
+        self.bump_placement_revision();
         self.publish_material_consumption(consumed)?;
         let mut finished = target;
         finished.catalog = state.catalog.clone();
@@ -923,6 +1063,7 @@ impl Kernel {
         };
         if self.structure_contact_problem(&prepared)?.is_some() { return Err("aperture change would obstruct an actor".into()); }
         self.environment.as_mut().ok_or("structure needs environment")?.apply_structures(prepared)?;
+        self.bump_placement_revision();
         Ok(())
     }
 

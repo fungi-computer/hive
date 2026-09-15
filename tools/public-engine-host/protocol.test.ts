@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { colonyWorldPath, colonyWorldRoute, packFromPath, readColonyJoin, readColonySocketMessage, readCommand, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
+import { colonyWorldPath, colonyWorldRoute, packFromPath, readColonyJoin, readColonySocketMessage, readCommand, readPlacementDecision, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
 
 const token = "a".repeat(64);
 
@@ -34,6 +34,7 @@ test("shared Colony routes separate world routing from participant authority", (
   const world = "b".repeat(64);
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/join`), { world, operation: "join" });
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/observe`), { world, operation: "observe" });
+  assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/placement`), { world, operation: "placement" });
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/socket/client.1`), { world, operation: "socket", socketHandle: "client.1" });
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${"B".repeat(64)}/join`), null);
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/socket`), null);
@@ -42,6 +43,12 @@ test("shared Colony routes separate world routing from participant authority", (
   assert.equal(colonyWorldPath(world, "socket", "client.1"), `/v2/colony/worlds/${world}/socket/client.1`);
   assert.throws(() => colonyWorldPath(world, "socket"), /invalid/);
   assert.throws(() => colonyWorldPath("bad", "observe"), /invalid/);
+});
+
+test("placement decision bodies are strict bounded batches", async () => {
+  const body = { party: "party:1", candidates: [{ site: "site:1", catalog: "floor", target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "north" } }] };
+  assert.deepEqual(await readPlacementDecision(new Request("https://demo.invalid", { method: "POST", body: JSON.stringify(body) })), body);
+  await assert.rejects(readPlacementDecision(new Request("https://demo.invalid", { method: "POST", body: JSON.stringify({ ...body, expectedRevision: 1 }) })));
 });
 
 test("Colony join body carries only the bounded invitation", async () => {

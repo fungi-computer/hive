@@ -80,6 +80,7 @@ test("Colony v2 persists the participant credential before join and keeps it out
       });
       if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
       const body = JSON.parse(String(init?.body));
+      if (String(input).endsWith("/placement")) return Response.json({ observationRevision: 2, nativeRevision: 3, placementRevision: 2, decisions: body.candidates.map(({ site }: { site: string }) => ({ site, status: "ready" })) });
       return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
     },
     createSocket: (url) => { calls.push({ url }); queueMicrotask(() => socket.emit("open", {})); return socket; },
@@ -108,6 +109,10 @@ test("Colony v2 persists the participant credential before join and keeps it out
   assert.equal(socketUrl.includes(credential!), false);
   const auth = JSON.parse(socket.sent.at(-1) ?? "{}");
   assert.equal(auth.credential, credential);
+  const placement = await runtime.placementDecisions({ party: "party:1", candidates: [{ site: "site:1" as never, catalog: "floor" as never, target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "north" } }] });
+  assert.equal(placement.decisions[0]?.status, "ready");
+  const placementCall = calls.find((call) => call.url.endsWith("/placement"));
+  assert.equal(new Headers(placementCall?.init?.headers).get("Authorization"), `Bearer ${credential}`);
   runtime.send({ type: "pause" });
   await wait(10);
   const command = calls.find((call) => call.url.endsWith("/command"));

@@ -1399,7 +1399,7 @@ impl Kernel {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::components::{Lot, SupplyAllocation};
+    use crate::components::{ConstructionPlan, Lot, SupplyAllocation};
     use crate::generation::Cell;
     use crate::structure_geometry::Cardinal;
     use crate::work_attempt::{InterruptCause, WorkAttempt};
@@ -1492,15 +1492,14 @@ mod tests {
                 facing: 0.0,
             });
         kernel
-            .plan_construction(
-                "floor".into(),
-                "site".into(),
-                "party".into(),
-                ConstructionTarget::Cell {
+            .plan_constructions("party".into(), vec![ConstructionPlan {
+                catalog: "floor".into(),
+                site: "site".into(),
+                target: ConstructionTarget::Cell {
                     cell: surface,
                     orientation: Cardinal::North,
                 },
-            )
+            }])
             .unwrap();
         kernel
             .bind_construction_stage("site", contact.clone())
@@ -1811,10 +1810,10 @@ mod tests {
 
         let second_cell = Cell { x: surface.x + 1, ..surface };
         let second_contact = Point { x: contact.x + kernel.environment.as_ref().unwrap().world.cell_spacing_m()[0], ..contact.clone() };
-        kernel.plan_construction(
-            "floor".into(), "site-2".into(), "party".into(),
-            ConstructionTarget::Cell { cell: second_cell, orientation: Cardinal::North },
-        ).unwrap();
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan {
+            catalog: "floor".into(), site: "site-2".into(),
+            target: ConstructionTarget::Cell { cell: second_cell, orientation: Cardinal::North },
+        }]).unwrap();
         kernel.bind_construction_stage("site-2", second_contact).unwrap();
         let source = kernel.entity("source").unwrap();
         let lot = kernel.ecs.spawn((
@@ -1845,15 +1844,14 @@ mod tests {
             ..surface
         };
         kernel
-            .plan_construction(
-                "floor".into(),
-                "site-2".into(),
-                "party".into(),
-                ConstructionTarget::Cell {
+            .plan_constructions("party".into(), vec![ConstructionPlan {
+                catalog: "floor".into(),
+                site: "site-2".into(),
+                target: ConstructionTarget::Cell {
                     cell: second_cell,
                     orientation: Cardinal::North,
                 },
-            )
+            }])
             .unwrap();
         kernel
             .bind_construction_stage(

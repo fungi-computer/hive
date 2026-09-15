@@ -18,6 +18,7 @@ export interface TerrainWaterFact {
 
 export interface TerrainPresentationFrame {
   readonly revision: number;
+  readonly placementRevision: number;
   readonly verticalMetres: number;
   readonly surfaces: readonly TerrainSurface[];
   readonly structureSurfaces: readonly StructureSurface[];
@@ -51,13 +52,16 @@ function columnKey(x: number, z: number): string {
 
 function parseFacts(value: unknown): {
   readonly terrainRevision: number;
+  readonly placementRevision: number;
   readonly cells: readonly TerrainWaterFact[];
 } {
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("invalid environment facts");
-  const facts = value as { readonly terrainRevision?: unknown; readonly cells?: unknown };
+  const facts = value as { readonly terrainRevision?: unknown; readonly placementRevision?: unknown; readonly cells?: unknown };
   if (!Number.isSafeInteger(facts.terrainRevision) || (facts.terrainRevision as number) < 0)
     throw new Error("invalid environment terrain revision");
+  if (!Number.isSafeInteger(facts.placementRevision) || (facts.placementRevision as number) < 0)
+    throw new Error("invalid environment placement revision");
   if (!Array.isArray(facts.cells)) throw new Error("invalid environment water cells");
   const cells = facts.cells.map((raw) => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw))
@@ -85,6 +89,7 @@ function parseFacts(value: unknown): {
   });
   return {
     terrainRevision: facts.terrainRevision as number,
+    placementRevision: facts.placementRevision as number,
     cells: Object.freeze(cells),
   };
 }
@@ -140,6 +145,7 @@ export class TerrainPresentationOwner {
     const water = facts.cells.filter((cell) => this.isExteriorWater(cell));
     return Object.freeze({
       revision: facts.terrainRevision,
+      placementRevision: facts.placementRevision,
       verticalMetres: this.definition.world.verticalMetres,
       surfaces: this.cached.surfaces,
       structureSurfaces: this.cached.structureSurfaces,

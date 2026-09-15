@@ -30,7 +30,7 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
   let structureCalls = 0;
   const port = fakePort(
     () => ({
-      terrainRevision: revision,
+      terrainRevision: revision, placementRevision: revision,
       cells: [
         { at: [0, 4, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 },
         { at: [0, 5, 0], level: 2, massKg: 2, liquidVolumeM3: 0.002 },
@@ -90,7 +90,7 @@ test("physical column changes patch terrain and structures in canonical order", 
   let structureCalls = 0;
   const queried: (readonly [number, number])[][] = [];
   const port = fakePort(
-    () => ({ terrainRevision: revision, cells: [] }),
+    () => ({ terrainRevision: revision, placementRevision: revision, cells: [] }),
     (columns) => {
       surfaceCalls++;
       queried.push([...columns]);
@@ -148,7 +148,7 @@ test("physical column changes patch terrain and structures in canonical order", 
 
 test("structure projection preserves multiple authored heights and rejects duplicates", () => {
   const port = fakePort(
-    () => ({ terrainRevision: 1, cells: [] }),
+    () => ({ terrainRevision: 1, placementRevision: 1, cells: [] }),
     (columns) =>
       columns.map(([x, z]) => ({
         cell: [x, 0, z] as const,
@@ -172,7 +172,7 @@ test("structure projection preserves multiple authored heights and rejects dupli
     ],
   );
   const bad = fakePort(
-    () => ({ terrainRevision: 1, cells: [] }),
+    () => ({ terrainRevision: 1, placementRevision: 1, cells: [] }),
     (columns) =>
       columns.map(([x, z]) => ({
         cell: [x, 0, z] as const,

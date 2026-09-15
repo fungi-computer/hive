@@ -11,6 +11,8 @@ import type {
   AdvanceResult,
   AtmosphereSamples,
   ConstructionReadiness,
+  PlacementCandidate,
+  PlacementDecisionResponse,
   ConstructionAccess,
   DeconstructionAccess,
   ComponentDefinition,
@@ -48,6 +50,7 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   environment_facts(): string;
   atmosphere_samples(json: string): string;
   construction_readiness(json: string): string;
+  placement_decisions(json: string): string;
   construction_access(json: string): string;
   deconstruction_access(json: string): string;
   physical_contacts(json: string): string;
@@ -81,6 +84,15 @@ const entityIdWireSchema = z.custom<EntityId>(
     value.length <= 128 &&
     /^[A-Za-z0-9._:-]+$/.test(value),
 );
+const placementDecisionResponseSchema = z.object({
+  revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  placementRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  decisions: z.array(z.object({
+    site: entityIdWireSchema,
+    status: z.enum(["ready", "rejected"]),
+    reason: z.string().min(1).optional(),
+  }).strict()).min(1).max(256),
+}).strict();
 const workAttemptWireSchema = z.object({
   key: z.object({ task: entityIdWireSchema, generation: z.number().int().positive() }),
   worker: entityIdWireSchema,
@@ -388,6 +400,17 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         throw new Error("construction readiness needs 1..256 sites");
       const value: unknown = JSON.parse(binding.construction_readiness(JSON.stringify(sites)));
       return parseConstructionReadiness(value, sites);
+    },
+    placementDecisions(party: EntityId, candidates: readonly PlacementCandidate[]): PlacementDecisionResponse {
+      if (!entityIdWireSchema.safeParse(party).success || !Array.isArray(candidates)
+          || candidates.length === 0 || candidates.length > 256)
+        throw new Error("placement decision needs a party and 1..256 candidates");
+      const value = placementDecisionResponseSchema.parse(JSON.parse(binding.placement_decisions(JSON.stringify({ party, candidates }))));
+      if (value.decisions.length !== candidates.length
+          || value.decisions.some((decision, index) => decision.site !== candidates[index]?.site)
+          || value.decisions.some(decision => decision.status === "rejected" ? decision.reason === undefined : decision.reason !== undefined))
+        throw new Error("invalid placement decision result");
+      return value;
     },
     constructionAccess(sites): readonly ConstructionAccess[] {
       validateConstructionAccessSites(sites);
