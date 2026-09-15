@@ -120,6 +120,32 @@ or automatic movement that overrides Draft. A drafted actor may retain cargo.
 Undraft schedules recovery before ordinary new carrying work. Cancellation does
 not erase paid goods or earned domain progress.
 
+The allocation entity is the delivery task named by `WorkAttempt`; it does not
+store a worker. After matching, native admission creates the allocation and its
+attempt together. Pickup and deposit use the existing attempt-owned material
+transfer continuation:
+
+```text
+pickup(allocation attempt):
+  require exact allocation portion, quantity and source
+  transfer that portion to the attempt worker while excluding only this reservation
+  if the transfer split the lot, replace allocation.portion with the committed moved-lot ID
+  keep the final destination capacity reserved
+
+deposit(allocation attempt):
+  require exact allocation portion and quantity in the attempt worker
+  require allocation.destination is the transfer destination
+  transfer while excluding only this reservation
+  mark allocation delivered after the physical transfer commits
+```
+
+There is no direct source-to-destination allocation delivery helper: routing,
+pickup custody and deposit contact remain observable physical operations. Dropping
+an interrupted carried portion moves the same lot and keeps the allocation valid.
+Cancelling releases the reservation but does not move that lot. Ordinary transfer,
+consumption, material output, removal and construction cancellation all recheck or
+release affected active reservations at their existing mutation owner.
+
 ## 5. Declarative water, brewing, resources and tree work
 
 The existing process definition already supplies inputs, quantities, roles,
