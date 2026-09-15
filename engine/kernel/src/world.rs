@@ -715,6 +715,26 @@ mod construction_tests {
     }
 
     #[test]
+    fn material_index_follows_output_transfer_consumption_and_restore() {
+        let (mut kernel, _, _) = world();
+        let rebuilds = kernel.planner_index_rebuilds();
+        let lot = kernel.complete_material_output(MaterialOutputSpec {
+            container: "source".into(), kind: "stone-spoil".into(), quantity: 2, water_kg: None,
+        }).unwrap();
+        assert!(crate::work_candidates::material_lots(&kernel.planner_indexes, "stone-spoil", 64).contains(&lot));
+        kernel.transfer(&lot, "source", "worker-1", 1).unwrap();
+        assert!(crate::work_candidates::material_lots(&kernel.planner_indexes, "stone-spoil", 64).contains(&lot));
+        let prepared = kernel.prepare_material_consumption(&[MaterialPortion { lot: lot.clone(), quantity: 1 }]).unwrap();
+        kernel.publish_material_consumption(prepared).unwrap();
+        assert!(!crate::work_candidates::material_lots(&kernel.planner_indexes, "stone-spoil", 64).contains(&lot));
+        assert_eq!(kernel.planner_index_rebuilds(), rebuilds);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert!(!crate::work_candidates::material_lots(&restored.planner_indexes, "stone-spoil", 64).contains(&lot));
+    }
+
+    #[test]
     fn water_contacts_are_bounded_three_dimensional_and_stable() {
         let (mut kernel, _, _) = world();
         assert!(kernel.water_contacts_json("[]").is_err());
@@ -4052,6 +4072,7 @@ impl Kernel {
         self.ids.insert(prepared.lot_id.clone(), entity);
         self.known.insert(prepared.lot_id.clone());
         self.contents.entry(prepared.container).or_default().insert(entity);
+        self.refresh_planner_index(&prepared.lot_id);
         prepared.lot_id
     }
     #[cfg(test)]
@@ -5350,6 +5371,7 @@ impl Kernel {
         self.next_projectile = next_projectile;
         lot.quantity -= 1;
         self.ecs.entity_mut(lot_entity).insert(lot);
+        self.refresh_planner_index(lot_id);
         if let Some(mut local)=self.ecs.get_mut::<Position>(launcher_entity) {
             local.facing += radians/std::f64::consts::FRAC_PI_2-launcher_position.facing;
         }
@@ -5576,13 +5598,17 @@ impl Kernel {
         )
     }
     pub(super) fn publish_material_consumption(&mut self, prepared: PreparedConsumption) -> Result<ConsumedMaterial> {
-        material_consumption::publish(
+        let consumed = material_consumption::publish(
             prepared,
             &self.material_consumption_owner,
             self.revision,
             &mut self.ecs,
             &mut self.state_weight,
-        )
+        )?;
+        for portion in &consumed.portions {
+            self.refresh_planner_index(&portion.lot);
+        }
+        Ok(consumed)
     }
 
     fn drop_lot(&mut self, actor_id: &str, lot_id: &str) -> Result<()> {
@@ -5718,12 +5744,14 @@ impl Kernel {
                 .entry(extra_container)
                 .or_default()
                 .insert(remainder);
+            self.refresh_planner_index(&id);
             if !moved_retains_identity {
                 stock.quantity -= quantity;
                 self.ecs.entity_mut(e).insert(stock);
                 if let Some(remainder) = remainder_water {
                     self.ecs.entity_mut(e).insert(LotWater { water_kg: remainder });
                 }
+                self.refresh_planner_index(lot);
                 self.refresh_state_weight();
                 return Ok(id);
             }
@@ -5737,6 +5765,7 @@ impl Kernel {
         self.contents.entry(from.into()).or_default().remove(&e);
         self.contents.entry(to.into()).or_default().insert(e);
         if source_is_ground_stock { self.ground_stock_cleanup_pending = true; }
+        self.refresh_planner_index(lot);
         self.refresh_state_weight();
         Ok(lot.into())
     }

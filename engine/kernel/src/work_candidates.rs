@@ -1,6 +1,6 @@
 //! Bounded, deterministic candidate/index mechanics used by the native planner.
 use crate::assign::{self, Assignment, Candidate};
-use crate::components::{Body, PartyMember, Position, Traversal};
+use crate::components::{Body, Lot, PartyMember, Position, Traversal};
 use crate::world::route_query::SearchOutcome;
 use crate::work_planner::{PlannerState, WorkParticipation, WorkPolicy, WorkSchedule, DEFAULT_REVIEW_INTERVAL, MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_ELIGIBLE_WORKERS, MAX_TASK_REVIEWS};
 use bevy_ecs::prelude::{Entity, World};
@@ -173,14 +173,20 @@ pub fn assign_verified<Witness>(
 pub struct NativeIndexes {
     pub workers_by_party: BTreeMap<String, Vec<WorkerCandidate>>,
     pub tasks_by_party: BTreeMap<String, Vec<TaskCandidate>>,
+    lots_by_kind: BTreeMap<String, Vec<String>>,
     worker_party_by_id: BTreeMap<String, String>,
     task_party_by_id: BTreeMap<String, String>,
+    lot_kind_by_id: BTreeMap<String, String>,
     rebuilds: u64,
 }
 
 impl NativeIndexes {
     #[cfg(test)]
     pub(crate) fn rebuild_count(&self) -> u64 { self.rebuilds }
+
+    pub(crate) fn material_lots(&self, kind: &str, limit: usize) -> Vec<String> {
+        material_lots(self, kind, limit)
+    }
 
     fn remove_id(&mut self, id: &str) {
         if let Some(party) = self.worker_party_by_id.remove(id) {
@@ -191,6 +197,10 @@ impl NativeIndexes {
             if let Some(values) = self.tasks_by_party.get_mut(&party) { values.retain(|candidate| candidate.id != id); }
             if self.tasks_by_party.get(&party).is_some_and(Vec::is_empty) { self.tasks_by_party.remove(&party); }
         }
+        if let Some(kind) = self.lot_kind_by_id.remove(id) {
+            if let Some(values) = self.lots_by_kind.get_mut(&kind) { values.retain(|candidate| candidate != id); }
+            if self.lots_by_kind.get(&kind).is_some_and(Vec::is_empty) { self.lots_by_kind.remove(&kind); }
+        }
     }
 
     fn sort(&mut self) {
@@ -198,6 +208,7 @@ impl NativeIndexes {
         for values in self.tasks_by_party.values_mut() {
             values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id)));
         }
+        for values in self.lots_by_kind.values_mut() { values.sort(); }
     }
 
     fn sort_worker_party(&mut self, party: &str) {
@@ -208,6 +219,10 @@ impl NativeIndexes {
         if let Some(values) = self.tasks_by_party.get_mut(party) {
             values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id)));
         }
+    }
+
+    fn sort_lot_kind(&mut self, kind: &str) {
+        if let Some(values) = self.lots_by_kind.get_mut(kind) { values.sort(); }
     }
 
     /// Refresh only one externally identified entity after a canonical mutation.
@@ -235,17 +250,22 @@ impl NativeIndexes {
                 last_considered: schedule.last_considered, due_tick: schedule.next_review_tick,
             });
         }
+        if let Some(lot) = world.get::<Lot>(entity) && lot.quantity > 0 {
+            self.lot_kind_by_id.insert(id.to_owned(), lot.kind.clone());
+            self.lots_by_kind.entry(lot.kind.clone()).or_default().push(id.to_owned());
+        }
         if let Some(party) = old_worker_party.as_deref() { self.sort_worker_party(party); }
         if let Some(party) = old_task_party.as_deref() { self.sort_task_party(party); }
         if let Some(party) = self.worker_party_by_id.get(id).cloned() { self.sort_worker_party(&party); }
         if let Some(party) = self.task_party_by_id.get(id).cloned() { self.sort_task_party(&party); }
+        if let Some(kind) = self.lot_kind_by_id.get(id).cloned() { self.sort_lot_kind(&kind); }
     }
 
     /// Rebuild once after initial load/reset/restore. Steady-state callers use
     /// refresh_entity so planning queries never scan the entity registry.
     pub fn rebuild(&mut self, world: &World, ids: &BTreeMap<String, Entity>) {
-        self.workers_by_party.clear(); self.tasks_by_party.clear();
-        self.worker_party_by_id.clear(); self.task_party_by_id.clear();
+        self.workers_by_party.clear(); self.tasks_by_party.clear(); self.lots_by_kind.clear();
+        self.worker_party_by_id.clear(); self.task_party_by_id.clear(); self.lot_kind_by_id.clear();
         self.rebuilds = self.rebuilds.saturating_add(1);
         for (id, entity) in ids {
             if let Some(worker) = world.get::<PartyMember>(*entity)
@@ -261,6 +281,10 @@ impl NativeIndexes {
             {
                 self.task_party_by_id.insert(id.clone(), policy.party.clone());
                 self.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate { id: id.clone(), party: policy.party.clone(), priority: policy.priority, last_considered: schedule.last_considered, due_tick: schedule.next_review_tick });
+            }
+            if let Some(lot) = world.get::<Lot>(*entity) && lot.quantity > 0 {
+                self.lot_kind_by_id.insert(id.clone(), lot.kind.clone());
+                self.lots_by_kind.entry(lot.kind.clone()).or_default().push(id.clone());
             }
         }
         self.sort();
@@ -279,6 +303,15 @@ pub fn rebuild_indexes(world: &World, ids: &BTreeMap<String, Entity>) -> NativeI
 pub fn eligible_workers(indexes: &NativeIndexes, party: &str, limit: usize) -> Vec<WorkerCandidate> {
     let mut result = indexes.workers_by_party.get(party).cloned().unwrap_or_default();
     result.truncate(limit.min(MAX_ELIGIBLE_WORKERS));
+    result
+}
+
+/// Return stable lot identities for a material kind. This is a narrowing
+/// index only; custody, party, reservations, quantity and policy remain
+/// authoritative checks at final supply admission.
+pub fn material_lots(indexes: &NativeIndexes, kind: &str, limit: usize) -> Vec<String> {
+    let mut result = indexes.lots_by_kind.get(kind).cloned().unwrap_or_default();
+    result.truncate(limit);
     result
 }
 
@@ -469,5 +502,31 @@ mod index_refresh_tests {
         indexes.refresh_entity(&world, "task", Some(entity));
         assert_eq!(indexes.rebuilds, before);
         assert_eq!(due_tasks_from_index(&indexes, "p", 0, 10)[0].priority, 9);
+    }
+
+    #[test]
+    fn material_lot_index_tracks_creation_kind_changes_quantity_and_removal() {
+        let mut world = World::new();
+        let first = world.spawn(Lot { kind: "wood".into(), quantity: 3, container: "source".into() }).id();
+        let second = world.spawn(Lot { kind: "stone".into(), quantity: 2, container: "source".into() }).id();
+        let mut ids = BTreeMap::from([("lot-a".to_owned(), first), ("lot-b".to_owned(), second)]);
+        let mut indexes = NativeIndexes::default();
+        indexes.rebuild(&world, &ids);
+        assert_eq!(indexes.material_lots("wood", 8), vec!["lot-a"]);
+        assert_eq!(indexes.material_lots("stone", 8), vec!["lot-b"]);
+        let rebuilds = indexes.rebuild_count();
+
+        world.entity_mut(first).insert(Lot { kind: "stone".into(), quantity: 1, container: "worker".into() });
+        indexes.refresh_entity(&world, "lot-a", Some(first));
+        assert!(indexes.material_lots("wood", 8).is_empty());
+        assert_eq!(indexes.material_lots("stone", 8), vec!["lot-a", "lot-b"]);
+
+        world.entity_mut(first).insert(Lot { kind: "stone".into(), quantity: 0, container: "worker".into() });
+        indexes.refresh_entity(&world, "lot-a", Some(first));
+        assert_eq!(indexes.material_lots("stone", 8), vec!["lot-b"]);
+        indexes.refresh_entity(&world, "lot-b", None);
+        ids.remove("lot-b");
+        assert!(indexes.material_lots("stone", 8).is_empty());
+        assert_eq!(indexes.rebuild_count(), rebuilds);
     }
 }

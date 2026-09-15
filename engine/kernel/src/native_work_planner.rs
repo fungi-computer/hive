@@ -224,11 +224,13 @@ impl Kernel {
                 break;
             }
             let sources = self
-                .ids
-                .iter()
-                .filter_map(|(lot_id, entity)| {
-                    let lot = self.ecs.get::<Lot>(*entity)?;
-                    if !lot_matches_material(lot, self.ecs.get::<LotWater>(*entity), &requirement.material) {
+                .planner_indexes
+                .material_lots(&requirement.material, MAX_ASSIGNMENTS)
+                .into_iter()
+                .filter_map(|lot_id| {
+                    let entity = self.ids.get(&lot_id).copied()?;
+                    let lot = self.ecs.get::<Lot>(entity)?;
+                    if !lot_matches_material(lot, self.ecs.get::<LotWater>(entity), &requirement.material) {
                         return None;
                     }
                     let container = self.entity(&lot.container).ok()?;
@@ -239,7 +241,7 @@ impl Kernel {
                         != Some(requirement.party.as_str())
                         || self
                             .ecs
-                            .get::<OwnedByParty>(*entity)
+                            .get::<OwnedByParty>(entity)
                             .map(|owner| owner.party.as_str())
                             != Some(requirement.party.as_str())
                         || (self.ecs.get::<GroundStock>(container).is_none()
@@ -252,14 +254,14 @@ impl Kernel {
                     let free = lot
                         .quantity
                         .saturating_sub(crate::supply_allocation::reserved_source(
-                            self, lot_id, None,
+                            self, &lot_id, None,
                         ))
-                        .saturating_sub(*prospective_source.get(lot_id).unwrap_or(&0));
+                        .saturating_sub(*prospective_source.get(&lot_id).unwrap_or(&0));
                     let eligible = match requirement.policy {
                         InputPolicy::Portion => free > 0,
                         InputPolicy::WholeLot => free == lot.quantity && lot.quantity == requirement.missing,
                     };
-                    eligible.then(|| (lot_id.clone(), position, free))
+                    eligible.then(|| (lot_id, position, free))
                 })
                 .take(MAX_ASSIGNMENTS)
                 .collect::<Vec<_>>();
