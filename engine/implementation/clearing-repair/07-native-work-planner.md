@@ -1,7 +1,7 @@
 # Native work planning: implementation contract
 
 September 15, 2026. Design and staged implementation are underway. The source
-integration checkpoint for the status below is `a8d4caa9`. This refines and takes
+integration checkpoint for the status below is `123a2da4`. This refines and takes
 precedence over the planning pseudocode in [01-work](01-work.md). Construction and
 staged processes now run through the first accepted native planner slice; the
 whole Colony cutover remains incomplete.
@@ -34,7 +34,7 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer whole-game completion from the active native planner. At `a8d4caa9`:
+Do not infer whole-game completion from the active native planner. At `123a2da4`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
@@ -71,18 +71,38 @@ Do not infer whole-game completion from the active native planner. At `a8d4caa9`
   free-capacity eligibility, route pricing, assignment, physical continuation and
   terminal reconciliation now use that same planner and WorkAttempt owner. Colony
   submits one semantic plan action and no longer has a deconstruction provider;
+- excavation designations are now native order records with their material
+  witness captured at admission. The native owner discovers contacts and
+  occupancy, constrains a worker standing on its own target, prices routes,
+  assigns through the shared Hungarian window, advances finite excavation and
+  reconciles cancellation/completion. A late occupied-target race becomes a
+  typed waiting outcome that releases the worker and retries after the blocker
+  moves. TypeScript submits one bounded area action; its candidate scan,
+  assignment provider and physical continuation helper are deleted;
+- excavation output remains ordinary finite ground stock. Stockpile policy may
+  create subsequent hauling work; completing a dig does not teleport spoil into
+  the starter store. Current-format save/reload includes the native order,
+  policy and schedule components rather than dropping their schema versions;
 - focused native planner laws cover combined supply/labor, concurrent carriers,
   small carrier capacity, interruption, priority fairness, rollback and restore.
-  The complete kernel proof at this checkpoint passed 365 tests; existing compiler
+  The complete kernel proof at this checkpoint passed 367 tests; 14 focused
+  real TypeScript/WASM excavation laws and two reserved-boundary laws pass, and
+  the matching optimized WASM build completes. Existing compiler
   warnings remain disclosed rather than treated as new failures; and
-- water, resource, tree, excavation, stockpile hauling and manual
+- water, resource, tree, stockpile hauling and manual
   route reconciliation still use TypeScript providers listed in the deletion
   checklist below. Material-source discovery also still scans canonical IDs.
 
 The next accepted checkpoint must add canonical durable Job/Task composition and
-one real tree → felled trunk → logs lifecycle, then migrate excavation/resources
-into the same tick-owned review without activating another scheduler. A compile
-pass or an isolated record test does not earn that checkpoint.
+one real tree → felled trunk → logs lifecycle, then migrate resources into the
+same tick-owned review without activating another scheduler. The existing broad
+resource/brewing lifecycle test is baseline-red: after correcting its missing
+sealed-container read, it reaches a planned brew station but native construction
+creates no delivery for available starter wood. That is a disclosed next
+scheduler defect, not excavation acceptance evidence. Repository-wide engine
+types also retain the existing fixture/type backlog, and Fallow is unavailable
+on the current machine PATH. A compile pass or an isolated record test does not
+earn the next checkpoint.
 
 ## 2. Ownership and files
 
