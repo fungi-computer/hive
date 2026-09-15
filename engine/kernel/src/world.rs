@@ -2118,7 +2118,7 @@ impl Kernel {
         let job_entity = self.ecs.spawn((ExternalId(id.clone()), crate::job::JobComponent { version: admitted.version, definition: admitted.definition.clone(), definition_version: admitted.definition_version, party: admitted.party.clone(), disposition: admitted.disposition.clone(), task_ids: admitted.tasks.values().map(|task| task.id.clone()).collect() }, OwnedByParty { party: admitted.party.clone() })).id();
         self.ids.insert(id.clone(), job_entity); self.known.insert(id.clone()); self.job_entities.insert(id.clone(), job_entity);
         for task in admitted.tasks.values() {
-            let entity = self.ecs.spawn((ExternalId(task.id.clone()), crate::job::TaskComponent { version: crate::job::JOB_VERSION, job: id.clone(), key: task.key.clone(), after: task.after.as_ref().map(|key| format!("{id}:task:{key}")), operation: task.operation.clone(), disposition: task.disposition.clone() }, OwnedByParty { party: admitted.party.clone() })).id();
+            let entity = self.ecs.spawn((ExternalId(task.id.clone()), crate::job::TaskComponent { version: crate::job::JOB_VERSION, job: id.clone(), key: task.key.clone(), after: task.after.as_ref().map(|key| format!("{id}:task:{key}")), operation: task.operation.clone(), disposition: task.disposition.clone(), continuation: crate::job::ContinuationPolicy::AnyEligible, bound_actor: None }, OwnedByParty { party: admitted.party.clone() })).id();
             self.ids.insert(task.id.clone(), entity); self.known.insert(task.id.clone()); self.task_entities.insert(task.id.clone(), entity);
         }
         Ok(id)

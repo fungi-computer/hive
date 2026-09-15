@@ -4,6 +4,7 @@ use bevy_ecs::prelude::Component;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 pub const JOB_VERSION:u8=1; pub const MAX_STEPS:usize=32; pub const MAX_PLAN_BYTES:usize=64*1024;
+#[derive(Clone,Debug,PartialEq,Eq,Serialize,Deserialize)]#[serde(rename_all="kebab-case")]pub enum ContinuationPolicy{AnyEligible,PreferStarter,BindOnFirstProgress,AssignedActor}
 #[derive(Clone,Debug,PartialEq,Eq,Serialize,Deserialize)]#[serde(rename_all="kebab-case")]pub enum JobDisposition{Active,Cancelled}
 #[derive(Clone,Debug,PartialEq,Eq,Serialize,Deserialize)]#[serde(rename_all="camelCase",deny_unknown_fields)]pub struct ResultBinding{pub step:String,pub slot:String}
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize)]#[serde(rename_all="camelCase",tag="kind",deny_unknown_fields)]pub enum JobOperation{ResourceToItem{source:String,source_kind:String,source_quantity:u32,output_kind:String,output_quantity:u32,work_seconds:f64,result_slot:String},ItemToItems{source:ResultBinding,input_kind:String,input_quantity:u32,output_kind:String,output_quantity:u32,work_seconds:f64,result_slot:String}}
@@ -25,4 +26,17 @@ impl JobRecord{pub fn ready(&self,key:&str)->bool{let Some(t)=self.tasks.get(key
 pub struct JobComponent{pub version:u8,pub definition:String,pub definition_version:u32,pub party:String,pub disposition:JobDisposition,pub task_ids:Vec<String>}
 #[derive(Component,Clone,Debug,PartialEq,Serialize,Deserialize)]
 #[serde(rename_all="camelCase",deny_unknown_fields)]
-pub struct TaskComponent{pub version:u8,pub job:String,pub key:String,pub after:Option<String>,pub operation:JobOperation,pub disposition:TaskDisposition}
+pub struct TaskComponent{pub version:u8,pub job:String,pub key:String,pub after:Option<String>,pub operation:JobOperation,pub disposition:TaskDisposition,pub continuation:ContinuationPolicy,pub bound_actor:Option<String>}
+impl TaskComponent{pub fn admits_actor(&self,actor:&str)->bool{match &self.continuation{ContinuationPolicy::AssignedActor=>self.bound_actor.as_deref()==Some(actor),ContinuationPolicy::BindOnFirstProgress=>self.bound_actor.as_deref().is_none_or(|bound|bound==actor),ContinuationPolicy::AnyEligible|ContinuationPolicy::PreferStarter=>true}}pub fn bind_first_progress(&mut self,actor:&str)->Result<(),String>{if !self.admits_actor(actor){return Err("task is bound to another actor".into())}if matches!(self.continuation,ContinuationPolicy::BindOnFirstProgress)&&self.bound_actor.is_none(){if !valid_id(actor){return Err("invalid bound actor".into())}self.bound_actor=Some(actor.into())}Ok(())}}
+#[cfg(test)]
+mod continuity_tests {
+    use super::*;
+    #[test]
+    fn bind_on_first_progress_excludes_a_different_resumer() {
+        let mut task = TaskComponent { version: JOB_VERSION, job: "job".into(), key: "craft".into(), after: None, operation: JobOperation::ResourceToItem { source: "ore".into(), source_kind: "ore".into(), source_quantity: 1, output_kind: "bar".into(), output_quantity: 1, work_seconds: 2.0, result_slot: "bar".into() }, disposition: TaskDisposition::Pending, continuation: ContinuationPolicy::BindOnFirstProgress, bound_actor: None };
+        task.bind_first_progress("worker-a").unwrap();
+        assert!(!task.admits_actor("worker-b"));
+        assert!(task.bind_first_progress("worker-b").is_err());
+        assert!(task.admits_actor("worker-a"));
+    }
+}
