@@ -18,10 +18,17 @@ const workers = workerCounts.includes(Number(params.get("workers"))) ? Number(pa
 const root = document.querySelector("#hive-app");
 let runtime;
 let metrics = { stepCpuMs: null, routeRequests: null, assignmentCost: null, snapshotBytes: null, activeWaterWork: null, activeGasWork: null, wireBytes: 0 };
+const stepSamples = [];
 let woodOutput = 0, lastWood = 0;
 let frameEpoch;
 
 function format(value, suffix = "") { return value === null ? "Unavailable" : `${typeof value === "number" ? value.toFixed(value < 10 ? 2 : 0) : value}${suffix}`; }
+function stepSummary() {
+  if (stepSamples.length === 0) return null;
+  const sorted = [...stepSamples].sort((left, right) => left - right);
+  const percentile = fraction => sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)];
+  return { samples: stepSamples.length, median: percentile(0.5), p95: percentile(0.95), max: sorted.at(-1) };
+}
 function setPreset(nextSize, nextWorkers) {
   const next = new URL(location.href);
   next.searchParams.set("size", nextSize); next.searchParams.set("workers", nextWorkers);
@@ -48,7 +55,13 @@ function panel(hud) {
   return wrap;
 }
 function update(wrap) {
-  wrap.querySelector("#perf-step").textContent = format(metrics.stepCpuMs, " ms");
+  const step = wrap.querySelector("#perf-step");
+  const summary = stepSummary();
+  step.textContent = summary ? `${format(summary.median, " ms")} median · ${format(summary.p95, " ms")} p95` : "Unavailable";
+  step.dataset.samples = String(summary?.samples ?? 0);
+  step.dataset.median = summary ? String(summary.median) : "";
+  step.dataset.p95 = summary ? String(summary.p95) : "";
+  step.dataset.max = summary ? String(summary.max) : "";
   wrap.querySelector("#perf-assignment").textContent = format(metrics.assignmentCost);
   wrap.querySelector("#perf-routes").textContent = format(metrics.routeRequests);
   wrap.querySelector("#perf-jobs").textContent = String(woodOutput);
@@ -73,7 +86,13 @@ function mount() {
   const wrap = panel(rail);
   runtime.subscribe(event => {
     metrics.wireBytes += new TextEncoder().encode(JSON.stringify(event)).byteLength;
-    if (event.type === "results" && event.metrics) metrics = { ...metrics, ...event.metrics };
+    if (event.type === "results" && event.metrics) {
+      metrics = { ...metrics, ...event.metrics };
+      if (Number.isFinite(event.metrics.stepCpuMs)) {
+        stepSamples.push(event.metrics.stepCpuMs);
+        if (stepSamples.length > 120) stepSamples.shift();
+      }
+    }
     if (event.type === "frame") {
       if (frameEpoch !== event.epoch) {
         frameEpoch = event.epoch;

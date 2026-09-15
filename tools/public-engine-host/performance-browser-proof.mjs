@@ -96,21 +96,29 @@ try {
 
   await page.waitForFunction(() => {
     const jobs = Number(document.querySelector("#perf-jobs")?.textContent);
-    const stepText = document.querySelector("#perf-step")?.textContent ?? "";
-    const step = Number.parseFloat(stepText);
-    return Number.isFinite(jobs) && jobs > 0 && Number.isFinite(step) && stepText !== "Unavailable";
+    const samples = Number(document.querySelector("#perf-step")?.dataset.samples);
+    return Number.isFinite(jobs) && jobs > 0 && samples >= 30;
   }, null, { timeout: 60_000 });
   const measurements = await page.evaluate(() => ({
     woodOutput: Number(document.querySelector("#perf-jobs")?.textContent),
-    tickCpuMs: Number.parseFloat(document.querySelector("#perf-step")?.textContent ?? ""),
+    tickSamples: Number(document.querySelector("#perf-step")?.dataset.samples),
+    tickMedianMs: Number(document.querySelector("#perf-step")?.dataset.median),
+    tickP95Ms: Number(document.querySelector("#perf-step")?.dataset.p95),
+    tickMaxMs: Number(document.querySelector("#perf-step")?.dataset.max),
     assignmentCost: document.querySelector("#perf-assignment")?.textContent,
     routeRequests: document.querySelector("#perf-routes")?.textContent,
   }));
   assert(Number.isFinite(measurements.woodOutput) && measurements.woodOutput > 0, "finite tree-felling workload produced no live output");
-  assert(Number.isFinite(measurements.tickCpuMs), "measured tick timing is unavailable or non-finite");
+  assert(measurements.tickSamples >= 30, "sustained tick sample is too small");
+  assert(Number.isFinite(measurements.tickMedianMs) && Number.isFinite(measurements.tickP95Ms) && Number.isFinite(measurements.tickMaxMs), "measured tick timing is unavailable or non-finite");
   report.measurements = measurements;
   record("live-finite-tree-workload", { woodOutput: measurements.woodOutput });
-  record("finite-tick-timing", { tickCpuMs: measurements.tickCpuMs });
+  record("finite-tick-timing", {
+    samples: measurements.tickSamples,
+    medianMs: measurements.tickMedianMs,
+    p95Ms: measurements.tickP95Ms,
+    maxMs: measurements.tickMaxMs,
+  });
   await page.screenshot({ path: resolve(output, report.screenshot), fullPage: true });
   assert.equal(report.errors.length, 0, `page/request errors: ${report.errors.join("; ")}`);
   report.success = true;
