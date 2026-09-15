@@ -98,6 +98,29 @@ fn construction_status(
 }
 
 impl Kernel {
+    fn construction_blocked_actors_for(
+        &mut self,
+        site: &str,
+        state: &ConstructionSite,
+        definition: &crate::environment_definition::StructureDefinition,
+    ) -> Result<Option<Vec<String>>> {
+        if state.phase == ConstructionPhase::Finished { return Ok(Some(Vec::new())); }
+        let candidate = self.construction_instance(site, definition, state.target)?;
+        let prepared = {
+            let environment = self.environment.as_mut().ok_or("construction needs environment")?;
+            let mut instances = environment.world.structure_instances();
+            instances.push(candidate);
+            match environment.world.prepare_structures(instances) {
+                Ok(Ok(prepared)) => prepared,
+                Ok(Err(_)) => return Ok(None),
+                Err(reason) if reason == "structure overlaps solid terrain"
+                    || reason == "duplicate structure bulk occupied cell" => return Ok(None),
+                Err(reason) => return Err(reason),
+            }
+        };
+        self.structure_contact_blocked_actors(&prepared).map(Some)
+    }
+
     /// Advisory construction admission for the current native revision.
     ///
     /// The complete candidate set is checked together so a drag may contain a
@@ -249,18 +272,6 @@ impl Kernel {
         if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) {
             return Ok(None);
         }
-        // Placement creates an unbound planned site. Binding its durable
-        // contact is the first native labor operation; only after that
-        // operation can construction supply inspect the site's container and
-        // admit the ordinary shared delivery lifecycle.
-        let mode = if self.ecs.get::<Position>(entity).is_none() {
-            crate::work_attempt::ConstructionMode::Bind
-        } else {
-            if !self.construction_materials_ready(site, &definition) {
-                return Ok(None);
-            }
-            crate::work_attempt::ConstructionMode::Work
-        };
         let status = construction_status(self, &[site.to_owned()])?
             .get(site)
             .copied()
@@ -268,6 +279,34 @@ impl Kernel {
         if status != "ready" {
             return Ok(None);
         }
+        // Placement creates an unbound planned site. Binding its durable
+        // contact is the first native labor operation; only after that
+        // operation can construction supply inspect the site's container and
+        // admit the ordinary shared delivery lifecycle.
+        let (mode, required_worker) = if self.ecs.get::<Position>(entity).is_none() {
+            (crate::work_attempt::ConstructionMode::Bind, None)
+        } else {
+            if !self.construction_materials_ready(site, &definition) {
+                return Ok(None);
+            }
+            // A planned fixture may temporarily contain a colony member. Use
+            // that same construction obligation to route one lawful blocker
+            // to a work contact before publication. Foreign or immovable
+            // blockers remain waiting facts; construction never deletes or
+            // teleports them.
+            let Some(blocked) = self.construction_blocked_actors_for(site, &state, &definition)? else { return Ok(None); };
+            let mut movable = Vec::new();
+            for actor in blocked {
+                let actor_entity = self.entity(&actor)?;
+                let eligible = self.ecs.get::<PartyMember>(actor_entity).is_some_and(|member| member.party == party)
+                    && self.ecs.get::<Body>(actor_entity).is_some()
+                    && self.ecs.get::<Traversal>(actor_entity).is_some()
+                    && self.ecs.get::<crate::work_planner::WorkParticipation>(actor_entity).is_some_and(|participation| participation.automatic);
+                if !eligible { return Ok(None); }
+                movable.push(actor);
+            }
+            (crate::work_attempt::ConstructionMode::Work, movable.into_iter().next())
+        };
         let spacing = self
             .environment
             .as_ref()
@@ -293,7 +332,7 @@ impl Kernel {
             priority: policy.priority,
             schedule,
             contacts,
-            required_worker: None,
+            required_worker,
             free_capacity_required: 0,
             operation: crate::work_planner::WorkOperation::Construction {
                 site: site.to_owned(),
@@ -442,22 +481,7 @@ impl Kernel {
                 if let Some(state) = self.ecs.get::<ConstructionSite>(entity).cloned() {
                     if let Some(definition) = self.environment.as_ref().and_then(|environment| environment.structures.get(&state.catalog)).cloned() {
                         if state.phase != ConstructionPhase::Finished {
-                            let candidate = self.construction_instance(&site, &definition, state.target)?;
-                            let prepared = {
-                                let environment = self.environment.as_mut().ok_or("construction needs environment")?;
-                                let mut instances = environment.world.structure_instances();
-                                instances.push(candidate);
-                                match environment.world.prepare_structures(instances) {
-                                    Ok(Ok(prepared)) => Some(prepared),
-                                    Ok(Err(_)) => None,
-                                    Err(reason) if reason == "structure overlaps solid terrain"
-                                        || reason == "duplicate structure bulk occupied cell" => None,
-                                    Err(reason) => return Err(reason),
-                                }
-                            };
-                            if let Some(prepared) = prepared {
-                                blocked_actors = self.structure_contact_blocked_actors(&prepared)?;
-                            }
+                            blocked_actors = self.construction_blocked_actors_for(&site, &state, &definition)?.unwrap_or_default();
                         }
                         self.current_contact_candidate_rows(&state, &definition, spacing)?.into_iter().map(|(point, kind)| ConstructionAccessContact {
                             x: point[0], y: point[1], z: point[2], frame: None, kind,
