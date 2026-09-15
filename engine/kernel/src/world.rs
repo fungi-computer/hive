@@ -1670,7 +1670,7 @@ mod construction_tests {
     }
 
     #[test]
-    fn upper_floor_waits_for_completed_wall_then_binds_from_ground() {
+    fn upper_floor_rejects_without_support_then_binds_from_ground() {
         let (mut kernel, surface, _) = world();
         let environment = kernel.environment.as_mut().unwrap();
         environment.structures.get_mut("floor").unwrap().work_reach_below_cells = 4;
@@ -1681,9 +1681,19 @@ mod construction_tests {
         environment.definition = serde_json::to_string(&definition).unwrap();
 
         let floor_y = surface.y + 4;
+        let unsupported_before = kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap();
+        let unsupported: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({
+            "delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
+                "kind":"plan-construction","party":"party","catalog":"floor","site":"wall-top-floor",
+                "target":{"kind":"cell","cell":{"x":surface.x,"y":floor_y,"z":surface.z},"orientation":"north"}
+            }}]
+        }).to_string()).unwrap()).unwrap();
+        assert_eq!(unsupported["results"][0]["accepted"], false);
+        assert_eq!(kernel.query_json(r#"["hive.construction-site","hive.container"]"#).unwrap(), unsupported_before);
+        assert!(!kernel.known.contains("wall-top-floor"));
+
         // A floor four voxels above ground requires a declared physical wall
-        // support. Establish that completed support before admitting the
-        // floor; bare unsupported pending intents are rejected at admission.
+        // support. Establish that completed support before admitting it.
         let wall = crate::structure_geometry::StaticInstance::Wall {
             id: "completed-wall".into(),
             edge: crate::structure_geometry::Face { cell: crate::generation::Cell { x: surface.x, y: surface.y + 1, z: surface.z }, axis: crate::structure_geometry::FaceAxis::X },
