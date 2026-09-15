@@ -394,6 +394,7 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
     kernel.known.insert("wrong-keg".into());
     kernel.contents.get_mut("process-stock").unwrap().insert(wrong);
     kernel.refresh_state_weight();
+    kernel.rebuild_planner_index();
 
     let first = kernel.plan_process_supply(&process, "party:process").unwrap();
     assert!(!first.is_empty());
@@ -464,8 +465,10 @@ fn admitted() -> (Kernel, String) {
     let process_entity = kernel.entity(&process).unwrap();
     kernel.ecs.entity_mut(process_entity).insert((
         OwnedByParty { party: "party:process".into() },
+        // These lifecycle tests drive attendance explicitly. Keep the enabled
+        // domain policy but schedule its automatic review beyond this fixture.
         crate::work_planner::WorkPolicy { party: "party:process".into(), priority: 0, enabled: true },
-        crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
+        crate::work_planner::WorkSchedule { next_review_tick: u64::MAX, last_considered: 0 },
     ));
     kernel.refresh_state_weight();
     (kernel, process)
@@ -781,7 +784,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
         k.ecs.entity_mut(process_entity).insert((
             OwnedByParty { party: "party:process".into() },
             crate::work_planner::WorkPolicy { party: "party:process".into(), priority: 0, enabled: true },
-            crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
+            crate::work_planner::WorkSchedule { next_review_tick: u64::MAX, last_considered: 0 },
         ));
         k.refresh_state_weight();
         (k, p)
