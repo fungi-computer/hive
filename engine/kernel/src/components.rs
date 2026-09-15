@@ -58,6 +58,13 @@ pub struct Traversal {
 pub struct Container {
     pub capacity: u32,
 }
+/// A declared capability of a physical vessel. Content definitions attach this
+/// to compatible lots; water work never infers capability from an item name.
+#[derive(Component, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct VesselCapability {
+    pub accepts_water: bool,
+}
 /// A custody boundary installed by a native completion owner. Presence is
 /// the capability and is saved as an empty record.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
@@ -109,6 +116,24 @@ pub struct SupplyAllocation {
     pub destination: String,
     pub quantity: u32,
     pub state: SupplyAllocationState,
+}
+
+/// Native intent for one discrete field-water portion needed by a process.
+/// Once withdrawal commits, `lot` names the exact generated water lot and this
+/// record is replaced by the ordinary SupplyAllocation on the same entity.
+#[derive(Component, Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FieldWaterWork {
+    pub process: String,
+    pub role: String,
+    pub generation: u64,
+    pub party: String,
+    pub destination: String,
+    pub vessel: Option<String>,
+    pub cell_x: i32,
+    pub cell_y: i32,
+    pub cell_z: i32,
+    pub lot: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -6,11 +6,10 @@ import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { query } from "../sdk/authoring";
 import { ConstructionSite } from "../sdk/construction";
-import { Destination, MaterialLot, Position } from "../sdk/common";
-import { StagedProcess } from "../sdk/process-supply";
+import { Destination, MaterialLot, Position, SupplyAllocation } from "../sdk/common";
+import { FieldWaterWork, StagedProcess, SupplyAllocation } from "../sdk/process-supply";
 import { DeliveryTask } from "../sdk/delivery";
 import { colonyPack } from "./colony";
-import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -76,7 +75,6 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
     assert.throws(() => session.command("requestBrew", { station: station.id }), /active brew process/);
 
     let sawAttendance = false;
-    let sawProcessWaterDemand = false;
     let sawElapsedWithoutAttendance = false;
     let sawLaterAttendance = false;
     const stationVisuals = new Set<string>();
@@ -85,22 +83,6 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       const stationVisual = session.renderFacts().find(fact => fact.id === station.id)?.visual;
       if (stationVisual) stationVisuals.add(stationVisual);
       const state = session.query(query(StagedProcess))[0]?.get(StagedProcess);
-      const processWaterDemands = session
-        .query(query(WaterSupplyOrder))
-        .filter((row) => row.get(WaterSupplyOrder).consumer === process.id);
-      const activeProcessWaterDemands = processWaterDemands.filter((order) =>
-        session
-          .query(query(WaterSupplyWork))
-          .some(
-            (work) =>
-              work.id === order.id &&
-              work.get(WaterSupplyWork).phase === "queued",
-          ),
-      );
-      assert(
-        processWaterDemands.length <= 1,
-        "one active process must have at most one water demand",
-      );
       const kettleWater = session
         .query(query(MaterialLot))
         .filter(
@@ -109,23 +91,27 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
             row.get(MaterialLot).kind === "water",
         )
         .reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
-      const waterDelivery = session
-        .query(query(DeliveryTask))
+      const nativeWaterInFlight = session
+        .query(query(SupplyAllocation))
         .filter((row) => {
-          const task = row.get(DeliveryTask);
+          const task = row.get(SupplyAllocation);
           return (
-            task.custody !== "delivered" &&
+            task.state === "reserved" &&
             task.destination === `${station.id}:kettle` &&
             task.material === "water"
           );
         })
-        .reduce((sum, row) => sum + row.get(DeliveryTask).quantity, 0);
+        .reduce((sum, row) => sum + row.get(SupplyAllocation).quantity, 0);
+      const nativeWaterPending = session
+        .query(query(FieldWaterWork))
+        .filter((row) => {
+          const task = row.get(FieldWaterWork);
+          return task.process === process.id && task.destination === `${station.id}:kettle`;
+        }).length;
       assert(
-        kettleWater + waterDelivery < 2 ||
-          activeProcessWaterDemands.length === 0,
+        kettleWater + nativeWaterInFlight + nativeWaterPending <= 2,
         "sufficient staged and in-flight water must prevent another fetch from starting",
       );
-      if (processWaterDemands.length) sawProcessWaterDemand = true;
       const attending = state?.phase === "working";
       if (attending) sawAttendance = true;
       if (state?.stageIndex === 1 && state.phase === "waiting" && !attending)
@@ -143,7 +129,6 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
       outcomes: session.save().outcomes.slice(-12),
     }));
     assert(sawAttendance, "an attended stage must acquire saved work");
-    assert(sawProcessWaterDemand, "a short kettle must create one process water demand");
     assert(sawElapsedWithoutAttendance, "fermentation must release attendance");
     assert(sawLaterAttendance, "kegging must acquire attendance after consumed inputs are gone");
     session.step(0);

@@ -636,7 +636,7 @@ mod water_exchange_action_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":2,"game":"water-action-laws","components":[],"materialCatalog":[],"initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.container":{"capacity":8}}},
-            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
+            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.vessel-capability":{"acceptsWater":true},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
         ]}).to_string()).unwrap();
         kernel
     }
@@ -2126,6 +2126,53 @@ impl Kernel {
         }
         Ok(())
     }
+
+    fn validate_field_water_records(&self) -> Result<()> {
+        for (id, entity) in &self.ids {
+            let Some(work) = self.ecs.get::<FieldWaterWork>(*entity) else { continue; };
+            if !id.starts_with("field-water:")
+                || self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+                || self.ecs.get::<crate::work_planner::WorkPolicy>(*entity).is_none_or(|policy| policy.party != work.party)
+                || self.ecs.get::<crate::work_planner::WorkSchedule>(*entity).is_none()
+            { return Err("invalid field water work ownership".into()); }
+            let process = self.entity(&work.process)?;
+            let process_state = self.ecs.get::<StagedProcess>(process).ok_or("field water process is missing")?;
+            if process_state.phase == ProcessPhase::Complete
+                || self.ecs.get::<OwnedByParty>(process).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+                || work.role.is_empty() || work.generation == 0 {
+                return Err("invalid field water process binding".into());
+            }
+            let destination = self.entity(&work.destination)?;
+            if self.ecs.get::<Container>(destination).is_none()
+                || self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+            { return Err("invalid field water destination".into()); }
+            match (&work.vessel, &work.lot) {
+                (None, None) => {}
+                (Some(vessel_id), None) => {
+                    let vessel = self.entity(vessel_id)?;
+                    let lot = self.ecs.get::<Lot>(vessel).ok_or("field water vessel is not a lot")?;
+                    if !self.ecs.get::<VesselCapability>(vessel).is_some_and(|capability| capability.accepts_water)
+                        || self.ecs.get::<OwnedByParty>(vessel).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+                        || lot.container.is_empty() || self.entity(&lot.container).is_err()
+                    { return Err("invalid field water vessel custody".into()); }
+                }
+                (Some(vessel_id), Some(lot_id)) => {
+                    let vessel = self.entity(vessel_id)?;
+                    let lot = self.entity(lot_id)?;
+                    let vessel_lot = self.ecs.get::<Lot>(vessel).ok_or("field water vessel is not a lot")?;
+                    let water_lot = self.ecs.get::<Lot>(lot).ok_or("field water output is not a lot")?;
+                    if !self.ecs.get::<VesselCapability>(vessel).is_some_and(|capability| capability.accepts_water)
+                        || water_lot.kind != "water" || water_lot.quantity != 1 || water_lot.container != *vessel_id
+                        || self.ecs.get::<OwnedByParty>(lot).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
+                        || vessel_lot.container.is_empty()
+                    { return Err("invalid field water output custody".into()); }
+                }
+                (None, Some(_)) => return Err("field water output has no vessel".into()),
+            }
+        }
+        Ok(())
+    }
+
     pub fn new() -> Self {
         let mut ecs = World::new();
         let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
@@ -3137,6 +3184,22 @@ impl Kernel {
     }
     /// Bounded authoritative open-water targets for work planning. Contact
     /// approaches are emitted in world coordinates by the terrain owner.
+    pub(crate) fn native_water_contacts(&self, centers: &[Position]) -> Result<Vec<(crate::generation::Cell, Vec<Point>)>> {
+        if centers.is_empty() || centers.len() > 16 { return Err("water contact query exceeds center budget".into()); }
+        if centers.iter().any(|center| ![center.x, center.y, center.z].iter().all(|value| value.is_finite())) {
+            return Err("water contact center is invalid".into());
+        }
+        let environment = self.environment.as_ref().ok_or("world has no environment")?;
+        let spacing = environment.world.cell_spacing_m();
+        environment.world.positive_open_cells_near(
+            &centers.iter().map(|center| [center.x, center.y, center.z]).collect::<Vec<_>>(),
+            128,
+        ).into_iter().map(|cell| {
+            let [x, y, z] = crate::terrain_water::coordinates(cell)?;
+            let point = |dx: f64, dz: f64| Point { x: x as f64 * spacing[0] + dx, y: (f64::from(y) + 0.5) * spacing[1], z: z as f64 * spacing[2] + dz, frame: None };
+            Ok((cell, vec![point(-spacing[0], 0.0), point(spacing[0], 0.0), point(0.0, -spacing[2]), point(0.0, spacing[2])]))
+        }).collect()
+    }
     pub fn water_contacts_json(&self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         if input.len() > 8 * 1024 { return Err("water contact query exceeds input budget".into()); }
@@ -3383,6 +3446,7 @@ impl Kernel {
             candidate.environment = Some(environment);
             candidate.validate_structure_recipes()?;
             candidate.validate_process_records()?;
+            candidate.validate_field_water_records()?;
             candidate.validate_construction_sites()?;
             candidate.validate_resource_sites()?;
         }
@@ -3611,6 +3675,7 @@ impl Kernel {
         candidate.projectile_count = candidate.ids.values().filter(|entity| candidate.ecs.get::<Projectile>(**entity).is_some_and(|p| p.state == "flying" || p.state == "rolling")).count();
         candidate.ground_stock_cleanup_pending = true;
         candidate.validate_party_relations()?;
+        candidate.validate_field_water_records()?;
         crate::supply_allocation::validate_relations(&candidate)?;
         candidate.validate_work_attempt_relations()?;
         candidate.validate_deconstruction_work()?;
@@ -4236,7 +4301,7 @@ impl Kernel {
     }
 
     fn exchange_field_water(&mut self, worker_id: &str, vessel_id: &str, at: crate::generation::Cell,
-        direction: WaterExchangeDirection, portions: u8) -> Result<()> {
+        direction: WaterExchangeDirection, portions: u8) -> Result<Option<String>> {
         let worker = self.entity(worker_id)?;
         let vessel = self.entity(vessel_id)?;
         let worker_pose = self.world_pose_entity(worker, 0)?;
@@ -4246,8 +4311,11 @@ impl Kernel {
             return Err("water exchange requires unsealed worker container".into());
         }
         let vessel_lot = self.ecs.get::<Lot>(vessel).cloned().ok_or("water vessel is not a lot")?;
-        if vessel_lot.kind != "pail" || vessel_lot.quantity == 0 || vessel_lot.container != worker_id {
-            return Err("water exchange requires a held pail lot".into());
+        if vessel_lot.quantity == 0 || vessel_lot.container != worker_id {
+            return Err("water exchange requires a held vessel lot".into());
+        }
+        if !self.ecs.get::<VesselCapability>(vessel).is_some_and(|capability| capability.accepts_water) {
+            return Err("water exchange requires a vessel that accepts water".into());
         }
         self.ecs.get::<Container>(vessel).ok_or("water vessel is not a container")?;
         if self.ecs.get::<SealedContainer>(vessel).is_some() {
@@ -4260,7 +4328,7 @@ impl Kernel {
         if contact_distance < 1e-9 || contact_distance > 1.5 {
             return Err("water exchange requires adjacent dry contact".into());
         }
-        let (field_token, material_token) = match direction {
+        let (field_token, material_token, output_lot) = match direction {
             WaterExchangeDirection::Withdraw => {
                 let field = {
                     let environment = self.environment.as_mut().ok_or("water exchange requires terrain")?;
@@ -4269,7 +4337,8 @@ impl Kernel {
                 // Bind the exact physical mass only after the field admission has succeeded.
                 let mass = field.receipt().mass_kg;
                 let material = self.prepare_material_output(MaterialOutputSpec { container: vessel_id.into(), kind: "water".into(), quantity: u32::from(portions), water_kg: Some(mass) })?;
-                (field, PreparedWaterMaterial::Output(material))
+                let lot = material.lot_id.clone();
+                (field, PreparedWaterMaterial::Output(material), Some(lot))
             }
             WaterExchangeDirection::Deposit => {
                 let mut selected = Vec::new();
@@ -4293,7 +4362,7 @@ impl Kernel {
                 if (material.water_kg() - field.receipt().mass_kg).abs() > 1e-9 * field.receipt().mass_kg.max(1.0) {
                     return Err("water lot mass does not match field portion mass".into());
                 }
-                (field, PreparedWaterMaterial::Consumption(material))
+                (field, PreparedWaterMaterial::Consumption(material), None)
             }
         };
         let environment = self.environment.as_mut().ok_or("water exchange requires terrain")?;
@@ -4302,7 +4371,7 @@ impl Kernel {
             PreparedWaterMaterial::Output(material) => { self.publish_material_output(material); }
             PreparedWaterMaterial::Consumption(material) => { self.publish_material_consumption(material)?; }
         }
-        Ok(())
+        Ok(output_lot)
     }
     fn extract_resource(&mut self, worker_id: &str, source_id: &str) -> Result<String> {
         let worker = self.entity(worker_id)?;
@@ -5018,7 +5087,12 @@ impl Kernel {
             if portions == 0 { return Err("field water portions must be positive".into()); }
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
             let direction = match direction { crate::work_attempt::WaterDirection::Withdraw => WaterExchangeDirection::Withdraw, crate::work_attempt::WaterDirection::Deposit => WaterExchangeDirection::Deposit };
-            self.exchange_field_water(&current.worker, &vessel, crate::generation::Cell { x: i64::from(cell[0]), y: cell[1], z: i64::from(cell[2]) }, direction, portions)?;
+            let output_lot = self.exchange_field_water(&current.worker, &vessel, crate::generation::Cell { x: i64::from(cell[0]), y: cell[1], z: i64::from(cell[2]) }, direction, portions)?;
+            if let Some(lot) = output_lot {
+                if let Some(mut work) = self.ecs.get_mut::<FieldWaterWork>(entity) {
+                    work.lot = Some(lot);
+                }
+            }
             self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             return Ok(());
         }

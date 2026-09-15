@@ -9,6 +9,18 @@ use crate::work_attempt::{ActivityRef, AttemptPhase, WorkAttempt, WorkOutcome};
 use std::collections::BTreeSet;
 
 impl Kernel {
+    fn carrier_worker(&self, container: &str) -> Option<String> {
+        let mut current = container.to_owned();
+        for _ in 0..16 {
+            let entity = self.entity(&current).ok()?;
+            if self.ecs.get::<crate::components::PartyMember>(entity).is_some() {
+                return Some(current);
+            }
+            current = self.ecs.get::<Lot>(entity)?.container.clone();
+        }
+        None
+    }
+
     /// Advance each terminal supply operation by one durable transition.
     /// A failed route or transfer releases labor and any unused reservation.
     /// Material already picked up remains in its actual carrier with the
@@ -145,7 +157,8 @@ impl Kernel {
             })
             .filter_map(|(task, allocation)| {
                 let lot = self.ecs.get::<Lot>(self.entity(&allocation.portion).ok()?)?;
-                let worker = self.entity(&lot.container).ok()?;
+                let worker_id = self.carrier_worker(&lot.container)?;
+                let worker = self.entity(&worker_id).ok()?;
                 let member = self.ecs.get::<crate::components::PartyMember>(worker)?;
                 (member.party == allocation.party
                     && lot.quantity == allocation.quantity
@@ -160,12 +173,12 @@ impl Kernel {
                     && self.ecs.get::<crate::components::Traversal>(worker).is_some()
                     && self.ecs.get::<crate::components::Position>(worker).is_some()
                     && self.ecs.get::<crate::components::Container>(worker).is_some()
-                    && !self.attempts_by_worker.contains_key(&lot.container)
+                    && !self.attempts_by_worker.contains_key(&worker_id)
                     && self.ecs.get::<crate::components::Destination>(worker).is_none()
                     && !self.direct.contains_key(&worker)
                     && self.ecs.get::<crate::components::Support>(worker).is_none()
                     && self.ecs.get::<crate::components::ExcavationWork>(worker).is_none())
-                .then(|| (task.to_owned(), allocation.clone(), lot.container.clone()))
+                .then(|| (task.to_owned(), allocation.clone(), worker_id))
             })
             .take(crate::work_planner::MAX_ASSIGNMENTS)
             .collect::<Vec<_>>();
@@ -231,7 +244,7 @@ impl Kernel {
             .get::<Lot>(lot_entity)
             .cloned()
             .ok_or("failed supply portion disappeared")?;
-        let carried = lot.container == worker;
+        let carried = self.carrier_worker(&lot.container).as_deref() == Some(worker);
         if !carried {
             let container = self.entity(&lot.container)?;
             if self.ecs.get::<crate::components::GroundStock>(container).is_none()

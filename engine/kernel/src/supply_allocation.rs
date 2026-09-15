@@ -43,7 +43,21 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
             SupplyAllocationState::Delivered => if lot.container != allocation.destination || lot.quantity != allocation.quantity { return Err("delivered supply allocation has invalid custody".into()); },
             SupplyAllocationState::Cancelled => if kernel.work_attempt(id).is_some() { return Err("cancelled supply allocation still owns work".into()); },
             SupplyAllocationState::Reserved => {
-                let at_worker = kernel.entity(&lot.container).ok().is_some_and(|worker| {
+                let carrier_worker = {
+                    let mut carrier = lot.container.clone();
+                    let mut worker = None;
+                    for _ in 0..16 {
+                        let Ok(entity) = kernel.entity(&carrier) else { break; };
+                        if kernel.ecs().get::<crate::components::PartyMember>(entity).is_some() {
+                            worker = Some(carrier);
+                            break;
+                        }
+                        let Some(nested) = kernel.ecs().get::<Lot>(entity) else { break; };
+                        carrier = nested.container.clone();
+                    }
+                    worker
+                };
+                let at_worker = carrier_worker.as_deref().and_then(|id| kernel.entity(id).ok()).is_some_and(|worker| {
                     kernel.ecs().get::<crate::components::PartyMember>(worker).is_some_and(|member| member.party == allocation.party)
                         && kernel.ecs().get::<crate::components::Container>(worker).is_some()
                         && kernel.ecs().get::<crate::components::Traversal>(worker).is_some()
@@ -51,7 +65,7 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
                         && kernel.ecs().get::<crate::components::Body>(worker).is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
                         && kernel.ecs().get::<crate::work_planner::WorkParticipation>(worker).is_some()
                         && lot.quantity == allocation.quantity
-                        && kernel.work_attempt(id).is_none_or(|attempt| attempt.party == allocation.party && attempt.worker == lot.container)
+                        && kernel.work_attempt(id).is_none_or(|attempt| attempt.party == allocation.party && Some(attempt.worker.as_str()) == carrier_worker.as_deref())
                 });
                 let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| (kernel.ecs().get::<GroundStock>(container).is_some() || kernel.ecs().get::<StockpileCell>(container).is_some()) && kernel.ecs().get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()));
                 if !at_worker && !at_source { return Err("reserved supply allocation has invalid custody".into()); }

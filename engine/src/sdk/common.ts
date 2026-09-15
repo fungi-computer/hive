@@ -79,9 +79,41 @@ export const MaterialLot = component<{
   version: 1,
   fields: { quantity: "number", kind: "string", container: "entity" },
 });
+/** Native vessel eligibility; physical capability is authored as content and
+ * consumed by the native field-water planner. */
+export const VesselCapability = component<{ acceptsWater: boolean }>("hive.vessel-capability", {
+  version: 1,
+  fields: { acceptsWater: "boolean" },
+});
 export const LotWater = component<{ waterKg: number }>("hive.lot-water", {
   version: 1,
   fields: { waterKg: "number" },
+});
+/** Native reservation for one exact material portion. Physical custody remains
+ * in MaterialLot; this record exposes the durable planner obligation. */
+export const SupplyAllocation = component<{
+  requirementOwner: EntityId;
+  requirementRole: string;
+  requirementGeneration: number;
+  party: EntityId;
+  material: string;
+  portion: EntityId;
+  destination: EntityId;
+  quantity: number;
+  state: "reserved" | "delivered" | "cancelled";
+}>("hive.supply-allocation", {
+  version: 1,
+  fields: {
+    requirementOwner: "entity",
+    requirementRole: "string",
+    requirementGeneration: "number",
+    party: "entity",
+    material: "string",
+    portion: "entity",
+    destination: "entity",
+    quantity: "number",
+    state: "string",
+  },
 });
 export const FiniteResource = component<{ kind: string; quantity: number }>("hive.finite-resource", {
   version: 1,
