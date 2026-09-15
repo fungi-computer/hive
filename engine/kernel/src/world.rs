@@ -2079,8 +2079,8 @@ impl Kernel {
 
     pub(crate) fn ecs(&self) -> &World { &self.ecs }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
-    pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = &SupplyAllocation> {
-        self.ids.values().filter_map(|entity| self.ecs.get::<SupplyAllocation>(*entity))
+    pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
+        self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<SupplyAllocation>(*entity).map(|allocation| (id.as_str(), allocation)))
     }
     pub(crate) fn quantity_in_container(&self, container: &str) -> u32 {
         self.ids.values().filter_map(|entity| self.ecs.get::<Lot>(*entity)).filter(|lot| lot.container == container).fold(0, |total, lot| total.saturating_add(lot.quantity))
@@ -2088,33 +2088,29 @@ impl Kernel {
 
     /// Atomically reserve one exact lot portion and the matching destination
     /// capacity. No quantity is moved until `deliver_supply_allocation`.
-    pub(crate) fn reserve_supply_allocation(&mut self, requirement_owner: String, requirement_role: String, requirement_generation: u64, party: String, worker: String, portion: String, destination: String, quantity: u32) -> Result<String> {
+    pub(crate) fn reserve_supply_allocation(&mut self, requirement_owner: String, requirement_role: String, requirement_generation: u64, party: String, material: String, portion: String, destination: String, quantity: u32) -> Result<String> {
         self.ensure_ready()?;
-        if !valid_id(&requirement_owner) || !valid_id(&requirement_role) || requirement_generation == 0 || !valid_id(&party) || !valid_id(&worker) || !valid_id(&portion) || !valid_id(&destination) || quantity == 0 { return Err("invalid supply allocation request".into()); }
+        if !valid_id(&requirement_owner) || !valid_id(&requirement_role) || requirement_generation == 0 || !valid_id(&party) || !valid_id(&material) || !valid_id(&portion) || !valid_id(&destination) || quantity == 0 { return Err("invalid supply allocation request".into()); }
+        self.entity(&requirement_owner)?;
+        let party_entity = self.entity(&party)?;
+        self.ecs.get::<Party>(party_entity).ok_or("supply allocation party is not a party")?;
         let source = self.entity(&portion)?;
         let target = self.entity(&destination)?;
-        if self.ecs.get::<Lot>(source).is_none() { return Err("supply portion is missing".into()); }
+        let lot = self.ecs.get::<Lot>(source).ok_or("supply portion is missing")?;
+        if lot.kind != material { return Err("supply portion material mismatch".into()); }
         if self.ecs.get::<Container>(target).is_none() { return Err("supply destination is not a container".into()); }
-        let member = self.ecs.get::<PartyMember>(self.entity(&worker)?).ok_or("supply worker is not a party member")?;
-        if member.party != party { return Err("supply worker party ownership mismatch".into()); }
-        for entity in [source, target] {
-            if let Some(owner) = self.ecs.get::<OwnedByParty>(entity) && owner.party != party { return Err("supply party ownership mismatch".into()); }
+        let source_container = self.entity(&lot.container)?;
+        if self.ecs.get::<OwnedByParty>(source_container).map(|owner| owner.party.as_str()) != Some(party.as_str())
+            || self.ecs.get::<OwnedByParty>(target).map(|owner| owner.party.as_str()) != Some(party.as_str())
+            || self.ecs.get::<OwnedByParty>(source).is_some_and(|owner| owner.party != party)
+        {
+            return Err("supply party ownership mismatch".into());
         }
         crate::supply_allocation::validate_capacity(self, source, target, quantity, None)?;
         let id = (1..=16384_u32).map(|n| format!("allocation.{n}")).find(|id| !self.known.contains(id)).ok_or("supply allocation capacity reached")?;
-        let reservation = id.clone();
-        let entity = self.ecs.spawn((ExternalId(id.clone()), SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, portion, destination, quantity, reservation, state: SupplyAllocationState::Reserved })).id();
+        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
         self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_state_weight();
         Ok(id)
-    }
-
-    /// Construction keeps its site container as the destination owner; this
-    /// adapter only supplies the typed requirement identity for that consumer.
-    pub(crate) fn reserve_construction_supply(&mut self, site: String, worker: String, portion: String, quantity: u32) -> Result<String> {
-        let destination = self.entity(&site)?;
-        if self.ecs.get::<ConstructionSite>(destination).is_none() { return Err("construction supply destination is not a site".into()); }
-        let party = self.ecs.get::<OwnedByParty>(destination).ok_or("construction site has no party owner")?.party.clone();
-        self.reserve_supply_allocation(site.clone(), "construction-material".into(), 1, party, worker, portion, site, quantity)
     }
 
     pub(crate) fn cancel_supply_allocation(&mut self, allocation: &str) -> Result<()> {
@@ -2122,21 +2118,10 @@ impl Kernel {
         let state = self.ecs.get::<SupplyAllocation>(entity).ok_or("supply allocation is missing")?.state;
         if state == SupplyAllocationState::Delivered { return Err("delivered supply allocation cannot be cancelled".into()); }
         self.ecs.get_mut::<SupplyAllocation>(entity).unwrap().state = SupplyAllocationState::Cancelled;
-        self.revision = self.revision.checked_add(1).ok_or("revision exhausted")?;
+        self.refresh_state_weight();
         Ok(())
     }
 
-    pub(crate) fn deliver_supply_allocation(&mut self, allocation: &str) -> Result<String> {
-        let entity = self.entity(allocation)?;
-        let record = self.ecs.get::<SupplyAllocation>(entity).cloned().ok_or("supply allocation is missing")?;
-        if record.state != SupplyAllocationState::Reserved { return Err("supply allocation is not pending".into()); }
-        let source = self.entity(&record.portion)?; let target = self.entity(&record.destination)?;
-        crate::supply_allocation::validate_capacity(self, source, target, record.quantity, Some(&record.reservation))?;
-        let from = self.ecs.get::<Lot>(source).ok_or("supply portion is missing")?.container.clone();
-        let moved = self.transfer_with_identity_excluding(&record.portion, &from, &record.destination, record.quantity, false, Some(&record.reservation))?;
-        let mut allocation = self.ecs.get_mut::<SupplyAllocation>(entity).unwrap(); allocation.portion = moved.clone(); allocation.state = SupplyAllocationState::Delivered;
-        Ok(moved)
-    }
     pub fn load(&mut self, input: &str) -> Result<()> {
         if input.len() > 8 * 1024 * 1024 {
             return Err("scene too large".into());
@@ -3901,7 +3886,9 @@ impl Kernel {
             return Err("sealed container cannot receive material output".into());
         }
         let capacity = self.ecs.get::<Container>(container).ok_or("not a container")?.capacity;
-        let quantity = self.quantity(&spec.container);
+        let quantity = self.quantity(&spec.container)
+            .checked_add(u64::from(crate::supply_allocation::reserved_destination(self, &spec.container, None)))
+            .ok_or("material output destination reservation overflow")?;
         let lot = Lot { kind: spec.kind.clone(), quantity: spec.quantity, container: spec.container.clone() };
         let water = spec.water_kg.map(|mass| LotWater { water_kg: mass });
         let owner_party = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.clone());
@@ -4984,20 +4971,15 @@ impl Kernel {
                     return Err("sealed container cannot consume".into());
                 }
                 let e = self.entity(&lot)?;
-                if self.process_bindings_for_lot(&lot) { return Err("process-bound lot cannot be consumed".into()); }
-                let mut stock = self
-                    .ecs
-                    .get::<Lot>(e)
-                    .cloned()
-                    .ok_or("not a material lot")?;
+                let stock = self.ecs.get::<Lot>(e).ok_or("not a material lot")?;
                 if quantity == 0 || stock.quantity < quantity || stock.container != entity {
                     return Err("consumption requires held stock".into());
                 }
                 if self.ecs.get::<LotWater>(e).is_some_and(|water| water.water_kg > 0.0) {
                     return Err("wet lot consumption is not admitted".into());
                 }
-                stock.quantity -= quantity;
-                self.ecs.entity_mut(e).insert(stock);
+                let prepared = self.prepare_material_consumption(&[MaterialPortion { lot, quantity }])?;
+                self.publish_material_consumption(prepared)?;
                 Ok(ActionEffect::None)
             }
             Action::ExtractResource { operation: _, worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
@@ -5400,6 +5382,13 @@ impl Kernel {
     }
     pub(super) fn prepare_material_consumption(&self, portions: &[MaterialPortion]) -> Result<PreparedConsumption> {
         if portions.iter().any(|portion| self.process_bindings_for_lot(&portion.lot)) { return Err("process-bound lot cannot be consumed".into()); }
+        for portion in portions {
+            let lot = self.ecs.get::<Lot>(self.entity(&portion.lot)?).ok_or("material lot is missing")?;
+            let reserved = crate::supply_allocation::reserved_source(self, &portion.lot, None);
+            if portion.quantity > lot.quantity.saturating_sub(reserved) {
+                return Err("material lot quantity is reserved for supply".into());
+            }
+        }
         material_consumption::prepare(
             &self.material_consumption_owner,
             self.revision,

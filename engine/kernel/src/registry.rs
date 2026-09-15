@@ -68,7 +68,7 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
-            ("hive.supply-allocation", vec![("requirementOwner", FieldType::Entity), ("requirementRole", FieldType::String), ("requirementGeneration", FieldType::Number), ("party", FieldType::Entity), ("portion", FieldType::Entity), ("destination", FieldType::Entity), ("quantity", FieldType::Number), ("reservation", FieldType::String), ("state", FieldType::String)]),
+            ("hive.supply-allocation", vec![("requirementOwner", FieldType::Entity), ("requirementRole", FieldType::String), ("requirementGeneration", FieldType::Number), ("party", FieldType::Entity), ("material", FieldType::String), ("portion", FieldType::Entity), ("destination", FieldType::Entity), ("quantity", FieldType::Number), ("state", FieldType::String)]),
             ("hive.staged-process", vec![
                 ("version", FieldType::Number), ("definition", FieldType::String), ("definitionVersion", FieldType::Number),
                 ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number),
@@ -379,8 +379,8 @@ impl Registry {
             "hive.supply-allocation" => {
                 let allocation: SupplyAllocation = decode(value)?;
                 if !valid_id(&allocation.requirement_owner) || !valid_id(&allocation.requirement_role) || allocation.requirement_generation == 0 || !valid_id(&allocation.party)
-                    || !valid_id(&allocation.portion) || !valid_id(&allocation.destination)
-                    || !valid_id(&allocation.reservation) || allocation.quantity == 0
+                    || !valid_id(&allocation.material) || !valid_id(&allocation.portion)
+                    || !valid_id(&allocation.destination) || allocation.quantity == 0
                 { return Err("invalid supply allocation".into()); }
             }
             "hive.staged-process" => {

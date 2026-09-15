@@ -90,10 +90,10 @@ pub struct SupplyAllocation {
     pub requirement_role: String,
     pub requirement_generation: u64,
     pub party: String,
+    pub material: String,
     pub portion: String,
     pub destination: String,
     pub quantity: u32,
-    pub reservation: String,
     pub state: SupplyAllocationState,
 }
 
