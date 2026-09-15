@@ -43,7 +43,16 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
             SupplyAllocationState::Delivered => if lot.container != allocation.destination || lot.quantity != allocation.quantity { return Err("delivered supply allocation has invalid custody".into()); },
             SupplyAllocationState::Cancelled => if kernel.work_attempt(id).is_some() { return Err("cancelled supply allocation still owns work".into()); },
             SupplyAllocationState::Reserved => {
-                let at_worker = kernel.work_attempt(id).is_some_and(|attempt| attempt.party == allocation.party && lot.container == attempt.worker && lot.quantity == allocation.quantity);
+                let at_worker = kernel.entity(&lot.container).ok().is_some_and(|worker| {
+                    kernel.ecs().get::<crate::components::PartyMember>(worker).is_some_and(|member| member.party == allocation.party)
+                        && kernel.ecs().get::<crate::components::Container>(worker).is_some()
+                        && kernel.ecs().get::<crate::components::Traversal>(worker).is_some()
+                        && kernel.ecs().get::<crate::components::Position>(worker).is_some()
+                        && kernel.ecs().get::<crate::components::Body>(worker).is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
+                        && kernel.ecs().get::<crate::work_planner::WorkParticipation>(worker).is_some()
+                        && lot.quantity == allocation.quantity
+                        && kernel.work_attempt(id).is_none_or(|attempt| attempt.party == allocation.party && attempt.worker == lot.container)
+                });
                 let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| (kernel.ecs().get::<GroundStock>(container).is_some() || kernel.ecs().get::<StockpileCell>(container).is_some()) && kernel.ecs().get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()));
                 if !at_worker && !at_source { return Err("reserved supply allocation has invalid custody".into()); }
                 validate_capacity(kernel, portion, destination, allocation.quantity, Some(id))?;
@@ -112,5 +121,21 @@ mod tests {
         let mut invalid: Value = serde_json::from_str(&saved).unwrap();
         invalid["scene"]["initial"].as_array_mut().unwrap().iter_mut().find(|record| record["id"] == b).unwrap()["components"]["hive.supply-allocation"]["destination"] = json!("w1");
         assert_eq!(Kernel::new().restore_json(&invalid.to_string()).unwrap_err(), "supply allocation destination relationship is invalid");
+
+        let mut invalid_carrier: Value = serde_json::from_str(&saved).unwrap();
+        let lot = invalid_carrier["scene"]["initial"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|record| record["id"] == "wood")
+            .unwrap();
+        lot["components"]["hive.lot"]["container"] = json!("w1");
+        lot["components"]["hive.lot"]["quantity"] = json!(3);
+        assert_eq!(
+            Kernel::new()
+                .restore_json(&invalid_carrier.to_string())
+                .unwrap_err(),
+            "reserved supply allocation has invalid custody"
+        );
     }
 }

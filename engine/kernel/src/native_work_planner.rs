@@ -6,6 +6,7 @@
 //! custody remains owned by `Lot`, `Container`, and `Kernel` transfer laws.
 use super::Kernel;
 use super::route_query::SearchOutcome;
+use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
 use crate::work_planner::{MAX_ASSIGNMENTS, WorkParticipation};
 use std::collections::BTreeMap;
@@ -123,6 +124,7 @@ impl Kernel {
         requirements: &[SupplyRequirement],
     ) -> Result<Vec<String>> {
         let mut slots = Vec::new();
+        let mut prospective_source = BTreeMap::<String, u32>::new();
         for requirement in requirements {
             if slots.len() == MAX_ASSIGNMENTS {
                 break;
@@ -158,11 +160,12 @@ impl Kernel {
                         return None;
                     }
                     let position = *self.ecs.get::<Position>(container)?;
-                    let free =
-                        lot.quantity
-                            .saturating_sub(crate::supply_allocation::reserved_source(
-                                self, lot_id, None,
-                            ));
+                    let free = lot
+                        .quantity
+                        .saturating_sub(crate::supply_allocation::reserved_source(
+                            self, lot_id, None,
+                        ))
+                        .saturating_sub(*prospective_source.get(lot_id).unwrap_or(&0));
                     (free > 0).then(|| (lot_id.clone(), position, free))
                 })
                 .take(MAX_ASSIGNMENTS)
@@ -180,6 +183,7 @@ impl Kernel {
                         source_position,
                         quantity,
                     });
+                    *prospective_source.entry(lot.clone()).or_default() += quantity;
                     remaining -= quantity;
                     source_remaining -= quantity;
                 }
@@ -225,6 +229,45 @@ impl Kernel {
             .take(crate::work_planner::MAX_ELIGIBLE_WORKERS)
             .collect::<Vec<_>>();
         if workers.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        // A batch size is an upper preference, never a required carrier
+        // capability. Split the provisional source portions to the smallest
+        // currently eligible carrier for their party so every generated slot
+        // has at least one possible worker. Later reviews can admit the
+        // remainder when this bounded window is full.
+        let carry_limit_by_party = workers.iter().fold(
+            BTreeMap::<String, u32>::new(),
+            |mut limits, (_, party, _, capacity)| {
+                limits
+                    .entry(party.clone())
+                    .and_modify(|limit| *limit = (*limit).min(*capacity))
+                    .or_insert(*capacity);
+                limits
+            },
+        );
+        let mut carryable_slots = Vec::new();
+        for slot in slots {
+            let Some(limit) = carry_limit_by_party.get(&slot.requirement.party).copied() else {
+                continue;
+            };
+            let limit = limit.min(MAX_CARRY_PORTION);
+            let mut remaining = slot.quantity;
+            while remaining > 0 && carryable_slots.len() < MAX_ASSIGNMENTS {
+                let quantity = remaining.min(limit);
+                let mut carryable = slot.clone();
+                carryable.task = format!("supply-slot-{}", carryable_slots.len());
+                carryable.quantity = quantity;
+                carryable_slots.push(carryable);
+                remaining -= quantity;
+            }
+            if carryable_slots.len() == MAX_ASSIGNMENTS {
+                break;
+            }
+        }
+        let slots = carryable_slots;
+        if slots.is_empty() {
             return Ok(Vec::new());
         }
 
@@ -308,52 +351,51 @@ impl Kernel {
         })
         .map_err(|error| format!("native supply assignment failed: {error:?}"))?;
 
-        let mut admitted = Vec::new();
-        for assignment in planned.assignments {
-            let slot = slots_by_task
-                .get(&assignment.task)
-                .ok_or("native supply task identity is invalid")?;
-            let allocation = self.reserve_supply_allocation(
-                slot.requirement.owner.clone(),
-                slot.requirement.role.clone(),
-                slot.requirement.generation,
-                slot.requirement.party.clone(),
-                slot.requirement.material.clone(),
-                slot.lot.clone(),
-                slot.requirement.destination.clone(),
-                slot.quantity,
-            )?;
-            let destination = Point {
-                x: slot.source_position.x,
-                y: slot.source_position.y,
-                z: slot.source_position.z,
-                frame: None,
-            };
-            if let Err(error) = self.begin_work_attempt_with_prepared_route(
-                allocation.clone(),
-                assignment.worker,
-                slot.requirement.party.clone(),
-                destination,
-                assignment.witness,
-            ) {
-                self.cancel_supply_allocation(&allocation)?;
-                return Err(error);
-            }
-            admitted.push(allocation);
-        }
-        self.refresh_state_weight();
-        Ok(admitted)
+        let requests = planned
+            .assignments
+            .into_iter()
+            .map(|assignment| {
+                let slot = slots_by_task
+                    .get(&assignment.task)
+                    .ok_or("native supply task identity is invalid")?;
+                let destination = Point {
+                    x: slot.source_position.x,
+                    y: slot.source_position.y,
+                    z: slot.source_position.z,
+                    frame: None,
+                };
+                Ok(SupplyAdmissionRequest {
+                    requirement_owner: slot.requirement.owner.clone(),
+                    requirement_role: slot.requirement.role.clone(),
+                    requirement_generation: slot.requirement.generation,
+                    party: slot.requirement.party.clone(),
+                    material: slot.requirement.material.clone(),
+                    portion: slot.lot.clone(),
+                    destination_container: slot.requirement.destination.clone(),
+                    quantity: slot.quantity,
+                    worker: assignment.worker,
+                    route_destination: destination,
+                    route: assignment.witness,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        self.admit_supply_assignments(requests)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::components::{Lot, SupplyAllocation};
     use crate::generation::Cell;
     use crate::structure_geometry::Cardinal;
+    use crate::work_attempt::InterruptCause;
     use serde_json::json;
 
-    fn construction_world(worker_count: usize) -> (Kernel, Cell, Point) {
+    fn construction_world_with_capacity(
+        worker_count: usize,
+        worker_capacity: u32,
+    ) -> (Kernel, Cell, Point) {
         let workers = (1..=worker_count)
             .map(|index| {
                 json!({
@@ -363,7 +405,7 @@ mod tests {
                         "hive.position": { "x": 0.0, "y": 0.0, "z": 0.0, "facing": 0.0 },
                         "hive.body": { "speed": 1.0 },
                         "hive.traversal": { "clearanceCells": 1, "maxStepCells": 1 },
-                        "hive.container": { "capacity": 3 },
+                        "hive.container": { "capacity": worker_capacity },
                         "hive.work-participation": { "automatic": true }
                     }
                 })
@@ -441,6 +483,10 @@ mod tests {
         (kernel, surface, contact)
     }
 
+    fn construction_world(worker_count: usize) -> (Kernel, Cell, Point) {
+        construction_world_with_capacity(worker_count, 3)
+    }
+
     fn settle_routes(kernel: &mut Kernel) {
         kernel
             .advance_json(&json!({"delta":0.0,"writes":[],"actions":[]}).to_string())
@@ -503,5 +549,217 @@ mod tests {
             0
         );
         assert!(kernel.supply_allocations().next().is_none());
+    }
+
+    #[test]
+    fn carrier_capacity_splits_supply_without_starving_small_workers() {
+        let (mut kernel, _, _) = construction_world_with_capacity(2, 1);
+        for delivered in [2_u32, 4, 6] {
+            let admitted = kernel.plan_construction_supply("site", "party").unwrap();
+            assert_eq!(admitted.len(), 2);
+            assert!(admitted.iter().all(|id| {
+                kernel
+                    .ecs
+                    .get::<SupplyAllocation>(kernel.entity(id).unwrap())
+                    .is_some_and(|allocation| allocation.quantity == 1)
+            }));
+            assert_eq!(
+                crate::supply_allocation::reserved_source(&kernel, "wood", None),
+                2
+            );
+            finish_active_deliveries(&mut kernel);
+            assert_eq!(kernel.quantity_in_container("site"), delivered);
+        }
+        assert_eq!(kernel.quantity_in_container("worker-1"), 0);
+        assert_eq!(kernel.quantity_in_container("worker-2"), 0);
+        assert!(kernel.supply_allocations().next().is_none());
+    }
+
+    #[test]
+    fn one_planning_window_never_promises_the_same_source_twice() {
+        let (mut kernel, _, _) = construction_world(4);
+        let base = SupplyRequirement {
+            owner: "site".into(),
+            role: "first".into(),
+            generation: 1,
+            party: "party".into(),
+            material: "stone-spoil".into(),
+            destination: "site".into(),
+            missing: 4,
+        };
+        let admitted = kernel
+            .plan_supply_requirements(&[
+                base.clone(),
+                SupplyRequirement {
+                    role: "second".into(),
+                    ..base
+                },
+            ])
+            .unwrap();
+        assert_eq!(admitted.len(), 3);
+        assert_eq!(
+            admitted
+                .iter()
+                .map(|id| {
+                    kernel
+                        .ecs
+                        .get::<SupplyAllocation>(kernel.entity(id).unwrap())
+                        .unwrap()
+                        .quantity
+                })
+                .sum::<u32>(),
+            6
+        );
+        assert_eq!(
+            crate::supply_allocation::reserved_source(&kernel, "wood", None),
+            6
+        );
+    }
+
+    #[test]
+    fn rejected_batch_publishes_no_allocation_or_worker_claim() {
+        let (mut kernel, _, _) = construction_world(2);
+        let generation = kernel.next_work_generation;
+        kernel
+            .known
+            .insert(format!("allocation.{}", generation + 2));
+        assert!(kernel
+            .plan_construction_supply("site", "party")
+            .is_err());
+        assert!(kernel.supply_allocations().next().is_none());
+        assert!(kernel.work_attempts.is_empty());
+        assert!(kernel.attempts_by_worker.is_empty());
+        assert_eq!(kernel.next_work_generation, generation);
+        for worker in ["worker-1", "worker-2"] {
+            assert!(kernel
+                .ecs
+                .get::<Destination>(kernel.entity(worker).unwrap())
+                .is_none());
+        }
+
+        let (mut full, _, _) = construction_world(1);
+        full.state_weight = super::super::STATE_BYTES;
+        assert_eq!(
+            full.plan_construction_supply("site", "party").unwrap_err(),
+            "supply admission exceeds canonical state capacity"
+        );
+        assert!(full.supply_allocations().next().is_none());
+        assert!(full.work_attempts.is_empty());
+        assert!(full
+            .ecs
+            .get::<Destination>(full.entity("worker-1").unwrap())
+            .is_none());
+    }
+
+    #[test]
+    fn blocked_pickup_releases_only_transport_promise() {
+        let (mut kernel, _, _) = construction_world(1);
+        let allocation = kernel
+            .plan_construction_supply("site", "party")
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let attempt = kernel.work_attempt(&allocation).unwrap().clone();
+        let operation = attempt.current_operation().unwrap().clone();
+        let activity = match attempt.phase {
+            crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity,
+            _ => panic!("new supply attempt must be executing"),
+        };
+        kernel
+            .settle_attempt(
+                &allocation,
+                crate::work_attempt::AttemptPhase::Outcome {
+                    operation,
+                    activity,
+                    result: crate::work_attempt::WorkOutcome::Blocked {
+                        reason: crate::work_attempt::WorkBlockReason::AccessLost,
+                    },
+                },
+            )
+            .unwrap();
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1);
+        assert!(kernel.entity(&allocation).is_err());
+        assert_eq!(kernel.quantity_in_container("source"), 6);
+        assert_eq!(kernel.quantity_in_container("worker-1"), 0);
+        assert_eq!(kernel.quantity_in_container("site"), 0);
+        assert_eq!(
+            kernel
+                .ecs
+                .get::<ConstructionSite>(kernel.entity("site").unwrap())
+                .unwrap()
+                .phase,
+            ConstructionPhase::Planned
+        );
+    }
+
+    #[test]
+    fn interrupted_carrier_keeps_material_and_resumes_after_undraft() {
+        let (mut kernel, _, _) = construction_world(1);
+        let allocation = kernel
+            .plan_construction_supply("site", "party")
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        settle_routes(&mut kernel);
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1); // pickup
+        let carried = kernel
+            .ecs
+            .get::<SupplyAllocation>(kernel.entity(&allocation).unwrap())
+            .unwrap()
+            .portion
+            .clone();
+        assert_eq!(kernel.quantity_in_container("worker-1"), 3);
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1); // route to site
+        let worker = kernel.entity("worker-1").unwrap();
+        kernel
+            .ecs
+            .get_mut::<WorkParticipation>(worker)
+            .unwrap()
+            .automatic = false;
+        let operation = kernel
+            .work_attempt(&allocation)
+            .unwrap()
+            .current_operation()
+            .unwrap()
+            .clone();
+        kernel
+            .interrupt_work_attempt(
+                allocation.clone(),
+                operation.attempt.generation,
+                operation.sequence,
+                InterruptCause::WorkerUnavailable,
+            )
+            .unwrap();
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1);
+
+        assert!(kernel.entity(&allocation).is_ok());
+        assert!(kernel.work_attempt(&allocation).is_none());
+        assert_eq!(kernel.quantity_in_container("worker-1"), 3);
+        let lot = kernel.ecs.get::<Lot>(kernel.entity(&carried).unwrap()).unwrap();
+        assert_eq!(lot.container, "worker-1");
+        assert_eq!(kernel.quantity_in_container("source"), 3);
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        let worker = restored.entity("worker-1").unwrap();
+        restored
+            .ecs
+            .get_mut::<WorkParticipation>(worker)
+            .unwrap()
+            .automatic = true;
+        restored.ecs.get_mut::<Body>(worker).unwrap().speed = 0.0;
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0);
+        assert!(restored.work_attempt(&allocation).is_none());
+        restored.ecs.get_mut::<Body>(worker).unwrap().speed = 1.0;
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1);
+        settle_routes(&mut restored);
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // deposit
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // retire
+        assert_eq!(restored.quantity_in_container("site"), 3);
+        assert_eq!(restored.quantity_in_container("worker-1"), 0);
+        assert!(restored.entity(&allocation).is_err());
     }
 }

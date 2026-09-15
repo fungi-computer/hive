@@ -31,6 +31,8 @@ mod construction_work;
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
 mod native_work_planner;
+#[path = "supply_admission.rs"]
+mod supply_admission;
 #[path = "supply_delivery.rs"]
 mod supply_delivery;
 #[path = "route_query.rs"]
@@ -2582,6 +2584,22 @@ impl Kernel {
             None => { self.terrain_routes.remove(&entity); }
         }
     }
+    fn route_snapshot_for(
+        &self,
+        entity: Entity,
+        path: &VecDeque<Point>,
+        terrain: Option<&TerrainRouteState>,
+    ) -> RouteSnapshot {
+        RouteSnapshot {
+            entity: self.ecs.get::<ExternalId>(entity).unwrap().0.clone(),
+            path: path.iter().cloned().collect(),
+            terrain_path: terrain.map(|state| state.path.clone()),
+            terrain_waiting: terrain.is_some_and(|state| state.waiting),
+            terrain_suspended: terrain.is_some_and(|state| state.suspended),
+            terrain_origin: terrain.map(|state| state.origin.clone()),
+            terrain_target: terrain.and_then(|state| state.target.clone()),
+        }
+    }
     fn restore_routes(&mut self, saved: Vec<RouteSnapshot>, defer_environment_validation: bool) -> Result<()> {
         if saved.len() > self.ids.len() {
             return Err("too many saved routes".into());
@@ -3300,14 +3318,8 @@ impl Kernel {
         let mut routes: Vec<RouteSnapshot> = self
             .routes
             .iter()
-            .map(|(entity, path)| RouteSnapshot {
-                entity: self.ecs.get::<ExternalId>(*entity).unwrap().0.clone(),
-                path: path.iter().cloned().collect(),
-                terrain_path: self.terrain_routes.get(entity).map(|state| state.path.clone()),
-                terrain_waiting: self.terrain_routes.get(entity).is_some_and(|state| state.waiting),
-                terrain_suspended: self.terrain_routes.get(entity).is_some_and(|state| state.suspended),
-                terrain_origin: self.terrain_routes.get(entity).map(|state| state.origin.clone()),
-                terrain_target: self.terrain_routes.get(entity).and_then(|state| state.target.clone()),
+            .map(|(entity, path)| {
+                self.route_snapshot_for(*entity, path, self.terrain_routes.get(entity))
             })
             .collect();
         routes.sort_by(|a: &RouteSnapshot, b: &RouteSnapshot| a.entity.cmp(&b.entity));
