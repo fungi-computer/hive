@@ -76,6 +76,29 @@ impl Kernel {
     /// older party field on the policy until the access/work-pool conversion.
     pub(crate) fn advance_native_work_planner(&mut self, tick: u64) -> Result<usize> {
         let mut progressed = self.reconcile_supply_allocations()?;
+        // Physical completion disables a construction site's assignment
+        // policy immediately. Reap its completed attempt independently of
+        // the candidate index so the worker is released even though the
+        // finished site is no longer eligible for another assignment.
+        let finished_construction = self.work_attempts.iter().filter_map(|(task, entity)| {
+            let site = self.ecs.get::<ConstructionSite>(*entity)?;
+            let attempt = self.ecs.get::<crate::work_attempt::WorkAttempt>(*entity)?;
+            (site.phase == ConstructionPhase::Finished
+                && matches!(
+                    attempt.phase,
+                    crate::work_attempt::AttemptPhase::Outcome {
+                        activity: crate::work_attempt::ActivityRef::Construction { .. },
+                        result: crate::work_attempt::WorkOutcome::Completed,
+                        ..
+                    }
+                ))
+                .then(|| (task.clone(), attempt.clone()))
+        }).collect::<Vec<_>>();
+        for (task, attempt) in finished_construction {
+            let operation = attempt.current_operation().ok_or("finished construction attempt has no operation")?.clone();
+            self.acknowledge_work_attempt(task, operation.attempt.generation, operation.sequence)?;
+            progressed += 1;
+        }
         if !self.planner_indexes.has_due_task(tick) {
             return Ok(progressed);
         }
@@ -126,9 +149,14 @@ impl Kernel {
             match (activity, result) {
                 (crate::work_attempt::ActivityRef::Route { destination }, crate::work_attempt::WorkOutcome::Completed) => {
                     let next = if self.ecs.get::<ConstructionSite>(self.entity(&task.id)?).is_some() {
+                        let mode = if self.ecs.get::<Position>(self.entity(&task.id)?).is_some() {
+                            crate::work_attempt::ConstructionMode::Work
+                        } else {
+                            crate::work_attempt::ConstructionMode::Bind
+                        };
                         crate::work_planner::WorkOperation::Construction {
                             site: task.id.clone(),
-                            mode: crate::work_attempt::ConstructionMode::Work,
+                            mode,
                         }
                     } else if self.ecs.get::<StagedProcess>(self.entity(&task.id)?).is_some() {
                         crate::work_planner::WorkOperation::ProcessAttendance { process: task.id.clone() }
@@ -1153,6 +1181,55 @@ mod tests {
     }
 
     #[test]
+    fn native_tick_binds_unbound_construction_before_admitting_supply() {
+        let (mut kernel, _, contact) = construction_world(1);
+        let site = kernel.entity("site").unwrap();
+        kernel.ecs.entity_mut(site).remove::<Position>();
+        kernel.refresh_planner_index("site");
+
+        // An unbound planned site contributes the initial contact route even
+        // though its material destination is not yet eligible for supply.
+        assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
+        assert!(matches!(
+            &kernel.work_attempt("site").expect("bind route").phase,
+            crate::work_attempt::AttemptPhase::Executing {
+                activity: crate::work_attempt::ActivityRef::Route { destination }, ..
+            } if destination == &contact
+        ));
+
+        settle_routes(&mut kernel);
+        // Reconciliation must materialize the typed Bind operation at the
+        // exact reached contact, then expose the site for ordinary supply.
+        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 1);
+        assert!(kernel.ecs.get::<Position>(site).is_some());
+        assert!(kernel.supply_allocations().next().is_none());
+        // One unit reconciles the completed bind and one admits the delivery.
+        assert_eq!(kernel.advance_native_work_planner(24).unwrap(), 2);
+        assert_eq!(kernel.supply_allocations().count(), 1);
+    }
+
+    #[test]
+    fn finished_construction_releases_its_worker_after_leaving_the_candidate_index() {
+        let (mut kernel, _, _) = construction_world(1);
+        assert_eq!(kernel.plan_construction_supply("site", "party").unwrap().len(), 1);
+        finish_active_deliveries(&mut kernel);
+        assert_eq!(kernel.plan_construction_supply("site", "party").unwrap().len(), 1);
+        finish_active_deliveries(&mut kernel);
+        assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
+        settle_routes(&mut kernel);
+        assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 1);
+        kernel.advance_construction(100.0).unwrap();
+        assert_eq!(
+            kernel.ecs.get::<ConstructionSite>(kernel.entity("site").unwrap()).unwrap().phase,
+            ConstructionPhase::Finished,
+        );
+        assert!(kernel.work_attempt("site").is_some(), "physical completion remains receipted until planner reconciliation");
+        assert_eq!(kernel.advance_native_work_planner(17).unwrap(), 1);
+        assert!(kernel.work_attempt("site").is_none());
+        assert!(kernel.attempts_by_worker.is_empty());
+    }
+
+    #[test]
     fn native_tick_hook_treats_finished_construction_as_idle_and_is_repeatable() {
         let (mut kernel, _, _) = construction_world(1);
         let site = kernel.entity("site").unwrap();
@@ -1569,7 +1646,8 @@ mod tests {
 
         let site_entity = kernel.entity("site").unwrap();
         kernel.ecs.entity_mut(site_entity).remove::<Position>();
-        assert!(kernel.construction_work_requirement("site", "party").unwrap().is_none());
+        let bind = kernel.construction_work_requirement("site", "party").unwrap().expect("unbound supported site contributes its bind step");
+        assert!(matches!(bind.operation, crate::work_planner::WorkOperation::Construction { mode: crate::work_attempt::ConstructionMode::Bind, .. }));
 
         kernel.ecs.entity_mut(site_entity).insert(Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 });
         kernel.ecs.entity_mut(site_entity).get_mut::<ConstructionSite>().unwrap().target = ConstructionTarget::Cell {

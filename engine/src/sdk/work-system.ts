@@ -65,14 +65,27 @@ export function createWorkSystem(options: WorkSystemOptions) {
     consumesImpacts: options.consumesImpacts,
     run(context) {
       for (const phase of options.phases ?? []) phase(context);
+      const participationRows = context.query({ components: [WorkParticipation] });
       const suspendedActors = new Set(
-        context.query({ components: [WorkParticipation] }).flatMap((row) =>
+        participationRows.flatMap((row) =>
           row.get(WorkParticipation).automatic ? [] : [row.id],
+        ),
+      );
+      // WorkAttempt is the canonical custody fact across every work family,
+      // including native-planner tasks that are intentionally invisible to
+      // authored providers. No provider may assign an actor already owned by
+      // another durable attempt.
+      const canonicallyOccupiedActors = new Set(
+        participationRows.flatMap((row) =>
+          context.workAttemptForWorker?.(row.id) ? [row.id] : [],
         ),
       );
       const prepared = options.providers.map((provider) => provider(context, suspendedActors));
       const claims = prepared.flatMap((provider) => provider.claims);
-      const occupiedActors = new Set(prepared.flatMap((provider) => provider.occupiedActors ?? []));
+      const occupiedActors = new Set([
+        ...canonicallyOccupiedActors,
+        ...prepared.flatMap((provider) => provider.occupiedActors ?? []),
+      ]);
       const candidates: TaggedCandidate[] = prepared.flatMap((provider, providerIndex) =>
         provider.candidates.map((candidate) => ({
           providerIndex,
