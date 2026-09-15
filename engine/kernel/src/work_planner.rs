@@ -4,6 +4,8 @@
 //! remains the sole worker-to-operation association and domain components remain
 //! the owners of progress and physical effects.
 use bevy_ecs::prelude::Component;
+use crate::components::Point;
+use crate::work_attempt::ActivityRef;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_REVIEW_INTERVAL: u64 = 8;
@@ -39,6 +41,24 @@ pub struct WorkPolicy {
 pub struct WorkSchedule {
     pub next_review_tick: u64,
     pub last_considered: u64,
+}
+
+/// A domain-owned contribution to the shared labor planner.
+///
+/// This is a derived view of one existing task.  It carries no worker claim,
+/// route, progress, or reservation; the shared planner consumes it when it
+/// builds a bounded assignment window.  `next_activity` is the exact typed
+/// operation the domain owner expects after a worker reaches one of the
+/// supplied contacts.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct WorkRequirement {
+    pub task: String,
+    pub party: String,
+    pub priority: u8,
+    pub schedule: WorkSchedule,
+    pub contacts: Vec<Point>,
+    pub next_activity: ActivityRef,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

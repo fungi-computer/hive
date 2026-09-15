@@ -7,6 +7,100 @@
 use super::*;
 
 impl Kernel {
+    /// Contribute an admitted, attended process stage to the shared labor
+    /// planner.  Process state and binding ownership stay here; the shared
+    /// planner receives only a typed intent and contact witnesses.
+    pub(super) fn process_work_requirement(
+        &mut self,
+        process: &str,
+        party: &str,
+    ) -> Result<Option<crate::work_planner::WorkRequirement>> {
+        self.ensure_ready()?;
+        let process_entity = self.entity(process)?;
+        let state = self
+            .ecs
+            .get::<crate::staged_process::StagedProcess>(process_entity)
+            .cloned()
+            .ok_or("not a staged process")?;
+        let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(process_entity).cloned() else {
+            return Ok(None);
+        };
+        let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(process_entity).cloned() else {
+            return Ok(None);
+        };
+        if !policy.enabled || policy.party != party || state.phase != crate::staged_process::ProcessPhase::Waiting {
+            return Ok(None);
+        }
+        if self.work_attempts.contains_key(process) {
+            return Ok(None);
+        }
+        let definition = self
+            .environment
+            .as_ref()
+            .ok_or("process attendance needs environment")?
+            .processes
+            .get(&state.definition)
+            .ok_or("unknown process definition")?
+            .definition()
+            .clone();
+        let stage = definition
+            .stages
+            .get(usize::from(state.stage_index))
+            .ok_or("process stage is missing")?;
+        if stage.mode != crate::staged_process::StageMode::Attended
+            || self.ecs.get::<crate::components::OwnedByParty>(process_entity).map(|owner| owner.party.as_str()) != Some(party)
+        {
+            return Ok(None);
+        }
+        let station_entity = self.entity(&state.station)?;
+        let station = self
+            .ecs
+            .get::<crate::components::ConstructionSite>(station_entity)
+            .ok_or("process station is not a construction site")?;
+        if station.phase != crate::components::ConstructionPhase::Finished
+            || station.catalog != definition.station_catalog
+            || self.ecs.get::<crate::components::SealedContainer>(station_entity).is_none()
+        {
+            return Ok(None);
+        }
+        let bindings = self.process_bindings(process);
+        if bindings.is_empty()
+            || crate::staged_process::validate_bindings_at_stage(
+                &definition,
+                usize::from(state.stage_index),
+                process,
+                &state.station,
+                &bindings,
+                &|lot_id| self.ids.get(lot_id).and_then(|entity| self.ecs.get::<crate::components::Lot>(*entity).cloned()),
+            )
+            .is_err()
+        {
+            return Ok(None);
+        }
+        let Some(position) = self.ecs.get::<crate::components::Position>(station_entity).cloned() else {
+            return Ok(None);
+        };
+        if ![position.x, position.y, position.z, position.facing].iter().all(|value| value.is_finite()) {
+            return Ok(None);
+        }
+        let contacts = vec![crate::components::Point {
+            x: position.x,
+            y: position.y,
+            z: position.z,
+            frame: None,
+        }];
+        Ok(Some(crate::work_planner::WorkRequirement {
+            task: process.to_owned(),
+            party: party.to_owned(),
+            priority: policy.priority,
+            schedule,
+            contacts,
+            next_activity: crate::work_attempt::ActivityRef::ProcessAttendance {
+                process: process.to_owned(),
+            },
+        }))
+    }
+
     pub(super) fn execute_process_transition(
         &mut self,
         process_id: &str,
