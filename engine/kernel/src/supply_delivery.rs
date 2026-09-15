@@ -289,7 +289,10 @@ impl Kernel {
     }
 
     pub(crate) fn cancel_and_retire_supply_allocation(&mut self, task: &str) -> Result<()> {
-        self.cancel_supply_allocation(task)?;
+        let entity = self.entity(task)?;
+        if self.ecs.get::<SupplyAllocation>(entity).is_some_and(|allocation| allocation.state == SupplyAllocationState::Reserved) {
+            self.cancel_supply_allocation(task)?;
+        }
         self.retire_terminal_supply_allocation(task)
     }
 }

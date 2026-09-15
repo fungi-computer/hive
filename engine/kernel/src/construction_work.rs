@@ -226,6 +226,7 @@ impl Kernel {
         let prepared = { let environment = self.environment.as_mut().unwrap(); match environment.world.prepare_structures(instances)? { Ok(prepared) => prepared, Err(_) => return Err("deconstruction geometry is invalid".into()) } };
         let salvage: Vec<_> = definition.on_remove.salvage.iter().map(|(kind, quantity)| self.prepare_material_output(MaterialOutputSpec { container: worker_id.to_owned(), kind: kind.clone(), quantity: *quantity, water_kg: None })).collect::<Result<Vec<_>>>()?;
         self.environment.as_mut().unwrap().apply_structures(prepared)?;
+        self.cancel_structurally_impossible_construction()?;
         for output in salvage { self.publish_material_output(output); }
         for port_id in port_ids {
             let entity = self.ids.remove(&port_id).ok_or("created port disappeared")?;
@@ -691,6 +692,76 @@ impl Kernel {
         self.ecs.entity_mut(self.entity(site)?).insert(state);
         Ok(())
     }
+
+    fn release_attempt_for_cancelled_task(&mut self, task: &str) -> Result<()> {
+        let Some(attempt_entity) = self.work_attempts.get(task).copied() else { return Ok(()); };
+        let attempt = self.ecs.get::<WorkAttempt>(attempt_entity).cloned().ok_or("work attempt index references missing component")?;
+        let sequence = attempt.current_operation().ok_or("cancelled task attempt has no operation")?.sequence;
+        if matches!(attempt.phase, crate::work_attempt::AttemptPhase::Executing { .. }) {
+            self.interrupt_work_attempt(task.to_owned(), attempt.key.generation, sequence, crate::work_attempt::InterruptCause::Cancelled)?;
+        }
+        self.acknowledge_work_attempt(task.to_owned(), attempt.key.generation, sequence)
+    }
+
+    /// Retire an impossible construction intent without becoming a second
+    /// material owner. Incoming reservations are released, carried portions
+    /// stay with their real carrier, and delivered lots turn the bound staging
+    /// container into ordinary ground stock at the same physical contact.
+    fn cancel_construction_intent(&mut self, site: &str) -> Result<()> {
+        let site_entity = self.entity(site)?;
+        let state = self.ecs.get::<ConstructionSite>(site_entity).cloned().ok_or("not a construction site")?;
+        if state.phase == ConstructionPhase::Finished { return Err("finished construction cannot be cancelled as an intent".into()); }
+
+        let lot_entities = self.contents.get(site).cloned().unwrap_or_default();
+        let has_material = lot_entities.iter().any(|entity| self.ecs.get::<Lot>(*entity).is_some_and(|lot| lot.quantity > 0));
+        if has_material && self.ecs.get::<Position>(site_entity).is_none() {
+            return Err("cancelled construction material has no physical contact".into());
+        }
+
+        self.release_attempt_for_cancelled_task(site)?;
+        let allocations = self.supply_allocations()
+            .filter(|(_, allocation)| allocation.requirement_owner == site || allocation.destination == site)
+            .map(|(id, _)| id.to_owned())
+            .collect::<Vec<_>>();
+        for allocation in allocations {
+            self.release_attempt_for_cancelled_task(&allocation)?;
+            self.cancel_and_retire_supply_allocation(&allocation)?;
+        }
+
+        self.ecs.entity_mut(site_entity).remove::<ConstructionSite>();
+        self.ecs.entity_mut(site_entity).remove::<crate::work_planner::WorkPolicy>();
+        self.ecs.entity_mut(site_entity).remove::<crate::work_planner::WorkSchedule>();
+        if let Some(replacement) = self.ecs.get::<FloorReplacement>(site_entity).cloned() {
+            self.ecs.entity_mut(site_entity).insert(FloorReplacement { phase: FloorReplacementPhase::Cancelled, ..replacement });
+        }
+        if has_material {
+            self.ecs.entity_mut(site_entity).insert(GroundStock {});
+            self.visible_source_containers.insert(site.to_owned());
+        } else if self.ecs.get::<FloorReplacement>(site_entity).is_none() {
+            for lot_entity in lot_entities {
+                if let Some(id) = self.ecs.get::<ExternalId>(lot_entity).map(|id| id.0.clone()) {
+                    self.ids.remove(&id); self.known.remove(&id);
+                }
+                self.ecs.despawn(lot_entity);
+            }
+            self.contents.remove(site);
+            self.ids.remove(site); self.known.remove(site); self.ecs.despawn(site_entity);
+        }
+        self.refresh_planner_index(site);
+        Ok(())
+    }
+
+    /// Re-evaluate every pending intent against the now-current physical
+    /// structures. `construction_support` is the canonical deterministic
+    /// support fixed point and therefore preserves plans with another root.
+    pub(super) fn cancel_structurally_impossible_construction(&mut self) -> Result<Vec<String>> {
+        let pending = self.pending_construction_instances()?;
+        let mut cancelled = self.environment.as_mut().ok_or("construction needs environment")?
+            .world.construction_support(&pending)?;
+        cancelled.sort();
+        for site in &cancelled { self.cancel_construction_intent(site)?; }
+        Ok(cancelled)
+    }
     fn complete_construction(&mut self, site_id: &str, state: &ConstructionSite) -> Result<bool> {
         if self.ecs.get::<FloorReplacement>(self.entity(site_id)?).is_some() { return self.complete_floor_replacement(site_id, state); }
         let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?.clone();
@@ -887,7 +958,11 @@ impl Kernel {
                 if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost } })?; } }
                 continue;
             }
-            if !self.construction_materials_ready(&site_id, &definition) { continue; }
+            if !self.construction_materials_ready(&site_id, &definition) {
+                self.release_construction_worker(&site_id, state)?;
+                if let Some(attempt) = attempt { if let Some(operation) = attempt.current_operation().cloned() { self.settle_attempt(&site_id, crate::work_attempt::AttemptPhase::Outcome { operation, activity: match attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity, .. } => activity, _ => unreachable!() }, result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::MissingInputs } })?; } }
+                continue;
+            }
             state.seconds = earned_work_seconds(state.seconds, delta, definition.work_seconds)?;
             self.ecs.entity_mut(self.entity(&site_id)?).insert(state.clone());
             if state.seconds < definition.work_seconds { continue; }
