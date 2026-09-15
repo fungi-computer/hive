@@ -109,6 +109,8 @@ impl Kernel {
             let entity = self.entity(&task.id)?;
             if let Some(state) = self.ecs.get::<StagedProcess>(entity).cloned()
                 && state.phase == ProcessPhase::Waiting
+                && state.stage_index == 0
+                && self.process_bindings(&task.id).is_empty()
             {
                 let _ = self.try_admit_process(&task.id, &state.definition, &state.station)?;
             }
@@ -169,9 +171,11 @@ impl Kernel {
                     }
                 }
             } else if self.ecs.get::<StagedProcess>(entity).is_some() {
-                let phase = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.phase;
-                if phase == ProcessPhase::Waiting {
-                    supply_requirements.extend(self.process_supply_requirements(&task.id, &party)?);
+                let state = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.clone();
+                if state.phase == ProcessPhase::Waiting {
+                    if state.stage_index == 0 && self.process_bindings(&task.id).is_empty() {
+                        supply_requirements.extend(self.process_supply_requirements(&task.id, &party)?);
+                    }
                     if let Some(requirement) = self.process_work_requirement(&task.id, &party)? {
                         requirements.push(requirement);
                     }
