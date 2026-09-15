@@ -80,6 +80,20 @@ pub struct Lot {
 pub struct LotWater {
     pub water_kg: f64,
 }
+
+/// Whether a lot can satisfy a material requirement. Water is a material with
+/// an attached finite mass; a positive water field on another material marks
+/// wet spoil and cannot satisfy a dry requirement.
+pub(crate) fn lot_matches_material(lot: &Lot, water: Option<&LotWater>, material: &str) -> bool {
+    if lot.quantity == 0 || lot.kind != material {
+        return false;
+    }
+    if material == "water" {
+        water.is_some_and(|value| value.water_kg.is_finite() && value.water_kg > 0.0)
+    } else {
+        water.is_none_or(|value| value.water_kg == 0.0)
+    }
+}
 /// Native supply reservation. The lot and container remain the sole physical
 /// custody owners; this record accounts only for an admitted portion and its
 /// incoming destination capacity.

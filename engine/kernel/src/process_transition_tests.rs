@@ -265,7 +265,9 @@ fn fixture(blocked_air: bool) -> Kernel {
                 container: container.into(),
             },
         );
-        let entity = if role == "keg" || role == "barm" {
+        let entity = if role == "water" {
+            kernel.ecs.spawn((bundle.0, bundle.1, LotWater { water_kg: 2.0 })).id()
+        } else if role == "keg" || role == "barm" {
             kernel
                 .ecs
                 .spawn((
@@ -331,9 +333,15 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
     }
     for (role, quantity) in [("malt", 2), ("water", 2), ("mugwort", 1), ("wood", 1), ("barm", 1), ("keg", 1)] {
         let id = format!("process-stock:{role}");
-        let entity = kernel.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: "party:process".into() }, Lot {
-            kind: role.into(), quantity, container: "process-stock".into(),
-        })).id();
+        let entity = if role == "water" {
+            kernel.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: "party:process".into() }, Lot {
+                kind: role.into(), quantity, container: "process-stock".into(),
+            }, LotWater { water_kg: 2.0 })).id()
+        } else {
+            kernel.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: "party:process".into() }, Lot {
+                kind: role.into(), quantity, container: "process-stock".into(),
+            })).id()
+        };
         kernel.ids.insert(id, entity);
         kernel.known.insert(format!("process-stock:{role}"));
         kernel.contents.get_mut("process-stock").unwrap().insert(entity);
@@ -385,7 +393,7 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
     let first = kernel.plan_process_supply(&process, "party:process").unwrap();
     assert!(!first.is_empty());
     assert_eq!(kernel.plan_process_supply(&process, "party:process").unwrap().len(), 0);
-    assert_eq!(kernel.supply_allocations().map(|(_, allocation)| allocation.quantity).sum::<u32>(), 8);
+    assert_eq!(kernel.supply_allocations().map(|(_, allocation)| allocation.quantity).sum::<u32>(), 8, "{:?}", kernel.supply_allocations().map(|(_, allocation)| (&allocation.requirement_role, allocation.quantity)).collect::<Vec<_>>());
     assert!(kernel.supply_allocations().all(|(_, allocation)| allocation.requirement_role != "keg" || allocation.quantity == 1));
     assert!(kernel.supply_allocations().all(|(_, allocation)| allocation.portion != "wrong-keg"));
     for port in ["kettle", "hearth", "barm", "keg", "tray"] {
@@ -407,6 +415,8 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
     for port in ["kettle", "hearth", "barm", "keg"] {
         assert!(restored.quantity_in_container(&format!("station:{port}")) > 0);
     }
+    let water_mass = restored.contents.get("station:kettle").unwrap().iter().filter_map(|entity| restored.ecs.get::<LotWater>(*entity)).map(|water| water.water_kg).sum::<f64>();
+    assert!((water_mass - 2.0).abs() < 1e-9);
     restored.admit_process(&process, "herbal-ale-v1", "station").unwrap();
     assert_eq!(restored.process_bindings(&process).iter().map(|binding| binding.quantity).sum::<u32>(), 8);
 }
