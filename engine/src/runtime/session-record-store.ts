@@ -1,5 +1,5 @@
 import type { SessionSnapshot } from "./session";
-import type { KernelRecordSnapshot } from "./kernel-records";
+import { MAX_KERNEL_RECORDS, type KernelRecordSnapshot } from "./kernel-records";
 import type { RegionRecordReader, RegionStateRecord, RegionRecordChange } from "../../../src/engine/region/index.ts";
 
 type KernelHeader = Omit<KernelRecordSnapshot, "records"> & { readonly recordKeys: readonly string[] };
@@ -14,7 +14,7 @@ export function checkedStoredSession(value: unknown): StoredSession {
       typeof state.paused !== "boolean" || !Number.isSafeInteger(state.tick) || state.tick < 0 ||
       !Number.isFinite(state.now) || state.now < 0 || !kernel || kernel.format !== "hive-kernel-records" ||
       kernel.version !== 1 || kernel.revision !== state.tick || kernel.time !== state.now ||
-      !Array.isArray(kernel.recordKeys) || kernel.recordKeys.length < 2 || kernel.recordKeys.length > 40 ||
+      !Array.isArray(kernel.recordKeys) || kernel.recordKeys.length < 2 || kernel.recordKeys.length > MAX_KERNEL_RECORDS ||
       new Set(kernel.recordKeys).size !== kernel.recordKeys.length ||
       kernel.recordKeys.some(key => typeof key !== "string" || key.length > 80 || !key.startsWith("kernel/")) ||
       Object.hasOwn(kernel, "records")) throw new Error("invalid stored session header");
