@@ -1,5 +1,26 @@
 # Clearing repair implementation packet
 
+**September 15 accepted creator API:** [Definitions and shared query batches](10-scripted-engine-authoring-audit.md#accepted-authoring-contract-definitions-and-shared-query-batches)
+owns `behavior(id, scene => { ... })` with `find().where().do()`. Build definitions
+at pack load; batch reads across due behaviors in one world decision phase; return
+physical requests internally through existing ECS/native/Region owners. No returned
+array required from creators, no second scheduler or state store. It supersedes
+older hook/builder sketches. Includes dependent query stages, conflict/continuation
+laws, actual integration gaps and real-consumer acceptance. This is accepted design,
+not an installed API or a restart of paused implementation. The same report retains
+the Godot/GameMaker research and source comparison with Knapsack/Mycelium. The
+[actor composition decision](10-scripted-engine-authoring-audit.md#actor-definitions-compose-capabilities-and-behaviors)
+adds `actor(...).with(...).behaves(...)`: shared behavior definitions, scoped subject
+membership and independent ECS instance state. Its creator handoff gate covers
+custom TypeScript rules and an unusual capability combination without engine special
+cases. Actor does not mean a per-entity runtime or Durable Object.
+
+The [execution walkthrough](10-scripted-engine-authoring-audit.md#collection-to-execution-walkthrough)
+maps collection, shared reads and proposals onto the existing GamePack/session/native
+bridge. The [multi-task/statechart fit](10-scripted-engine-authoring-audit.md#multi-task-jobs-and-optional-statecharts-use-the-same-owners)
+shows linear jobs and optional native chart progression over the same task owners,
+with no TypeScript job scheduler or second authoritative progression state.
+
 **September 15 whole-engine review:** [Engine ownership audit](08-engine-ownership-audit.md)
 records the actual Rust, GamePack/DO, client/art and Shiitake/Watchdog comparison,
 updated against `85bfd7a5` plus the current dirty supply work. Its
@@ -34,7 +55,9 @@ consolidated acceptance and the current candidate status; implementation is not
 accepted merely because this design is recorded.
 Rust stays blind to Goblin concepts such as piss, pathogens and beer: GamePack
 definitions compile bounded property IDs, predicates and transformations into the
-shared native storage/transfer mechanics. No TypeScript callback runs in the tick.
+shared native storage/transfer mechanics. No TypeScript callback runs inside the
+native material solver. Authored decision phases use the separate read/intent
+contract above.
 
 **September 15 multi-task correction:** [Jobs compose tasks; physical results
 separate them](07-native-work-planner.md#jobs-compose-tasks-physical-results-separate-them)

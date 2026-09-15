@@ -314,6 +314,11 @@ error screen. Existing art, animations and shared floor/wall coordinates remain.
 
 ## Creator engine and shared behavior: September 15 follow-through
 
+The [accepted definition-builder and shared-query contract](10-scripted-engine-authoring-audit.md#accepted-authoring-contract-definitions-and-shared-query-batches)
+owns the creator-facing API. Behaviors compose over one existing execution path;
+cross-behavior read batching does not reintroduce TypeScript worker/job assignment
+or change native task, resource and durable commitment ownership.
+
 Levi's product direction is an engine that lets people make and share varied,
 playful web games. A small colony, survival encounter, cannon battle and moving
 ship are real consumers that must earn the shared boundaries. A platform for
@@ -438,6 +443,10 @@ use containers/crafting without automatic group assignment. Processes which
 require physical stations still declare that dependency explicitly.
 
 ### XState authoring: useful direction, compatibility is not yet proved
+
+The [multi-task walkthrough](10-scripted-engine-authoring-audit.md#multi-task-jobs-and-optional-statecharts-use-the-same-owners)
+adds concrete collection/execution pseudocode. It does not supersede the compatibility
+qualification and single-runtime boundaries below.
 
 The earlier conversational example `defineHiveMachine` is pseudocode, not an
 existing export. The existing package pins XState **5.32.6**. The cited v6

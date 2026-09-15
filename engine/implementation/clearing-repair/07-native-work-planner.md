@@ -118,6 +118,15 @@ with construction and process supplies before freezing a public extension API.
 
 ### Transition ownership and reuse beyond colonies
 
+See the [shield job and statechart walkthrough](10-scripted-engine-authoring-audit.md#multi-task-jobs-and-optional-statecharts-use-the-same-owners)
+for the creator-facing fit. It preserves these native task/continuity laws and
+does not require charts for linear recipes.
+
+The [accepted definition-builder and shared-query contract](10-scripted-engine-authoring-audit.md#accepted-authoring-contract-definitions-and-shared-query-batches)
+owns the creator-facing API. Behaviors compose over one existing execution path;
+cross-behavior read batching does not reintroduce TypeScript worker/job assignment
+or change native task, resource and durable commitment ownership.
+
 Follow the [creator/behavior audit](08-engine-ownership-audit.md#creator-engine-and-shared-behavior-september-15-follow-through).
 Individual behavior chooses an intention; optional group assignment chooses
 actors for shared work; the existing keyed execution owner carries out activities
