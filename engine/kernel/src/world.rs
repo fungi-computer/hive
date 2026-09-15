@@ -52,6 +52,7 @@ use std::sync::Arc;
 use sha2::{Digest, Sha256};
 use crate::terrain_water::WaterExchangeDirection;
 use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
+use crate::work_planner::PlannerState;
 #[cfg(test)]
 #[path = "party_tests.rs"]
 mod party_tests;
@@ -68,6 +69,39 @@ struct ImpactEvent {
     point: Vector3,
     normal: Vector3,
     velocity: Vector3,
+}
+
+#[cfg(test)]
+mod native_planner_snapshot_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn planner_cursor_roundtrips_and_invalid_width_is_rejected() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"planner","components":[],"initial":[
+            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.work-participation":{"automatic":true}}},
+            {"id":"task","components":{"hive.work-policy":{"party":"party","priority":3,"enabled":true},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
+        ]}).to_string()).unwrap();
+        let worker_record: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.work-participation\"]").unwrap()).unwrap();
+        let task_records: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.work-policy\",\"hive.work-schedule\"]").unwrap()).unwrap();
+        assert_eq!(worker_record[0]["id"], "worker");
+        assert_eq!(worker_record[0]["components"]["hive.work-participation"]["automatic"], true);
+        assert_eq!(task_records[0]["id"], "task");
+        assert_eq!(task_records[0]["components"]["hive.work-policy"]["priority"], 3);
+        assert_eq!(task_records[0]["components"]["hive.work-schedule"]["nextReviewTick"], 0);
+        kernel.planner.party_cursor = 17;
+        kernel.planner.task_cursor = 29;
+        kernel.planner.review_tick = 41;
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_json(&saved).unwrap();
+        assert_eq!(restored.planner, kernel.planner);
+        let mut invalid: serde_json::Value = serde_json::from_str(&saved).unwrap();
+        invalid["planner"]["reviewTick"] = json!(u64::MAX);
+        assert_eq!(Kernel::new().restore_json(&invalid.to_string()).unwrap_err(), "planner tick overflow");
+    }
 }
 
 #[cfg(test)]
@@ -1873,6 +1907,7 @@ pub struct Kernel {
     work_attempts: BTreeMap<String, Entity>,
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
+    planner: PlannerState,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -2034,6 +2069,7 @@ impl Kernel {
             work_attempts: BTreeMap::new(),
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
+            planner: PlannerState::default(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -3231,7 +3267,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 10,
+            version: 11,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -3253,6 +3289,7 @@ impl Kernel {
             next_work_generation: self.next_work_generation,
             next_party_sequence: self.next_party_sequence,
             work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
+            planner: self.planner.clone(),
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -3266,7 +3303,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 10
+            || state.version != 11
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -3351,6 +3388,8 @@ impl Kernel {
         }
         candidate.next_work_generation = state.next_work_generation;
         candidate.next_party_sequence = state.next_party_sequence;
+        state.planner.validate().map_err(str::to_owned)?;
+        candidate.planner = state.planner;
         candidate.validate_party_receipts()?;
         for (task, attempt) in attempts {
             let entity = candidate.entity(&task)?;
