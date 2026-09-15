@@ -87,6 +87,12 @@ export const FiniteResource = component<{ kind: string; quantity: number }>("hiv
   version: 1,
   fields: { kind: "string", quantity: "number" },
 });
+/** Native durable effort for a generic job task; authored code may query it
+ * for progress presentation but cannot write it. */
+export const JobTaskWork = component<{ seconds: number }>("hive.job-task-work", {
+  version: 1,
+  fields: { seconds: "number" },
+});
 export const ResourceSite = component<{ definition: string; stage: number; nextDue: number }>("hive.resource-site", {
   version: 1,
   fields: { definition: "string", stage: "number", nextDue: "number" },

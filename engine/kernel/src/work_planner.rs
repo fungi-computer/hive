@@ -76,6 +76,9 @@ pub(crate) enum WorkOperation {
     ProcessAttendance { process: String },
     Deconstruction { site: String },
     Excavation { cell: [i32; 3], expected: u16, replacement: u16 },
+    /// Execute the closed operation admitted by a durable Job/Task after the
+    /// worker has reached the task's currently resolved physical source.
+    JobTransform { task: String },
 }
 
 impl WorkOperation {
@@ -99,6 +102,7 @@ impl WorkOperation {
                 expected_material: *expected,
                 replacement_material: *replacement,
             },
+            Self::JobTransform { task } => ActivityRef::JobTransform { task: task.clone(), contact: contact.clone() },
         }
     }
 }

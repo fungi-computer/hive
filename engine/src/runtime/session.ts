@@ -425,6 +425,9 @@ export class GameSession {
       throw new Error("invalid command result");
     const actionScope: ActionScope = scope.kind === "host" ? scope : { kind: "party", party: scope.party };
     const actions = result.actions.map((action) => ({ scope: actionScope, request: checkedAction(action) }));
+    const actionCreatedReferences = new Set<EntityId>(actions.flatMap(({ request }) =>
+      request.kind === "create-job" || request.kind === "resume-job" ? [request.id] : [],
+    ));
     const scopedRemoves = (result.removes ?? []).map((entity) => ({ scope: actionScope, entity: checkedAuthoredId(entity) }));
     const edits = this.validateAuthoredEdits(
       result.creates ?? [],
@@ -433,11 +436,14 @@ export class GameSession {
       handler.lifecycle ?? [],
       this.pendingCreates.map((scoped) => scoped.record),
       this.pendingRemoves,
+      undefined,
+      actionCreatedReferences,
     );
     const writes = this.validateWrites(
       result.writes,
       handler.writes,
       edits.known,
+      edits.references,
     );
     const { creates, removes } = edits;
     const merged = [...this.pendingWrites];
@@ -470,6 +476,7 @@ export class GameSession {
     queuedCreates: readonly EntityRecord[] = [],
     queuedRemoves: readonly ScopedRemove[] = [],
     incoming?: readonly EntityRecord[],
+    actionCreatedReferences: ReadonlySet<EntityId> = new Set(),
   ) {
     const allCreates = [...queuedCreates, ...creates];
     const checkedRemoves = removes.map((remove) => ({
@@ -567,8 +574,9 @@ export class GameSession {
       if (!known.delete(id)) throw new Error("unknown authored removal");
     }
     for (const id of requested)
-      if (!created.has(id) && !removed.has(id) && !known.has(id))
+      if (!created.has(id) && !removed.has(id) && !known.has(id) && !actionCreatedReferences.has(id))
         throw new Error(`unknown entity reference ${id}`);
+    const references = new Set([...known, ...actionCreatedReferences]);
     const checkReferences = (name: string, value: unknown) => {
       const definition = definitions.get(name as ComponentId)!;
       for (const [field, kind] of Object.entries(definition.fields)) {
@@ -576,7 +584,7 @@ export class GameSession {
         if (
           (kind === "entity" || kind === "nullable-entity") &&
           ref !== null &&
-          !known.has(ref as EntityId)
+          !references.has(ref as EntityId)
         )
           throw new Error(`unknown authored reference ${field}`);
       }
@@ -629,12 +637,14 @@ export class GameSession {
       creates: structuredClone([...creates]),
       removes: checkedRemoves,
       known,
+      references,
     };
   }
   private validateWrites(
     writes: readonly WriteIntent[],
     allowed: readonly ComponentDefinition<any>[],
     knownTargets?: ReadonlySet<EntityId>,
+    knownReferences: ReadonlySet<EntityId> = knownTargets ?? new Set(),
     knownMembership?: ReadonlySet<string>,
   ): WriteIntent[] {
     const definitions = new Map(
@@ -709,7 +719,7 @@ export class GameSession {
           value !== null
         ) {
           const targetKnown = knownTargets
-            ? knownTargets.has(value as EntityId)
+            ? knownReferences.has(value as EntityId)
             : referenceMembership?.get(value as EntityId) === true;
           if (typeof value !== "string" || !targetKnown)
             throw new Error(`unknown entity reference ${field}`);
@@ -942,12 +952,17 @@ export class GameSession {
           definition.writes,
           queuedCreates.slice(0, beforeCreates).map((scoped) => scoped.record),
           queuedRemoves.slice(0, beforeRemoves),
+          undefined,
+          new Set(actions.flatMap(({ request }) =>
+            request.kind === "create-job" || request.kind === "resume-job" ? [request.id] : [],
+          )),
         );
         writes.push(
           ...this.validateWrites(
             writes.splice(beforeWrites),
             definition.writes,
             edits.known,
+            edits.references,
           ),
         );
       }
@@ -1126,11 +1141,15 @@ export class GameSession {
       [],
       [],
       initialEntities,
+      new Set(pending.flatMap(({ request }) =>
+        request.kind === "create-job" || request.kind === "resume-job" ? [request.id] : [],
+      )),
     );
     const pendingWrites = this.validateWrites(
       snapshot.pendingWrites,
       authoredDefinitions,
       edits.known,
+      edits.references,
     );
     if (snapshot.pendingCreates.length !== edits.creates.length)
       throw new Error("invalid pending authored creations");

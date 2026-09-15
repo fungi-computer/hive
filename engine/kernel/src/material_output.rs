@@ -2,6 +2,7 @@
 //! the only operation that inserts the admitted lot into ECS and its indexes.
 
 use crate::components::{valid_id, Lot, LotWater, MAX_CARRIED_WATER_KG};
+use crate::registry::Registry;
 
 pub(super) enum MaterialOutputLocation {
     Container(String),
@@ -32,6 +33,51 @@ pub(super) struct PreparedMaterialOutput {
     pub(super) water: Option<LotWater>,
     pub(super) next_lot: u64,
     pub(super) state_weight: usize,
+}
+
+/// Prepare an ordinary ground pile and its lot. All physical output users
+/// share this allocator/capacity/weight owner; callers supply the prospective
+/// base weight when they also prepare another source mutation.
+pub(super) fn prepare_ground(
+    position: crate::components::Position,
+    kind: String,
+    quantity: u32,
+    water_kg: Option<f64>,
+    owner_party: Option<String>,
+    revision: u64,
+    next_lot: u64,
+    known: impl Fn(&str) -> bool,
+    state_weight: usize,
+    state_limit: usize,
+    registry: &Registry,
+) -> Result<PreparedMaterialOutput, String> {
+    if quantity == 0 || ![position.x, position.y, position.z, position.facing].iter().all(|value| value.is_finite()) {
+        return Err("invalid ground material output".into());
+    }
+    let (lot_id, sequence) = allocate_lot_id(next_lot, |id| known(id) || known(&format!("ground.{id}")))?;
+    let ground_id = format!("ground.{lot_id}");
+    let lot = Lot { kind: kind.clone(), quantity, container: ground_id.clone() };
+    let water = water_kg.map(|mass| -> Result<LotWater, String> {
+        if !mass.is_finite() || mass < 0.0 || mass > MAX_CARRIED_WATER_KG { return Err("invalid material output water mass".into()); }
+        Ok(LotWater { water_kg: mass })
+    }).transpose()?;
+    let fixed_added_weight = 256 + ground_id.len()
+        + registry.weight("hive.position", &crate::components::record(&position))
+        + registry.weight("hive.container", &crate::components::record(&crate::components::Container { capacity: quantity }))
+        + registry.weight("hive.ground-stock", &crate::components::record(&crate::components::GroundStock {}))
+        + registry.weight("hive.lot", &crate::components::record(&lot))
+        + owner_party.as_ref().map(|party| registry.weight("hive.owned-by-party", &crate::components::record(&crate::components::OwnedByParty { party: party.clone() }))).unwrap_or(0)
+        + water_kg.map(|water| registry.weight("hive.lot-water", &crate::components::record(&LotWater { water_kg: water }))).unwrap_or(0);
+    let mut output = prepare_allocated(
+        MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
+        revision, lot_id, sequence,
+        state_weight,
+        fixed_added_weight, state_limit,
+        water,
+    )?;
+    output.ground = Some(PreparedGroundStock { id: ground_id, position, capacity: quantity, owner_party: owner_party.clone() });
+    output.owner_party = owner_party;
+    Ok(output)
 }
 
 pub(super) fn allocate_lot_id(next_lot: u64, known: impl Fn(&str) -> bool) -> Result<(String, u64), String> {
@@ -72,6 +118,19 @@ pub(super) fn prepare(
         Ok(LotWater { water_kg: mass })
     }).transpose()?;
     let (lot_id, sequence) = allocate_lot_id(next_lot, known)?;
+    prepare_allocated(spec, revision, lot_id, sequence, state_weight, fixed_added_weight, state_limit, water)
+}
+
+fn prepare_allocated(
+    spec: MaterialOutputSpec,
+    revision: u64,
+    lot_id: String,
+    sequence: u64,
+    state_weight: usize,
+    fixed_added_weight: usize,
+    state_limit: usize,
+    water: Option<LotWater>,
+) -> Result<PreparedMaterialOutput, String> {
     let next_state_weight = state_weight.checked_add(fixed_added_weight).and_then(|value| value.checked_add(lot_id.len())).ok_or("region canonical state capacity")?;
     if next_state_weight > state_limit {
         return Err("region canonical state capacity".into());

@@ -9,7 +9,7 @@ use super::route_query::SearchOutcome;
 use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
 use crate::staged_process::{InputPolicy, ProcessPhase, StagedProcess};
-use crate::work_planner::{MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_TASK_REVIEWS, WorkRequirement};
+use crate::work_planner::{MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_TASK_REVIEWS, WorkOperation, WorkPolicy, WorkRequirement, WorkSchedule};
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_CARRY_PORTION: u32 = 3;
@@ -164,6 +164,8 @@ impl Kernel {
                         crate::work_planner::WorkOperation::Deconstruction { site: order.site }
                     } else if let Some(order) = self.ecs.get::<ExcavationOrder>(self.entity(&task.id)?).cloned() {
                         crate::work_planner::WorkOperation::Excavation { cell: [order.cell_x, order.cell_y, order.cell_z], expected: order.expected, replacement: 0 }
+                    } else if self.ecs.get::<crate::job::Task>(self.entity(&task.id)?).is_some() {
+                        crate::work_planner::WorkOperation::JobTransform { task: task.id.clone() }
                     } else {
                         continue;
                     };
@@ -176,7 +178,13 @@ impl Kernel {
                     progressed += 1;
                 }
                 (activity, result) => {
-                    if let Some(mut order) = self.ecs.get::<DeconstructionOrder>(self.entity(&task.id)?).cloned() {
+                    if let crate::work_attempt::ActivityRef::JobTransform { .. } = &activity {
+                        // Physical publication and Task completion were
+                        // committed together when the executing activity was
+                        // advanced. A retained outcome is acknowledgement
+                        // only; re-executing here would duplicate matter.
+                        self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                    } else if let Some(mut order) = self.ecs.get::<DeconstructionOrder>(self.entity(&task.id)?).cloned() {
                         match (&activity, &result) {
                             (crate::work_attempt::ActivityRef::Deconstruction { contact, .. }, crate::work_attempt::WorkOutcome::Completed) => {
                                 order.contact_x = contact.x; order.contact_y = contact.y; order.contact_z = contact.z;
@@ -270,10 +278,62 @@ impl Kernel {
                 && let Some(requirement) = self.excavation_work_requirement(&task.id, &party, &designated_excavation_cells)?
             {
                 requirements.push(requirement);
+            } else if self.ecs.get::<crate::job::Task>(entity).is_some()
+                && let Some(requirement) = self.job_work_requirement(&task.id, &party)?
+            {
+                requirements.push(requirement);
             }
         }
         progressed += self.assign_native_obligations(&window, &supply_requirements, requirements)?;
         Ok(progressed)
+    }
+
+    /// Accrue saved generic task work and commit its transform exactly once
+    /// when the authored duration is reached. This runs after movement and
+    /// before planner admission in the same durable batch.
+    pub(crate) fn advance_job_transform_work(&mut self, delta: f64) -> Result<()> {
+        if !delta.is_finite() || delta < 0.0 { return Err("invalid job task work delta".into()); }
+        let attempts = self.work_attempts.iter().filter_map(|(attempt_task, entity)| {
+            let attempt = self.ecs.get::<crate::work_attempt::WorkAttempt>(*entity)?;
+            let crate::work_attempt::AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::JobTransform { task, contact } } = &attempt.phase else { return None; };
+            Some((attempt_task.clone(), task.clone(), operation.clone(), attempt.party.clone(), attempt.worker.clone(), contact.clone()))
+        }).collect::<Vec<_>>();
+        for (attempt_task, task_id, operation_key, party, worker, contact) in attempts {
+            let task_entity = self.entity(&task_id)?;
+            let task = self.ecs.get::<crate::job::Task>(task_entity).cloned().ok_or("job task is missing")?;
+            let worker_entity = self.entity(&worker)?;
+            let worker_pose = self.world_pose_entity(worker_entity, 0)?;
+            let worker_frame = self.support_id(worker_entity);
+            let at_contact = (worker_pose.x - contact.x).abs() <= f64::EPSILON
+                && (worker_pose.y - contact.y).abs() <= f64::EPSILON
+                && (worker_pose.z - contact.z).abs() <= f64::EPSILON
+                && worker_frame == contact.frame;
+            if !at_contact || !self.job_work_contacts(&task)?.iter().any(|candidate| candidate == &contact) {
+                self.settle_attempt(&attempt_task, crate::work_attempt::AttemptPhase::Outcome {
+                    operation: operation_key,
+                    activity: crate::work_attempt::ActivityRef::JobTransform { task: task_id, contact },
+                    result: crate::work_attempt::WorkOutcome::Blocked { reason: crate::work_attempt::WorkBlockReason::AccessLost },
+                })?;
+                continue;
+            }
+            let work = self.ecs.get::<crate::job::JobTaskWork>(task_entity).cloned().ok_or("job task work is missing")?;
+            let seconds = super::earned_work_seconds(work.seconds, delta, task.operation_work_seconds())?;
+            let mut updated = work;
+            updated.seconds = seconds;
+            self.ecs.entity_mut(task_entity).insert(updated);
+            self.refresh_state_weight();
+            if seconds + f64::EPSILON < task.operation_work_seconds() { continue; }
+            let mut operation = task.operation.clone();
+            if let crate::job::TypedWorkOperation::ItemToItems { source: crate::job::EntityBinding::Result { step, slot }, input_kind, input_quantity, output_kind, output_quantity, work_seconds, result_slot } = operation {
+                let source = self.resolve_job_result_source(&task, &step, &slot)?;
+                operation = crate::job::TypedWorkOperation::ItemToItems { source: crate::job::EntityBinding::Exact(source), input_kind, input_quantity, output_kind, output_quantity, work_seconds, result_slot };
+            }
+            let output = self.execute_job_transform(&operation, &party)?;
+            self.complete_job_task(&task_id, vec![crate::job::TaskResultBinding { slot: operation.result_slot().to_owned(), entity: output }])?;
+            self.settle_attempt(&attempt_task, crate::work_attempt::AttemptPhase::Outcome { operation: operation_key.clone(), activity: crate::work_attempt::ActivityRef::JobTransform { task: task_id, contact }, result: crate::work_attempt::WorkOutcome::Completed })?;
+            self.acknowledge_work_attempt(attempt_task.clone(), operation_key.attempt.generation, operation_key.sequence)?;
+        }
+        Ok(())
     }
 
     /// Match finite-material deliveries and ready labor in one bounded solver
@@ -493,6 +553,36 @@ impl Kernel {
             self.begin_work_attempt_with_prepared_route(requirement.task, worker, requirement.party, contact, route)?;
         }
         Ok(supply_count + labor_count)
+    }
+
+    /// Contribute a ready Job Task to the same assignment window as every
+    /// other work family. The source location is queried from canonical
+    /// finite/lot custody on every review, so a result item can be moved or
+    /// stored between its two tasks.
+    fn job_work_requirement(&self, task_id: &str, party: &str) -> Result<Option<WorkRequirement>> {
+        if !self.job_index.ready_tasks.contains(task_id) { return Ok(None); }
+        if self.work_attempts.contains_key(task_id) { return Ok(None); }
+        let task_entity = self.entity(task_id)?;
+        let task = self.ecs.get::<crate::job::Task>(task_entity).cloned().ok_or("job task is missing")?;
+        if !matches!(task.state, crate::job::TaskState::Pending) { return Ok(None); }
+        let source_id = match task.operation.source_binding() {
+            crate::job::EntityBinding::Exact(source) => source.clone(),
+            crate::job::EntityBinding::Result { step, slot } => self.resolve_job_result_source(&task, step, slot)?,
+        };
+        let source_entity = self.entity(&source_id)?;
+        if !self.task_source_matches_operation(&task.operation, source_entity) { return Ok(None); }
+        let schedule = self.ecs.get::<WorkSchedule>(task_entity).cloned().ok_or("job task has no schedule")?;
+        let required_worker = match &task.continuation {
+            crate::job::ContinuationPolicy::AssignedActor(actor) => Some(actor.clone()),
+            crate::job::ContinuationPolicy::BindOnFirstProgress => task.bound_actor.clone(),
+            crate::job::ContinuationPolicy::AnyEligible | crate::job::ContinuationPolicy::PreferStarter => None,
+        };
+        Ok(Some(WorkRequirement {
+            task: task_id.into(), party: party.into(), priority: self.ecs.get::<WorkPolicy>(task_entity).map(|policy| policy.priority).unwrap_or(0),
+            schedule, contacts: self.job_work_contacts(&task)?,
+            required_worker, free_capacity_required: 0,
+            operation: WorkOperation::JobTransform { task: task_id.into() },
+        }))
     }
 
     /// Process inputs contribute ordinary finite supply requirements. The

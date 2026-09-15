@@ -129,7 +129,7 @@ test("sustained Colony workloads measure simulation, save, and observations", ()
       }
       assert.equal(recoveryError, undefined, `sustained workload threw during step/save/observation: ${recoveryError}`);
       assert.equal(workers().length, workerCount, "all performance actors remain retained");
-      const completedTrees = session.query(query(ColonyTree)).filter(row => row.get(ColonyTree).phase !== "standing").length;
+      const completedTrees = session.query(query(ColonyTree, FiniteResource)).filter(row => row.get(FiniteResource).quantity === 0).length;
       const woodRemaining = session.query(query(FiniteResource)).filter(row => row.get(FiniteResource).kind === "wood").reduce((sum, row) => sum + row.get(FiniteResource).quantity, 0);
       assert.ok(completedTrees > 0 || woodRemaining < 300, "sustained workload must complete productive tree work");
       console.log(JSON.stringify({

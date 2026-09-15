@@ -32,6 +32,7 @@ export const RESERVED_COMPONENTS = [
   "hive.supply-allocation",
   "hive.work-policy",
   "hive.work-schedule",
+  "hive.job-task-work",
   "hive.destination",
   "hive.support",
   "hive.surface",
@@ -156,6 +157,42 @@ export type WriteIntent = {
   readonly entity: EntityId;
   readonly value: unknown;
 };
+export type JobEntityBinding =
+  | { readonly kind: "exact"; readonly value: EntityId }
+  | { readonly kind: "result"; readonly value: { readonly step: string; readonly slot: string } };
+export type JobOperation =
+  | {
+      readonly kind: "finiteToItem";
+      readonly source: JobEntityBinding;
+      readonly inputKind: string;
+      readonly inputQuantity: number;
+      readonly outputKind: string;
+      readonly outputQuantity: number;
+      readonly workSeconds: number;
+      readonly resultSlot: string;
+    }
+  | {
+      readonly kind: "itemToItems";
+      readonly source: JobEntityBinding;
+      readonly inputKind: string;
+      readonly inputQuantity: number;
+      readonly outputKind: string;
+      readonly outputQuantity: number;
+      readonly workSeconds: number;
+      readonly resultSlot: string;
+    };
+export type JobContinuation = "any-eligible" | "prefer-starter" | "bind-on-first-progress" | { readonly "assigned-actor": EntityId };
+export interface JobStep {
+  readonly key: string;
+  readonly after: string | null;
+  readonly operation: JobOperation;
+  readonly continuation?: JobContinuation;
+}
+export interface JobPlan {
+  readonly definition: string;
+  readonly definitionVersion: number;
+  readonly steps: readonly JobStep[];
+}
 export type CardinalOrientation = "north" | "east" | "south" | "west";
 export type EdgeTarget = { readonly cell: readonly [number, number, number]; readonly axis: "x" | "z" };
 export type ConstructionTarget =
@@ -168,6 +205,9 @@ export type ActionRequest =
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
   | { readonly kind: "acknowledge-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number }
   | { readonly kind: "continue-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly nextActivity: WorkActivityRef }
+  | { readonly kind: "create-job"; readonly id: EntityId; readonly plan: JobPlan }
+  | { readonly kind: "resume-job"; readonly id: EntityId; readonly plan: JobPlan }
+  | { readonly kind: "cancel-job"; readonly id: EntityId }
   | { readonly kind: "establish-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
@@ -319,7 +359,8 @@ export type WorkActivityRef =
   | { readonly kind: "resource-establish"; readonly site: EntityId; readonly definition: string; readonly cell: readonly [number, number, number] }
   | { readonly kind: "resource-tend"; readonly site: EntityId; readonly vessel: EntityId }
   | { readonly kind: "resource-extract"; readonly source: EntityId }
-  | { readonly kind: "field-water"; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly direction: "withdraw" | "deposit"; readonly portions: number };
+  | { readonly kind: "field-water"; readonly vessel: EntityId; readonly cell: readonly [number, number, number]; readonly direction: "withdraw" | "deposit"; readonly portions: number }
+  | { readonly kind: "job-transform"; readonly task: EntityId; readonly contact: MoveDestination };
 export type WorkInterruptCause = "drafted" | "cancelled" | "workerUnavailable" | "accessLost";
 export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavailable" | "unsupportedStructure" | "workerUnavailable";
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }

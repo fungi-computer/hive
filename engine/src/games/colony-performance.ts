@@ -1,5 +1,5 @@
 import { colonyEnvironmentDefinition } from "./colony-environment";
-import { colonyPack } from "./colony";
+import { colonyPack, treeJob, treePlan } from "./colony";
 import type { GamePack } from "../contracts";
 
 /**
@@ -36,10 +36,12 @@ export function createColonyPerformancePack(
   const half = size / 2;
   const treeCount = 50;
   const existingTrees = initial.filter(record => record.components["colony.tree"]);
-  for (const record of existingTrees) {
-    const policy = record.components["colony.tree-policy"] as { designated: boolean; party: string | null } | undefined;
-    if (policy) record.components["colony.tree-policy"] = { ...policy, designated: true, party: "colony.local-party" };
-  }
+  const jobActions = existingTrees.map(record => {
+    const id = record.id as import("../contracts").EntityId;
+    record.components["colony.tree-policy"] = { designated: true, party: "colony.local-party", job: treeJob(id) };
+    record.components["hive.owned-by-party"] = { party: "colony.local-party" };
+    return { kind: "resume-job" as const, id: treeJob(id), plan: treePlan(id) };
+  });
   const visualNames = ["colony.rowan", "colony.sedge"];
   for (let index = 2; index < workerCount; index++) {
     const id = `colony.worker.${index + 1}`;
@@ -61,12 +63,11 @@ export function createColonyPerformancePack(
     const [x, z] = reserveColumn(workerCount + index);
     initial.push({ id, components: {
       "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 },
-      "colony.tree": { phase: "standing" }, "hive.finite-resource": { kind: "wood", quantity: 6 },
-      "colony.tree-policy": { designated: true, party: "colony.local-party" },
+      "colony.tree": { kind: "wood" }, "hive.finite-resource": { kind: "wood", quantity: 6 },
+      "hive.owned-by-party": { party: "colony.local-party" },
+      "colony.tree-policy": { designated: true, party: "colony.local-party", job: treeJob(id) },
     } });
-    initial.push({ id: `${id}.order`, components: {
-      "colony.tree-order": { tree: id, phase: "queued", stage: "fell", seconds: 0, reason: "" },
-    } });
+    jobActions.push({ kind: "resume-job" as const, id: treeJob(entity(id)), plan: treePlan(entity(id)) });
     placements.push({ entity: id, column: [x, z] });
   }
   definition.initial = initial;
@@ -81,6 +82,7 @@ export function createColonyPerformancePack(
     version: colonyPack.version,
     definition: new TextEncoder().encode(JSON.stringify(definition)),
     environmentDefinition: new TextEncoder().encode(JSON.stringify(environment)),
+    initialActions: jobActions,
     presentationWindow: { minX: -32, maxX: 32, minZ: -32, maxZ: 32 },
     presentation: colonyPack.presentation && {
       ...colonyPack.presentation,

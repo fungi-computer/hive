@@ -33,6 +33,8 @@ mod deconstruction_work;
 mod native_work_planner;
 #[path = "job_owner.rs"]
 mod job_owner;
+#[path = "job_transform.rs"]
+mod job_transform;
 #[path = "supply_admission.rs"]
 mod supply_admission;
 #[path = "supply_delivery.rs"]
@@ -3718,6 +3720,11 @@ impl Kernel {
                     self.entity(vessel)?;
                     if *portions == 0 { return Err("saved field water portions must be positive".into()); }
                 }
+                crate::work_attempt::ActivityRef::JobTransform { task: transform_task, .. } => {
+                    if transform_task != task { return Err("job transform attempt task mismatch".into()); }
+                    let transform = self.entity(transform_task)?;
+                    if self.ecs.get::<crate::job::Task>(transform).is_none() { return Err("job transform references non-task entity".into()); }
+                }
             }
         }
         Ok(())
@@ -3834,6 +3841,7 @@ impl Kernel {
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::ContinueWorkAttempt { .. } | Action::CancelWork { .. }
+                    | Action::CreateJob { .. } | Action::ResumeJob { .. } | Action::CancelJob { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
@@ -3864,6 +3872,10 @@ impl Kernel {
         {
             return Err("invalid advancement budget".into());
         }
+        let action_created_references = batch.actions.iter().filter_map(|action| match &action.request {
+            Action::CreateJob { id, .. } | Action::ResumeJob { id, .. } => Some(id.clone()),
+            _ => None,
+        }).collect::<BTreeSet<_>>();
         let mut owned_creates = Vec::new();
         let creates = batch.creates.into_iter().map(|create| {
             let ScopedCreate { scope, record } = create;
@@ -3889,7 +3901,7 @@ impl Kernel {
             }
             Ok(remove.entity)
         }).collect::<Result<Vec<_>>>()?;
-        let prepared = self.prepare_authored_entities(creates, removes, batch.writes)?;
+        let prepared = self.prepare_authored_entities(creates, removes, batch.writes, action_created_references)?;
         self.publish_authored_entities(prepared);
         for (id, party) in owned_creates {
             let entity = self.entity(&id)?;
@@ -3902,7 +3914,7 @@ impl Kernel {
             .into_iter()
             .map(|action| -> Result<ActionResult> {
                 let ScopedAction { scope, request } = action;
-                let is_work_attempt_transition = matches!(
+                let requires_atomic_action = matches!(
                     &request,
                     Action::BeginWorkAttempt { .. }
                         | Action::RetargetWorkAttempt { .. }
@@ -3910,14 +3922,16 @@ impl Kernel {
                         | Action::AcknowledgeWorkAttempt { .. }
                         | Action::ContinueWorkAttempt { .. }
                         | Action::CancelWork { .. }
+                        | Action::CreateJob { .. }
+                        | Action::ResumeJob { .. }
+                        | Action::CancelJob { .. }
                 );
                 let result = self.validate_action_scope(&scope, &request).and_then(|()| self.apply_action(request, batch.delta, &scope));
-                // WorkAttempt transitions coordinate authored task state with a
-                // native physical operation. A stale or invalid transition is a
-                // broken candidate, not an ordinary rejected player action: let
-                // advance_json restore the staged world instead of publishing a
-                // task write whose matching attempt transition never happened.
-                if is_work_attempt_transition {
+                // These actions coordinate authored state with a native
+                // lifecycle owner. A rejection marks a broken candidate: let
+                // advance_json restore the staged world instead of publishing
+                // the authored half of the transition.
+                if requires_atomic_action {
                     if let Err(reason) = &result { return Err(reason.clone()); }
                 }
                 Ok(ActionResult {
@@ -3944,6 +3958,7 @@ impl Kernel {
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.advance_process_work_attempts(batch.delta)?;
         self.advance_staged_processes(batch.delta)?;
+        self.advance_job_transform_work(batch.delta)?;
         self.advance_native_work_planner(self.revision)?;
         self.cleanup_empty_ground_stock();
         self.time += batch.delta;
@@ -4060,26 +4075,8 @@ impl Kernel {
     fn prepare_ground_output(&self, position: Position, kind: String, quantity: u32, water_kg: Option<f64>, owner_party: Option<String>) -> Result<PreparedMaterialOutput> {
         self.ensure_ready()?;
         if self.ids.len() + 2 > 16384 { return Err("region entity capacity".into()); }
-        if ![position.x, position.y, position.z, position.facing].iter().all(|v| v.is_finite()) {
-            return Err("invalid ground stock position".into());
-        }
-        let (lot_id, _) = material_output::allocate_lot_id(self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")))?;
-        let ground_id = format!("ground.{lot_id}");
-        let lot = Lot { kind: kind.clone(), quantity, container: ground_id.clone() };
-        let water = water_kg.map(|water_kg| LotWater { water_kg });
-        let added = 256 + ground_id.len()
-            + self.registry.weight("hive.position", &record(&position))
-            + self.registry.weight("hive.container", &record(&Container { capacity: quantity }))
-            + self.registry.weight("hive.ground-stock", &record(&GroundStock {}))
-            + self.registry.weight("hive.lot", &record(&lot))
-            + owner_party.as_ref().map(|party| self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))).unwrap_or(0)
-            + water.as_ref().map(|v| self.registry.weight("hive.lot-water", &record(v))).unwrap_or(0);
-        let mut output = material_output::prepare(MaterialOutputSpec { container: ground_id.clone(), kind, quantity, water_kg },
-            self.revision, self.next_lot, |id| self.known.contains(id) || self.known.contains(&format!("ground.{id}")),
-            quantity, 0, self.state_weight, added, STATE_BYTES)?;
-        output.ground = Some(material_output::PreparedGroundStock { id: ground_id, position, capacity: quantity, owner_party });
-        output.owner_party = output.ground.as_ref().and_then(|ground| ground.owner_party.clone());
-        Ok(output)
+        material_output::prepare_ground(position, kind, quantity, water_kg, owner_party, self.revision, self.next_lot,
+            |id| self.known.contains(id), self.state_weight, STATE_BYTES, &self.registry)
     }
     // Private tokens are prepared and consumed within one synchronous Kernel
     // completion. No public caller can retain them across another mutation.
@@ -4109,6 +4106,7 @@ impl Kernel {
         let prepared = self.prepare_material_output(spec)?;
         Ok(self.publish_material_output(prepared))
     }
+
     // Work/reach and the material definition are admitted by the native work
     // caller. Water credit is always derived from the opaque geometry token.
     #[cfg(test)]
@@ -5024,6 +5022,12 @@ impl Kernel {
             self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             return Ok(());
         }
+        if let crate::work_attempt::ActivityRef::JobTransform { task: transform_task, .. } = next_activity.clone() {
+            if transform_task != task { return Err("job transform continuation task mismatch".into()); }
+            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
+            return Ok(());
+        }
         let crate::work_attempt::ActivityRef::Construction { site, contact, mode } = next_activity else { return Err("work attempt continuation is not construction".into()); };
         if site != task { return Err("construction continuation task mismatch".into()); }
         let site_entity = self.entity(&site)?;
@@ -5085,6 +5089,9 @@ impl Kernel {
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
             Action::ContinueWorkAttempt { task, generation, sequence, next_activity } => self.continue_work_attempt(task, generation, sequence, next_activity).map(|_| ActionEffect::None),
+            Action::CreateJob { id, plan } => self.create_job(id, plan, scope).map(ActionEffect::Entity),
+            Action::ResumeJob { id, plan } => self.resume_job(&id, plan, scope).map(|_| ActionEffect::None),
+            Action::CancelJob { id } => self.cancel_job(&id).map(|_| ActionEffect::None),
             Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
@@ -5303,6 +5310,8 @@ impl Kernel {
                 targets.push(task.as_str());
                 let _ = task_entity;
             }
+            Action::CreateJob { .. } => {}
+            Action::ResumeJob { id, .. } | Action::CancelJob { id } => targets.push(id.as_str()),
             Action::RequestProcess { station, .. } => targets.push(station.as_str()),
             Action::AdmitProcess { process, station, .. } => { targets.push(process.as_str()); targets.push(station.as_str()); }
             Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
