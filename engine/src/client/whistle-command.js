@@ -181,15 +181,13 @@ export function terrainAreaCommand(control, selected, area) {
 export function buildPlacementCommand(control, selected, designation) {
   if (commandName(control) !== "build" || !["world-surface", "world-edge"].includes(control.target))
     throw new Error("binding is not a world build");
-  if (
-    !designation ||
-    (!Array.isArray(designation.cells) && !Array.isArray(designation.edges)) ||
-    (designation.cells?.length === 0 && designation.edges?.length === 0)
-  )
-    throw new Error("build designation has no cells");
+  if (!designation || typeof designation !== "object")
+    throw new Error("build designation is missing");
   if (designation.mode && !control.designation?.includes(designation.mode))
     throw new Error("build designation mode is not supported by this binding");
-  if (designation.edges) {
+  if (designation.mode === "edge-line" || designation.edges !== undefined) {
+    if (!Array.isArray(designation.edges) || designation.edges.length === 0)
+      throw new Error("edge build requires an edge designation");
     if (control.target !== "world-edge" || !control.designation?.includes("edge-line"))
       throw new Error("edge designation is not supported by this binding");
     if (designation.edges.length > 256 || designation.edges.some(edge =>
@@ -202,12 +200,18 @@ export function buildPlacementCommand(control, selected, designation) {
     return { ...command, input: jsonInput({ ...(command.input ?? {}), target: { edges: designation.edges } }) };
   }
   if (control.target === "world-edge") throw new Error("edge build requires an edge designation");
+  if (designation.mode === "rectangle") {
+    if (!validCell(designation.start) || !validCell(designation.end))
+      throw new Error("rectangle build requires start and end cells");
+    return terrainAreaCommand(control, selected, {
+      start: designation.start,
+      end: designation.end,
+    });
+  }
+  if (!Array.isArray(designation.cells) || designation.cells.length !== 1 || !validCell(designation.cells[0]))
+    throw new Error("point build requires one cell");
   if (designation.cells.length === 1)
     return terrainCellCommand(control, selected, {
       cell: designation.cells[0],
     });
-  return terrainAreaCommand(control, selected, {
-    start: designation.start,
-    end: designation.end,
-  });
 }

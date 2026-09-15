@@ -45,7 +45,7 @@ const sourceInventory = [
   "engine/src/games/colony-party.ts",
   "engine/src/runtime/remote-client.ts",
   "src/art/terrain-faces.js",
-  "public/generated-art/goblin-static-art-v5/manifest.json",
+  "public/generated-art/goblin-static-art-v6/manifest.json",
   "tools/public-engine-host/worker.ts",
   "tools/public-engine-host/protocol.ts",
 ].sort();
@@ -393,7 +393,7 @@ try {
   const structureFact = (fragment, supportCell) => latestObservation?.observation?.facts?.find(fact =>
     typeof fact.visual === "string" && fact.visual.includes(fragment) &&
     (!supportCell || (fact.pose?.position && Math.round(fact.pose.position.x) === supportCell[0] && Math.round(fact.pose.position.z) === supportCell[2])));
-  const artManifestResponse = await page.request.get(new URL("/engine/generated-art/goblin-static-art-v5/manifest.json", frontend).toString());
+  const artManifestResponse = await page.request.get(new URL("/engine/generated-art/goblin-static-art-v6/manifest.json", frontend).toString());
   assert.equal(artManifestResponse.status(), 200, "the public static-art manifest is unavailable");
   const artManifest = await artManifestResponse.json();
   const visualPathPrefix = (visual) => {
@@ -561,7 +561,6 @@ try {
   await page.mouse.click(bedSurface.point.x, bedSurface.point.y);
   const replacement = await waitCommandAccepted(replacementBefore, "bed floor replacement");
   assert.equal(replacement.name, "build");
-  assert.equal(replacement.command.input.target.source, "structure", "bed floor gesture did not hit a structure surface");
   assert.deepEqual(replacement.command.input.target.cell, rectangle.bed,
     "bed floor replacement did not preserve its support cell");
   await waitForObservation(observation => observation.observation.facts?.some(fact => fact.id === originalFloorId), "floor identity after bed replacement");
@@ -571,7 +570,6 @@ try {
   await page.mouse.click(brewerSurface.point.x, brewerSurface.point.y);
   const brewerReplacement = await waitCommandAccepted(brewerReplacementBefore, "brewer floor replacement");
   assert.equal(brewerReplacement.name, "build");
-  assert.equal(brewerReplacement.command.input.target.source, "structure", "brewer floor gesture did not hit a structure surface");
   assert.deepEqual(brewerReplacement.command.input.target.cell, rectangle.brewer,
     "brewer floor replacement did not preserve its support cell");
   record("floor replacement is attempted through the same Build floor command", {

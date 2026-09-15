@@ -37,7 +37,7 @@ test("floor and roof areas fill through the same generic binder, while stairs st
   for (const catalog of ["timber-floor", "timber-roof"]) {
     const control = buildControl(catalog);
     assert.deepEqual(control.designation, ["point", "rectangle"]);
-    assert.deepEqual(buildPlacementCommand(control, [], { mode: "rectangle", cells: [[0, 13, 0], [1, 13, 0], [0, 13, 1], [1, 13, 1]], start: [0, 13, 0], end: [1, 13, 1] }).input,
+    assert.deepEqual(buildPlacementCommand(control, [], { mode: "rectangle", start: [0, 13, 0], end: [1, 13, 1] }).input,
       { catalog, orientation: "north", target: { area: { start: [0, 13, 0], end: [1, 13, 1] } } });
   }
   for (const orientation of ["north", "east", "south", "west"]) {
@@ -46,6 +46,13 @@ test("floor and roof areas fill through the same generic binder, while stairs st
     assert.deepEqual(buildPlacementCommand(control, [], { mode: "point", cells: [[2, 13, 3]], start: [2, 13, 3], end: [2, 13, 3] }).input,
       { catalog: "timber-stair", orientation, target: { cell: [2, 13, 3] } });
   }
+});
+
+test("build designation shapes are lawful without redundant rectangle cells", () => {
+  const floor = buildControl("timber-floor");
+  assert.throws(() => buildPlacementCommand(floor, [], { mode: "point", cells: [] }), /requires one cell/);
+  assert.throws(() => buildPlacementCommand(floor, [], { mode: "rectangle", start: [0, 13, 0] }), /requires start and end/);
+  assert.throws(() => buildPlacementCommand(floor, [], { mode: "rectangle", start: [0, 13, 0], end: [0, 14, 0] }), /exceeds 256/);
 });
 
 test("surface bindings preserve point source validation and selected entities", () => {
