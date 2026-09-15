@@ -54,7 +54,6 @@ export function createColonyPerformancePack(
       "hive.party-member": { party: "colony.local-party" },
       "hive.owned-by-party": { party: "colony.local-party" },
       "colony.worker": { guest: false }, "hive.work-participation": { automatic: true },
-      "hive.delivery-control": { enabled: false, quantity: 1 },
     } });
     placements.push({ entity: id, column: [x, z] });
   }

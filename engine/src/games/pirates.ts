@@ -10,9 +10,10 @@ import {
   Surface,
   encodeDefinition,
   move,
+  SupplyAllocation,
 } from "../sdk/common";
-import { DeliveryControl, DeliveryTask, deliverySystem } from "../sdk/delivery";
-import { WorkParticipation } from "../sdk/work-control";
+import { Party, PartyMember, OwnedByParty } from "../sdk/party";
+import { WorkParticipation, WorkPolicy, WorkSchedule } from "../sdk/work-control";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
 
 export const PirateCrew = component<{ controlled: boolean }>("pirates.crew", {
@@ -29,6 +30,7 @@ export const crewOneId = entity("pirates.crew.1");
 export const crewTwoId = entity("pirates.crew.2");
 export const chestId = entity("pirates.chest");
 export const holdId = entity("pirates.hold");
+export const piratePartyId = entity("pirate-party");
 const breadId = entity("pirates.bread");
 const woodId = entity("pirates.wood");
 const breadTaskId = entity("pirates.delivery.bread");
@@ -36,6 +38,10 @@ const woodTaskId = entity("pirates.delivery.wood");
 
 const shipFrame = shipId;
 const piratesInitial = [
+  {
+    id: piratePartyId,
+    components: { "hive.party": { ownerPlayer: "pirate-player" } },
+  },
   {
     id: shipId,
     components: {
@@ -58,8 +64,8 @@ const piratesInitial = [
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.crew", label },
       "pirates.crew": { controlled: true },
-      "hive.work-participation": { automatic: true },
-      "hive.delivery-control": { enabled: false, quantity: 1 },
+      "hive.work-participation": { automatic: false },
+      "hive.party-member": { party: piratePartyId },
     },
   })),
   {
@@ -67,6 +73,7 @@ const piratesInitial = [
     components: {
       "hive.position": { x: 2, y: 1, z: 0, facing: 0 },
       "hive.container": { capacity: 8 },
+      "hive.owned-by-party": { party: piratePartyId },
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.chest", label: "Cargo chest" },
     },
@@ -85,6 +92,7 @@ const piratesInitial = [
     components: {
       "hive.position": { x: 1, y: 1, z: 1, facing: 0 },
       "hive.container": { capacity: 8 },
+      "hive.owned-by-party": { party: piratePartyId },
       "hive.support": { entity: shipFrame },
       "hive.visual": { sprite: "pirate.hold", label: "Deck hold" },
     },
@@ -93,42 +101,32 @@ const piratesInitial = [
     id: breadId,
     components: {
       "hive.lot": { quantity: 4, kind: "bread", container: chestId },
+      "hive.owned-by-party": { party: piratePartyId },
     },
   },
   {
     id: woodId,
     components: {
       "hive.lot": { quantity: 3, kind: "wood", container: chestId },
+      "hive.owned-by-party": { party: piratePartyId },
     },
   },
   {
     id: breadTaskId,
     components: {
-      "hive.delivery-task": {
-        version: 2, party: entity("pirate-party"),
-        sourceLot: breadId,
-        source: chestId,
-        destination: holdId,
-        material: "bread",
-        quantity: 1,
-        custody: "available",
-            ground: null,
-      },
+      "hive.owned-by-party": { party: piratePartyId },
+      "hive.work-policy": { party: piratePartyId, priority: 0, enabled: true },
+      "hive.work-schedule": { nextReviewTick: 0, lastConsidered: 0 },
+      "hive.supply-allocation": { requirementOwner: breadTaskId, requirementRole: "pirate-cargo", requirementGeneration: 1, party: piratePartyId, material: "bread", portion: breadId, destination: holdId, quantity: 1, state: "reserved" },
     },
   },
   {
     id: woodTaskId,
     components: {
-      "hive.delivery-task": {
-        version: 2, party: entity("pirate-party"),
-        sourceLot: woodId,
-        source: chestId,
-        destination: holdId,
-        material: "wood",
-        quantity: 1,
-        custody: "available",
-            ground: null,
-      },
+      "hive.owned-by-party": { party: piratePartyId },
+      "hive.work-policy": { party: piratePartyId, priority: 0, enabled: true },
+      "hive.work-schedule": { nextReviewTick: 0, lastConsidered: 0 },
+      "hive.supply-allocation": { requirementOwner: woodTaskId, requirementRole: "pirate-cargo", requirementGeneration: 1, party: piratePartyId, material: "wood", portion: woodId, destination: holdId, quantity: 1, state: "reserved" },
     },
   },
 ];
@@ -143,9 +141,13 @@ const pirateComponents = [
   Destination,
   PirateCrew,
   PirateShip,
-  DeliveryTask,
-  DeliveryControl,
+  Party,
+  PartyMember,
+  OwnedByParty,
+  SupplyAllocation,
   WorkParticipation,
+  WorkPolicy,
+  WorkSchedule,
 ] as const;
 
 const moveInput = z
@@ -198,9 +200,9 @@ function controlledCrew(
 export const piratesPack: GamePack = {
   id: "pirates",
   version: 1,
-  localScope: { kind: "player", player: "local", party: entity("pirates.local-party") },
+  localScope: { kind: "player", player: "pirate-player", party: piratePartyId },
   components: pirateComponents,
-  systems: [deliverySystem],
+  systems: [],
   commands: {
     move: command({
       title: "Move crew or ship", category: "Navigation", description: "Move selected crew or the controlled ship to a destination.",
@@ -276,16 +278,16 @@ export const piratesPack: GamePack = {
       subjects: () => [crewOneId, crewTwoId],
       input: selectionInput,
       reads: [PirateCrew, Support],
-      writes: [DeliveryControl],
+      writes: [WorkParticipation],
       run(context, input) {
         const selected = selectedEntities(input);
         const crew = controlledCrew(context, selected);
         return {
           actions: [],
           writes: crew.map((entity) => ({
-            component: DeliveryControl.id,
+            component: WorkParticipation.id,
             entity,
-            value: { enabled: true, quantity: 1 },
+            value: { automatic: true },
           })),
         };
       },

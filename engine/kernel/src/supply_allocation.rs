@@ -1,18 +1,65 @@
 //! Native ownership of finite supply portions and incoming capacity.
 //!
 //! Allocations are ordinary ECS records. Their physical effects still go
-//! through `Kernel::transfer`; scanning these records derives reservations so
-//! save/reload cannot lose or duplicate the accounting.
+//! through `Kernel::transfer`; the rebuildable reservation index derives
+//! accounting so save/reload cannot lose or duplicate the reservation.
 
-use crate::components::{Container, Lot, SupplyAllocationState};
+use crate::components::{Container, Lot, SupplyAllocation, SupplyAllocationState};
 use bevy_ecs::prelude::Entity;
+use std::collections::{BTreeMap, BTreeSet};
+
+/// Rebuildable reservation index. Physical custody remains on Lot; this index
+/// only narrows active reservation accounting by source and destination.
+#[derive(Default)]
+pub(crate) struct SupplyAllocationIndex {
+    by_source: BTreeMap<String, BTreeSet<String>>,
+    by_destination: BTreeMap<String, BTreeSet<String>>,
+    by_requirement: BTreeMap<(String, String, u64, String, String), BTreeSet<String>>,
+    by_id: BTreeMap<String, (String, String, (String, String, u64, String, String))>,
+    active: BTreeSet<String>,
+}
+
+impl SupplyAllocationIndex {
+    pub(crate) fn rebuild(&mut self, ids: &BTreeMap<String, Entity>, world: &bevy_ecs::prelude::World) {
+        self.by_source.clear(); self.by_destination.clear(); self.by_requirement.clear(); self.by_id.clear(); self.active.clear();
+        for (id, entity) in ids {
+            if let Some(allocation) = world.get::<SupplyAllocation>(*entity).filter(|allocation| allocation.state == SupplyAllocationState::Reserved) { self.insert(id, allocation); }
+        }
+    }
+    pub(crate) fn refresh(&mut self, id: &str, allocation: Option<&SupplyAllocation>) {
+        if let Some((source, destination, requirement)) = self.by_id.remove(id) {
+            let empty = self.by_source.get_mut(&source).map(|ids| { ids.remove(id); ids.is_empty() }).unwrap_or(false);
+            if empty { self.by_source.remove(&source); }
+            let empty = self.by_destination.get_mut(&destination).map(|ids| { ids.remove(id); ids.is_empty() }).unwrap_or(false);
+            if empty { self.by_destination.remove(&destination); }
+            let empty = self.by_requirement.get_mut(&requirement).map(|ids| { ids.remove(id); ids.is_empty() }).unwrap_or(false);
+            if empty { self.by_requirement.remove(&requirement); }
+        }
+        self.active.remove(id);
+        if let Some(allocation) = allocation.filter(|allocation| allocation.state == SupplyAllocationState::Reserved) { self.insert(id, allocation); }
+    }
+    fn insert(&mut self, id: &str, allocation: &SupplyAllocation) {
+        self.by_source.entry(allocation.portion.clone()).or_default().insert(id.to_owned());
+        self.by_destination.entry(allocation.destination.clone()).or_default().insert(id.to_owned());
+        let requirement = (allocation.requirement_owner.clone(), allocation.requirement_role.clone(), allocation.requirement_generation, allocation.destination.clone(), allocation.material.clone());
+        self.by_requirement.entry(requirement.clone()).or_default().insert(id.to_owned());
+        self.by_id.insert(id.to_owned(), (allocation.portion.clone(), allocation.destination.clone(), requirement));
+        self.active.insert(id.to_owned());
+    }
+    pub(crate) fn ids_for_source(&self, source: &str) -> impl Iterator<Item = &String> { self.by_source.get(source).into_iter().flatten() }
+    pub(crate) fn ids_for_destination(&self, destination: &str) -> impl Iterator<Item = &String> { self.by_destination.get(destination).into_iter().flatten() }
+    pub(crate) fn active_ids(&self) -> impl Iterator<Item = &String> { self.active.iter() }
+    pub(crate) fn ids_for_requirement(&self, owner: &str, role: &str, generation: u64, destination: &str, material: &str) -> impl Iterator<Item = &String> {
+        self.by_requirement.get(&(owner.to_owned(), role.to_owned(), generation, destination.to_owned(), material.to_owned())).into_iter().flatten()
+    }
+}
 
 pub(crate) fn reserved_source(kernel: &crate::world::Kernel, lot: &str, ignore: Option<&str>) -> u32 {
-    kernel.supply_allocations().filter(|(id, a)| matches!(a.state, SupplyAllocationState::Reserved) && a.portion == lot && Some(*id) != ignore).map(|(_, a)| a.quantity).sum()
+    kernel.supply_index().ids_for_source(lot).filter(|id| Some(id.as_str()) != ignore).filter_map(|id| kernel.supply_allocation(id)).map(|a| a.quantity).sum()
 }
 
 pub(crate) fn reserved_destination(kernel: &crate::world::Kernel, destination: &str, ignore: Option<&str>) -> u32 {
-    kernel.supply_allocations().filter(|(id, a)| matches!(a.state, SupplyAllocationState::Reserved) && a.destination == destination && Some(*id) != ignore).map(|(_, a)| a.quantity).sum()
+    kernel.supply_index().ids_for_destination(destination).filter(|id| Some(id.as_str()) != ignore).filter_map(|id| kernel.supply_allocation(id)).map(|a| a.quantity).sum()
 }
 
 pub(crate) fn validate_capacity(kernel: &crate::world::Kernel, source: Entity, destination: Entity, quantity: u32, ignore: Option<&str>) -> Result<(), String> {

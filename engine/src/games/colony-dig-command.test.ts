@@ -6,22 +6,15 @@ import {
   Container,
   ExcavationWork,
   MaterialLot,
+  SupplyAllocation,
 } from "../sdk/common";
-import { DeliveryTask } from "../sdk/delivery";
-import { colonyGroundStockPhase } from "./colony-work";
 import { ExcavationOrder } from "../sdk/common";
-import { GroundStock } from "../sdk/ground-stock";
 import { colonyPack } from "./colony";
 import { OwnedByParty, PartyMember } from "../sdk/party";
 import type { WorkAttempt } from "../contracts";
 
 const worker = entity("colony.worker.1");
 const source = entity("colony.pantry");
-
-test("current Colony pack has one DeliveryTask system writer", () => {
-  const writers = colonyPack.systems.filter(system => system.writes.some(definition => definition.id === DeliveryTask.id));
-  assert.equal(writers.map(system => system.id).join(","), "colony.work");
-});
 
 function row(id: ReturnType<typeof entity>, definition: { id: string }, value: object) {
   return { id, get(requested: { id: string }) { assert.equal(requested.id, definition.id); return value; } };
@@ -69,7 +62,7 @@ function context(overrides: Partial<Fixture> = {}) {
     [Body.id, [row(worker, Body, { speed: 2 })]],
     [Container.id, [workerRow, pantryRow]],
     [MaterialLot.id, fixture.lots],
-    [DeliveryTask.id, fixture.tasks],
+    [SupplyAllocation.id, fixture.tasks],
     [ExcavationWork.id, fixture.work],
     [ExcavationOrder.id, fixture.orders],
   ]);
@@ -102,37 +95,11 @@ test("Colony dig submits one bounded native designation without requiring a work
   assert.deepEqual(result.actions, [{ kind: "plan-excavation", party: entity("host"), prefix: "colony.dig", start: [0, 12, 0], end: [0, 12, 0] }]);
 });
 
-test("Colony ground stock remains in place until a stockpile policy requests it", () => {
-  const pile = entity("hive.lot.17");
-  const source = entity("hive.ground-stock.17");
-  const created: unknown[] = [];
-  const sourceRow = { id: source, get() { return {}; } };
-  const pileRow = { id: pile, get(definition: { id: string }) {
-    if (definition.id === MaterialLot.id) return { quantity: 3, kind: "soil-spoil", container: source };
-    return {};
-  }};
-  const context = {
-    query(spec: { components: readonly { id: string }[] }) {
-      if (spec.components[0].id === GroundStock.id) return [sourceRow];
-      if (spec.components[0].id === MaterialLot.id) return [pileRow];
-      if (spec.components[0].id === DeliveryTask.id) return [];
-      throw new Error(`unexpected query ${spec.components[0].id}`);
-    },
-    createAuthoredEntity(record: unknown) { created.push(record); },
-  };
-  colonyGroundStockPhase(context as never);
-  assert.deepEqual(created, []);
-});
-
 test("Colony dig rejects the superseded worker-target input and accepts a designation while workers are busy", () => {
   assert.throws(() => colonyPack.commands!.dig.invoke(context(), {
     entities: [worker], target: { cell: [0, 12, 0], material: 0 },
   }));
-  const task = row(entity("colony.delivery.1"), DeliveryTask, {
-    version: 2, party: entity("host"), sourceLot: entity("colony.food.1"), source,
-    destination: entity("colony.guest.1"), material: "bread", quantity: 1, custody: "available", ground: null,
-  });
-  assert.doesNotThrow(() => colonyPack.commands!.dig.invoke(context({ tasks: [task] }), {
+  assert.doesNotThrow(() => colonyPack.commands!.dig.invoke(context(), {
     area: { start: [0, 12, 0], end: [1, 12, 0] },
   }));
 });
@@ -148,11 +115,7 @@ test("Colony cancelDig submits native cancellation for the exact active worker",
   const attempt: WorkAttempt = { key: { task: order.id, generation: 1 }, worker, party: entity("host"), phase: { kind: "executing", operation: { attempt: { task: order.id, generation: 1 }, sequence: 1 }, activity: { kind: "excavation", cell: [0, 12, 0], expectedMaterial: 1, replacementMaterial: 0 } } };
   const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], attempts: [attempt] }), { entities: [worker] });
   assert.deepEqual(result, { actions: [{ kind: "cancel-excavation", party: entity("host"), area: null, workers: [worker] }], writes: [] });
-  const activeDelivery = row(entity("colony.delivery.1"), DeliveryTask, {
-    version: 2, party: entity("host"), sourceLot: entity("colony.food.1"), source,
-    destination: entity("colony.guest.1"), material: "bread", quantity: 1, custody: "available", ground: null,
-  });
-  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], tasks: [activeDelivery] }), { area: { start: [0, 12, 0], end: [0, 12, 0] } }), { actions: [{ kind: "cancel-excavation", party: entity("host"), area: { start: [0, 12, 0], end: [0, 12, 0] }, workers: [] }], writes: [] });
+  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order] }), { area: { start: [0, 12, 0], end: [0, 12, 0] } }), { actions: [{ kind: "cancel-excavation", party: entity("host"), area: { start: [0, 12, 0], end: [0, 12, 0] }, workers: [] }], writes: [] });
 });
 
 test("Colony deposit emits stable whole-lot transfers for unreserved cargo", () => {
@@ -176,9 +139,9 @@ test("Colony deposit rejects reserved cargo and aggregate pantry overflow", () =
   const reserved = row(entity("colony.spoil.reserved"), MaterialLot, {
     quantity: 1, kind: "soil-spoil", container: worker,
   });
-  const claim = row(entity("colony.delivery.claimed"), DeliveryTask, {
-    version: 2, party: entity("host"), sourceLot: reserved.id, source: worker,
-    destination: entity("colony.guest.1"), material: "soil-spoil", quantity: 1, custody: "available", ground: null,
+  const claim = row(entity("colony.delivery.claimed"), SupplyAllocation, {
+    requirementOwner: entity("colony.delivery.claimed"), requirementRole: "soil-spoil", requirementGeneration: 1,
+    party: entity("host"), portion: reserved.id, destination: entity("colony.guest.1"), material: "soil-spoil", quantity: 1, state: "reserved",
   });
   assert.throws(
     () => colonyPack.commands!.deposit.invoke(context({ lots: [reserved], tasks: [claim] }), { entities: [worker] }),

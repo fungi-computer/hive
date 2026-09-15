@@ -69,7 +69,6 @@ export function createColonyPartyPlan(
         "hive.party-member": { party },
         "hive.owned-by-party": { party },
         "hive.work-participation": { automatic: true },
-        "hive.delivery-control": { enabled: true, quantity: 3 },
         "colony.worker": { guest: false },
       },
     })),

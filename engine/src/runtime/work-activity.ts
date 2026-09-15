@@ -7,9 +7,8 @@ import type {
   WorkActivityRef,
 } from "../contracts";
 import { query } from "../sdk/authoring";
-import { ExcavationWork, Position } from "../sdk/common";
+import { ExcavationWork, Position, SupplyAllocation } from "../sdk/common";
 import { ConstructionSite } from "../sdk/construction";
-import { DeliveryTask } from "../sdk/delivery";
 
 /** Native terrain work uses one-metre horizontal coordinates. Art owns poses. */
 export const workActivitySchema = z
@@ -72,7 +71,7 @@ export function decorateWorkActivity(
   const positions = new Map(
     context.query(query(Position)).map((row) => [row.id, row.get(Position)]),
   );
-  const deliveryRows = context.query(query(DeliveryTask));
+  const deliveryRows = context.query(query(SupplyAllocation));
   const attempts = new Map(
     (deliveryRows.length ? context.workAttempts?.(deliveryRows.map((row) => row.id)) ?? [] : []).map(
       (attempt) => [attempt.key.task, attempt],
@@ -102,7 +101,7 @@ export function decorateWorkActivity(
     activity.set(attempt.worker, {
       kind: "delivery",
       phase,
-      material: row.get(DeliveryTask).material,
+      material: row.get(SupplyAllocation).material,
       target: [destination.x, destination.z],
     });
   }

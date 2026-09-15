@@ -41,6 +41,8 @@ mod job_transform;
 mod supply_admission;
 #[path = "supply_delivery.rs"]
 mod supply_delivery;
+#[path = "manual_work.rs"]
+mod manual_work;
 #[path = "stockpile_work.rs"]
 mod stockpile_work;
 #[path = "route_query.rs"]
@@ -2157,6 +2159,7 @@ pub struct Kernel {
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
     planner_indexes: NativeIndexes,
+    supply_index: crate::supply_allocation::SupplyAllocationIndex,
     job_index: job_owner::JobIndex,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
@@ -2383,6 +2386,7 @@ impl Kernel {
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
             planner_indexes: NativeIndexes::default(),
+            supply_index: crate::supply_allocation::SupplyAllocationIndex::default(),
             job_index: job_owner::JobIndex::default(),
         }
     }
@@ -2400,13 +2404,21 @@ impl Kernel {
     pub(crate) fn rebuild_planner_index(&mut self) {
         self.planner_indexes.rebuild(&self.ecs, &self.ids);
     }
+    pub(crate) fn supply_index(&self) -> &crate::supply_allocation::SupplyAllocationIndex { &self.supply_index }
+    pub(crate) fn supply_allocation(&self, id: &str) -> Option<&SupplyAllocation> {
+        self.ids.get(id).and_then(|entity| self.ecs.get::<SupplyAllocation>(*entity))
+    }
+    pub(crate) fn refresh_supply_index(&mut self, id: &str) {
+        let allocation = self.supply_allocation(id).cloned();
+        self.supply_index.refresh(id, allocation.as_ref());
+    }
     #[cfg(test)]
     pub(crate) fn planner_index_rebuilds(&self) -> u64 { self.planner_indexes.rebuild_count() }
     pub(crate) fn next_native_planning_window(&mut self, tick: u64) -> crate::work_candidates::PlanningWindow {
         crate::work_candidates::next_fair_indexed_window(&mut self.planner, &self.planner_indexes, tick)
     }
     fn native_planner_may_mutate(&self, tick: u64) -> bool {
-        self.planner_indexes.has_due_task(tick) || self.supply_allocations().next().is_some()
+        self.planner_indexes.has_due_task(tick)
     }
     pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
@@ -2448,8 +2460,8 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("supply allocation identity exhausted")?;
         let id = format!("allocation.{allocation_sequence}");
         if self.known.contains(&id) { return Err("supply allocation identity collides with live state".into()); }
-        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
-        self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_state_weight();
+        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
+        self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_planner_index(&id); self.refresh_supply_index(&id); self.refresh_state_weight();
         Ok(id)
     }
 
@@ -2458,6 +2470,11 @@ impl Kernel {
         let state = self.ecs.get::<SupplyAllocation>(entity).ok_or("supply allocation is missing")?.state;
         if state == SupplyAllocationState::Delivered { return Err("delivered supply allocation cannot be cancelled".into()); }
         self.ecs.get_mut::<SupplyAllocation>(entity).unwrap().state = SupplyAllocationState::Cancelled;
+        if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned() {
+            self.ecs.entity_mut(entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy });
+        }
+        self.refresh_supply_index(allocation);
+        self.refresh_planner_index(allocation);
         self.refresh_state_weight();
         Ok(())
     }
@@ -2526,6 +2543,7 @@ impl Kernel {
             stockpile_work::install_planner_state(&mut world, &id, entity)?;
         }
         world.rebuild_planner_index();
+        world.supply_index.rebuild(&world.ids, &world.ecs);
         world.projectile_count = world
             .ids
             .values()
@@ -3475,21 +3493,17 @@ impl Kernel {
     /// Return bounded standing targets around a container's immutable pose.
     /// Candidate cells are checked by the terrain traversal owner; final
     /// admission uses the same reach predicate in `contact`.
-    pub fn transfer_contacts_json(&mut self, input: &str) -> Result<String> {
-        #[derive(serde::Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Request { worker: String, container: String }
-        let request: Request = serde_json::from_str(input).map_err(|error| error.to_string())?;
-        let worker = self.entity(&request.worker)?;
-        let container = self.entity(&request.container)?;
+    fn transfer_contacts(&mut self, worker_id: &str, container_id: &str) -> Result<Vec<Point>> {
+        let worker = self.entity(worker_id)?;
+        let container = self.entity(container_id)?;
         if self.ecs.get::<SealedContainer>(container).is_some() {
-            return serde_json::to_string(&json!({"kind":"blocked","reason":"sealed"})).map_err(|error| error.to_string());
+            return Err("sealed".into());
         }
         self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
         let frame = self.support_id(worker);
         let container_frame = if self.ecs.get::<Position>(container).is_none() && self.ecs.get::<ConstructionSite>(container).is_some() { None } else { self.contact_frame(container)? };
         if container_frame != frame {
-            return serde_json::to_string(&json!({"kind":"blocked","reason":"unavailable-frame"})).map_err(|error| error.to_string());
+            return Err("unavailable-frame".into());
         }
         let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
@@ -3526,7 +3540,7 @@ impl Kernel {
             let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
             let raw = [container_pose.x / spacing[0], container_pose.y / spacing[1] - 0.5, container_pose.z / spacing[2]];
             if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) {
-                return serde_json::to_string(&json!({"kind":"blocked","reason":"no-contact"})).map_err(|error| error.to_string());
+                return Err("no-contact".into());
             }
             let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
             (terrain_points(center)?, Some([container_pose.x, container_pose.y, container_pose.z]))
@@ -3546,12 +3560,23 @@ impl Kernel {
                 let reference_cell = crate::generation::Cell { x: reference_raw[0].round() as i64, y: reference_raw[1].round() as i32, z: reference_raw[2].round() as i64 };
                 if contact_projection.blocks_direct_decomposition(cell, reference_cell).unwrap_or(true) { continue; }
             }
-            targets.push(json!({"x":point[0],"y":point[1],"z":point[2],"frame":frame.as_deref()}));
+            targets.push(Point { x: point[0], y: point[1], z: point[2], frame: frame.clone() });
         }
         if targets.is_empty() {
-            return serde_json::to_string(&json!({"kind":"blocked","reason":"no-contact"})).map_err(|error| error.to_string());
+            return Err("no-contact".into());
         }
-        serde_json::to_string(&json!({"kind":"ready","targets":targets})).map_err(|error| error.to_string())
+        Ok(targets)
+    }
+    pub fn transfer_contacts_json(&mut self, input: &str) -> Result<String> {
+        #[derive(serde::Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Request { worker: String, container: String }
+        let request: Request = serde_json::from_str(input).map_err(|error| error.to_string())?;
+        match self.transfer_contacts(&request.worker, &request.container) {
+            Ok(targets) => serde_json::to_string(&json!({"kind":"ready","targets":targets})).map_err(|error| error.to_string()),
+            Err(reason) if matches!(reason.as_str(), "sealed" | "unavailable-frame" | "no-contact") => serde_json::to_string(&json!({"kind":"blocked","reason":reason})).map_err(|error| error.to_string()),
+            Err(reason) => Err(reason),
+        }
     }
     pub fn floor_operations_json(&mut self, input: &str) -> Result<String> {
         #[derive(serde::Deserialize)] struct Request { cell: [i64; 3], #[serde(rename="desiredCatalog")] desired_catalog: String }
@@ -5245,6 +5270,8 @@ impl Kernel {
                 if pickup { saved.portion = moved_lot.clone(); }
                 if deposit { saved.state = SupplyAllocationState::Delivered; }
                 debug_assert_eq!(saved.requirement_owner, allocation.requirement_owner);
+                drop(saved);
+                self.refresh_supply_index(&task);
             }
             let activity = crate::work_attempt::ActivityRef::MaterialTransfer {
                 lot: moved_lot, from, to, quantity,

@@ -138,7 +138,8 @@ pub(super) fn install_planner_state(kernel: &mut Kernel, id: &str, entity: bevy_
 /// policy changes. A carried lot remains owned by its existing allocation and
 /// is allowed to finish through the ordinary custody/recovery path.
 pub(crate) fn cancel_unpicked_for_zone(kernel: &mut Kernel, zone: &str) -> crate::components::Result<()> {
-    let allocations = kernel.supply_allocations().filter_map(|(id, allocation)| {
+    let allocations = kernel.supply_index().active_ids().filter_map(|id| {
+        let allocation = kernel.supply_allocation(id)?;
         let destination = kernel.entity(&allocation.destination).ok()?;
         let source_zone = kernel.entity(&allocation.portion).ok()
             .and_then(|lot_entity| {
@@ -149,7 +150,7 @@ pub(crate) fn cancel_unpicked_for_zone(kernel: &mut Kernel, zone: &str) -> crate
             .is_some_and(|cell| cell.zone == zone);
         (allocation.state == crate::components::SupplyAllocationState::Reserved
             && (source_zone || kernel.ecs.get::<StockpileCell>(destination).is_some_and(|cell| cell.zone == zone)))
-            .then_some((id.to_owned(), allocation.clone()))
+        .then_some((id.to_owned(), allocation.clone()))
     }).collect::<Vec<_>>();
     for (id, allocation) in allocations {
         let lot = kernel.ecs.get::<Lot>(kernel.entity(&allocation.portion)?).ok_or("stockpile allocation portion is missing")?;
@@ -165,7 +166,7 @@ pub(crate) fn cancel_unpicked_for_zone(kernel: &mut Kernel, zone: &str) -> crate
                 _ => {}
             }
         }
-        if kernel.supply_allocations().any(|(candidate, _)| candidate == id) {
+        if kernel.supply_allocation(&id).is_some() {
             kernel.cancel_and_retire_supply_allocation(&id)?;
         }
     }

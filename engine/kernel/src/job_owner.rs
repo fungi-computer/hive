@@ -238,7 +238,7 @@ impl Kernel {
         if job.state == crate::job::JobState::Cancelled { return Ok(()); }
         let task_ids = job.task_ids.clone();
         for task_id in &task_ids {
-            let allocations = self.supply_allocations().filter(|(_, allocation)| allocation.requirement_owner == *task_id && allocation.state == SupplyAllocationState::Reserved).map(|(allocation_id, _)| allocation_id.to_owned()).collect::<Vec<_>>();
+            let allocations = self.supply_index().active_ids().filter(|allocation_id| self.supply_allocation(allocation_id).is_some_and(|allocation| allocation.requirement_owner == *task_id)).cloned().collect::<Vec<_>>();
             for allocation_id in allocations { self.cancel_supply_allocation(&allocation_id)?; }
             if let Some(attempt_entity) = self.work_attempts.get(task_id).copied() {
                 let attempt = self.ecs.get::<WorkAttempt>(attempt_entity).cloned().ok_or("job attempt is missing")?;

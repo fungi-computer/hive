@@ -7,8 +7,7 @@ import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { entity, query } from "../sdk/authoring";
 import { ConstructionSite, SealedContainer, constructionCell } from "../sdk/construction";
 import { DeconstructionOrder } from "../sdk/deconstruction-work";
-import { Container, Emitter, MaterialLot } from "../sdk/common";
-import { DeliveryTask } from "../sdk/delivery";
+import { Container, Emitter, MaterialLot, SupplyAllocation } from "../sdk/common";
 import { colonyPack } from "./colony";
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -58,7 +57,7 @@ function buildFinished(session: GameSession, catalog: string, cell: readonly [nu
   const pending = sites.find(row => !before.has(row.id) && row.get(ConstructionSite).catalog === catalog);
   throw new Error(`Colony ${catalog} did not finish: ${JSON.stringify({
     sites: sites.map(row => ({ id: row.id, ...row.get(ConstructionSite) })),
-    deliveries: session.query(query(DeliveryTask)).map(row => ({ id: row.id, ...row.get(DeliveryTask) })),
+    deliveries: session.query(query(SupplyAllocation)).map(row => ({ id: row.id, ...row.get(SupplyAllocation) })),
     lots: session.query(query(MaterialLot)).map(row => ({ id: row.id, ...row.get(MaterialLot) })),
     access: pending ? session.constructionAccess([pending.id]) : [],
   })}`);

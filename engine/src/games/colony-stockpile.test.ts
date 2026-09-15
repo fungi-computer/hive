@@ -18,7 +18,6 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
   const session = new GameSession({ port, pack: colonyPack });
   try {
     session.start();
-    session.command("pauseDelivery", { entities: session.query(query(Worker, PartyMember)).map(row => row.id) });
     const surface = session.terrainSurfaces([[2, 2]])[0];
     assert.ok(surface, "fixture must expose an authored floor surface");
     const [x, y, z] = surface.cell;

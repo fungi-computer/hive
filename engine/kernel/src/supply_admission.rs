@@ -311,6 +311,7 @@ impl Kernel {
                 .id();
             self.ids.insert(item.id.clone(), entity);
             self.known.insert(item.id.clone());
+            self.refresh_supply_index(&item.id);
             self.ecs.entity_mut(item.worker_entity).insert(Destination {
                 x: item.route_destination.x,
                 y: item.route_destination.y,

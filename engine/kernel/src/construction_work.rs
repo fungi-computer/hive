@@ -719,9 +719,9 @@ impl Kernel {
         }
 
         self.release_attempt_for_cancelled_task(site)?;
-        let allocations = self.supply_allocations()
-            .filter(|(_, allocation)| allocation.requirement_owner == site || allocation.destination == site)
-            .map(|(id, _)| id.to_owned())
+        let allocations = self.supply_index().active_ids()
+            .filter(|id| self.supply_allocation(id).is_some_and(|allocation| allocation.requirement_owner == site || allocation.destination == site))
+            .cloned()
             .collect::<Vec<_>>();
         for allocation in allocations {
             self.release_attempt_for_cancelled_task(&allocation)?;
