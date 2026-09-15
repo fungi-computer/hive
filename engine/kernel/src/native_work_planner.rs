@@ -86,8 +86,8 @@ impl Kernel {
                     .flatten()
                     .filter_map(|entity| {
                         let lot = self.ecs.get::<Lot>(*entity)?;
-                        (lot.container == destination && lot.kind == input.material
-                            && !self.ecs.get::<LotWater>(*entity).is_some_and(|water| water.water_kg > 0.0))
+                        (lot.container == destination
+                            && lot_matches_material(lot, self.ecs.get::<LotWater>(*entity), &input.material))
                             .then_some(lot.quantity)
                     })
                     .filter(|quantity| input.policy == InputPolicy::Portion || *quantity == input.quantity)
@@ -228,12 +228,7 @@ impl Kernel {
                 .iter()
                 .filter_map(|(lot_id, entity)| {
                     let lot = self.ecs.get::<Lot>(*entity)?;
-                    if lot.kind != requirement.material
-                        || self
-                            .ecs
-                            .get::<LotWater>(*entity)
-                            .is_some_and(|water| water.water_kg > 0.0)
-                    {
+                    if !lot_matches_material(lot, self.ecs.get::<LotWater>(*entity), &requirement.material) {
                         return None;
                     }
                     let container = self.entity(&lot.container).ok()?;
