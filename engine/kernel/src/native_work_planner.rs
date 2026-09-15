@@ -399,10 +399,26 @@ impl Kernel {
         &mut self,
         requirements: &[SupplyRequirement],
     ) -> Result<Vec<String>> {
+        let slots = self.prepare_supply_slots(requirements, MAX_ASSIGNMENTS)?;
+        if slots.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        self.assign_supply_slots(requirements, slots)
+    }
+
+    /// Expand finite requirements into deterministic, unclaimed source
+    /// portions. This is a pure planning query: it accounts for canonical
+    /// reservations plus earlier slots in this window, but publishes neither.
+    fn prepare_supply_slots(
+        &self,
+        requirements: &[SupplyRequirement],
+        limit: usize,
+    ) -> Result<Vec<SupplySlot>> {
         let mut slots = Vec::new();
         let mut prospective_source = BTreeMap::<String, u32>::new();
         for requirement in requirements {
-            if slots.len() == MAX_ASSIGNMENTS {
+            if slots.len() == limit {
                 break;
             }
             let sources = self
@@ -443,12 +459,12 @@ impl Kernel {
                     };
                     eligible.then(|| (lot_id.clone(), position, free))
                 })
-                .take(MAX_ASSIGNMENTS)
+                .take(limit)
                 .collect::<Vec<_>>();
             let mut remaining = requirement.missing;
             for (lot, source_position, free) in sources {
                 let mut source_remaining = free;
-                while remaining > 0 && source_remaining > 0 && slots.len() < MAX_ASSIGNMENTS {
+                while remaining > 0 && source_remaining > 0 && slots.len() < limit {
                     let quantity = match requirement.policy {
                         InputPolicy::Portion => remaining.min(source_remaining).min(MAX_CARRY_PORTION),
                         InputPolicy::WholeLot if source_remaining == remaining => remaining,
@@ -468,15 +484,19 @@ impl Kernel {
                     remaining -= quantity;
                     source_remaining -= quantity;
                 }
-                if remaining == 0 || slots.len() == MAX_ASSIGNMENTS {
+                if remaining == 0 || slots.len() == limit {
                     break;
                 }
             }
         }
-        if slots.is_empty() {
-            return Ok(Vec::new());
-        }
+        Ok(slots)
+    }
 
+    fn assign_supply_slots(
+        &mut self,
+        requirements: &[SupplyRequirement],
+        slots: Vec<SupplySlot>,
+    ) -> Result<Vec<String>> {
         let parties = requirements
             .iter()
             .map(|requirement| requirement.party.as_str())
