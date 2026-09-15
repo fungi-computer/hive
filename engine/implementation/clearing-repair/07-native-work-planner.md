@@ -284,9 +284,12 @@ struct TaskResultBinding {
 entities. `Job.tasks` contains stable task identities, not embedded copies of task
 records. `TaskState::Completed` contains that task's exact result bindings; there
 is no second result map in `Kernel` or another result entity for the same fact.
-`WorkAttempt.task` names the task entity directly. The ordinary scene/component
-save owner persists these components and rebuilds the derived ready-task index;
-do not add parallel saved `jobs`, `tasks` or `results` collections to the snapshot.
+`WorkAttempt.task` names the task entity directly. The native save owner persists
+these components and rebuilds the derived ready-task index. Because the current
+generic registry schema describes only primitive authored fields, dedicated
+snapshot arrays may encode the canonical ECS Job/Task components as WorkAttempt
+already does. They are serialization, not live maps or a second runtime owner;
+never keep embedded Task copies in a live Job record or a separate results store.
 
 The initial admitted shape is equivalent to the following closed records. Names
 are illustrative; fit them to the existing native registry and action parser
