@@ -301,6 +301,24 @@ Vessel compatibility comes from declared vessel capability/definition, not the
 literal item name `pail`. Preserve existing quantity-to-water accounting and 0–7
 field levels; the planner does not define new water physics.
 
+The compiled GamePack environment owns a small material-handling catalog. Material
+kinds declare reusable handling tags, and portable vessel kinds declare which tags
+they accept. The native material owner resolves that catalog once and answers the
+compatibility question for every caller. `hive.container` continues to own finite
+capacity; `hive.lot` continues to own the vessel kind, contents, quantity and
+custody. Do not add a `WaterVessel` component, branch on `pail`, or copy capacity
+into the catalog.
+
+A pail is therefore an ordinary configured portable vessel. It may hold clean
+water, ale, mud, dirt, bodily waste or dirty mop water when those material kinds
+carry an accepted handling tag. The contained lot remains the truth: a clean-water
+requirement accepts the exact clean-water kind and does not accept dirty water
+merely because both fit in a pail. Contamination and mixtures belong to material
+content definitions and transformations, not to the pail identity or the work
+planner. This slice does not add chemistry; it establishes the boundary that lets
+later cleaning, brewing, sewage and compost operations preserve the same custody
+and quantity laws.
+
 ```text
 brew request -> native StagedProcess
   for each missing input role: expose requirement

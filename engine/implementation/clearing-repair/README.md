@@ -47,8 +47,9 @@ the historical status and earlier construction/drawing instructions below.
 It is an implementation plan, not a claim of landed code or hosted acceptance.
 
 Status: active integration on `engine/clearing-edge-integration-20260914`.
-The reviewed implementation base for the current packet is `a9b72a91`; retained
-working changes and later commits must be reported separately until accepted.
+The reviewed native checkpoint is `13abeb0c`; later source must still be reported
+separately until accepted. The native scheduler remains intentionally inactive in
+the GamePack until every current work family has migrated.
 Historical branches and receipts remain evidence; they are not the active queue.
 
 The joined source now contains the native WorkAttempt identity/lifecycle owner,
@@ -61,6 +62,15 @@ rather than synthesizing names in the host. Draft and Undraft use the persistent
 bottom action dock; unavailable actions remain visible with their reason, while
 selection stays UI state and server admission remains authoritative.
 
+Native construction and process inputs now contribute to one bounded supply
+planner and one allocation/pickup/delivery lifecycle. Two workers can reserve and
+carry distinct portions without overbooking; Draft preserves actual carried cargo;
+restore resumes the same allocation. Process inputs preserve `portion` versus
+`whole-lot` policy, so mugwort, barm and kegs cannot be assembled from fragments.
+The real process lifecycle fixture carries finite `LotWater` into the kettle and
+then admits the original brewing recipe. This is accepted source foundation, not
+a GamePack cutover or a claim that the TypeScript planner has been removed yet.
+
 Original retained art placement metadata is owned beside the bed, brewer and stair
 recipes and survives the v5 static pack. The client converts canonical point and
 multi-cell footprint facts into projected bounds, compares only overlapping nearby
@@ -70,8 +80,10 @@ existing alpha silhouette. The superseded per-pixel depth renderer is deleted.
 Terrain and water occupy explicit storey bands rather than pretending to be
 physical sprites.
 
-The current root and engine builds pass, drawing laws pass 46/46, party laws pass
-70/70, and the immutable frontend version `2b0f54e3` matches all 176 frozen files.
+The current native checkpoint passes all 346 Rust library laws and all 14 public
+kernel integration laws (`run-u8338` and `run-u8334`). Earlier drawing laws pass
+46/46, party laws pass 70/70, and the immutable frontend version `2b0f54e3` matches
+all 176 frozen files.
 The DO backend version `ff3a9d97` is live with the Clearing preview origin. Hosted
 playability remains open because Cloudflare's `clearing-garden` alias still serves
 the older `c4393a6f` HTML even though the current uploaded version records that
