@@ -306,6 +306,10 @@ impl TerrainWater {
         terrain.restore(&records.terrain)?;
         if terrain.revision() != terrain_revision { return Err("environment terrain frontier mismatch".into()); }
         let structures = StaticGeometry::decode(terrain.bounds(), &records.structures)?;
+        // Restore and placement admission share the same canonical compatibility
+        // ledger. Validate before support, terrain and field reconstruction so a
+        // crafted boundary/stair conflict cannot become a live world first.
+        crate::structure_geometry::validate_construction_intents(structures.instances())?;
         if !unsupported_structures(&mut terrain, &structures, geometry.max_span_steps, None)?.is_empty() { return Err("saved structures lack support".into()); }
         let structure_projection = structures.projection()?;
         for cell in structure_projection.solid_cells() {
@@ -803,7 +807,7 @@ mod tests {
         let first = StaticInstance::Stair { id: "stair-east".into(), origin: Cell { x: 0, y: 30, z: 0 }, orientation: crate::structure_geometry::Cardinal::East, run: 2, rise: 1 };
         let crossing = StaticInstance::Stair { id: "stair-south".into(), origin: Cell { x: 1, y: 30, z: -1 }, orientation: crate::structure_geometry::Cardinal::South, run: 2, rise: 1 };
         let error = world.admit_construction_placement(crossing, &[first]).unwrap_err();
-        assert!(error.contains("duplicate structure bulk occupied cell") || error.contains("duplicate structure"), "{error}");
+        assert!(error.contains("duplicate structure") || error.contains("swept corridors"), "{error}");
     }
 
     #[test]
@@ -847,6 +851,16 @@ mod tests {
         let impossible = StaticInstance::Floor { id: "unrooted-floor".into(), support: Cell { x: 3, y: 30, z: 0 } };
         assert_eq!(world.admit_construction_placement(impossible, &[]).unwrap_err(), "construction placement lacks rooted support");
         assert_eq!(world.structure_instances(), before);
+    }
+
+    #[test]
+    fn restore_rejects_saved_wall_that_crosses_a_stair_corridor() {
+        let world = support_law_world(2);
+        let mut records = world.save_records().unwrap();
+        let stair = StaticInstance::Stair { id: "saved-stair".into(), origin: Cell { x: 0, y: 30, z: 0 }, orientation: crate::structure_geometry::Cardinal::East, run: 2, rise: 2 };
+        let wall = StaticInstance::Wall { id: "saved-wall".into(), edge: Face { cell: Cell { x: 1, y: 32, z: 0 }, axis: crate::structure_geometry::FaceAxis::X }, height: 1 };
+        records.structures = StaticGeometry::new(world.bounds(), vec![stair, wall]).unwrap().encode().unwrap();
+        assert!(TerrainWater::restore_records(world.geometry.clone(), super::field_tests::terrain(), &records).is_err());
     }
 
     #[test]
