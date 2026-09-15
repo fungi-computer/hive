@@ -10,6 +10,7 @@ import { FiniteResource, MaterialLot } from "../sdk/common";
 import { Worker } from "./colony-components";
 import { ColonyTree } from "./colony-work";
 import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
+import { colonyPack } from "./colony";
 import { createColonyPerformancePack } from "./colony-performance";
 import type { GamePack } from "../contracts";
 
@@ -26,6 +27,9 @@ test("performance presets are deterministic and keep a fixed 50-tree workload", 
     assert.equal(a.id, scene.game);
     assert.equal(scene.initial.filter(record => record.components["colony.worker"]).length, 200);
     assert.equal(scene.initial.filter(record => record.components["colony.tree"]).length, 50);
+    assert.equal(a.initialActions?.length, 50, "every performance tree is admitted through the native job planner");
+    assert.ok(a.initialActions?.every(action => action.kind === "create-job"), "performance trees use native create-job actions");
+    assert.equal(a.presentation?.visuals, colonyPack.presentation?.visuals, "performance rendering uses the Colony projection owner");
     assert.deepEqual(a.presentationWindow, { minX: -32, maxX: 32, minZ: -32, maxZ: 32 });
   }
 });
@@ -102,7 +106,7 @@ function timingSummary(values: readonly number[]) {
 }
 
 test("sustained Colony workloads measure simulation, save, and observations", () => {
-  for (const workerCount of [32, 100] as const) {
+  for (const workerCount of [32, 100, 200] as const) {
     const port = wasmKernelPort(new WasmKernel());
     const session = new GameSession({ port, pack: createColonyPerformancePack(128, workerCount) });
     const stepMs: number[] = [], saveMs: number[] = [], observationMs: number[] = [];

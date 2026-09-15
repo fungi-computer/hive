@@ -8,9 +8,10 @@ import { Slider } from "@fungi.computer/caps/components/slider";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { colonyPack } from "../games/colony.ts";
+import { colonyPerformanceGameId, colonyPerformanceSizes, colonyPerformanceWorkerCounts, colonyPerformanceWorkerName } from "../games/colony-performance-config.ts";
 import { createPerformancePersistence } from "./performance-persistence.js";
 
-const sizes = [64, 128, 256, 512], workerCounts = [4, 8, 16, 32, 50, 100, 200];
+const sizes = colonyPerformanceSizes, workerCounts = colonyPerformanceWorkerCounts;
 const params = new URLSearchParams(location.search);
 const size = sizes.includes(Number(params.get("size"))) ? Number(params.get("size")) : 64;
 const workers = workerCounts.includes(Number(params.get("workers"))) ? Number(params.get("workers")) : 8;
@@ -57,12 +58,13 @@ function update(wrap) {
   wrap.querySelector("#perf-wire").textContent = `${metrics.wireBytes.toLocaleString()} B`;
 }
 function mount() {
+  const gameId = colonyPerformanceGameId(size, workers);
   runtime = connectBrowserRuntime({ worker: new Worker(new URL("../runtime/performance-worker-entry.ts", import.meta.url), {
-    type: "module", name: `colony-performance:${size}:${workers}`,
+    type: "module", name: colonyPerformanceWorkerName(size, workers),
   }) });
   const persistence = createPerformancePersistence(runtime);
   root.className = "hive-shell";
-  createHiveClient({ root, mode: `colony-performance-${size}-${workers}`, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
+  createHiveClient({ root, mode: gameId, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
   const hud = root.querySelector(".hive-hud");
   const rail = document.createElement("div");
   rail.className = "hive-hud-rail";
