@@ -4057,7 +4057,11 @@ impl Kernel {
         Ok(())
     }
     fn physical_contact_clear(&self, a: Position, b: Position) -> Result<bool> {
-        let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
+        // Generic material operations are valid in detached/flat-world
+        // kernels. Structure-boundary blocking is an additional terrain rule;
+        // without an environment there is no boundary projection to query.
+        let Some(environment) = self.environment.as_ref() else { return Ok(true); };
+        let spacing = environment.world.cell_spacing_m();
         let to_cell = |position: Position| -> Result<crate::generation::Cell> {
             let raw = [position.x / spacing[0], position.y / spacing[1] - 0.5, position.z / spacing[2]];
             if raw.iter().any(|value| !value.is_finite()) { return Err("contact position is not finite".into()); }
