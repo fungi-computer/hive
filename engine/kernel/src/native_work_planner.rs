@@ -863,4 +863,44 @@ mod tests {
         assert_eq!(restored.quantity_in_container("worker-1"), 0);
         assert!(restored.entity(&allocation).is_err());
     }
+
+    #[test]
+    fn construction_contributes_only_after_bound_support_materials_and_contact() {
+        let (mut kernel, surface, _) = construction_world(1);
+        assert!(kernel.construction_work_requirement("site", "party").unwrap().is_none());
+        let _ = kernel.plan_construction_supply("site", "party").unwrap();
+        finish_active_deliveries(&mut kernel);
+        let _ = kernel.plan_construction_supply("site", "party").unwrap();
+        finish_active_deliveries(&mut kernel);
+        let requirement = kernel
+            .construction_work_requirement("site", "party")
+            .unwrap()
+            .expect("complete construction demand should contribute labor");
+        assert_eq!(requirement.task, "site");
+        assert_eq!(requirement.party, "party");
+        assert!(!requirement.contacts.is_empty());
+        assert!(matches!(requirement.next_activity, crate::work_attempt::ActivityRef::Construction { ref site, mode: crate::work_attempt::ConstructionMode::Work, .. } if site == "site"));
+
+        let site_entity = kernel.entity("site").unwrap();
+        kernel.ecs.entity_mut(site_entity).remove::<Position>();
+        assert!(kernel.construction_work_requirement("site", "party").unwrap().is_none());
+
+        kernel.ecs.entity_mut(site_entity).insert(Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 });
+        kernel.ecs.entity_mut(site_entity).get_mut::<ConstructionSite>().unwrap().target = ConstructionTarget::Cell {
+            cell: Cell { x: surface.x, y: surface.y + 100, z: surface.z },
+            orientation: Cardinal::North,
+        };
+        assert!(kernel.construction_work_requirement("site", "party").unwrap().is_none());
+    }
+
+    #[test]
+    fn construction_requirement_is_stable_when_entity_iteration_order_changes() {
+        let (mut kernel, _, _) = construction_world(1);
+        let _ = kernel.plan_construction_supply("site", "party").unwrap();
+        finish_active_deliveries(&mut kernel);
+        let first = kernel.construction_work_requirement("site", "party").unwrap();
+        kernel.ids = kernel.ids.iter().rev().map(|(id, entity)| (id.clone(), *entity)).collect();
+        let second = kernel.construction_work_requirement("site", "party").unwrap();
+        assert_eq!(first, second);
+    }
 }
