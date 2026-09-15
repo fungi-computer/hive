@@ -1,5 +1,11 @@
 # Clearing repair implementation packet
 
+**September 15 implementation design:** [Native work planner](07-native-work-planner.md)
+specifies the complete Rust planning pipeline, ownership, budgets, recovery and
+consumer cutover. It is a design, not implemented acceptance. The current
+[construction cancellation policy](02-construction.md#impossible-versus-waiting)
+cancels structurally invalidated plans; missing labor/materials remain waiting.
+
 **Current job architecture correction (September 14):**
 [Rust-owned declarative job planning](01-work.md#rust-owned-declarative-job-planning-current-correction)
 supersedes the earlier TypeScript provider scheduling design. This migration is
@@ -21,8 +27,9 @@ surfaces become separately ordered original-art parts. Read this update before
 the historical status and earlier construction/drawing instructions below.
 It is an implementation plan, not a claim of landed code or hosted acceptance.
 
-Status: active integration on `engine/clearing-repair-acceptance-20260914`.
-The accepted runtime source is pinned at `d67e28ac`.
+Status: active integration on `engine/clearing-edge-integration-20260914`.
+The reviewed implementation base for the current packet is `a9b72a91`; retained
+working changes and later commits must be reported separately until accepted.
 Historical branches and receipts remain evidence; they are not the active queue.
 
 The joined source now contains the native WorkAttempt identity/lifecycle owner,

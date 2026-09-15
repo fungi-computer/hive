@@ -1,5 +1,8 @@
 # One work-attempt owner
 
+The [September 15 native planner implementation contract](07-native-work-planner.md)
+refines and supersedes planning pseudocode here. Read it before implementation.
+
 ## Rust-owned declarative job planning (current correction)
 
 Status: required, not implemented or qualified. This section supersedes the

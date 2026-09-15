@@ -107,10 +107,31 @@ to establish its own rooted prerequisites, regardless of input order.
 
 Structural impossibility is evaluated against the current world and submitted
 plans, not every hypothetical future excavation. Ordinary unreachable jobs may
-wait for access changes and must release labor. Cancelling/removing a prerequisite
-updates dependents to a visible blocked state without erasing paid supplies or
-claiming them completed. A worker standing in a valid build footprint temporarily
-delays completion; it does not make the placement permanently illegal.
+wait for access changes and must release labor. A worker standing in a valid build
+footprint temporarily delays completion; it does not make placement illegal.
+
+**September 15 product decision: cancel structurally invalidated plans.** When a
+world change or prerequisite cancellation makes an existing construction plan
+structurally impossible, cancel that plan and any dependent plans left without a
+valid support chain. Re-evaluate alternative support before cancelling. Do not
+retain these plans as red ghosts for now; that is a possible later UX. This
+supersedes the previous instruction to keep them visibly blocked.
+
+Use the existing native cancellation owner in the same durable transaction as
+the invalidating change. Settle interrupted attempts exactly once, release worker
+and supply/capacity reservations, and stop outstanding material demand. Carried
+materials remain with their carrier; delivered unused supplies remain physical
+lots, released through the existing material owner before staging storage is
+removed. Never erase, duplicate, refund already-consumed material, or mark work
+completed merely because its plan was cancelled. Independent plans survive.
+
+Traverse indexed structural dependencies deterministically to a fixed point. If
+the bounded validation budget cannot finish, defer the initiating change without
+committing a partially invalid world. Do not use this cascade for a missing
+worker, missing ingredients, temporary occupancy, failed route search or exhausted
+search budget. Those remain waiting work, with labor released as appropriate.
+The ordinary command result/world projection reports cancelled plan IDs/reasons;
+no new notification framework or red-plan editor is required.
 
 Evaluate prerequisite/overlap work within a bounded local query. Exhaustion is
 Deferred, not permission or permanent rejection. Concurrent conflicting commands
@@ -162,6 +183,35 @@ cycles or a pending/committed conflict are rejected without starting the world.
   the pictured pile-up cannot be produced by repeatedly rotating/placing stairs.
 
 These checks apply to reusable geometry categories, not named timber-stair hacks.
+
+### September 15 implementation checkpoint (partial)
+
+The first native admission slice now builds the candidate together with committed
+structures and all unfinished ordinary ConstructionSite instances before staging
+a new site. It explicitly rejects a second Floor/Cover claimant on one horizontal
+face because the physical projection intentionally deduplicates those faces. It
+also excludes FloorReplacement staging from ordinary pending geometry and runs the
+same combined validation during current-format restore. Focused source laws cover
+rotated intersecting stairs, duplicate floors, floor under a fixture, a rooted
+stair-landing floor, unrooted plans and rejection without a new site/container.
+
+This is not completion of C4. Source review found these remaining gaps:
+
+- stair required crossings/clearance are not yet a first-class compatibility
+  fact, so a boundary face crossing the usable stair route and an intermediate
+  floor require explicit laws and any necessary native fact correction;
+- the client ghost does not yet consume a target-specific native decision;
+  command admission prevents the durable impossible job, while a stale-looking
+  ghost can still be rejected after submission;
+- multiple plan-construction actions are applied sequentially and return separate
+  action results. The required order-independent whole-selection semantics have
+  not been proved or implemented as one native batch decision;
+- a crafted conflicting pending save is not yet an accepted restore test;
+- no actual multiplayer race or rendered repeated-placement witness has passed.
+
+Do not describe this checkpoint as universal placement validity until those rows
+pass. In particular, `StaticGeometry::projection()` catching two stair bulk cells
+does not by itself prove every wall/stair corridor relationship.
 
 September 14: [Grid-edge buildings](06-edge-buildings-and-art-parts.md) supersedes
 cell-centered wall/aperture placement below. Floor/fixture datums and the shared
