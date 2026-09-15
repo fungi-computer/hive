@@ -5,8 +5,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { query } from "../sdk/authoring";
-import { ExcavationWork, MaterialLot, Destination } from "../sdk/common";
-import { DeliveryTask } from "../sdk/delivery";
+import { ExcavationWork, MaterialLot, Destination, SupplyAllocation } from "../sdk/common";
 import { WorkParticipation } from "../sdk/work-control";
 import { PartyMember } from "../sdk/party";
 import { Worker } from "../games/colony-components";
@@ -33,16 +32,17 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
     let otherTaskId: string | undefined;
     for (let tick = 0; tick < 120; tick++) {
       session.step(0.1);
-      const carrying = session.query(query(DeliveryTask)).find((row) => {
-        const task = row.get(DeliveryTask);
-        return task.custody === "held";
+      const carrying = session.query(query(SupplyAllocation)).find((row) => {
+        const allocation = row.get(SupplyAllocation);
+        const holder = port.workAttempts([row.id])[0]?.worker;
+        return allocation.state === "reserved" && holder && session.query(query(MaterialLot)).some((lot) => lot.id === allocation.portion && lot.get(MaterialLot).container === holder);
       });
       const holder = carrying ? port.workAttempts([carrying.id])[0]?.worker : undefined;
-      if (carrying && holder && session.query(query(MaterialLot)).some((row) => row.get(MaterialLot).container === holder)) {
+      if (carrying && holder) {
         worker = holder;
         other = workers.find(candidate => candidate !== holder);
         taskId = carrying.id;
-        otherTaskId = session.query(query(DeliveryTask)).find((row) => row.id !== taskId)?.id;
+        otherTaskId = session.query(query(SupplyAllocation)).find((row) => row.id !== taskId)?.id;
         break;
       }
     }
@@ -71,9 +71,9 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
     const pose = port.worldPoses([worker])[0];
     assert(pose && Math.abs(pose.world.x - 2) < 1e-6 && Math.abs(pose.world.z) < 1e-6, "manual worker must remain at the requested position");
     assert.equal(session.query(query(MaterialLot)).filter((row) => row.get(MaterialLot).container === worker).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), manualCargo, "manual cargo quantity is conserved");
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody, "held", "manual delivery obligation retains carried custody");
-    const otherTask = session.query(query(DeliveryTask)).find((row) => row.id === otherTaskId)?.get(DeliveryTask);
-    assert(!otherTask || otherTask.custody === "delivered", "other worker completes and retires independent work");
+    assert.equal(session.query(query(SupplyAllocation)).find((row) => row.id === taskId)?.get(SupplyAllocation).state, "reserved", "manual delivery obligation retains carried custody");
+    const otherTask = session.query(query(SupplyAllocation)).find((row) => row.id === otherTaskId)?.get(SupplyAllocation);
+    assert(!otherTask || otherTask.state === "delivered", "other worker completes and retires independent work");
 
     const saved = session.save();
     session.restore(saved);
@@ -82,10 +82,10 @@ test("Colony Go takes carrying work manual and Resume work restores automatic pa
     session.command("resumeWork", { entities: [worker] });
     for (let tick = 0; tick < 240; tick++) {
       session.step(0.1);
-      if (session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody === "delivered") break;
+      if (!session.query(query(SupplyAllocation)).some((row) => row.id === taskId)) break;
     }
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, true);
-    assert.equal(session.query(query(DeliveryTask)).find((row) => row.id === taskId)?.get(DeliveryTask).custody, "delivered", "resume returns the claimed delivery to automatic completion");
+    assert.equal(session.query(query(SupplyAllocation)).some((row) => row.id === taskId), false, "resume settles and retires the native supply obligation");
   } finally {
     port.dispose();
   }
