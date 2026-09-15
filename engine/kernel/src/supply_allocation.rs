@@ -38,7 +38,10 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
         if kernel.ecs().get::<Container>(destination).is_none() || kernel.ecs().get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(allocation.party.as_str()) { return Err("supply allocation destination relationship is invalid".into()); }
         let portion = kernel.entity(&allocation.portion)?;
         let lot = kernel.ecs().get::<Lot>(portion).ok_or("supply allocation portion is not a lot")?;
-        if lot.kind != allocation.material || lot.quantity < allocation.quantity || kernel.ecs().get::<OwnedByParty>(portion).map(|owner| owner.party.as_str()) != Some(allocation.party.as_str()) { return Err("supply allocation portion relationship is invalid".into()); }
+        let source_entity = kernel.entity(&lot.container)?;
+        let public_ground = kernel.ecs().get::<GroundStock>(source_entity).is_some() && kernel.ecs().get::<OwnedByParty>(source_entity).is_none();
+        let lot_party_ok = kernel.ecs().get::<OwnedByParty>(portion).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()) || (public_ground && kernel.ecs().get::<OwnedByParty>(portion).is_none());
+        if lot.kind != allocation.material || lot.quantity < allocation.quantity || !lot_party_ok { return Err("supply allocation portion relationship is invalid".into()); }
         match allocation.state {
             SupplyAllocationState::Delivered => if lot.container != allocation.destination || lot.quantity != allocation.quantity { return Err("delivered supply allocation has invalid custody".into()); },
             SupplyAllocationState::Cancelled => if kernel.work_attempt(id).is_some() { return Err("cancelled supply allocation still owns work".into()); },
@@ -67,7 +70,11 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
                         && lot.quantity == allocation.quantity
                         && kernel.work_attempt(id).is_none_or(|attempt| attempt.party == allocation.party && Some(attempt.worker.as_str()) == carrier_worker.as_deref())
                 });
-                let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| (kernel.ecs().get::<GroundStock>(container).is_some() || kernel.ecs().get::<StockpileCell>(container).is_some()) && kernel.ecs().get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()));
+                let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| {
+                    let public_ground = kernel.ecs().get::<GroundStock>(container).is_some() && kernel.ecs().get::<OwnedByParty>(container).is_none();
+                    (kernel.ecs().get::<GroundStock>(container).is_some() || kernel.ecs().get::<StockpileCell>(container).is_some())
+                        && (kernel.ecs().get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()) || public_ground)
+                });
                 if !at_worker && !at_source { return Err("reserved supply allocation has invalid custody".into()); }
                 validate_capacity(kernel, portion, destination, allocation.quantity, Some(id))?;
             }
