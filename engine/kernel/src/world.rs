@@ -2076,6 +2076,67 @@ impl Kernel {
         if self.discard_required { return Err("kernel attempt requires durable restore".into()); }
         Ok(())
     }
+
+    pub(crate) fn ecs(&self) -> &World { &self.ecs }
+    pub(crate) fn external_id(&self, entity: Entity) -> Result<String> { self.ecs.get::<ExternalId>(entity).map(|id| id.0.clone()).ok_or("entity has no external identity".into()) }
+    pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = &SupplyAllocation> {
+        self.ids.values().filter_map(|entity| self.ecs.get::<SupplyAllocation>(*entity))
+    }
+    pub(crate) fn quantity_in_container(&self, container: &str) -> u32 {
+        self.ids.values().filter_map(|entity| self.ecs.get::<Lot>(*entity)).filter(|lot| lot.container == container).fold(0, |total, lot| total.saturating_add(lot.quantity))
+    }
+
+    /// Atomically reserve one exact lot portion and the matching destination
+    /// capacity. No quantity is moved until `deliver_supply_allocation`.
+    pub(crate) fn reserve_supply_allocation(&mut self, requirement_owner: String, requirement_role: String, requirement_generation: u64, party: String, worker: String, portion: String, destination: String, quantity: u32) -> Result<String> {
+        self.ensure_ready()?;
+        if !valid_id(&requirement_owner) || !valid_id(&requirement_role) || requirement_generation == 0 || !valid_id(&party) || !valid_id(&worker) || !valid_id(&portion) || !valid_id(&destination) || quantity == 0 { return Err("invalid supply allocation request".into()); }
+        let source = self.entity(&portion)?;
+        let target = self.entity(&destination)?;
+        if self.ecs.get::<Lot>(source).is_none() { return Err("supply portion is missing".into()); }
+        if self.ecs.get::<Container>(target).is_none() { return Err("supply destination is not a container".into()); }
+        let member = self.ecs.get::<PartyMember>(self.entity(&worker)?).ok_or("supply worker is not a party member")?;
+        if member.party != party { return Err("supply worker party ownership mismatch".into()); }
+        for entity in [source, target] {
+            if let Some(owner) = self.ecs.get::<OwnedByParty>(entity) && owner.party != party { return Err("supply party ownership mismatch".into()); }
+        }
+        crate::supply_allocation::validate_capacity(self, source, target, quantity, None)?;
+        let id = (1..=16384_u32).map(|n| format!("allocation.{n}")).find(|id| !self.known.contains(id)).ok_or("supply allocation capacity reached")?;
+        let reservation = id.clone();
+        let entity = self.ecs.spawn((ExternalId(id.clone()), SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, portion, destination, quantity, reservation, state: SupplyAllocationState::Reserved })).id();
+        self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_state_weight();
+        Ok(id)
+    }
+
+    /// Construction keeps its site container as the destination owner; this
+    /// adapter only supplies the typed requirement identity for that consumer.
+    pub(crate) fn reserve_construction_supply(&mut self, site: String, worker: String, portion: String, quantity: u32) -> Result<String> {
+        let destination = self.entity(&site)?;
+        if self.ecs.get::<ConstructionSite>(destination).is_none() { return Err("construction supply destination is not a site".into()); }
+        let party = self.ecs.get::<OwnedByParty>(destination).ok_or("construction site has no party owner")?.party.clone();
+        self.reserve_supply_allocation(site.clone(), "construction-material".into(), 1, party, worker, portion, site, quantity)
+    }
+
+    pub(crate) fn cancel_supply_allocation(&mut self, allocation: &str) -> Result<()> {
+        let entity = self.entity(allocation)?;
+        let state = self.ecs.get::<SupplyAllocation>(entity).ok_or("supply allocation is missing")?.state;
+        if state == SupplyAllocationState::Delivered { return Err("delivered supply allocation cannot be cancelled".into()); }
+        self.ecs.get_mut::<SupplyAllocation>(entity).unwrap().state = SupplyAllocationState::Cancelled;
+        self.revision = self.revision.checked_add(1).ok_or("revision exhausted")?;
+        Ok(())
+    }
+
+    pub(crate) fn deliver_supply_allocation(&mut self, allocation: &str) -> Result<String> {
+        let entity = self.entity(allocation)?;
+        let record = self.ecs.get::<SupplyAllocation>(entity).cloned().ok_or("supply allocation is missing")?;
+        if record.state != SupplyAllocationState::Reserved { return Err("supply allocation is not pending".into()); }
+        let source = self.entity(&record.portion)?; let target = self.entity(&record.destination)?;
+        crate::supply_allocation::validate_capacity(self, source, target, record.quantity, Some(&record.reservation))?;
+        let from = self.ecs.get::<Lot>(source).ok_or("supply portion is missing")?.container.clone();
+        let moved = self.transfer_with_identity_excluding(&record.portion, &from, &record.destination, record.quantity, false, Some(&record.reservation))?;
+        let mut allocation = self.ecs.get_mut::<SupplyAllocation>(entity).unwrap(); allocation.portion = moved.clone(); allocation.state = SupplyAllocationState::Delivered;
+        Ok(moved)
+    }
     pub fn load(&mut self, input: &str) -> Result<()> {
         if input.len() > 8 * 1024 * 1024 {
             return Err("scene too large".into());
@@ -3826,7 +3887,7 @@ impl Kernel {
         if !retain_worker { self.attempts_by_worker.remove(&worker); }
         Ok(())
     }
-    fn entity(&self, id: &str) -> Result<Entity> {
+    pub(crate) fn entity(&self, id: &str) -> Result<Entity> {
         self.ids
             .get(id)
             .copied()
@@ -5402,6 +5463,9 @@ impl Kernel {
         self.transfer_with_identity(lot, from, to, quantity, true).map(|_| ())
     }
     fn transfer_with_identity(&mut self, lot: &str, from: &str, to: &str, quantity: u32, moved_retains_identity: bool) -> Result<String> {
+        self.transfer_with_identity_excluding(lot, from, to, quantity, moved_retains_identity, None)
+    }
+    fn transfer_with_identity_excluding(&mut self, lot: &str, from: &str, to: &str, quantity: u32, moved_retains_identity: bool, ignored_reservation: Option<&str>) -> Result<String> {
         if quantity == 0 || from == to {
             return Err("invalid transfer".into());
         }
@@ -5428,6 +5492,7 @@ impl Kernel {
         if stock.container != from || stock.quantity < quantity {
             return Err("stock is not available at source".into());
         }
+        crate::supply_allocation::validate_capacity(self, e, dest, quantity, ignored_reservation)?;
         if self.quantity(to) + u64::from(quantity) > u64::from(capacity) {
             return Err("destination is full".into());
         }
