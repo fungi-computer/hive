@@ -10,6 +10,12 @@ planner yet.
 deep-module correction and cross-engine repair order. One shared scheduler is
 settled; domain requirement contributions are not independent schedulers.
 
+[Lifecycle and access contract, section F1](12-actor-lifecycle-relations-and-access.md#f1-native-work-pool-replacement)
+owns the subsequent party-to-work-pool field correction: explicit pool, configured
+membership relation and initiating player, with current operation permission.
+It supersedes party-equality authorization in older examples here, without
+changing this document's single native scheduler, matching or material ownership.
+
 ## 1. Outcome and boundary
 
 One Rust planner owns automatic work from discovering requirements through

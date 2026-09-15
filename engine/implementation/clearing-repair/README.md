@@ -1,5 +1,21 @@
 # Clearing repair implementation packet
 
+**September 15 implementation handoff:** [Actor lifecycle, relationships and access](12-actor-lifecycle-relations-and-access.md)
+freezes the remaining contracts from the whole-authoring audit: atomic first-join
+creation, independent ownership/membership, native indexed relationships, explicit
+operation roles, shared-building permissions, revocation and cleanup. Sections A
+and I define the serial L1–L4 implementation packets and their acceptance scenarios.
+Read it alongside section 07's native planner and section 10's prepared behaviors.
+It is implementation design, not a claim these runtime changes are already shipped.
+
+**September 15 whole-authoring audit:** [Shapes and ownership](11-authoring-shapes-and-ownership-audit.md)
+maps eight authoring families to existing source and compares Godot, Bevy, Defold,
+GameMaker and statechart tools. It separates actor lifetime, player ownership,
+membership and authority, and records creation, outcome and production gaps.
+Module-owned operations remain the direction; proposed Teams/party DSL names are
+not frozen APIs. The whole-loop acceptance includes independent parties sharing
+building access without sharing control of their actors.
+
 **September 15 accepted creator API:** [Definitions and shared query batches](10-scripted-engine-authoring-audit.md#accepted-authoring-contract-definitions-and-shared-query-batches)
 owns `behavior(id, scene => { ... })` with `find().where().do()`. Build definitions
 at pack load; batch reads across due behaviors in one world decision phase; return

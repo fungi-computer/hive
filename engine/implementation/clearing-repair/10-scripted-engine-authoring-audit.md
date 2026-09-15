@@ -6,6 +6,12 @@ direction, not an installed API or permission to restart paused implementation.
 Read with [the creator study](09-systems-games-and-creator-study.md) and
 [ownership audit](08-engine-ownership-audit.md).
 
+Follow-through: [section 12](12-actor-lifecycle-relations-and-access.md) now owns
+the exact actor creation, membership/ownership, access and cleanup contracts.
+Its explicit operation roles replace inferred party scope. Keep the prepared
+behavior/query contract below; do not invent another actor runtime to implement
+the lifecycle or a separate registry for permission rules.
+
 ## Judgment
 
 Hive should support ordinary TypeScript behavior over native Rust mechanisms.
