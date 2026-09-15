@@ -1,5 +1,5 @@
 import { component } from "./authoring";
-import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, Vec3 } from "../contracts";
+import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, PlacementCandidate, Vec3 } from "../contracts";
 
 /** Native custody is observable; authored writes cannot lock or unlock goods. */
 export const SealedContainer = component<Record<string, never>>("hive.sealed-container", {
@@ -49,14 +49,8 @@ export const replaceFloor = (orderId: EntityId, existingFloorId: EntityId, desir
   kind: "replace-floor", orderId, existingFloorId, desiredCatalog,
 });
 
-/** Select authored content; the native catalog owns cost, effort and geometry. */
-export const planConstruction = (
-  site: EntityId,
-  catalog: string,
-  target: ConstructionTarget,
-  party: EntityId,
-): ActionRequest => ({
-  kind: "plan-construction", site, party, catalog, target,
+export const planConstructions = (party: EntityId, plans: readonly PlacementCandidate[]): ActionRequest => ({
+  kind: "plan-constructions", party, plans,
 });
 
 export const bindConstructionStage = (site: EntityId, contact: Vec3): ActionRequest => ({

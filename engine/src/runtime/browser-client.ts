@@ -1,9 +1,11 @@
 import type { GameId } from "../contracts";
-import type { WorkerCommand, WorkerEvent, WorkerTransportEvent } from "./protocol";
+import type { PlacementDecisionQuery, PlacementDecisionResult, WorkerCommand, WorkerEvent, WorkerPlacementCommand, WorkerTransportEvent } from "./protocol";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
+import { parsePlacementDecisionResult, placementDecisionQuerySchema } from "./placement-decision";
 
 export interface RuntimeConnection {
   send(command: WorkerCommand): void;
+  placementDecisions(query: PlacementDecisionQuery): Promise<PlacementDecisionResult>;
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   dispose(): void;
   /** Optional recovery control for transports that retain uncertain commands. */
@@ -28,8 +30,30 @@ export function connectBrowserRuntime(
   let terrainEpoch: number | undefined;
   let cachedTerrain: TerrainWireFrame | undefined;
   let cadence: ReturnType<typeof setInterval> | undefined;
+  let requestSequence = 0;
+  const placementRequests = new Map<number, { query: PlacementDecisionQuery; resolve(value: PlacementDecisionResult): void; reject(error: Error): void }>();
   const onMessage = (event: MessageEvent<WorkerTransportEvent>) => {
     if (disposed) return;
+    if (event.data.type === "placement-decisions") {
+      const pending = placementRequests.get(event.data.requestId);
+      if (!pending) return;
+      placementRequests.delete(event.data.requestId);
+      try { pending.resolve(parsePlacementDecisionResult({
+        observationRevision: event.data.observationRevision,
+        nativeRevision: event.data.nativeRevision,
+        placementRevision: event.data.placementRevision,
+        decisions: event.data.decisions,
+      }, pending.query)); }
+      catch (error) { pending.reject(error instanceof Error ? error : new Error(String(error))); }
+      return;
+    }
+    if (event.data.type === "placement-decision-error") {
+      const pending = placementRequests.get(event.data.requestId);
+      if (!pending) return;
+      placementRequests.delete(event.data.requestId);
+      pending.reject(new Error(event.data.message));
+      return;
+    }
     if (event.data.type === "results" || event.data.type === "error")
       stepping = false;
     if (event.data.type === "state") {
@@ -72,6 +96,14 @@ export function connectBrowserRuntime(
     listeners.add(listener);
     return () => listeners.delete(listener);
   };
+  const placementDecisions = (query: PlacementDecisionQuery) => new Promise<PlacementDecisionResult>((resolve, reject) => {
+    if (disposed) { reject(new Error("runtime connection disposed")); return; }
+    const checked = placementDecisionQuerySchema.parse(query);
+    if (placementRequests.size >= 8) { reject(new Error("too many placement decisions in flight")); return; }
+    const requestId = ++requestSequence;
+    placementRequests.set(requestId, { query: checked, resolve, reject });
+    worker.postMessage({ type: "placement-decisions", requestId, ...checked } satisfies WorkerPlacementCommand);
+  });
   const dispose = () => {
     if (disposed) return;
     disposed = true;
@@ -80,9 +112,11 @@ export function connectBrowserRuntime(
     if (cadence !== undefined) clearInterval(cadence);
     worker.removeEventListener("message", onMessage);
     worker.terminate();
+    for (const pending of placementRequests.values()) pending.reject(new Error("runtime connection disposed"));
+    placementRequests.clear();
     listeners.clear();
   };
-  return { send, subscribe, dispose };
+  return { send, placementDecisions, subscribe, dispose };
 }
 
 export type GameSelection = Extract<GameId, string>;

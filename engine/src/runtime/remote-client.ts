@@ -1,6 +1,6 @@
 import { checkedCueList, type PresentationCue } from "./presentation-cues";
 import { checkedAction } from "./actions";
-import type { WorkerCommand, WorkerEvent } from "./protocol";
+import type { PlacementDecisionQuery, PlacementDecisionResult, WorkerCommand, WorkerEvent } from "./protocol";
 import type { RuntimeConnection } from "./browser-client";
 import type { ActionResult, RenderFact, SupportSurface, Vec3 } from "../contracts";
 import { presentationFactSchema, type EnvironmentVisual, type TerrainMark } from "../presentation";
@@ -13,6 +13,7 @@ import { activitySchema } from "./work-activity";
 import { WebSocket as PartySocket } from "partysocket";
 import { z } from "zod";
 import { validVisualPlacement } from "./visual-projection";
+import { parsePlacementDecisionResult, placementDecisionQuerySchema } from "./placement-decision";
 
 const rejectionReasonSchema = z.object({ reason: z.string().min(1) });
 const partyJoinSchema = z.object({
@@ -410,7 +411,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let sharedPrepared = false;
   const sharedBase = () => {
     if (!sharedWorld) throw new Error("remote Colony world is not prepared");
-    return (operation: "join" | "observe" | "command" | "connect" | "socket", handle?: string) =>
+    return (operation: "join" | "observe" | "command" | "placement" | "connect" | "socket", handle?: string) =>
       sharedWorldPath(options.endpoint, sharedWorld!, operation, handle);
   };
   const prepareShared = async () => {
@@ -688,6 +689,19 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     pending.push(next);
     schedulePump();
   };
+  const placementDecisions = async (raw: PlacementDecisionQuery): Promise<PlacementDecisionResult> => {
+    if (disposed) throw new Error("runtime connection disposed");
+    if (!shared) throw new Error("placement decisions require a shared Colony world");
+    const query = placementDecisionQuerySchema.parse(raw);
+    await prepareShared();
+    const response = await requestJson(options.fetch, sharedBase()("placement"), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${sharedCredential}`, "Content-Type": "application/json" },
+      body: JSON.stringify(query),
+    }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
+    if (!response.response.ok) throw new Error(`placement decision failed (${response.response.status})`);
+    return parsePlacementDecisionResult(response.value, query);
+  };
   const subscribe = (listener: (event: WorkerEvent) => void) => {
     if (disposed) throw new Error("runtime connection disposed");
     listeners.add(listener);
@@ -704,5 +718,5 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     pending.length = 0;
     listeners.clear();
   };
-  return { send, subscribe, dispose, recovery: { retry: retryRecovery } };
+  return { send, placementDecisions, subscribe, dispose, recovery: { retry: retryRecovery } };
 }

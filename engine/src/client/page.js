@@ -8,6 +8,7 @@ import { createConnectionChoice } from "./connection-choice.js";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { connectRemoteRuntime } from "../runtime/remote-client.ts";
 import { colonyPack } from "../games/colony.ts";
+import { colonyPlacementCandidates } from "../games/colony-building.ts";
 import { survivalPack } from "../games/survival.ts";
 import { formationsPack } from "../games/formations.ts";
 import { piratesPack } from "../games/pirates.ts";
@@ -33,6 +34,7 @@ const configs = {
       "Build and dig your clearing. Select the brew station to request a fire, or a worker to give orders.",
     orderCommand: "go",
     placementVisuals: colonyPlacement,
+    placementCandidates: colonyPlacementCandidates,
     selectionShortcuts: [{ label: "Select Rowan" }, { label: "Select Sedge" }],
     controlHelp: "Dig area, then drag across the ground · Select a worker and right-click to take control · Resume work returns them to automatic orders · Escape cancels a drag",
     source: "./source/colony.ts",

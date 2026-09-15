@@ -37,6 +37,7 @@ import type {
   EntityId,
   WorldPose,
   Impact,
+  PlacementCandidate,
   WorkMaterialFacts,
   CommandScope,
   ScopedAction,
@@ -300,6 +301,10 @@ export class GameSession {
   constructionReadiness(sites: readonly EntityId[]) {
     this.ensureLive();
     return this.port.constructionReadiness(sites);
+  }
+  placementDecisions(party: EntityId, candidates: readonly PlacementCandidate[]) {
+    this.ensureLive();
+    return this.port.placementDecisions(party, candidates);
   }
   constructionAccess(sites: readonly EntityId[]) {
     this.ensureLive();

@@ -236,13 +236,7 @@ export type ActionRequest =
     }
   | { readonly kind: "deconstruct"; readonly worker: EntityId; readonly site: EntityId }
   | { readonly kind: "plan-deconstruction"; readonly site: EntityId; readonly party: EntityId }
-  | {
-      readonly kind: "plan-construction";
-      readonly catalog: string;
-      readonly site: EntityId;
-      readonly party: EntityId;
-      readonly target: ConstructionTarget;
-    }
+  | { readonly kind: "plan-constructions"; readonly party: EntityId; readonly plans: readonly PlacementCandidate[] }
   | { readonly kind: "plan-excavation"; readonly party: EntityId; readonly prefix: string; readonly start: readonly [number, number, number]; readonly end: readonly [number, number, number] }
   | { readonly kind: "cancel-excavation"; readonly party: EntityId; readonly area: { readonly start: readonly [number, number, number]; readonly end: readonly [number, number, number] } | null; readonly workers: readonly EntityId[] }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
@@ -646,6 +640,21 @@ export interface ConstructionReadiness {
   readonly status: ConstructionReadinessStatus;
   readonly reason?: "missingStructuralSupport";
 }
+export interface PlacementCandidate {
+  readonly site: EntityId;
+  readonly catalog: string;
+  readonly target: ConstructionTarget;
+}
+export interface PlacementDecision {
+  readonly site: EntityId;
+  readonly status: "ready" | "rejected";
+  readonly reason?: string;
+}
+export interface PlacementDecisionResponse {
+  readonly revision: number;
+  readonly placementRevision: number;
+  readonly decisions: readonly PlacementDecision[];
+}
 export type ConstructionAccessContact = Vec3 & { readonly frame: null; readonly kind: "origin" | "landing" };
 export interface ConstructionAccess {
   readonly site: EntityId;
@@ -708,6 +717,11 @@ export interface KernelPort {
   readonly constructionReadiness: (
     sites: readonly EntityId[],
   ) => readonly ConstructionReadiness[];
+  /** Advisory native geometry decision; command admission always rechecks. */
+  readonly placementDecisions: (
+    party: EntityId,
+    candidates: readonly PlacementCandidate[],
+  ) => PlacementDecisionResponse;
   readonly constructionAccess: (sites: readonly EntityId[]) => readonly ConstructionAccess[];
   readonly deconstructionAccess: (sites: readonly EntityId[]) => readonly DeconstructionAccess[];
   readonly terrainMaterials: (

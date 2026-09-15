@@ -254,6 +254,9 @@ impl WasmKernel {
     pub fn construction_readiness(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.construction_readiness_json(input).map_err(js_error)
     }
+    pub fn placement_decisions(&mut self, input: &str) -> Result<String, JsValue> {
+        self.0.placement_decisions_json(input).map_err(js_error)
+    }
     pub fn construction_access(&mut self, input: &str) -> Result<String, JsValue> {
         self.0.construction_access_json(input).map_err(js_error)
     }

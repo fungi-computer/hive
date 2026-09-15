@@ -59,7 +59,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     kernel.rebuild_physical_indexes(true).unwrap();
     let site_surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(surface.x + 1, surface.z)]).unwrap().into_iter().next().flatten().unwrap().cell;
     let setup = serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
-        {"kind":"plan-construction","party":"party","catalog":"floor","site":"door","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}},{"scope":{"kind":"host"},"request":
+        {"kind":"plan-constructions","party":"party","plans":[{"catalog":"floor","site":"door","target":{"kind":"edge","edge":{"cell":{"x":surface.x,"y":surface.y+1,"z":surface.z},"axis":"x"}}}]}},{"scope":{"kind":"host"},"request":
         {"kind":"bind-construction-stage","site":"door","contact":contact}},{"scope":{"kind":"host"},"request":
         {"kind":"transfer","lot":"lot","from":"source","to":"door","quantity":1}},
     ]});

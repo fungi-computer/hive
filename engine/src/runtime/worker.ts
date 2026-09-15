@@ -1,7 +1,7 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
-import type { WorkerCommand, WorkerTransportEvent } from "./protocol";
+import type { WorkerCommand, WorkerPlacementCommand, WorkerTransportEvent } from "./protocol";
 import { terrainWireForRevision } from "./terrain-wire";
 
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
@@ -96,7 +96,7 @@ export class WorkerRuntime {
       this.emit({ type: "whistle", agent: observation.whistleAgent, targets: observation.whistleTargets });
     }
   }
-  command(command: WorkerCommand): void {
+  command(command: WorkerCommand | WorkerPlacementCommand): void {
     try {
       if (command.type === "start") {
         const pack = this.packs[command.game];
@@ -112,7 +112,18 @@ export class WorkerRuntime {
       }
       const session = this.session;
       if (!session) throw new Error("runtime has not started");
-      if (command.type === "pause") {
+      if (command.type === "placement-decisions") {
+        try {
+          const result = session.placementDecisions(command.party as import("../contracts").EntityId, command.candidates);
+          this.emit({ type: "placement-decisions", requestId: command.requestId,
+            observationRevision: this.frameSequence, nativeRevision: result.revision,
+            placementRevision: result.placementRevision,
+            decisions: result.decisions });
+        } catch (error) {
+          this.emit({ type: "placement-decision-error", requestId: command.requestId,
+            message: error instanceof Error ? error.message : String(error) });
+        }
+      } else if (command.type === "pause") {
         session.pause();
         this.captureAccepted();
         this.emitObservation(false, true);

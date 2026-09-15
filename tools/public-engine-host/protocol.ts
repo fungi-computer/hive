@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { placementDecisionQuerySchema } from "../../engine/src/runtime/placement-decision";
 
 export const PACKS = ["survival", "pirates", "colony", "formations"] as const;
 export type PublicPack = (typeof PACKS)[number];
@@ -27,7 +28,7 @@ const joinInput = z.object({ invite: z.string().regex(tokenPattern) }).strict();
 export type ColonyJoinInput = z.infer<typeof joinInput>;
 export const colonyCredentialSchema = z.string().regex(tokenPattern);
 export const colonyWorldHandleSchema = z.string().regex(worldPattern);
-export type ColonyWorldOperation = "join" | "observe" | "command" | "connect" | "socket";
+export type ColonyWorldOperation = "join" | "observe" | "command" | "placement" | "connect" | "socket";
 export type ColonyWorldRoute = {
   readonly world: string;
   readonly operation: ColonyWorldOperation;
@@ -36,7 +37,7 @@ export type ColonyWorldRoute = {
 
 /** Parse the shared-world Colony protocol without deriving authority from the URL. */
 export function colonyWorldRoute(pathname: string): ColonyWorldRoute | null {
-  const match = /^\/v2\/colony\/worlds\/([^/]+)\/(join|observe|command|connect|socket)(?:\/([^/]+))?$/.exec(pathname);
+  const match = /^\/v2\/colony\/worlds\/([^/]+)\/(join|observe|command|placement|connect|socket)(?:\/([^/]+))?$/.exec(pathname);
   if (!match || !worldPattern.test(match[1])) return null;
   const operation = match[2] as ColonyWorldOperation;
   const handle = match[3];
@@ -144,6 +145,10 @@ export async function readCommand(request: Request) {
 
 export async function readColonyJoin(request: Request): Promise<ColonyJoinInput> {
   return joinInput.parse(await readBoundedJson(request));
+}
+
+export async function readPlacementDecision(request: Request) {
+  return placementDecisionQuerySchema.parse(await readBoundedJson(request));
 }
 
 export function corsHeaders(origin: string): Headers {

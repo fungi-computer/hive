@@ -98,12 +98,15 @@ export function placementMode(control, modifiers = {}) {
 }
 
 /** Human-readable state for the armed retained-style placement tool. */
-export function placementHint(control, { area, hover, cells = 0 } = {}) {
+export function placementHint(control, { area, hover, cells = 0, decision } = {}) {
   if (!control) return null;
   if (control.availability?.status === "unavailable")
     return `Waiting: ${control.availability.reason ?? "the world cannot admit this yet"}`;
   if (area?.rejection)
     return `Rejected: ${area.rejection}`;
+  if (decision?.status === "checking") return "Checking placement…";
+  if (decision?.status === "rejected") return `Rejected: ${decision.reason}`;
+  if (decision?.status === "ready") return `Ready: ${cells || decision.count} ${cells === 1 || decision.count === 1 ? "cell" : "cells"}`;
   if (area?.value === "dragging")
     return `Preview: ${cells} ${cells === 1 ? "cell" : "cells"} · release to place`;
   if (hover)

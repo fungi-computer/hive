@@ -3,24 +3,24 @@ import test from "node:test";
 import { checkedAction } from "./actions";
 import { entity } from "../sdk/authoring";
 import { encodeDefinition } from "../sdk/common";
-import { planConstruction, bindConstructionStage, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
+import { planConstructions, bindConstructionStage, setStructureOpen, ConstructionSite, SealedContainer } from "../sdk/construction";
 import { isReservedComponent } from "../contracts";
 
 test("construction authoring cannot choose earned effort, cost or embedded custody", () => {
   const site = entity("site.floor.1");
-  const request = planConstruction(site, "timber-floor", { kind: "cell", cell: { x: -4, y: -12, z: 8 }, orientation: "west" }, entity("party"));
+  const request = planConstructions(entity("party"), [{ site, catalog: "timber-floor", target: { kind: "cell", cell: { x: -4, y: -12, z: 8 }, orientation: "west" } }]);
   assert.deepEqual(checkedAction(request), request);
   assert.deepEqual(checkedAction(bindConstructionStage(site, { x: -3, y: -6.21, z: 8 })), {
     kind: "bind-construction-stage", site, contact: { x: -3, y: -6.21, z: 8, frame: null },
   });
   for (const invalid of [
     { ...request, seconds: 100 }, { ...request, materials: [] },
-    { ...request, phase: "finished" }, { ...request, target: { kind: "cell", cell: { x: 0.5, y: 0, z: 0 }, orientation: "north" } },
-    { ...request, target: { kind: "cell", cell: { x: Number.MAX_SAFE_INTEGER + 1, y: 0, z: 0 }, orientation: "north" } },
-    { ...request, target: { kind: "cell", cell: { x: 0, y: 2147483648, z: 0 }, orientation: "north" } },
-    { ...request, target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "diagonal" } },
+    { ...request, phase: "finished" }, { ...request, plans: [{ ...request.plans[0], target: { kind: "cell", cell: { x: 0.5, y: 0, z: 0 }, orientation: "north" } }] },
+    { ...request, plans: [{ ...request.plans[0], target: { kind: "cell", cell: { x: Number.MAX_SAFE_INTEGER + 1, y: 0, z: 0 }, orientation: "north" } }] },
+    { ...request, plans: [{ ...request.plans[0], target: { kind: "cell", cell: { x: 0, y: 2147483648, z: 0 }, orientation: "north" } }] },
+    { ...request, plans: [{ ...request.plans[0], target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "diagonal" } }] },
     { ...request, contact: { x: 0, y: 0, z: 0, frame: "ship" } },
-    { kind: "plan-construction", catalog: "timber-floor", site, party: entity("party"), x: 0, y: 0, z: 0, orientation: "north" },
+    { kind: "plan-constructions", party: entity("party"), plans: [{ catalog: "timber-floor", site, x: 0, y: 0, z: 0, orientation: "north" }] },
   ]) assert.throws(() => checkedAction(invalid), /invalid action/);
 });
 

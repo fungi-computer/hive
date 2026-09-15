@@ -1,5 +1,5 @@
 import type { PresentationCue } from "./presentation-cues";
-import type { ActionRequest, RenderFact } from "../contracts";
+import type { ActionRequest, PlacementCandidate, PlacementDecision, RenderFact } from "../contracts";
 import type { SessionSnapshot } from "./session";
 import type { EnvironmentVisual, PresentationFact, TerrainMark } from "../presentation";
 import type { WhistleAgentProjection } from "@fungi.computer/whistle";
@@ -14,6 +14,20 @@ export type WorkerCommand =
   | { readonly type: "action"; readonly action: ActionRequest }
   | { readonly type: "save" }
   | { readonly type: "restore"; readonly snapshot: SessionSnapshot };
+export type PlacementDecisionQuery = {
+  readonly party: string;
+  readonly candidates: readonly PlacementCandidate[];
+};
+export type PlacementDecisionResult = {
+  readonly observationRevision: number;
+  readonly nativeRevision: number;
+  readonly placementRevision: number;
+  readonly decisions: readonly PlacementDecision[];
+};
+export type WorkerPlacementCommand = PlacementDecisionQuery & {
+  readonly type: "placement-decisions";
+  readonly requestId: number;
+};
 
 type WorkerEventBase =
   | { readonly type: "ready"; readonly game: string }
@@ -39,6 +53,8 @@ type WorkerEventBase =
   | { readonly type: "whistle"; readonly agent: readonly WhistleAgentProjection[]; readonly targets: readonly WhistleContextualTarget[] }
   | { readonly type: "saved"; readonly snapshot: SessionSnapshot }
   | { readonly type: "results"; readonly results: readonly unknown[]; readonly metrics?: RuntimeMetrics }
+  | ({ readonly type: "placement-decisions"; readonly requestId: number } & PlacementDecisionResult)
+  | { readonly type: "placement-decision-error"; readonly requestId: number; readonly message: string }
   | { readonly type: "error"; readonly message: string };
 
 export type WorkerEvent = WorkerEventBase;

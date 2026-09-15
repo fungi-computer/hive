@@ -48,7 +48,7 @@ import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromOrderedSprites } from "./build-placement.js";
-import { placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
+import { createPlacementAdvisory, placementCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
@@ -77,6 +77,7 @@ export function createHiveClient({
   aiming = null,
   worldView = {},
   placementVisuals = {},
+  placementCandidates = null,
 }) {
   if (!persistence) throw new Error("Hive client requires a persistence capability");
   if (!commandDefinitions) throw new Error("Hive client requires owning command definitions");
@@ -103,6 +104,8 @@ export function createHiveClient({
     whistleTargets: [],
     terrainMarks: [],
     environmentVisuals: [],
+    party: null,
+    placementDecision: null,
     view: createWorldView(worldView),
     aim: { active: false, launcherId: null, point: null, target: null, elevation: 0.12, velocity: null, preview: null },
     message: runtime
@@ -296,6 +299,32 @@ export function createHiveClient({
   function displayedTerrainHit(x, y, displayed) { return terrainPicker.hit(x, y, displayed, frameEpoch); }
   function displayedTerrainPoint(x, y, displayed) { return terrainPicker.point(x, y, displayed, frameEpoch); }
   function clearPlacement() { terrainTarget.send({ type: "CLEAR_PLACEMENT" }); }
+  const placementAdvisory = createPlacementAdvisory(
+    (query) => runtime.placementDecisions(query),
+    (decision) => { state.placementDecision = decision; renderHud(); draw(); },
+  );
+  function placementGeometryKey(candidates) {
+    return JSON.stringify({ party: state.party, placementRevision: terrainFrame?.placementRevision, candidates });
+  }
+  function requestPlacementDecision(control, input) {
+    if (!control || !input || !state.party || !placementCandidates || !runtime?.placementDecisions) {
+      if (state.placementDecision !== null) placementAdvisory.clear();
+      return;
+    }
+    let candidates;
+    try { candidates = placementCandidates(input); }
+    catch (error) {
+      placementAdvisory.clear();
+      state.placementDecision = { status: "rejected", reason: error instanceof Error ? error.message : String(error), count: 0 };
+      return;
+    }
+    if (!candidates.length) {
+      if (state.placementDecision !== null) placementAdvisory.clear();
+      return;
+    }
+    const key = placementGeometryKey(candidates);
+    placementAdvisory.request(key, { party: state.party, candidates }, candidates.length);
+  }
   function closeActionBar() { actionBarState.set(null); }
   function updateTerrainDisplay() {
     terrainLayer.update(displayedTerrainFrame(), frameEpoch, state.view.cutaway ? `cut:${state.view.level}` : "full");
@@ -417,6 +446,7 @@ export function createHiveClient({
         area: { value: placementSnapshot.value, rejection: placementSnapshot.context.rejection },
         hover: terrainTarget.getSnapshot().context.hover,
         cells: placementPreviewCells.length,
+        decision: state.placementDecision,
       })
       : null;
     const armTerrainControl = (control) => {
@@ -1109,7 +1139,11 @@ export function createHiveClient({
         art, bindings, resolve: resolveStaticVisual, project,
         zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
         verticalMetres: displayed.verticalMetres,
+        status: state.placementDecision?.status,
       });
+      requestPlacementDecision(buildControl, buildControl && edge.context.edges.length
+        ? buildPlacementCommand(buildControl, state.selectedIds, { edges: canonicalEdges(edge.context.edges), mode: "edge-line" }).input
+        : null);
     }
     const anchored = displayed && targetSnapshot.context.anchor ? structureAnchor(displayed, targetSnapshot.context.anchor) : null;
     const upperCandidates = anchored ? placementCache.candidates(displayed, anchored) : [];
@@ -1124,7 +1158,12 @@ export function createHiveClient({
         art, bindings, resolve: resolveStaticVisual, project,
         zoom: { x: camera.zoom, y: camera.zoom, scale: camera.zoom, offsetX: camera.x, offsetY: camera.y },
         verticalMetres: displayed.verticalMetres,
+        status: state.placementDecision?.status,
       });
+      const previewInput = cells.length === 0 ? null : area.value === "dragging"
+        ? buildPlacementCommand(buildControl, state.selectedIds, { start: area.context.start, end: area.context.current, mode: area.context.mode }).input
+        : terrainCellCommand(buildControl, state.selectedIds, { cell: cells[0], source: "placement" }).input;
+      requestPlacementDecision(buildControl, previewInput);
     }
     if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayed) {
       const anchor = structureAnchor(displayed, targetSnapshot.context.anchor);
@@ -1719,6 +1758,7 @@ export function createHiveClient({
         renderHud();
       }
       if (event.type === "party") {
+        state.party = event.party;
         activeSelectionShortcuts = event.people.map((id, index) => ({
           id,
           label: selectionShortcuts[index]?.label ?? `Select person ${index + 1}`,

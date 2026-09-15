@@ -15,6 +15,7 @@ export interface TerrainWireWater {
 
 export interface TerrainWireFrame {
   readonly revision: number;
+  readonly placementRevision: number;
   readonly verticalMetres: number;
   readonly surfaces: readonly TerrainSurface[];
   readonly structureSurfaces: readonly StructureSurface[];
@@ -22,6 +23,7 @@ export interface TerrainWireFrame {
 }
 export interface TerrainWireReference {
   readonly revision: number;
+  readonly placementRevision: number;
   readonly verticalMetres: number;
   readonly surfacesRevision: number;
   readonly water: readonly TerrainWireWater[];
@@ -36,6 +38,7 @@ export function terrainWireForRevision(
   if (knownRevision !== frame.revision) return frame;
   return {
     revision: frame.revision,
+    placementRevision: frame.placementRevision,
     verticalMetres: frame.verticalMetres,
     surfacesRevision: frame.revision,
     water: frame.water,
@@ -111,7 +114,7 @@ function parseWater(value: unknown): TerrainWireWater | undefined {
 /** Parse the bounded optional terrain capability carried by an observation. */
 export function parseTerrainFrame(value: unknown): TerrainWireFrame | undefined {
   if (value === undefined) return undefined;
-  if (!record(value) || !safeRevision(value.revision) || !finite(value.verticalMetres) ||
+  if (!record(value) || !safeRevision(value.revision) || !safeRevision(value.placementRevision) || !finite(value.verticalMetres) ||
     value.verticalMetres <= 0 || !Array.isArray(value.surfaces) || value.surfaces.length > MAX_SURFACES ||
     !Array.isArray(value.structureSurfaces) ||
     !Array.isArray(value.water) || value.water.length > MAX_WATER)
@@ -124,6 +127,7 @@ export function parseTerrainFrame(value: unknown): TerrainWireFrame | undefined 
     throw new Error("invalid terrain observation");
   return Object.freeze({
     revision: value.revision,
+    placementRevision: value.placementRevision,
     verticalMetres: value.verticalMetres,
     surfaces: Object.freeze(surfaces as TerrainSurface[]),
     structureSurfaces,
@@ -141,6 +145,7 @@ export function parseTerrainObservation(
   if (
     !record(value) ||
     !safeRevision(value.revision) ||
+    !safeRevision(value.placementRevision) ||
     !safeRevision(value.surfacesRevision) ||
     value.surfacesRevision !== value.revision ||
     !finite(value.verticalMetres) ||
@@ -157,6 +162,7 @@ export function parseTerrainObservation(
     throw new Error("invalid terrain observation");
   return Object.freeze({
     revision: value.revision,
+    placementRevision: value.placementRevision,
     verticalMetres: cached.verticalMetres,
     surfaces: cached.surfaces,
     structureSurfaces: cached.structureSurfaces,

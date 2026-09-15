@@ -21,6 +21,7 @@ import {
   packFromPath,
   readCommand,
   readColonyJoin,
+  readPlacementDecision,
   colonyWorldRoute,
   readColonySocketMessage,
   tokenFromRequest,
@@ -700,6 +701,18 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     if (route.operation === "observe" && request.method === "GET") {
       await this.renewLease(now);
       return this.observationResponse();
+    }
+    if (route.operation === "placement" && request.method === "POST") {
+      const query = await readPlacementDecision(request);
+      if (query.party !== binding.party_id) throw new Error("public-unauthorized");
+      const result = await this.serial(() => {
+        const committed = this.region.readCommitted();
+        const native = this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session =>
+          session.placementDecisions(binding.party_id, query.candidates));
+        return { observationRevision: committed.revision, nativeRevision: native.revision, placementRevision: native.placementRevision, decisions: native.decisions };
+      });
+      await this.renewLease(now);
+      return jsonResponse(result, 200, this.hostEnv.PUBLIC_ORIGIN);
     }
     if (route.operation === "command" && request.method === "POST") {
       const input = await readCommand(request);

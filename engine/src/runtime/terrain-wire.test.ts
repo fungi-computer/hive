@@ -7,6 +7,7 @@ import type { WorkerEvent } from "./protocol";
 test("terrain wire parser bounds and sanitizes an optional frame", () => {
   const frame = parseTerrainFrame({
     revision: 4,
+    placementRevision: 9,
     verticalMetres: 0.54,
     surfaces: [{ cell: [2, 8, -3], material: 1, generatedTop: 8, ignored: { unbounded: true } }],
     structureSurfaces: [{ cell: [2, 9, -3] }],
@@ -14,6 +15,7 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
   });
   assert.deepEqual(frame, {
     revision: 4,
+    placementRevision: 9,
     verticalMetres: 0.54,
     surfaces: [{ cell: [2, 8, -3], material: 1, generatedTop: 8 }],
     structureSurfaces: [{ cell: [2, 9, -3] }],
@@ -21,13 +23,13 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
   });
   assert.equal(parseTerrainFrame(undefined), undefined);
   assert.throws(() => parseTerrainFrame({
-    revision: 0, verticalMetres: 1, surfaces: Array.from({ length: 4097 }, () => null), water: [],
+    revision: 0, placementRevision: 0, verticalMetres: 1, surfaces: Array.from({ length: 4097 }, () => null), water: [],
   }), /invalid terrain observation/);
   assert.throws(() => parseTerrainFrame({
-    revision: 0, verticalMetres: 1, surfaces: [], water: [{ at: [0, 0, 0], level: 1, massKg: Infinity, liquidVolumeM3: 0 }],
+    revision: 0, placementRevision: 0, verticalMetres: 1, surfaces: [], water: [{ at: [0, 0, 0], level: 1, massKg: Infinity, liquidVolumeM3: 0 }],
   }), /invalid terrain observation/);
   assert.throws(() => parseTerrainFrame({
-    revision: 1, verticalMetres: 1, surfaces: [],
+    revision: 1, placementRevision: 1, verticalMetres: 1, surfaces: [],
     structureSurfaces: [{ cell: [1, 2, 3] }, { cell: [1, 2, 3] }], water: [],
   }), /invalid terrain observation/);
 });
@@ -35,6 +37,7 @@ test("terrain wire parser bounds and sanitizes an optional frame", () => {
 test("terrain surface references retain only a connection's baseline surfaces", () => {
   const baseline = parseTerrainFrame({
     revision: 7,
+    placementRevision: 8,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }],
     structureSurfaces: [{ cell: [1, 4, 3] }],
@@ -44,15 +47,17 @@ test("terrain surface references retain only a connection's baseline surfaces", 
   const wire = terrainWireForRevision(baseline, baseline.revision);
   assert.deepEqual(wire, {
     revision: 7,
+    placementRevision: 8,
     verticalMetres: 0.5,
     surfacesRevision: 7,
-        water: [],
+    water: [],
   });
   assert.deepEqual(parseTerrainObservation({
     ...wire,
     water: [{ at: [1, 3, 3], level: 1, massKg: 1, liquidVolumeM3: 0.001 }],
   }, baseline), {
     revision: 7,
+    placementRevision: 8,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }],
     structureSurfaces: [{ cell: [1, 4, 3] }],
@@ -86,18 +91,18 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 0, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }], structureSurfaces: [{ cell: [1, 4, 3] }], water: [], ignored: true },
+      terrain: { revision: 2, placementRevision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }], structureSurfaces: [{ cell: [1, 4, 3] }], water: [], ignored: true },
     },
   }) });
   const frame = events.find((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame");
-  assert.deepEqual(frame?.terrain, { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }], structureSurfaces: [{ cell: [1, 4, 3] }], water: [] });
+  assert.deepEqual(frame?.terrain, { revision: 2, placementRevision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }], structureSurfaces: [{ cell: [1, 4, 3] }], water: [] });
   socket.emit("message", { data: JSON.stringify({
     type: "observation",
     revision: 2,
     observation: {
       time: 1, paused: false, epoch: 0, sequence: 2, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [
+      terrain: { revision: 2, placementRevision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [
         { at: [0, 1, 0], level: 1, massKg: 1, liquidVolumeM3: 0.001 },
       ] },
     },
@@ -105,6 +110,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
   const hydrated = events.filter((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame").at(-1);
   assert.deepEqual(hydrated?.terrain, {
     revision: 2,
+    placementRevision: 2,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }],
     structureSurfaces: [{ cell: [1, 4, 3] }],
@@ -119,7 +125,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 1, paused: false, epoch: 0, sequence: 1, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 1, verticalMetres: 0.5, surfaces: [{ cell: [9, 9, 9], material: 9, generatedTop: 9 }], structureSurfaces: [{ cell: [9, 10, 9] }], water: [] },
+      terrain: { revision: 1, placementRevision: 1, verticalMetres: 0.5, surfaces: [{ cell: [9, 9, 9], material: 9, generatedTop: 9 }], structureSurfaces: [{ cell: [9, 10, 9] }], water: [] },
     },
   }) });
   socket.emit("message", { data: JSON.stringify({
@@ -128,7 +134,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 1, verticalMetres: 0.5, surfacesRevision: 1, water: [] },
+      terrain: { revision: 1, placementRevision: 1, verticalMetres: 0.5, surfacesRevision: 1, water: [] },
     },
   }) });
   assert.equal(socket.reconnectCalls, 1);
@@ -138,7 +144,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 2, paused: false, epoch: 0, sequence: 3, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }], structureSurfaces: [{ cell: [1, 4, 3] }], water: [] },
+      terrain: { revision: 2, placementRevision: 2, verticalMetres: 0.5, surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }], structureSurfaces: [{ cell: [1, 4, 3] }], water: [] },
     },
   }) });
   socket.emit("message", { data: JSON.stringify({
@@ -147,12 +153,13 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 3, paused: false, epoch: 0, sequence: 4, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
+      terrain: { revision: 2, placementRevision: 2, verticalMetres: 0.5, surfacesRevision: 2, water: [] },
     },
   }) });
   const afterReconnect = events.filter((event): event is Extract<WorkerEvent, { type: "frame" }> => event.type === "frame").at(-1);
   assert.deepEqual(afterReconnect?.terrain, {
     revision: 2,
+    placementRevision: 2,
     verticalMetres: 0.5,
     surfaces: [{ cell: [1, 2, 3], material: 4, generatedTop: 2 }],
     structureSurfaces: [{ cell: [1, 4, 3] }],
@@ -164,7 +171,7 @@ test("remote observations forward a parsed terrain capability", async (t) => {
     observation: {
       time: 4, paused: false, epoch: 0, sequence: 5, facts: [], cues: [],
       presentationFacts: [], whistleAgent: [], whistleTargets: [], terrainMarks: [], environmentVisuals: [],
-      terrain: { revision: 99, verticalMetres: 0.5, surfacesRevision: 99, water: [] },
+      terrain: { revision: 99, placementRevision: 99, verticalMetres: 0.5, surfacesRevision: 99, water: [] },
     },
   }) });
   assert.equal(socket.reconnectCalls, 2);
