@@ -539,9 +539,11 @@ impl Kernel {
         self.ecs
             .get::<Container>(site_entity)
             .ok_or("construction supply site is not a container")?;
-        self.ecs
-            .get::<Position>(site_entity)
-            .ok_or("construction supply requires a bound site contact")?;
+        if self.ecs.get::<Position>(site_entity).is_none() {
+            // Placement may lawfully exist before its work contact is bound.
+            // That is waiting work, not a planner invariant failure.
+            return Ok(Vec::new());
+        }
         let definition = self
             .environment
             .as_ref()
