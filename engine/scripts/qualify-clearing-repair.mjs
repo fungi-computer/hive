@@ -133,7 +133,7 @@ if (selected.length !== 1 || selected[0] === "--help" || selected[0] === "-h") {
   } else {
     const outputDir = resolve(outputRoot, group);
     await mkdir(outputDir, { recursive: true });
-    if (group === "performance") {
+    if (files.includes("engine/src/client/performance-page.test.js")) {
       for (const sourceFile of ["engine/src/client/performance-page.js", "engine/src/client/client.js"]) {
         await writeFile(resolve(outputDir, basename(sourceFile)), requireText(resolve(repoRoot, sourceFile)));
       }
