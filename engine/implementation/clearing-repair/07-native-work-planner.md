@@ -109,6 +109,72 @@ typed requirement and physical outcome; it cannot choose workers or run a privat
 matcher. All contributions compete in one bounded scheduling window. Prove this
 with construction and process supplies before freezing a public extension API.
 
+### Transition ownership and reuse beyond colonies
+
+Follow the [creator/behavior audit](08-engine-ownership-audit.md#creator-engine-and-shared-behavior-september-15-follow-through).
+Individual behavior chooses an intention; optional group assignment chooses
+actors for shared work; the existing keyed execution owner carries out activities
+and retains their outcomes. A survival game may use either decision mechanism
+over the same movement/material/contact owners. No Colony, zombie or pirate
+copy of the executor, cancellation path or result ledger is permitted.
+
+Retain `WorkAttempt` as the current shared identity/result anchor and distinguish
+its task-worker relationship from the operation it tracks when generalizing it.
+Processes, construction and deliveries retain only their distinct domain facts.
+They do not duplicate the active worker, route progress or reservation state.
+The colony extension is a composition of reusable work/construction/production
+mechanisms; Goblin characters, recipes, artwork and UI remain game content.
+
+Each lifecycle owns its closed events, allowed transitions, guards, next state,
+failure policy and cleanup together. Make authoritative phase fields private to
+that owner and expose read projections. `world.rs` and the planner call useful
+operations; they cannot reset phase fields or coordinate collections of cleanup
+writes. Moving an unrestricted `impl Kernel` block to another file alone does
+not satisfy this requirement.
+
+Conceptual flow, not new public API names:
+
+```text
+owner.prepare(current, typed_event, authoritative_facts)
+  -> prepared_transition(next_state, exact_effects)
+  | domain_rejection(reason)
+
+transaction validates coupled prepared changes
+  -> publish next state + material/route effects + result consumption together
+  -> accepted resident and observations only after successful durable commit
+```
+
+Preparation must account for competing changes in the same batch. No effect hook
+may independently change the ECS. The existing material prepare/publish owners
+are the starting point. Put reservation/binding accounting inside all their
+entrypoints, including process consumption/output; a caller cannot opt out.
+Local expected blockage returns a typed outcome; an invariant/commit failure
+still discards the candidate. No acknowledged state may require a future tick
+to become valid for restore.
+
+Required corrections before native activation:
+
+- Reconcile completed, blocked and interrupted deliveries under the same bounded
+  queue; release unused promises and labor while preserving actual carried lots.
+- When acknowledgement follows an invalidated dig target, remove or retire the
+  invalid execution progress in the same transition. Paused valid progress and
+  structurally invalid intent are different domain outcomes.
+- Treat carry batch size as an upper preference. Derive admitted portion sizes
+  from eligible carriers and source/destination capacity; smaller carriers must
+  still make progress on larger demands. Preserve joint assignment and exact
+  source-portion exclusion across simultaneous deliveries.
+- A behavior running less frequently than physics must still receive its exact
+  retained result. Reuse the keyed lifecycle for tracked operations; do not
+  perpetuate the previous-step-only `context.outcomes` pattern as a durable API.
+
+XState-compatible TypeScript authoring is a qualified extension direction, not
+permission to implement a generic interpreter during this migration. The audit
+specifies the native-profile/actual-XState comparison and its two real consumers.
+No `defineHiveMachine` API or chart runtime has been accepted. Keep existing
+linear process definitions for supported recipes; allow ordinary game-owned TS
+rules without returning engine scheduling to TS. This packet does not require
+Statig, SCXML or a statechart library for small private Rust enum transitions.
+
 ## 3. Canonical records: intent, execution, supplies
 
 Use existing ConstructionSite, FloorReplacement, excavation, deconstruction,
@@ -422,6 +488,40 @@ planner in Colony. One atomic GamePack cutover activates native ownership after
 all supported work families are ready. No permanent dual scheduler or fallback.
 Version the changed current records and reject unsupported formats explicitly;
 do not silently reset existing player worlds or write migration adapters.
+
+### Floor storage is policy over physical ground
+
+The current implementation that installs `Container` capacity on every
+`StockpileCell` is superseded. A painted stockpile cell is saved policy and a
+presentation mark: zone identity, owning party, accepted-goods filter and
+priority. It does not own contents and does not increase ground capacity. The
+paint remains visible by default and belongs to the independently toggleable
+**Storage areas** presentation layer.
+
+Every loose item remains in an ordinary positioned `GroundStock` pile. The
+material/ground-placement owner, not the stockpile command, decides whether a
+compatible stack has space, whether the delivered portion joins that physical
+pile, or whether the cell is unavailable. Incoming reservations name the exact
+ground cell and count against the same ordinary stack limit. They never reserve
+capacity on the policy entity. Removing, shrinking or changing a zone leaves
+physical piles in place and changes only future destination eligibility.
+
+A real shelf, rack, vessel or machine buffer is a real container and retains its
+own physical capacity. A storage provider built over a painted stockpile cell
+inherits that cell's filter and priority by default. The provider becomes the
+physical destination while it exists; the paint remains beneath it and resumes
+ordinary floor storage if the provider is removed. An explicit provider policy
+may override inheritance later. Policy resolution is a query; it does not copy
+zone settings during construction or create a second contents list.
+
+The first implementation must replace tests that assert hidden cell-container
+contents with laws proving: designation moves nothing; a pile remains rendered
+and pickable; compatible delivery creates or uses ordinary ground stock; an
+incompatible stack is unavailable; the ordinary stack limit also bounds incoming
+reservations; zone edits leave lots in place; shelf inheritance resolves live;
+and save/reload preserves the same lot, pile, policy and reservation identities.
+Do not activate native stockpile planning until its exact-cell ground deposit,
+cancellation and blocked/interrupted recovery all share the material owner.
 
 Deletion checklist: remove the automatic provider phases from `colony-work.ts`
 (`resourceWorkProvider`, `treeWorkProvider`, `digProvider`,

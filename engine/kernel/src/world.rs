@@ -31,6 +31,8 @@ mod construction_work;
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
 mod native_work_planner;
+#[path = "supply_delivery.rs"]
+mod supply_delivery;
 #[path = "route_query.rs"]
 pub(crate) mod route_query;
 #[path = "process_transition.rs"]
@@ -2084,8 +2086,11 @@ impl Kernel {
     pub(crate) fn supply_allocations(&self) -> impl Iterator<Item = (&str, &SupplyAllocation)> {
         self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<SupplyAllocation>(*entity).map(|allocation| (id.as_str(), allocation)))
     }
+    pub(crate) fn work_attempt(&self, task: &str) -> Option<&WorkAttempt> {
+        self.work_attempts.get(task).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity))
+    }
     pub(crate) fn quantity_in_container(&self, container: &str) -> u32 {
-        self.ids.values().filter_map(|entity| self.ecs.get::<Lot>(*entity)).filter(|lot| lot.container == container).fold(0, |total, lot| total.saturating_add(lot.quantity))
+        self.contents.get(container).into_iter().flatten().filter_map(|entity| self.ecs.get::<Lot>(*entity)).filter(|lot| lot.container == container).fold(0, |total, lot| total.saturating_add(lot.quantity))
     }
 
     /// Reserve one exact lot portion and the matching destination capacity.
@@ -2104,12 +2109,15 @@ impl Kernel {
         let source_container = self.entity(&lot.container)?;
         if self.ecs.get::<OwnedByParty>(source_container).map(|owner| owner.party.as_str()) != Some(party.as_str())
             || self.ecs.get::<OwnedByParty>(target).map(|owner| owner.party.as_str()) != Some(party.as_str())
-            || self.ecs.get::<OwnedByParty>(source).is_some_and(|owner| owner.party != party)
+            || self.ecs.get::<OwnedByParty>(source).map(|owner| owner.party.as_str()) != Some(party.as_str())
         {
             return Err("supply party ownership mismatch".into());
         }
         crate::supply_allocation::validate_capacity(self, source, target, quantity, None)?;
-        let id = (1..=16384_u32).map(|n| format!("allocation.{n}")).find(|id| !self.known.contains(id)).ok_or("supply allocation capacity reached")?;
+        let allocation_sequence = self.next_work_generation;
+        self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("supply allocation identity exhausted")?;
+        let id = format!("allocation.{allocation_sequence}");
+        if self.known.contains(&id) { return Err("supply allocation identity collides with live state".into()); }
         let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
         self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_state_weight();
         Ok(id)
@@ -3470,6 +3478,7 @@ impl Kernel {
         candidate.projectile_count = candidate.ids.values().filter(|entity| candidate.ecs.get::<Projectile>(**entity).is_some_and(|p| p.state == "flying" || p.state == "rolling")).count();
         candidate.ground_stock_cleanup_pending = true;
         candidate.validate_party_relations()?;
+        crate::supply_allocation::validate_relations(&candidate)?;
         candidate.validate_work_attempt_relations()?;
         candidate.validate_deconstruction_work()?;
         *self = candidate;
@@ -4561,6 +4570,26 @@ impl Kernel {
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
         self.publish_prepared_route_attempt(task, worker, party, destination, route, key, operation, task_entity, worker_entity)
     }
+    fn continue_work_attempt_with_prepared_route(&mut self, task: &str, generation: u64, sequence: u32, destination: Point, route: PreparedRoute) -> Result<()> {
+        let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
+        let current = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
+        if current.key.generation != generation
+            || !matches!(current.phase, AttemptPhase::Outcome { operation: ref op, result: WorkOutcome::Completed, .. } if op.sequence == sequence)
+        {
+            return Err("work attempt completed outcome is stale".into());
+        }
+        let worker = self.entity(&current.worker)?;
+        let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
+        self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
+        self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_route(worker, route);
+        let operation = OperationKey { attempt: current.key, sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
+        self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing {
+            operation,
+            activity: crate::work_attempt::ActivityRef::Route { destination },
+        };
+        Ok(())
+    }
     fn attempt_mut(&mut self, task: &str, generation: u64, sequence: u32) -> Result<&mut WorkAttempt> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
         let attempt = self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?;
@@ -4655,11 +4684,7 @@ impl Kernel {
             let position = *self.ecs.get::<Position>(worker).ok_or("route attempt worker has no position")?;
             self.ecs.get::<Body>(worker).ok_or("route attempt worker is not movable")?;
             let route = self.route_for(worker, position, &destination)?;
-            self.ecs.entity_mut(worker).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
-            self.install_route(worker, route);
-            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
-            return Ok(());
+            return self.continue_work_attempt_with_prepared_route(&task, generation, sequence, destination, route);
         }
         if let crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } = next_activity.clone() {
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
@@ -4692,6 +4717,7 @@ impl Kernel {
             let capacity = self.ecs.get::<Container>(destination).ok_or("not a container")?.capacity;
             let reason = if stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
               else if self.quantity(&to) + u64::from(quantity) > u64::from(capacity) { Some(WorkBlockReason::CapacityUnavailable) }
+              else if self.contact(source, destination).is_err() { Some(WorkBlockReason::AccessLost) }
               else if allocation.is_some() {
                   match crate::supply_allocation::validate_capacity(self, lot_entity, destination, quantity, Some(task.as_str())) {
                       Ok(()) => None,
@@ -4699,7 +4725,7 @@ impl Kernel {
                       Err(_) => Some(WorkBlockReason::CapacityUnavailable),
                   }
               }
-              else if self.contact(source, destination).is_err() { Some(WorkBlockReason::AccessLost) } else { None };
+              else { None };
             let operation = OperationKey { attempt: current.key.clone(), sequence: next_sequence };
             if let Some(reason) = reason {
                 self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason } })?;

@@ -26,6 +26,33 @@ pub(crate) fn validate_capacity(kernel: &crate::world::Kernel, source: Entity, d
     Ok(())
 }
 
+/// Validate reservation accounting against the one physical lot/container owner.
+pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), String> {
+    use crate::components::{GroundStock, OwnedByParty, Party, StockpileCell};
+    for (id, allocation) in kernel.supply_allocations() {
+        let allocation_entity = kernel.entity(id)?;
+        let party = kernel.entity(&allocation.party)?;
+        if kernel.ecs().get::<Party>(party).is_none() || kernel.ecs().get::<OwnedByParty>(allocation_entity).map(|owner| owner.party.as_str()) != Some(allocation.party.as_str()) { return Err("supply allocation party relationship is invalid".into()); }
+        kernel.entity(&allocation.requirement_owner)?;
+        let destination = kernel.entity(&allocation.destination)?;
+        if kernel.ecs().get::<Container>(destination).is_none() || kernel.ecs().get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(allocation.party.as_str()) { return Err("supply allocation destination relationship is invalid".into()); }
+        let portion = kernel.entity(&allocation.portion)?;
+        let lot = kernel.ecs().get::<Lot>(portion).ok_or("supply allocation portion is not a lot")?;
+        if lot.kind != allocation.material || lot.quantity < allocation.quantity || kernel.ecs().get::<OwnedByParty>(portion).map(|owner| owner.party.as_str()) != Some(allocation.party.as_str()) { return Err("supply allocation portion relationship is invalid".into()); }
+        match allocation.state {
+            SupplyAllocationState::Delivered => if lot.container != allocation.destination || lot.quantity != allocation.quantity { return Err("delivered supply allocation has invalid custody".into()); },
+            SupplyAllocationState::Cancelled => if kernel.work_attempt(id).is_some() { return Err("cancelled supply allocation still owns work".into()); },
+            SupplyAllocationState::Reserved => {
+                let at_worker = kernel.work_attempt(id).is_some_and(|attempt| attempt.party == allocation.party && lot.container == attempt.worker && lot.quantity == allocation.quantity);
+                let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| (kernel.ecs().get::<GroundStock>(container).is_some() || kernel.ecs().get::<StockpileCell>(container).is_some()) && kernel.ecs().get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()));
+                if !at_worker && !at_source { return Err("reserved supply allocation has invalid custody".into()); }
+                validate_capacity(kernel, portion, destination, allocation.quantity, Some(id))?;
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,9 +66,9 @@ mod tests {
             {"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}},
             {"id":"w1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
             {"id":"w2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
-            {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8}}},
+            {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8},"hive.ground-stock":{}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8}}},
-            {"id":"wood","components":{"hive.lot":{"kind":"wood","quantity":6,"container":"source"}}}
+            {"id":"wood","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":6,"container":"source"}}}
         ]}).to_string()).unwrap();
         let source = kernel.entity("source").unwrap();
         let lot = kernel.entity("wood").unwrap();
@@ -82,5 +109,8 @@ mod tests {
         let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap();
         assert_eq!(restored.quantity_in_container("destination"), 0);
         assert_eq!(restored.ecs().get::<SupplyAllocation>(restored.entity(&b).unwrap()).unwrap().state, SupplyAllocationState::Reserved);
+        let mut invalid: Value = serde_json::from_str(&saved).unwrap();
+        invalid["scene"]["initial"].as_array_mut().unwrap().iter_mut().find(|record| record["id"] == b).unwrap()["components"]["hive.supply-allocation"]["destination"] = json!("w1");
+        assert_eq!(Kernel::new().restore_json(&invalid.to_string()).unwrap_err(), "supply allocation destination relationship is invalid");
     }
 }
