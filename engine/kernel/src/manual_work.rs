@@ -4,6 +4,7 @@
 //! manual route is interrupted when control is reclaimed. Terminal outcomes
 //! are acknowledged here so no TypeScript scheduler is required for cleanup.
 use super::Kernel;
+use crate::components::Result;
 use crate::work_attempt::{AttemptPhase, InterruptCause};
 
 impl Kernel {

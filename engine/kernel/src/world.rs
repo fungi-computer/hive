@@ -82,6 +82,57 @@ enum PreparedProcessBindings {
     Ready(Vec<crate::staged_process::ProcessBinding>),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum TransferContactError {
+    Sealed,
+    UnavailableFrame,
+    NoContact,
+    Internal(String),
+}
+
+impl From<String> for TransferContactError {
+    fn from(reason: String) -> Self {
+        match reason.as_str() {
+            "sealed" => Self::Sealed,
+            "unavailable-frame" => Self::UnavailableFrame,
+            "no-contact" => Self::NoContact,
+            _ => Self::Internal(reason),
+        }
+    }
+}
+
+impl From<&str> for TransferContactError {
+    fn from(reason: &str) -> Self { Self::from(reason.to_owned()) }
+}
+
+impl TransferContactError {
+    fn reason(&self) -> Option<&str> {
+        match self {
+            Self::Sealed => Some("sealed"),
+            Self::UnavailableFrame => Some("unavailable-frame"),
+            Self::NoContact => Some("no-contact"),
+            Self::Internal(_) => None,
+        }
+    }
+    fn into_result<T>(self) -> Result<T> {
+        match self {
+            Self::Sealed => Err("sealed".into()),
+            Self::UnavailableFrame => Err("unavailable-frame".into()),
+            Self::NoContact => Err("no-contact".into()),
+            Self::Internal(reason) => Err(reason),
+        }
+    }
+
+    pub(crate) fn into_string(self) -> String {
+        match self {
+            Self::Sealed => "sealed".into(),
+            Self::UnavailableFrame => "unavailable-frame".into(),
+            Self::NoContact => "no-contact".into(),
+            Self::Internal(reason) => reason,
+        }
+    }
+}
+
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ImpactEvent {
@@ -3607,19 +3658,12 @@ impl Kernel {
     /// Return bounded standing targets around a container's immutable pose.
     /// Candidate cells are checked by the terrain traversal owner; final
     /// admission uses the same reach predicate in `contact`.
-    fn transfer_contacts(&mut self, worker_id: &str, container_id: &str) -> Result<Vec<Point>> {
-        let worker = self.entity(worker_id)?;
+    pub(crate) fn transfer_contact_candidates(&mut self, container_id: &str, config: crate::terrain_traversal::TraversalConfig, required_frame: Option<String>) -> std::result::Result<Vec<Point>, TransferContactError> {
         let container = self.entity(container_id)?;
-        if self.ecs.get::<SealedContainer>(container).is_some() {
-            return Err("sealed".into());
-        }
-        self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
-        let frame = self.support_id(worker);
-        let container_frame = if self.ecs.get::<Position>(container).is_none() && self.ecs.get::<ConstructionSite>(container).is_some() { None } else { self.contact_frame(container)? };
-        if container_frame != frame {
-            return Err("unavailable-frame".into());
-        }
-        let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
+        if self.ecs.get::<SealedContainer>(container).is_some() { return Err(TransferContactError::Sealed); }
+        let container_frame = if self.ecs.get::<Position>(container).is_none() && self.ecs.get::<ConstructionSite>(container).is_some() { None } else { self.contact_frame(container).map_err(TransferContactError::from)? };
+        if required_frame.is_some() && container_frame != required_frame { return Err(TransferContactError::UnavailableFrame); }
+        let frame = required_frame.or(container_frame);
         let spacing = self.environment.as_ref().ok_or("world has no environment")?.world.cell_spacing_m();
         let terrain_points = |center: crate::generation::Cell| -> Result<Vec<[f64; 3]>> {
             let mut points = Vec::new();
@@ -3635,7 +3679,7 @@ impl Kernel {
         let resolved_pose = match self.contact_pose(container) {
             Ok(pose) => Some(pose),
             Err(reason) if reason == "no position" => None,
-            Err(reason) => return Err(reason),
+            Err(reason) => return Err(TransferContactError::from(reason)),
         };
         let (source_points, contact_reference) = if self.ecs.get::<Position>(container).is_none() {
             if let Some(site) = self.ecs.get::<ConstructionSite>(container).cloned() {
@@ -3651,15 +3695,15 @@ impl Kernel {
                 (Vec::new(), None)
             }
         } else {
-            let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { "unavailable-frame".to_owned() } else { reason })?;
+            let container_pose = self.contact_pose(container).map_err(|reason| if reason == "no position" { TransferContactError::UnavailableFrame } else { TransferContactError::from(reason) })?;
             let raw = [container_pose.x / spacing[0], container_pose.y / spacing[1] - 0.5, container_pose.z / spacing[2]];
             if raw.iter().any(|value| !value.is_finite() || (value - value.round()).abs() > 1e-7) {
-                return Err("no-contact".into());
+                return Err(TransferContactError::NoContact);
             }
             let center = crate::generation::Cell { x: raw[0] as i64, y: raw[1] as i32, z: raw[2] as i64 };
             (terrain_points(center)?, Some([container_pose.x, container_pose.y, container_pose.z]))
         };
-        let config = crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: traversal.clearance_cells, max_step_cells: traversal.max_step_cells };
+        let config = crate::terrain_traversal::TraversalConfig { spacing, ..config };
         let contact_projection = self.environment.as_ref().ok_or("world has no environment")?.world.structure_projection_snapshot();
         let mut targets = Vec::new();
         for point in source_points {
@@ -3677,9 +3721,15 @@ impl Kernel {
             targets.push(Point { x: point[0], y: point[1], z: point[2], frame: frame.clone() });
         }
         if targets.is_empty() {
-            return Err("no-contact".into());
+            return Err(TransferContactError::NoContact);
         }
         Ok(targets)
+    }
+    pub(crate) fn transfer_contacts(&mut self, worker_id: &str, container_id: &str) -> std::result::Result<Vec<Point>, TransferContactError> {
+        let worker = self.entity(worker_id)?;
+        self.world_pose_entity(worker, 0).map_err(|reason| if reason == "no position" { TransferContactError::UnavailableFrame } else { TransferContactError::from(reason) })?;
+        let traversal = self.ecs.get::<Traversal>(worker).copied().ok_or("worker lacks traversal capability")?;
+        self.transfer_contact_candidates(container_id, crate::terrain_traversal::TraversalConfig { spacing: [0.0; 3], clearance_cells: traversal.clearance_cells, max_step_cells: traversal.max_step_cells }, self.support_id(worker))
     }
     pub fn transfer_contacts_json(&mut self, input: &str) -> Result<String> {
         #[derive(serde::Deserialize)]
@@ -3688,8 +3738,8 @@ impl Kernel {
         let request: Request = serde_json::from_str(input).map_err(|error| error.to_string())?;
         match self.transfer_contacts(&request.worker, &request.container) {
             Ok(targets) => serde_json::to_string(&json!({"kind":"ready","targets":targets})).map_err(|error| error.to_string()),
-            Err(reason) if matches!(reason.as_str(), "sealed" | "unavailable-frame" | "no-contact") => serde_json::to_string(&json!({"kind":"blocked","reason":reason})).map_err(|error| error.to_string()),
-            Err(reason) => Err(reason),
+            Err(reason) if reason.reason().is_some() => serde_json::to_string(&json!({"kind":"blocked","reason":reason.reason()})).map_err(|error| error.to_string()),
+            Err(reason) => reason.into_result(),
         }
     }
     pub fn floor_operations_json(&mut self, input: &str) -> Result<String> {
@@ -4379,7 +4429,13 @@ impl Kernel {
         self.advance_staged_processes(batch.delta)?;
         self.advance_resource_work(batch.delta)?;
         self.advance_job_transform_work(batch.delta)?;
-        self.advance_native_work_planner(self.revision)?;
+        // Headless record tests may exercise durable commands before an
+        // environment is attached. Automatic route planning has no lawful
+        // geometry owner in that state, so leave the planner dormant until
+        // load_environment installs one.
+        if self.environment.is_some() {
+            self.advance_native_work_planner(self.revision)?;
+        }
         self.cleanup_empty_ground_stock();
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});

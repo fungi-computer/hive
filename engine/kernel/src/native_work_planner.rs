@@ -1575,7 +1575,12 @@ mod tests {
         let mut kernel = native_stockpile_world(2);
         assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
         assert_eq!(kernel.supply_allocations().count(), 1, "one exact lot/capacity demand has one claim");
-        let allocation = kernel.supply_allocations().next().unwrap().1.clone();
+        let allocation_id = kernel.supply_allocations().next().unwrap().0.to_owned();
+        let allocation = kernel.ecs.get::<SupplyAllocation>(kernel.entity(&allocation_id).unwrap()).unwrap().clone();
+        let source_pose = *kernel.ecs.get::<Position>(kernel.entity("source").unwrap()).unwrap();
+        let source_contacts = kernel.transfer_contact_candidates("source", crate::terrain_traversal::TraversalConfig { spacing: [0.0; 3], clearance_cells: 1, max_step_cells: 1 }, None).unwrap();
+        assert!(source_contacts.len() > 1, "pickup must expose standing contacts around the source");
+        assert!(source_contacts.iter().any(|contact| [contact.x, contact.y, contact.z] != [source_pose.x, source_pose.y, source_pose.z]), "pickup must not route to the occupied source center");
         settle_routes(&mut kernel);
         assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1, "pickup commits custody");
         assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1, "carried lot starts destination route");
@@ -1604,7 +1609,7 @@ mod tests {
         restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 0.0;
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0, "drafted carrier does not advance while stopped");
         restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 1.0;
-        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "saved carried allocation resumes");
+        assert_eq!(restored.advance_native_work_planner(8).unwrap(), 1, "saved carried allocation resumes through the shared planner");
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "deposit commits exact quantity");
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "receipt retires once");
@@ -2117,7 +2122,7 @@ mod tests {
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0);
         assert!(restored.work_attempt(&allocation).is_none());
         restored.ecs.get_mut::<Body>(worker).unwrap().speed = 1.0;
-        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1);
+        assert_eq!(restored.advance_native_work_planner(8).unwrap(), 1);
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // deposit
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1); // retire
