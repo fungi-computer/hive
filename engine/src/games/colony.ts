@@ -21,18 +21,18 @@ import {
   ResourceSite,
 } from "../sdk/common";
 import { DeliveryControl, DeliveryTask } from "../sdk/delivery";
-import { StagedProcess, requestProcess } from "../sdk/process-supply";
+import { FieldWaterWork, StagedProcess, requestProcess } from "../sdk/process-supply";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { OwnedByParty, Party, PartyMember, PartyReceipt } from "../sdk/party";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyTree, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
+import { ColonyTree, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+import { ResourceOrder } from "../sdk/resource-work";
 import { Worker } from "./colony-components";
 import { colonyPartyFootprint, createColonyPartyPlan } from "./colony-party";
 import { encodeEnvironmentDefinition } from "../sdk/environment";
 import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
-import { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
@@ -53,7 +53,6 @@ export const colonyStockpileProfiles = [
 export { Worker } from "./colony-components";
 export { ExcavationOrder } from "../sdk/common";
 export { ColonyTree, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
-export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
   fields: { hungry: "boolean" },
@@ -345,7 +344,7 @@ const colonyComponents = [
   DeliveryTask,
   DeliveryControl,
   ExcavationOrder,
-  ColonyResourceOrder,
+  ResourceOrder,
   ColonyTree,
   ColonyTreePolicy,
   FiniteResource,
@@ -354,7 +353,7 @@ const colonyComponents = [
   DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
-  WaterSupplyOrder, WaterSupplyWork,
+  FieldWaterWork,
 ] as const;
 
 function digArea(input: z.infer<typeof digInput>, party: EntityId): ActionRequest {
@@ -405,38 +404,14 @@ export const colonyPack: GamePack = {
     updateStockpile: colonyStockpilePolicyCommand,
     requestWater: command({
       title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
-      input: emptyInput, reads: [WaterSupplyOrder, OwnedByParty], writes: [], lifecycle: [WaterSupplyOrder, WaterSupplyWork, OwnedByParty],
+      input: emptyInput, reads: [FieldWaterWork], writes: [], lifecycle: [FieldWaterWork],
       run(context) {
-        const orders = context.query(query(WaterSupplyOrder));
+        if (context.scope.kind !== "player") throw new Error("water request requires a player party");
+        const orders = context.query(query(FieldWaterWork));
         if (orders.length >= 256) throw new Error("water demand capacity exhausted");
-        const revision = orders.reduce((max, row) => Math.max(max, row.get(WaterSupplyOrder).revision), 0) + 1;
-        const id = entity(`colony.water-demand.${revision}`);
         return {
-          actions: [],
+          actions: [{ kind: "request-field-water", party: context.scope.party, material: "water", portions: 1 }],
           writes: [],
-          creates: [
-            {
-              id,
-              components: {
-                [WaterSupplyOrder.id]: {
-                  revision,
-                  consumer: null,
-                  party:
-                    context.scope.kind === "player"
-                      ? context.scope.party
-                      : null,
-                },
-                [WaterSupplyWork.id]: {
-                  request: revision,
-                  phase: "queued",
-                  x: 0,
-                  y: 0,
-                  z: 0,
-                  reason: "",
-                },
-              },
-            },
-          ],
         };
       },
     }),
@@ -444,8 +419,9 @@ export const colonyPack: GamePack = {
       title: "Sow mugwort", category: "Colony", description: "Designate a reachable soil cell for tended mugwort.",
       localPresentation: { bindings: [{ id: "sow-mugwort", label: "Sow mugwort", target: "terrain-cell", designation: ["point"] as const }] },
       input: z.object({ target: mugwortTargetInput }).strict(),
-      reads: [ColonyResourceOrder, ResourceSite, ConstructionSite], writes: [], lifecycle: [ColonyResourceOrder],
+      reads: [ResourceOrder, ResourceSite, ConstructionSite], writes: [], lifecycle: [ResourceOrder],
       run: (context, input) => {
+        if (context.scope.kind !== "player") throw new Error("mugwort designation requires a player party");
         const [x, y, z] = input.target.cell;
         const { minX, maxX, minY, maxY, minZ, maxZ } = colonyEnvironment.world.bounds;
         if (x < minX || x >= maxX || y < minY || y >= maxY || z < minZ || z >= maxZ)
@@ -459,8 +435,8 @@ export const colonyPack: GamePack = {
         if (actualMaterial !== colonyEnvironment.world.slots.soil)
           throw new Error("mugwort requires soil");
         const id = entity(`colony.resource.mugwort.${x}.${y}.${z}`);
-        const occupiedOrder = context.query(query(ColonyResourceOrder)).some(row => {
-          const order = row.get(ColonyResourceOrder);
+        const occupiedOrder = context.query(query(ResourceOrder)).some(row => {
+          const order = row.get(ResourceOrder);
           return order.cellX === x && order.cellY === y && order.cellZ === z && order.status !== "complete";
         });
         const occupiedResource = context.query(query(ResourceSite)).some(row => row.id === id);
@@ -471,7 +447,7 @@ export const colonyPack: GamePack = {
         });
         if (occupiedOrder || occupiedResource || occupiedStructure)
           throw new Error("mugwort cell already has an active designation");
-      return { actions: [], writes: [], creates: [{ id, components: { [ColonyResourceOrder.id]: { definition: "mugwort", cellX: x, cellY: y, cellZ: z, site: id, stage: "sow", status: "queued", workSeconds: 0, reason: "" } } }] };
+        return { actions: [{ kind: "designate-resource", order: id, party: context.scope.party, definition: "mugwort", x, y, z }], writes: [] };
       },
     }),
     requestBrew: command({

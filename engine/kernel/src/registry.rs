@@ -71,7 +71,7 @@ impl Registry {
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
             ("hive.supply-allocation", vec![("requirementOwner", FieldType::Entity), ("requirementRole", FieldType::String), ("requirementGeneration", FieldType::Number), ("party", FieldType::Entity), ("material", FieldType::String), ("portion", FieldType::Entity), ("destination", FieldType::Entity), ("quantity", FieldType::Number), ("state", FieldType::String)]),
-            ("hive.field-water-work", vec![("process", FieldType::Entity), ("role", FieldType::String), ("generation", FieldType::Number), ("party", FieldType::Entity), ("destination", FieldType::Entity), ("vessel", FieldType::NullableEntity), ("cellX", FieldType::Number), ("cellY", FieldType::Number), ("cellZ", FieldType::Number), ("lot", FieldType::NullableEntity)]),
+            ("hive.field-water-work", vec![("process", FieldType::Entity), ("role", FieldType::String), ("generation", FieldType::Number), ("party", FieldType::Entity), ("destination", FieldType::Entity), ("material", FieldType::String), ("retainInVessel", FieldType::Boolean), ("portions", FieldType::Number), ("vessel", FieldType::NullableEntity), ("cellX", FieldType::Number), ("cellY", FieldType::Number), ("cellZ", FieldType::Number), ("lot", FieldType::NullableEntity)]),
             ("hive.staged-process", vec![
                 ("version", FieldType::Number), ("definition", FieldType::String), ("definitionVersion", FieldType::Number),
                 ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number),
@@ -81,6 +81,7 @@ impl Registry {
             ("hive.stockpile-cell", vec![("zone", FieldType::String), ("priority", FieldType::Number), ("filterProfile", FieldType::String)]),
             ("hive.finite-resource", vec![("kind", FieldType::String), ("quantity", FieldType::Number)]),
             ("hive.resource-site", vec![("definition", FieldType::String), ("stage", FieldType::Number), ("nextDue", FieldType::Number)]),
+            ("hive.resource-order", vec![("definition", FieldType::String), ("cellX", FieldType::Number), ("cellY", FieldType::Number), ("cellZ", FieldType::Number), ("status", FieldType::String), ("reason", FieldType::String), ("progressSeconds", FieldType::Number)]),
             ("hive.excavation-work", vec![("x", FieldType::Number), ("y", FieldType::Number), ("z", FieldType::Number), ("expected", FieldType::Number), ("replacement", FieldType::Number), ("seconds", FieldType::Number)]),
             ("hive.excavation-order", vec![("cellX", FieldType::Number), ("cellY", FieldType::Number), ("cellZ", FieldType::Number), ("expected", FieldType::Number), ("status", FieldType::String), ("reason", FieldType::String)]),
             ("hive.deconstruction-work", vec![("site", FieldType::Entity), ("contactX", FieldType::Number), ("contactY", FieldType::Number), ("contactZ", FieldType::Number), ("seconds", FieldType::Number), ("requiredSeconds", FieldType::Number)]),
@@ -214,6 +215,7 @@ impl Registry {
                 "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
                 "hive.finite-resource" => world.register_component::<FiniteResource>(),
                 "hive.resource-site" => world.register_component::<ResourceSite>(),
+                "hive.resource-order" => world.register_component::<ResourceOrder>(),
                 "hive.excavation-work" => world.register_component::<ExcavationWork>(),
                 "hive.excavation-order" => world.register_component::<ExcavationOrder>(),
                 "hive.deconstruction-work" => world.register_component::<DeconstructionWork>(),
@@ -278,6 +280,7 @@ impl Registry {
                 | "hive.stockpile-cell"
                 | "hive.finite-resource"
                 | "hive.resource-site"
+                | "hive.resource-order"
                 | "hive.excavation-work"
                 | "hive.excavation-order"
                 | "hive.deconstruction-work"
@@ -412,7 +415,7 @@ impl Registry {
             "hive.field-water-work" => {
                 let work: FieldWaterWork = decode(value)?;
                 if !valid_id(&work.process) || !valid_id(&work.role) || work.generation == 0
-                    || !valid_id(&work.party) || !valid_id(&work.destination)
+                    || !valid_id(&work.party) || !valid_id(&work.destination) || !valid_id(&work.material) || work.portions == 0 || work.portions > 7
                     || work.vessel.as_deref().is_some_and(|id| !valid_id(id))
                     || work.lot.as_deref().is_some_and(|id| !valid_id(id))
                 { return Err("invalid field water work".into()); }
@@ -443,6 +446,13 @@ impl Registry {
             "hive.resource-site" => {
                 let site: ResourceSite = decode(value)?;
                 if !valid_id(&site.definition) || site.stage > 64 || !site.next_due.is_finite() || site.next_due < 0.0 { return Err("invalid resource site".into()); }
+            }
+            "hive.resource-order" => {
+                let order: ResourceOrder = decode(value)?;
+                if !valid_id(&order.definition)
+                    || !matches!(order.status.as_str(), "queued" | "blocked" | "complete")
+                    || order.reason.len() > 256 || !order.progress_seconds.is_finite() || order.progress_seconds < 0.0
+                { return Err("invalid resource order".into()); }
             }
             "hive.collider" => {
                 let collider: Collider = decode(value)?;
@@ -623,6 +633,7 @@ impl Registry {
             "hive.resource-site" => {
                 world.entity_mut(entity).insert(decode::<ResourceSite>(value)?);
             }
+            "hive.resource-order" => { world.entity_mut(entity).insert(decode::<ResourceOrder>(value)?); }
             "hive.destination" => {
                 world
                     .entity_mut(entity)
@@ -701,6 +712,7 @@ impl Registry {
             "hive.stockpile-cell" => world.get::<StockpileCell>(entity).map(record),
             "hive.finite-resource" => world.get::<FiniteResource>(entity).map(record),
             "hive.resource-site" => world.get::<ResourceSite>(entity).map(record),
+            "hive.resource-order" => world.get::<ResourceOrder>(entity).map(record),
             "hive.excavation-work" => world.get::<ExcavationWork>(entity).map(record),
             "hive.excavation-order" => world.get::<ExcavationOrder>(entity).map(record),
             "hive.deconstruction-work" => world.get::<DeconstructionWork>(entity).map(record),

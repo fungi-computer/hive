@@ -1,101 +1,14 @@
-// Focused laws for the shared tended-resource work owner.
+// Focused real lifecycle law for native tended-resource work.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { existsSync, readFileSync } from "node:fs";
-import { Body, Container, FiniteResource, MaterialLot, Position, ResourceSite, SupplyAllocation } from "../sdk/common";
+import { FiniteResource, MaterialLot, ResourceSite, SupplyAllocation } from "../sdk/common";
 import { GroundStock } from "../sdk/ground-stock";
 import { query } from "../sdk/authoring";
 import { colonyPack } from "./colony";
-import { ColonyResourceOrder, resourceWorkProvider } from "./colony-work";
-import { OwnedByParty, PartyMember } from "../sdk/party";
-import { Worker } from "./colony-components";
-import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
+import { ResourceOrder } from "../sdk/resource-work";
 import { ConstructionSite } from "../sdk/construction";
 import { StagedProcess } from "../sdk/process-supply";
-import type { EntityId } from "../contracts";
-
-const id = (value: string) => value as import("../contracts").EntityId;
-const row = (entity: string, values: Map<object, unknown>) => ({ id: id(entity), get: (definition: object) => values.get(definition) });
-const clock = { now: 20, delta: 0.25, tick: 80 };
-
-function providerContext(order: unknown, site: unknown, lots: unknown[] = [], outcomes: unknown[] = []) {
-  const writes: unknown[] = [], created: unknown[] = [], removed: string[] = [], actions: unknown[] = [];
-  const worker = row("worker", new Map([[Worker, { guest: false }], [Body, { speed: 1 }], [Position, { x: 1, y: 1, z: 1, facing: 0 }], [PartyMember, { party: id("party") }]]));
-  const context: any = {
-    clock, outcomes, writes,
-    workAttempts: () => [],
-    query(spec: any) {
-      if (spec.components.includes(Worker)) return [worker];
-      if (spec.components.includes(PartyMember)) return [worker];
-      if (spec.components.includes(OwnedByParty)) return [row("order", new Map([[ColonyResourceOrder, order], [OwnedByParty, { party: id("party") }]]))];
-      if (spec.components.includes(ResourceSite)) return [row("site", new Map([[ResourceSite, site]]))];
-      if (spec.components.includes(MaterialLot)) return lots.map(lot => row(lot.id, new Map([[MaterialLot, lot]])));
-      if (spec.components.includes(WaterSupplyOrder)) return created.map(record => row(record.id, new Map([
-        [WaterSupplyOrder, record.components[WaterSupplyOrder.id]],
-        [WaterSupplyWork, record.components[WaterSupplyWork.id]],
-      ])));
-      return [row("order", new Map([[ColonyResourceOrder, order], [OwnedByParty, { party: id("party") }]]))];
-    },
-    workMaterialFacts: () => ({ version: 1, containers: lots.map(lot => ({ id: lot.id, capacity: 8, sealed: false })), lots }),
-    worldPoses: () => [{ id: id("worker"), local: { x: 2, y: 1.5, z: 1, facing: 0 }, world: { x: 2, y: 1.5, z: 1, facing: 0 }, support: null, surface: null }],
-    routeToAny: () => ({ status: "reachable", targetIndex: 0, cost: 1 }),
-    routeCosts: () => [], waterContacts: () => [],
-    action: value => actions.push(value),
-    write: (_definition, entity, value) => writes.push([entity, value]),
-    createAuthoredEntity: value => created.push(value),
-    removeAuthoredEntity: value => removed.push(value),
-  };
-  return { context, writes, created, removed, actions };
-}
-
-test("empty resource work does not ask native poses for an empty batch", () => {
-  const context: any = {
-    clock, outcomes: [],
-    query: () => [],
-    workAttempts: () => [],
-    workMaterialFacts: () => ({ version: 1, containers: [], lots: [] }),
-    worldPoses: () => { throw new Error("empty native pose query"); },
-  };
-  const prepared = resourceWorkProvider(context, new Set());
-  assert.deepEqual(prepared.claims, []);
-  assert.deepEqual(prepared.candidates, []);
-});
-
-test("player sow intent remains workerless while resource scheduling uses owned workers", () => {
-  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "queued", workSeconds: 0, reason: "" };
-  const { context, created } = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 0 }, []);
-  resourceWorkProvider(context, new Set());
-  assert.equal(created.length, 0);
-  resourceWorkProvider(context, new Set());
-  assert.equal(created.length, 0, "resource work does not author process water demand");
-});
-
-test("tend candidates require the exact worker-held pail and nested sufficient water", () => {
-  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "queued", workSeconds: 0, reason: "" };
-  const { context } = providerContext(order, { kind: "mugwort", stage: 1, nextDue: 0 }, [
-    { id: id("pail-empty"), kind: "pail", quantity: 1, container: id("other-worker") },
-    { id: id("pail-empty-water"), kind: "water", quantity: 0, container: id("pail-empty") },
-    { id: id("pail-full"), kind: "pail", quantity: 1, container: id("other-worker") },
-    { id: id("pail-full-water"), kind: "water", quantity: 4, container: id("pail-full") },
-  ]);
-  const prepared = resourceWorkProvider(context, new Set());
-  assert.equal(prepared.candidates.length, 0);
-
-  const sufficient = providerContext(order, { kind: "mugwort", stage: 1, nextDue: 0 }, [
-    { id: id("pail"), kind: "pail", quantity: 1, container: id("worker") },
-    { id: id("nested-water"), kind: "water", quantity: 1, container: id("pail") },
-  ]);
-  const selected = resourceWorkProvider(sufficient.context, new Set());
-  assert.equal(selected.candidates[0].vessel, "pail");
-  assert.equal(selected.candidates[0].worker, "worker");
-});
-
-test("blocked resource work remains a retryable domain state without authored actor fields", () => {
-  const order = { definition: "mugwort", cellX: 0, cellY: 1, cellZ: 0, site: id("site"), stage: "tend", status: "blocked", workSeconds: 2, reason: "blocked" };
-  const result = providerContext(order, { kind: "mugwort", stage: 0, nextDue: 99 }, [], []);
-  resourceWorkProvider(result.context, new Set());
-  assert.deepEqual(result.writes, []);
-});
 
 test("GameSession preserves a finite mugwort harvest through extraction and reload", async (t) => {
   if (!existsSync("engine/generated/hive_kernel_bg.wasm")) {
@@ -119,7 +32,7 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
     }
     session.command("sowMugwort", { target: { cell: [0, 13, 0], material: 1 } });
     session.step(0);
-    const intent = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
+    const intent = session.query(query(ResourceOrder))[0]?.get(ResourceOrder);
     assert(intent, "sow command must create a workerless resource intent");
     const savedBeforeWork = session.save();
     session.restore(savedBeforeWork);
@@ -129,8 +42,8 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
       try { session.step(0.25); } catch (error) {
         throw new Error(`resource step ${tick} failed: ${String(error)}`, { cause: error as Error });
       }
-      const current = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
-      if (!restoredNativeAttempt && current?.status === "queued" && current?.stage !== "sow") {
+      const current = session.query(query(ResourceOrder))[0]?.get(ResourceOrder);
+      if (!restoredNativeAttempt && current && (current.progressSeconds > 0 || session.query(query(ResourceSite)).length > 0)) {
         const pending = session.save();
         session.restore(pending);
         assert.deepEqual(session.save(), pending, "an admitted physical operation must survive exact save/reload");
@@ -139,7 +52,7 @@ test("GameSession preserves a finite mugwort harvest through extraction and relo
       if (current?.status === "complete") break;
     }
     assert(restoredNativeAttempt, "the real consumer must cross a durable submitting phase");
-    const completed = session.query(query(ColonyResourceOrder))[0]?.get(ColonyResourceOrder);
+    const completed = session.query(query(ResourceOrder))[0]?.get(ResourceOrder);
     assert.equal(completed?.status, "complete", "resource order must complete before conservation is assessed");
     const groundStocks = new Set(session.query(query(GroundStock)).map(row => row.id));
     const harvested = session.query(query(MaterialLot)).filter(row => {

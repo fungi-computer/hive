@@ -4,7 +4,7 @@ import { query } from "../sdk/authoring";
 import { ConstructionSite } from "../sdk/construction";
 import { ResourceSite } from "../sdk/common";
 import { colonyPack } from "./colony";
-import { ColonyResourceOrder } from "./colony-work";
+import { ResourceOrder } from "../sdk/resource-work";
 
 const cell = [0, 13, 0] as const;
 
@@ -24,13 +24,14 @@ function context(options: {
 } = {}) {
   const material = options.material ?? 1;
   return {
-    scope: { kind: "host" as const },
+    scope: { kind: "player" as const, player: "player", party: "party" },
+    clock: { now: 0, delta: 0, tick: 1 },
     physicalContacts: () => [],
     terrainMaterials: () => [material],
     terrainSurfaces: () => [{ cell: [cell[0], cell[1], cell[2]] as [number, number, number], material, generatedTop: cell[1] }],
     query(spec: { components: readonly { id: string }[] }) {
       const id = spec.components[0]?.id;
-      if (id === ColonyResourceOrder.id) return options.orders ?? [];
+      if (id === ResourceOrder.id) return options.orders ?? [];
       if (id === ResourceSite.id) return options.resources ?? [];
       if (id === ConstructionSite.id) return options.structures ?? [];
       return [];
@@ -39,20 +40,18 @@ function context(options: {
 }
 
 function orderRow() {
-  return row("colony.resource.mugwort.0.13.0", new Map([[ColonyResourceOrder.id, {
-    definition: "mugwort", cellX: 0, cellY: 13, cellZ: 0, site: "colony.resource.mugwort.0.13.0",
-    stage: "sow", status: "queued", workSeconds: 0, reason: "",
+  return row("colony.resource.mugwort.0.13.0", new Map([[ResourceOrder.id, {
+    definition: "mugwort", cellX: 0, cellY: 13, cellZ: 0,
+    status: "queued", progressSeconds: 0, reason: "",
   }]]));
 }
 
 test("sow mugwort accepts the current terrain-cell material and stays workerless", () => {
   const result = colonyPack.commands!.sowMugwort.invoke(context(), { target: { cell, material: 1 } });
-  assert.deepEqual(result.actions, []);
+  assert.deepEqual(result.actions, [{ kind: "designate-resource", order: "colony.resource.mugwort.0.13.0", party: "party", definition: "mugwort", x: 0, y: 13, z: 0 }]);
   assert.deepEqual(result.writes, []);
-  assert.deepEqual(result.creates?.[0]?.components[ColonyResourceOrder.id], {
-    definition: "mugwort", cellX: 0, cellY: 13, cellZ: 0, site: "colony.resource.mugwort.0.13.0",
-    stage: "sow", status: "queued", workSeconds: 0, reason: "",
-  });
+  assert.equal(result.creates, undefined);
+
 });
 
 test("sow mugwort rejects a target whose reported material is not soil", () => {

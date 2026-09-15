@@ -26,6 +26,7 @@ export const RESERVED_COMPONENTS = [
   "hive.process-binding",
   "hive.finite-resource",
   "hive.resource-site",
+  "hive.resource-order",
   "hive.excavation-work",
   "hive.excavation-order",
   "hive.deconstruction-work",
@@ -212,6 +213,8 @@ export type ActionRequest =
   | { readonly kind: "cancel-job"; readonly id: EntityId }
   | { readonly kind: "establish-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
+  | { readonly kind: "designate-resource"; readonly order: EntityId; readonly party: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
+  | { readonly kind: "request-field-water"; readonly party: EntityId; readonly material: string; readonly portions: number }
   | { readonly kind: "request-process"; readonly definition: string; readonly station: EntityId }
   | { readonly kind: "admit-process"; readonly process: EntityId; readonly definition: string; readonly station: EntityId }
   | {

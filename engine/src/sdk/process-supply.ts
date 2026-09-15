@@ -14,11 +14,11 @@ export const StagedProcess = component<{
  * the native owner replaces this record with SupplyAllocation. */
 export const FieldWaterWork = component<{
   process: EntityId; role: string; generation: number; party: EntityId;
-  destination: EntityId; vessel: EntityId | null; cellX: number; cellY: number;
+  destination: EntityId; material: string; retainInVessel: boolean; portions: number; vessel: EntityId | null; cellX: number; cellY: number;
   cellZ: number; lot: EntityId | null;
-}>("hive.field-water-work", { version: 1, fields: {
+}>("hive.field-water-work", { version: 2, fields: {
   process: "entity", role: "string", generation: "number", party: "entity",
-  destination: "entity", vessel: "nullable-entity", cellX: "number",
+  destination: "entity", material: "string", retainInVessel: "boolean", portions: "number", vessel: "nullable-entity", cellX: "number",
   cellY: "number", cellZ: "number", lot: "nullable-entity",
 } });
 

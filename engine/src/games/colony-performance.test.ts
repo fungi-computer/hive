@@ -9,7 +9,7 @@ import { query } from "../sdk/authoring";
 import { FiniteResource, MaterialLot } from "../sdk/common";
 import { Worker } from "./colony-components";
 import { ColonyTree } from "./colony-work";
-import { WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
+import { FieldWaterWork } from "../sdk/process-supply";
 import { createColonyPerformancePack } from "./colony-performance";
 import type { GamePack } from "../contracts";
 
@@ -164,9 +164,9 @@ test("real pail workload crosses the sixteen-worker water planning batch", () =>
     for (let tick = 0; tick < 12; tick++) {
       try {
         session.step(1);
-        const demands = session.query(query(WaterSupplyOrder, WaterSupplyWork));
+        const demands = session.query(query(FieldWaterWork));
         maxDemand = Math.max(maxDemand, demands.length);
-        maxActive = Math.max(maxActive, demands.filter(row => row.get(WaterSupplyWork).phase !== "complete").length);
+        maxActive = Math.max(maxActive, demands.filter(row => row.get(FieldWaterWork).lot === null).length);
       } catch (error) {
         recoveryError = `tick ${tick}: ${error instanceof Error ? error.message : String(error)}`;
         break;
