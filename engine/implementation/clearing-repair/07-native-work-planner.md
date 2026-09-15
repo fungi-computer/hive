@@ -301,47 +301,171 @@ Vessel compatibility comes from declared vessel capability/definition, not the
 literal item name `pail`. Preserve existing quantity-to-water accounting and 0–7
 field levels; the planner does not define new water physics.
 
-The compiled GamePack environment owns the material volume catalog. Every stored
-material kind has one positive bounded integer volume per unit and one physical
-handling mode: discrete goods or commingling bulk. `hive.container` owns finite
-volume capacity; the material owner alone calculates checked occupied and reserved
-volume. Material can be stored when its requested amount is available, moving it
-creates no custody cycle, and its volume fits. Stockpile filters decide whether a
-destination wants a kind; they do not decide physical fit or create another
-contents list. Do not add `storable`, `WaterVessel` or vessel-whitelist flags.
+### Simple bulk contents — accepted September 15 correction
 
-A pail is an ordinary discrete lot that is also a container. Its outside lot
-volume controls whether a worker, shelf or larger container can hold the pail;
-its independent container capacity controls how much it can hold. The same
-composition supports a keg or jar. Container capability, custody, sealing and
-free volume determine whether the vessel can be used; its content ID does not.
+This section supersedes the earlier per-ingredient mixture ledger, all-integer
+property arithmetic, million-unit scale, rational/remainder bookkeeping and
+exact-name clean-water proposals. Levi wants a small game simulation that can
+produce a dirty mop bucket of goblin piss, shit and beer. This is the accepted
+design; it is not a claim that the current kernel implements mixing.
 
-Commingling bulk in one open compartment becomes one inseparable batch. The batch
-owns integer volume, a bounded sorted map of constituent amounts and a bounded
-sorted map of additive property amounts such as nutrients, filth and pathogens.
-The engine keeps that ledger for conservation; it does not expose the constituents
-as independently removable lots. A pour splits volume, every constituent and every
-property proportionally with checked integer arithmetic. Rounding residue remains
-with the source and the last pour receives the remainder, so repeated transfer,
-save/reload and retry cannot create or erase material. A merge atomically preserves
-the selected destination batch identity and records the consumed source identity;
-outstanding exact claims must be retargeted in that same transaction or make the
-merge inadmissible.
+#### Engine mechanics and game definitions
 
-Discrete goods in the same container remain separately selectable. Loose water,
-beer, urine, sewage and dirty mop water are bulk; pails, bread, tools and logs are
-discrete. Authored transformations may turn water plus soil into mud or remove
-pathogens, but storage itself does not run chemistry. Clean-water admission is a
-predicate over the bulk batch's actual composition and property thresholds, never
-a clean flag or the container's name. The displayed label is a deterministic
-projection, so a real mixed batch may honestly appear as `pail of goblin piss,
-shit & beer`; an optional player nickname is presentation only. Do not generate a
-new material definition or simulation identity for every mixture.
+Rust owns physical storage, capacity, mixing, splitting, transfer, references and
+atomic publication. Goblin supplies the definitions and gameplay meaning in
+TypeScript. Compile definitions once at the existing GamePack admission boundary;
+execute supported operations in Rust. Do not introduce a TypeScript per-tick
+mixture loop, saved callbacks, expression language or separate scheduler.
 
-Use fixed integer units throughout. The world field's 0--7 level maps each portion
-to a fixed integer bulk volume. Nutrient and pollutant concentrations are derived
-from additive amount divided by carrier volume; concentration is not independent
-mutable state. This slice does not add density, leakage or general chemistry.
+- Discrete goods retain integer counts, kind and custody: bread, tools, logs,
+  pails and kegs. Their declared volume per unit determines storage occupancy.
+- Bulk contents have a volume and a small definition-bounded set of additive
+  property amounts. Examples for Goblin are filth, pathogens, nutrients and
+  alcohol. Rust does not hardcode these property IDs or biological meanings.
+- Game material definitions specify the properties contributed per unit of bulk
+  volume. Work/process definitions specify supported input tests and changes.
+  Concentration tests read property amount divided by bulk volume. An additional
+  property or ingredient using these operations is definition data; a genuinely
+  new behavior requires a deliberately added typed primitive.
+- Only additive amounts use this mechanism. Names, color, temperature and pH
+  cannot be naively added or proportionally split as amounts. They are outside
+  this slice; do not build a generic property algebra for hypothetical consumers.
+
+Illustrative shapes, not a parallel public API:
+
+```ts
+// Defined by the game, validated/compiled by the engine.
+const properties = ["filth", "pathogens", "nutrients", "alcohol"];
+const ingredient = {
+  id: "goblin-urine",
+  // Authored game-scale amounts per volume unit; numbers are tuning data.
+  propertyAmountsPerVolume: { filth: 2, nutrients: 1 },
+};
+
+// Native canonical contents, owned by the existing material/container seam.
+type BulkContents = {
+  volume: number;
+  amounts: Readonly<Record<string, number>>;
+};
+```
+
+A vessel is an ordinary discrete lot with Container capability. Its outside
+volume is distinct from its internal capacity. A Lot+Container has quantity one;
+its contents do not get counted again in its parent's occupied volume. Pails,
+jars and kegs share these mechanics without item-name checks or WaterVessel
+markers. A stockpile filter means wanted here; capacity means physically fits.
+
+One open compartment has one mixed bulk contents record. Adding dirty liquid
+mixes with what is already there; the caller cannot request just the clean water
+back. Discrete items in the compartment remain individually retrievable. A loose
+solid does not dissolve merely because it fits: an explicit cleaning/processing
+operation consumes the relevant mess/material and adds its authored bulk volume
+and properties. This is gameplay transformation, not a particle simulation.
+
+#### Numbers and pouring
+
+Use ordinary finite nonnegative Rust `f64` values for bulk volume and property
+amounts. Fractions such as half a unit of pathogen load are allowed. Keep discrete
+item counts and existing 0--7 terrain-water levels integer. Bulk volume uses the
+same declared storage-volume unit as container capacity and item occupancy;
+convert field portions through the existing water/volume owner. Do not assume
+one water level equals one litre or invent a million-unit scale. The authored
+unit conversion must be shared by field withdrawal, storage and pouring back.
+
+Properties are total amounts, not concentrations or booleans. Doubling volume
+with clean water leaves the pathogen amount unchanged and halves concentration.
+There is no independently mutable clean flag. A full pail can always pour out;
+incoming-capacity checks apply to the receiver, not the donor.
+
+```text
+preparePour(source, destination, requestedVolume):
+    validate finite positive request <= source.volume
+    validate custody, permission, current claims and receiving free volume
+    ratio = requestedVolume / source.volume
+    moved.volume = requestedVolume
+    for property in stable compiled property order:
+        moved.amount[property] = source.amount[property] if emptying source
+                                 else source.amount[property] * ratio
+        sourceAfter.amount[property] = source.amount[property] - moved.amount[property]
+        destinationAfter.amount[property] = destination.amount[property] + moved.amount[property]
+    sourceAfter.volume = source.volume - moved.volume
+    destinationAfter.volume = destination.volume + moved.volume
+    validate all prepared results are finite, nonnegative and within capacity
+    if emptying source: move all remaining amounts and retire empty contents
+    publish both changes + work progress + receipt in the existing transaction
+```
+
+Calculate each moved amount once. Debit and credit that value; never round each
+side separately. Zero-volume state must have zero property amounts. Do not delete
+small residues through epsilon cleanup or silently clamp invalid input. Reject
+nonfinite/overflowing candidates before any mutation. Mathematical conservation
+is approximate to floating-point precision; do not advertise exact arithmetic.
+Use a documented scale-aware tolerance in numerical conservation assertions,
+not as permission to create capacity or remove contamination in runtime code.
+No rational denominators, remainder ledger or per-bacterium identity is needed.
+Stable operation order and the same maintained Rust operations own replay;
+floating point by itself is not evidence of nondeterministic replay.
+
+Example: 8 volume units containing pathogen amount 1 pour into two equal buckets.
+Each gets volume 4 and pathogen amount 0.5. Recombine them to recover volume 8 and
+amount 1. Arbitrary thirds receive the same proportional treatment within normal
+floating-point precision. Saving midway preserves the actual numbers.
+
+#### Game rules and honest presentation
+
+The game configures drinking/brewing requirements using supported property
+concentration thresholds. Generic supply queries and final admission must use
+the same predicate; a mixture named water can still fail. A successful treatment
+changes only the configured properties through the process owner. For example,
+a game recipe may reduce pathogens but leave filth; it must not silently turn
+all contents into clean water. Recipes still own finite inputs, time and outputs.
+Keep those concrete operations small instead of building a chemistry interpreter.
+
+The UI may say **bucket of goblin piss, shit & beer**. A bounded set of game-owned
+flavor tags can supply that label, joined in stable order when mixed and copied
+on split, or the player can nickname the batch. Tags carry no ingredient amounts,
+authority, safety or recipe eligibility. Do not retain an unlimited origin history
+or generate a new material definition for every combination. Player/AI observation
+reads the same actual volume and properties; labels never replace those facts.
+
+#### Integration sequence and stop conditions
+
+1. Finish the existing volume foundation first. One owner computes occupied and
+   reserved volume, including each reservation's own material volume. Migrate
+   output, transfer, carry admission, construction/salvage, process destinations,
+   stockpile capacity and restore validation together. Declare required material
+   definitions and reject missing references; no fallback unit-volume defaults.
+2. Add bulk storage/transfer at that material owner and one real pail consumer.
+   Route changes through the current Region/WorkAttempt transaction and receipt.
+   Resolve claims against the actual contents at final admission; do not create
+   a second inventory or claim owner. A mix that invalidates an input requirement
+   releases/blocks the affected work through its existing lifecycle. Draft retains
+   physical contents and releases only the appropriate work reservations.
+3. Join supply and brewing to the same property-aware input rule. The automatic
+   scheduler remains the single Rust scheduler; it asks the material owner to
+   resolve/prepare operations rather than inspecting property maps itself.
+4. Join field withdrawal/pour through the existing accepted water transfer. Until
+   fields carry these properties, reject a contaminated pour into a field rather
+   than dropping the properties. Do not claim river pollution from bucket tests.
+   A later field join must carry the same property amounts along accepted flows,
+   with no second water solver, whole-world scans or per-particle simulation.
+
+First consolidated scenario: mix clean liquid, dirty mop contents and beer in a
+real held container; split an odd amount, mix again, save/restore mid-haul and
+complete the same delivery. Assert fractional properties, dilution, preserved
+volume/properties within documented numerical tolerance, capacity including
+concurrent reservations, Draft custody, and retry without duplicated transfer.
+Assert ordinary bread/tools remain distinct, polluted supply fails the recipe's
+actual predicate, and full-container pouring out succeeds. A second ingredient
+and a game-defined property ID must work without editing the Rust dispatcher.
+Add focused rejection cases for invalid numeric inputs and stale capacity/claims.
+Reuse existing lifecycle coverage rather than cloning the full scenario per rule.
+
+Current source checkpoint: the material-vessel-catalog lane is paused with dirty
+volume corrections preserved. Its reported cargo check is compilation evidence
+only; it does not establish mixture, capacity, replay or hosted acceptance. Root
+reviews that source before integration. Do not resume the superseded ingredient
+ledger implementation when lowering the model.
 
 ```text
 brew request -> native StagedProcess

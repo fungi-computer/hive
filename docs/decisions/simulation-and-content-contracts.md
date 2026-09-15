@@ -96,7 +96,13 @@ type GoodsLot = {
 };
 ```
 
-Quantity carries its base unit. Count, mass and volume are different; concentration is a derived ratio/trait over tracked amounts, not another additive inventory unit. Use integer/fixed units plus explicit remainders where fractional change is needed. Check overflow before adoption of a dense integer format. Quality/contamination/strain differences prevent inappropriate merging. Splitting produces an identified new portion with provenance and a balanced quantity change; merging retains defined identity history and cannot erase a known strain or claim. Explicit physical references must be retargeted or forbid merging while reserved.
+**September 15 bulk correction:** [Simple bulk contents](../../engine/implementation/clearing-repair/07-native-work-planner.md#simple-bulk-contents--accepted-september-15-correction)
+supersedes the integer/remainder and ingredient-history requirements below for
+commingled bulk. That model uses finite fractional volume and additive property
+amounts, proportional transfer and small game-defined property rules. Discrete
+goods retain count/custody laws; claims and durable receipts remain authoritative.
+
+Historical quantity guidance: Quantity carries its base unit. Count, mass and volume are different; concentration is a derived ratio/trait over tracked amounts, not another additive inventory unit. Use integer/fixed units plus explicit remainders where fractional change is needed. Check overflow before adoption of a dense integer format. Quality/contamination/strain differences prevent inappropriate merging. Splitting produces an identified new portion with provenance and a balanced quantity change; merging retains defined identity history and cannot erase a known strain or claim. Explicit physical references must be retargeted or forbid merging while reserved.
 
 The first shelf derives a mixed simple list and uses one selected integer capacity measure. Optional grouping, filters, weight/bulk and a backpack's later rotated grid need their own consumers; they are distinct policies over the same custody. Held logs are separate from pack storage. Equipment occupies named slots and may provide a container, such as a belt/backpack. Unequipping a full pack transfers the same container and contents or rejects for a stated reason; it cannot delete or spill an arbitrary duplicate list. Nested containers need cycle rejection, bounded nesting and an explicit capacity/mass aggregation rule before introduction.
 

@@ -25,6 +25,14 @@ consumer cutover. It is a design, not implemented acceptance. The current
 [construction cancellation policy](02-construction.md#impossible-versus-waiting)
 cancels structurally invalidated plans; missing labor/materials remain waiting.
 
+**September 15 simplified bulk decision:** [Simple bulk contents](07-native-work-planner.md#simple-bulk-contents--accepted-september-15-correction)
+owns the current bucket/mixing handoff: fractional volume and additive property
+amounts, proportional pours, game-defined meanings executed through Rust material
+operations, and flavor-only mixture labels. It supersedes per-ingredient histories
+and integer remainder machinery. Includes pseudocode, real-caller migration order,
+consolidated acceptance and the paused source-lane status; implementation is not
+accepted merely because this design is recorded.
+
 **Current job architecture correction (September 14):**
 [Rust-owned declarative job planning](01-work.md#rust-owned-declarative-job-planning-current-correction)
 supersedes the earlier TypeScript provider scheduling design. This migration is

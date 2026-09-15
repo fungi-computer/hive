@@ -405,6 +405,14 @@ faces/openings/traversal data; they do not invent another clickbox or world.
 
 ## 7. Wastewater: constituents travel with the real transfer
 
+**September 15 container decision:** [Simple bulk contents](../../engine/implementation/clearing-repair/07-native-work-planner.md#simple-bulk-contents--accepted-september-15-correction)
+owns the current small-game model: volume and game-defined additive property
+amounts using finite fractional numbers. Contents in one mixed compartment pour
+proportionally; their original ingredients are not separately withdrawable. It
+supersedes any reading below that requires an ingredient-history ledger or integer
+remainder machinery. The historical field discussion is not a new solver task;
+field contamination remains unimplemented until its actual transfer owner is joined.
+
 This is **future source work**, not an existing pollutant model. Preserve finite
 water alongside a small definition-bounded set of dissolved amounts and separate
 soil-bound/solid residue. Nutrient and pollutant concentrations are derived.
