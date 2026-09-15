@@ -1,10 +1,10 @@
 # Native work planning: implementation contract
 
-September 15, 2026. Design and partial foundation are under implementation;
-runtime acceptance is outstanding. The source integration checkpoint for the
-status below is `2e2c38de`. This refines and takes precedence over the planning
-pseudocode in [01-work](01-work.md). It does not claim that Colony runs the native
-planner yet.
+September 15, 2026. Design and staged implementation are underway. The source
+integration checkpoint for the status below is `e9764765`. This refines and takes
+precedence over the planning pseudocode in [01-work](01-work.md). Construction and
+staged processes now run through the first accepted native planner slice; the
+whole Colony cutover remains incomplete.
 
 [Whole-engine ownership audit](08-engine-ownership-audit.md) owns the September 15
 deep-module correction and cross-engine repair order. One shared scheduler is
@@ -34,7 +34,7 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer completion from the presence of native planner files. At `2e2c38de`:
+Do not infer whole-game completion from the active native planner. At `e9764765`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
@@ -53,19 +53,32 @@ Do not infer completion from the presence of native planner files. At `2e2c38de`
   capacity splitting, interruption with retained cargo, and mid-carry save/restore.
   Supply worker discovery now uses the maintained party index; material-source
   discovery still scans canonical IDs and remains the next index correction;
-- construction and attended processes contribute typed labor requirements, but
-  the shared tick-owned labor review/assignment loop is not yet wired into
+- construction and attended processes contribute typed labor requirements. One
+  bounded tick-owned solver now considers ready labor and finite supply together,
+  uses the maintained candidate indexes, validates exact routes lazily and admits
+  at most eight assignments from at most 4,096 candidate pairs;
+- planner-capable batches participate in the existing save/restore candidate
+  boundary. A failed automatic admission rolls back schedules, allocations and
+  attempts together. Only the highest due priority tier enters a window; lower
+  tiers remain due and receive later windows instead of being silently advanced;
+- missing construction contact and unavailable process inputs remain waiting
+  states. Process input admission happens only before its first stage and cannot
+  restart after a later attended/elapsed transition;
+- Colony removed the TypeScript construction and process provider calls, so its
+  ordinary session and performance pack reach this same active native hook through
   `Kernel::advance_batch`;
-- no native planner hook is active in `Kernel::advance_batch`; process, water,
-  resource, tree, excavation, deconstruction, stockpile and recovery families
-  have not moved to this planner; and
-- Colony and its performance page still use the TypeScript automatic providers
-  listed in the deletion checklist below.
+- focused native planner laws cover combined supply/labor, concurrent carriers,
+  small carrier capacity, interruption, priority fairness, rollback and restore.
+  The complete kernel proof at this checkpoint passed 363 tests; existing compiler
+  warnings remain disclosed rather than treated as new failures; and
+- water, resource, tree, excavation, deconstruction, stockpile hauling and manual
+  route reconciliation still use TypeScript providers listed in the deletion
+  checklist below. Material-source discovery also still scans canonical IDs.
 
 The next accepted checkpoint must add canonical durable Job/Task composition and
-one real tree → felled trunk → logs lifecycle, then join requirements to the
-tick-owned labor review without activating a partial competing scheduler. A
-compile pass or an isolated record test does not earn that checkpoint.
+one real tree → felled trunk → logs lifecycle, then migrate excavation/resources
+into the same tick-owned review without activating another scheduler. A compile
+pass or an isolated record test does not earn that checkpoint.
 
 ## 2. Ownership and files
 
