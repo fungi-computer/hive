@@ -610,6 +610,16 @@ Vessel compatibility comes from declared vessel capability/definition, not the
 literal item name `pail`. Preserve existing quantity-to-water accounting and 0–7
 field levels; the planner does not define new water physics.
 
+Field-water acquisition is an ordinary obligation in that same bounded planner
+window. It may contribute compatible vessel/contact candidates, but it must not
+preassign a vessel or call route admission from a separate
+`promote_pending_field_water` pass. The current interim helper is therefore a
+cutover target, not the final owner. Tended resources likewise contribute sow,
+tend and harvest tasks to the shared window; the game definition supplies their
+durations and water portions while the existing native resource operations own
+the physical site, finite output and water exchange. No TypeScript provider may
+select workers, price routes or advance those phases after this cutover.
+
 ### Simple bulk contents — accepted September 15 correction
 
 This section supersedes the earlier per-ingredient mixture ledger, all-integer
