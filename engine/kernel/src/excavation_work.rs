@@ -93,25 +93,60 @@ impl Kernel {
             let actor_id = attempt.worker.clone();
             let actor = self.entity(&actor_id)?;
             // Routing retains saved work but earns no effort while travelling.
-            if self.direct.contains_key(&actor) || self.ecs.get::<Destination>(actor).is_some() { continue; }
+            if self.ecs.get::<Destination>(actor).is_some() { continue; }
+            if self.direct.contains_key(&actor) {
+                let attempt = self.ecs.get::<WorkAttempt>(task_entity).cloned().ok_or("work attempt component is missing")?;
+                if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                    self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::WorkerUnavailable } })?;
+                }
+                continue;
+            }
+            if self.ecs.get::<Support>(actor).is_some() {
+                let attempt = self.ecs.get::<WorkAttempt>(task_entity).cloned().ok_or("work attempt component is missing")?;
+                if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                    self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                }
+                continue;
+            }
             let pose = self.world_pose_entity(actor, 0)?;
-            if self.terrain_support_occupied(cell(work))? || self.terrain_support_reserved(cell(work)) { continue; }
+            if self.terrain_support_reserved(cell(work)) { continue; }
+            if self.terrain_support_occupied(cell(work))? {
+                let attempt = self.ecs.get::<WorkAttempt>(task_entity).cloned().ok_or("work attempt component is missing")?;
+                if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                    self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                }
+                continue;
+            }
             let environment = self.environment.as_mut().ok_or("saved work needs environment")?;
             if environment.world.material(cell(work))? != work.expected {
-                self.ecs.entity_mut(task_entity).remove::<ExcavationWork>();
-                self.refresh_state_weight();
+                let attempt = self.ecs.get::<WorkAttempt>(task_entity).cloned().ok_or("work attempt component is missing")?;
+                if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                    self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                }
                 continue;
             }
             let rule = environment.excavation_rules.get(&work.expected).ok_or("saved work has no material rule")?;
             let required = rule.work_seconds;
             let spacing = environment.world.cell_spacing_m();
-            if !within_reach([pose.x, pose.y, pose.z], cell(work), spacing) || self.ecs.get::<Support>(actor).is_some() { continue; }
+            if !within_reach([pose.x, pose.y, pose.z], cell(work), spacing) {
+                let attempt = self.ecs.get::<WorkAttempt>(task_entity).cloned().ok_or("work attempt component is missing")?;
+                if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                    self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                }
+                continue;
+            }
             work.seconds = super::earned_work_seconds(work.seconds, delta, required)?;
             self.ecs.entity_mut(task_entity).insert(work);
             if work.seconds < required { continue; }
             let prepared = match self.environment.as_mut().unwrap().world.prepare_excavation(cell(work), work.expected, work.replacement)? {
                 ExcavationResult::Prepared(prepared) => prepared,
-                ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) | ExcavationResult::StructuresBlocked(_) => continue,
+                ExcavationResult::TerrainBlocked(_) | ExcavationResult::WaterBlocked(_) | ExcavationResult::StructuresBlocked(_) => {
+                    let attempt = self.ecs.get::<WorkAttempt>(task_entity).cloned().ok_or("work attempt component is missing")?;
+                    if let AttemptPhase::Executing { operation, activity } = attempt.phase {
+                        self.settle_attempt(&id, AttemptPhase::Outcome { operation, activity, result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost } })?;
+                    }
+                    continue;
+                },
             };
             // Capacity/geometry admission failure leaves earned work available for retry.
             let owner_party = self.ecs.get::<OwnedByParty>(task_entity).map(|owner| owner.party.clone());
@@ -189,6 +224,18 @@ mod tests {
         kernel.advance_excavation(10.0).unwrap();
         assert_eq!(kernel.ecs.get::<ExcavationWork>(task).unwrap().seconds, 0.0);
         assert_eq!(kernel.environment.as_mut().unwrap().world.material(cell(work)).unwrap(), before);
+    }
+
+    #[test]
+    fn excavation_losing_contact_settles_attempt_and_retains_progress() {
+        let (mut kernel, work) = fixture();
+        begin_excavation(&mut kernel, work);
+        let worker = kernel.entity("worker").unwrap();
+        kernel.ecs.get_mut::<Position>(worker).unwrap().x += 10.0;
+        kernel.advance_excavation(1.0).unwrap();
+        let attempt = kernel.ecs.get::<WorkAttempt>(kernel.entity("task").unwrap()).unwrap();
+        assert!(matches!(attempt.phase, AttemptPhase::Outcome { result: WorkOutcome::Blocked { reason: WorkBlockReason::AccessLost }, .. }));
+        assert!(kernel.ecs.get::<ExcavationWork>(kernel.entity("task").unwrap()).is_some());
     }
 
 }
