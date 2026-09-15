@@ -1,7 +1,7 @@
 # Native work planning: implementation contract
 
 September 15, 2026. Design and staged implementation are underway. The source
-integration checkpoint for the status below is `123a2da4`. This refines and takes
+integration checkpoint for the status below is `e4f28af0`. This refines and takes
 precedence over the planning pseudocode in [01-work](01-work.md). Construction and
 staged processes now run through the first accepted native planner slice; the
 whole Colony cutover remains incomplete.
@@ -34,7 +34,7 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer whole-game completion from the active native planner. At `123a2da4`:
+Do not infer whole-game completion from the active native planner. At `e4f28af0`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
@@ -67,6 +67,14 @@ Do not infer whole-game completion from the active native planner. At `123a2da4`
 - Colony removed the TypeScript construction and process provider calls, so its
   ordinary session and performance pack reach this same active native hook through
   `Kernel::advance_batch`;
+- a planned construction site now contributes a typed bind operation before it
+  can receive supplies. Binding publishes its validated physical contact, then
+  the ordinary native supply owner can reserve and deliver finite material;
+- completed construction attempts are reconciled independently of the candidate
+  index. A finished site may disable its assignment policy immediately without
+  permanently retaining its worker. Authored providers also exclude every actor
+  already held by a canonical WorkAttempt, including native tasks they do not
+  describe;
 - deconstruction designations are native order records. Their contact discovery,
   free-capacity eligibility, route pricing, assignment, physical continuation and
   terminal reconciliation now use that same planner and WorkAttempt owner. Colony
@@ -85,7 +93,9 @@ Do not infer whole-game completion from the active native planner. At `123a2da4`
   policy and schedule components rather than dropping their schema versions;
 - focused native planner laws cover combined supply/labor, concurrent carriers,
   small carrier capacity, interruption, priority fairness, rollback and restore.
-  The complete kernel proof at this checkpoint passed 367 tests; 14 focused
+  The complete kernel proof at the prior excavation checkpoint passed 367 tests;
+  this construction correction passes 49 focused native construction laws, nine
+  real Colony construction scenarios and four shared authored-work laws. 14 focused
   real TypeScript/WASM excavation laws and two reserved-boundary laws pass, and
   the matching optimized WASM build completes. Existing compiler
   warnings remain disclosed rather than treated as new failures; and
@@ -94,12 +104,14 @@ Do not infer whole-game completion from the active native planner. At `123a2da4`
   checklist below. Material-source discovery also still scans canonical IDs.
 
 The next accepted checkpoint must add canonical durable Job/Task composition and
-one real tree → felled trunk → logs lifecycle, then migrate resources into the
-same tick-owned review without activating another scheduler. The existing broad
-resource/brewing lifecycle test is baseline-red: after correcting its missing
-sealed-container read, it reaches a planned brew station but native construction
-creates no delivery for available starter wood. That is a disclosed next
-scheduler defect, not excavation acceptance evidence. Repository-wide engine
+one real tree → felled trunk → logs lifecycle, then migrate resources and water
+into the same tick-owned review without activating another scheduler. The earlier
+available-wood construction stall is fixed and the real multi-building and
+three-level construction scenarios pass. The broader resource/brewing lifecycle
+now reaches process water demand, where the remaining TypeScript water planner can
+emit the same authored water-order identity twice before its delayed creation is
+visible. That parallel authored planner is the next cutover defect; do not preserve
+it with an identity workaround. Repository-wide engine
 types also retain the existing fixture/type backlog, and Fallow is unavailable
 on the current machine PATH. A compile pass or an isolated record test does not
 earn the next checkpoint.
