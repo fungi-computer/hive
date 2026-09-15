@@ -4529,19 +4529,35 @@ impl Kernel {
             self.attempts_by_worker.insert(worker, key.clone());
             return Ok(key);
         }
-        let crate::work_attempt::ActivityRef::Route { destination } = &activity else { return Err("unsupported initial work activity".into()); };
-        let actor = worker_entity;
-        let position = *self.ecs.get::<Position>(actor).ok_or("route attempt worker has no position")?;
-        self.ecs.get::<Body>(actor).ok_or("route attempt worker is not movable")?;
-        let route = self.route_for(actor, position, destination)?;
-        self.direct.remove(&actor);
-        self.ecs.entity_mut(actor).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
-        self.install_route(actor, route);
-        let entity = task_entity;
-        self.ecs.entity_mut(entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
-        self.work_attempts.insert(task, entity);
-        self.attempts_by_worker.insert(worker.clone(), key.clone());
+        let crate::work_attempt::ActivityRef::Route { destination } = activity else { return Err("unsupported initial work activity".into()); };
+        let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
+        self.ecs.get::<Body>(worker_entity).ok_or("route attempt worker is not movable")?;
+        let route = self.route_for(worker_entity, position, &destination)?;
+        self.publish_prepared_route_attempt(task, worker, party, destination, route, key, operation, task_entity, worker_entity)
+    }
+    fn publish_prepared_route_attempt(&mut self, task: String, worker: String, party: String, destination: Point, route: PreparedRoute, key: AttemptKey, operation: OperationKey, task_entity: Entity, worker_entity: Entity) -> Result<AttemptKey> {
+        self.direct.remove(&worker_entity);
+        let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
+        self.ecs.entity_mut(worker_entity).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
+        self.install_route(worker_entity, route);
+        self.ecs.entity_mut(task_entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
+        self.work_attempts.insert(task, task_entity);
+        self.attempts_by_worker.insert(worker, key.clone());
         Ok(key)
+    }
+    fn begin_work_attempt_with_prepared_route(&mut self, task: String, worker: String, party: String, destination: Point, route: PreparedRoute) -> Result<AttemptKey> {
+        if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
+        if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
+        self.ecs.get::<Party>(self.entity(&party)?).ok_or("work attempt party is not a party")?;
+        let worker_entity = self.entity(&worker)?;
+        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("work attempt worker is outside party".into()); }
+        let task_entity = self.entity(&task)?;
+        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != party) { return Err("work attempt task is outside party".into()); }
+        let generation = self.next_work_generation;
+        self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
+        let key = AttemptKey { task: task.clone(), generation };
+        let operation = OperationKey { attempt: key.clone(), sequence: 1 };
+        self.publish_prepared_route_attempt(task, worker, party, destination, route, key, operation, task_entity, worker_entity)
     }
     fn attempt_mut(&mut self, task: &str, generation: u64, sequence: u32) -> Result<&mut WorkAttempt> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
@@ -4645,6 +4661,7 @@ impl Kernel {
         }
         if let crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } = next_activity.clone() {
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
+            let allocation = self.ecs.get::<SupplyAllocation>(entity).cloned();
             let destination = self.entity(&to)?;
             let destination_owned = self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) == Some(current.party.as_str());
             let destination_is_worker = to == current.worker && self.ecs.get::<PartyMember>(destination).map(|member| member.party.as_str()) == Some(current.party.as_str());
@@ -4660,16 +4677,39 @@ impl Kernel {
             let pickup = from != current.worker && to == current.worker;
             let deposit = from == current.worker && to != current.worker;
             if !pickup && !deposit { return Err("material transfer must be worker pickup or worker deposit".into()); }
+            if let Some(allocation) = &allocation {
+                if allocation.state != SupplyAllocationState::Reserved
+                    || allocation.portion != lot
+                    || allocation.quantity != quantity
+                    || (pickup && stock.container != from)
+                    || (deposit && to != allocation.destination)
+                {
+                    return Err("material transfer does not match supply allocation".into());
+                }
+            }
             let capacity = self.ecs.get::<Container>(destination).ok_or("not a container")?.capacity;
             let reason = if stock.container != from || stock.quantity < quantity { Some(WorkBlockReason::MissingInputs) }
               else if self.quantity(&to) + u64::from(quantity) > u64::from(capacity) { Some(WorkBlockReason::CapacityUnavailable) }
+              else if let Some(allocation) = &allocation {
+                  match crate::supply_allocation::validate_capacity(self, lot_entity, destination, quantity, Some(task.as_str())) {
+                      Ok(()) => None,
+                      Err(reason) if reason.contains("source") => Some(WorkBlockReason::MissingInputs),
+                      Err(_) => Some(WorkBlockReason::CapacityUnavailable),
+                  }
+              }
               else if self.contact(source, destination).is_err() { Some(WorkBlockReason::AccessLost) } else { None };
             let operation = OperationKey { attempt: current.key.clone(), sequence: next_sequence };
             if let Some(reason) = reason {
                 self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason } })?;
                 return Ok(());
             }
-            let moved_lot = self.transfer_with_identity(&lot, &from, &to, quantity, !pickup)?;
+            let moved_lot = self.transfer_with_identity_excluding(&lot, &from, &to, quantity, !pickup, allocation.as_ref().map(|_| task.as_str()))?;
+            if let Some(allocation) = allocation {
+                let mut saved = self.ecs.get_mut::<SupplyAllocation>(entity).ok_or("supply allocation disappeared")?;
+                if pickup { saved.portion = moved_lot.clone(); }
+                if deposit { saved.state = SupplyAllocationState::Delivered; }
+                debug_assert_eq!(saved.requirement_owner, allocation.requirement_owner);
+            }
             let activity = crate::work_attempt::ActivityRef::MaterialTransfer {
                 lot: moved_lot, from, to, quantity,
             };
