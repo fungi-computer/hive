@@ -34,7 +34,7 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer whole-game completion from the active native planner. At `0c937295`:
+Do not infer whole-game completion from the active native planner. At `fcb9e48b`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
@@ -99,7 +99,17 @@ Do not infer whole-game completion from the active native planner. At `0c937295`
   snapshot arrays rebuild the ready index after restore. Job carries no party or
   worker field; current authority remains on existing components until the
   documented WorkPool/access cutover. No TypeScript action surface or content
-  consumer was claimed at this foundation checkpoint;
+  consumer was claimed at the foundation checkpoint;
+- the first real Job/Task consumer is active. A generic finite-resource-to-item
+  task publishes a physical felled trunk, and a dependent item-to-items task
+  consumes that exact trunk into six conserved logs. Cancellation, redesignation,
+  save/reload and future-result references use the same native job owner. Colony
+  and its performance pack no longer run the TypeScript tree planner;
+- Draft now releases an automatic WorkAttempt even when it catches the worker at
+  a completed transition between pickup and continuation. The carried lot and
+  native SupplyAllocation remain physical and durable; Go may take the worker
+  immediately and Resume later recovers the same obligation. The focused
+  party/control group passes 72/72 against the real WASM boundary;
 - focused native planner laws cover combined supply/labor, concurrent carriers,
   small carrier capacity, interruption, priority fairness, rollback and restore.
   The complete kernel proof at the prior excavation checkpoint passed 367 tests;
@@ -108,13 +118,13 @@ Do not infer whole-game completion from the active native planner. At `0c937295`
   real TypeScript/WASM excavation laws and two reserved-boundary laws pass, and
   the matching optimized WASM build completes. Existing compiler
   warnings remain disclosed rather than treated as new failures; and
-- water, resource, tree, stockpile hauling and manual
+- water, resource, stockpile hauling and manual
   route reconciliation still use TypeScript providers listed in the deletion
   checklist below. Material-source discovery also still scans canonical IDs.
 
-The next accepted checkpoint must add one real tree → felled trunk → logs consumer
-over the canonical durable Job/Task foundation, then migrate resources and water
-into the same tick-owned review without activating another scheduler. The earlier
+The next accepted checkpoint must migrate process water into the same tick-owned
+review without activating another scheduler, followed by resources and stockpile
+hauling. The earlier
 available-wood construction stall is fixed and the real multi-building and
 three-level construction scenarios pass. The broader resource/brewing lifecycle
 now reaches process water demand, where the remaining TypeScript water planner can
