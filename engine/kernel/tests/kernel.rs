@@ -1,6 +1,19 @@
 use hive_kernel::Kernel;
 use serde_json::{Value, json};
 
+fn host_batch(input: &str) -> String {
+    let mut batch: Value = serde_json::from_str(input).unwrap();
+    if let Some(actions) = batch["actions"].as_array_mut() {
+        for action in actions {
+            if action.get("request").is_none() {
+                let request = action.take();
+                *action = json!({"scope":{"kind":"host"},"request":request});
+            }
+        }
+    }
+    serde_json::to_string(&batch).unwrap()
+}
+
 fn scene(initial: Value, components: Value) -> String {
     serde_json::to_string(&json!({
         "format":"hive-game", "version":1, "game":"test.game",
@@ -190,7 +203,7 @@ fn material_scene(far: bool) -> String {
 fn partial_transfer_conserves_quantity_and_keeps_moved_lot_id() {
     let mut kernel = Kernel::new();
     kernel.load(&material_scene(false)).unwrap();
-    let result: Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"food-lot","from":"source","to":"destination","quantity":2}]}"#).unwrap()).unwrap();
+    let result: Value = serde_json::from_str(&kernel.advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"food-lot","from":"source","to":"destination","quantity":2}]}"#)).unwrap()).unwrap();
     assert_eq!(result["results"][0]["accepted"], true);
     let snap = snapshot(&kernel);
     let rows = snap["scene"]["initial"].as_array().unwrap();
@@ -219,7 +232,7 @@ fn partial_transfer_conserves_quantity_and_keeps_moved_lot_id() {
 fn consume_then_snapshot_restore_preserves_exhausted_lot() {
     let mut kernel = Kernel::new();
     kernel.load(&material_scene(false)).unwrap();
-    kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"food-lot","quantity":5}]}"#).unwrap();
+    kernel.advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"consume","entity":"source","lot":"food-lot","quantity":5}]}"#)).unwrap();
     let saved = kernel.snapshot_json().unwrap();
     kernel.restore_json(&saved).unwrap();
     let snap = snapshot(&kernel);
@@ -237,7 +250,7 @@ fn out_of_reach_transfer_is_rejected_without_change() {
     let mut kernel = Kernel::new();
     kernel.load(&material_scene(true)).unwrap();
     let before = snapshot(&kernel);
-    let result: Value = serde_json::from_str(&kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"food-lot","from":"source","to":"destination","quantity":1}]}"#).unwrap()).unwrap();
+    let result: Value = serde_json::from_str(&kernel.advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"food-lot","from":"source","to":"destination","quantity":1}]}"#)).unwrap()).unwrap();
     assert_eq!(result["results"][0]["accepted"], false);
     assert_eq!(snapshot(&kernel)["scene"], before["scene"]);
     assert_eq!(snapshot(&kernel)["time"], before["time"]);
@@ -263,7 +276,7 @@ fn movement_advances_over_time_and_routes_around_obstacle() {
             json!([]),
         ))
         .unwrap();
-    kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":{"x":2,"y":0,"z":0,"frame":null}}]}"#).unwrap();
+    kernel.advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"walker","destination":{"x":2,"y":0,"z":0,"frame":null}}]}"#)).unwrap();
     let first = snapshot(&kernel)["scene"]["initial"]
         .as_array()
         .unwrap()
@@ -315,14 +328,14 @@ fn supported_world_pose_follows_parent_without_changing_local_pose() {
     let before: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
     assert_eq!(before[0]["world"]["x"], 11.0);
     kernel
-        .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null}}]}"#)
+        .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null}}]}"#))
         .unwrap();
     kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
     let after: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
     assert_eq!(after[0]["local"]["x"], 1.0);
     assert!(after[0]["world"]["x"].as_f64().unwrap() > 11.0);
     kernel
-        .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null},"facing":1}]}"#)
+        .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null},"facing":1}]}"#))
         .unwrap();
     let rotated: Value = serde_json::from_str(&kernel.world_pose_json(r#"["crew"]"#).unwrap()).unwrap();
     assert_eq!(rotated[0]["world"]["z"], 21.0);
@@ -334,14 +347,14 @@ fn supported_move_requires_frame_and_stays_on_surface() {
     kernel.load(&moving_deck_scene()).unwrap();
     let result: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":"ship"}}]}"#)
+            .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":"ship"}}]}"#))
             .unwrap(),
     )
     .unwrap();
     assert_eq!(result["results"][0]["accepted"], true);
     let result: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":null}}]}"#)
+            .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":2,"y":1,"z":0,"frame":null}}]}"#))
             .unwrap(),
     )
     .unwrap();
@@ -357,7 +370,7 @@ fn supported_move_requires_frame_and_stays_on_surface() {
     assert!(crew["components"]["hive.position"]["x"].as_f64().unwrap() > 1.0);
     let result: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":4,"y":1,"z":0,"frame":"ship"}}]}"#)
+        .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":4,"y":1,"z":0,"frame":"ship"}}]}"#))
             .unwrap(),
     )
     .unwrap();
@@ -370,7 +383,7 @@ fn supported_crew_routes_around_deck_obstacle_while_ship_moves() {
     kernel.load(&moving_deck_scene()).unwrap();
     let accepted: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":-1,"y":1,"z":0,"frame":"ship"}},{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null}}]}"#)
+        .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":-1,"y":1,"z":0,"frame":"ship"}},{"kind":"move","entity":"ship","destination":{"x":12,"y":0,"z":20,"frame":null}}]}"#))
             .unwrap(),
     )
     .unwrap();
@@ -398,21 +411,21 @@ fn resolved_contact_and_midvoyage_cargo_restore_are_deterministic() {
     kernel.load(&cargo_scene()).unwrap();
     let transfer: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot","from":"crew","to":"chest","quantity":1}]}"#)
+            .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot","from":"crew","to":"chest","quantity":1}]}"#))
             .unwrap(),
     )
     .unwrap();
     assert_eq!(transfer["results"][0]["accepted"], true);
     let far: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot-2","from":"crew","to":"far-chest","quantity":1}]}"#)
+            .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot-2","from":"crew","to":"far-chest","quantity":1}]}"#))
             .unwrap(),
     )
     .unwrap();
     assert_eq!(far["results"][0]["accepted"], false);
     let cross_frame: Value = serde_json::from_str(
         &kernel
-            .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot-2","from":"crew","to":"world-chest","quantity":1}]}"#)
+            .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"transfer","lot":"cargo-lot-2","from":"crew","to":"world-chest","quantity":1}]}"#))
             .unwrap(),
     )
     .unwrap();
@@ -422,7 +435,7 @@ fn resolved_contact_and_midvoyage_cargo_restore_are_deterministic() {
     kernel = Kernel::new();
     kernel.load(&cargo_scene()).unwrap();
     kernel
-        .advance_json(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":-1,"y":1,"z":0,"frame":"ship"}},{"kind":"move","entity":"ship","destination":{"x":13,"y":0,"z":20,"frame":null}}]}"#)
+        .advance_json(&host_batch(r#"{"delta":0,"writes":[],"actions":[{"kind":"move","entity":"crew","destination":{"x":-1,"y":1,"z":0,"frame":"ship"}},{"kind":"move","entity":"ship","destination":{"x":13,"y":0,"z":20,"frame":null}}]}"#))
         .unwrap();
     kernel.advance_json(r#"{"delta":0.5,"writes":[],"actions":[]}"#).unwrap();
     let saved = kernel.snapshot_json().unwrap();
