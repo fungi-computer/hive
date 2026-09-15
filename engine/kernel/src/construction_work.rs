@@ -140,18 +140,17 @@ impl Kernel {
                 frame: None,
             })
             .collect::<Vec<_>>();
-        let Some(contact) = contacts.first().cloned() else {
+        if contacts.is_empty() {
             return Ok(None);
-        };
+        }
         Ok(Some(crate::work_planner::WorkRequirement {
             task: site.to_owned(),
             party: party.to_owned(),
             priority: policy.priority,
             schedule,
             contacts,
-            next_activity: crate::work_attempt::ActivityRef::Construction {
+            operation: crate::work_planner::WorkOperation::Construction {
                 site: site.to_owned(),
-                contact,
                 mode: crate::work_attempt::ConstructionMode::Work,
             },
         }))

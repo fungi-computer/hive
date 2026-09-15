@@ -47,9 +47,8 @@ pub struct WorkSchedule {
 ///
 /// This is a derived view of one existing task.  It carries no worker claim,
 /// route, progress, or reservation; the shared planner consumes it when it
-/// builds a bounded assignment window.  `next_activity` is the exact typed
-/// operation the domain owner expects after a worker reaches one of the
-/// supplied contacts.
+/// builds a bounded assignment window. `operation` materializes the exact
+/// typed activity after a worker reaches the selected supplied contact.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WorkRequirement {
@@ -58,7 +57,35 @@ pub(crate) struct WorkRequirement {
     pub priority: u8,
     pub schedule: WorkSchedule,
     pub contacts: Vec<Point>,
-    pub next_activity: ActivityRef,
+    pub operation: WorkOperation,
+}
+
+/// The domain operation to perform after reaching a selected contact.
+///
+/// Keeping the contact out of this value is deliberate: the shared matcher
+/// selects a legal contact after contribution, then asks this constructor for
+/// the exact activity witness.  A requirement therefore cannot accidentally
+/// dispatch to a different contact than the one it priced.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields, tag = "kind")]
+pub(crate) enum WorkOperation {
+    Construction { site: String, mode: crate::work_attempt::ConstructionMode },
+    ProcessAttendance { process: String },
+}
+
+impl WorkOperation {
+    pub(crate) fn activity_for_contact(&self, contact: &Point) -> ActivityRef {
+        match self {
+            Self::Construction { site, mode } => ActivityRef::Construction {
+                site: site.clone(),
+                contact: contact.clone(),
+                mode: mode.clone(),
+            },
+            Self::ProcessAttendance { process } => ActivityRef::ProcessAttendance {
+                process: process.clone(),
+            },
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]

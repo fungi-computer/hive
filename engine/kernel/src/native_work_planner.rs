@@ -879,7 +879,12 @@ mod tests {
         assert_eq!(requirement.task, "site");
         assert_eq!(requirement.party, "party");
         assert!(!requirement.contacts.is_empty());
-        assert!(matches!(requirement.next_activity, crate::work_attempt::ActivityRef::Construction { ref site, mode: crate::work_attempt::ConstructionMode::Work, .. } if site == "site"));
+        assert!(matches!(&requirement.operation, crate::work_planner::WorkOperation::Construction { site, mode: crate::work_attempt::ConstructionMode::Work } if site == "site"));
+        assert!(requirement.contacts.len() > 1);
+        let selected = requirement.contacts.last().cloned().unwrap();
+        assert_ne!(selected, requirement.contacts[0]);
+        let activity = requirement.operation.activity_for_contact(&selected);
+        assert!(matches!(activity, crate::work_attempt::ActivityRef::Construction { ref site, ref contact, mode: crate::work_attempt::ConstructionMode::Work } if site == "site" && contact == &selected));
 
         let site_entity = kernel.entity("site").unwrap();
         kernel.ecs.entity_mut(site_entity).remove::<Position>();
