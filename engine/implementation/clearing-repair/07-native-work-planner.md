@@ -1,9 +1,14 @@
 # Native work planning: implementation contract
 
-September 15, 2026. Design ready for bounded implementation; runtime acceptance
-is outstanding. Source reviewed: integration `a9b72a91`, including its retained
-working changes. This refines and takes precedence over the planning pseudocode
-in [01-work](01-work.md). It does not claim the planner exists.
+September 15, 2026. Design and partial foundation are under implementation;
+runtime acceptance is outstanding. The source integration checkpoint for the
+status below is `7d31b478`. This refines and takes precedence over the planning
+pseudocode in [01-work](01-work.md). It does not claim that Colony runs the native
+planner yet.
+
+[Whole-engine ownership audit](08-engine-ownership-audit.md) owns the September 15
+deep-module correction and cross-engine repair order. One shared scheduler is
+settled; domain requirement contributions are not independent schedulers.
 
 ## 1. Outcome and boundary
 
@@ -20,6 +25,34 @@ outcome. Do not export worker/job matrices to the host for routine planning.
 
 The following are proposed new private types/functions. Existing operations named
 below are reuse anchors, not claims that these proposed APIs already exist.
+
+### Current implementation checkpoint
+
+Do not infer completion from the presence of native planner files. At `7d31b478`:
+
+- `work_planner.rs` defines the initial participation, policy, schedule, budget
+  and fairness records;
+- `work_candidates.rs` contains bounded lazy Hungarian correction and typed
+  route outcomes, but `rebuild_indexes` still scans the complete external-ID map;
+  those rebuilt maps are proof scaffolding, not the required maintained indexes;
+- `supply_allocation.rs` and the material mutation owner enforce exact source
+  portion and incoming destination-capacity reservations, including exclusion
+  for the allocation performing its own transfer;
+- the WorkAttempt owner can begin an attempt from a prepared route witness and
+  update an allocation's portion identity when pickup splits a lot;
+- `native_work_planner.rs::plan_construction_supply` can create construction
+  allocations and initial routes, but it is not an accepted construction consumer: it
+  does not yet reconcile route arrival, pickup, onward route, deposit and final
+  acknowledgement, and it has no save/reload lifecycle proof;
+- no native planner hook is active in `Kernel::advance_batch`; process, water,
+  resource, tree, excavation, deconstruction, stockpile and recovery families
+  have not moved to this planner; and
+- Colony and its performance page still use the TypeScript automatic providers
+  listed in the deletion checklist below.
+
+The next accepted checkpoint must finish one real construction-supply lifecycle
+without activating a partial competing scheduler. A compile pass or an isolated
+matching/reservation test does not earn that checkpoint.
 
 ## 2. Ownership and files
 
@@ -50,11 +83,14 @@ scheduler. Keep the coupled implementation in these private modules:
   generation and lazy route-corrected Hungarian matching;
 - `supply_allocation.rs` owns exact source-portion and incoming-capacity
   reservation laws shared by every material mutator;
-- `native_work_planner.rs` owns requirement expansion plus the automatic
-  construction/process/resource/dig/haul reconciliation state machine;
-- existing domain modules such as `construction_work.rs`, `staged_process.rs`,
-  `resource_work.rs`, material transfer and terrain route remain the physical
-  fact and mutation owners.
+- `native_work_planner.rs` joins bounded domain requirements to the shared work
+  owner. Construction/process/resource/dig modules derive their requirements;
+  shared delivery reconciliation and matching have one implementation. Do not
+  grow this file into a family-specific scheduler for each kind of work;
+- existing domain modules such as `construction_work.rs`, `staged_process.rs`
+  and `excavation_work.rs` remain physical fact and mutation owners. Resource
+  operations currently inside `world.rs` should gain a cohesive private module
+  as their consumer migrates; `resource_work.rs` is not an existing reuse anchor.
 
 `world.rs` is the composition and transaction boundary. It may declare the
 private modules, call one bounded planner hook from `advance_batch`, and expose
@@ -65,6 +101,13 @@ those responsibilities to `world.rs`, extract them before accepting that stage.
 The narrow WorkAttempt publication/continuation seam may stay with the existing
 WorkAttempt mutation owner only where it enforces the atomic physical transition;
 planner decisions and family-specific policy do not belong there.
+
+Moving an `impl Kernel` block into another file is only a source organization
+step. Finish the boundary by hiding state, indexes, invalidation, continuation and
+cleanup behind the responsible owner's operations. A domain module supplies a
+typed requirement and physical outcome; it cannot choose workers or run a private
+matcher. All contributions compete in one bounded scheduling window. Prove this
+with construction and process supplies before freezing a public extension API.
 
 ## 3. Canonical records: intent, execution, supplies
 
@@ -173,6 +216,15 @@ Cancelling releases the reservation but does not move that lot. Ordinary transfe
 consumption, material output, removal and construction cancellation all recheck or
 release affected active reservations at their existing mutation owner.
 
+First real consumer acceptance: one worker gradually supplies a six-unit demand;
+two workers also supply it concurrently from one lot, in bounded portions that
+fit their free carrying capacity. Missing sources/workers leave valid waiting
+intent. Exercise route arrival, exact pickup, onward route, deposit and attempt
+acknowledgement, with save/restore mid-carry and preserved split-lot identities.
+Then use the same delivery owner for process input. Do not copy the construction
+draft's matching loop for brewing or fill a second feature-specific state machine.
+The consolidated lifecycle scenario in section 11 owns the overlapping assertions.
+
 ## 5. Declarative water, brewing, resources and tree work
 
 The existing process definition already supplies inputs, quantities, roles,
@@ -219,6 +271,12 @@ Build derived indexes at canonical mutation owners:
 - available stock by party/material/container and spatial bucket;
 - allocations by requirement/source/destination; attempts by task and worker;
 - task dependencies on target geometry, input role and support/contact revision.
+
+The current `rebuild_indexes(world, ids)` and allocation/source scans are unfinished
+groundwork. Reuse the existing container `contents` index; maintain reservation
+and work indexes at accepted mutations. Full reconstruction belongs to load/restore
+and focused reference checks, never the normal planner step. Apply bounds before
+pair expansion and charge records visited, not just the size of returned results.
 
 Retain Bevy QueryState/component membership for direct native iteration where
 appropriate. Maintain additional indexes only for these distinct queries. Do not
@@ -343,7 +401,8 @@ requires a reviewed typed native operation; this is not a general saved callback
 
 1. **Native planner foundation:** work participation/policy/schedule records,
    typed route results, budget/fairness mechanics and direct ECS indexes. Port
-   lazy matching with synthetic native fixtures. No game cutover claim.
+   lazy matching with synthetic native fixtures. Replace the full-ID rebuild on
+   the active path with mutation-maintained indexes. No game cutover claim.
 2. **Real supplies and water:** native allocation/capacity ownership and existing
    operation continuation. Demonstrate two simultaneous deliveries and field fill,
    cancellation/Draft and interrupted cargo in a real Kernel fixture.
