@@ -14,6 +14,8 @@ mod material_output;
 mod material_consumption;
 #[path = "excavation_work.rs"]
 mod excavation_work;
+#[path = "field_work_requirements.rs"]
+mod field_work_requirements;
 #[path = "initial_placement.rs"]
 mod initial_placement;
 #[path = "authored_entities.rs"]
