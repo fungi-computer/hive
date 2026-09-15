@@ -187,6 +187,13 @@ export const encodeDefinition = (
   components: readonly ComponentDefinition<any>[],
   initial: readonly SceneEntity[] = [],
   materialCatalog: readonly { kind: string; unitVolume: number }[],
+  stockpileProfiles: readonly {
+    id: string;
+    materialCategories?: Readonly<Record<string, string>>;
+    allowedCategories?: readonly string[];
+    allowedMaterials?: readonly string[];
+    deniedMaterials?: readonly string[];
+  }[] = [],
 ) =>
   new TextEncoder().encode(
     JSON.stringify({
@@ -198,6 +205,13 @@ export const encodeDefinition = (
         .map((c) => ({ id: c.id, version: c.version, fields: c.fields })),
       initial,
       materialCatalog,
+      stockpileProfiles: stockpileProfiles.map(profile => ({
+        id: profile.id,
+        materialCategories: profile.materialCategories ?? {},
+        allowedCategories: profile.allowedCategories ?? [],
+        allowedMaterials: profile.allowedMaterials ?? [],
+        deniedMaterials: profile.deniedMaterials ?? [],
+      })),
     }),
   );
 

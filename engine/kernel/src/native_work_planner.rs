@@ -38,6 +38,10 @@ struct SupplyRequirement {
     policy: InputPolicy,
     destination: String,
     missing: u32,
+    /// Optional native-domain source restriction. Stockpile demand uses this
+    /// to preserve strict priority rehaul while other supply consumers scan
+    /// their ordinary eligible source set.
+    source_lots: Option<BTreeSet<String>>,
 }
 
 #[derive(Clone)]
@@ -356,6 +360,17 @@ impl Kernel {
             {
                 requirements.push(requirement);
             }
+            if self.ecs.get::<StockpileCell>(entity).is_some() {
+                for demand in super::stockpile_work::collect(self, &task.id, &party)? {
+                    let generation = super::stockpile_work::policy_generation(self.ecs.get::<StockpileCell>(entity).ok_or("stockpile policy disappeared")?);
+                    supply_requirements.push(SupplyRequirement {
+                        owner: task.id.clone(), role: demand.material.clone(), generation,
+                        party: party.clone(), material: demand.material, policy: InputPolicy::Portion,
+                        destination: task.id.clone(), missing: demand.quantity,
+                        source_lots: Some(demand.source_lots),
+                    });
+                }
+            }
         }
         self.ensure_field_water_tasks(&supply_requirements)?;
         progressed += self.assign_native_obligations(&window, &supply_requirements, requirements)?;
@@ -569,7 +584,7 @@ impl Kernel {
             {
                 obligations.push(PlanningObligation::FieldWater(FieldWaterSlot {
                     task: task.id.clone(),
-                    requirement: SupplyRequirement { owner: field.process, role: field.role, generation: field.generation, party: field.party, material: "water".into(), policy: InputPolicy::Portion, destination: field.destination, missing: 1 },
+                    requirement: SupplyRequirement { owner: field.process, role: field.role, generation: field.generation, party: field.party, material: "water".into(), policy: InputPolicy::Portion, destination: field.destination, missing: 1, source_lots: None },
                     contacts: contacts.clone(),
                 }));
             }
@@ -892,6 +907,7 @@ impl Kernel {
                     policy: input.policy,
                     destination,
                     missing,
+                    source_lots: None,
                 })
             })
             .collect::<Vec<_>>();
@@ -1052,6 +1068,7 @@ impl Kernel {
                     policy: InputPolicy::Portion,
                     destination: site.into(),
                     missing,
+                    source_lots: None,
                 })
             })
             .collect::<Vec<_>>();
@@ -1086,25 +1103,23 @@ impl Kernel {
                 break;
             }
             let requirement_start = slots.len();
-            let sources = self
-                .ids
+            let source_ids = requirement.source_lots.as_ref()
+                .map(|sources| sources.iter().cloned().collect::<Vec<_>>())
+                .unwrap_or_else(|| self.ids.keys().cloned().collect::<Vec<_>>());
+            let sources = source_ids
                 .iter()
-                .filter_map(|(lot_id, entity)| {
-                    let lot = self.ecs.get::<Lot>(*entity)?;
-                    if !lot_matches_material(lot, self.ecs.get::<LotWater>(*entity), &requirement.material) {
+                .filter_map(|lot_id| {
+                    let entity = *self.ids.get(lot_id)?;
+                    let lot = self.ecs.get::<Lot>(entity)?;
+                    if !lot_matches_material(lot, self.ecs.get::<LotWater>(entity), &requirement.material) {
                         return None;
                     }
                     let container = self.entity(&lot.container).ok()?;
-                    if self
-                        .ecs
-                        .get::<OwnedByParty>(container)
-                        .map(|owner| owner.party.as_str())
-                        != Some(requirement.party.as_str())
-                        || self
-                            .ecs
-                            .get::<OwnedByParty>(*entity)
-                            .map(|owner| owner.party.as_str())
-                            != Some(requirement.party.as_str())
+                    let public_ground = self.ecs.get::<GroundStock>(container).is_some()
+                        && self.ecs.get::<OwnedByParty>(container).is_none();
+                    let source_party_ok = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || public_ground;
+                    let lot_party_ok = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || (public_ground && self.ecs.get::<OwnedByParty>(entity).is_none());
+                    if !source_party_ok || !lot_party_ok
                         || (self.ecs.get::<GroundStock>(container).is_none()
                             && self.ecs.get::<StockpileCell>(container).is_none())
                         || self.ecs.get::<SealedContainer>(container).is_some()
@@ -1367,7 +1382,7 @@ mod tests {
     use crate::components::{Lot, SupplyAllocation};
     use crate::generation::Cell;
     use crate::structure_geometry::Cardinal;
-    use crate::work_attempt::InterruptCause;
+    use crate::work_attempt::{InterruptCause, WorkAttempt};
     use crate::work_planner::WorkParticipation;
     use serde_json::json;
 
@@ -1478,6 +1493,55 @@ mod tests {
         construction_world_with_capacity(worker_count, 3)
     }
 
+    fn native_stockpile_world(worker_count: usize) -> Kernel {
+        let workers = (1..=worker_count).map(|index| json!({
+            "id": format!("worker-{index}"),
+            "components": {
+                "hive.party-member": { "party": "party" },
+                "hive.position": { "x": 0.0, "y": 0.0, "z": 0.0, "facing": 0.0 },
+                "hive.body": { "speed": 1.0 },
+                "hive.traversal": { "clearanceCells": 1, "maxStepCells": 1 },
+                "hive.container": { "capacity": 3 },
+                "hive.work-participation": { "automatic": true }
+            }
+        })).collect::<Vec<_>>();
+        let mut initial = vec![
+            json!({"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}),
+            json!({"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.ground-stock":{}}}),
+        ];
+        initial.extend(workers);
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":2, "game":"native-stockpile",
+            "components":[],
+            "materialCatalog":[{"kind":"stone-spoil","unitVolume":1}],
+            "stockpileProfiles":[{"id":"materials","allowedMaterials":["stone-spoil"]}],
+            "initial":initial,
+        }).to_string()).unwrap();
+        kernel.load_environment(&crate::environment_definition::tests::fixture("construction")).unwrap();
+        let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap().into_iter().next().flatten().unwrap().cell;
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let contact = Position { x: (surface.x as f64 + 1.0) * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 };
+        for id in std::iter::once("source".to_owned()).chain((1..=worker_count).map(|index| format!("worker-{index}"))) {
+            kernel.ecs.entity_mut(kernel.entity(&id).unwrap()).insert(contact);
+        }
+        let target = kernel.ecs.spawn((
+            ExternalId("target".into()), contact,
+            Container { capacity: 3 },
+            StockpileCell { zone: "target-zone".into(), priority: 2, filter_profile: "materials".into() },
+            OwnedByParty { party: "party".into() },
+        )).id();
+        kernel.ids.insert("target".into(), target);
+        kernel.known.insert("target".into());
+        super::super::stockpile_work::install_planner_state(&mut kernel, "target", target).unwrap();
+        kernel.rebuild_physical_indexes(true).unwrap();
+        // Publish a fresh ownerless ground output after the last rebuild. The
+        // live source index must expose it immediately, without a reload.
+        let output = kernel.prepare_ground_output(contact, "stone-spoil".into(), 3, None, None).unwrap();
+        kernel.publish_material_output(output);
+        kernel
+    }
+
     fn settle_routes(kernel: &mut Kernel) {
         kernel.advance_movement(0.0).unwrap();
         kernel.settle_arrived_work_attempts().unwrap();
@@ -1490,6 +1554,53 @@ mod tests {
         settle_routes(kernel);
         assert!(kernel.reconcile_supply_allocations().unwrap() > 0); // deposit
         assert!(kernel.reconcile_supply_allocations().unwrap() > 0); // acknowledge and retire
+    }
+
+    #[test]
+    fn native_stockpile_delivery_uses_shared_lifecycle_with_draft_restore_and_single_claim() {
+        let mut kernel = native_stockpile_world(2);
+        assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
+        assert_eq!(kernel.supply_allocations().count(), 1, "one exact lot/capacity demand has one claim");
+        let allocation = kernel.supply_allocations().next().unwrap().1.clone();
+        settle_routes(&mut kernel);
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1, "pickup commits custody");
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1, "carried lot starts destination route");
+        let worker = kernel
+            .ecs
+            .get::<Lot>(kernel.entity(&allocation.portion).unwrap())
+            .unwrap()
+            .container
+            .clone();
+        assert_eq!(kernel.quantity_in_container(&worker), 3);
+        assert_eq!(kernel.quantity_in_container("target"), 0);
+
+        // Drafting the carrier interrupts the route while preserving carried
+        // custody. The allocation remains the sole durable continuation.
+        kernel.ecs.get_mut::<WorkParticipation>(kernel.entity(&worker).unwrap()).unwrap().automatic = false;
+        let task = kernel.work_attempts.iter().find_map(|(task, entity)| (kernel.ecs.get::<WorkAttempt>(*entity).is_some_and(|attempt| attempt.worker == worker)).then_some(task.clone())).expect("carrier task");
+        let operation = kernel.work_attempt(&task).expect("stockpile attempt").current_operation().unwrap().clone();
+        kernel.interrupt_work_attempt(task.clone(), operation.attempt.generation, operation.sequence, InterruptCause::WorkerUnavailable).unwrap();
+        assert_eq!(kernel.reconcile_supply_allocations().unwrap(), 1);
+        assert_eq!(kernel.quantity_in_container(&worker), 3);
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        restored.ecs.get_mut::<WorkParticipation>(restored.entity(&worker).unwrap()).unwrap().automatic = true;
+        restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 0.0;
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 0, "drafted carrier does not advance while stopped");
+        restored.ecs.get_mut::<Body>(restored.entity(&worker).unwrap()).unwrap().speed = 1.0;
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "saved carried allocation resumes");
+        settle_routes(&mut restored);
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "deposit commits exact quantity");
+        assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "receipt retires once");
+        assert_eq!(restored.quantity_in_container("target"), 3);
+        assert_eq!(restored.quantity_in_container("source"), 0);
+        assert_eq!(restored.quantity_in_container(&worker), 0);
+        assert!(restored.supply_allocations().next().is_none());
+        let lot = restored.ecs.get::<Lot>(restored.entity(&allocation.portion).unwrap()).unwrap();
+        assert_eq!(lot.container, "target");
+        assert_eq!(lot.quantity, 3);
     }
 
     #[test]
@@ -1824,6 +1935,7 @@ mod tests {
             policy: InputPolicy::Portion,
             destination: "site".into(),
             missing: 4,
+            source_lots: None,
         };
         let admitted = kernel
             .plan_supply_requirements(&[

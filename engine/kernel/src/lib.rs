@@ -20,6 +20,7 @@ pub mod finite_release;
 pub mod emission_definition;
 pub mod staged_process;
 pub mod material_catalog;
+mod stockpile_definition;
 pub mod water;
 mod quantity;
 mod combat;

@@ -480,6 +480,8 @@ pub struct Scene {
     pub initial: Vec<EntityRecord>,
     #[serde(rename = "materialCatalog")]
     pub material_catalog: Vec<crate::material_catalog::Definition>,
+    #[serde(default, rename = "stockpileProfiles")]
+    pub stockpile_profiles: Vec<crate::stockpile_definition::StockpileProfileDefinition>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -93,21 +93,13 @@ impl Kernel {
                 .get::<Container>(destination)
                 .ok_or("supply admission destination is not a container")?
                 .capacity;
-            if self
-                .ecs
-                .get::<OwnedByParty>(source_container)
-                .map(|owner| owner.party.as_str())
-                != Some(request.party.as_str())
-                || self
-                    .ecs
-                    .get::<OwnedByParty>(destination)
-                    .map(|owner| owner.party.as_str())
-                    != Some(request.party.as_str())
-                || self
-                    .ecs
-                    .get::<OwnedByParty>(source)
-                    .map(|owner| owner.party.as_str())
-                    != Some(request.party.as_str())
+            let public_ground = self.ecs.get::<GroundStock>(source_container).is_some()
+                && self.ecs.get::<OwnedByParty>(source_container).is_none();
+            let source_party_ok = self.ecs.get::<OwnedByParty>(source_container).map(|owner| owner.party.as_str()) == Some(request.party.as_str()) || public_ground;
+            let lot_party_ok = self.ecs.get::<OwnedByParty>(source).map(|owner| owner.party.as_str()) == Some(request.party.as_str()) || (public_ground && self.ecs.get::<OwnedByParty>(source).is_none());
+            if !source_party_ok
+                || self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) != Some(request.party.as_str())
+                || !lot_party_ok
             {
                 return Err("supply admission party ownership mismatch".into());
             }

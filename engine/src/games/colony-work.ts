@@ -158,11 +158,6 @@ export function resourceWorkProvider(ctx: WriteContext, suspendedActors: Readonl
   };
 }
 
-import {
-  StockpileCell,
-  planStockpileDeliveries,
-  type StockpileFilterProfile,
-} from "../sdk/stockpile";
 
 /** Tended resources request finite field water through the same visible fetch
  * work as brewing. A pail must actually contain enough water before tending is
@@ -292,22 +287,6 @@ export const ColonyTreePolicy = component<{ designated: boolean; party: EntityId
   { version: 3, fields: { designated: "boolean", party: "nullable-entity", job: "nullable-entity" } },
 );
 
-const colonyStockpileProfiles: Readonly<
-  Record<string, StockpileFilterProfile>
-> = {
-  wood: {
-    materialCategories: { wood: "building" },
-    allowedCategories: ["building"],
-  },
-  food: {
-    materialCategories: { bread: "food", malt: "brewing", mugwort: "brewing" },
-    allowedCategories: ["food", "brewing"],
-  },
-  spoil: {
-    materialCategories: { "soil-spoil": "raw", "stone-spoil": "raw" },
-    allowedCategories: ["raw"],
-  },
-};
 export function colonyGroundStockPhase(ctx: WriteContext) {
   const stockContainers = new Set(
     ctx.query(query(GroundStock)).map((row) => row.id),
@@ -326,7 +305,6 @@ export const colonyWorkSystem = createWorkSystem({
     OwnedByParty,
     PartyMember,
     GroundStock,
-    StockpileCell,
     ExcavationOrder,
     FiniteResource,
     ResourceSite,
@@ -361,8 +339,6 @@ export const colonyWorkSystem = createWorkSystem({
   phases: [
     colonyResourceWaterPhase,
     colonyGroundStockPhase,
-    (ctx) =>
-      planStockpileDeliveries(ctx, { filterProfiles: colonyStockpileProfiles, batchQuantity: 3 }),
   ],
   providers: [
     manualRouteProvider,

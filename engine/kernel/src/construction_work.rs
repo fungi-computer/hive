@@ -497,6 +497,12 @@ impl Kernel {
         // A process input port is a declared station contact. Keep this
         // narrow lookup beside construction contacts so both consumers feed
         // the same delivery lifecycle and neither invents a destination.
+        if let Some(entity) = self.ids.get(site).copied()
+            && self.ecs.get::<StockpileCell>(entity).is_some()
+        {
+            let position = *self.ecs.get::<Position>(entity).ok_or("stockpile cell lost its contact")?;
+            return Ok(vec![Point { x: position.x, y: position.y, z: position.z, frame: None }]);
+        }
         if self
             .ids
             .get(site)
@@ -745,13 +751,23 @@ impl Kernel {
             enabled: false,
             ..policy
         });
-        for (name, value) in &definition.on_complete.components { self.registry.insert(&mut self.ecs, site_entity, name, value).expect("validated completion component"); }
+        for (name, value) in &definition.on_complete.components {
+            self.registry.insert(&mut self.ecs, site_entity, name, value).expect("validated completion component");
+        }
+        if self.ecs.get::<StockpileCell>(site_entity).is_some() {
+            super::stockpile_work::install_planner_state(self, site_id, site_entity)?;
+            self.visible_source_containers.insert(site_id.to_owned());
+        }
         for port in &definition.on_complete.ports {
             let id = format!("{site_id}:{}", port.key);
             let entity = self.ecs.spawn(ExternalId(id.clone())).id();
             self.ids.insert(id.clone(), entity); self.known.insert(id.clone());
             self.ecs.entity_mut(entity).insert(site_owner.clone());
             for (name, value) in &port.components { self.registry.insert(&mut self.ecs, entity, name, value).expect("validated completion port component"); }
+            if self.ecs.get::<StockpileCell>(entity).is_some() {
+                super::stockpile_work::install_planner_state(self, &id, entity)?;
+                self.visible_source_containers.insert(id.clone());
+            }
             if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
             if self.ecs.get::<Container>(entity).is_some() { self.contents.insert(id, BTreeSet::new()); }
         }

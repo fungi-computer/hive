@@ -42,6 +42,14 @@ export const colonyMaterialCatalog = [
   ...["water", "ale", "wood", "wood-felled", "bread", "malt", "mugwort", "barm", "keg", "pail", "spent-grain", "soil-spoil", "stone-spoil"].map(kind => ({ kind, unitVolume: 1 })),
 ] as const;
 
+/** Content policy compiled into the native stockpile admission table. */
+export const colonyStockpileProfiles = [
+  { id: "wood", materialCategories: { wood: "building" }, allowedCategories: ["building"] },
+  { id: "food", materialCategories: { bread: "food", malt: "brewing", mugwort: "brewing" }, allowedCategories: ["food", "brewing"] },
+  { id: "spoil", materialCategories: { "soil-spoil": "raw", "stone-spoil": "raw" }, allowedCategories: ["raw"] },
+  { id: "materials", materialCategories: {}, allowedCategories: [], allowedMaterials: ["wood", "stone-spoil", "soil-spoil", "bread", "malt", "mugwort", "barm", "keg", "ale", "spent-grain"] },
+] as const;
+
 export { Worker } from "./colony-components";
 export { ExcavationOrder } from "../sdk/common";
 export { ColonyTree, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
@@ -919,7 +927,7 @@ export const colonyPack: GamePack = {
       ];
     },
   },
-  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyMaterialCatalog),
+  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyMaterialCatalog, colonyStockpileProfiles),
 };
 
 const neutralColonyInitial = [
@@ -938,6 +946,6 @@ const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
 export const colonyServerPack: GamePack = {
   ...colonyPack,
   localScope: undefined,
-  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyMaterialCatalog),
+  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyMaterialCatalog, colonyStockpileProfiles),
   environmentDefinition: neutralColonyEnvironmentDefinition,
 };

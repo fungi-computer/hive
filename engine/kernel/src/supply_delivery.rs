@@ -287,4 +287,9 @@ impl Kernel {
         self.refresh_state_weight();
         Ok(())
     }
+
+    pub(crate) fn cancel_and_retire_supply_allocation(&mut self, task: &str) -> Result<()> {
+        self.cancel_supply_allocation(task)?;
+        self.retire_terminal_supply_allocation(task)
+    }
 }

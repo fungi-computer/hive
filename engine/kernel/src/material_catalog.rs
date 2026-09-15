@@ -39,6 +39,8 @@ impl Catalog {
         self.volumes.get(kind).copied()
     }
 
+    pub fn contains(&self, kind: &str) -> bool { self.volumes.contains_key(kind) }
+
     pub fn into_definitions(self) -> Vec<Definition> {
         self.volumes
             .into_iter()
