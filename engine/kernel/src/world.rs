@@ -1928,7 +1928,8 @@ pub struct Kernel {
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
-    jobs: BTreeMap<String, crate::job::JobRecord>,
+    job_entities: BTreeMap<String, Entity>,
+    task_entities: BTreeMap<String, Entity>,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -2096,7 +2097,8 @@ impl Kernel {
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
-            jobs: BTreeMap::new(),
+            job_entities: BTreeMap::new(),
+            task_entities: BTreeMap::new(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -2105,20 +2107,34 @@ impl Kernel {
     }
 
     fn create_job(&mut self, id: String, plan: crate::job::JobPlan) -> Result<String> {
-            if let Some(existing) = self.jobs.get(&id) {
+            if let Some(existing_entity) = self.job_entities.get(&id).copied() {
                 let candidate = crate::job::admit(&id, plan)?;
-                if existing != &candidate { return Err("job replay identity conflicts with committed plan".into()); }
+                let existing = self.ecs.get::<crate::job::JobComponent>(existing_entity).ok_or("job index is stale")?;
+                if existing.definition != candidate.definition || existing.party != candidate.party { return Err("job replay identity conflicts with committed plan".into()); }
                 return Ok(id);
             }
         if self.entity(&plan.party).is_err() { return Err("job party is missing".into()); }
-        let job = crate::job::admit(&id, plan)?;
-        self.jobs.insert(id.clone(), job);
+        let admitted = crate::job::admit(&id, plan)?;
+        let job_entity = self.ecs.spawn((ExternalId(id.clone()), crate::job::JobComponent { version: admitted.version, definition: admitted.definition.clone(), definition_version: admitted.definition_version, party: admitted.party.clone(), disposition: admitted.disposition.clone(), task_ids: admitted.tasks.values().map(|task| task.id.clone()).collect() }, OwnedByParty { party: admitted.party.clone() })).id();
+        self.ids.insert(id.clone(), job_entity); self.known.insert(id.clone()); self.job_entities.insert(id.clone(), job_entity);
+        for task in admitted.tasks.values() {
+            let entity = self.ecs.spawn((ExternalId(task.id.clone()), crate::job::TaskComponent { version: crate::job::JOB_VERSION, job: id.clone(), key: task.key.clone(), after: task.after.as_ref().map(|key| format!("{id}:task:{key}")), operation: task.operation.clone(), disposition: task.disposition.clone() }, OwnedByParty { party: admitted.party.clone() })).id();
+            self.ids.insert(task.id.clone(), entity); self.known.insert(task.id.clone()); self.task_entities.insert(task.id.clone(), entity);
+        }
         Ok(id)
     }
 
     fn cancel_job(&mut self, id: &str) -> Result<()> {
-        let job = self.jobs.get_mut(id).ok_or("job is missing")?;
-        job.cancel();
+        let entity = self.job_entities.get(id).copied().ok_or("job is missing")?;
+        let mut job = self.ecs.get_mut::<crate::job::JobComponent>(entity).ok_or("job component is missing")?;
+        job.disposition = crate::job::JobDisposition::Cancelled;
+        for task_id in job.task_ids.clone() {
+            if let Some(task_entity) = self.task_entities.get(&task_id).copied() {
+                if let Some(mut task) = self.ecs.get_mut::<crate::job::TaskComponent>(task_entity) {
+                    if matches!(task.disposition, crate::job::TaskDisposition::Pending) { task.disposition = crate::job::TaskDisposition::Cancelled; }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -3398,7 +3414,7 @@ impl Kernel {
             next_party_sequence: self.next_party_sequence,
             work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
             planner: self.planner.clone(),
-            jobs: self.jobs.values().cloned().collect(),
+            jobs: Vec::new(),
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -3499,12 +3515,6 @@ impl Kernel {
         candidate.next_party_sequence = state.next_party_sequence;
         state.planner.validate().map_err(str::to_owned)?;
         candidate.planner = state.planner;
-        let mut jobs = BTreeMap::new();
-        for job in state.jobs {
-            job.validate_restore()?;
-            if jobs.insert(job.id.clone(), job).is_some() { return Err("duplicate saved job".into()); }
-        }
-        candidate.jobs = jobs;
         candidate.validate_party_receipts()?;
         for (task, attempt) in attempts {
             let entity = candidate.entity(&task)?;
@@ -5194,7 +5204,8 @@ impl Kernel {
                 targets.push(plan.party.as_str());
             }
             Action::CancelJob { id } => {
-                let job = self.jobs.get(id).ok_or("job is missing")?;
+                let entity = self.job_entities.get(id).copied().ok_or("job is missing")?;
+                let job = self.ecs.get::<crate::job::JobComponent>(entity).ok_or("job component is missing")?;
                 if job.party != *party { return Err("scoped job is outside party".into()); }
             }
         }
