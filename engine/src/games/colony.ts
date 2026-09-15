@@ -877,12 +877,11 @@ export const colonyPack: GamePack = {
           .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
           .map(([party, stores]) => ({
             id: `party-store-${party}`,
-            subjects: stores.sort(),
             label: "Party store",
             value: stores.reduce((sum, store) => sum + total(store), 0),
           })),
         ...stationFacts,
-        { id: "worker-carried", subjects: partyWorkers, label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
+        { id: "worker-carried", label: "Workers carry", value: partyWorkers.reduce((sum, worker) => sum + total(worker), 0) },
         ...partyWorkers.map((worker, index) => ({
           id: `worker-${worker}-control`, subjects: [worker],
           label: "Party worker",
@@ -898,7 +897,7 @@ export const colonyPack: GamePack = {
           label: "Worker digging",
           value: context.query(query(ExcavationWork)).find((row) => row.id === worker)?.get(ExcavationWork).seconds ?? 0,
         })),
-        { id: "spoil-carried", subjects: partyWorkers, label: "Spoil carried", value: partyWorkers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
+        { id: "spoil-carried", label: "Spoil carried", value: partyWorkers.reduce((sum, worker) => sum + lots.filter((lot) => lot.container === worker && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil")).reduce((total, lot) => total + lot.quantity, 0), 0) },
         { id: "spoil-ground", label: "Loose spoil", value: (() => {
           const stockContainers = new Set(context.query(query(GroundStock)).map(row => row.id));
           return context.query(query(MaterialLot)).reduce((sum, row) => {

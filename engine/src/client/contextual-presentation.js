@@ -81,9 +81,14 @@ function acceptsSelectedSubjects(control, subjects, selected) {
 }
 
 function partitionControls(controls, targets, selected, current) {
-  const targetMap = new Map(
-    targets.map((target) => [target.commandId, target.subjects]),
-  );
+  const targetMap = new Map();
+  for (const target of targets) {
+    const subjects = targetMap.get(target.commandId) ?? [];
+    const known = new Set(subjects);
+    for (const subject of target.subjects)
+      if (!known.has(subject)) { known.add(subject); subjects.push(subject); }
+    targetMap.set(target.commandId, subjects);
+  }
   const selectionControls = [];
   const worldControls = [];
   for (const control of controls) {

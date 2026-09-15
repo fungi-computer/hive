@@ -16,6 +16,8 @@ export interface WhistleObservationProjection {
 }
 
 type WhistleContext = Pick<ReadContext, "query">;
+const MAX_CONTEXTUAL_TARGET_ROWS = 256;
+const MAX_CONTEXTUAL_SUBJECTS_PER_ROW = 128;
 
 function availability(value: GameCommandAvailability | undefined): WhistleAvailability {
   if (value === undefined || value.status === "available") return { status: "available" };
@@ -23,12 +25,17 @@ function availability(value: GameCommandAvailability | undefined): WhistleAvaila
   return { status: "unavailable", reason: value.reason };
 }
 
-function stableSubjects(value: readonly EntityId[] | undefined): readonly EntityId[] {
+function stableSubjectChunks(value: readonly EntityId[] | undefined): readonly (readonly EntityId[])[] {
   if (value === undefined || value.length === 0) return [];
+  if (value.length > MAX_CONTEXTUAL_TARGET_ROWS * MAX_CONTEXTUAL_SUBJECTS_PER_ROW)
+    throw new Error("Whistle contextual target row limit exceeded");
   const subjects = [...new Set(value)];
-  if (subjects.length > 128 || subjects.some(id => id.length > 128 || entity(id) !== id))
+  if (subjects.some(id => id.length > 128 || entity(id) !== id))
     throw new Error("invalid Whistle contextual subject");
-  return subjects;
+  const chunks: EntityId[][] = [];
+  for (let offset = 0; offset < subjects.length; offset += MAX_CONTEXTUAL_SUBJECTS_PER_ROW)
+    chunks.push(subjects.slice(offset, offset + MAX_CONTEXTUAL_SUBJECTS_PER_ROW));
+  return chunks;
 }
 function jsonValue(value: unknown): WhistleJsonValue {
   if (value === null || typeof value === "boolean" || typeof value === "number" || typeof value === "string") return value;
@@ -75,10 +82,14 @@ export function createWhistleObservationProjector(pack: GamePack): WhistleObserv
       currentContext = context;
       const agentSource = whistle.snapshot().agent;
       const agentSignature = agentSource.map(row => `${row.commandId}\u0000${row.availability.status}\u0000${row.availability.status === "unavailable" ? row.availability.reason : ""}`).join("\u0001");
-      const targets = Object.entries(pack.commands ?? {}).flatMap(([name, definition]) => {
-        const subjects = stableSubjects(definition.subjects?.(context));
-        return subjects.length === 0 ? [] : [{ commandId: `${pack.id}:${name}`, subjects }];
-      });
+      const targets = Object.entries(pack.commands ?? {}).flatMap(([name, definition]) =>
+        stableSubjectChunks(definition.subjects?.(context)).map(subjects => ({
+          commandId: `${pack.id}:${name}`,
+          subjects,
+        })),
+      );
+      if (targets.length > MAX_CONTEXTUAL_TARGET_ROWS)
+        throw new Error("Whistle contextual target row limit exceeded");
       const sameTargets = previousTargets !== undefined && previousTargets.length === targets.length &&
         previousTargets.every((candidate, index) => candidate.commandId === targets[index].commandId &&
           candidate.subjects.length === targets[index].subjects.length &&

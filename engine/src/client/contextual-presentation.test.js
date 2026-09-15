@@ -26,6 +26,22 @@ test("contextual controls join authoritative command targets by canonical ID", (
   assert.equal(result.world.controls[0].commandId, "colony:designateTrees");
 });
 
+test("contextual controls reunite bounded target rows for one command", () => {
+  const result = projectContextualPresentation({
+    facts: [],
+    controls: [{ commandId: "colony:draft", label: "Draft", selection: "entities" }],
+    targets: [
+      { commandId: "colony:draft", subjects: ["worker-1", "worker-2"] },
+      { commandId: "colony:draft", subjects: ["worker-2", "worker-3"] },
+    ],
+    selectedIds: ["worker-3"],
+    currentIds: ["worker-1", "worker-2", "worker-3"],
+  });
+
+  assert.equal(result.selection.controls.length, 1);
+  assert.deepEqual(result.selection.controls[0].subjects, ["worker-1", "worker-2", "worker-3"]);
+});
+
 test("localized fact labels never choose a contextual command target", () => {
   const result = projectContextualPresentation({
     facts: [{ id: "unfinished", label: "Finished construction", subjects: ["unfinished"] }],

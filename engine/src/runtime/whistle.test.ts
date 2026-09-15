@@ -32,3 +32,22 @@ test("session owned Whistle projection reuses unchanged rows and tracks dynamic 
   assert.deepEqual(unavailable.targets, []);
   assert.equal(unavailable.revision, first.revision + 1);
 });
+
+test("contextual subjects are emitted as bounded rows without losing large parties", () => {
+  const subjects = Array.from({ length: 200 }, (_, index) => entity(`worker.${index}`));
+  const pack: GamePack = {
+    id: "whistle-many-subjects", version: 1, definition: encodeDefinition("whistle-many-subjects", []), components: [], systems: [],
+    commands: {
+      draft: command({
+        title: "Draft", category: "People", description: "Draft selected party members.", input: z.object({ workers: z.array(z.string()) }).strict(),
+        subjects: () => [...subjects, subjects[0]], writes: [], run: () => ({ actions: [], writes: [] }),
+      }),
+    },
+  };
+
+  const projected = createWhistleObservationProjector(pack).project({ query: () => [] });
+  assert.equal(projected.targets.length, 2);
+  assert.deepEqual(projected.targets.map(target => target.commandId), ["whistle-many-subjects:draft", "whistle-many-subjects:draft"]);
+  assert.deepEqual(projected.targets.map(target => target.subjects.length), [128, 72]);
+  assert.deepEqual(projected.targets.flatMap(target => target.subjects), subjects);
+});
