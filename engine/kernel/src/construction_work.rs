@@ -208,6 +208,7 @@ impl Kernel {
             self.ids.remove(&lot_id); self.known.remove(&lot_id); self.ecs.despawn(lot_entity);
         }
         self.ids.remove(site_id); self.known.remove(site_id); self.contents.remove(site_id); self.ecs.despawn(site_entity);
+        self.refresh_planner_index(site_id);
         self.refresh_state_weight();
         Ok(())
     }
@@ -590,7 +591,8 @@ impl Kernel {
         let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, staged,
             crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true },
             crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
-        self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site, BTreeSet::new()); self.state_weight += added;
+        self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site.clone(), BTreeSet::new()); self.state_weight += added;
+        self.refresh_planner_index(&site);
         Ok(())
     }
 
@@ -694,6 +696,15 @@ impl Kernel {
         let mut finished = state.clone();
         finished.phase = ConstructionPhase::Finished;
         self.ecs.entity_mut(site_entity).insert((finished, SealedContainer {}));
+        let policy = self
+            .ecs
+            .get::<crate::work_planner::WorkPolicy>(site_entity)
+            .cloned()
+            .ok_or("construction site has no work policy")?;
+        self.ecs.entity_mut(site_entity).insert(crate::work_planner::WorkPolicy {
+            enabled: false,
+            ..policy
+        });
         for (name, value) in &definition.on_complete.components { self.registry.insert(&mut self.ecs, site_entity, name, value).expect("validated completion component"); }
         for port in &definition.on_complete.ports {
             let id = format!("{site_id}:{}", port.key);
@@ -704,6 +715,7 @@ impl Kernel {
             if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
             if self.ecs.get::<Container>(entity).is_some() { self.contents.insert(id, BTreeSet::new()); }
         }
+        self.refresh_planner_index(site_id);
         self.refresh_state_weight();
         Ok(true)
     }

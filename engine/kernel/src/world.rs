@@ -699,6 +699,22 @@ mod construction_tests {
     }
 
     #[test]
+    fn construction_updates_the_native_task_index_without_a_rebuild() {
+        let (mut kernel, surface, _) = world();
+        let rebuilds = kernel.planner_index_rebuilds();
+        finish_test_structure(&mut kernel, "indexed-floor", "floor", surface, "worker-1");
+        assert!(crate::work_candidates::due_tasks_from_index(
+            &kernel.planner_indexes,
+            "party",
+            u64::MAX,
+            usize::MAX,
+        )
+        .iter()
+        .all(|task| task.id != "indexed-floor"));
+        assert_eq!(kernel.planner_index_rebuilds(), rebuilds);
+    }
+
+    #[test]
     fn water_contacts_are_bounded_three_dimensional_and_stable() {
         let (mut kernel, _, _) = world();
         assert!(kernel.water_contacts_json("[]").is_err());
@@ -820,6 +836,14 @@ mod construction_tests {
             "kind":"plan-construction","party":"party","catalog":catalog,"site":site,"target":{"kind":"cell","cell":{"x":at.x,"y":at.y,"z":at.z},"orientation":"north"}
         }}]}).to_string()).unwrap()).unwrap();
         assert_eq!(planned["results"][0]["accepted"], true, "{planned}");
+        assert!(crate::work_candidates::due_tasks_from_index(
+            &kernel.planner_indexes,
+            "party",
+            u64::MAX,
+            usize::MAX,
+        )
+        .iter()
+        .any(|task| task.id == site));
         let access: serde_json::Value = serde_json::from_str(&kernel.construction_access_json(&serde_json::to_string(&[site]).unwrap()).unwrap()).unwrap();
         let selected = &access[0]["contacts"][0];
         let contact = Point {
@@ -4408,6 +4432,7 @@ impl Kernel {
                 self.ecs.entity_mut(existing).insert(crate::work_planner::WorkPolicy { party, priority: 0, enabled: true });
                 self.ecs.entity_mut(existing).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
             }
+            self.refresh_planner_index(&process_id);
             self.refresh_state_weight();
             return Ok(process_id);
         }
@@ -4424,6 +4449,7 @@ impl Kernel {
         }
         self.ids.insert(process_id.clone(), entity);
         self.known.insert(process_id.clone());
+        self.refresh_planner_index(&process_id);
         self.refresh_state_weight();
         Ok(process_id)
     }
@@ -4511,8 +4537,16 @@ impl Kernel {
             state.phase = ProcessPhase::Blocked; state.blocked_reason = crate::staged_process::transition_block_reason(&reason).into();
             self.ecs.entity_mut(self.entity(process_id)?).insert(state); self.refresh_state_weight(); return Ok(());
         }
-        if usize::from(state.stage_index + 1) >= definition.stages.len() { self.remove_process_bindings(process_id)?; state.phase = ProcessPhase::Complete; } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; }
+        if usize::from(state.stage_index + 1) >= definition.stages.len() {
+            self.remove_process_bindings(process_id)?;
+            state.phase = ProcessPhase::Complete;
+            let process_entity = self.entity(process_id)?;
+            if let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(process_entity).cloned() {
+                self.ecs.entity_mut(process_entity).insert(crate::work_planner::WorkPolicy { enabled: false, ..policy });
+            }
+        } else { state.stage_index += 1; state.progress_seconds = 0.0; state.entered_tick = self.revision; state.phase = ProcessPhase::Waiting; }
         self.ecs.entity_mut(self.entity(process_id)?).insert(state);
+        self.refresh_planner_index(process_id);
         self.refresh_state_weight();
         Ok(())
     }
