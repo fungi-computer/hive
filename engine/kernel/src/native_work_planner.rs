@@ -75,8 +75,17 @@ impl Kernel {
     /// advances the keyed attempt lifecycle. The current checkpoint keeps the
     /// older party field on the policy until the access/work-pool conversion.
     pub(crate) fn advance_native_work_planner(&mut self, tick: u64) -> Result<usize> {
-        let _ = self.reconcile_supply_allocations()?;
-        let window = self.next_native_planning_window(tick);
+        let mut progressed = self.reconcile_supply_allocations()?;
+        if !self.planner_indexes.has_due_task(tick) {
+            return Ok(progressed);
+        }
+        let mut window = self.next_native_planning_window(tick);
+        // Priority is authoritative for admission, while lower tiers remain due
+        // for a later window. Advancing every reviewed schedule here would let a
+        // continuously replenished high tier starve lower-priority work.
+        if let Some(priority) = window.tasks.first().map(|task| task.priority) {
+            window.tasks.retain(|task| task.priority == priority);
+        }
         // Persist review progress before any early return. A witnessed
         // no-path/deferred route therefore waits for the normal retry window,
         // while accepted mutations can wake it by updating its schedule.
@@ -109,7 +118,6 @@ impl Kernel {
         // A completed route is continued into the domain operation using the
         // exact contact it reached; terminal domain outcomes are acknowledged
         // only after their physical owner has published them.
-        let mut progressed = 0;
         for task in &window.tasks {
             let Some(attempt) = self.work_attempt(&task.id).cloned() else { continue; };
             let crate::work_attempt::AttemptPhase::Outcome { operation, activity, result } = attempt.phase else { continue; };
@@ -226,7 +234,7 @@ impl Kernel {
                 let quantity = remaining.min(limit);
                 if slot.policy == InputPolicy::WholeLot && quantity != remaining { break; }
                 let mut portion = slot.clone();
-                portion.task = format!("supply-slot-{}", supply_slots.len());
+                portion.task = format!("native:supply-slot:{}", supply_slots.len());
                 portion.quantity = quantity;
                 supply_slots.push(portion);
                 remaining -= quantity;
@@ -253,12 +261,8 @@ impl Kernel {
         }
         if obligations.is_empty() { return Ok(0); }
 
-        // Priority is authoritative rather than a small distance preference.
-        // The source window is already priority/fairness ordered; only its
-        // highest contributing tier competes in this solver invocation.
-        let priority_by_owner = source_window.tasks.iter().map(|task| (task.id.as_str(), task.priority)).collect::<BTreeMap<_, _>>();
-        let highest_priority = *priority_by_owner.get(obligations[0].owner()).ok_or("native obligation owner is outside planning window")?;
-        obligations.retain(|obligation| priority_by_owner.get(obligation.owner()).copied() == Some(highest_priority));
+        // The caller contributes one priority tier at a time. Lower tiers keep
+        // their due schedule and enter the next fair window.
 
         let bound = |worker: &PlannerWorker, obligation: &PlanningObligation| -> Option<f64> {
             if worker.party != obligation.party() { return None; }
@@ -289,6 +293,14 @@ impl Kernel {
             }).collect(),
         };
         let obligations_by_task = obligations.iter().map(|obligation| (obligation.task().to_owned(), obligation.clone())).collect::<BTreeMap<_, _>>();
+        if obligations_by_task.len() != obligations.len()
+            || obligations.iter().any(|obligation| {
+                matches!(obligation, PlanningObligation::Supply(_))
+                    && (self.ids.contains_key(obligation.task()) || labor_by_task.contains_key(obligation.task()))
+            })
+        {
+            return Err("native planning obligation identity collision".into());
+        }
         let workers_per_obligation = (MAX_CANDIDATE_PAIRS / obligations.len()).max(1);
         let mut candidates = Vec::new();
         for obligation in &obligations {
@@ -1117,6 +1129,88 @@ mod tests {
         assert!(kernel.work_attempt("site").is_some(), "ready labor must share the window");
         assert_eq!(kernel.supply_allocations().count(), 2);
         assert!(kernel.attempts_by_worker.len() <= MAX_ASSIGNMENTS);
+    }
+
+    #[test]
+    fn priority_tiers_remain_due_until_each_receives_a_window() {
+        let (mut kernel, surface, contact) = construction_world(2);
+        let second_cell = Cell {
+            x: surface.x + 1,
+            ..surface
+        };
+        kernel
+            .plan_construction(
+                "floor".into(),
+                "site-2".into(),
+                "party".into(),
+                ConstructionTarget::Cell {
+                    cell: second_cell,
+                    orientation: Cardinal::North,
+                },
+            )
+            .unwrap();
+        kernel
+            .bind_construction_stage(
+                "site-2",
+                Point {
+                    x: contact.x
+                        + kernel
+                            .environment
+                            .as_ref()
+                            .unwrap()
+                            .world
+                            .cell_spacing_m()[0],
+                    ..contact
+                },
+            )
+            .unwrap();
+        let first = kernel.entity("site").unwrap();
+        let second = kernel.entity("site-2").unwrap();
+        kernel.ecs.entity_mut(first).insert(crate::work_planner::WorkPolicy {
+            party: "party".into(),
+            priority: 9,
+            enabled: true,
+        });
+        kernel.ecs.entity_mut(second).insert(crate::work_planner::WorkPolicy {
+            party: "party".into(),
+            priority: 1,
+            enabled: true,
+        });
+        kernel.refresh_planner_index("site");
+        kernel.refresh_planner_index("site-2");
+
+        kernel.advance_native_work_planner(8).unwrap();
+        assert_eq!(
+            kernel.ecs.get::<crate::work_planner::WorkSchedule>(second).unwrap().last_considered,
+            0,
+            "a lower tier must stay due while the higher tier is considered",
+        );
+        kernel.advance_native_work_planner(9).unwrap();
+        assert_eq!(
+            kernel.ecs.get::<crate::work_planner::WorkSchedule>(second).unwrap().last_considered,
+            9,
+            "the still-due lower tier must receive the following window",
+        );
+    }
+
+    #[test]
+    fn automatic_planner_failure_rolls_back_the_whole_kernel_candidate() {
+        let (mut kernel, _, _) = construction_world(1);
+        let collision = kernel
+            .ecs
+            .spawn(ExternalId("native:supply-slot:0".into()))
+            .id();
+        kernel.ids.insert("native:supply-slot:0".into(), collision);
+        kernel.known.insert("native:supply-slot:0".into());
+        let before = kernel.save_records().unwrap();
+        let before_revision = kernel.revision;
+
+        let result = kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#);
+
+        assert_eq!(result.unwrap_err(), "native planning obligation identity collision");
+        assert_eq!(kernel.save_records().unwrap().entities, before.entities);
+        assert_eq!(kernel.revision, before_revision);
+        assert!(!kernel.discard_required);
     }
 
     #[test]
