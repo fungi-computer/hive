@@ -474,7 +474,19 @@ pub struct Snapshot {
     pub next_party_sequence: u64,
     pub work_attempts: Vec<crate::work_attempt::WorkAttempt>,
     pub planner: crate::work_planner::PlannerState,
+    /// Canonical typed ECS records are kept in dedicated arrays because the
+    /// authored registry schema only describes primitive fields.
+    #[serde(default)]
+    pub jobs: Vec<JobSnapshot>,
+    #[serde(default)]
+    pub tasks: Vec<TaskSnapshot>,
 }
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct JobSnapshot { pub id: String, pub job: crate::job::Job }
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TaskSnapshot { pub id: String, pub task: crate::job::Task }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ProjectileContactsSnapshot {

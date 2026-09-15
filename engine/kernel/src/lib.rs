@@ -1,6 +1,7 @@
 //! One headless world owner for browser Workers and Durable Objects.
 pub mod assign;
 pub mod work_attempt;
+mod job;
 mod work_planner;
 mod work_candidates;
 pub mod collision;
