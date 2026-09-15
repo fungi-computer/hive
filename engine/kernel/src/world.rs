@@ -1414,6 +1414,19 @@ mod construction_tests {
     }
 
     #[test]
+    fn valid_pending_construction_survives_save_restore_validation() {
+        let (mut kernel, surface, _) = world();
+        let plan = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":
+            {"kind":"plan-construction","party":"party","catalog":"floor","site":"pending-floor","target":{"kind":"cell","cell":{"x":surface.x,"y":surface.y,"z":surface.z},"orientation":"north"}}}]});
+        let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&plan.to_string()).unwrap()).unwrap();
+        assert_eq!(result["results"][0]["accepted"], true);
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert!(restored.known.contains("pending-floor"));
+    }
+
+    #[test]
     fn standing_wall_obstruction_preserves_progress_and_material() {
         let (mut kernel, surface, contact) = world();
         wall_catalog(&mut kernel);

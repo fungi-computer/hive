@@ -614,9 +614,17 @@ impl TerrainWater {
         candidate: StaticInstance,
         pending: &[StaticInstance],
     ) -> Result<(), String> {
+        let mut all_pending = pending.to_vec();
+        all_pending.push(candidate);
+        self.validate_construction_pending(&all_pending)
+    }
+
+    /// Validate the complete set of unfinished ordinary construction intents,
+    /// as used while restoring a current-format world.
+    pub(crate) fn validate_construction_pending(&mut self, pending: &[StaticInstance]) -> Result<(), String> {
         let mut instances = self.structure_instances();
         instances.extend(pending.iter().cloned());
-        instances.push(candidate.clone());
+        crate::structure_geometry::validate_construction_intents(&instances)?;
         let geometry = StaticGeometry::new(self.terrain.bounds(), instances)?;
         let projection = geometry.projection()?;
         for cell in projection.traversal_blockers() {
@@ -626,9 +634,7 @@ impl TerrainWater {
             }
         }
 
-        let mut all_pending = pending.to_vec();
-        all_pending.push(candidate.clone());
-        if !self.construction_support(&all_pending)?.is_empty() {
+        if !self.construction_support(pending)?.is_empty() {
             return Err("construction placement lacks rooted support".into());
         }
         Ok(())
@@ -798,6 +804,31 @@ mod tests {
         let crossing = StaticInstance::Stair { id: "stair-south".into(), origin: Cell { x: 1, y: 30, z: -1 }, orientation: crate::structure_geometry::Cardinal::South, run: 2, rise: 1 };
         let error = world.admit_construction_placement(crossing, &[first]).unwrap_err();
         assert!(error.contains("duplicate structure bulk occupied cell") || error.contains("duplicate structure"), "{error}");
+    }
+
+    #[test]
+    fn placement_admission_rejects_duplicate_floor_support_face() {
+        let mut world = support_law_world(2);
+        let first = StaticInstance::Floor { id: "floor-a".into(), support: Cell { x: 0, y: 30, z: 0 } };
+        let second = StaticInstance::Floor { id: "floor-b".into(), support: Cell { x: 0, y: 30, z: 0 } };
+        let error = world.admit_construction_placement(second, &[first]).unwrap_err();
+        assert!(error.contains("conflicting construction support face"), "{error}");
+    }
+
+    #[test]
+    fn placement_admission_allows_floor_under_fixture() {
+        let (mut world, floor, wall) = pending_wall_and_floor();
+        let support = match floor { StaticInstance::Floor { support, .. } => support, _ => unreachable!() };
+        let fixture = StaticInstance::Fixture { id: "fixture".into(), origin: Cell { y: support.y + 1, ..support }, orientation: crate::structure_geometry::Cardinal::North, footprint: vec![[0, 0]] };
+        world.admit_construction_placement(fixture, &[floor, wall]).unwrap();
+    }
+
+    #[test]
+    fn placement_admission_allows_floor_at_stair_landing() {
+        let mut world = support_law_world(2);
+        let stair = StaticInstance::Stair { id: "landing-stair".into(), origin: Cell { x: 0, y: 30, z: 0 }, orientation: crate::structure_geometry::Cardinal::East, run: 2, rise: 1 };
+        let floor = StaticInstance::Floor { id: "landing-floor".into(), support: Cell { x: 2, y: 31, z: 0 } };
+        world.admit_construction_placement(floor, &[stair]).unwrap();
     }
 
     #[test]
