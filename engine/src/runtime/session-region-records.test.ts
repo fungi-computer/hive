@@ -10,6 +10,11 @@ import { hydrateSession } from "./session-record-store";
 import { GameSession } from "./session";
 import { wasmKernelPort } from "./wasm-kernel";
 import { colonyPack, colonyServerPack } from "../games/colony";
+import { entity, query } from "../sdk/authoring";
+import { PartyMember } from "../sdk/party";
+import { WorkParticipation } from "../sdk/work-control";
+import { Worker } from "../games/colony-components";
+import { ColonyTreeOrder } from "../games/colony-work";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -56,6 +61,69 @@ test("server Colony admits two starter parties into one generated world", () => 
     }
   } finally {
     port.dispose();
+  }
+});
+
+test("disconnected party residents remain eligible for automatic work while another principal advances the region", () => {
+  const db = new DatabaseSync(":memory:");
+  const owner = sqliteTestOwner(db);
+  const runtime = createSessionRegionRuntime({
+    pack: colonyServerPack,
+    createKernel: () => wasmKernelPort(new WasmKernel()),
+    implementationHash: "9".repeat(64),
+    ownerPrincipal: "player-1",
+    hostPrincipal: "clock",
+    seed: 17,
+    scopeForPrincipal: principal => principal === "clock"
+      ? { kind: "host" }
+      : principal === "player-1"
+        ? { kind: "player", player: principal, party: entity("party:1") }
+        : principal === "player-2"
+          ? { kind: "player", player: principal, party: entity("party:2") }
+          : null,
+  });
+  const resident = runtime.resident;
+  const region = openRegion({ owner, region: "disconnected-resident-work", program: runtime.program });
+  const dispatch = (principal: string, id: string, command: unknown) => {
+    const committed = region.readCommitted();
+    const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
+    resident.begin(committed.revision, committed.state, { read: key => records.get(key) });
+    try {
+      const receipt = region.dispatch(principal, { id, command });
+      resident.accept(receipt.revision);
+      return receipt;
+    } catch (error) {
+      resident.discard();
+      throw error;
+    }
+  };
+  try {
+    dispatch("clock", "join-1", { kind: "join-party", credentialBindingId: "binding-1" });
+    dispatch("clock", "join-2", { kind: "join-party", credentialBindingId: "binding-2" });
+
+    // The first player's connection ends after creating the order. Only the
+    // independent clock principal advances the shared resident below.
+    dispatch("player-1", "designate-1", { kind: "command", name: "designateTrees", input: { entities: ["colony.tree.oak"] } });
+    for (let tick = 0; tick < 20; tick++) dispatch("clock", `clock-${tick}`, { kind: "step", delta: 0.1 });
+
+    const committed = region.readCommitted();
+    const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
+    assert.deepEqual(
+      resident.observe(committed.revision, committed.state, { read: key => records.get(key) }, session =>
+        session.query(query(Worker, PartyMember, WorkParticipation)).filter(row => row.get(PartyMember).party === "party:1").map(row => row.id).sort()),
+      ["party:1.person.0", "party:1.person.1"],
+      "party residents survive without a player connection",
+    );
+    resident.observe(committed.revision, committed.state, { read: key => records.get(key) }, session => {
+      const workers = session.query(query(Worker, PartyMember, WorkParticipation)).filter(row => row.get(PartyMember).party === "party:1");
+      assert.equal(workers.length, 2);
+      assert.ok(workers.every(row => row.get(WorkParticipation).automatic), "disconnected residents remain automatic workers");
+      const tree = session.query(query(ColonyTreeOrder)).find(row => row.get(ColonyTreeOrder).tree === "colony.tree.oak");
+      assert.ok(tree && tree.get(ColonyTreeOrder).phase !== "blocked", "the surviving party's order remains eligible and advances");
+    });
+  } finally {
+    resident.dispose();
+    db.close();
   }
 });
 
