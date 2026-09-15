@@ -2,7 +2,7 @@
 
 September 15, 2026. Design and partial foundation are under implementation;
 runtime acceptance is outstanding. The source integration checkpoint for the
-status below is `7d31b478`. This refines and takes precedence over the planning
+status below is `2e2c38de`. This refines and takes precedence over the planning
 pseudocode in [01-work](01-work.md). It does not claim that Colony runs the native
 planner yet.
 
@@ -28,31 +28,38 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer completion from the presence of native planner files. At `7d31b478`:
+Do not infer completion from the presence of native planner files. At `2e2c38de`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
-- `work_candidates.rs` contains bounded lazy Hungarian correction and typed
-  route outcomes, but `rebuild_indexes` still scans the complete external-ID map;
-  those rebuilt maps are proof scaffolding, not the required maintained indexes;
+- `work_candidates.rs` contains bounded lazy Hungarian correction, typed route
+  outcomes and mutation-maintained worker/task indexes. Load and restore rebuild
+  them once; authored changes, party creation, construction and process lifecycle
+  mutations update the affected identity. Repeated planning does not rebuild them;
 - `supply_allocation.rs` and the material mutation owner enforce exact source
   portion and incoming destination-capacity reservations, including exclusion
   for the allocation performing its own transfer;
 - the WorkAttempt owner can begin an attempt from a prepared route witness and
   update an allocation's portion identity when pickup splits a lot;
-- `native_work_planner.rs::plan_construction_supply` can create construction
-  allocations and initial routes, but it is not an accepted construction consumer: it
-  does not yet reconcile route arrival, pickup, onward route, deposit and final
-  acknowledgement, and it has no save/reload lifecycle proof;
+- `native_work_planner.rs` owns the shared finite-supply allocation, lazy route
+  validation and pickup/delivery/reconciliation lifecycle for construction and
+  staged process inputs. Focused Kernel laws prove two concurrent carriers,
+  capacity splitting, interruption with retained cargo, and mid-carry save/restore.
+  Supply worker discovery now uses the maintained party index; material-source
+  discovery still scans canonical IDs and remains the next index correction;
+- construction and attended processes contribute typed labor requirements, but
+  the shared tick-owned labor review/assignment loop is not yet wired into
+  `Kernel::advance_batch`;
 - no native planner hook is active in `Kernel::advance_batch`; process, water,
   resource, tree, excavation, deconstruction, stockpile and recovery families
   have not moved to this planner; and
 - Colony and its performance page still use the TypeScript automatic providers
   listed in the deletion checklist below.
 
-The next accepted checkpoint must finish one real construction-supply lifecycle
-without activating a partial competing scheduler. A compile pass or an isolated
-matching/reservation test does not earn that checkpoint.
+The next accepted checkpoint must add canonical durable Job/Task composition and
+one real tree → felled trunk → logs lifecycle, then join requirements to the
+tick-owned labor review without activating a partial competing scheduler. A
+compile pass or an isolated record test does not earn that checkpoint.
 
 ## 2. Ownership and files
 
