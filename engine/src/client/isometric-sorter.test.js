@@ -66,14 +66,43 @@ test("point-line ordering is independent of endpoint and input order", () => {
   assert.deepEqual(sorter.order([inFront, reversed, behind]).map((entry) => entry.id), ["behind", "wall", "front"]);
 });
 
-test("static relations cache and explicit invalidation clear the static graph", () => {
+test("scoped invalidation preserves unrelated static relations and global invalidation clears them", () => {
   const sorter = createIsometricSorter();
-  sorter.order([node("a", 0, 0), node("b", 1, 1), node("c", 4, 4)]);
-  assert.equal(sorter.cacheSize(), 3);
+  const nodes = [node("a", 0, 0), node("b", 1, 1), node("c", 4, 4), node("d", 2, 2)];
+  sorter.order(nodes);
+  assert.equal(sorter.cacheSize(), 6);
   sorter.invalidate(["b"]);
-  assert.equal(sorter.cacheSize(), 0);
+  assert.equal(sorter.cacheSize(), 3);
+  sorter.order(nodes);
+  assert.equal(sorter.diagnostics().relationTests, 3);
   sorter.invalidate();
   assert.equal(sorter.cacheSize(), 0);
+});
+
+test("changed and removed IDs invalidate every incident relation while preserving deterministic order", () => {
+  const nodes = [node("a", 0, 0), node("b", 1, 1), node("c", 4, 4), node("d", 2, 2)];
+  const sorter = createIsometricSorter();
+  const initial = sorter.order(nodes).map((entry) => entry.id);
+  assert.equal(sorter.cacheSize(), 6);
+
+  const changed = {
+    ...nodes[1],
+    footprint: [{ x: 2, y: 0, z: 2 }],
+    screenBounds: { left: 20, right: 40, top: 20, bottom: 40 },
+  };
+  sorter.invalidate(["b"]);
+  assert.equal(sorter.cacheSize(), 3);
+  const changedOrder = sorter.order([nodes[0], changed, nodes[2], nodes[3]]).map((entry) => entry.id);
+  assert.equal(sorter.diagnostics().relationTests, 3);
+  const fresh = createIsometricSorter().order([nodes[0], changed, nodes[2], nodes[3]]).map((entry) => entry.id);
+  assert.deepEqual(changedOrder, fresh);
+  assert.deepEqual(changedOrder.sort(), initial.sort());
+
+  sorter.invalidate(["b"]);
+  assert.equal(sorter.cacheSize(), 3);
+  sorter.order([nodes[0], nodes[2], nodes[3]]);
+  assert.equal(sorter.diagnostics().relationTests, 0);
+  assert.equal(sorter.cacheSize(), 3);
 });
 
 test("moving broad phase does not relation-test distant records", () => {

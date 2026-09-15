@@ -210,7 +210,7 @@ export function createHiveClient({
     const next = setWorldViewLevel(state.view, level);
     if (next.level === state.view.level) return;
     state.view = next;
-    spriteSorter.invalidate(["view-level"]);
+    spriteSorter.invalidate();
     gesture.send({ type: "CANCEL" });
     exitAim();
     state.dragging = null;
@@ -225,7 +225,7 @@ export function createHiveClient({
     edgeGesture.send({ type: "CANCEL" });
     clearPlacement();
     state.view = toggleWorldCutaway(state.view, value);
-    spriteSorter.invalidate(["cutaway"]);
+    spriteSorter.invalidate();
     gesture.send({ type: "CANCEL" });
     exitAim();
     state.dragging = null;
@@ -1507,7 +1507,7 @@ export function createHiveClient({
       baseUrl: staticArtBase(import.meta.env?.BASE_URL ?? "/engine/"),
     });
     art = pack.art;
-    spriteSorter.invalidate(["art"]);
+    spriteSorter.invalidate();
     state.disposeArt = pack.dispose;
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
@@ -1675,7 +1675,7 @@ export function createHiveClient({
           terrainFrame = event.terrain;
           const terrainChanged = terrainFrame && (newEpoch || !previousTerrain || previousTerrain.revision !== terrainFrame.revision);
           if (terrainChanged) {
-            spriteSorter.invalidate(["terrain"]);
+            spriteSorter.invalidate();
             const publishedById = new Map(event.facts.map((fact) => [fact.id, fact]));
             const actor = state.selectedIds.map((id) => publishedById.get(id)).find((fact) => fact?.pose?.position)
               ?? activeSelectionShortcuts.map(({ id }) => publishedById.get(id)).find((fact) => fact?.pose?.position);
