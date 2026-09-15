@@ -134,10 +134,14 @@ the historical status and earlier construction/drawing instructions below.
 It is an implementation plan, not a claim of landed code or hosted acceptance.
 
 Status: active integration on `engine/clearing-edge-integration-20260914`.
-The reviewed and pushed native checkpoint is `b54b8ad7`; later source must still
-be reported separately until accepted. The native scheduler is active for the
-migrated work families while the remaining TypeScript providers are removed one
-consumer at a time.
+The reviewed and pushed checkpoint is `1854e31d`. The native scheduler owns
+construction, processes and their supplies, field water, excavation,
+deconstruction, trees/resources and stockpile demand. Placement preview and
+final admission now share one atomic native batch, structurally invalid plans
+cancel through the construction owner, and render support picking uses the same
+deterministic order as drawing. The remaining consumer cutover is ordinary
+material delivery and native manual-result reconciliation; its TypeScript
+provider, shadow custody record and allocation scans must be deleted together.
 Historical branches and receipts remain evidence; they are not the active queue.
 
 The joined source now contains the native WorkAttempt identity/lifecycle owner,
@@ -172,15 +176,20 @@ existing alpha silhouette. The superseded per-pixel depth renderer is deleted.
 Terrain and water occupy explicit storey bands rather than pretending to be
 physical sprites.
 
-The current field-water/process checkpoint passes the exact real brewing and
-finite mugwort harvest/reload laws (`run-u94`), the recut process group 22/22
-(`run-u98`), and strict TypeScript (`run-u95`, `run-u96`). Earlier accepted Rust,
-drawing and party receipts remain evidence for their unchanged source.
-The DO backend version `ff3a9d97` is live with the Clearing preview origin. Hosted
-playability remains open because Cloudflare's `clearing-garden` alias still serves
-the older `c4393a6f` HTML even though the current uploaded version records that
-alias. Do not treat the immutable version proof as alias parity and do not rerun the
-browser witness until the exact public URL serves the accepted bytes.
+At `1854e31d`, the maintained performance qualification passes 16/16 and the
+focused sorter/world-view proof passes 29/29. Productive 90-step measurements
+retain every actor and complete all 50 trees: 32 workers have a 12.58 ms median
+simulation step and 38.70 ms p95; 100 workers have a 14.88 ms median and 71.99 ms
+p95. The bounded 200-worker stress has a 23.02 ms median and 111.39 ms p95;
+snapshot save and observation are measured separately, with 200-worker medians
+of 48.56 ms and 99.16 ms. These results prove productive native work and expose
+remaining tail/observation cost; they do not yet prove smooth hosted rendering.
+Strict TypeScript and the production Vite build pass at this checkpoint.
+
+The public Clearing must be redeployed only after the delivery/manual cutover,
+joined lifecycle qualification and source-matched WASM rebuild are accepted.
+Historical backend and alias receipts do not establish parity for the current
+source.
 
 ## Outcome
 
