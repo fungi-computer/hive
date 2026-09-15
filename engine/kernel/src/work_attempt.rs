@@ -6,6 +6,8 @@ use bevy_ecs::prelude::Component;
 use crate::components::Point;
 use serde::{Deserialize, Serialize};
 
+pub const CURRENT_VERSION: u16 = 1;
+
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AttemptKey { pub task: String, pub generation: u64 }
@@ -17,6 +19,7 @@ pub struct OperationKey { pub attempt: AttemptKey, pub sequence: u32 }
 #[derive(Component, Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkAttempt {
+    pub version: u16,
     pub key: AttemptKey,
     pub worker: String,
     pub party: String,
@@ -48,7 +51,7 @@ pub enum ActivityRef {
     #[serde(rename = "deconstruction")]
     Deconstruction { site: String, contact: Point },
     #[serde(rename = "process-attendance")]
-    ProcessAttendance { process: String },
+    ProcessAttendance { process: String, contact: Point },
     #[serde(rename = "material-transfer")]
     MaterialTransfer { lot: String, from: String, to: String, quantity: u32 },
     #[serde(rename = "material-drop")]

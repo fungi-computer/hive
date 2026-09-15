@@ -7,6 +7,25 @@
 use super::*;
 
 impl Kernel {
+    pub(super) fn validate_process_contact(&self, process: &str, contact: &Point) -> Result<()> {
+        let process_entity = self.entity(process)?;
+        let state = self.ecs.get::<crate::staged_process::StagedProcess>(process_entity).ok_or("process is missing staged state")?;
+        if !contact.x.is_finite() || !contact.y.is_finite() || !contact.z.is_finite() {
+            return Err("process attendance contact is invalid".into());
+        }
+        let contacts = self.native_supply_contacts(&state.station)?;
+        if contacts.iter().any(|candidate| candidate == contact) { Ok(()) } else { Err("process attendance contact is no longer legal".into()) }
+    }
+
+    pub(super) fn process_worker_at_contact(&self, worker: Entity, process: &str, contact: &Point) -> Result<()> {
+        self.validate_process_contact(process, contact)?;
+        let position = self.contact_pose(worker)?;
+        if !interaction_contact::within_transfer_reach([position.x, position.y, position.z], [contact.x, contact.y, contact.z]) {
+            return Err("worker is not at process attendance contact".into());
+        }
+        Ok(())
+    }
+
     /// Contribute an admitted, attended process stage to the shared labor
     /// planner.  Process state and binding ownership stay here; the shared
     /// planner receives only a typed intent and contact witnesses.

@@ -304,6 +304,7 @@ impl Kernel {
                     },
                     item.allocation,
                     crate::work_attempt::WorkAttempt {
+                        version: crate::work_attempt::CURRENT_VERSION,
                         key: item.key.clone(),
                         worker: item.worker.clone(),
                         party,

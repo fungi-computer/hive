@@ -496,11 +496,11 @@ mod process_request_tests {
         let process = kernel.request_process("empty-v1", "station", &ActionScope::Host).unwrap(); kernel.admit_process(&process, "empty-v1", "station").unwrap(); (kernel, process)
     }
 
-    #[test] fn attendance_requires_contact_and_authoritative_delta() { let (mut kernel, process) = empty_process_kernel(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); assert!(kernel.attend_process("worker", &process, 1.0).is_err()); kernel.ecs.entity_mut(worker).insert(Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }); kernel.attend_process("worker", &process, 1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
-    #[test] fn zero_delta_pause_and_repeated_attend_do_not_cross_twice() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 0.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.attend_process("worker", &process, 2.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().clone(); assert_eq!((state.stage_index, state.phase), (1, ProcessPhase::Waiting)); kernel.attend_process("worker", &process, 0.0).unwrap_err(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().stage_index, 1); }
-    #[test] fn elapsed_stage_has_no_same_tick_credit_and_survives_worker_release() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 2.0).unwrap(); kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.revision += 1; kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
-    #[test] fn worker_release_allows_replacement_and_save_reload_preserves_process() { let (mut kernel, process) = empty_process_kernel(); kernel.attend_process("worker", &process, 1.0).unwrap(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); assert!(kernel.validate_process_records().is_err()); }
-    #[test] fn process_transition_consumes_exact_bound_portion() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); kernel.attend_process("worker.blocked", &process, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Complete); assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().quantity, 0); }
+    #[test] fn attendance_requires_contact_and_authoritative_delta() { let (mut kernel, process) = empty_process_kernel(); let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); assert!(kernel.attend_process("worker", &process, &contact, 1.0).is_err()); kernel.ecs.entity_mut(worker).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }); kernel.attend_process("worker", &process, &contact, 1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
+    #[test] fn zero_delta_pause_and_repeated_attend_do_not_cross_twice() { let (mut kernel, process) = empty_process_kernel(); let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap(); kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }); kernel.attend_process("worker", &process, &contact, 0.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.attend_process("worker", &process, &contact, 2.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().clone(); assert_eq!((state.stage_index, state.phase), (1, ProcessPhase::Waiting)); kernel.attend_process("worker", &process, &contact, 0.0).unwrap_err(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().stage_index, 1); }
+    #[test] fn elapsed_stage_has_no_same_tick_credit_and_survives_worker_release() { let (mut kernel, process) = empty_process_kernel(); let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap(); kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }); kernel.attend_process("worker", &process, &contact, 2.0).unwrap(); kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 0.0); kernel.revision += 1; kernel.advance_staged_processes(1.0).unwrap(); assert_eq!(kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap().progress_seconds, 1.0); }
+    #[test] fn worker_release_allows_replacement_and_save_reload_preserves_process() { let (mut kernel, process) = empty_process_kernel(); let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap(); kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }); kernel.attend_process("worker", &process, &contact, 1.0).unwrap(); let worker = kernel.entity("worker").unwrap(); kernel.ecs.entity_mut(worker).insert(Position { x: 99.0, y: 0.0, z: 0.0, facing: 0.0 }); assert!(kernel.validate_process_records().is_err()); }
+    #[test] fn process_transition_consumes_exact_bound_portion() { let mut kernel = kernel_with_slot(); let process = kernel.request_process("process-v1", "station", &ActionScope::Host).unwrap(); let lot = kernel.ecs.spawn((ExternalId("grain.blocked".into()), Lot { kind: "grain".into(), quantity: 1, container: "station:input".into() })).id(); kernel.ids.insert("grain.blocked".into(), lot); kernel.known.insert("grain.blocked".into()); kernel.refresh_state_weight(); kernel.admit_process(&process, "process-v1", "station").unwrap(); let worker = kernel.ecs.spawn((ExternalId("worker.blocked".into()), Position { x: 0.0,y:0.0,z:0.0,facing:0.0 }, Body { speed:1.0 }, Traversal { clearance_cells:1,max_step_cells:1 }, Container { capacity:4 })).id(); kernel.ids.insert("worker.blocked".into(), worker); kernel.known.insert("worker.blocked".into()); let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap(); kernel.ecs.entity_mut(kernel.entity("worker.blocked").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 }); kernel.attend_process("worker.blocked", &process, &contact, 1.0).unwrap(); let state = kernel.ecs.get::<StagedProcess>(kernel.entity(&process).unwrap()).unwrap(); assert_eq!(state.phase, ProcessPhase::Complete); assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().quantity, 0); }
 
     #[test]
     fn process_station_rejects_different_active_definition() {
@@ -548,7 +548,8 @@ mod process_attempt_tests {
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         let process = "process:station:process-v1";
         kernel.admit_process(process, "process-v1", "station").unwrap();
-        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","party":"party:1","operation":{"kind":"process-attendance","process":process}}}]});
+        let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap();
+        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":"party:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","party":"party:1","operation":{"kind":"process-attendance","process":process,"contact":contact}}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&begin.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         let attempt = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
@@ -2025,7 +2026,7 @@ impl Kernel {
             if process.phase == ProcessPhase::Complete && !bindings.is_empty() { return Err("completed process retains input bindings".into()); }
             let attendance = self.work_attempts.get(id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity));
             let executing_attendance = attendance.and_then(|attempt| match &attempt.phase {
-                AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process: target }, .. } if target == id => Some(attempt),
+                AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process: target, .. }, .. } if target == id => Some(attempt),
                 _ => None,
             });
             if process.phase == ProcessPhase::Working {
@@ -2050,7 +2051,7 @@ impl Kernel {
         if !bindings_by_process.is_empty() { return Err("saved process binding references an unknown process".into()); }
         for (task, attempt_entity) in &self.work_attempts {
             let Some(attempt) = self.ecs.get::<WorkAttempt>(*attempt_entity) else { return Err("work attempt index references missing component".into()); };
-            let Some(crate::work_attempt::ActivityRef::ProcessAttendance { process }) = (match &attempt.phase { AttemptPhase::Executing { activity, .. } | AttemptPhase::Outcome { activity, .. } => Some(activity), AttemptPhase::Settling { .. } | AttemptPhase::Ready => None }) else { continue; };
+            let Some(crate::work_attempt::ActivityRef::ProcessAttendance { process, .. }) = (match &attempt.phase { AttemptPhase::Executing { activity, .. } | AttemptPhase::Outcome { activity, .. } => Some(activity), AttemptPhase::Settling { .. } | AttemptPhase::Ready => None }) else { continue; };
             if task != process { return Err("process attendance task does not match process activity".into()); }
             let process_entity = self.entity(process)?;
             let state = self.ecs.get::<StagedProcess>(process_entity).ok_or("process attendance references non-process task")?;
@@ -3559,6 +3560,7 @@ impl Kernel {
         };
         for (task, attempt_entity) in &self.work_attempts {
             let attempt = self.ecs.get::<WorkAttempt>(*attempt_entity).ok_or("work attempt index references missing component")?;
+            if attempt.version != crate::work_attempt::CURRENT_VERSION { return Err("unsupported work attempt version".into()); }
             if attempt.key.task != *task { return Err("work attempt task index mismatch".into()); }
             let party = self.entity(&attempt.party)?;
             if self.ecs.get::<Party>(party).is_none() { return Err("work attempt party is not a party".into()); }
@@ -3583,10 +3585,12 @@ impl Kernel {
                     owned_by_attempt_party(site, &attempt.party)?;
                     valid_point(contact)?;
                 }
-                crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
+                crate::work_attempt::ActivityRef::ProcessAttendance { process, contact } => {
                     if process != task { return Err("process attendance task mismatch".into()); }
                     let entity = owned_by_attempt_party(process, &attempt.party)?;
                     if self.ecs.get::<StagedProcess>(entity).is_none() { return Err("process attendance references non-process task".into()); }
+                    valid_point(contact)?;
+                    if self.environment.is_some() { self.validate_process_contact(process, contact)?; }
                 }
                 crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } => {
                     if *quantity == 0 { return Err("invalid saved material transfer quantity".into()); }
@@ -3856,18 +3860,17 @@ impl Kernel {
     }
     fn advance_process_work_attempts(&mut self, delta: f64) -> Result<()> {
         if delta == 0.0 { return Ok(()); }
-        let active: Vec<(String, String)> = self.work_attempts.iter().filter_map(|(task, entity)| {
+        let active: Vec<(String, String, String, Point)> = self.work_attempts.iter().filter_map(|(task, entity)| {
             let attempt = self.ecs.get::<WorkAttempt>(*entity)?;
-            matches!(attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { .. }, .. }).then(|| (task.clone(), attempt.worker.clone()))
+            match &attempt.phase {
+                AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process, contact }, .. } => Some((task.clone(), attempt.worker.clone(), process.clone(), contact.clone())),
+                _ => None,
+            }
         }).collect();
-        for (task, worker) in active {
-            let process = match self.ecs.get::<WorkAttempt>(*self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?).and_then(|attempt| match &attempt.phase { AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, .. } => Some(process.clone()), _ => None }) { Some(process) => process, None => continue };
+        for (task, worker, process, contact) in active {
             let worker_entity = self.entity(&worker)?;
-            let process_entity = self.entity(&process)?;
-            let station = self.ecs.get::<StagedProcess>(process_entity).ok_or("process is missing staged state")?.station.clone();
-            let station_entity = self.entity(&station)?;
             let unavailable = self.ecs.get::<Body>(worker_entity).is_none() || self.ecs.get::<Container>(worker_entity).is_none() || self.ecs.get::<Traversal>(worker_entity).is_none() || self.ecs.get::<Support>(worker_entity).is_some() || self.ecs.get::<Destination>(worker_entity).is_some() || self.ecs.get::<ExcavationWork>(worker_entity).is_some();
-            let access_lost = self.contact(worker_entity, station_entity).is_err();
+            let access_lost = self.process_worker_at_contact(worker_entity, &process, &contact).is_err();
             if unavailable || access_lost {
                 let process_entity = self.entity(&process)?;
                 if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() {
@@ -3881,10 +3884,10 @@ impl Kernel {
                 let entity = *self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?;
                 let attempt = self.ecs.get::<WorkAttempt>(entity).cloned().ok_or("work attempt component is missing")?;
                 let operation = attempt.current_operation().cloned().ok_or("process attendance operation is missing")?;
-                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, result: WorkOutcome::Blocked { reason: if access_lost { WorkBlockReason::AccessLost } else { WorkBlockReason::WorkerUnavailable } } })?;
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process: process.clone(), contact: contact.clone() }, result: WorkOutcome::Blocked { reason: if access_lost { WorkBlockReason::AccessLost } else { WorkBlockReason::WorkerUnavailable } } })?;
                 continue;
             }
-            self.attend_process(&worker, &process, delta)?;
+            self.attend_process(&worker, &process, &contact, delta)?;
             let state = self.ecs.get::<StagedProcess>(self.entity(&process)?).ok_or("process is missing staged state")?;
             if state.phase != ProcessPhase::Working {
                 let entity = *self.work_attempts.get(&task).ok_or("process attendance attempt disappeared")?;
@@ -3898,10 +3901,8 @@ impl Kernel {
                         _ => WorkBlockReason::UnsupportedStructure,
                     };
                     WorkOutcome::Blocked { reason }
-                } else {
-                    WorkOutcome::Completed
-                };
-                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, result })?;
+                } else { WorkOutcome::Completed };
+                self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: crate::work_attempt::ActivityRef::ProcessAttendance { process, contact }, result })?;
             }
         }
         Ok(())
@@ -4449,7 +4450,7 @@ impl Kernel {
         self.refresh_state_weight(); Ok(())
     }
 
-    fn attend_process(&mut self, worker_id: &str, process_id: &str, delta: f64) -> Result<()> {
+    fn attend_process(&mut self, worker_id: &str, process_id: &str, contact: &Point, delta: f64) -> Result<()> {
         if !delta.is_finite() || delta < 0.0 { return Err("invalid process attendance delta".into()); }
         let worker = self.entity(worker_id)?;
         let process_entity = self.entity(process_id)?;
@@ -4461,7 +4462,7 @@ impl Kernel {
         if self.process_bindings(process_id).is_empty() { return Err("process has not been admitted".into()); }
         if self.ecs.get::<Body>(worker).is_none() || self.ecs.get::<Container>(worker).is_none() || self.ecs.get::<Traversal>(worker).is_none() || self.ecs.get::<Support>(worker).is_some() || self.direct.contains_key(&worker) || self.ecs.get::<Destination>(worker).is_some() || self.ecs.get::<ExcavationWork>(worker).is_some() { return Err("worker cannot attend process from current state".into()); }
         if let Some(existing) = self.attempts_by_worker.get(worker_id) && existing.task != process_id { return Err("worker already attends process".into()); }
-        self.contact(worker, self.entity(&state.station)?)?;
+        self.process_worker_at_contact(worker, process_id, contact)?;
         state.phase = ProcessPhase::Working; state.blocked_reason.clear();
         if delta == 0.0 {
             self.ecs.entity_mut(process_entity).insert(state);
@@ -4495,7 +4496,7 @@ impl Kernel {
             let entity = self.entity(&id)?; let Some(mut state) = self.ecs.get::<StagedProcess>(entity).cloned() else { continue; };
             if state.phase == ProcessPhase::Complete { continue; }
             if state.phase == ProcessPhase::Working {
-                let valid = self.work_attempts.get(&id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity)).is_some_and(|attempt| matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process }, .. } if process == &id));
+                let valid = self.work_attempts.get(&id).and_then(|attempt_entity| self.ecs.get::<WorkAttempt>(*attempt_entity)).is_some_and(|attempt| matches!(&attempt.phase, AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::ProcessAttendance { process, .. }, .. } if process == &id));
                 if !valid { return Err("working process has no executing attendance attempt".into()); }
                 continue;
             }
@@ -4574,11 +4575,11 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
-        if let crate::work_attempt::ActivityRef::ProcessAttendance { process } = &activity {
+        if let crate::work_attempt::ActivityRef::ProcessAttendance { process, contact } = &activity {
             if process != &task { return Err("process attendance task mismatch".into()); }
-            self.attend_process(&worker, process, 0.0)?;
+            self.attend_process(&worker, process, contact, 0.0)?;
             let entity = task_entity;
-            self.ecs.entity_mut(entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
+            self.ecs.entity_mut(entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
             self.work_attempts.insert(task, entity);
             self.attempts_by_worker.insert(worker, key.clone());
             return Ok(key);
@@ -4594,7 +4595,7 @@ impl Kernel {
         let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
         self.ecs.entity_mut(worker_entity).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
         self.install_route(worker_entity, route);
-        self.ecs.entity_mut(task_entity).insert(WorkAttempt { key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
+        self.ecs.entity_mut(task_entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
         self.work_attempts.insert(task, task_entity);
         self.attempts_by_worker.insert(worker, key.clone());
         Ok(key)
@@ -4652,7 +4653,7 @@ impl Kernel {
                             // Task-owned excavation progress survives labor
                             // interruption; only the WorkAttempt is settled.
                         }
-                        crate::work_attempt::ActivityRef::ProcessAttendance { process } => {
+                        crate::work_attempt::ActivityRef::ProcessAttendance { process, .. } => {
                             if let Ok(process_entity) = self.entity(&process) { if let Some(state) = self.ecs.get::<StagedProcess>(process_entity).cloned() { if state.phase == ProcessPhase::Working { self.ecs.entity_mut(process_entity).insert(StagedProcess { phase: ProcessPhase::Waiting, ..state }); } } }
                         }
                         crate::work_attempt::ActivityRef::Construction { site, .. } => {
@@ -4798,9 +4799,9 @@ impl Kernel {
             self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
             return Ok(());
         }
-        if let crate::work_attempt::ActivityRef::ProcessAttendance { process } = next_activity.clone() {
+        if let crate::work_attempt::ActivityRef::ProcessAttendance { process, contact } = next_activity.clone() {
             if process != task { return Err("process attendance task mismatch".into()); }
-            self.attend_process(&current.worker, &process, 0.0)?;
+            self.attend_process(&current.worker, &process, &contact, 0.0)?;
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
             let state = self.ecs.get::<StagedProcess>(self.entity(&process)?).ok_or("process is missing staged state")?;
             if state.phase == ProcessPhase::Working {

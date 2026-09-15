@@ -83,6 +83,7 @@ impl WorkOperation {
             },
             Self::ProcessAttendance { process } => ActivityRef::ProcessAttendance {
                 process: process.clone(),
+                contact: contact.clone(),
             },
         }
     }
