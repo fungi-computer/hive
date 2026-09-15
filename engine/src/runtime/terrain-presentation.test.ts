@@ -20,6 +20,7 @@ const definition: EnvironmentDefinition = {
   },
   structures: { maxSpanSteps: 6, catalog: [{ id: "fixture-floor", shape: { kind: "floor" }, workReachBelowCells: 0, materials: [{ kind: "stone-spoil", quantity: 1 }], workSeconds: 1 }] },
   materials: [],
+  materialVolumes: [{ kind: "stone-spoil", unitVolume: 1 }],
   water: { id: "water", cells: [], fallMPerS: 0, spreadMPerS: 0 },
 };
 

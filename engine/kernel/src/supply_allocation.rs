@@ -20,9 +20,11 @@ pub(crate) fn validate_capacity(kernel: &crate::world::Kernel, source: Entity, d
     let target = kernel.ecs().get::<Container>(destination).ok_or("supply destination is not a container")?;
     let source_reserved = reserved_source(kernel, &kernel.external_id(source)?, ignore);
     if quantity > lot.quantity.saturating_sub(source_reserved) { return Err("supply source portion is overbooked".into()); }
-    let present = kernel.quantity_in_container(&kernel.external_id(destination)?);
+    let present = kernel.occupied_volume(&kernel.external_id(destination)?)?;
     let incoming = reserved_destination(kernel, &kernel.external_id(destination)?, ignore);
-    if u64::from(present).saturating_add(u64::from(incoming)).saturating_add(u64::from(quantity)) > u64::from(target.capacity) { return Err("supply destination capacity is overbooked".into()); }
+    let incoming_volume = kernel.material_volume(&lot.kind, incoming)?;
+    let moved_volume = kernel.material_volume(&lot.kind, quantity)?;
+    if present.checked_add(incoming_volume).and_then(|v| v.checked_add(moved_volume)).ok_or("material volume overflow")? > u64::from(target.capacity) { return Err("supply destination capacity is overbooked".into()); }
     Ok(())
 }
 

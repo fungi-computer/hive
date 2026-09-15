@@ -595,7 +595,7 @@ mod water_exchange_action_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"water-action-laws","components":[],"initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.container":{"capacity":8}}},
-            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.vessel":{"kind":"pail"},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
+            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
         ]}).to_string()).unwrap();
         kernel
     }
@@ -1940,16 +1940,34 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
-    /// Checks a configured vessel against a content kind at the physical
-    /// boundary. The lot and container components prove this is an actual
-    /// vessel entity; the environment catalog supplies compatibility.
-    pub(crate) fn accepts_material(&self, vessel_id: &str, content_kind: &str) -> Result<bool> {
+    pub(crate) fn material_volume(&self, kind: &str, quantity: u32) -> Result<u64> {
+        self.environment.as_ref().ok_or("material volume requires environment")?.material_handling.quantity_volume(kind, quantity)
+    }
+    pub(crate) fn occupied_volume(&self, container: &str) -> Result<u64> {
+        self.contents.get(container).into_iter().flatten().try_fold(0_u64, |sum, entity| {
+            let lot = self.ecs.get::<Lot>(*entity).ok_or("container contents are invalid")?;
+            sum.checked_add(self.material_volume(&lot.kind, lot.quantity)?).ok_or("material volume overflow".into())
+        })
+    }
+    fn validate_material_volumes(&self) -> Result<()> {
+        let Some(environment) = &self.environment else { return Ok(()); };
+        for entity in self.ids.values() {
+            if let Some(lot) = self.ecs.get::<Lot>(*entity) {
+                environment.material_handling.quantity_volume(&lot.kind, lot.quantity)?;
+                if self.ecs.get::<Container>(*entity).is_some() && lot.quantity != 1 { return Err("a lot-container must have quantity one".into()); }
+            }
+        }
+        Ok(())
+    }
+    /// Checks whether a real lot+container can hold more of a material.
+    pub(crate) fn accepts_material(&self, vessel_id: &str, content_kind: &str, quantity: u32) -> Result<bool> {
         let vessel = self.entity(vessel_id)?;
         let lot = self.ecs.get::<Lot>(vessel).ok_or("material vessel is not a lot")?;
-        if self.ecs.get::<Container>(vessel).is_none() || self.ecs.get::<Vessel>(vessel).is_none() { return Ok(false); }
+        let capacity = self.ecs.get::<Container>(vessel).map(|container| container.capacity).ok_or("material vessel is not a container")?;
         if self.entity(&lot.container).is_err() { return Ok(false); }
         let environment = self.environment.as_ref().ok_or("material handling requires environment")?;
-        Ok(environment.material_handling.accepts(&self.ecs.get::<Vessel>(vessel).unwrap().kind, content_kind))
+        let occupied = self.occupied_volume(vessel_id)?;
+        environment.material_handling.fits(capacity, occupied, content_kind, quantity)
     }
 
     fn validate_resource_sites(&self) -> Result<()> {
@@ -3034,6 +3052,7 @@ impl Kernel {
         candidate.validate_process_records()?;
         candidate.validate_construction_sites()?;
         candidate.validate_resource_sites()?;
+        candidate.validate_material_volumes()?;
         candidate.apply_initial_surface_placements(&built.initial_placements)?;
         *self = candidate;
         Ok(())
@@ -3304,6 +3323,7 @@ impl Kernel {
             candidate.validate_process_records()?;
             candidate.validate_construction_sites()?;
             candidate.validate_resource_sites()?;
+            candidate.validate_material_volumes()?;
         }
         for entity in candidate.terrain_routes.keys().copied().collect::<Vec<_>>() {
             candidate.validate_terrain_route_witness(entity)?;
@@ -3936,8 +3956,8 @@ impl Kernel {
             return Err("sealed container cannot receive material output".into());
         }
         let capacity = self.ecs.get::<Container>(container).ok_or("not a container")?.capacity;
-        let quantity = self.quantity(&spec.container)
-            .checked_add(u64::from(crate::supply_allocation::reserved_destination(self, &spec.container, None)))
+        let quantity = self.occupied_volume(&spec.container)?
+            .checked_add(self.material_volume(&spec.kind, crate::supply_allocation::reserved_destination(self, &spec.container, None))?)
             .ok_or("material output destination reservation overflow")?;
         let lot = Lot { kind: spec.kind.clone(), quantity: spec.quantity, container: spec.container.clone() };
         let water = spec.water_kg.map(|mass| LotWater { water_kg: mass });
@@ -4153,7 +4173,7 @@ impl Kernel {
         let vessel_lot = self.ecs.get::<Lot>(vessel).cloned().ok_or("water vessel is not a lot")?;
         if vessel_lot.quantity == 0 || vessel_lot.container != worker_id { return Err("water exchange requires a held vessel lot".into()); }
         self.ecs.get::<Container>(vessel).ok_or("water vessel is not a container")?;
-        if !self.accepts_material(vessel_id, "water")? { return Err("vessel does not accept water".into()); }
+        if !self.accepts_material(vessel_id, "water", u32::from(portions))? { return Err("vessel lacks volume for water".into()); }
         if self.ecs.get::<SealedContainer>(vessel).is_some() {
             return Err("sealed water vessel".into());
         }
@@ -5592,7 +5612,7 @@ impl Kernel {
             return Err("stock is not available at source".into());
         }
         crate::supply_allocation::validate_capacity(self, e, dest, quantity, ignored_reservation)?;
-        if self.quantity(to) + u64::from(quantity) > u64::from(capacity) {
+        if self.occupied_volume(to)?.checked_add(self.material_volume(&stock.kind, quantity)?).ok_or("material volume overflow")? > u64::from(capacity) {
             return Err("destination is full".into());
         }
         self.contact(source, dest)?;

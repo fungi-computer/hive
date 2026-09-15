@@ -56,10 +56,6 @@ export interface EnvironmentMaterial {
   readonly water: MaterialWater;
   readonly excavation?: ExcavationRule;
 }
-export type EnvironmentMaterialForm = "liquid" | "slurry" | "loose" | "solid" | "gas";
-export interface EnvironmentHandledMaterial { readonly id: string; readonly tags: readonly string[]; readonly form: EnvironmentMaterialForm; }
-export interface EnvironmentVesselKind { readonly id: string; readonly acceptedTags?: readonly string[]; readonly acceptedForms?: readonly EnvironmentMaterialForm[]; }
-export interface EnvironmentMaterialHandling { readonly materials: readonly EnvironmentHandledMaterial[]; readonly vessels: readonly EnvironmentVesselKind[]; }
 
 export type WaterCell = readonly [number, number, number];
 
@@ -169,31 +165,23 @@ export interface EnvironmentDefinition {
   readonly emissions?: readonly EnvironmentEmission[];
   readonly processes?: readonly EnvironmentProcessDefinition[];
   readonly materials: readonly EnvironmentMaterial[];
-  readonly materialHandling?: EnvironmentMaterialHandling;
+  readonly materialVolumes: readonly EnvironmentMaterialVolume[];
   readonly water: EnvironmentWater;
   readonly resourceSites?: readonly EnvironmentResourceDefinition[];
   readonly structures: EnvironmentStructures;
   /** Optional fresh-world placement; native restore never reapplies it. */
   readonly initialPlacements?: readonly InitialSurfacePlacement[];
 }
+export interface EnvironmentMaterialVolume { readonly kind: string; readonly unitVolume: number; }
 
 export function validateEnvironmentDefinition(
   definition: EnvironmentDefinition,
 ): void {
-  const handling = definition?.materialHandling;
-  if (handling !== undefined) {
-    if (!Array.isArray(handling.materials) || !Array.isArray(handling.vessels)) throw new Error("invalid material handling catalog");
-    const forms = new Set(["liquid", "slurry", "loose", "solid", "gas"]);
-    const materialIds = new Set<string>();
-    for (const material of handling.materials) {
-      if (!material || typeof material.id !== "string" || !/^[A-Za-z0-9._:-]+$/.test(material.id) || materialIds.has(material.id) || !Array.isArray(material.tags) || material.tags.some(tag => typeof tag !== "string" || !/^[A-Za-z0-9._:-]+$/.test(tag)) || !forms.has(material.form)) throw new Error("invalid handled material");
-      materialIds.add(material.id);
-    }
-    const vesselIds = new Set<string>();
-    for (const vessel of handling.vessels) {
-      if (!vessel || typeof vessel.id !== "string" || !/^[A-Za-z0-9._:-]+$/.test(vessel.id) || vesselIds.has(vessel.id) || vessel.acceptedTags?.some(tag => typeof tag !== "string" || !/^[A-Za-z0-9._:-]+$/.test(tag)) || vessel.acceptedForms?.some(form => !forms.has(form))) throw new Error("invalid vessel kind");
-      vesselIds.add(vessel.id);
-    }
+  if (!Array.isArray(definition?.materialVolumes)) throw new Error("materialVolumes is required");
+  const volumeIds = new Set<string>();
+  for (const material of definition.materialVolumes) {
+    if (!material || typeof material.kind !== "string" || !/^[A-Za-z0-9._:-]+$/.test(material.kind) || volumeIds.has(material.kind) || !Number.isSafeInteger(material.unitVolume) || material.unitVolume <= 0) throw new Error("invalid material unit volume");
+    volumeIds.add(material.kind);
   }
   const maxStairGrade = 1.5;
   const maxSpanSteps = definition?.structures?.maxSpanSteps;

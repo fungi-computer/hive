@@ -43,23 +43,11 @@ struct DefinitionInput {
     #[serde(default)]
     initial_placements: Vec<InitialPlacementInput>,
     #[serde(default)]
-    material_handling: MaterialHandlingInput,
-}
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct MaterialHandlingInput {
-    #[serde(default)] materials: Vec<MaterialKindInput>,
-    #[serde(default)] vessels: Vec<VesselKindInput>,
+    material_volumes: Vec<MaterialVolumeInput>,
 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct MaterialKindInput { id: String, tags: Vec<String>, form: MaterialFormInput }
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "lowercase")]
-enum MaterialFormInput { Liquid, Slurry, Loose, Solid, Gas }
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct VesselKindInput { id: String, #[serde(default)] accepted_tags: Vec<String>, #[serde(default)] accepted_forms: Vec<MaterialFormInput> }
+struct MaterialVolumeInput { kind: String, unit_volume: u32 }
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct ResourceDefinitionInput {
@@ -374,19 +362,11 @@ fn prepare_definition_mode(
         if on_remove.empty_ports.iter().any(|key| !on_complete.ports.iter().any(|port| port.key == *key)) { return Err("removal empty port is not completion port".into()); }
         structures.insert(entry.id.clone(), StructureDefinition { id: entry.id, shape, materials, work_seconds: entry.work_seconds, work_reach_below_cells: entry.work_reach_below_cells, on_complete, on_remove });
     }
-    let mut handling_materials = BTreeMap::new();
-    for material in definition.material_handling.materials {
-        if !crate::components::valid_id(&material.id) || material.tags.iter().any(|tag| !crate::components::valid_id(tag)) || handling_materials.contains_key(&material.id) { return Err("invalid material handling definition".into()); }
-        let form = match material.form { MaterialFormInput::Liquid => crate::material_handling::MaterialForm::Liquid, MaterialFormInput::Slurry => crate::material_handling::MaterialForm::Slurry, MaterialFormInput::Loose => crate::material_handling::MaterialForm::Loose, MaterialFormInput::Solid => crate::material_handling::MaterialForm::Solid, MaterialFormInput::Gas => crate::material_handling::MaterialForm::Gas };
-        handling_materials.insert(material.id, crate::material_handling::MaterialKind { tags: material.tags.into_iter().collect(), form });
+    let mut unit_volume = BTreeMap::new();
+    for material in definition.material_volumes {
+        if !crate::components::valid_id(&material.kind) || material.unit_volume == 0 || unit_volume.insert(material.kind, material.unit_volume).is_some() { return Err("invalid material unit volume".into()); }
     }
-    let mut handling_vessels = BTreeMap::new();
-    for vessel in definition.material_handling.vessels {
-        if !crate::components::valid_id(&vessel.id) || vessel.accepted_tags.iter().any(|tag| !crate::components::valid_id(tag)) || handling_vessels.contains_key(&vessel.id) { return Err("invalid vessel handling definition".into()); }
-        let accepted_forms = vessel.accepted_forms.into_iter().map(|form| match form { MaterialFormInput::Liquid => crate::material_handling::MaterialForm::Liquid, MaterialFormInput::Slurry => crate::material_handling::MaterialForm::Slurry, MaterialFormInput::Loose => crate::material_handling::MaterialForm::Loose, MaterialFormInput::Solid => crate::material_handling::MaterialForm::Solid, MaterialFormInput::Gas => crate::material_handling::MaterialForm::Gas }).collect();
-        handling_vessels.insert(vessel.id, crate::material_handling::VesselKind { accepted_tags: vessel.accepted_tags.into_iter().collect(), accepted_forms });
-    }
-    let material_handling = crate::material_handling::Catalog::new(handling_materials, handling_vessels);
+    let material_handling = crate::material_handling::Catalog::new(unit_volume);
     if definition.initial_placements.len() > MAX_INITIAL_PLACEMENTS {
         return Err("initial placement count exceeds 512".into());
     }
@@ -589,7 +569,7 @@ pub(crate) mod tests {
     use super::*;
     pub(crate) fn fixture(seed: &str) -> String {
         format!(
-            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1,"workReachBelowCells":0}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"materialHandling":{{"materials":[{{"id":"water","tags":["liquid"],"form":"liquid"}}],"vessels":[{{"id":"pail","acceptedTags":["liquid"]}}]}},"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
+            r#"{{"world":{{"seed":"{seed}","identity":"demo","bounds":{{"minX":-8,"maxX":8,"minY":-8,"maxY":40,"minZ":-8,"maxZ":8}},"slots":{{"air":0,"soil":1,"stone":2}},"seaLevel":12,"verticalMetres":0.54}},"structures":{{"maxSpanSteps":6,"catalog":[{{"id":"floor","shape":{{"kind":"floor"}},"materials":[{{"kind":"stone-spoil","quantity":1}}],"workSeconds":1,"workReachBelowCells":0}}]}},"materials":[{{"slot":0,"solid":false,"diggable":false,"water":{{"kind":"open"}}}},{{"slot":1,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"soil","porosity":0.4,"retention":0.1,"absorbMPerS":0.1,"seepMPerS":0.1}}}}}},{{"slot":2,"solid":true,"diggable":true,"water":{{"kind":"porous","rule":{{"id":"stone","porosity":0.05,"retention":0.01,"absorbMPerS":0.01,"seepMPerS":0.01}}}}}}],"materialVolumes":[{{"kind":"water","unitVolume":1}},{{"kind":"pail","unitVolume":1}},{{"kind":"wood","unitVolume":1}},{{"kind":"stone-spoil","unitVolume":1}}],"water":{{"id":"w","cells":[[0,-7,0],[0,-6,0],[0,39,0]],"fallMPerS":0.1,"spreadMPerS":0.1}}}}"#
         )
     }
     #[test]
