@@ -225,6 +225,13 @@ export class GameSession {
           );
         writeOwners.set(definition.id, system.id);
       }
+    for (const definition of this.pack.behaviors ?? []) {
+      for (const component of definition.writes) {
+        const owner = writeOwners.get(component.id);
+        if (owner !== undefined && owner !== definition.id) throw new Error(`duplicate behavior write authority for ${component.id}: ${owner} and ${definition.id}`);
+        writeOwners.set(component.id, definition.id);
+      }
+    }
     for (const definition of Object.values(this.pack.commands ?? {})) {
       const commandWrites = new Set(
         definition.writes.map((component) => component.id),

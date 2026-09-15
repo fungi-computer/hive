@@ -1,4 +1,5 @@
 export * from "./authoring";
+export * from "./behavior";
 export * from "./common";
 export * from "./construction";
 export * from "./deconstruction-work";
