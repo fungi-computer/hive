@@ -57,6 +57,7 @@ impl Registry {
             ("hive.body", vec![("speed", FieldType::Number)]),
             ("hive.traversal", vec![("clearanceCells", FieldType::Number), ("maxStepCells", FieldType::Number)]),
             ("hive.container", vec![("capacity", FieldType::Number)]),
+            ("hive.vessel", vec![("kind", FieldType::String)]),
             ("hive.sealed-container", vec![]),
             ("hive.ground-stock", vec![]),
             (
@@ -197,6 +198,7 @@ impl Registry {
                 "hive.body" => world.register_component::<Body>(),
                 "hive.traversal" => world.register_component::<Traversal>(),
                 "hive.container" => world.register_component::<Container>(),
+                "hive.vessel" => world.register_component::<Vessel>(),
                 "hive.sealed-container" => world.register_component::<SealedContainer>(),
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
@@ -256,6 +258,7 @@ impl Registry {
                 | "hive.body"
                 | "hive.traversal"
                 | "hive.container"
+                | "hive.vessel"
                 | "hive.sealed-container"
                 | "hive.ground-stock"
                 | "hive.lot"
@@ -342,6 +345,10 @@ impl Registry {
             }
             "hive.container" => {
                 let _: Container = decode(value)?;
+            }
+            "hive.vessel" => {
+                let vessel: Vessel = decode(value)?;
+                if !valid_id(&vessel.kind) { return Err("invalid vessel kind".into()); }
             }
             "hive.ground-stock" => { let _: GroundStock = decode(value)?; }
             "hive.sealed-container" => {
@@ -550,6 +557,9 @@ impl Registry {
             "hive.container" => {
                 world.entity_mut(entity).insert(decode::<Container>(value)?);
             }
+            "hive.vessel" => {
+                world.entity_mut(entity).insert(decode::<Vessel>(value)?);
+            }
             "hive.ground-stock" => { world.entity_mut(entity).insert(decode::<GroundStock>(value)?); }
             "hive.sealed-container" => {
                 world.entity_mut(entity).insert(decode::<SealedContainer>(value)?);
@@ -642,6 +652,7 @@ impl Registry {
             "hive.body" => world.get::<Body>(entity).map(record),
             "hive.traversal" => world.get::<Traversal>(entity).map(record),
             "hive.container" => world.get::<Container>(entity).map(record),
+            "hive.vessel" => world.get::<Vessel>(entity).map(record),
             "hive.sealed-container" => world.get::<SealedContainer>(entity).map(record),
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),

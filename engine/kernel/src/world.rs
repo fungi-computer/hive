@@ -595,7 +595,7 @@ mod water_exchange_action_tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":1,"game":"water-action-laws","components":[],"initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.container":{"capacity":8}}},
-            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
+            {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.vessel":{"kind":"pail"},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
         ]}).to_string()).unwrap();
         kernel
     }
@@ -1880,6 +1880,7 @@ struct KernelEnvironment {
     excavation_rules: BTreeMap<u16, crate::environment_definition::ExcavationRule>,
     structures: BTreeMap<String, crate::environment_definition::StructureDefinition>,
     resources: BTreeMap<String, crate::environment_definition::ResourceDefinition>,
+    material_handling: crate::material_handling::Catalog,
 }
 struct PreparedRoute {
     points: VecDeque<Point>,
@@ -1939,6 +1940,18 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    /// Checks a configured vessel against a content kind at the physical
+    /// boundary. The lot and container components prove this is an actual
+    /// vessel entity; the environment catalog supplies compatibility.
+    pub(crate) fn accepts_material(&self, vessel_id: &str, content_kind: &str) -> Result<bool> {
+        let vessel = self.entity(vessel_id)?;
+        let lot = self.ecs.get::<Lot>(vessel).ok_or("material vessel is not a lot")?;
+        if self.ecs.get::<Container>(vessel).is_none() || self.ecs.get::<Vessel>(vessel).is_none() { return Ok(false); }
+        if self.entity(&lot.container).is_err() { return Ok(false); }
+        let environment = self.environment.as_ref().ok_or("material handling requires environment")?;
+        Ok(environment.material_handling.accepts(&self.ecs.get::<Vessel>(vessel).unwrap().kind, content_kind))
+    }
+
     fn validate_resource_sites(&self) -> Result<()> {
         let Some(environment) = &self.environment else { return Ok(()); };
         for (id, entity) in &self.ids {
@@ -3016,7 +3029,7 @@ impl Kernel {
         let entities = self.snapshot_entities_json()?;
         let mut candidate = Self::new();
         candidate.restore_json(&entities)?;
-        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, resources: built.resources, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
+        candidate.environment = Some(KernelEnvironment { atmosphere, paid_emissions: BTreeMap::new(), emissions: built.emissions, processes: built.processes, resources: built.resources, material_handling: built.material_handling, definition: definition.to_owned(), world: built.world, excavation_rules: built.excavation_rules, structures: built.structures });
         candidate.validate_structure_recipes()?;
         candidate.validate_process_records()?;
         candidate.validate_construction_sites()?;
@@ -3284,7 +3297,7 @@ impl Kernel {
             let prepared = crate::environment_definition::prepare_definition(definition)?;
             let world = crate::terrain_water::TerrainWater::restore_records(
                 prepared.geometry, prepared.terrain, records)?;
-            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, resources: prepared.resources, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
+            let mut environment = KernelEnvironment { atmosphere: None, paid_emissions: BTreeMap::new(), emissions: prepared.emissions, processes: prepared.processes, resources: prepared.resources, material_handling: prepared.material_handling, definition: definition.clone(), world, excavation_rules: prepared.excavation_rules, structures: prepared.structures };
             environment.restore_air(prepared.atmosphere.as_ref(), records_atmosphere.as_deref(), candidate.revision)?;
             candidate.environment = Some(environment);
             candidate.validate_structure_recipes()?;
@@ -4138,10 +4151,9 @@ impl Kernel {
             return Err("water exchange requires unsealed worker container".into());
         }
         let vessel_lot = self.ecs.get::<Lot>(vessel).cloned().ok_or("water vessel is not a lot")?;
-        if vessel_lot.kind != "pail" || vessel_lot.quantity == 0 || vessel_lot.container != worker_id {
-            return Err("water exchange requires a held pail lot".into());
-        }
+        if vessel_lot.quantity == 0 || vessel_lot.container != worker_id { return Err("water exchange requires a held vessel lot".into()); }
         self.ecs.get::<Container>(vessel).ok_or("water vessel is not a container")?;
+        if !self.accepts_material(vessel_id, "water")? { return Err("vessel does not accept water".into()); }
         if self.ecs.get::<SealedContainer>(vessel).is_some() {
             return Err("sealed water vessel".into());
         }

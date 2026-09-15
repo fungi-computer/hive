@@ -149,6 +149,19 @@ export const colonyEnvironment: EnvironmentDefinition = {
       },
     },
   ],
+  materialHandling: {
+    materials: [
+      { id: "water", tags: ["liquid", "clean"], form: "liquid" },
+      { id: "beer", tags: ["liquid", "drink"], form: "liquid" },
+      { id: "ale", tags: ["liquid", "drink"], form: "liquid" },
+      { id: "mud", tags: ["slurry"], form: "slurry" },
+      { id: "dirt", tags: ["loose"], form: "loose" },
+      { id: "piss", tags: ["liquid", "waste"], form: "liquid" },
+      { id: "shit", tags: ["slurry", "waste"], form: "slurry" },
+      { id: "dirty-mop-water", tags: ["liquid", "waste", "dirty"], form: "liquid" },
+    ],
+    vessels: [{ id: "pail", acceptedTags: ["liquid", "slurry", "loose"] }],
+  },
   water: {
     id: "colony-water-v1",
     cells: Array.from({ length: 5 }, (_, x) => x - 2).flatMap(x =>
