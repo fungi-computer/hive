@@ -32,5 +32,6 @@ test("duplicate branch identities and undeclared writes are rejected by definiti
     selected.where(condition("danger", [], () => true)).do(branch);
   }), /Duplicate behavior action/);
   const system = behavior("writes", (scene) => scene.find(Cat).where(condition("always", [], () => true)).do({ id: "act", run: () => ({ writes: [{ component: Mood.id, entity: "cat" as never, value: { fleeing: true } }] }) }));
-  assert.throws(() => system.run({} as never), /undeclared write/);
+  const context = { query: () => [{ id: "cat", get: () => ({ danger: true }) }] } as never;
+  assert.throws(() => system.run(context), /undeclared write/);
 });
