@@ -93,6 +93,7 @@ impl Kernel {
         Ok(Some(crate::work_planner::WorkRequirement {
             task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
             contacts: access.contacts.into_iter().map(|contact| Point { x: contact.x, y: contact.y, z: contact.z, frame: contact.frame }).collect(),
+            required_worker: None,
             free_capacity_required: access.salvage_quantity,
             operation: crate::work_planner::WorkOperation::Deconstruction { site: order.site },
         }))
@@ -173,6 +174,7 @@ impl Kernel {
             priority: policy.priority,
             schedule,
             contacts,
+            required_worker: None,
             free_capacity_required: 0,
             operation: crate::work_planner::WorkOperation::Construction {
                 site: site.to_owned(),

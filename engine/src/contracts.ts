@@ -27,7 +27,11 @@ export const RESERVED_COMPONENTS = [
   "hive.finite-resource",
   "hive.resource-site",
   "hive.excavation-work",
+  "hive.excavation-order",
   "hive.deconstruction-work",
+  "hive.supply-allocation",
+  "hive.work-policy",
+  "hive.work-schedule",
   "hive.destination",
   "hive.support",
   "hive.surface",
@@ -197,6 +201,8 @@ export type ActionRequest =
       readonly party: EntityId;
       readonly target: ConstructionTarget;
     }
+  | { readonly kind: "plan-excavation"; readonly party: EntityId; readonly prefix: string; readonly start: readonly [number, number, number]; readonly end: readonly [number, number, number] }
+  | { readonly kind: "cancel-excavation"; readonly party: EntityId; readonly area: { readonly start: readonly [number, number, number]; readonly end: readonly [number, number, number] } | null; readonly workers: readonly EntityId[] }
   | { readonly kind: "replace-floor"; readonly orderId: EntityId; readonly existingFloorId: EntityId; readonly desiredCatalog: string }
   | { readonly kind: "bind-construction-stage"; readonly site: EntityId; readonly contact: Vec3 & { readonly frame: null } }
   | { readonly kind: "cancel-work"; readonly entity: EntityId }

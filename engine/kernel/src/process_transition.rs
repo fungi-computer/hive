@@ -114,6 +114,7 @@ impl Kernel {
             priority: policy.priority,
             schedule,
             contacts,
+            required_worker: None,
             free_capacity_required: 0,
             operation: crate::work_planner::WorkOperation::ProcessAttendance {
                 process: process.to_owned(),

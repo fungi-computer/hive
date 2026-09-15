@@ -10,10 +10,10 @@ import {
   Container,
   Destination,
   ExcavationWork,
+  ExcavationOrder,
   MaterialLot,
   Position,
   Traversal,
-  cancelWork,
   encodeDefinition,
   transfer,
   FiniteResource,
@@ -26,7 +26,7 @@ import { WorkParticipation } from "../sdk/work-control";
 import { OwnedByParty, Party, PartyMember, PartyReceipt } from "../sdk/party";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
-import { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
+import { ColonyTree, ColonyTreeOrder, ColonyTreePolicy, ColonyResourceOrder, colonyWorkSystem } from "./colony-work";
 import { Worker } from "./colony-components";
 import { colonyPartyFootprint, createColonyPartyPlan } from "./colony-party";
 import { encodeEnvironmentDefinition } from "../sdk/environment";
@@ -42,7 +42,8 @@ export const colonyMaterialCatalog = [
 ] as const;
 
 export { Worker } from "./colony-components";
-export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
+export { ExcavationOrder } from "../sdk/common";
+export { ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
 export const Guest = component<{ hungry: boolean }>("colony.guest", {
   version: 1,
@@ -302,7 +303,7 @@ const colonyComponents = [
   Guest,
   DeliveryTask,
   DeliveryControl,
-  ColonyDigOrder,
+  ExcavationOrder,
   ColonyResourceOrder,
   ColonyTree, ColonyTreeOrder,
   ColonyTreePolicy,
@@ -315,27 +316,14 @@ const colonyComponents = [
   WaterSupplyOrder, WaterSupplyWork,
 ] as const;
 
-function digArea(context: CommandContext, input: z.infer<typeof digInput>) {
+function digArea(input: z.infer<typeof digInput>, party: EntityId): ActionRequest {
   const area = input.area;
   const [startX, y, startZ] = area.start, [endX, endY, endZ] = area.end;
   if (y !== endY) throw new Error("dig area must stay on one level");
-  const minX = Math.min(startX, endX), maxX = Math.max(startX, endX), minZ = Math.min(startZ, endZ), maxZ = Math.max(startZ, endZ);
-  const count = (maxX - minX + 1) * (maxZ - minZ + 1);
+  const count = (Math.abs(endX - startX) + 1) * (Math.abs(endZ - startZ) + 1);
   if (!Number.isSafeInteger(count) || count < 1 || count > 256) throw new Error("dig area exceeds 256 cells");
-  const existing = new Set(context.query(query(ColonyDigOrder)).map((row) => row.id));
-  const creates = [];
-  for (let x = minX; x <= maxX; x++) for (let z = minZ; z <= maxZ; z++) {
-    const id = `colony.dig.${x}.${y}.${z}` as EntityId;
-    if (existing.has(id)) continue;
-    creates.push({ id, components: { [ColonyDigOrder.id]: {
-      cellX: x, cellY: y, cellZ: z, expected: -1,
-      status: "queued", reason: "",
-    }}});
-  }
-  if (existing.size + creates.length > 256) throw new Error("Finish or cancel existing dig orders before adding more than 256");
-  return creates;
+  return { kind: "plan-excavation", party, prefix: "colony.dig", start: area.start, end: area.end };
 }
-
 export const colonyPack: GamePack = {
   id: "colony",
   version: 7,
@@ -548,10 +536,13 @@ export const colonyPack: GamePack = {
       title: "Dig area", category: "Excavation", description: "Queue excavation for a same-level area.",
       localPresentation: { bindings: [{ id: "dig", label: "Dig area", target: "terrain-area", designation: ["rectangle"] as const }] },
       input: digInput,
-      reads: [ColonyDigOrder],
+      reads: [],
       writes: [],
-      lifecycle: [ColonyDigOrder],
-      run: (context, input) => ({ actions: [], writes: [], creates: digArea(context, input) }),
+      lifecycle: [],
+      run: (context, input) => {
+        if (context.scope.kind !== "player") throw new Error("dig designation requires a player party");
+        return { actions: [digArea(input, context.scope.party)], writes: [] };
+      },
     }),
     designateTrees: command({
       title: "Fell selected trees", category: "Colony", description: "Designate standing trees for felling and chopping.",
@@ -604,44 +595,13 @@ export const colonyPack: GamePack = {
       title: "Cancel excavation", category: "Excavation", description: "Cancel queued excavation orders in an area or for workers.",
       localPresentation: { bindings: [{ id: "cancel-dig", label: "Cancel dig area", target: "terrain-area", designation: ["rectangle"] as const }] },
       input: cancelDigInput,
-      reads: [ColonyDigOrder, ExcavationWork],
+      reads: [],
       writes: [],
-      lifecycle: [ColonyDigOrder],
+      lifecycle: [],
       run: (context, input) => {
-        const selected = input.entities ? new Set(input.entities) : null;
-        let area: { minX: number; maxX: number; minZ: number; maxZ: number; y: number } | null = null;
-        if (input.area) {
-          const [startX, y, startZ] = input.area.start;
-          const [endX, endY, endZ] = input.area.end;
-          if (y !== endY) throw new Error("cancel dig area must stay on one level");
-          area = { minX: Math.min(startX, endX), maxX: Math.max(startX, endX), minZ: Math.min(startZ, endZ), maxZ: Math.max(startZ, endZ), y };
-        }
-        if (selected === null && area === null) throw new Error("cancel dig requires workers or an area");
-        const orders = context.query(query(ColonyDigOrder));
-        const attempts = new Map(workAttemptsFor(context, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
-        const matching = orders.filter((row) => {
-          const state = row.get(ColonyDigOrder);
-          const attempt = attempts.get(row.id);
-          const byWorker = selected !== null && attempt !== undefined && selected.has(attempt.worker);
-          const byArea = area !== null && state.cellY === area.y && state.cellX >= area.minX && state.cellX <= area.maxX && state.cellZ >= area.minZ && state.cellZ <= area.maxZ;
-          return byWorker || byArea;
-        });
-        if (!matching.length) throw new Error("no matching excavation order");
-        const actions: ActionRequest[] = [];
-        const writes = [];
-        const removes: EntityId[] = [];
-        for (const row of matching) {
-          const attempt = attempts.get(row.id);
-          if (!attempt) {
-            removes.push(row.id);
-            continue;
-          }
-          const state = row.get(ColonyDigOrder);
-          writes.push({ component: ColonyDigOrder.id, entity: row.id, value: { ...state, status: "cancelling", reason: "Cancelled" } });
-          if (attempt.phase.kind === "executing") actions.push({ kind: "interrupt-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" });
-          else if (attempt.phase.kind === "outcome") actions.push({ kind: "acknowledge-work-attempt", task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence });
-        }
-        return { actions, writes, removes };
+        if (context.scope.kind !== "player") throw new Error("excavation cancellation requires a player party");
+        if (!input.entities && !input.area) throw new Error("cancel dig requires workers or an area");
+        return { actions: [{ kind: "cancel-excavation", party: context.scope.party, area: input.area ?? null, workers: input.entities ?? [] }], writes: [] };
       },
     }),
     deposit: command({
@@ -726,8 +686,8 @@ export const colonyPack: GamePack = {
       ];
     },
     terrainMarks: context => [
-      ...context.query(query(ColonyDigOrder)).map(row => {
-      const order = row.get(ColonyDigOrder);
+      ...context.query(query(ExcavationOrder)).map(row => {
+      const order = row.get(ExcavationOrder);
       const attempt = context.workAttempts?.([row.id])[0];
       return { id: row.id, cell: [order.cellX, order.cellY, order.cellZ] as const,
         status: order.status === "blocked" ? "blocked" as const : attempt ? "working" as const : "queued" as const };
@@ -910,8 +870,8 @@ export const colonyPack: GamePack = {
             return sum + (stockContainers.has(lot.container) && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil") ? lot.quantity : 0);
           }, 0);
         })() },
-        { id: "dig-orders", label: "Dig orders", value: context.query(query(ColonyDigOrder)).length },
-        { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ColonyDigOrder)).find((row) => row.get(ColonyDigOrder).status === "blocked")?.get(ColonyDigOrder).reason ?? "none" },
+        { id: "dig-orders", label: "Dig orders", value: context.query(query(ExcavationOrder)).length },
+        { id: "dig-blocked", label: "Dig blocked", value: context.query(query(ExcavationOrder)).find((row) => row.get(ExcavationOrder).status === "blocked")?.get(ExcavationOrder).reason ?? "none" },
         ...[...taskRows].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map((row, index) => ({ id: `delivery-phase-${index + 1}`, subjects: [row.id], label: `Delivery ${index + 1}`, value: row.get(DeliveryTask).custody })),
       ];
     },

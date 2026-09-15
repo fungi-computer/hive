@@ -134,6 +134,8 @@ impl Kernel {
                         crate::work_planner::WorkOperation::ProcessAttendance { process: task.id.clone() }
                     } else if let Some(order) = self.ecs.get::<DeconstructionOrder>(self.entity(&task.id)?).cloned() {
                         crate::work_planner::WorkOperation::Deconstruction { site: order.site }
+                    } else if let Some(order) = self.ecs.get::<ExcavationOrder>(self.entity(&task.id)?).cloned() {
+                        crate::work_planner::WorkOperation::Excavation { cell: [order.cell_x, order.cell_y, order.cell_z], expected: order.expected, replacement: 0 }
                     } else {
                         continue;
                     };
@@ -163,6 +165,30 @@ impl Kernel {
                             }
                             _ => {}
                         }
+                    } else if let Some(order) = self.ecs.get::<ExcavationOrder>(self.entity(&task.id)?).cloned() {
+                        match (&activity, &result) {
+                            (crate::work_attempt::ActivityRef::Excavation { .. }, crate::work_attempt::WorkOutcome::Completed) => {
+                                self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                                self.remove_excavation_order(&task.id)?;
+                                progressed += 1;
+                                continue;
+                            }
+                            (_, crate::work_attempt::WorkOutcome::Interrupted { cause: crate::work_attempt::InterruptCause::Cancelled }) if order.status == "cancelling" => {
+                                self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                                self.remove_excavation_order(&task.id)?;
+                                progressed += 1;
+                                continue;
+                            }
+                            (_, crate::work_attempt::WorkOutcome::Blocked { reason }) => {
+                                self.ecs.entity_mut(self.entity(&task.id)?).insert(ExcavationOrder { status: "blocked".into(), reason: format!("{reason:?}"), ..order });
+                                self.refresh_planner_index(&task.id);
+                            }
+                            (_, crate::work_attempt::WorkOutcome::Interrupted { .. }) => {
+                                self.ecs.entity_mut(self.entity(&task.id)?).insert(ExcavationOrder { status: "queued".into(), reason: String::new(), ..order });
+                                self.refresh_planner_index(&task.id);
+                            }
+                            _ => {}
+                        }
                     }
                     self.acknowledge_work_attempt(
                         task.id.clone(),
@@ -176,8 +202,16 @@ impl Kernel {
 
         let mut supply_requirements = Vec::new();
         let mut requirements = Vec::new();
+        let indexed_task_ids = self.planner_indexes.task_ids().map(str::to_owned).collect::<Vec<_>>();
+        let designated_excavation_cells = indexed_task_ids.iter().filter_map(|task| {
+            let entity = self.entity(task).ok()?;
+            let order = self.ecs.get::<ExcavationOrder>(entity)?;
+            Some((order.cell_x, order.cell_y, order.cell_z))
+        }).collect::<BTreeSet<_>>();
         for task in &window.tasks {
-            let entity = self.entity(&task.id)?;
+            // Outcome reconciliation may lawfully retire a completed or
+            // cancelled task from this same captured review window.
+            let Ok(entity) = self.entity(&task.id) else { continue; };
             let party = task.party.clone();
             // Supply discovery is deliberately behind the same task review
             // window. Its owner accounts for existing reservations, so calling
@@ -202,6 +236,10 @@ impl Kernel {
                 }
             } else if self.ecs.get::<DeconstructionOrder>(entity).is_some()
                 && let Some(requirement) = self.deconstruction_work_requirement(&task.id, &party)?
+            {
+                requirements.push(requirement);
+            } else if self.ecs.get::<ExcavationOrder>(entity).is_some()
+                && let Some(requirement) = self.excavation_work_requirement(&task.id, &party, &designated_excavation_cells)?
             {
                 requirements.push(requirement);
             }
@@ -301,7 +339,8 @@ impl Kernel {
                         + (worker.position.z - slot.source_position.z).powi(2)).sqrt(),
                 ),
                 PlanningObligation::Supply(_) => None,
-                PlanningObligation::Labor(requirement) if requirement.free_capacity_required <= worker.free_capacity => requirement.contacts.iter().map(|contact| {
+                PlanningObligation::Labor(requirement) if requirement.free_capacity_required <= worker.free_capacity
+                    && requirement.required_worker.as_deref().is_none_or(|required| required == worker.id) => requirement.contacts.iter().map(|contact| {
                     ((worker.position.x - contact.x).powi(2)
                         + (worker.position.y - contact.y).powi(2)
                         + (worker.position.z - contact.z).powi(2)).sqrt()

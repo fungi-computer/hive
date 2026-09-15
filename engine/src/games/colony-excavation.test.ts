@@ -5,7 +5,7 @@ import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
 import { GameSession } from "../runtime/session";
 import { wasmKernelPort } from "../runtime/wasm-kernel";
 import { MaterialLot, LotWater, query } from "../sdk/index";
-import { colonyPack, ColonyDigOrder } from "./colony";
+import { colonyPack, ExcavationOrder } from "./colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -30,7 +30,7 @@ for (const x of [1, 9]) test(`Colony area digging earns finite groundwater at x=
       tick();
       if (port.terrainMaterials([[...surface.cell]])[0] === 0) { completed = true; break; }
     }
-    assert.ok(completed, JSON.stringify(session.query(query(ColonyDigOrder)).map(row => row.get(ColonyDigOrder))));
+    assert.ok(completed, JSON.stringify(session.query(query(ExcavationOrder)).map(row => row.get(ExcavationOrder))));
     return surface.cell;
   };
   try {

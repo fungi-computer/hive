@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import { initSync, WasmKernel } from "../../generated/hive_kernel.js";
-import { colonyPack, ColonyDigOrder } from "../games/colony";
+import { colonyPack, ExcavationOrder } from "../games/colony";
 import { entity, query } from "../sdk/authoring";
 import { ExcavationWork, Position } from "../sdk/common";
 import { DeliveryTask } from "../sdk/delivery";
@@ -59,10 +59,10 @@ test("actual Colony attendance projects work poses only while native work exists
         }
         sawWork = true;
       }
-      if (sawWork && !session.query(query(ColonyDigOrder)).length) break;
+      if (sawWork && !session.query(query(ExcavationOrder)).length) break;
     }
     assert(sawWork, "fixture must perform actual native excavation");
-    assert.equal(session.query(query(ColonyDigOrder)).length, 0);
+    assert.equal(session.query(query(ExcavationOrder)).length, 0);
     assert(
       !observe().facts.some((fact) => fact.activity?.kind === "dig"),
       "completed excavation clears its work pose and progress",

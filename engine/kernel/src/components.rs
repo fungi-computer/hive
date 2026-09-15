@@ -150,6 +150,18 @@ pub struct ExcavationWork {
     pub replacement: u16,
     pub seconds: f64,
 }
+/// Durable player excavation intent.  The shared native planner owns worker
+/// selection and retry; this record only retains the designation projection.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExcavationOrder {
+    pub cell_x: i32,
+    pub cell_y: i32,
+    pub cell_z: i32,
+    pub expected: u16,
+    pub status: String,
+    pub reason: String,
+}
 /// Native saved deconstruction progress owned by the task entity.
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -187,6 +199,9 @@ pub enum ConstructionTarget {
         edge: crate::structure_geometry::Face,
     },
 }
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ExcavationArea { pub start: [i32; 3], pub end: [i32; 3] }
 
 impl ConstructionTarget {
     pub const fn cell(self) -> crate::generation::Cell {
@@ -546,6 +561,8 @@ pub enum Action {
         party: String,
         target: ConstructionTarget,
     },
+    PlanExcavation { party: String, prefix: String, start: [i32; 3], end: [i32; 3] },
+    CancelExcavation { party: String, area: Option<ExcavationArea>, workers: Vec<String> },
     PlanDeconstruction { site: String, party: String },
     ReplaceFloor { #[serde(rename = "orderId")] order_id: String, #[serde(rename = "existingFloorId")] existing_floor_id: String, #[serde(rename = "desiredCatalog")] desired_catalog: String },
     BindConstructionStage { site: String, contact: Point },

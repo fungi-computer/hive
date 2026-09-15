@@ -155,6 +155,17 @@ export function checkedAction(value: unknown): ActionRequest {
         && constructionTarget(action.target);
       break;
     }
+    case "plan-excavation":
+      keys = ["kind", "party", "prefix", "start", "end"];
+      valid = id(action.party) && id(action.prefix) && cell(action.start) && cell(action.end);
+      break;
+    case "cancel-excavation": {
+      keys = ["kind", "party", "area", "workers"];
+      const area = action.area;
+      valid = id(action.party) && Array.isArray(action.workers) && action.workers.length <= 32 && action.workers.every(id) &&
+        (area === null || (record(area) && exactKeys(area, ["start", "end"]) && cell(area.start) && cell(area.end)));
+      break;
+    }
     case "replace-floor":
       keys = ["kind", "orderId", "existingFloorId", "desiredCatalog"];
       valid = id(action.orderId) && id(action.existingFloorId) && id(action.desiredCatalog);

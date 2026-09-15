@@ -202,13 +202,6 @@ function requireCompleted(context: Pick<ReadContext, "workAttempts">, attempt: W
   if (!current || current.key.generation !== attempt.generation || current.phase.kind !== "outcome" || current.phase.operation.sequence !== operation || current.phase.result.kind !== "completed") throw new Error("work attempt completed outcome is stale");
 }
 
-export function continueExcavationWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, cell: readonly [number, number, number], expectedMaterial: number, replacementMaterial: number): void {
-  const exact = key(attempt), operation = sequence(operationSequence);
-  if (cell.length !== 3 || !cell.every(Number.isSafeInteger) || ![expectedMaterial, replacementMaterial].every(Number.isSafeInteger)) throw new Error("excavation activity must be integral");
-  requireCompleted(context, exact, operation);
-  context.action({ kind: "continue-work-attempt", task: exact.task, generation: exact.generation, sequence: operation, nextActivity: { kind: "excavation", cell, expectedMaterial, replacementMaterial } });
-}
-
 export function continueResourceEstablishWorkAttempt(context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">, attempt: WorkAttemptKey, operationSequence: number, site: EntityId, definition: string, cell: readonly [number, number, number]): void {
   const exact = key(attempt), operation = sequence(operationSequence); entity(site);
   if (cell.length !== 3 || !cell.every(Number.isSafeInteger)) throw new Error("resource cell must be integral");

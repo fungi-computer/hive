@@ -1,4 +1,5 @@
 import { DeconstructionOrder } from "../sdk/deconstruction-work";
+import { SealedContainer } from "../sdk/construction";
 import { StagedProcess } from "../sdk/process-supply";
 import { waterSupplyProvider, WaterSupplyOrder, WaterSupplyWork } from "./colony-water-work";
 import { Worker } from "./colony-components";
@@ -19,6 +20,7 @@ import {
   Container,
   Destination,
   ExcavationWork,
+  ExcavationOrder,
   MaterialLot,
   FiniteResource,
   ResourceSite,
@@ -28,12 +30,11 @@ import {
   Surface,
   Traversal,
   move,
-  cancelWork,
 } from "../sdk/common";
 import type { EntityId, QueryRow, Vec3, WorldPose, WriteContext } from "../contracts";
 import { colonyEnvironment } from "./colony-environment";
 import { OwnedByParty, PartyMember } from "../sdk/party";
-import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, continueDeconstructionWorkAttempt, continueExcavationWorkAttempt, interruptWorkAttempt, workAttempt, workAttemptsFor } from "../sdk/work-attempt";
+import { acknowledgeWorkAttempt, beginRouteWorkAttempt, continueFieldWaterWorkAttempt, continueResourceEstablishWorkAttempt, continueResourceExtractWorkAttempt, continueResourceTendWorkAttempt, interruptWorkAttempt, workAttempt, workAttemptsFor } from "../sdk/work-attempt";
 
 export type ColonyResourceStage = "sow" | "tend" | "harvest";
 export type ColonyResourceStatus = "queued" | "blocked" | "complete";
@@ -401,38 +402,6 @@ export const ColonyTreePolicy = component<{ designated: boolean; party: EntityId
   { version: 2, fields: { designated: "boolean", party: "nullable-entity" } },
 );
 
-type DigOrder = {
-  cellX: number;
-  cellY: number;
-  cellZ: number;
-  expected: number;
-  status: "queued" | "blocked" | "cancelling";
-  reason: string;
-};
-export const ColonyDigOrder = component<DigOrder>("colony.dig-order", {
-  version: 3,
-  fields: {
-    cellX: "number",
-    cellY: "number",
-    cellZ: "number",
-    expected: "number",
-    status: "string",
-    reason: "string",
-  },
-});
-
-type DigCandidate = {
-  readonly worker: EntityId;
-  readonly task: EntityId;
-  readonly order: EntityId;
-  readonly cell: { readonly x: number; readonly y: number; readonly z: number };
-  readonly expected: number;
-  readonly approaches: readonly (Vec3 & { readonly frame: null })[];
-  readonly cost: number;
-};
-
-const verticalMetres = colonyEnvironment.world.verticalMetres;
-const air = colonyEnvironment.world.slots.air;
 const colonyStockpileProfiles: Readonly<
   Record<string, StockpileFilterProfile>
 > = {
@@ -590,329 +559,6 @@ export const treeWorkProvider = (
   };
 };
 
-/** Reconcile one claimed order with native movement/work; never settle cargo. */
-function digApproaches(
-  state: Pick<DigOrder, "cellX" | "cellY" | "cellZ">,
-  designatedCells: ReadonlySet<string>,
-): readonly (Vec3 & { readonly frame: null })[] {
-  const horizontal = [
-    [-1, 0],
-    [1, 0],
-    [0, -1],
-    [0, 1],
-  ] as const;
-  const vertical = [-2, -1, 0, 1] as const;
-  return horizontal.flatMap(([dx, dz]) =>
-    vertical.flatMap((dy) => {
-      const x = state.cellX + dx;
-      const y = state.cellY + dy;
-      const z = state.cellZ + dz;
-      return designatedCells.has(`${x},${y},${z}`)
-        ? []
-        : [{ x, y: (y + 0.5) * verticalMetres, z, frame: null }];
-    }),
-  );
-}
-
-type DigCandidateFacts = {
-  readonly workers: ReadonlySet<EntityId>;
-  readonly bodies: ReadonlySet<EntityId>;
-  readonly positions: ReadonlyMap<EntityId, WorldPose>;
-  readonly occupied: ReadonlySet<EntityId>;
-  readonly designatedCells: ReadonlySet<string>;
-  readonly standingCells: ReadonlySet<string>;
-};
-
-function candidatesForDigOrder(
-  order: EntityId,
-  state: DigOrder,
-  material: number | undefined,
-  facts: DigCandidateFacts,
-): readonly DigCandidate[] {
-  const cellKey = `${state.cellX},${state.cellY},${state.cellZ}`;
-  if (
-    state.status === "cancelling" ||
-    (state.status === "blocked" && (state.reason !== "Someone is standing on this tile" || facts.standingCells.has(cellKey))) ||
-    facts.standingCells.has(cellKey) ||
-    material === undefined ||
-    material === air
-  )
-    return [];
-  const expected = state.expected >= 0 ? state.expected : material;
-  if (material !== expected) return [];
-  const approaches = digApproaches(state, facts.designatedCells);
-  if (!approaches.length) return [];
-  return [...facts.workers]
-    .filter(
-      (worker) =>
-        !facts.occupied.has(worker) &&
-        facts.positions.has(worker) &&
-        facts.bodies.has(worker),
-    )
-    .map((worker) => ({
-      worker,
-      task: order,
-      order,
-      cell: { x: state.cellX, y: state.cellY, z: state.cellZ },
-      expected,
-      approaches,
-      cost: Number.POSITIVE_INFINITY,
-    }));
-}
-
-export function digProvider(
-  ctx: WriteContext,
-  suspendedActors: ReadonlySet<EntityId>,
-): PreparedWorkProvider<DigCandidate> {
-  const orders = ctx.query(query(ColonyDigOrder));
-  const attempts = new Map(workAttemptsFor(ctx, orders.map(row => row.id)).map(attempt => [attempt.key.task, attempt]));
-  const orderOwners = new Map(ctx.query(query(OwnedByParty)).map((row) => [row.id, row.get(OwnedByParty).party]));
-  const memberships = new Map(ctx.query(query(PartyMember)).map((row) => [row.id, row.get(PartyMember).party]));
-  const workers = new Set(
-    ctx
-      .query(query(Worker))
-      .filter((row) => !row.get(Worker).guest)
-      .map((row) => row.id),
-  );
-  const bodies = new Set(ctx.query(query(Body)).map((row) => row.id));
-  const positions = new Map(
-    ctx.worldPoses([...bodies.keys()]).map((pose) => [pose.id, pose]),
-  );
-  const supported = new Set(ctx.query(query(Support)).map((row) => row.id));
-  // Scheduling eligibility only: the native excavation owner still checks
-  // occupied support at admission and completion, including movement races.
-  const standingCells = new Set(
-    [...positions.values()]
-      // Idle workers standing on a designation are eligible to take that job:
-      // assignment first moves them to a legal approach. Non-workers remain a
-      // physical obstruction until they leave.
-      .filter((pose) => !supported.has(pose.id) && !workers.has(pose.id))
-      .map(
-        (pose) =>
-          `${Math.round(pose.world.x)},${Math.round(pose.world.y / verticalMetres - 0.5)},${Math.round(pose.world.z)}`,
-      ),
-  );
-  const obstructed = (state: { cellX: number; cellY: number; cellZ: number }) =>
-    standingCells.has(`${state.cellX},${state.cellY},${state.cellZ}`);
-  const excavating = new Set(
-    [...attempts.values()].map((attempt) => attempt.worker),
-  );
-  const deliveries = ctx
-    .query(query(DeliveryTask))
-    .map((row) => row.get(DeliveryTask));
-  const occupied = new Set<EntityId>(excavating);
-  const claims = orders.map((row) => ({ task: row.id, actor: attempts.get(row.id)?.worker ?? null }));
-
-  // Keep every order claimed, but only inspect a rotating bounded window.  The
-  // native terrain APIs have their own input bounds and old orders must not
-  // make one tick exceed them.
-  const windowSize = Math.min(128, orders.length);
-  const windowStart = orders.length ? (ctx.clock.tick * 32) % orders.length : 0;
-  const activeOrders = orders.length
-    ? Array.from(
-        { length: windowSize },
-        (_, index) => orders[(windowStart + index) % orders.length],
-      )
-    : [];
-  const cells = activeOrders.map((row) => {
-    const state = row.get(ColonyDigOrder);
-    return [state.cellX, state.cellY, state.cellZ] as [number, number, number];
-  });
-  const materials = cells.length ? ctx.terrainMaterials(cells) : [];
-  const currentMaterial = new Map(
-    activeOrders.map((row, index) => [row.id, materials[index]]),
-  );
-  const designatedCells = new Set(
-    activeOrders.map((row) => {
-      const state = row.get(ColonyDigOrder);
-      return `${state.cellX},${state.cellY},${state.cellZ}`;
-    }),
-  );
-  // Candidate discovery is three-dimensional. Native navigation filters
-  // nearby supports by actual material, clearance, obstacles and excavation
-  // reach; a top-surface-per-column projection would hide caves.
-  const candidateFacts: DigCandidateFacts = {
-    workers,
-    bodies,
-    positions,
-    occupied,
-    designatedCells,
-    standingCells,
-  };
-  const candidates = activeOrders.flatMap((row) =>
-    candidatesForDigOrder(
-      row.id,
-      row.get(ColonyDigOrder),
-      currentMaterial.get(row.id),
-      candidateFacts,
-    ),
-  ).filter((candidate) => {
-    const owner = orderOwners.get(candidate.order);
-    return !owner || memberships.get(candidate.worker) === owner;
-  });
-  const claimByTask = new Map(claims.map((claim) => [claim.task, claim.actor]));
-  const prepared = candidates.filter(
-    (candidate) =>
-      !occupied.has(candidate.worker) &&
-      !attempts.has(candidate.task) &&
-      claimByTask.get(candidate.task) === null,
-  );
-  const best = new Map<
-    string,
-    { approach: Vec3 & { readonly frame: null }; cost: number }
-  >();
-  const evaluated = new Set<string>();
-  const ensureCosts = (candidate: DigCandidate) => {
-    const key = `${candidate.worker}\0${candidate.task}`;
-    if (evaluated.has(key)) return;
-    evaluated.add(key);
-    const result = ctx.routeToAny({
-      actor: candidate.worker,
-      targets: candidate.approaches,
-      excavationTarget: [candidate.cell.x, candidate.cell.y, candidate.cell.z],
-    });
-    if (result.status === "reachable")
-      best.set(key, {
-        approach: candidate.approaches[result.targetIndex],
-        cost: result.cost,
-      });
-  };
-  let assigned = new Set<EntityId>();
-  return {
-    claims,
-    candidates: prepared,
-    occupiedActors: [...occupied],
-    lowerBound: (candidate) => {
-      const actor = positions.get(candidate.worker)?.world;
-      return actor
-        ? Math.min(
-            ...candidate.approaches.map((approach) =>
-              distance(actor, approach),
-            ),
-          )
-        : 0;
-    },
-    estimate: (candidate) => {
-      ensureCosts(candidate);
-      return best.get(`${candidate.worker}\0${candidate.task}`)?.cost ?? null;
-    },
-    apply(assignments) {
-      assigned = new Set(assignments.map((assignment) => assignment.task));
-      for (const assignment of assignments) {
-        const candidate = prepared.find(
-          (item) =>
-            item.worker === assignment.worker && item.task === assignment.task,
-        );
-        if (candidate) ensureCosts(candidate);
-        const approach = best.get(
-          `${assignment.worker}\0${assignment.task}`,
-        )?.approach;
-        if (!candidate || !approach) continue;
-        const state = orders
-          .find((row) => row.id === candidate.order)
-          ?.get(ColonyDigOrder);
-        if (!state) continue;
-        const party = orderOwners.get(candidate.order);
-        if (!party) continue;
-        ctx.write(ColonyDigOrder, candidate.order, { ...state, expected: candidate.expected, status: "queued", reason: "" });
-        beginRouteWorkAttempt(ctx, candidate.order, candidate.worker, party, approach);
-      }
-    },
-    progress() {
-      for (const row of activeOrders) {
-        const state = row.get(ColonyDigOrder);
-        const owner = orderOwners.get(row.id);
-        const attempt = attempts.get(row.id);
-        if (owner && attempt && memberships.get(attempt.worker) !== owner)
-          continue;
-        // A committed excavation is observed as air after its native attempt
-        // has been acknowledged. Remove the designation on the following
-        // pass, never in the same batch as its acknowledgement.
-        if (!attempt && currentMaterial.get(row.id) === air) {
-          ctx.removeAuthoredEntity(row.id);
-          continue;
-        }
-        // Cancellation is a durable intent. Native interruption/acknowledgement
-        // must commit before the authored order can be removed on a later pass.
-        if (state.status === "cancelling") {
-          if (!attempt) {
-            ctx.removeAuthoredEntity(row.id);
-          } else if (attempt.phase.kind === "executing") {
-            interruptWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence, "cancelled");
-          } else if (attempt.phase.kind === "outcome") {
-            // An excavation outcome means the physical effect is already
-            // committed. Acknowledge it exactly once, then remove next pass.
-            acknowledgeWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence);
-          }
-          continue;
-        }
-        if (attempt && suspendedActors.has(attempt.worker)) {
-          if (attempt.phase.kind === "executing") {
-            interruptWorkAttempt(ctx, attempt.key, attempt.phase.operation.sequence, "workerUnavailable");
-          } else if (attempt.phase.kind === "outcome") {
-            const phase = attempt.phase;
-            if (phase.result.kind !== "completed") {
-              ctx.write(ColonyDigOrder, row.id, { ...state, status: "blocked", reason: phase.result.kind === "blocked" ? phase.result.reason : `interrupted:${phase.result.cause}` });
-              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
-            } else if (phase.activity.kind === "route") {
-              if (state.status !== "queued" || state.reason !== "")
-                ctx.write(ColonyDigOrder, row.id, { ...state, status: "queued", reason: "" });
-              acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
-            } else if (phase.activity.kind === "excavation") {
-              acknowledgeWorkAttempt(
-                ctx,
-                attempt.key,
-                phase.operation.sequence,
-              );
-            } else
-              acknowledgeWorkAttempt(
-                ctx,
-                attempt.key,
-                phase.operation.sequence,
-              );
-          }
-          continue;
-        }
-        if (obstructed(state)) {
-          if (state.status !== "blocked" || state.reason !== "Someone is standing on this tile") {
-            ctx.write(ColonyDigOrder, row.id, {
-              ...state,
-              status: "blocked",
-              reason: "Someone is standing on this tile",
-            });
-          }
-          continue;
-        }
-        if (assigned.has(row.id)) continue;
-        if (!attempt || attempt.phase.kind !== "outcome") continue;
-        const phase = attempt.phase;
-        if (phase.result.kind !== "completed") {
-          ctx.write(ColonyDigOrder, row.id, {
-            ...state,
-            status: "blocked",
-            reason: phase.result.kind === "blocked"
-              ? phase.result.reason
-              : `interrupted:${phase.result.cause}`,
-          });
-          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
-          continue;
-        }
-        if (phase.activity.kind === "route")
-          continueExcavationWorkAttempt(
-            ctx,
-            attempt.key,
-            phase.operation.sequence,
-            [state.cellX, state.cellY, state.cellZ],
-            state.expected,
-            air,
-          );
-        else if (phase.activity.kind === "excavation")
-          acknowledgeWorkAttempt(ctx, attempt.key, phase.operation.sequence);
-      }
-    },
-  };
-}
-
 export function colonyGroundStockPhase(ctx: WriteContext) {
   const stockContainers = new Set(
     ctx.query(query(GroundStock)).map((row) => row.id),
@@ -932,7 +578,7 @@ export const colonyWorkSystem = createWorkSystem({
     PartyMember,
     GroundStock,
     StockpileCell,
-    ColonyDigOrder,
+    ExcavationOrder,
     ColonyTree,
     ColonyTreeOrder,
     ColonyTreePolicy,
@@ -943,6 +589,7 @@ export const colonyWorkSystem = createWorkSystem({
     Traversal,
     Position,
     Container,
+    SealedContainer,
     DeconstructionOrder,
     LotWater,
     Destination,
@@ -958,7 +605,6 @@ export const colonyWorkSystem = createWorkSystem({
     WaterSupplyWork,
   ],
   writes: [
-    ColonyDigOrder,
     ColonyTree,
     ColonyTreeOrder,
     MaterialLot,
@@ -978,20 +624,10 @@ export const colonyWorkSystem = createWorkSystem({
   providers: [
     manualRouteProvider,
     deliveryProvider,
-    digProvider,
     (ctx, suspendedActors) => treeWorkProvider(ctx, suspendedActors),
     (ctx, suspendedActors) => waterSupplyProvider(ctx, suspendedActors),
     resourceWorkProvider,
   ],
 });
-
-/** Turns native excavation piles into ordinary shared delivery work. */
-export function digOrderId(x: number, y: number, z: number): EntityId {
-  return entity(`colony.dig.${x}.${y}.${z}`);
-}
-
-export function cancelDigAction(actor: EntityId) {
-  return cancelWork(actor);
-}
 
 /** Sites request stock through the same finite deliveries as every other task. */

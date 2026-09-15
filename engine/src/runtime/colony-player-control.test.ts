@@ -10,7 +10,7 @@ import { DeliveryTask } from "../sdk/delivery";
 import { WorkParticipation } from "../sdk/work-control";
 import { PartyMember } from "../sdk/party";
 import { Worker } from "../games/colony-components";
-import { colonyPack, ColonyDigOrder } from "../games/colony";
+import { colonyPack, ExcavationOrder } from "../games/colony";
 
 initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
@@ -106,7 +106,7 @@ test("Colony Go interrupts an assigned excavation without losing the order or te
     let orderId: string | undefined;
     for (let tick = 0; tick < 240; tick++) {
       session.step(0.1);
-      orderId = session.query(query(ColonyDigOrder)).find((row) => port.workAttempts([row.id])[0]?.worker === worker)?.id;
+      orderId = session.query(query(ExcavationOrder)).find((row) => port.workAttempts([row.id])[0]?.worker === worker)?.id;
       if (orderId) break;
     }
     assert(orderId, "worker must receive the native excavation attempt");
@@ -120,14 +120,14 @@ test("Colony Go interrupts an assigned excavation without losing the order or te
     assert.equal(session.query(query(WorkParticipation)).find((row) => row.id === worker)?.get(WorkParticipation).automatic, false);
     assert.equal(session.query(query(ExcavationWork)).some((row) => row.id === worker), false, "Go cancels native digging attendance");
     assert.equal(port.terrainMaterials([digCell])[0], before, "canceled digging does not award a terrain edit");
-    assert(orderId && session.query(query(ColonyDigOrder)).some(row => row.id === orderId), "manual digging keeps its authored order");
+    assert(orderId && session.query(query(ExcavationOrder)).some(row => row.id === orderId), "manual digging keeps its authored order");
     for (let tick = 0; tick < 30; tick++) {
       session.step(0.1);
       assert.equal(session.query(query(ExcavationWork)).some(row => row.id === worker), false, "manual interval does not resume excavation");
     }
     session.command("resumeWork", { entities: [worker] });
-    for (let tick = 0; tick < 160 && session.query(query(ColonyDigOrder)).some(row => row.id === orderId); tick++) session.step(0.1);
-    assert.equal(session.query(query(ColonyDigOrder)).some(row => row.id === orderId), false, "resume returns the dig order to automatic completion");
+    for (let tick = 0; tick < 160 && session.query(query(ExcavationOrder)).some(row => row.id === orderId); tick++) session.step(0.1);
+    assert.equal(session.query(query(ExcavationOrder)).some(row => row.id === orderId), false, "resume returns the dig order to automatic completion");
   } finally {
     port.dispose();
   }
