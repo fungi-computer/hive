@@ -301,23 +301,47 @@ Vessel compatibility comes from declared vessel capability/definition, not the
 literal item name `pail`. Preserve existing quantity-to-water accounting and 0–7
 field levels; the planner does not define new water physics.
 
-The compiled GamePack environment owns a small material-handling catalog. Material
-kinds declare reusable handling tags, and portable vessel kinds declare which tags
-they accept. The native material owner resolves that catalog once and answers the
-compatibility question for every caller. `hive.container` continues to own finite
-capacity; `hive.lot` continues to own the vessel kind, contents, quantity and
-custody. Do not add a `WaterVessel` component, branch on `pail`, or copy capacity
-into the catalog.
+The compiled GamePack environment owns the material volume catalog. Every stored
+material kind has one positive bounded integer volume per unit and one physical
+handling mode: discrete goods or commingling bulk. `hive.container` owns finite
+volume capacity; the material owner alone calculates checked occupied and reserved
+volume. Material can be stored when its requested amount is available, moving it
+creates no custody cycle, and its volume fits. Stockpile filters decide whether a
+destination wants a kind; they do not decide physical fit or create another
+contents list. Do not add `storable`, `WaterVessel` or vessel-whitelist flags.
 
-A pail is therefore an ordinary configured portable vessel. It may hold clean
-water, ale, mud, dirt, bodily waste or dirty mop water when those material kinds
-carry an accepted handling tag. The contained lot remains the truth: a clean-water
-requirement accepts the exact clean-water kind and does not accept dirty water
-merely because both fit in a pail. Contamination and mixtures belong to material
-content definitions and transformations, not to the pail identity or the work
-planner. This slice does not add chemistry; it establishes the boundary that lets
-later cleaning, brewing, sewage and compost operations preserve the same custody
-and quantity laws.
+A pail is an ordinary discrete lot that is also a container. Its outside lot
+volume controls whether a worker, shelf or larger container can hold the pail;
+its independent container capacity controls how much it can hold. The same
+composition supports a keg or jar. Container capability, custody, sealing and
+free volume determine whether the vessel can be used; its content ID does not.
+
+Commingling bulk in one open compartment becomes one inseparable batch. The batch
+owns integer volume, a bounded sorted map of constituent amounts and a bounded
+sorted map of additive property amounts such as nutrients, filth and pathogens.
+The engine keeps that ledger for conservation; it does not expose the constituents
+as independently removable lots. A pour splits volume, every constituent and every
+property proportionally with checked integer arithmetic. Rounding residue remains
+with the source and the last pour receives the remainder, so repeated transfer,
+save/reload and retry cannot create or erase material. A merge atomically preserves
+the selected destination batch identity and records the consumed source identity;
+outstanding exact claims must be retargeted in that same transaction or make the
+merge inadmissible.
+
+Discrete goods in the same container remain separately selectable. Loose water,
+beer, urine, sewage and dirty mop water are bulk; pails, bread, tools and logs are
+discrete. Authored transformations may turn water plus soil into mud or remove
+pathogens, but storage itself does not run chemistry. Clean-water admission is a
+predicate over the bulk batch's actual composition and property thresholds, never
+a clean flag or the container's name. The displayed label is a deterministic
+projection, so a real mixed batch may honestly appear as `pail of goblin piss,
+shit & beer`; an optional player nickname is presentation only. Do not generate a
+new material definition or simulation identity for every mixture.
+
+Use fixed integer units throughout. The world field's 0--7 level maps each portion
+to a fixed integer bulk volume. Nutrient and pollutant concentrations are derived
+from additive amount divided by carrier volume; concentration is not independent
+mutable state. This slice does not add density, leakage or general chemistry.
 
 ```text
 brew request -> native StagedProcess
