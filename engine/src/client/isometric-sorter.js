@@ -544,6 +544,37 @@ export function pickFromOrdered(order, candidates) {
     : null;
 }
 
+/**
+ * Resolve a horizontal support from the same final order used by rendering.
+ *
+ * Support selection is a geometry query, so it intentionally does not require
+ * an alpha hit. The entity ordering still comes from the sorted render
+ * records, which keeps overlapping decks deterministic while preserving the
+ * transparent-silhouette behavior of ordinary entity picking.
+ */
+export function surfaceSubjectFromOrdered(order, subjects, pointValue, resolveSurface) {
+  if (!Array.isArray(order) || !Array.isArray(subjects) || !pointValue || typeof resolveSurface !== "function") return null;
+  const byId = new Map(subjects
+    .filter((subject) => subject?.id !== undefined && subject?.id !== null)
+    .map((subject) => [String(subject.id), subject]));
+  const surfaces = new Map();
+  const candidates = [];
+  for (const node of order) {
+    if (node?.visible === false || node?.pickable === false) continue;
+    const subject = byId.get(String(node?.target ?? node?.id));
+    if (!subject || subject.pickable === false || !subject.surface) continue;
+    const surface = resolveSurface(pointValue.x, pointValue.y, subject);
+    if (surface) {
+      candidates.push(node);
+      surfaces.set(stableKey(node), surface);
+    }
+  }
+  const picked = pickFromOrdered(order, candidates);
+  if (!picked) return null;
+  const subject = byId.get(String(picked.node.target ?? picked.node.id));
+  return subject ? { node: picked.node, subject, surface: surfaces.get(stableKey(picked.node)) } : null;
+}
+
 export function storeyBandFor(subject, verticalMetres) {
   const explicit = subject?.support?.level ?? subject?.surface?.level;
   if (Number.isFinite(explicit)) return explicit;

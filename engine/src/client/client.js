@@ -1,7 +1,7 @@
 import { createTerrainLayer } from "./terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
-import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
+import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint, surfaceSubjectFromOrdered } from "./isometric-sorter.js";
 import { resolveWorldArtPlacement } from "./art-placement.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
@@ -27,7 +27,6 @@ import {
   terrainTargetMachine,
   terrainAreaGestureMachine,
   WORLD_VIEW_CONTROLS,
-  surfaceSubjectAt,
   eligibleSelectedIds,
 } from "./controls.js";
 import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact, createTerrainProjectionCache, terrainLevelRange, setTerrainLevelRange } from "./world-view.js";
@@ -1404,8 +1403,8 @@ export function createHiveClient({
         x: (end.x - camera.x) / camera.zoom,
         y: (end.y - camera.y) / camera.zoom,
       };
-      const deck = surfaceSubjectAt(state.subjects, local, surfacePoint);
-      if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.id])] : [deck.id];
+      const deck = surfaceSubjectFromOrdered(orderedSprites, state.subjects, local, surfacePoint);
+      if (deck) hit = drag.additive ? [...new Set([...state.selectedIds, deck.subject.id])] : [deck.subject.id];
     }
     selectEntities(hit);
   }

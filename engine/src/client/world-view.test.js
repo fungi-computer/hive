@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createTerrainProjectionCache, createWorldView, displayedTerrain, projectWorldFact, setTerrainLevelRange, setWorldViewLevel, terrainLevelRange, toggleWorldCutaway } from "./world-view.js";
-import { eligibleSelectedIds, selectionFromSubjects, surfaceSubjectAt } from "./controls.js";
+import { eligibleSelectedIds, selectionFromSubjects } from "./controls.js";
+import { surfaceSubjectFromOrdered } from "./isometric-sorter.js";
 
 test("world view honors its supplied signed range", () => {
   const view = createWorldView({ range: { min: -2, max: 3 }, level: 0 });
@@ -25,7 +26,12 @@ test("projected unpickable subjects are excluded from point, box, and surface pa
   ];
   const box = { left: 10, right: 10, top: 10, bottom: 10 };
   assert.deepEqual(selectionFromSubjects(subjects, box), ["open"]);
-  assert.equal(surfaceSubjectAt(subjects, { x: 2, y: 3 }, () => true)?.id, "open");
+  assert.equal(surfaceSubjectFromOrdered(
+    subjects.map((subject) => ({ id: subject.id })),
+    subjects,
+    { x: 2, y: 3 },
+    () => true,
+  )?.subject.id, "open");
   assert.deepEqual(eligibleSelectedIds(subjects, ["hidden", "open"]), ["open"]);
   assert.deepEqual(eligibleSelectedIds(subjects, ["hidden"]), []);
 });
