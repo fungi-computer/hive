@@ -9,7 +9,7 @@ use super::route_query::SearchOutcome;
 use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
 use crate::staged_process::{InputPolicy, ProcessPhase, StagedProcess};
-use crate::work_planner::{MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_TASK_REVIEWS, WorkOperation, WorkParticipation, WorkPolicy, WorkRequirement, WorkSchedule};
+use crate::work_planner::{MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_TASK_REVIEWS, WorkOperation, WorkPolicy, WorkRequirement, WorkSchedule};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -59,6 +59,7 @@ struct FieldWaterSlot {
     task: String,
     requirement: SupplyRequirement,
     contacts: Arc<WaterContactIndex>,
+    portions: u8,
 }
 
 struct WaterContactIndex {
@@ -107,7 +108,6 @@ impl Kernel {
     /// older party field on the policy until the access/work-pool conversion.
     pub(crate) fn advance_native_work_planner(&mut self, tick: u64) -> Result<usize> {
         let mut progressed = self.reconcile_supply_allocations()?;
-        progressed += self.promote_pending_field_water()?;
         // Physical completion disables a construction site's assignment
         // policy immediately. Reap its completed attempt independently of
         // the candidate index so the worker is released even though the
@@ -177,14 +177,30 @@ impl Kernel {
         // only after their physical owner has published them.
         for task in &window.tasks {
             let Some(attempt) = self.work_attempt(&task.id).cloned() else { continue; };
+            let attempt_worker = attempt.worker.clone();
             let crate::work_attempt::AttemptPhase::Outcome { operation, activity, result } = attempt.phase else { continue; };
             match (activity, result) {
                 (crate::work_attempt::ActivityRef::Route { destination }, crate::work_attempt::WorkOutcome::Completed) => {
+                    let worker_is_automatic = self.entity(&attempt_worker).ok()
+                        .and_then(|entity| self.ecs.get::<crate::work_planner::WorkParticipation>(entity))
+                        .is_some_and(|participation| participation.automatic);
+                    if !worker_is_automatic
+                        && (self.ecs.get::<FieldWaterWork>(self.entity(&task.id)?).is_some()
+                            || self.ecs.get::<ResourceOrder>(self.entity(&task.id)?).is_some())
+                    {
+                        if let Some(mut work) = self.ecs.get_mut::<FieldWaterWork>(self.entity(&task.id)?) {
+                            work.vessel = None;
+                        }
+                        self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                        self.refresh_planner_index(&task.id);
+                        progressed += 1;
+                        continue;
+                    }
                     if let Some(field) = self.ecs.get::<FieldWaterWork>(self.entity(&task.id)?).cloned()
                         && let Some(vessel) = field.vessel
                     {
                         self.continue_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence, crate::work_attempt::ActivityRef::FieldWater {
-                            vessel, cell: [field.cell_x, field.cell_y, field.cell_z], direction: crate::work_attempt::WaterDirection::Withdraw, portions: 1,
+                            vessel, cell: [field.cell_x, field.cell_y, field.cell_z], direction: crate::work_attempt::WaterDirection::Withdraw, portions: field.portions,
                         })?;
                         progressed += 1;
                         continue;
@@ -205,6 +221,14 @@ impl Kernel {
                         crate::work_planner::WorkOperation::Deconstruction { site: order.site }
                     } else if let Some(order) = self.ecs.get::<ExcavationOrder>(self.entity(&task.id)?).cloned() {
                         crate::work_planner::WorkOperation::Excavation { cell: [order.cell_x, order.cell_y, order.cell_z], expected: order.expected, replacement: 0 }
+                    } else if self.ecs.get::<ResourceOrder>(self.entity(&task.id)?).is_some() {
+                        let Some((next_operation, _)) = self.resource_work_operation(&task.id, &task.party, Some(&attempt_worker))? else {
+                            self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                            self.refresh_planner_index(&task.id);
+                            progressed += 1;
+                            continue;
+                        };
+                        next_operation
                     } else if self.ecs.get::<crate::job::Task>(self.entity(&task.id)?).is_some() {
                         crate::work_planner::WorkOperation::JobTransform { task: task.id.clone() }
                     } else {
@@ -236,10 +260,21 @@ impl Kernel {
                         let work = self.ecs.get::<FieldWaterWork>(self.entity(&task.id)?).cloned().ok_or("field water outcome lost its task state")?;
                         if matches!(result, crate::work_attempt::WorkOutcome::Completed) {
                             let lot = work.lot.clone().ok_or("field water withdrawal produced no lot")?;
+                            if work.retain_in_vessel {
+                                self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                                let entity = self.ids.remove(&task.id).ok_or("completed field water task disappeared")?;
+                                self.known.remove(&task.id);
+                                self.contents.remove(&task.id);
+                                self.ecs.despawn(entity);
+                                self.refresh_planner_index(&task.id);
+                                self.refresh_state_weight();
+                                progressed += 1;
+                                continue;
+                            }
                             let destination = self.entity(&work.destination)?;
                             let capacity = self.ecs.get::<Container>(destination).ok_or("field water destination is not a container")?.capacity;
                             let occupied = self.quantity_in_container(&work.destination).saturating_add(crate::supply_allocation::reserved_destination(self, &work.destination, None));
-                            if occupied.saturating_add(1) > capacity {
+                            if occupied.saturating_add(u32::from(work.portions)) > capacity {
                                 self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
                             } else {
                                 self.install_field_water_allocation(&task.id, work, lot)?;
@@ -258,6 +293,25 @@ impl Kernel {
                         // advanced. A retained outcome is acknowledgement
                         // only; re-executing here would duplicate matter.
                         self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                    } else if let Some(mut order) = self.ecs.get::<ResourceOrder>(self.entity(&task.id)?).cloned() {
+                        match (&activity, &result) {
+                            (crate::work_attempt::ActivityRef::ResourceExtract { .. }, crate::work_attempt::WorkOutcome::Completed) => {
+                                order.status = "complete".into();
+                                order.progress_seconds = 0.0;
+                                if let Some(policy) = self.ecs.get::<WorkPolicy>(self.entity(&task.id)?).cloned() {
+                                    self.ecs.entity_mut(self.entity(&task.id)?).insert(WorkPolicy { enabled: false, ..policy });
+                                }
+                            }
+                            (crate::work_attempt::ActivityRef::ResourceEstablish { .. } | crate::work_attempt::ActivityRef::ResourceTend { .. }, crate::work_attempt::WorkOutcome::Completed) => {
+                                order.status = "queued".into();
+                                order.progress_seconds = 0.0;
+                            }
+                            (_, crate::work_attempt::WorkOutcome::Blocked { reason }) => { order.status = "blocked".into(); order.reason = format!("{reason:?}"); }
+                            (_, crate::work_attempt::WorkOutcome::Interrupted { .. }) => order.status = "queued".into(),
+                            _ => {}
+                        }
+                        if order.status != "blocked" { order.reason.clear(); }
+                        self.ecs.entity_mut(self.entity(&task.id)?).insert(order); self.refresh_planner_index(&task.id);
                     } else if let Some(mut order) = self.ecs.get::<DeconstructionOrder>(self.entity(&task.id)?).cloned() {
                         match (&activity, &result) {
                             (crate::work_attempt::ActivityRef::Deconstruction { contact, .. }, crate::work_attempt::WorkOutcome::Completed) => {
@@ -352,6 +406,10 @@ impl Kernel {
                 && let Some(requirement) = self.excavation_work_requirement(&task.id, &party, &designated_excavation_cells)?
             {
                 requirements.push(requirement);
+            } else if self.ecs.get::<ResourceOrder>(entity).is_some()
+                && let Some(requirement) = self.resource_work_requirement(&task.id, &party)?
+            {
+                requirements.push(requirement);
             } else if self.ecs.get::<FieldWaterWork>(entity).is_some() {
                 // Field-water tasks are converted to ordinary supply delivery
                 // after their exact generated lot exists.
@@ -377,45 +435,6 @@ impl Kernel {
         Ok(progressed)
     }
 
-    fn promote_pending_field_water(&mut self) -> Result<usize> {
-        let tasks = self.ids.iter().filter_map(|(id, entity)| {
-            let work = self.ecs.get::<FieldWaterWork>(*entity)?.clone();
-            (work.lot.is_some() && !self.work_attempts.contains_key(id)).then_some((id.clone(), work))
-        }).collect::<Vec<_>>();
-        let mut progressed = 0;
-        for (task, work) in tasks {
-            let lot_id = work.lot.clone().ok_or("field water lot is missing")?;
-            let lot_entity = self.entity(&lot_id)?;
-            self.ecs.get::<Lot>(lot_entity).ok_or("field water lot disappeared")?;
-            let vessel_id = work.vessel.clone().ok_or("field water vessel is missing")?;
-            let vessel_entity = self.entity(&vessel_id)?;
-            let worker_id = self.ecs.get::<Lot>(vessel_entity).ok_or("field water vessel is not a lot")?.container.clone();
-            let destination_entity = self.entity(&work.destination)?;
-            let capacity = self.ecs.get::<Container>(destination_entity).ok_or("field water destination is not a container")?.capacity;
-            let occupied = self.quantity_in_container(&work.destination).saturating_add(crate::supply_allocation::reserved_destination(self, &work.destination, None));
-            if occupied.saturating_add(1) > capacity { continue; }
-            let worker = self.entity(&worker_id)?;
-            if self.ecs.get::<PartyMember>(worker).map(|member| member.party.as_str()) != Some(work.party.as_str())
-                || !self.ecs.get::<VesselCapability>(vessel_entity).is_some_and(|capability| capability.accepts_water)
-                || self.ecs.get::<Body>(worker).is_none_or(|body| !body.speed.is_finite() || body.speed <= 0.0)
-                || self.ecs.get::<Traversal>(worker).is_none() || self.ecs.get::<Position>(worker).is_none()
-                || !self.ecs.get::<WorkParticipation>(worker).is_some_and(|participation| participation.automatic)
-                || self.attempts_by_worker.contains_key(&worker_id) || self.ecs.get::<Destination>(worker).is_some()
-            { continue; }
-            let position = *self.ecs.get::<Position>(worker).ok_or("field water worker has no position")?;
-            let destination_position = *self.ecs.get::<Position>(destination_entity).ok_or("field water destination has no position")?;
-            let destination = Point { x: destination_position.x, y: destination_position.y, z: destination_position.z, frame: None };
-            let route = match super::route_query::classify_route(self.route_for(worker, position, &destination))? {
-                SearchOutcome::Reachable(route) => route,
-                SearchOutcome::NoPath(_) | SearchOutcome::Deferred(_) => continue,
-            };
-            self.install_field_water_allocation(&task, work.clone(), lot_id)?;
-            self.begin_work_attempt_with_prepared_route(task, worker_id, work.party, destination, route)?;
-            progressed += 1;
-        }
-        Ok(progressed)
-    }
-
     fn install_field_water_allocation(&mut self, task: &str, work: FieldWaterWork, lot: String) -> Result<()> {
         let entity = self.entity(task)?;
         self.ecs.entity_mut(entity).remove::<FieldWaterWork>();
@@ -426,10 +445,10 @@ impl Kernel {
             requirement_role: work.role,
             requirement_generation: work.generation,
             party: work.party,
-            material: "water".into(),
+            material: work.material,
             portion: lot,
             destination: work.destination,
-            quantity: 1,
+            quantity: u32::from(work.portions),
             state: SupplyAllocationState::Reserved,
         });
         self.refresh_planner_index(task);
@@ -584,8 +603,9 @@ impl Kernel {
             {
                 obligations.push(PlanningObligation::FieldWater(FieldWaterSlot {
                     task: task.id.clone(),
-                    requirement: SupplyRequirement { owner: field.process, role: field.role, generation: field.generation, party: field.party, material: "water".into(), policy: InputPolicy::Portion, destination: field.destination, missing: 1, source_lots: None },
+                    requirement: SupplyRequirement { owner: field.process, role: field.role, generation: field.generation, party: field.party, material: field.material, policy: InputPolicy::Portion, destination: field.destination, missing: u32::from(field.portions), source_lots: None },
                     contacts: contacts.clone(),
+                    portions: field.portions,
                 }));
             }
             if obligations.len() == MAX_TASK_REVIEWS { break; }
@@ -609,7 +629,7 @@ impl Kernel {
                 ),
                 PlanningObligation::Supply(_) => None,
                 PlanningObligation::FieldWater(slot) => self.water_vessel_for_worker(&worker.id).and_then(|(_, free)| {
-                    if free == 0 { return None; }
+                    if free < u32::from(slot.portions) { return None; }
                     slot.contacts.targets.iter().map(|contact| {
                         ((worker.position.x - contact.x).powi(2)
                             + (worker.position.y - contact.y).powi(2)
@@ -755,7 +775,7 @@ impl Kernel {
             if !selected_workers.insert(worker.clone()) { return Err("native joint assignment selected a worker twice".into()); }
             let task_entity = self.entity(&slot.task)?;
             let work = self.ecs.get::<FieldWaterWork>(task_entity).ok_or("field water task disappeared")?;
-            if work.vessel.is_some() || work.lot.is_some() || work.party != slot.requirement.party || vessel == worker { return Err("native field water assignment preflight failed".into()); }
+            if work.vessel.is_some() || work.lot.is_some() || work.party != slot.requirement.party || work.portions != slot.portions || vessel == worker { return Err("native field water assignment preflight failed".into()); }
             let vessel_entity = self.entity(vessel)?;
             let vessel_lot = self.ecs.get::<Lot>(vessel_entity).ok_or("native water vessel is not a lot")?;
             if vessel_lot.container != *worker || !self.ecs.get::<VesselCapability>(vessel_entity).is_some_and(|capability| capability.accepts_water) { return Err("native field water vessel became unavailable".into()); }
@@ -963,7 +983,7 @@ impl Kernel {
                     OwnedByParty { party: requirement.party.clone() },
                     FieldWaterWork {
                         process: requirement.owner.clone(), role: requirement.role.clone(), generation: requirement.generation,
-                        party: requirement.party.clone(), destination: requirement.destination.clone(), vessel: None,
+                        party: requirement.party.clone(), destination: requirement.destination.clone(), material: requirement.material.clone(), retain_in_vessel: false, portions: 1, vessel: None,
                         cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
                     },
                     WorkPolicy { party: requirement.party.clone(), priority: 0, enabled: true },

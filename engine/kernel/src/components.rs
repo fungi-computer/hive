@@ -129,6 +129,9 @@ pub struct FieldWaterWork {
     pub generation: u64,
     pub party: String,
     pub destination: String,
+    pub material: String,
+    pub retain_in_vessel: bool,
+    pub portions: u8,
     pub vessel: Option<String>,
     pub cell_x: i32,
     pub cell_y: i32,
@@ -163,6 +166,20 @@ pub struct ResourceSite {
     pub definition: String,
     pub stage: u8,
     pub next_due: f64,
+}
+/// Durable player intent for one tended resource lifecycle. Growth timing and
+/// finite output stay on ResourceSite/FiniteResource; this record owns only
+/// designation state and earned labor between physical transitions.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ResourceOrder {
+    pub definition: String,
+    pub cell_x: i32,
+    pub cell_y: i32,
+    pub cell_z: i32,
+    pub status: String,
+    pub reason: String,
+    pub progress_seconds: f64,
 }
 /// Native earned work; authored systems may request work, never write progress.
 #[derive(Component, Clone, Copy, Serialize, Deserialize)]
@@ -632,6 +649,8 @@ pub enum Action {
     ExtractResource { operation: String, worker: String, source: String },
     EstablishResourceSite { operation: String, worker: String, site: String, definition: String, x: i32, y: i32, z: i32 },
     TendResourceSite { operation: String, worker: String, site: String, vessel: String },
+    DesignateResource { order: String, party: String, definition: String, x: i32, y: i32, z: i32 },
+    RequestFieldWater { party: String, material: String, portions: u8 },
     Launch {
         launcher: String,
         ammunition: String,

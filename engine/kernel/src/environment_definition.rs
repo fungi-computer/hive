@@ -52,6 +52,7 @@ struct ResourceDefinitionInput {
     sow_seconds: f64,
     tend_seconds: f64,
     harvest_seconds: f64,
+    water_kind: String,
     stages: Vec<ResourceStageInput>,
 }
 #[derive(Debug, Deserialize)]
@@ -65,6 +66,7 @@ pub struct ResourceDefinition {
     pub sow_seconds: f64,
     pub tend_seconds: f64,
     pub harvest_seconds: f64,
+    pub water_kind: String,
     pub stages: Vec<ResourceStage>,
 }
 #[derive(Clone, Debug)]
@@ -525,7 +527,7 @@ fn prepare_definition_mode(
     if definition.resource_sites.len() > MAX_RESOURCE_DEFINITIONS { return Err("resource catalog exceeds 64 entries".into()); }
     let mut resources = BTreeMap::new();
     for entry in definition.resource_sites {
-        if !crate::components::valid_id(&entry.id) || !crate::components::valid_id(&entry.output_kind)
+        if !crate::components::valid_id(&entry.id) || !crate::components::valid_id(&entry.output_kind) || !crate::components::valid_id(&entry.water_kind)
             || entry.output_quantity == 0 || entry.stages.is_empty() || entry.stages.len() > 64
             || !entry.sow_seconds.is_finite() || entry.sow_seconds <= 0.0
             || !entry.tend_seconds.is_finite() || entry.tend_seconds <= 0.0
@@ -535,7 +537,7 @@ fn prepare_definition_mode(
             if !stage.delay_seconds.is_finite() || stage.delay_seconds <= 0.0 || stage.water_portions == 0 || stage.water_portions > 7 { return Err("invalid resource stage".into()); }
             Ok(ResourceStage { delay_seconds: stage.delay_seconds, water_portions: stage.water_portions })
         }).collect::<Result<Vec<_>, String>>()?;
-        resources.insert(entry.id.clone(), ResourceDefinition { id: entry.id, output_kind: entry.output_kind, output_quantity: entry.output_quantity, sow_seconds: entry.sow_seconds, tend_seconds: entry.tend_seconds, harvest_seconds: entry.harvest_seconds, stages });
+        resources.insert(entry.id.clone(), ResourceDefinition { id: entry.id, output_kind: entry.output_kind, output_quantity: entry.output_quantity, sow_seconds: entry.sow_seconds, tend_seconds: entry.tend_seconds, harvest_seconds: entry.harvest_seconds, water_kind: entry.water_kind, stages });
     }
     Ok(PreparedDefinition {
         terrain,

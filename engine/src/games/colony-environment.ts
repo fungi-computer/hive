@@ -69,6 +69,7 @@ export const colonyEnvironment: EnvironmentDefinition = {
     sowSeconds: 2,
     tendSeconds: 2,
     harvestSeconds: 1,
+    waterKind: "water",
     stages: [
       { delaySeconds: 20, waterPortions: 1 },
       { delaySeconds: 80, waterPortions: 1 },

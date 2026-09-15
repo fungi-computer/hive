@@ -123,6 +123,7 @@ export interface EnvironmentResourceStage { readonly delaySeconds: number; reado
 export interface EnvironmentResourceDefinition {
   readonly id: string; readonly outputKind: string; readonly outputQuantity: number;
   readonly sowSeconds: number; readonly tendSeconds: number; readonly harvestSeconds: number;
+  readonly waterKind: string;
   readonly stages: readonly EnvironmentResourceStage[];
 }
 

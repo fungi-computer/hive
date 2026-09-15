@@ -16,3 +16,4 @@ export { WorkerRuntime } from "../runtime/worker";
 export { wasmKernelPort } from "../runtime/wasm-kernel";
 export { DeliveryTask, deliverySystem } from "./delivery";
 export { FieldWaterWork, StagedProcess, requestProcess, admitProcess } from "./process-supply";
+export { ResourceOrder, type ResourceOrderStatus } from "./resource-work";

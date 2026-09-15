@@ -172,6 +172,14 @@ export function checkedAction(value: unknown): ActionRequest {
       keys = ["kind", "operation", "worker", "site", "vessel"];
       valid = id(action.operation) && id(action.worker) && id(action.site) && id(action.vessel);
       break;
+    case "designate-resource":
+      keys = ["kind", "order", "party", "definition", "x", "y", "z"];
+      valid = id(action.order) && id(action.party) && id(action.definition) && [action.x, action.y, action.z].every(value => Number.isSafeInteger(value));
+      break;
+    case "request-field-water":
+      keys = ["kind", "party", "material", "portions"];
+      valid = id(action.party) && id(action.material) && Number.isSafeInteger(action.portions) && action.portions >= 1 && action.portions <= 7;
+      break;
     case "request-process":
       keys = ["kind", "definition", "station"];
       valid = id(action.definition) && id(action.station);

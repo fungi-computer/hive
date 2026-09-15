@@ -31,6 +31,8 @@ mod construction_work;
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
 mod native_work_planner;
+#[path = "resource_work.rs"]
+mod resource_work;
 #[path = "job_owner.rs"]
 mod job_owner;
 #[path = "job_transform.rs"]
@@ -4112,6 +4114,8 @@ impl Kernel {
                     | Action::CreateJob { .. } | Action::ResumeJob { .. } | Action::CancelJob { .. }
                     | Action::BeginDirect { .. } | Action::DirectInput { .. } | Action::SetStructureOpen { .. }
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
+                    | Action::DesignateResource { .. }
+                    | Action::RequestFieldWater { .. }
                     | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
                     | Action::ReplaceFloor { .. }
                     | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. }
@@ -4226,6 +4230,7 @@ impl Kernel {
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.advance_process_work_attempts(batch.delta)?;
         self.advance_staged_processes(batch.delta)?;
+        self.advance_resource_work(batch.delta)?;
         self.advance_job_transform_work(batch.delta)?;
         self.advance_native_work_planner(self.revision)?;
         self.cleanup_empty_ground_stock();
@@ -4508,6 +4513,11 @@ impl Kernel {
 
     fn exchange_field_water(&mut self, worker_id: &str, vessel_id: &str, at: crate::generation::Cell,
         direction: WaterExchangeDirection, portions: u8) -> Result<Option<String>> {
+        self.exchange_field_water_as(worker_id, vessel_id, at, direction, portions, "water")
+    }
+    fn exchange_field_water_as(&mut self, worker_id: &str, vessel_id: &str, at: crate::generation::Cell,
+        direction: WaterExchangeDirection, portions: u8, material_kind: &str) -> Result<Option<String>> {
+        if !valid_id(material_kind) { return Err("invalid field water material".into()); }
         let worker = self.entity(worker_id)?;
         let vessel = self.entity(vessel_id)?;
         let worker_pose = self.world_pose_entity(worker, 0)?;
@@ -4542,7 +4552,7 @@ impl Kernel {
                 };
                 // Bind the exact physical mass only after the field admission has succeeded.
                 let mass = field.receipt().mass_kg;
-                let material = self.prepare_material_output(MaterialOutputSpec { container: vessel_id.into(), kind: "water".into(), quantity: u32::from(portions), water_kg: Some(mass) })?;
+                let material = self.prepare_material_output(MaterialOutputSpec { container: vessel_id.into(), kind: material_kind.into(), quantity: u32::from(portions), water_kg: Some(mass) })?;
                 let lot = material.lot_id.clone();
                 (field, PreparedWaterMaterial::Output(material), Some(lot))
             }
@@ -4553,7 +4563,7 @@ impl Kernel {
                 for entity in entities {
                     if remaining == 0 { break; }
                     let Some(lot) = self.ecs.get::<Lot>(entity) else { continue; };
-                    if lot.kind != "water" || lot.quantity == 0 { continue; }
+                    if lot.kind != material_kind || lot.quantity == 0 { continue; }
                     let take = remaining.min(lot.quantity);
                     let lot_id = self.ecs.get::<ExternalId>(entity).ok_or("water lot identity is missing")?.0.clone();
                     selected.push(MaterialPortion { lot: lot_id, quantity: take });
@@ -4639,7 +4649,7 @@ impl Kernel {
         let position = *self.ecs.get::<Position>(site).ok_or("resource site has no position")?;
         // exchange_field_water performs the full held-lot/soil mass conservation check.
         let spacing = self.environment.as_ref().ok_or("resource tending requires terrain")?.world.cell_spacing_m();
-        self.exchange_field_water(worker_id, vessel_id, crate::generation::Cell { x: (position.x / spacing[0]).round() as i64, y: (position.y / spacing[1]).floor() as i32, z: (position.z / spacing[2]).round() as i64 }, WaterExchangeDirection::Deposit, portions)?;
+        self.exchange_field_water_as(worker_id, vessel_id, crate::generation::Cell { x: (position.x / spacing[0]).round() as i64, y: (position.y / spacing[1]).floor() as i32, z: (position.z / spacing[2]).round() as i64 }, WaterExchangeDirection::Deposit, portions, &definition.water_kind)?;
         let next_stage = state.stage.checked_add(1).ok_or("resource stage overflow")?;
         let next_due = self.time + definition.stages[index].delay_seconds;
         self.ecs.entity_mut(site).insert(ResourceSite { definition: state.definition, stage: next_stage, next_due });
@@ -5287,40 +5297,20 @@ impl Kernel {
             }
             return Ok(());
         }
-        if let crate::work_attempt::ActivityRef::ResourceEstablish { site, definition, cell } = next_activity.clone() {
+        if matches!(next_activity, crate::work_attempt::ActivityRef::ResourceEstablish { .. }
+            | crate::work_attempt::ActivityRef::ResourceTend { .. }
+            | crate::work_attempt::ActivityRef::ResourceExtract { .. })
+        {
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.establish_resource_site("work-attempt", &current.worker, &site, &definition, cell[0], cell[1], cell[2])?;
-            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
-            return Ok(());
-        }
-        if let crate::work_attempt::ActivityRef::ResourceTend { site, vessel } = next_activity.clone() {
-            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            self.tend_resource_site("work-attempt", &current.worker, &site, &vessel)?;
-            self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?;
-            return Ok(());
-        }
-        if let crate::work_attempt::ActivityRef::ResourceExtract { source } = next_activity.clone() {
-            let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
-            match self.extract_resource(&current.worker, &source) {
-                Ok(_) => self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Completed })?,
-                Err(reason) => {
-                    let block = if reason == "finite resource is exhausted" { Some(WorkBlockReason::MissingInputs) }
-                        else if reason == "resource extraction requires a worker body" { Some(WorkBlockReason::WorkerUnavailable) }
-                        else if reason == "out of reach" { Some(WorkBlockReason::AccessLost) }
-                        else if reason == "material output exceeds container capacity" || reason == "region entity capacity" || reason == "region canonical state capacity" { Some(WorkBlockReason::CapacityUnavailable) }
-                        else { None };
-                    if let Some(block) = block {
-                        self.settle_attempt(&task, AttemptPhase::Outcome { operation, activity: next_activity, result: WorkOutcome::Blocked { reason: block } })?;
-                    } else { return Err(reason); }
-                }
-            }
+            self.ecs.get_mut::<WorkAttempt>(entity).ok_or("work attempt component is missing")?.phase = AttemptPhase::Executing { operation, activity: next_activity };
             return Ok(());
         }
         if let crate::work_attempt::ActivityRef::FieldWater { vessel, cell, direction, portions } = next_activity.clone() {
             if portions == 0 { return Err("field water portions must be positive".into()); }
             let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
             let direction = match direction { crate::work_attempt::WaterDirection::Withdraw => WaterExchangeDirection::Withdraw, crate::work_attempt::WaterDirection::Deposit => WaterExchangeDirection::Deposit };
-            let output_lot = self.exchange_field_water(&current.worker, &vessel, crate::generation::Cell { x: i64::from(cell[0]), y: cell[1], z: i64::from(cell[2]) }, direction, portions)?;
+            let material = self.ecs.get::<FieldWaterWork>(entity).map(|work| work.material.clone()).unwrap_or_else(|| "water".into());
+            let output_lot = self.exchange_field_water_as(&current.worker, &vessel, crate::generation::Cell { x: i64::from(cell[0]), y: cell[1], z: i64::from(cell[2]) }, direction, portions, &material)?;
             if let Some(lot) = output_lot {
                 if let Some(mut work) = self.ecs.get_mut::<FieldWaterWork>(entity) {
                     work.lot = Some(lot);
@@ -5581,6 +5571,8 @@ impl Kernel {
             Action::ExtractResource { operation: _, worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
             Action::EstablishResourceSite { operation, worker, site, definition, x, y, z } => self.establish_resource_site(&operation, &worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
             Action::TendResourceSite { operation, worker, site, vessel } => self.tend_resource_site(&operation, &worker, &site, &vessel).map(|()| ActionEffect::None),
+            Action::DesignateResource { order, party, definition, x, y, z } => self.designate_resource(order, party, definition, x, y, z).map(ActionEffect::Entity),
+            Action::RequestFieldWater { party, material, portions } => self.request_field_water(party, material, portions).map(ActionEffect::Entity),
             Action::Launch {
                 launcher,
                 ammunition,
@@ -5623,6 +5615,12 @@ impl Kernel {
             Action::AdmitProcess { process, station, .. } => { targets.push(process.as_str()); targets.push(station.as_str()); }
             Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
             Action::DesignateStockpile { party: action_party, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+            }
+            Action::DesignateResource { party: action_party, .. } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+            }
+            Action::RequestFieldWater { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
             }
             Action::UpdateStockpile { party: action_party, zone, .. } => {
@@ -6990,10 +6988,10 @@ mod finite_resource_tests {
     #[test]
     fn establish_resource_site_reuses_existing_intent_entity() {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"finite","components":[{"id":"colony.resource-order","version":1,"fields":{"definition":"string","cellX":"number","cellY":"number","cellZ":"number","site":"entity","actor":"nullable-entity","vessel":"nullable-entity","phase":"string","workSeconds":"number","reason":"string","approachX":"number","approachY":"number","approachZ":"number","attempt":"number","operation":"string"}}],"materialCatalog":[], "initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"colony.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"site":"site","actor":null,"vessel":null,"phase":"submitting-sow","workSeconds":1,"reason":"","approachX":1,"approachY":0,"approachZ":0,"attempt":1,"operation":"site:sow:1"}}}]}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":2,"game":"finite","components":[],"materialCatalog":[], "initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"hive.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"status":"queued","progressSeconds":0,"reason":""}}}]}).to_string()).unwrap();
         let mut environment_definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("resource")).unwrap();
         environment_definition["resourceSites"] = json!([{
-            "id":"mugwort", "outputKind":"mugwort", "outputQuantity":1,
+            "id":"mugwort", "outputKind":"mugwort", "outputQuantity":1, "waterKind":"water",
             "sowSeconds":1.0, "tendSeconds":1.0, "harvestSeconds":1.0,
             "stages":[{"delaySeconds":1.0,"waterPortions":1}]
         }]);
@@ -7006,10 +7004,16 @@ mod finite_resource_tests {
         kernel.ecs.entity_mut(worker).insert(super::Position { x: spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: 0.0, facing: 0.0 });
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"establish-resource-site","operation":"site:sow:1","worker":"worker","site":"site","definition":"mugwort","x":surface.x,"y":surface.y,"z":surface.z}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
+        let site_entity = kernel.entity("site").unwrap();
+        assert!(kernel.ecs.get::<super::ResourceOrder>(site_entity).is_some());
+        assert!(kernel.ecs.get::<super::ResourceSite>(site_entity).is_some(), "the designation and physical site share one entity identity");
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new();
         restored.restore_records(&saved).unwrap();
         assert_eq!(restored.save_records().unwrap().entities, saved.entities);
+        let restored_entity = restored.entity("site").unwrap();
+        assert!(restored.ecs.get::<super::ResourceOrder>(restored_entity).is_some());
+        assert!(restored.ecs.get::<super::ResourceSite>(restored_entity).is_some());
         assert_eq!(restored.query_json("[\"hive.resource-site\"]").unwrap(), kernel.query_json("[\"hive.resource-site\"]").unwrap());
     }
 

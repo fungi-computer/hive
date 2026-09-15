@@ -33,7 +33,6 @@ const groups = Object.freeze({
     "engine/src/games/colony-mugwort-command.test.ts",
     "engine/src/games/colony-stockpile.test.ts",
     "engine/src/games/colony-trees.test.ts",
-    "engine/src/games/colony-water-work.test.ts",
     "engine/src/games/colony-work.test.ts",
     "engine/src/runtime/colony-environment-recovery.test.ts",
     "engine/src/runtime/colony-work-contact.test.ts",
@@ -44,7 +43,10 @@ const groups = Object.freeze({
   process: Object.freeze([
     "engine/src/games/colony-brewing.test.ts",
     "engine/src/games/colony-work.test.ts",
-    "engine/src/games/colony-water-work.test.ts",
+  ]),
+  resource: Object.freeze([
+    "engine/src/games/colony-mugwort-command.test.ts",
+    "engine/src/games/colony-work.test.ts",
   ]),
   construction: Object.freeze([
     "engine/src/runtime/construction-actions.test.ts",
