@@ -173,34 +173,64 @@ pub fn assign_verified<Witness>(
 pub struct NativeIndexes {
     pub workers_by_party: BTreeMap<String, Vec<WorkerCandidate>>,
     pub tasks_by_party: BTreeMap<String, Vec<TaskCandidate>>,
+    pub rebuilds: u64,
+}
+
+impl NativeIndexes {
+    fn remove_id(&mut self, id: &str) {
+        for values in self.workers_by_party.values_mut() { values.retain(|candidate| candidate.id != id); }
+        self.workers_by_party.retain(|_, values| !values.is_empty());
+        for values in self.tasks_by_party.values_mut() { values.retain(|candidate| candidate.id != id); }
+        self.tasks_by_party.retain(|_, values| !values.is_empty());
+    }
+
+    fn sort(&mut self) {
+        for values in self.workers_by_party.values_mut() { values.sort(); }
+        for values in self.tasks_by_party.values_mut() {
+            values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id)));
+        }
+    }
+
+    /// Refresh only one externally identified entity after a canonical mutation.
+    /// Removal is represented by an absent id/entity and clears old membership.
+    pub fn refresh_entity(&mut self, world: &World, id: &str, entity: Option<Entity>) {
+        self.remove_id(id);
+        let Some(entity) = entity else { return; };
+        if let Some(worker) = world.get::<PartyMember>(entity)
+            && world.get::<Body>(entity).is_some()
+            && world.get::<Position>(entity).is_some()
+            && world.get::<Traversal>(entity).is_some()
+            && world.get::<WorkParticipation>(entity).is_some_and(|participation| participation.automatic)
+        {
+            self.workers_by_party.entry(worker.party.clone()).or_default().push(WorkerCandidate { id: id.to_owned(), party: worker.party.clone() });
+        }
+        if let Some(policy) = world.get::<WorkPolicy>(entity) && policy.enabled
+            && let Some(schedule) = world.get::<WorkSchedule>(entity)
+        {
+            self.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate {
+                id: id.to_owned(), party: policy.party.clone(), priority: policy.priority,
+                last_considered: schedule.last_considered, due_tick: schedule.next_review_tick,
+            });
+        }
+        self.sort();
+    }
+
+    /// Rebuild once after initial load/reset/restore. Steady-state callers use
+    /// refresh_entity so planning queries never scan the entity registry.
+    pub fn rebuild(&mut self, world: &World, ids: &BTreeMap<String, Entity>) {
+        self.workers_by_party.clear();
+        self.tasks_by_party.clear();
+        self.rebuilds = self.rebuilds.saturating_add(1);
+        for (id, entity) in ids { self.refresh_entity(world, id, Some(*entity)); }
+    }
 }
 
 /// Build only the two membership indexes needed by the first planning window.
-/// Each vector is sorted, making rebuilds after restore replayable.
 pub fn rebuild_indexes(world: &World, ids: &BTreeMap<String, Entity>) -> NativeIndexes {
     let mut indexes = NativeIndexes::default();
-    for (id, entity) in ids {
-        if let Some(worker) = world.get::<PartyMember>(*entity)
-            && world.get::<Body>(*entity).is_some()
-            && world.get::<Position>(*entity).is_some()
-            && world.get::<Traversal>(*entity).is_some()
-            && world.get::<WorkParticipation>(*entity).is_some_and(|participation| participation.automatic)
-        {
-            indexes.workers_by_party.entry(worker.party.clone()).or_default().push(WorkerCandidate { id: id.clone(), party: worker.party.clone() });
-        }
-        if let Some(policy) = world.get::<WorkPolicy>(*entity) {
-            if policy.enabled {
-                let schedule = world.get::<WorkSchedule>(*entity);
-                let Some(schedule) = schedule else { continue; };
-                indexes.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate { id: id.clone(), party: policy.party.clone(), priority: policy.priority, last_considered: schedule.last_considered, due_tick: schedule.next_review_tick });
-            }
-        }
-    }
-    for values in indexes.workers_by_party.values_mut() { values.sort(); }
-    for values in indexes.tasks_by_party.values_mut() { values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id))); }
+    indexes.rebuild(world, ids);
     indexes
 }
-
 
 /// Read native component membership directly.  Results are stable by external
 /// identity and capped before any candidate expansion occurs.
@@ -353,5 +383,49 @@ mod tests {
         assert_eq!(indexed_window.tasks[0].id, "task");
         assert_eq!(due_tasks_from_index(&indexes, party, 3, 32).len(), 0);
         assert_eq!(due_tasks_from_index(&indexes, party, 4, 32)[0].id, "task");
+    }
+}
+
+#[cfg(test)]
+mod index_refresh_tests {
+    use super::*;
+
+    fn worker(world: &mut World, party: &str, automatic: bool) -> Entity {
+        world.spawn((PartyMember { party: party.into() }, Body { speed: 1.0 }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, WorkParticipation { automatic })).id()
+    }
+
+    #[test]
+    fn refresh_moves_party_and_removes_membership_without_rebuild() {
+        let mut world = World::new();
+        let entity = worker(&mut world, "a", true);
+        let mut ids = BTreeMap::from([("worker".to_owned(), entity)]);
+        let mut indexes = NativeIndexes::default();
+        indexes.rebuild(&world, &ids);
+        assert_eq!(indexes.rebuilds, 1);
+        assert_eq!(eligible_workers(&indexes, "a", 10)[0].id, "worker");
+        world.entity_mut(entity).insert(PartyMember { party: "b".into() });
+        indexes.refresh_entity(&world, "worker", Some(entity));
+        assert!(eligible_workers(&indexes, "a", 10).is_empty());
+        assert_eq!(eligible_workers(&indexes, "b", 10)[0].party, "b");
+        ids.clear();
+        indexes.refresh_entity(&world, "worker", None);
+        assert!(eligible_workers(&indexes, "b", 10).is_empty());
+        assert_eq!(indexes.rebuilds, 1);
+    }
+
+    #[test]
+    fn refresh_reorders_task_and_repeated_windows_do_not_rebuild() {
+        let mut world = World::new();
+        let entity = world.spawn((WorkPolicy { party: "p".into(), priority: 1, enabled: true }, WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
+        let ids = BTreeMap::from([("task".to_owned(), entity)]);
+        let mut indexes = NativeIndexes::default();
+        indexes.rebuild(&world, &ids);
+        let mut state = PlannerState::default();
+        let _ = next_fair_indexed_window(&mut state, &indexes, 0);
+        let before = indexes.rebuilds;
+        world.entity_mut(entity).insert(WorkPolicy { party: "p".into(), priority: 9, enabled: true });
+        indexes.refresh_entity(&world, "task", Some(entity));
+        assert_eq!(indexes.rebuilds, before);
+        assert_eq!(due_tasks_from_index(&indexes, "p", 0, 10)[0].priority, 9);
     }
 }
