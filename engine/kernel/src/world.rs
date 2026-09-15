@@ -5026,7 +5026,11 @@ impl Kernel {
             crate::staged_process::validate_bindings(&definition, process_id, station_id, &existing, &|lot_id| self.ids.get(lot_id).and_then(|entity| self.ecs.get::<Lot>(*entity).cloned()))?;
             return Ok(PreparedProcessBindings::Ready(existing));
         }
-        let occupied: BTreeSet<String> = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|binding| binding.lot.clone())).collect();
+        let occupied: BTreeSet<String> = self.ids.values().filter_map(|entity| {
+            self.ecs.get::<crate::staged_process::ProcessBinding>(*entity)
+                .map(|binding| binding.lot.clone())
+                .or_else(|| self.ecs.get::<SupplyAllocation>(*entity).map(|allocation| allocation.portion.clone()))
+        }).collect();
         let mut lots = BTreeMap::new();
         for (id, entity) in &self.ids {
             let Some(lot) = self.ecs.get::<Lot>(*entity) else { continue; };

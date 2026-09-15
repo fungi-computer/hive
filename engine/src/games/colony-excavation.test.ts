@@ -54,9 +54,10 @@ for (const x of [1, 9]) test(`Colony area digging earns finite groundwater at x=
     assert.ok(Math.abs(facts.totalKg + spoilWater - facts.initialTotalKg) < 1e-8, "field plus physical goods conserve water");
     assert.equal(session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), initialGoods + 12);
     const saved = session.save();
-    const waterBefore = port.environmentFacts();
+    const { placementRevision: _beforePlacementRevision, ...waterBefore } = port.environmentFacts() as Record<string, unknown>;
     session.restore(saved);
     assert.deepEqual(session.save(), saved);
-    assert.deepEqual(port.environmentFacts(), waterBefore);
+    const { placementRevision: _afterPlacementRevision, ...waterAfter } = port.environmentFacts() as Record<string, unknown>;
+    assert.deepEqual(waterAfter, waterBefore, "restore preserves physical water while rebuilding its runtime placement frontier");
   } finally { port.dispose(); }
 });

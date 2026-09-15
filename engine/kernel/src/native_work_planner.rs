@@ -177,6 +177,17 @@ impl Kernel {
         // exact contact it reached; terminal domain outcomes are acknowledged
         // only after their physical owner has published them.
         for task in &window.tasks {
+            // Pickup, carry, deposit, acknowledgement, and retirement belong
+            // to the supply reconciler. A deposit can become terminal at the
+            // top of this same planning pass; the generic outcome path must
+            // not remove only its WorkAttempt and orphan the allocation.
+            if self
+                .entity(&task.id)
+                .ok()
+                .is_some_and(|entity| self.ecs.get::<SupplyAllocation>(entity).is_some())
+            {
+                continue;
+            }
             let Some(attempt) = self.work_attempt(&task.id).cloned() else { continue; };
             let attempt_worker = attempt.worker.clone();
             let crate::work_attempt::AttemptPhase::Outcome { operation, activity, result } = attempt.phase else { continue; };
