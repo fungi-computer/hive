@@ -10,7 +10,7 @@ test("session owned Whistle projection reuses unchanged rows and tracks dynamic 
   let available = true;
   const site = entity("colony.site.1");
   const pack: GamePack = {
-    id: "whistle-test", version: 1, definition: encodeDefinition("whistle-test", []), components: [], systems: [],
+    id: "whistle-test", version: 1, definition: encodeDefinition("whistle-test", [], [], []), components: [], systems: [],
     commands: {
       deconstruct: command({
         title: "Deconstruct", category: "Construction", description: "Remove a finished site.", input: z.object({ site: z.string() }).strict(),
@@ -36,7 +36,7 @@ test("session owned Whistle projection reuses unchanged rows and tracks dynamic 
 test("contextual subjects are emitted as bounded rows without losing large parties", () => {
   const subjects = Array.from({ length: 200 }, (_, index) => entity(`worker.${index}`));
   const pack: GamePack = {
-    id: "whistle-many-subjects", version: 1, definition: encodeDefinition("whistle-many-subjects", []), components: [], systems: [],
+    id: "whistle-many-subjects", version: 1, definition: encodeDefinition("whistle-many-subjects", [], [], []), components: [], systems: [],
     commands: {
       draft: command({
         title: "Draft", category: "People", description: "Draft selected party members.", input: z.object({ workers: z.array(z.string()) }).strict(),

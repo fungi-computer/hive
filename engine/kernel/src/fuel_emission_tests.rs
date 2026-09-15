@@ -37,7 +37,7 @@ fn make_kernel(fuel_quantity: Option<u32>, wet: bool) -> Kernel {
         }
     }
     kernel.load(&json!({
-        "format":"hive-game","version":1,"game":"fire-laws","components":[],
+        "format":"hive-game","version":2,"game":"fire-laws","components":[],
         "initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
             {"id":"station","components":components},

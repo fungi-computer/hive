@@ -178,7 +178,7 @@ mod tests {
     use super::*;
     fn fixture() -> (Kernel, ExcavationWork) {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"work-test","components":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":2,"game":"work-test","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
             {"id":"worker","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1},"hive.container":{"capacity":10},"hive.party-member":{"party":"party"}}}

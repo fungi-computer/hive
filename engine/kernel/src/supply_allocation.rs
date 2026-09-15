@@ -71,7 +71,7 @@ mod tests {
 
     fn kernel() -> Kernel {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"supplies","components":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":2,"game":"supplies","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}},
             {"id":"w1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
             {"id":"w2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},

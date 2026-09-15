@@ -125,7 +125,7 @@ mod tests {
         if let Some(owner) = task_owner { task["components"]["hive.owned-by-party"] = owner; }
         initial.push(task);
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":1,"game":"deconstruction-tests","components":[],"initial":initial}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":2,"game":"deconstruction-tests","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
         kernel.snapshot_json().unwrap()
     }
 

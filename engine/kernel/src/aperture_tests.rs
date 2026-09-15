@@ -41,7 +41,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("aperture-laws")).unwrap();
     definition["structures"]["catalog"][0]["shape"] = serde_json::json!({"kind":"aperture","height":4,"openingBottom":0,"openingHeight":2});
     let mut kernel = Kernel::new();
-    kernel.load(&serde_json::json!({"format":"hive-game","version":1,"game":"aperture-laws","components":[],"initial":[
+    kernel.load(&serde_json::json!({"format":"hive-game","version":2,"game":"aperture-laws","components":[],"materialCatalog":[],"initial":[
         {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
         {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},
         {"id":"worker.2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":4}}},

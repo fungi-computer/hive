@@ -37,6 +37,10 @@ import { StockpileCell } from "../sdk/stockpile";
 import { z } from "zod";
 import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, MoveDestination, ReadContext, GameCommandContext } from "../contracts";
 
+export const colonyMaterialCatalog = [
+  ...["water", "beer", "ale", "mud", "dirt", "piss", "shit", "dirty-mop-water", "wood", "bread", "malt", "mugwort", "barm", "keg", "pail", "spent-grain", "soil-spoil", "stone-spoil"].map(kind => ({ kind, unitVolume: 1 })),
+] as const;
+
 export { Worker } from "./colony-components";
 export { ColonyDigOrder, ColonyTree, ColonyTreeOrder, ColonyTreePolicy, colonyWorkSystem } from "./colony-work";
 export { WaterSupplyOrder, WaterSupplyWork, waterSupplyProvider } from "./colony-water-work";
@@ -911,7 +915,7 @@ export const colonyPack: GamePack = {
       ];
     },
   },
-  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyEnvironment.materialVolumes),
+  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyMaterialCatalog),
 };
 
 const neutralColonyInitial = [
@@ -930,6 +934,6 @@ const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
 export const colonyServerPack: GamePack = {
   ...colonyPack,
   localScope: undefined,
-  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyEnvironment.materialVolumes),
+  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyMaterialCatalog),
   environmentDefinition: neutralColonyEnvironmentDefinition,
 };
