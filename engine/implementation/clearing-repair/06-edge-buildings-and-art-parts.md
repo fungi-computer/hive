@@ -106,6 +106,40 @@ validate both cardinal decompositions conservatively. Vertical steps/stair links
 must check their swept crossing, not merely endpoint occupancy. Preserve A*,
 Hungarian and bounded assignment/route work; no algorithm replacement here.
 
+**September 15 audit: ordinary diagonal walking is still missing.**
+`terrain_traversal.rs::step` rejects non-cardinal offsets;
+`terrain_route.rs` enumerates four horizontal neighbors in both single-target
+A* and shared multi-target search, and `admitted_edge` rejects diagonal edges.
+The flat/frame route in `navigation.rs` also enumerates four neighbors using BFS
+and rejects diagonal saved segments. Direct movement supports diagonals, but
+`structure_geometry.rs::blocks_direct_decomposition` accepts either open
+decomposition, which is weaker than the conservative corner rule above. This
+is source evidence of an unfinished traversal contract, not an engine limitation.
+
+Implement eight-neighbor walking across level supported terrain and flat support
+frames. Keep one-voxel rises/drops and explicit stair links under their existing
+swept rules; do not silently add diagonal climbs, jumping gaps or stair shortcuts.
+For a level diagonal A -> D, both side support cells B and C must be traversable,
+and A-B-D plus A-C-D must be open through the actor's clearance interval. Ordinary
+walking and direct movement with the same body/profile use the same corner
+policy. Preserve direct-control wall sliding where it remains legal.
+
+Create one admitted-edge/successor operation consumed by A*, shared multi-target
+search, route costing, movement validation and restore. Price the diagonal from
+its actual metric segment using existing deterministic cost arithmetic
+(`sqrt(sx*sx + sz*sz)` for cell spacing sx/sz); traversal consumes that distance
+at ordinary speed. Existing terrain A* uses a Euclidean lower bound; preserve its
+admissibility. Flat BFS cannot price unequal cardinal/diagonal lengths: use the
+installed weighted search with the same edge law at that caller. Do not add
+another assignment price or shortcut the rendered position across walls.
+
+Extend the existing movement/crossing fixture to prove open diagonals, four
+rotated blocked corners, unsupported side cells, actual distance/time, saved
+mid-route continuation, topology invalidation and explicit stairs. Exercise the
+same route through manual Go and automatic work costing. Retain current sprite
+directions/animations; diagonal movement does not require new art or a physics
+rewrite. This correction belongs to the current navigation/construction slice.
+
 Transfers and attended work must not pass through a wall merely because Euclidean
 reach succeeds. Extend the existing contact predicate for segment obstruction and
 share it between contact candidates and final admission. A wall can be built from

@@ -1,11 +1,22 @@
 # Clearing repair implementation packet
 
 **September 15 whole-engine review:** [Engine ownership audit](08-engine-ownership-audit.md)
-records the actual Rust, GamePack/DO, client/art and Shiitake/Watchdog comparison.
+records the actual Rust, GamePack/DO, client/art and Shiitake/Watchdog comparison,
+updated against `85bfd7a5` plus the current dirty supply work. Its
+[creator/behavior follow-through](08-engine-ownership-audit.md#creator-engine-and-shared-behavior-september-15-follow-through)
+specifies individual decisions, optional group assignment and shared execution;
+the optional colony mechanism bundle; and the bounded XState authoring evaluation.
+It records newly found reservation, carrier-capacity, acknowledgement/reload and
+ordinary-result gaps. No native statechart interpreter is accepted or required
+before the current playable repair.
+The [creator acceptance review](08-engine-ownership-audit.md#creator-acceptance-the-edmund-mcmillen-question)
+adds concrete tests for expressive TypeScript rules, admitted physical lifecycle,
+one pack entrypoint and a fast art/gameplay iteration loop. It does not turn the
+Clearing repair into another editor or engine rewrite.
 It owns the current deep-module correction and repair order. All automatic jobs
 share one Rust scheduler. Domain modules own requirements and physical effects;
 they do not grow individual scheduling or delivery lifecycles. Native migration
-is still incomplete at source checkpoint `7d31b478`. Historical runtime receipts
+is still incomplete at this source checkpoint. Historical runtime receipts
 below are not evidence of its acceptance.
 
 **September 15 implementation design:** [Native work planner](07-native-work-planner.md)
@@ -89,9 +100,11 @@ Rust physical ownership, DO durability and existing assignment performance remai
    executable checks, upgrade rules and actual preview publication.
 6. [Grid-edge buildings and art parts](06-edge-buildings-and-art-parts.md): current
    coordinate contract, physical consumers, edge gestures, multipart bake/sorting,
-   writer sequence and acceptance ledger; supersedes conflicting wall guidance.
+   writer sequence and acceptance ledger; includes missing ordinary diagonal
+   walking and shared corner/cost/restore rules; supersedes conflicting wall guidance.
 7. [Native work planner](07-native-work-planner.md): current all-family native
-   migration, shared budgets, partial-source status and exact TS deletions.
+   migration, private transition ownership, shared budgets, partial-source status
+   and exact TS deletions.
 8. [Engine ownership audit](08-engine-ownership-audit.md): deep module boundaries,
    source-confirmed defects across the engine, retained mechanisms and repair order.
 
