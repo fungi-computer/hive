@@ -157,7 +157,10 @@ pub(crate) fn cancel_unpicked_for_zone(kernel: &mut Kernel, zone: &str) -> crate
         if carried { continue; }
         if let Some(attempt) = kernel.work_attempt(&id).cloned() {
             match attempt.phase {
-                crate::work_attempt::AttemptPhase::Executing { operation, .. } => kernel.interrupt_work_attempt(id.clone(), operation.attempt.generation, operation.sequence, crate::work_attempt::InterruptCause::Cancelled)?,
+                crate::work_attempt::AttemptPhase::Executing { operation, .. } => {
+                    kernel.interrupt_work_attempt(id.clone(), operation.attempt.generation, operation.sequence, crate::work_attempt::InterruptCause::Cancelled)?;
+                    kernel.acknowledge_work_attempt(id.clone(), operation.attempt.generation, operation.sequence)?;
+                }
                 crate::work_attempt::AttemptPhase::Outcome { operation, .. } => kernel.acknowledge_work_attempt(id.clone(), operation.attempt.generation, operation.sequence)?,
                 _ => {}
             }

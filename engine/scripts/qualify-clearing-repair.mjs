@@ -19,7 +19,6 @@ const outputRoot = resolve(repoRoot, ".botanical/clearing-repair-qualification")
 
 const groups = Object.freeze({
   stockpile: Object.freeze([
-    "engine/src/sdk/stockpile.test.ts",
     "engine/src/games/colony-stockpile.test.ts",
     "engine/src/games/colony-trees.test.ts",
   ]),
@@ -29,7 +28,6 @@ const groups = Object.freeze({
     "engine/src/sdk/work-allocation.test.ts",
     "engine/src/sdk/delivery.test.ts",
     "engine/src/sdk/process-attendance.test.ts",
-    "engine/src/sdk/stockpile.test.ts",
     "engine/src/games/colony-brewing.test.ts",
     "engine/src/games/colony-dig-command.test.ts",
     "engine/src/games/colony-excavation.test.ts",
