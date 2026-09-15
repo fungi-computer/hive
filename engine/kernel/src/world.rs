@@ -29,6 +29,8 @@ mod aperture_tests;
 mod construction_work;
 #[path = "deconstruction_work.rs"]
 mod deconstruction_work;
+#[path = "native_work_planner.rs"]
+mod native_work_planner;
 #[path = "route_query.rs"]
 pub(crate) mod route_query;
 #[path = "process_transition.rs"]

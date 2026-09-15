@@ -369,6 +369,13 @@ impl Kernel {
     fn contact_candidate_rows(&self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, spacing: [f64; 3]) -> Result<Vec<([f64; 3], &'static str)>> {
         Ok(self.contact_candidate_cells(site, definition, spacing)?.into_iter().map(|(_, point, kind)| (point, kind)).collect())
     }
+
+    pub(super) fn native_supply_contacts(&self, site: &str) -> Result<Vec<Point>> {
+        let state = self.ecs.get::<ConstructionSite>(self.entity(site)?).ok_or("not a construction site")?;
+        let definition = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&state.catalog).ok_or("construction catalog binding is missing")?;
+        let spacing = self.environment.as_ref().ok_or("construction needs environment")?.world.cell_spacing_m();
+        Ok(self.contact_candidate_rows(state, definition, spacing)?.into_iter().map(|(point, _)| Point { x: point[0], y: point[1], z: point[2], frame: None }).collect())
+    }
     fn contact_is_valid(&mut self, site: &ConstructionSite, definition: &crate::environment_definition::StructureDefinition, position: [f64; 3], spacing: [f64; 3]) -> Result<bool> {
         Ok(self.current_contact_candidate_rows(site, definition, spacing)?.into_iter().any(|(candidate, _)| {
             position == candidate
@@ -475,9 +482,13 @@ impl Kernel {
         let capacity = definition.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("construction material capacity overflow")?;
         let added = site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
             + self.registry.weight("hive.construction-site", &record(&staged))
-            + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }));
+            + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))
+            + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }))
+            + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }));
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, staged)).id();
+        let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, staged,
+            crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true },
+            crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
         self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site, BTreeSet::new()); self.state_weight += added;
         Ok(())
     }
