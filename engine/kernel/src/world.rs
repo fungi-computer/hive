@@ -3355,7 +3355,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 11,
+            version: 12,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -3391,7 +3391,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 11
+            || state.version != 12
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
