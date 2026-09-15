@@ -71,11 +71,23 @@ const groups = Object.freeze({
   drawing: Object.freeze([
     "engine/src/client/animation.test.js",
     "engine/src/client/art-placement.test.js",
+    "engine/src/client/build-placement-command.test.js",
     "engine/src/client/build-placement.test.js",
     "engine/src/client/construction-visuals.test.js",
+    "engine/src/client/edge-gesture.test.js",
     "engine/src/client/geometry.test.js",
     "engine/src/client/isometric-sorter.test.js",
+    "engine/src/client/multipart-visual-owner.test.js",
+    "engine/src/client/visual-resolver.test.js",
+  ]),
+  performance: Object.freeze([
+    "engine/src/client/performance-page.test.js",
+    "engine/src/client/whistle-runtime.test.js",
+    "engine/src/runtime/whistle.test.ts",
+  ]),
+  terrain: Object.freeze([
     "engine/src/client/terrain-layer.test.js",
+    "engine/src/runtime/terrain-presentation.test.ts",
   ]),
 });
 
@@ -127,6 +139,11 @@ if (selected.length !== 1 || selected[0] === "--help" || selected[0] === "-h") {
   } else {
     const outputDir = resolve(outputRoot, group);
     await mkdir(outputDir, { recursive: true });
+    if (group === "performance") {
+      for (const sourceFile of ["engine/src/client/performance-page.js", "engine/src/client/client.js"]) {
+        await writeFile(resolve(outputDir, basename(sourceFile)), requireText(resolve(repoRoot, sourceFile)));
+      }
+    }
     const entryPoints = Object.fromEntries(
       files.map((file) => {
         const stem = basename(file, extname(file));
