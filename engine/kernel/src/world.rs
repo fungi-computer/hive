@@ -31,6 +31,8 @@ mod construction_work;
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
 mod native_work_planner;
+#[path = "job_owner.rs"]
+mod job_owner;
 #[path = "supply_admission.rs"]
 mod supply_admission;
 #[path = "supply_delivery.rs"]
@@ -63,6 +65,9 @@ use crate::work_candidates::NativeIndexes;
 #[cfg(test)]
 #[path = "party_tests.rs"]
 mod party_tests;
+#[cfg(test)]
+#[path = "job_tests.rs"]
+mod job_tests;
 
 enum PreparedProcessBindings {
     Waiting,
@@ -1987,6 +1992,7 @@ pub struct Kernel {
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
     planner_indexes: NativeIndexes,
+    job_index: job_owner::JobIndex,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
 
@@ -2156,6 +2162,7 @@ impl Kernel {
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
             planner_indexes: NativeIndexes::default(),
+            job_index: job_owner::JobIndex::default(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
@@ -3399,6 +3406,8 @@ impl Kernel {
         self.snapshot_entities_json()
     }
     fn snapshot_entities_json(&self) -> Result<String> {
+        let jobs = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<crate::job::Job>(*entity).cloned().map(|job| JobSnapshot { id: id.clone(), job })).collect::<Vec<_>>();
+        let tasks = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<crate::job::Task>(*entity).cloned().map(|task| TaskSnapshot { id: id.clone(), task })).collect::<Vec<_>>();
         let initial = self
             .ids
             .iter()
@@ -3434,6 +3443,10 @@ impl Kernel {
         if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes) > STATE_BYTES {
             return Err("direct state exceeds canonical capacity".into());
         }
+        let job_bytes = serde_json::to_vec(&(&jobs, &tasks)).map_err(|e| e.to_string())?.len();
+        if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes).saturating_add(job_bytes) > STATE_BYTES {
+            return Err("job state exceeds canonical capacity".into());
+        }
         let state = Snapshot {
             format: "hive-kernel".into(),
             version: 12,
@@ -3460,6 +3473,8 @@ impl Kernel {
             next_party_sequence: self.next_party_sequence,
             work_attempts: self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect(),
             planner: self.planner.clone(),
+            jobs,
+            tasks,
         };
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
@@ -3486,6 +3501,7 @@ impl Kernel {
             return Err("invalid current snapshot".into());
         }
         let mut candidate = Self::from_scene_mode(state.scene, false)?;
+        candidate.restore_job_components(state.jobs, state.tasks)?;
         let route_bytes = serde_json::to_vec(&state.routes)
             .map_err(|e| e.to_string())?
             .len();
@@ -4705,6 +4721,10 @@ impl Kernel {
         if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("work attempt worker is outside party".into()); }
         let task_entity = self.entity(&task)?;
         if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != party) { return Err("work attempt task is outside party".into()); }
+        if self.ecs.get::<crate::job::Task>(task_entity).is_some() {
+            self.rebuild_job_index()?;
+            if !self.job_index.ready_tasks.contains(&task) { return Err("job task dependencies or result bindings are not ready".into()); }
+        }
         let generation = self.next_work_generation;
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
