@@ -150,6 +150,47 @@ test("sustained Colony workloads measure simulation, save, and observations", ()
   }
 });
 
+test("200-worker Colony stress keeps productive native work and measures each boundary", () => {
+  const workerCount = 200 as const;
+  const port = wasmKernelPort(new WasmKernel());
+  const session = new GameSession({ port, pack: createColonyPerformancePack(128, workerCount) });
+  const stepMs: number[] = [], saveMs: number[] = [], observationMs: number[] = [];
+  let recoveryError: string | undefined;
+  try {
+    session.start();
+    const workers = () => session.query(query(Worker));
+    assert.equal(workers().length, workerCount, "stress workload must start with every actor");
+    for (let tick = 0; tick < 90; tick++) {
+      try {
+        stepMs.push(elapsedMs(() => session.step(1)));
+        saveMs.push(elapsedMs(() => JSON.stringify(session.save())));
+        observationMs.push(elapsedMs(() => buildObservation(session, { epoch: 0, sequence: tick + 1 })));
+      } catch (error) {
+        recoveryError = `tick ${tick}: ${error instanceof Error ? error.message : String(error)}`;
+        break;
+      }
+    }
+    assert.equal(recoveryError, undefined, `200-worker workload threw during step/save/observation: ${recoveryError}`);
+    assert.equal(stepMs.length, 90, "stress workload must complete the measured step window");
+    assert.equal(workers().length, workerCount, "all stress actors remain retained");
+    const productiveTrees = session.query(query(ColonyTree, FiniteResource))
+      .filter(row => row.get(FiniteResource).quantity === 0).length;
+    assert.ok(productiveTrees > 0, "200-worker stress must complete productive native tree work");
+    console.log(JSON.stringify({
+      workload: "colony-performance-200",
+      workers: workers().length,
+      productiveTrees,
+      steps: stepMs.length,
+      stepMs: timingSummary(stepMs),
+      snapshotSaveMs: timingSummary(saveMs),
+      observationMs: timingSummary(observationMs),
+      recoveryError: recoveryError ?? null,
+    }));
+  } finally {
+    port.dispose();
+  }
+});
+
 test("real pail workload crosses the sixteen-worker water planning batch", () => {
   const port = wasmKernelPort(new WasmKernel());
   const session = new GameSession({ port, pack: performancePackWithPails(32) });
