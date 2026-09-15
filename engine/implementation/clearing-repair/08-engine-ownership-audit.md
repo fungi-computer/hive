@@ -18,6 +18,10 @@ every historical live incident. No runtime code changed during this audit.
 
 ## Decision
 
+The [systems-game and creator study](09-systems-games-and-creator-study.md)
+adds primary-source comparisons and the unfinished-workpiece authorship correction.
+It refines this repair order; it does not establish completed runtime behavior.
+
 All automatic jobs share one Rust scheduler, one bounded candidate/matching
 pipeline and one WorkAttempt lifecycle. Construction, brewing, gathering,
 planting, digging and stockpile demand supply domain requirements to that owner.

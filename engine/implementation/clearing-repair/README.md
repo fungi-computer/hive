@@ -138,6 +138,9 @@ Rust physical ownership, DO durability and existing assignment performance remai
    and exact TS deletions.
 8. [Engine ownership audit](08-engine-ownership-audit.md): deep module boundaries,
    source-confirmed defects across the engine, retained mechanisms and repair order.
+9. [Systems-game and creator study](09-systems-games-and-creator-study.md):
+   RimWorld/DLC, large-mod, Factorio, Satisfactory and Stellaris findings;
+   workpiece authorship correction and creator acceptance within the same stages.
 
 ## Non-negotiable implementation choices
 

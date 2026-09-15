@@ -352,19 +352,24 @@ enum ContinuationPolicy {
     AssignedActor(EntityId),    // explicit player/content decision before work starts
 }
 
-struct TaskContinuity {
-    policy: ContinuationPolicy,
-    bound_actor: Option<EntityId>,
-}
 ```
 
 `WorkAttempt` remains the temporary exclusive lease while an actor executes a
-task. Ending an attempt always releases that lease. `bound_actor` is different:
-for `BindOnFirstProgress`, the same transaction that first commits meaningful
-labor sets the actor once. Later candidate discovery admits only that actor until
-the task completes, is cancelled, or a game-defined explicit reassignment
-operation lawfully changes it. Waiting for an absent bound actor does not hold a
-worker, station, route or unrelated job task.
+task. Ending an attempt always releases that lease. For `BindOnFirstProgress`,
+the same transaction that first commits meaningful labor records the author.
+For an unfinished physical workpiece, the workpiece's owning module retains
+that author together with its recipe identity and progress; tasks consult that
+fact and do not store a competing author. For work without such a persistent
+workpiece, binding can live on the task's owned execution state. The
+[comparative study](09-systems-games-and-creator-study.md) explains this correction.
+
+Later candidate discovery and actual admission honor the binding. Cancelling a
+task and creating another for the same unfinished shield cannot erase its author
+or reset its progress. Moving or storing it also cannot change authorship. Only
+an explicitly supported game operation can reassign or salvage the workpiece.
+Waiting for an absent bound actor does not retain an active worker attempt,
+route or unrelated task reservation. The workpiece still occupies its actual
+physical storage/bench space until moved; releasing labor cannot erase occupancy.
 
 Quality-sensitive authored crafting is the first intended consumer. Once leather
 and other inputs become an unfinished shield, that workpiece is an ordinary
@@ -383,6 +388,13 @@ Skill/tool requirements are evaluated for the current task before assignment and
 again on admission. Continuity does not waive eligibility, and a worker becoming
 ineligible leaves the task visibly waiting rather than letting another worker
 silently change authorship.
+
+Qualify open and author-bound work with actual physical progress, interruption,
+task cancellation/recreation, hauling and restore. An isolated setter test does
+not prove that binding and labor commit together. Quality timing is defined by
+the game's first crafting consumer; the scheduler must not silently decide
+whether start skill, finish skill or accumulated contribution determines quality.
+Other policy variants do not require new machinery ahead of these real consumers.
 
 ```rust
 // Derived key into an existing domain owner; not a second saved task universe.
