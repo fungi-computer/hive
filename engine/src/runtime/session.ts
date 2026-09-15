@@ -519,7 +519,7 @@ export class GameSession {
     for (const record of allCreates) {
       const id = checkedAuthoredId(record?.id);
       if (created.has(id) || removed.has(id))
-        throw new Error("conflicting authored identity edit");
+        throw new Error(`conflicting authored identity edit: ${id}`);
       created.add(id);
       requested.add(id);
       if (

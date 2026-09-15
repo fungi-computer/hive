@@ -168,35 +168,35 @@ test("multiple finished stations use one bounded inspection fact each", () => {
   } finally { port.dispose(); }
 });
 
-test("actual Colony staircase supply splits one shared lumber lot into two lawful haul legs", () => {
+test("actual Colony staircase supply assigns two concurrent native haul legs", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     session.command("build", { catalog: "timber-stair", orientation: "north", target: { cell: [1, 13, 0] } });
-    let live = session.query(query(DeliveryTask)).filter(() => false);
+    const workerIds = ["colony.local-party.person.0", "colony.local-party.person.1"] as const;
+    let live = workerIds.flatMap(() => [] as NonNullable<ReturnType<typeof port.workAttemptForWorker>>[]);
     for (let tick = 0; tick < 1000; tick++) {
       session.step(0.01);
-      const tasks = session.query(query(DeliveryTask)).filter((row) => {
-        const task = row.get(DeliveryTask);
-        return task.destination.startsWith("colony.build.") && task.custody !== "delivered";
+      const attempts = workerIds.flatMap((worker) => {
+        const attempt = port.workAttemptForWorker(worker);
+        return attempt?.key.task.startsWith("allocation.") ? [attempt] : [];
       });
-      if (tasks.length === 2 && tasks.every((row) => port.workAttempts([row.id]).length > 0)) {
-        live = tasks;
+      if (attempts.length === 2) {
+        live = attempts;
         break;
       }
     }
-    assert.equal(live.length, 2, `staircase demand must expose two assigned haul legs: ${JSON.stringify(session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)))}`);
-    const tasks = live;
-    const states = tasks.map((row) => row.get(DeliveryTask));
-    assert.equal(new Set(tasks.map((row) => row.id)).size, 2);
-    assert.equal(new Set(tasks.flatMap((row) => port.workAttempts([row.id]).map(attempt => attempt.worker))).size, 2);
-    assert.equal(states.reduce((sum, task) => sum + task.quantity, 0), 6);
-    assert(states.every((task) => task.quantity === 3));
+    assert.equal(live.length, 2, `staircase demand must expose two native haul attempts: ${JSON.stringify(workerIds.map(worker => port.workAttemptForWorker(worker)))}`);
+    assert.equal(new Set(live.map((attempt) => attempt.key.task)).size, 2);
+    assert.equal(new Set(live.map((attempt) => attempt.worker)).size, 2);
     const saved = session.save();
     session.restore(saved);
-    const restored = session.query(query(DeliveryTask)).map((row) => row.get(DeliveryTask)).filter((task) => task.destination.startsWith("colony.build.") && task.custody !== "delivered");
-    assert.deepEqual(restored.map((task) => [task.sourceLot, task.custody, task.quantity]), states.map((task) => [task.sourceLot, task.custody, task.quantity]));
+    const restored = workerIds.flatMap((worker) => {
+      const attempt = port.workAttemptForWorker(worker);
+      return attempt?.key.task.startsWith("allocation.") ? [attempt] : [];
+    });
+    assert.deepEqual(restored, live, "both native haul receipts survive exact reload");
     let finished = false;
     for (let tick = 0; tick < 600; tick++) {
       session.step(0.25);

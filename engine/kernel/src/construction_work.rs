@@ -136,12 +136,21 @@ impl Kernel {
             .get(&state.catalog)
             .ok_or("construction catalog binding is missing")?
             .clone();
-        if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party)
-            || self.ecs.get::<Position>(entity).is_none()
-            || !self.construction_materials_ready(site, &definition)
-        {
+        if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) {
             return Ok(None);
         }
+        // Placement creates an unbound planned site. Binding its durable
+        // contact is the first native labor operation; only after that
+        // operation can construction supply inspect the site's container and
+        // admit the ordinary shared delivery lifecycle.
+        let mode = if self.ecs.get::<Position>(entity).is_none() {
+            crate::work_attempt::ConstructionMode::Bind
+        } else {
+            if !self.construction_materials_ready(site, &definition) {
+                return Ok(None);
+            }
+            crate::work_attempt::ConstructionMode::Work
+        };
         let status = construction_status(self, &[site.to_owned()])?
             .get(site)
             .copied()
@@ -178,7 +187,7 @@ impl Kernel {
             free_capacity_required: 0,
             operation: crate::work_planner::WorkOperation::Construction {
                 site: site.to_owned(),
-                mode: crate::work_attempt::ConstructionMode::Work,
+                mode,
             },
         }))
     }

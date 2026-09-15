@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { createWorkSystem, shouldRetryWorkTask, WORK_RETRY_INTERVAL } from "./work-system";
 import { component, entity } from "./authoring";
+import { WorkParticipation } from "./work-control";
 import type { EntityId } from "../contracts";
 
 const base = {
@@ -102,6 +103,38 @@ test("shared work system calls one matcher and preserves claims across providers
   assert.equal(calls[0].length, 2);
   assert.deepEqual(applied, ["delivery:0", "dig:1"]);
   assert.deepEqual(progressed, ["delivery", "dig"]);
+});
+
+test("authored providers cannot reassign an actor held by a canonical work attempt", () => {
+  const worker = entity("worker.native-held");
+  const task = entity("task.authored");
+  let matcherCalls = 0;
+  const system = createWorkSystem({
+    id: "test.canonical-work-custody",
+    version: 1,
+    reads: [],
+    writes: [],
+    providers: [() => ({
+      claims: [{ task, actor: null }],
+      candidates: [{ worker, task }],
+      lowerBound: () => 1,
+      estimate: () => 1,
+      apply: (assignments) => assert.equal(assignments.length, 0),
+      progress: () => {},
+    })],
+  });
+  system.run({
+    ...base,
+    query: (spec) => spec.components[0]?.id === WorkParticipation.id
+      ? [{ id: worker, get: (() => ({ automatic: true })) as never }]
+      : [],
+    workAttemptForWorker: (actor) => actor === worker ? ({ key: { task: entity("task.native"), generation: 1 } } as never) : null,
+    assign: () => {
+      matcherCalls += 1;
+      return [];
+    },
+  } as never);
+  assert.equal(matcherCalls, 0);
 });
 
 test("planning phases run before providers and expose their overlay writes", () => {
