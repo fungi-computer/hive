@@ -33,6 +33,7 @@ import {
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
+import { MAX_KERNEL_RECORDS } from "../../engine/src/runtime/kernel-records";
 
 type Environment = {
   REGIONS: DurableObjectNamespace;
@@ -89,6 +90,8 @@ type PublicObservationPayload = {
   readonly observation: SessionObservation;
 };
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
+/** Region reads are paged separately from the native snapshot's total bound. */
+const RECORD_PAGE_SIZE = 40;
 
 function packFor(pack: PublicPack) {
   switch (pack) {
@@ -287,6 +290,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       seed: 17,
       scopeForPrincipal: (principal) => {
         if (principal === hostPrincipal) return { kind: "host" };
+        if (pack !== "colony" && principal === playerPrincipal) return game.localScope ?? null;
         const raw = this.owner.sql.exec("SELECT credential_hash,principal,player_id,party_id FROM hive_public_participants WHERE principal=?", principal).toArray()[0];
         if (!raw) return null;
         const participant = participantRow(raw);
@@ -494,9 +498,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         records = new Map();
         let cursor = "";
         for (;;) {
-          const page = this.region.readRecords(revision, cursor, 40);
+          const page = this.region.readRecords(revision, cursor, RECORD_PAGE_SIZE);
           for (const record of page.records) records.set(record.key, record.bytes);
-          if (records.size > 40) throw new Error("public-kernel-record-limit");
+          if (records.size > MAX_KERNEL_RECORDS) throw new Error("public-kernel-record-limit");
           if (page.nextKey === undefined) break;
           if (page.nextKey <= cursor) throw new Error("public-kernel-record-cursor");
           cursor = page.nextKey;
@@ -918,6 +922,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           return jsonResponse({ error: "websocket-upgrade-required" }, 426, origin);
         const pair = new WebSocketPair();
         const server = pair[1];
+        const socketHandle = socketHandleFromPath(new URL(request.url).pathname);
+        if (!socketHandle) throw new Error("public-socket-state");
         const sockets = this.state.getWebSockets();
         const unauthenticated = sockets.filter((candidate) => {
           const attachment = candidate.deserializeAttachment() as SocketAttachment | null;
@@ -925,7 +931,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         });
         if (sockets.length >= 64 || unauthenticated.length >= 32) return jsonResponse({ error: "public-socket-capacity" }, 429, origin);
         const deadline = Date.now() + 5_000;
-        server.serializeAttachment({ pack, worldHandle: tokenHash, principal: "", authenticated: false, authDeadline: deadline } satisfies SocketAttachment);
+        server.serializeAttachment({ pack, worldHandle: socketHandle, principal: "", authenticated: false, authDeadline: deadline } satisfies SocketAttachment);
         this.state.acceptWebSocket(server);
         const row = this.hasHostTable() ? this.hostRow() : undefined;
         if (row) await this.arm(row);

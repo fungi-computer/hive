@@ -39,7 +39,8 @@ export interface KernelRecordSnapshot {
 const RECORD_BYTES = 256 * 1024;
 const ENTITY_BYTES = 8 * 1024 * 1024;
 const TOTAL_BYTES = 9 * 1024 * 1024;
-const MAX_RECORDS = 48;
+/** Maximum records in one native snapshot, shared by capture and persistence callers. */
+export const MAX_KERNEL_RECORDS = 48;
 const MAX_KEY_BYTES = 80;
 const ENTITY_PREFIX = "kernel/entities/";
 const ATMOSPHERE_PREFIX = "kernel/atmosphere/";
@@ -70,7 +71,7 @@ function keyAllowed(key: string): boolean {
   return key === "kernel/header" || (ENVIRONMENT_KEYS as readonly string[]).includes(key);
 }
 function validateKeyList(keys: readonly unknown[]): asserts keys is readonly string[] {
-  if (keys.length > MAX_RECORDS) throw new Error("record count exceeds bound");
+  if (keys.length > MAX_KERNEL_RECORDS) throw new Error("record count exceeds bound");
   const seen = new Set<string>();
   for (const key of keys) {
     if (typeof key !== "string" || !keyAllowed(key) || seen.has(key)) throw new Error("invalid native record key");
@@ -101,7 +102,7 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
 }
 
 function preflightRecords(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
-  if (!Array.isArray(records) || records.length > MAX_RECORDS) throw new Error("record count exceeds bound");
+  if (!Array.isArray(records) || records.length > MAX_KERNEL_RECORDS) throw new Error("record count exceeds bound");
   const seen = new Set<string>();
   let total = 0;
   for (const record of records) {
