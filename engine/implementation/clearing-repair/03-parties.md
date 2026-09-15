@@ -129,6 +129,34 @@ First slice has no implicit co-op delegation. Leave an explicit permission seam,
 not an unused grants framework. Sharing world invite allows a NEW party, not control
 of existing parties. Inspect others' public people/work without their credentials.
 
+### Groups are actors; relations carry the meaning
+
+Do not generalize Clearing's first `Party` consumer into a universal team object
+that conflates membership, control, ownership and diplomacy. A persistent party,
+guild, sports team or kingdom is an ordinary actor with a game-authored kind and
+policy. Relations are separate canonical facts between actors:
+
+- a person or player may be a member of a group without controlling it;
+- a player may control a person or party without owning that actor as property;
+- a guild may own a building without owning its members;
+- a guild may be allied with, subject to or otherwise related to a kingdom;
+- one actor may participate in several unrelated groups at once.
+
+The Rust ECS owns indexed relation facts and their referential/save laws. TypeScript
+content defines permitted actor kinds, relation kinds, commands and policies over
+them. A command proposes a typed relation change; native admission rechecks the
+authenticated scope and the game policy before committing it. Do not add a magical
+`joinTeam` operation whose name implies control or property rights, and do not make
+the work scheduler own group identity.
+
+For the shippable Clearing slice, `Party(ownerPlayer)`, `PartyMember(party)` and
+`OwnedByParty(party)` remain the demonstrated narrow representation. They establish
+one player's persistent work pool and material boundary. Colony scheduling queries
+that membership but does not create or mutate it. A later shared relation module is
+earned only when a second real consumer, such as guild property or kingdom
+allegiance, needs the same behavior; that extraction must migrate the Party caller
+and remove the narrower duplicate rather than wrapping both permanently.
+
 ## Spawn and current Colony callers
 
 Extract `colony.ts` fixed two-worker startup into `createColonyParty(player, party,
