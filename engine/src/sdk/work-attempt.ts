@@ -151,37 +151,6 @@ export function acknowledgeWorkAttempt(
   });
 }
 
-export function continueConstructionWorkAttempt(
-  context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
-  attempt: WorkAttemptKey,
-  operationSequence: number,
-  site: EntityId,
-  contact: ConstructionAccessContact,
-  mode: "bind" | "work",
-): void {
-  const exact = key(attempt);
-  const operation = sequence(operationSequence);
-  entity(site);
-  if (![contact.x, contact.y, contact.z].every(Number.isFinite))
-    throw new Error("construction contact must be finite");
-  const current = workAttempt(context, exact.task);
-  if (
-    !current ||
-    current.key.generation !== exact.generation ||
-    current.phase.kind !== "outcome" ||
-    current.phase.operation.sequence !== operation ||
-    current.phase.result.kind !== "completed"
-  )
-    throw new Error("work attempt completed outcome is stale");
-  context.action({
-    kind: "continue-work-attempt",
-    task: exact.task,
-    generation: exact.generation,
-    sequence: operation,
-    nextActivity: { kind: "construction", site, contact: { x: contact.x, y: contact.y, z: contact.z, frame: null }, mode },
-  });
-}
-
 export function continueDeconstructionWorkAttempt(
   context: Pick<WriteContext, "action"> & Pick<ReadContext, "workAttempts">,
   attempt: WorkAttemptKey,
