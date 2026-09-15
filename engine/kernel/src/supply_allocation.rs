@@ -1,0 +1,79 @@
+//! Native ownership of finite supply portions and incoming capacity.
+//!
+//! Allocations are ordinary ECS records. Their physical effects still go
+//! through `Kernel::transfer`; scanning these records derives reservations so
+//! save/reload cannot lose or duplicate the accounting.
+
+use crate::components::{Container, Lot, SupplyAllocation, SupplyAllocationState};
+use bevy_ecs::prelude::Entity;
+
+pub(crate) fn reserved_source(kernel: &crate::world::Kernel, lot: &str, ignore: Option<&str>) -> u32 {
+    kernel.supply_allocations().filter(|a| matches!(a.state, SupplyAllocationState::Reserved) && a.portion == lot && Some(a.reservation.as_str()) != ignore).map(|a| a.quantity).sum()
+}
+
+pub(crate) fn reserved_destination(kernel: &crate::world::Kernel, destination: &str, ignore: Option<&str>) -> u32 {
+    kernel.supply_allocations().filter(|a| matches!(a.state, SupplyAllocationState::Reserved) && a.destination == destination && Some(a.reservation.as_str()) != ignore).map(|a| a.quantity).sum()
+}
+
+pub(crate) fn validate_capacity(kernel: &crate::world::Kernel, source: Entity, destination: Entity, quantity: u32, ignore: Option<&str>) -> Result<(), String> {
+    let lot = kernel.ecs().get::<Lot>(source).ok_or("supply portion is missing")?;
+    let target = kernel.ecs().get::<Container>(destination).ok_or("supply destination is not a container")?;
+    let source_reserved = reserved_source(kernel, &kernel.external_id(source)?, ignore);
+    if quantity > lot.quantity.saturating_sub(source_reserved) { return Err("supply source portion is overbooked".into()); }
+    let present = kernel.quantity_in_container(&kernel.external_id(destination)?);
+    let incoming = reserved_destination(kernel, &kernel.external_id(destination)?, ignore);
+    if u64::from(present).saturating_add(u64::from(incoming)).saturating_add(u64::from(quantity)) > u64::from(target.capacity) { return Err("supply destination capacity is overbooked".into()); }
+    Ok(())
+}
+
+pub(crate) fn state_is_active(state: SupplyAllocationState) -> bool { matches!(state, SupplyAllocationState::Reserved) }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world::Kernel;
+    use serde_json::{json, Value};
+
+    fn kernel() -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":1,"game":"supplies","components":[],"initial":[
+            {"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}},
+            {"id":"w1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
+            {"id":"w2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
+            {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8}}},
+            {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8}}},
+            {"id":"wood","components":{"hive.lot":{"kind":"wood","quantity":6,"container":"source"}}}
+        ]}).to_string()).unwrap();
+        let source = kernel.entity("source").unwrap();
+        let lot = kernel.entity("wood").unwrap();
+        assert!(kernel.ecs().get::<Lot>(lot).is_some() && kernel.ecs().get::<Container>(source).is_some());
+        kernel
+    }
+
+    #[test]
+    fn two_partial_allocations_are_independent_and_overbooking_is_rejected() {
+        let mut kernel = kernel();
+        let a = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "w1".into(), "wood".into(), "destination".into(), 3).unwrap();
+        let b = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "w2".into(), "wood".into(), "destination".into(), 3).unwrap();
+        assert_ne!(a, b);
+        assert!(kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "w1".into(), "wood".into(), "destination".into(), 1).is_err());
+        assert_eq!(kernel.ecs().get::<Lot>(kernel.entity("wood").unwrap()).unwrap().quantity, 6);
+        let rows: Value = serde_json::from_str(&kernel.query_json("[\"hive.supply-allocation\"]").unwrap()).unwrap();
+        assert_eq!(rows.as_array().unwrap().len(), 2);
+    }
+
+    #[test]
+    fn cancellation_releases_capacity_and_delivery_preserves_custody() {
+        let mut kernel = kernel();
+        let a = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "w1".into(), "wood".into(), "destination".into(), 3).unwrap();
+        kernel.cancel_supply_allocation(&a).unwrap();
+        let b = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "w2".into(), "wood".into(), "destination".into(), 3).unwrap();
+        let wood = kernel.ecs().get::<Lot>(kernel.entity("wood").unwrap()).unwrap();
+        assert_eq!((wood.container.as_str(), wood.quantity), ("source", 6));
+        assert_eq!(kernel.quantity_in_container("destination"), 0);
+        let saved = kernel.snapshot_json().unwrap();
+        let mut restored = Kernel::new(); restored.restore_json(&saved).unwrap();
+        assert_eq!(restored.quantity_in_container("destination"), 0);
+        assert_eq!(restored.ecs().get::<SupplyAllocation>(restored.entity(&b).unwrap()).unwrap().state, SupplyAllocationState::Reserved);
+    }
+}

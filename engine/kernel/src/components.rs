@@ -80,6 +80,26 @@ pub struct Lot {
 pub struct LotWater {
     pub water_kg: f64,
 }
+/// Native supply reservation. The lot and container remain the sole physical
+/// custody owners; this record accounts only for an admitted portion and its
+/// incoming destination capacity.
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SupplyAllocation {
+    pub requirement_owner: String,
+    pub requirement_role: String,
+    pub requirement_generation: u64,
+    pub party: String,
+    pub portion: String,
+    pub destination: String,
+    pub quantity: u32,
+    pub reservation: String,
+    pub state: SupplyAllocationState,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SupplyAllocationState { Reserved, Delivered, Cancelled }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StockpileCell {

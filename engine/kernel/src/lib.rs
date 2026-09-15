@@ -25,6 +25,7 @@ mod components;
 mod navigation;
 mod registry;
 mod world;
+mod supply_allocation;
 mod record_bundle;
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};

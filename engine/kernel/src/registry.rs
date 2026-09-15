@@ -68,6 +68,7 @@ impl Registry {
                 ],
             ),
             ("hive.lot-water", vec![("waterKg", FieldType::Number)]),
+            ("hive.supply-allocation", vec![("requirementOwner", FieldType::Entity), ("requirementRole", FieldType::String), ("requirementGeneration", FieldType::Number), ("party", FieldType::Entity), ("portion", FieldType::Entity), ("destination", FieldType::Entity), ("quantity", FieldType::Number), ("reservation", FieldType::String), ("state", FieldType::String)]),
             ("hive.staged-process", vec![
                 ("version", FieldType::Number), ("definition", FieldType::String), ("definitionVersion", FieldType::Number),
                 ("station", FieldType::Entity), ("stageIndex", FieldType::Number), ("progressSeconds", FieldType::Number),
@@ -200,6 +201,7 @@ impl Registry {
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
+                "hive.supply-allocation" => world.register_component::<SupplyAllocation>(),
                 "hive.staged-process" => world.register_component::<crate::staged_process::StagedProcess>(),
                 "hive.process-binding" => world.register_component::<crate::staged_process::ProcessBinding>(),
                 "hive.stockpile-cell" => world.register_component::<StockpileCell>(),
@@ -258,6 +260,7 @@ impl Registry {
                 | "hive.ground-stock"
                 | "hive.lot"
                 | "hive.lot-water"
+                | "hive.supply-allocation"
                 | "hive.staged-process"
                 | "hive.process-binding"
                 | "hive.stockpile-cell"
@@ -372,6 +375,13 @@ impl Registry {
                 if !water.water_kg.is_finite() || water.water_kg < 0.0 || water.water_kg > MAX_CARRIED_WATER_KG {
                     return Err("invalid carried water mass".into());
                 }
+            }
+            "hive.supply-allocation" => {
+                let allocation: SupplyAllocation = decode(value)?;
+                if !valid_id(&allocation.requirement_owner) || !valid_id(&allocation.requirement_role) || allocation.requirement_generation == 0 || !valid_id(&allocation.party)
+                    || !valid_id(&allocation.portion) || !valid_id(&allocation.destination)
+                    || !valid_id(&allocation.reservation) || allocation.quantity == 0
+                { return Err("invalid supply allocation".into()); }
             }
             "hive.staged-process" => {
                 let process: crate::staged_process::StagedProcess = decode(value)?;
@@ -558,6 +568,7 @@ impl Registry {
             "hive.lot-water" => {
                 world.entity_mut(entity).insert(decode::<LotWater>(value)?);
             }
+            "hive.supply-allocation" => { world.entity_mut(entity).insert(decode::<SupplyAllocation>(value)?); }
             "hive.staged-process" => { world.entity_mut(entity).insert(decode::<crate::staged_process::StagedProcess>(value)?); }
             "hive.process-binding" => { world.entity_mut(entity).insert(decode::<crate::staged_process::ProcessBinding>(value)?); }
             "hive.stockpile-cell" => { world.entity_mut(entity).insert(decode::<StockpileCell>(value)?); }
@@ -635,6 +646,7 @@ impl Registry {
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
+            "hive.supply-allocation" => world.get::<SupplyAllocation>(entity).map(record),
             "hive.staged-process" => world.get::<crate::staged_process::StagedProcess>(entity).map(record),
             "hive.process-binding" => world.get::<crate::staged_process::ProcessBinding>(entity).map(record),
             "hive.stockpile-cell" => world.get::<StockpileCell>(entity).map(record),
