@@ -9,7 +9,7 @@ use super::route_query::SearchOutcome;
 use super::supply_admission::SupplyAdmissionRequest;
 use crate::components::*;
 use crate::staged_process::{InputPolicy, ProcessPhase, StagedProcess};
-use crate::work_planner::{MAX_ASSIGNMENTS, WorkParticipation};
+use crate::work_planner::MAX_ASSIGNMENTS;
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_CARRY_PORTION: u32 = 3;
@@ -49,7 +49,7 @@ impl Kernel {
         // while accepted mutations can wake it by updating its schedule.
         for task in &window.tasks {
             if let Ok(entity) = self.entity(&task.id) {
-                if let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() {
+                if self.ecs.get::<crate::work_planner::WorkSchedule>(entity).is_some() {
                     let next_review_tick = tick.checked_add(crate::work_planner::DEFAULT_REVIEW_INTERVAL).ok_or("native work review tick exhausted")?;
                     self.ecs.entity_mut(entity).insert(crate::work_planner::WorkSchedule { next_review_tick, last_considered: tick });
                     self.refresh_planner_index(&task.id);
@@ -99,6 +99,7 @@ impl Kernel {
             }
         }
 
+        let mut supply_requirements = Vec::new();
         let mut requirements = Vec::new();
         for task in &window.tasks {
             let entity = self.entity(&task.id)?;
@@ -109,7 +110,7 @@ impl Kernel {
             if self.ecs.get::<ConstructionSite>(entity).is_some() {
                 let phase = self.ecs.get::<ConstructionSite>(entity).ok_or("construction site disappeared")?.phase;
                 if phase == ConstructionPhase::Planned {
-                    let _ = self.plan_construction_supply(&task.id, &party)?;
+                    supply_requirements.extend(self.construction_supply_requirements(&task.id, &party)?);
                     if let Some(requirement) = self.construction_work_requirement(&task.id, &party)? {
                         requirements.push(requirement);
                     }
@@ -117,7 +118,7 @@ impl Kernel {
             } else if self.ecs.get::<StagedProcess>(entity).is_some() {
                 let phase = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.phase;
                 if phase == ProcessPhase::Waiting {
-                    let _ = self.plan_process_supply(&task.id, &party)?;
+                    supply_requirements.extend(self.process_supply_requirements(&task.id, &party)?);
                     let state = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.clone();
                     let _ = self.try_admit_process(&task.id, &state.definition, &state.station)?;
                     if let Some(requirement) = self.process_work_requirement(&task.id, &party)? {
@@ -126,6 +127,10 @@ impl Kernel {
                 }
             }
         }
+        // All selected domains share one finite-material pass. This removes
+        // the former per-task Hungarian loop while the following checkpoint
+        // folds supply slots and labor requirements into the same match.
+        progressed += self.plan_supply_requirements(&supply_requirements)?.len();
         if requirements.is_empty() {
             return Ok(progressed);
         }
@@ -200,6 +205,14 @@ impl Kernel {
     /// process owner remains responsible for binding them once they arrive;
     /// this method only joins the shared supply planner.
     pub(crate) fn plan_process_supply(&mut self, process: &str, party: &str) -> Result<Vec<String>> {
+        let requirements = self.process_supply_requirements(process, party)?;
+        self.plan_supply_requirements(&requirements)
+    }
+
+    /// Describe process inputs without selecting workers or mutating custody.
+    /// The tick planner uses this query to combine every domain contribution
+    /// into one bounded assignment window.
+    fn process_supply_requirements(&self, process: &str, party: &str) -> Result<Vec<SupplyRequirement>> {
         self.ensure_ready()?;
         let process_entity = self.entity(process)?;
         let state = self
@@ -285,7 +298,7 @@ impl Kernel {
                 })
             })
             .collect::<Vec<_>>();
-        self.plan_supply_requirements(&requirements)
+        Ok(requirements)
     }
 
     /// Construction contributes requirements; it does not select workers or
@@ -295,6 +308,14 @@ impl Kernel {
         site: &str,
         party: &str,
     ) -> Result<Vec<String>> {
+        let requirements = self.construction_supply_requirements(site, party)?;
+        self.plan_supply_requirements(&requirements)
+    }
+
+    /// Describe construction inputs without reserving a lot or claiming a
+    /// worker. Supply discovery is a domain query; the shared planner remains
+    /// the only automatic assignment owner.
+    fn construction_supply_requirements(&self, site: &str, party: &str) -> Result<Vec<SupplyRequirement>> {
         self.ensure_ready()?;
         let site_entity = self.entity(site)?;
         let state = self
@@ -371,7 +392,7 @@ impl Kernel {
                 })
             })
             .collect::<Vec<_>>();
-        self.plan_supply_requirements(&requirements)
+        Ok(requirements)
     }
 
     fn plan_supply_requirements(

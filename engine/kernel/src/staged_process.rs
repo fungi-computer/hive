@@ -365,7 +365,7 @@ pub fn binding_id(binding: &ProcessBinding) -> String {
     format!("binding:{}:{}:{}", binding.process, binding.role, binding.lot)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum BindingResolution {
     Waiting,
     Ready(Vec<ProcessBinding>),
