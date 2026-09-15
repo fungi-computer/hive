@@ -118,6 +118,8 @@ impl Kernel {
                 let phase = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.phase;
                 if phase == ProcessPhase::Waiting {
                     let _ = self.plan_process_supply(&task.id, &party)?;
+                    let state = self.ecs.get::<StagedProcess>(entity).ok_or("staged process disappeared")?.clone();
+                    let _ = self.try_admit_process(&task.id, &state.definition, &state.station)?;
                     if let Some(requirement) = self.process_work_requirement(&task.id, &party)? {
                         requirements.push(requirement);
                     }
