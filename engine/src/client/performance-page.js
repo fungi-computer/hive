@@ -8,6 +8,7 @@ import { Slider } from "@fungi.computer/caps/components/slider";
 import { connectBrowserRuntime } from "../runtime/browser-client.js";
 import { COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { colonyPack } from "../games/colony.ts";
+import { createPerformancePersistence } from "./performance-persistence.js";
 
 const sizes = [64, 128, 256, 512], workerCounts = [4, 8, 16, 32, 50, 100, 200];
 const params = new URLSearchParams(location.search);
@@ -17,6 +18,7 @@ const root = document.querySelector("#hive-app");
 let runtime;
 let metrics = { stepCpuMs: null, routeRequests: null, assignmentCost: null, snapshotBytes: null, activeWaterWork: null, activeGasWork: null, wireBytes: 0 };
 let woodOutput = 0, lastWood = 0;
+let frameEpoch;
 
 function format(value, suffix = "") { return value === null ? "Unavailable" : `${typeof value === "number" ? value.toFixed(value < 10 ? 2 : 0) : value}${suffix}`; }
 function setPreset(nextSize, nextWorkers) {
@@ -58,7 +60,7 @@ function mount() {
   runtime = connectBrowserRuntime({ worker: new Worker(new URL("../runtime/performance-worker-entry.ts", import.meta.url), {
     type: "module", name: `colony-performance:${size}:${workers}`,
   }) });
-  const persistence = { online: false, statusLabel: "Local performance run", save() {}, continue() {}, newWorld(callback) { callback(false); } };
+  const persistence = createPerformancePersistence(runtime);
   root.className = "hive-shell";
   createHiveClient({ root, mode: `colony-performance-${size}-${workers}`, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
   const hud = root.querySelector(".hive-hud");
@@ -71,6 +73,11 @@ function mount() {
     metrics.wireBytes += new TextEncoder().encode(JSON.stringify(event)).byteLength;
     if (event.type === "results" && event.metrics) metrics = { ...metrics, ...event.metrics };
     if (event.type === "frame") {
+      if (frameEpoch !== event.epoch) {
+        frameEpoch = event.epoch;
+        woodOutput = 0;
+        lastWood = 0;
+      }
       const wood = event.facts.reduce((sum, fact) => sum + (fact.inventory?.items ?? []).filter(item => item.kind === "wood").reduce((n, item) => n + item.quantity, 0), 0);
       if (wood > lastWood) woodOutput += wood - lastWood;
       lastWood = wood;
