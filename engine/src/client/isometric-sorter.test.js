@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
+import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint, surfaceSubjectFromOrdered } from "./isometric-sorter.js";
 import { transformBakedPartPoint } from "./multipart-visual-owner.js";
 
 const node = (id, x, z, extra = {}) => ({
@@ -173,6 +173,48 @@ test("cycles are deterministic and picking chooses the last visible ordered silh
   );
   assert.equal(pickFromOrdered(ordered, [a, b]).node.id, "b");
   assert.equal(pickFromOrdered(ordered, [{ ...b, pickable: false }]).target, null);
+});
+
+test("overlapping actor, tree, and multipart structure share order and preserve entity identity", () => {
+  const sorter = createIsometricSorter();
+  const screenBounds = { left: -20, right: 80, top: -20, bottom: 80 };
+  const actor = {
+    ...node("actor", 0, 0, { role: "actor", moving: true, target: "actor", pickable: true, screenBounds }),
+    surface: { height: 0 },
+  };
+  const tree = {
+    ...node("tree", 1, 1, { role: "structure", target: "tree", pickable: true, screenBounds }),
+    surface: { height: 0 },
+  };
+  const structureParts = [
+    {
+      ...node("structure", 2, 2, { role: "structure", target: "structure", part: "base", pickable: true, screenBounds }),
+      surface: { height: 0 },
+    },
+    {
+      ...node("structure", 2, 2, { role: "structure", target: "structure", part: "roof", pickable: true, screenBounds, footprint: [{ x: 2, y: 1, z: 2 }] }),
+      surface: { height: 0 },
+    },
+  ];
+  const subjects = [actor, tree, { ...structureParts[0], id: "structure" }];
+  const records = [actor, tree, ...structureParts];
+  const ordered = sorter.order(records);
+  const reversed = sorter.order([...records].reverse());
+  assert.deepEqual(ordered.map((entry) => [entry.id, entry.part]), reversed.map((entry) => [entry.id, entry.part]));
+  assert.equal(pickFromOrdered(ordered, ordered).target, "structure");
+  assert.equal(surfaceSubjectFromOrdered(ordered, subjects, { x: 0, y: 0 }, () => ({ frame: "structure" })).subject.id, "structure");
+  assert.equal(surfaceSubjectFromOrdered(reversed, subjects, { x: 0, y: 0 }, () => ({ frame: "structure" })).node.target, "structure");
+});
+
+test("support picking ignores an explicitly unpickable front render part", () => {
+  const sorter = createIsometricSorter();
+  const screenBounds = { left: -20, right: 80, top: -20, bottom: 80 };
+  const rear = { ...node("rear", 0, 0, { target: "rear", pickable: true, screenBounds }), surface: { height: 0 } };
+  const front = { ...node("front", 1, 1, { target: "front", pickable: false, screenBounds }), surface: { height: 0 } };
+  const subjects = [rear, front];
+  const ordered = sorter.order([rear, front]);
+  const picked = surfaceSubjectFromOrdered(ordered, subjects, { x: 0, y: 0 }, () => ({ frame: "support" }));
+  assert.equal(picked?.subject.id, "rear");
 });
 
 test("storey conversion requires canonical vertical metres", () => {
