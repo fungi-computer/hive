@@ -1,7 +1,7 @@
 # Native work planning: implementation contract
 
 September 15, 2026. Design and staged implementation are underway. The source
-integration checkpoint for the status below is `e9764765`. This refines and takes
+integration checkpoint for the status below is `a8d4caa9`. This refines and takes
 precedence over the planning pseudocode in [01-work](01-work.md). Construction and
 staged processes now run through the first accepted native planner slice; the
 whole Colony cutover remains incomplete.
@@ -34,7 +34,7 @@ below are reuse anchors, not claims that these proposed APIs already exist.
 
 ### Current implementation checkpoint
 
-Do not infer whole-game completion from the active native planner. At `e9764765`:
+Do not infer whole-game completion from the active native planner. At `a8d4caa9`:
 
 - `work_planner.rs` defines the initial participation, policy, schedule, budget
   and fairness records;
@@ -67,11 +67,15 @@ Do not infer whole-game completion from the active native planner. At `e9764765`
 - Colony removed the TypeScript construction and process provider calls, so its
   ordinary session and performance pack reach this same active native hook through
   `Kernel::advance_batch`;
+- deconstruction designations are native order records. Their contact discovery,
+  free-capacity eligibility, route pricing, assignment, physical continuation and
+  terminal reconciliation now use that same planner and WorkAttempt owner. Colony
+  submits one semantic plan action and no longer has a deconstruction provider;
 - focused native planner laws cover combined supply/labor, concurrent carriers,
   small carrier capacity, interruption, priority fairness, rollback and restore.
-  The complete kernel proof at this checkpoint passed 363 tests; existing compiler
+  The complete kernel proof at this checkpoint passed 365 tests; existing compiler
   warnings remain disclosed rather than treated as new failures; and
-- water, resource, tree, excavation, deconstruction, stockpile hauling and manual
+- water, resource, tree, excavation, stockpile hauling and manual
   route reconciliation still use TypeScript providers listed in the deletion
   checklist below. Material-source discovery also still scans canonical IDs.
 
