@@ -38,11 +38,11 @@ test("invalid native keys are rejected before any read and metadata before inser
   assert.equal(target.freed, false);
 });
 
-test("current native entity version round trips and version 9 is rejected", () => {
+test("current native entity version round trips and version 11 is rejected", () => {
   const current = captureKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} });
-  assert.equal(readEntityVersion(current), 10);
+  assert.equal(readEntityVersion(current), 12);
   const old = { ...current, records: current.records.map((record) => record.key.startsWith("kernel/entities/")
-    ? { ...record, bytes: new TextEncoder().encode(entity.replace('"version":10', '"version":9')) }
+    ? { ...record, bytes: new TextEncoder().encode(entity.replace('"version":12', '"version":11')) }
     : record) };
   assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), restore_records() {} }, () => handle([]), old), /unsupported kernel entity snapshot/);
 });

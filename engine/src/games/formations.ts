@@ -235,7 +235,6 @@ export const formationsPack: GamePack = {
     "formations",
     [Position, Destination, FormationMember, Morale, FormationSettings, Health, Collider, Launcher, ImpactMaterial, MaterialLot],
     formationInitial,
-    [],
     [{ kind: "iron-round", unitVolume: 1 }],
   ),
   presentation: {
