@@ -701,8 +701,8 @@ pub(crate) mod tests {
         ]);
         let mut kernel = crate::Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":1, "game":"placement", "components":[],
-            "initial":[
+            "format":"hive-game", "version":2, "game":"placement", "components":[],
+            "materialCatalog":[], "initial":[
                 {"id":"actor","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0.25},"hive.body":{"speed":1},"hive.container":{"capacity":2},"hive.traversal":{"clearanceCells":1,"maxStepCells":1}}},
                 {"id":"pantry","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":1.25},"hive.container":{"capacity":20}}}
             ]
@@ -760,8 +760,8 @@ pub(crate) mod tests {
         definition["initialPlacements"] = json!([{ "entity":"actor", "column":[0, 0] }]);
         let mut kernel = crate::Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":1, "game":"placement", "components":[],
-            "initial":[{"id":"actor","components":{
+            "format":"hive-game", "version":2, "game":"placement", "components":[],
+            "materialCatalog":[], "initial":[{"id":"actor","components":{
                 "hive.position":{"x":0,"y":0,"z":0,"facing":0},
                 "hive.body":{"speed":1}, "hive.container":{"capacity":2},
                 "hive.excavation-work":{"x":0,"y":0,"z":0,"expected":1,"replacement":0,"seconds":1}

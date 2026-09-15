@@ -38,7 +38,7 @@ import { z } from "zod";
 import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, MoveDestination, ReadContext, GameCommandContext } from "../contracts";
 
 export const colonyMaterialCatalog = [
-  ...["water", "beer", "ale", "mud", "dirt", "piss", "shit", "dirty-mop-water", "wood", "bread", "malt", "mugwort", "barm", "keg", "pail", "spent-grain", "soil-spoil", "stone-spoil"].map(kind => ({ kind, unitVolume: 1 })),
+  ...["water", "ale", "wood", "bread", "malt", "mugwort", "barm", "keg", "pail", "spent-grain", "soil-spoil", "stone-spoil"].map(kind => ({ kind, unitVolume: 1 })),
 ] as const;
 
 export { Worker } from "./colony-components";

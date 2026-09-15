@@ -15,15 +15,16 @@ export interface NativeRecordBinding {
 
 export interface KernelEntitySnapshot {
   readonly format: "hive-kernel";
-  readonly version: 10;
+  readonly version: 12;
   readonly revision: number;
   readonly time: number;
   readonly scene: {
     readonly format: "hive-game";
-    readonly version: 1;
+    readonly version: 2;
     readonly game: string;
     readonly components: readonly unknown[];
     readonly initial: readonly unknown[];
+    readonly materialCatalog: readonly unknown[];
   };
   readonly [key: string]: unknown;
 }

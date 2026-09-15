@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { captureKernelRecords, restoreKernelRecords, type NativeRecordHandle } from "./kernel-records";
 
-const entity = JSON.stringify({ format: "hive-kernel", version: 10, revision: 7, time: 1.5, scene: { format: "hive-game", version: 1, game: "colony", components: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, work_attempts: [] });
+const entity = JSON.stringify({ format: "hive-kernel", version: 12, revision: 7, time: 1.5, scene: { format: "hive-game", version: 2, game: "colony", components: [], materialCatalog: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, work_attempts: [] });
 function handle(seed: readonly { key: string; bytes: Uint8Array }[], fail = false): NativeRecordHandle & { freed: boolean; reads: number; inserts: number } {
   const records = new Map<string, Uint8Array>(seed.map(record => [record.key, Uint8Array.from(record.bytes)]));
   const result = { freed: false, reads: 0, inserts: 0, free() { this.freed = true; }, keys() { return JSON.stringify([...records.keys()]); }, read(key: string) { this.reads += 1; return records.get(key)!; }, insert(key: string, bytes: Uint8Array) { this.inserts += 1; if (fail) throw new Error("insert failed"); records.set(key, bytes); } };
