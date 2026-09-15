@@ -98,6 +98,14 @@ mod native_planner_snapshot_tests {
         assert_eq!(task_records[0]["id"], "task");
         assert_eq!(task_records[0]["components"]["hive.work-policy"]["priority"], 3);
         assert_eq!(task_records[0]["components"]["hive.work-schedule"]["nextReviewTick"], 0);
+        assert_eq!(kernel.next_native_planning_window(0).workers.iter().map(|worker| worker.id.as_str()).collect::<Vec<_>>(), vec!["worker"]);
+        assert_eq!(kernel.next_native_planning_window(0).tasks.iter().map(|task| task.id.as_str()).collect::<Vec<_>>(), vec!["task"]);
+        let rebuilds = kernel.planner_index_rebuilds();
+        kernel.advance_json(&json!({"delta":0,"writes":[{"entity":"worker","component":"hive.work-participation","value":{"automatic":false}}],"actions":[]}).to_string()).unwrap();
+        assert!(kernel.next_native_planning_window(0).workers.is_empty());
+        kernel.advance_json(&json!({"delta":0,"writes":[{"entity":"worker","component":"hive.work-participation","value":{"automatic":true}}],"actions":[]}).to_string()).unwrap();
+        assert_eq!(kernel.next_native_planning_window(0).workers.len(), 1);
+        assert_eq!(kernel.planner_index_rebuilds(), rebuilds);
         kernel.planner.party_cursor = 17;
         kernel.planner.task_cursor = 29;
         kernel.planner.review_tick = 41;
@@ -2115,6 +2123,8 @@ impl Kernel {
     pub(crate) fn rebuild_planner_index(&mut self) {
         self.planner_indexes.rebuild(&self.ecs, &self.ids);
     }
+    #[cfg(test)]
+    pub(crate) fn planner_index_rebuilds(&self) -> u64 { self.planner_indexes.rebuild_count() }
     pub(crate) fn next_native_planning_window(&mut self, tick: u64) -> crate::work_candidates::PlanningWindow {
         crate::work_candidates::next_fair_indexed_window(&mut self.planner, &self.planner_indexes, tick)
     }
@@ -2211,6 +2221,7 @@ impl Kernel {
             }
         }
         world.rebuild_physical_indexes(build_routes)?;
+        world.rebuild_planner_index();
         world.projectile_count = world
             .ids
             .values()
