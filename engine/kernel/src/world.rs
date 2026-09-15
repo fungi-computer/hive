@@ -3895,6 +3895,7 @@ impl Kernel {
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
         self.advance_process_work_attempts(batch.delta)?;
         self.advance_staged_processes(batch.delta)?;
+        self.advance_native_work_planner(self.revision)?;
         self.cleanup_empty_ground_stock();
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
