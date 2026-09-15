@@ -1962,6 +1962,8 @@ pub struct Kernel {
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
+    job_entities: BTreeMap<String, Entity>,
+    task_entities: BTreeMap<String, Entity>,
     planner_indexes: NativeIndexes,
 }
 const STATE_BYTES: usize = 8 * 1024 * 1024;
@@ -2131,11 +2133,38 @@ impl Kernel {
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
+            job_entities: BTreeMap::new(),
+            task_entities: BTreeMap::new(),
             planner_indexes: NativeIndexes::default(),
         }
     }
     fn ensure_ready(&self) -> Result<()> {
         if self.discard_required { return Err("kernel attempt requires durable restore".into()); }
+        Ok(())
+    }
+
+    fn create_job(&mut self, id: String, plan: crate::job::JobPlan) -> Result<String> {
+        if !valid_id(&id) { return Err("invalid job identity".into()); }
+        if let Some(entity) = self.job_entities.get(&id) {
+            let existing = self.ecs.get::<crate::job::JobComponent>(*entity).ok_or("stale job index")?;
+            if existing.definition != plan.definition || existing.party != plan.party { return Err("job replay conflicts".into()); }
+            return Ok(id);
+        }
+        let admitted = crate::job::admit(&id, plan)?;
+        let job = self.ecs.spawn((ExternalId(id.clone()), crate::job::JobComponent { version: admitted.version, definition: admitted.plan.definition.clone(), definition_version: admitted.plan.definition_version, party: admitted.plan.party.clone(), disposition: admitted.state.clone(), task_ids: admitted.tasks.values().map(|task| task.id.clone()).collect() }, OwnedByParty { party: admitted.plan.party.clone() })).id();
+        self.ids.insert(id.clone(), job); self.known.insert(id.clone()); self.job_entities.insert(id.clone(), job);
+        for task in admitted.tasks.values() {
+            let after = admitted.plan.steps.iter().find(|step| step.key == task.key).and_then(|step| step.after.clone());
+            let entity = self.ecs.spawn((ExternalId(task.id.clone()), crate::job::TaskComponent { version: crate::job::JOB_VERSION, job: id.clone(), key: task.key.clone(), after, operation: task.operation.clone(), disposition: task.state.clone() }, OwnedByParty { party: admitted.plan.party.clone() })).id();
+            self.ids.insert(task.id.clone(), entity); self.known.insert(task.id.clone()); self.task_entities.insert(task.id.clone(), entity);
+        }
+        Ok(id)
+    }
+    fn cancel_job(&mut self, id: &str) -> Result<()> {
+        let entity = self.job_entities.get(id).copied().ok_or("job is missing")?;
+        let mut job = self.ecs.get_mut::<crate::job::JobComponent>(entity).ok_or("job component missing")?;
+        job.disposition = crate::job::JobState::Cancelled;
+        for task_id in job.task_ids.clone() { if let Some(entity) = self.task_entities.get(&task_id).copied() { if let Some(mut task) = self.ecs.get_mut::<crate::job::TaskComponent>(entity) { task.disposition = crate::job::TaskState::Cancelled; } } }
         Ok(())
     }
 
@@ -4983,6 +5012,8 @@ impl Kernel {
 
     fn apply_action(&mut self, action: Action, delta: f64, scope: &ActionScope) -> Result<ActionEffect> {
         match action {
+            Action::CreateJob { id, plan } => self.create_job(id, plan).map(ActionEffect::Entity),
+            Action::CancelJob { id } => { self.cancel_job(&id)?; Ok(ActionEffect::None) }
             Action::EstablishParty { binding_id, expected_sequence, records } => self.establish_party(binding_id, expected_sequence, records).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
@@ -5179,6 +5210,8 @@ impl Kernel {
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("scoped action party is not a party".into()); }
         let mut targets = Vec::new();
         match action {
+            Action::CreateJob { plan, .. } => { if plan.party != *party { return Err("scoped action party mismatch".into()); } targets.push(plan.party.as_str()); }
+            Action::CancelJob { id } => { let entity = self.job_entities.get(id).ok_or("job is missing")?; let job = self.ecs.get::<crate::job::JobComponent>(*entity).ok_or("job component missing")?; if job.party != *party { return Err("scoped job outside party".into()); } }
             Action::EstablishParty { .. } => return Err("party scope cannot establish a party".into()),
             Action::BeginWorkAttempt { task, worker, party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }

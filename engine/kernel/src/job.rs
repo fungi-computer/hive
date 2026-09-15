@@ -93,3 +93,10 @@ mod tests {
     #[test] fn dependent_task_waits_until_exact_result_is_published() { let plan = JobPlan { definition: "make-logs".into(), definition_version: 1, party: "party".into(), steps: vec![StepSpec { key: "fell".into(), after: None, operation: resource() }, StepSpec { key: "chop".into(), after: Some("fell".into()), operation: JobOperation::ItemToItems { source: ResultBinding { step: "fell".into(), slot: "trunk".into() }, input_kind: "trunk".into(), input_quantity: 1, output_kind: "log".into(), output_quantity: 2, work_seconds: 2.0, result_slot: "logs".into() } }] }; let record = admit("job", plan).unwrap(); assert_eq!(record.tasks["fell"].state, TaskState::Ready); assert_eq!(record.tasks["chop"].state, TaskState::Waiting); assert!(record.results.is_empty()); }
     #[test] fn record_roundtrips_with_version_and_result_slot_identity() { let record = admit("job", JobPlan { definition: "d".into(), definition_version: 1, party: "p".into(), steps: vec![StepSpec { key: "fell".into(), after: None, operation: resource() }] }).unwrap(); let bytes = serde_json::to_string(&record).unwrap(); assert_eq!(serde_json::from_str::<JobRecord>(&bytes).unwrap(), record); }
 }
+use bevy_ecs::prelude::Component;
+#[derive(Component,Clone,Debug,PartialEq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub struct JobComponent{pub version:u8,pub definition:String,pub definition_version:u32,pub party:String,pub disposition:JobState,pub task_ids:Vec<String>}
+#[derive(Component,Clone,Debug,PartialEq,Serialize,Deserialize)]
+#[serde(rename_all="camelCase",deny_unknown_fields)]
+pub struct TaskComponent{pub version:u8,pub job:String,pub key:String,pub after:Option<String>,pub operation:JobOperation,pub disposition:TaskState}

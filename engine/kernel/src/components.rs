@@ -512,6 +512,8 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
+    CreateJob { id: String, plan: crate::job::JobPlan },
+    CancelJob { id: String },
     EstablishParty { #[serde(rename = "bindingId")] binding_id: String, #[serde(rename = "expectedSequence")] expected_sequence: u64, records: Vec<EntityRecord> },
     BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
     RetargetWorkAttempt { task: String, generation: u64, sequence: u32, destination: Point },
