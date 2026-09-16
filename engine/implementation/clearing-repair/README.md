@@ -1,5 +1,10 @@
 # Clearing repair implementation packet
 
+**September 16 source handoff:** [Cut-rendering handoff](14-cut-rendering-handoff-2026-09-16.md)
+records the exact integrated stack, focused proofs, rejected grass-ordering
+experiment, known visual limitation and remaining release gates. Read it after
+section 13 when resuming this renderer repair.
+
 **September 16 rendering correction:** [Cut-level rendering and Ingnomia study](13-cut-level-rendering.md)
 records selected-level cuts, visible lower terrain, whole supported actors,
 underground cross-sections, safe batching, and source-grounded lessons from
