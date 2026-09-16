@@ -51,8 +51,10 @@ Do not infer whole-game completion from the active native planner. At `fcb9e48b`
   validation and pickup/delivery/reconciliation lifecycle for construction and
   staged process inputs. Focused Kernel laws prove two concurrent carriers,
   capacity splitting, interruption with retained cargo, and mid-carry save/restore.
-  Supply worker discovery now uses the maintained party index; material-source
-  discovery still scans canonical IDs and remains the next index correction;
+  Supply worker discovery uses the maintained party index. Ordinary material
+  source discovery now walks the material owner's visible ground-container and
+  contents indexes instead of every canonical entity ID; stockpile rehaul keeps
+  its stricter explicit source-lot set;
 - construction and attended processes contribute typed labor requirements. One
   bounded tick-owned solver now considers ready labor and finite supply together,
   uses the maintained candidate indexes, validates exact routes lazily and admits
@@ -118,22 +120,18 @@ Do not infer whole-game completion from the active native planner. At `fcb9e48b`
   real TypeScript/WASM excavation laws and two reserved-boundary laws pass, and
   the matching optimized WASM build completes. Existing compiler
   warnings remain disclosed rather than treated as new failures; and
-- water, resource, stockpile hauling and manual
-  route reconciliation still use TypeScript providers listed in the deletion
-  checklist below. Material-source discovery also still scans canonical IDs.
+- water, resource and stockpile hauling now contribute to the shared native
+  planner. Manual routes use the same native WorkAttempt lifecycle through the
+  command surface; the TypeScript layer chooses admitted player intent but does
+  not discover automatic candidates or assign workers.
 
-The next accepted checkpoint must migrate process water into the same tick-owned
-review without activating another scheduler, followed by resources and stockpile
-hauling. The earlier
-available-wood construction stall is fixed and the real multi-building and
-three-level construction scenarios pass. The broader resource/brewing lifecycle
-now reaches process water demand, where the remaining TypeScript water planner can
-emit the same authored water-order identity twice before its delayed creation is
-visible. That parallel authored planner is the next cutover defect; do not preserve
-it with an identity workaround. Repository-wide engine
-types also retain the existing fixture/type backlog, and Fallow is unavailable
-on the current machine PATH. A compile pass or an isolated record test does not
-earn the next checkpoint.
+The former process-water identity race and parallel authored planner are removed;
+field water, finite resources and floor storage use the native work window and
+physical owners. The remaining sprint is consumer cleanup, honest performance
+measurement, creator-facing composition over these owners and hosted gameplay
+repair. Repository-wide engine types retain the existing fixture/type backlog,
+and Fallow is unavailable on the current machine PATH. A compile pass or an
+isolated record test does not earn the next checkpoint.
 
 ## 2. Ownership and files
 

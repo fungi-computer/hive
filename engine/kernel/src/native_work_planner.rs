@@ -1169,7 +1169,7 @@ impl Kernel {
             let requirement_start = slots.len();
             let source_ids = requirement.source_lots.as_ref()
                 .map(|sources| sources.iter().cloned().collect::<Vec<_>>())
-                .unwrap_or_else(|| self.ids.keys().cloned().collect::<Vec<_>>());
+                .unwrap_or_else(|| self.visible_ground_lot_ids());
             let sources = source_ids
                 .iter()
                 .filter_map(|lot_id| {
@@ -1238,6 +1238,21 @@ impl Kernel {
             }
         }
         Ok(slots)
+    }
+
+    /// Read ordinary supply sources through the physical ground-container
+    /// index. The material owner updates both this index and `contents` at the
+    /// same mutations that create, move, or retire lots, so routine planning
+    /// does not scan unrelated actors, structures, policies, or terrain.
+    fn visible_ground_lot_ids(&self) -> Vec<String> {
+        let mut lots = self.visible_source_containers.iter().flat_map(|container| {
+            self.contents.get(container).into_iter().flatten().filter_map(|entity| {
+                self.ecs.get::<ExternalId>(*entity).map(|id| id.0.clone())
+            })
+        }).collect::<Vec<_>>();
+        lots.sort();
+        lots.dedup();
+        lots
     }
 
     fn assign_supply_slots(
@@ -1750,6 +1765,20 @@ mod tests {
             );
         }
         kernel.save_records().unwrap();
+    }
+
+    #[test]
+    fn ordinary_supply_sources_use_the_ground_contents_index() {
+        let (mut kernel, _, _) = construction_world(1);
+        let carried = kernel.complete_material_output(super::super::material_output::MaterialOutputSpec {
+            container: "worker-1".into(),
+            kind: "stone-spoil".into(),
+            quantity: 1,
+            water_kg: None,
+        }).unwrap();
+
+        assert_eq!(kernel.visible_ground_lot_ids(), vec!["wood"]);
+        assert!(!kernel.visible_ground_lot_ids().contains(&carried));
     }
 
     #[test]
