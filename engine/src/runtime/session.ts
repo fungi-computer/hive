@@ -13,14 +13,12 @@ import { readKernelEntities } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
 import { query } from "../sdk/authoring";
 import { OwnedByParty, PartyMember } from "../sdk/party";
-import { ASSIGNMENT_MAX_EDGES } from "../sdk/assignment";
 import type {
   ActionRequest,
   ActionScope,
   AdvanceResult,
   ActionResult,
   ActionOutcome,
-  AssignmentCandidate,
   ComponentDefinition,
   ComponentId,
   GameCommandResult,
@@ -359,13 +357,6 @@ export class GameSession {
   query<T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] {
     this.ensureLive();
     return this.port.query(spec);
-  }
-  assign(
-    candidates: readonly AssignmentCandidate[],
-    maxEdges = ASSIGNMENT_MAX_EDGES,
-  ) {
-    this.ensureLive();
-    return this.port.assign(candidates, maxEdges);
   }
   private worldPoses(
     entities: readonly EntityId[],
@@ -861,7 +852,6 @@ export class GameSession {
         clock,
         random: this.random,
         impacts: [],
-        assign: (candidates, maxEdges) => this.assign(candidates, maxEdges),
         worldPoses: (entities) => this.worldPoses(entities, activeReads),
         physicalContacts: (cells) => this.port.physicalContacts(cells),
         transferContacts: (request) => this.port.transferContacts(request),

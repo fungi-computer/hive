@@ -366,13 +366,6 @@ export interface WorkAttemptKey { readonly task: EntityId; readonly generation: 
 export type WorkOutcome = { readonly kind: "completed" } | { readonly kind: "blocked"; readonly reason: WorkBlockReason } | { readonly kind: "interrupted"; readonly cause: WorkInterruptCause };
 export type WorkAttemptPhase = { readonly kind: "ready" } | { readonly kind: "executing"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef } | { readonly kind: "outcome"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef; readonly result: WorkOutcome } | { readonly kind: "settling"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly cause: WorkInterruptCause };
 export interface WorkAttempt { readonly key: WorkAttemptKey; readonly worker: EntityId; readonly party: EntityId; readonly phase: WorkAttemptPhase }
-export interface AssignmentCandidate {
-  readonly worker: EntityId;
-  readonly task: EntityId;
-  readonly cost: number;
-}
-export interface AssignmentPair extends AssignmentCandidate {}
-
 export interface SimulationClock {
   readonly now: number;
   readonly delta: number;
@@ -441,10 +434,6 @@ export interface ReadContext {
     columns: readonly [number, number][],
   ): readonly (readonly StructureSurface[])[];
   waterContacts(centers: readonly [number, number, number][]): readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
-  assign(
-    candidates: readonly AssignmentCandidate[],
-    maxEdges?: number,
-  ): readonly AssignmentPair[];
 }
 export type CommandScope =
   | { readonly kind: "host" }
@@ -760,10 +749,6 @@ export interface KernelPort {
   readonly restore: (snapshot: KernelSnapshot) => void;
   readonly renderFacts: (limit?: number) => readonly RenderFact[];
   readonly worldPoses: (entities: readonly EntityId[]) => readonly WorldPose[];
-  readonly assign: (
-    candidates: readonly AssignmentCandidate[],
-    maxEdges?: number,
-  ) => readonly AssignmentPair[];
 }
 export interface GamePack {
   readonly id: GameId;

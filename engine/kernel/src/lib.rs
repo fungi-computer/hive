@@ -44,37 +44,6 @@ struct DirectPredictionRequest {
 #[derive(Deserialize)] #[serde(deny_unknown_fields)] struct DirectBounds { min_x: f64, max_x: f64, min_z: f64, max_z: f64 }
 #[derive(Serialize)] struct DirectPredictionResponse { position: components::Position }
 
-// One resident-region planning pass: 64 workers against 256 pending jobs.
-const ASSIGNMENT_MAX_BYTES: usize = 8 * 1024 * 1024;
-const ASSIGNMENT_MAX_EDGES: usize = 64 * 256;
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AssignmentRequest {
-    candidates: Vec<AssignmentCandidateWire>,
-    max_edges: usize,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct AssignmentCandidateWire {
-    worker: String,
-    task: String,
-    cost: f64,
-}
-
-#[derive(Serialize)]
-struct AssignmentResponse {
-    assignments: Vec<AssignmentWire>,
-}
-
-#[derive(Serialize)]
-struct AssignmentWire {
-    worker: String,
-    task: String,
-    cost: f64,
-}
-
 #[wasm_bindgen]
 pub struct WasmKernel(Kernel);
 
@@ -176,9 +145,6 @@ fn valid_assignment_id(id: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || b"._:-".contains(&byte))
 }
 
-fn assignment_error(error: impl std::fmt::Display) -> JsValue {
-    js_error(format!("assignment rejected: {error}"))
-}
 #[wasm_bindgen]
 impl WasmKernel {
     #[wasm_bindgen(constructor)]
@@ -282,51 +248,6 @@ impl WasmKernel {
     }
     pub fn world_pose(&self, json: &str) -> Result<String, JsValue> {
         self.0.world_pose_json(json).map_err(js_error)
-    }
-    /// Run the native bounded joint assignment owner through a JSON wire
-    /// boundary. The JSON is deliberately bounded before deserialization so a
-    /// malformed host request cannot cause unbounded candidate allocation.
-    pub fn assign(&self, json: &str) -> Result<String, JsValue> {
-        if json.len() > ASSIGNMENT_MAX_BYTES {
-            return Err(assignment_error("request exceeds 8388608 bytes"));
-        }
-        let request: AssignmentRequest =
-            serde_json::from_str(json).map_err(|error| assignment_error(error))?;
-        if request.max_edges == 0 || request.max_edges > ASSIGNMENT_MAX_EDGES {
-            return Err(assignment_error("max_edges must be between 1 and 16384"));
-        }
-        if request.candidates.len() > ASSIGNMENT_MAX_EDGES {
-            return Err(assignment_error("candidate edge count exceeds 16384"));
-        }
-
-        let mut candidates = Vec::with_capacity(request.candidates.len());
-        for candidate in request.candidates {
-            if !valid_assignment_id(&candidate.worker) || !valid_assignment_id(&candidate.task) {
-                return Err(assignment_error("worker and task IDs must be stable bounded IDs"));
-            }
-            if !candidate.cost.is_finite() || candidate.cost < 0.0 {
-                return Err(assignment_error("cost must be finite and non-negative"));
-            }
-            candidates.push(assign::Candidate {
-                worker: candidate.worker,
-                task: candidate.task,
-                cost: candidate.cost,
-            });
-        }
-
-        let assignments = assign::optimize(&candidates, request.max_edges)
-            .map_err(|error| assignment_error(format!("{error:?}")))?;
-        let response = AssignmentResponse {
-            assignments: assignments
-                .into_iter()
-                .map(|assignment| AssignmentWire {
-                    worker: assignment.worker,
-                    task: assignment.task,
-                    cost: assignment.cost,
-                })
-                .collect(),
-        };
-        serde_json::to_string(&response).map_err(assignment_error)
     }
 }
 

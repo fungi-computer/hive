@@ -247,6 +247,5 @@ function fakePort(
     restore() {},
     renderFacts: () => [],
     worldPoses: () => [],
-    assign: () => [],
   };
 }
