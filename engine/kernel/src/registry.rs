@@ -41,7 +41,6 @@ impl Registry {
             ("hive.party", vec![("ownerPlayer", FieldType::String)]),
             ("hive.party-member", vec![("party", FieldType::Entity)]),
             ("hive.owned-by-party", vec![("party", FieldType::Entity)]),
-            ("hive.party-receipt", vec![("bindingId", FieldType::String), ("player", FieldType::String), ("party", FieldType::Entity), ("digest", FieldType::String)]),
             ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
             ("hive.work-policy", vec![("party", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
             ("hive.work-schedule", vec![("nextReviewTick", FieldType::Number), ("lastConsidered", FieldType::Number)]),
@@ -237,7 +236,6 @@ impl Registry {
                 "hive.party" => world.register_component::<Party>(),
                 "hive.party-member" => world.register_component::<PartyMember>(),
                 "hive.owned-by-party" => world.register_component::<OwnedByParty>(),
-                "hive.party-receipt" => world.register_component::<PartyReceipt>(),
                 "hive.work-participation" => world.register_component::<crate::work_planner::WorkParticipation>(),
                 "hive.work-policy" => world.register_component::<crate::work_planner::WorkPolicy>(),
                 "hive.work-schedule" => world.register_component::<crate::work_planner::WorkSchedule>(),
@@ -674,7 +672,6 @@ impl Registry {
             "hive.party" => { world.entity_mut(entity).insert(decode::<Party>(value)?); }
             "hive.party-member" => { world.entity_mut(entity).insert(decode::<PartyMember>(value)?); }
             "hive.owned-by-party" => { world.entity_mut(entity).insert(decode::<OwnedByParty>(value)?); }
-            "hive.party-receipt" => { world.entity_mut(entity).insert(decode::<PartyReceipt>(value)?); }
             "hive.work-participation" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkParticipation>(value)?); }
             "hive.work-policy" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkPolicy>(value)?); }
             "hive.work-schedule" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkSchedule>(value)?); }
@@ -696,7 +693,6 @@ impl Registry {
             "hive.party" => world.get::<Party>(entity).map(record),
             "hive.party-member" => world.get::<PartyMember>(entity).map(record),
             "hive.owned-by-party" => world.get::<OwnedByParty>(entity).map(record),
-            "hive.party-receipt" => world.get::<PartyReceipt>(entity).map(record),
             "hive.work-participation" => world.get::<crate::work_planner::WorkParticipation>(entity).map(record),
             "hive.work-policy" => world.get::<crate::work_planner::WorkPolicy>(entity).map(record),
             "hive.work-schedule" => world.get::<crate::work_planner::WorkSchedule>(entity).map(record),

@@ -10,7 +10,6 @@ test("Colony party plans are deterministic, finite and world-unique", () => {
     "hive.party",
     "hive.party-member",
     "hive.owned-by-party",
-    "hive.party-receipt",
   ])
     assert.equal(isReservedComponent(component), true);
   const first = createColonyPartyPlan(

@@ -25,7 +25,7 @@ import {
 import { FieldWaterWork, StagedProcess, requestProcess } from "../sdk/process-supply";
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
-import { OwnedByParty, Party, PartyMember, PartyReceipt } from "../sdk/party";
+import { OwnedByParty, Party, PartyMember } from "../sdk/party";
 import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyTree, ColonyTreePolicy } from "./colony-work";
@@ -284,7 +284,6 @@ const colonyComponents = [
   Party,
   PartyMember,
   OwnedByParty,
-  PartyReceipt,
   Position,
   Emitter,
   Body,

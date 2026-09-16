@@ -11,7 +11,6 @@ export const RESERVED_COMPONENTS = [
   "hive.party",
   "hive.party-member",
   "hive.owned-by-party",
-  "hive.party-receipt",
   "hive.stockpile-cell",
   "hive.storage-provider",
   "hive.position",

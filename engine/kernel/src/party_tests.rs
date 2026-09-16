@@ -48,8 +48,15 @@ fn party_join_identity_is_native_and_replay_stable() {
     let existing: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
     assert_eq!((existing["status"].as_str(), existing["sequence"].as_u64(), existing["player"].as_str(), existing["party"].as_str()), (Some("existing"), Some(1), Some("player:1"), Some("party:1")));
     assert_eq!(existing["people"], json!(["party:1:rowan", "party:1:sedge"]));
-    let reconnect: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
+    let mut saved: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
+    saved["scene"]["initial"] = json!([]);
+    let mut without_live_party = Kernel::new();
+    without_live_party.restore_json(&saved.to_string()).unwrap();
+    let reconnect: Value = serde_json::from_str(&without_live_party.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
     assert_eq!(reconnect["people"], existing["people"]);
+    let duplicate_binding = saved["party_bindings"][0].clone();
+    saved["party_bindings"].as_array_mut().unwrap().push(duplicate_binding);
+    assert!(Kernel::new().restore_json(&saved.to_string()).is_err());
     let next: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:b\"").unwrap()).unwrap();
     assert_eq!((next["status"].as_str(), next["sequence"].as_u64(), next["player"].as_str(), next["party"].as_str()), (Some("available"), Some(2), Some("player:2"), Some("party:2")));
     assert_eq!(next["people"], json!([]));
@@ -70,8 +77,7 @@ fn prepared_party_replay_and_mismatches_are_atomic() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":2,"game":"party","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
     assert!(accepted(&mut kernel, request("bind:1", plan())));
-    let party = kernel.entity("party:1").unwrap();
-    let receipt = kernel.ecs.get::<PartyReceipt>(party).unwrap();
+    let receipt = kernel.party_bindings.get("bind:1").unwrap();
     assert_eq!((receipt.binding_id.as_str(), receipt.player.as_str(), receipt.party.as_str()), ("bind:1", "player:1", "party:1"));
     assert_eq!(kernel.ecs.query::<&PartyMember>().iter(&kernel.ecs).count(), 2);
     for member in kernel.ecs.query::<&PartyMember>().iter(&kernel.ecs) { assert_eq!(member.party, "party:1"); }

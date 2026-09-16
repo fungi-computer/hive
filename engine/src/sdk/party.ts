@@ -19,22 +19,6 @@ export const OwnedByParty = component<{ party: EntityId }>(
   { version: 1, fields: { party: "entity" } },
 );
 
-/** Kernel-owned replay proof for one atomic party establishment. */
-export const PartyReceipt = component<{
-  bindingId: string;
-  player: string;
-  party: EntityId;
-  digest: string;
-}>("hive.party-receipt", {
-  version: 1,
-  fields: {
-    bindingId: "string",
-    player: "string",
-    party: "entity",
-    digest: "string",
-  },
-});
-
 export function establishParty(
   bindingId: string,
   expectedSequence: number,

@@ -162,6 +162,18 @@ returns the original join result plus the current live observation; it never
 respawns them or allocates another player. Creating replacements is a separate
 game operation. Save/reload tests must cover reconnect after party deletion.
 
+**Implementation checkpoint (2026-09-16):** the lifetime cutover above is now
+installed. Kernel snapshot v13 owns bounded `PartyBinding` records containing the
+stable binding, allocated sequence/player/party, original returned people and
+prepared-plan digest. `PartyReceipt` is removed from ECS, the authored registry
+and the TypeScript SDK. Reconnect reads the canonical host record, so removing
+the live party and people does not authorize another starter spawn. Restore
+rejects duplicate bindings and duplicate returned people; the native law removes
+all live starter records, reloads, and still returns the original identities.
+The existing party-specific starter plan and sequence remain transitional work;
+this checkpoint does not claim the general actor-instantiation owner, ownership
+relations, or access-rule cutovers described later in this packet.
+
 The first-join handler is a privileged, pack-registered initialization path.
 Players cannot submit arbitrary SpawnRequests or an `asHost` flag. Normal gameplay
 spawns (construction, reproduction, drops) need their own admitted operation and

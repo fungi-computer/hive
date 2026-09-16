@@ -26,12 +26,14 @@ pub struct PartyMember {
 pub struct OwnedByParty {
     pub party: String,
 }
-#[derive(Component, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PartyReceipt {
+pub struct PartyBinding {
     pub binding_id: String,
+    pub sequence: u64,
     pub player: String,
     pub party: String,
+    pub people: Vec<String>,
     pub digest: String,
 }
 #[derive(Component, Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -523,6 +525,7 @@ pub struct Snapshot {
     pub projectile_contacts: Vec<ProjectileContactsSnapshot>,
     pub next_work_generation: u64,
     pub next_party_sequence: u64,
+    pub party_bindings: Vec<PartyBinding>,
     pub work_attempts: Vec<crate::work_attempt::WorkAttempt>,
     pub planner: crate::work_planner::PlannerState,
     /// Canonical typed ECS records are kept in dedicated arrays because the
