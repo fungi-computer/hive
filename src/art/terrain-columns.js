@@ -194,23 +194,6 @@ export function terrainColumnsScene(
   return result;
 }
 
-/** Build one sortable presentation band while retaining neighboring columns
- * for correct cliff side faces. This is presentation-only; the full column
- * index remains the canonical geometry context. */
-export function terrainBandScene(
-  surfaces,
-  level,
-  { verticalMetres, soilMaterial = 1, columnIndex = terrainColumnMap(surfaces) } = {},
-) {
-  validateScale(verticalMetres);
-  validateSurfaces(surfaces);
-  if (!Number.isSafeInteger(level)) throw new Error("invalid terrain band level");
-  const selected = surfaces.filter(({ cell: [, y] }) => y === level);
-  const result = scene();
-  result.add(buildChunk(selected, verticalMetres, soilMaterial, columnIndex, selected.length ? terrainChunkKey(selected[0].cell[0], selected[0].cell[2]) : undefined));
-  return result;
-}
-
 /** Retain one complete lit scene while replacing only bounded 8x8 geometry patches. */
 export function createTerrainSceneCache({
   verticalMetres,

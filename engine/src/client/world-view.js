@@ -37,19 +37,12 @@ function filterTerrain(frame, view) {
   if (!frame) return frame;
   if (!view.cutaway) return frame;
   const surfaces = frame.surfaces.filter(({ cell }) => cell[1] <= view.level);
-  const blockedColumns = blockedTerrainColumns(frame, view.level);
   return {
     ...frame,
     surfaces,
     structureSurfaces: frame.structureSurfaces.filter(({ cell }) => cell[1] <= view.level),
-    water: frame.water.filter(({ at }) => at[1] <= view.level && !blockedColumns.has(`${at[0]},${at[2]}`)),
+    water: frame.water.filter(({ at }) => at[1] <= view.level),
   };
-}
-
-function blockedTerrainColumns(frame, level) {
-  return new Set(frame.surfaces
-    .filter(({ cell }) => cell[1] > level)
-    .map(({ cell }) => `${cell[0]},${cell[2]}`));
 }
 
 export function displayedTerrain(frame, view) { return filterTerrain(frame, view); }
@@ -57,7 +50,6 @@ export function displayedTerrain(frame, view) { return filterTerrain(frame, view
 export function createTerrainProjectionCache() {
   let key;
   let surfaces;
-  let blockedColumns;
   let structureSurfaces;
   let result;
   let lastFrame;
@@ -67,7 +59,6 @@ export function createTerrainProjectionCache() {
         key = undefined;
         surfaces = undefined;
         structureSurfaces = undefined;
-        blockedColumns = undefined;
         result = undefined;
         lastFrame = undefined;
         return undefined;
@@ -76,14 +67,13 @@ export function createTerrainProjectionCache() {
       if (nextKey === key && result && frame === lastFrame) return result;
       if (nextKey === key && result && view.cutaway) {
         lastFrame = frame;
-        result = { ...frame, surfaces, structureSurfaces, water: frame.water.filter(({ at }) => at[1] <= view.level && !blockedColumns.has(`${at[0]},${at[2]}`)) };
+        result = { ...frame, surfaces, structureSurfaces, water: frame.water.filter(({ at }) => at[1] <= view.level) };
         return result;
       }
       key = nextKey;
       if (!view.cutaway) {
         surfaces = frame.surfaces;
         structureSurfaces = frame.structureSurfaces;
-        blockedColumns = undefined;
         lastFrame = frame;
         result = frame;
         return result;
@@ -91,7 +81,6 @@ export function createTerrainProjectionCache() {
       const filtered = filterTerrain(frame, view);
       surfaces = filtered.surfaces;
       structureSurfaces = filtered.structureSurfaces;
-      blockedColumns = blockedTerrainColumns(frame, view.level);
       lastFrame = frame;
       result = filtered;
       return result;

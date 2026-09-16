@@ -1,4 +1,4 @@
-import { createTerrainLayer } from "./terrain-layer.js";
+import { createCutTerrainLayer } from "./cut-terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
 import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint, surfaceSubjectFromOrdered } from "./isometric-sorter.js";
@@ -55,6 +55,7 @@ import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
 import { canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
 import { edgeStructureGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
 import { createActionBarState } from "./action-bar-state.js";
+import { createOrderingProjection } from "./ordering-projection.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
@@ -274,8 +275,9 @@ export function createHiveClient({
   let frameEpoch;
   let awaitingEpochTransition = false;
   let groundSprite = null;
-  const terrainLayer = createTerrainLayer();
-  const spriteSorter = createIsometricSorter({ camera: { x: 1, y: 0, z: 1 } });
+  const orderingProjection = createOrderingProjection();
+  const terrainLayer = createCutTerrainLayer({ runtime, projection: orderingProjection, onCoverage: () => draw() });
+  const spriteSorter = createIsometricSorter({ projection: orderingProjection });
   let orderedSprites = [];
   let terrainFrame;
   let markSurfaceSource;
@@ -808,10 +810,7 @@ export function createHiveClient({
   };
   function screenPoint(subject) {
     const projected = project(subject.x, subject.y, subject.z);
-    return {
-      x: projected.x * camera.zoom + camera.x,
-      y: projected.y * camera.zoom + camera.y,
-    };
+    return projected;
   }
   function draw() {
     if (!app.stage) return;
@@ -877,7 +876,7 @@ export function createHiveClient({
     );
     groundSprite.scale.set(camera.zoom);
     groundSprite.visible = !terrainFrame;
-    terrainLayer.position(camera);
+    terrainLayer.position(camera, state.view, app.screen);
     terrainMarksGraphic.clear();
     const displayedTerrain = displayedTerrainFrame();
     // Emission facts remain native state and are shown in the station's
@@ -993,8 +992,8 @@ export function createHiveClient({
         const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);
         const base = project(subject.x, subject.y, subject.z);
         placement = { offset: resolved.offset, screenOffset: [
-          (shifted.x - base.x) * camera.zoom,
-          (shifted.y - base.y) * camera.zoom,
+          shifted.x - base.x,
+          shifted.y - base.y,
         ] };
       }
       // Every static visual uses the same owner lifecycle; a one-part visual
@@ -1012,16 +1011,16 @@ export function createHiveClient({
           parts: multipart.map((part) => ({
             ...part,
             screenBounds: {
-              left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * part.texture.width * camera.zoom,
-              right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * part.texture.width * camera.zoom,
-              top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * part.texture.height * camera.zoom,
-              bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * part.texture.height * camera.zoom,
+              left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * part.texture.width,
+              right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * part.texture.width,
+              top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * part.texture.height,
+              bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * part.texture.height,
             },
             storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
           })),
           anchor,
           screen: { x: subject.screen.x + (placement?.screenOffset?.[0] ?? 0), y: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) },
-          scale: camera.zoom,
+          scale: 1,
           transform: (point) => transformBakedPartPoint(point, physicalFacing, subject, resolvedPlacement?.offset),
           pickable: subject.pickable !== false,
           hitAreaFor: (partTexture) => visibleHitAreaFor(partTexture, anchor),
@@ -1033,33 +1032,40 @@ export function createHiveClient({
           partRole: record.role,
           role: "structure",
           moving: false,
-          contains: (point) => record.hitArea?.contains((point.x - record.display.x) / camera.zoom, (point.y - record.display.y) / camera.zoom) === true,
+          contains: (point) => record.hitArea?.contains(point.x - record.display.x, point.y - record.display.y) === true,
         });
       } else if (multipart) entry.multipart?.sync({ entityId: subject.id, parts: [] });
       if (texture && canSort && !multipart) {
+        const sortFootprint = subjectSortFootprint(subject, resolvedPlacement);
+        const footprintXs = new Set(sortFootprint.map(point => point.x));
+        const footprintZs = new Set(sortFootprint.map(point => point.z));
+        const longFootprint = resolvedPlacement?.kind === "stair" ||
+          (resolvedPlacement?.kind === "footprint" && sortFootprint.length > 1 &&
+            (footprintXs.size === 1 || footprintZs.size === 1));
         entry.sprite.anchor.set(anchor.x, anchor.y);
-        entry.sprite.scale.set(camera.zoom);
+        entry.sprite.scale.set(1);
         entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);
         sortableSprites.push({
           id: subject.id,
           role: isStatic ? (binding.worldRole === "floor" ? "floor" : "structure") : "actor",
           part: "body",
           relationPolicy: isStatic ? "structure" : "actor",
+          orderingKind: longFootprint ? "line" : "compact",
           pickable: subject.pickable !== false,
           display: entry.container,
           moving: !isStatic,
-          footprint: subjectSortFootprint(subject, resolvedPlacement),
+          footprint: sortFootprint,
           storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
           screenBounds: {
-            left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * texture.width * camera.zoom,
-            right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * texture.width * camera.zoom,
-            top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * texture.height * camera.zoom,
-            bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * texture.height * camera.zoom,
+            left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * texture.width,
+            right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * texture.width,
+            top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * texture.height,
+            bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * texture.height,
           },
           hitArea: subject.hitArea,
           contains: (point) => subject.hitArea?.contains(
-            (point.x - entry.container.x - entry.sprite.x) / camera.zoom,
-            (point.y - entry.container.y - entry.sprite.y) / camera.zoom,
+            point.x - entry.container.x - entry.sprite.x,
+            point.y - entry.container.y - entry.sprite.y,
           ) === true,
           visible: true,
         });
@@ -1079,7 +1085,8 @@ export function createHiveClient({
       entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
-    orderedSprites = spriteSorter.apply([...terrainLayer.sortableItems, ...sortableSprites]);
+    orderedSprites = spriteSorter.order([...terrainLayer.sortableItems, ...sortableSprites]);
+    terrainLayer.applyOrder(orderedSprites);
     // The entity adornment is one shared overlay owner. It follows the
     // foremost sorted part without becoming another physical/sort record.
     for (const entry of actorCache.values()) {
@@ -1226,7 +1233,7 @@ export function createHiveClient({
         }
       }
       const structurePoint = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const spriteSurface = displayed ? structureSurfaceFromOrderedSprites(orderedSprites, state.subjects, at, structurePoint, displayed, project) : null;
+      const spriteSurface = displayed ? structureSurfaceFromOrderedSprites(orderedSprites, state.subjects, structurePoint, structurePoint, displayed, project) : null;
       const hit = spriteSurface
         ? { kind: "structure-top", surface: spriteSurface }
         : displayed && displayedTerrainHit(localPoint.x, localPoint.y, displayed);
@@ -1389,7 +1396,8 @@ export function createHiveClient({
       box.left = box.right = end.x;
       box.top = box.bottom = end.y;
     }
-    const candidates = click ? orderedSprites.filter((candidate) => candidate.contains?.(end) === true) : [];
+    const localEnd = { x: (end.x - camera.x) / camera.zoom, y: (end.y - camera.y) / camera.zoom };
+    const candidates = click ? orderedSprites.filter((candidate) => candidate.contains?.(localEnd) === true) : [];
     const picked = pickFromOrdered(orderedSprites, candidates);
     const directHit = picked?.target ? [picked.target] : [];
     let hit = click
@@ -1400,7 +1408,10 @@ export function createHiveClient({
             : [...state.selectedIds, directHit[0]]
           : directHit
         : drag.additive ? state.selectedIds : []
-      : selectionFromSubjects(state.subjects, box, drag.additive, state.selectedIds);
+      : selectionFromSubjects(state.subjects, {
+        left: (box.left - camera.x) / camera.zoom, right: (box.right - camera.x) / camera.zoom,
+        top: (box.top - camera.y) / camera.zoom, bottom: (box.bottom - camera.y) / camera.zoom,
+      }, drag.additive, state.selectedIds);
     if (click && !picked) {
       const local = {
         x: (end.x - camera.x) / camera.zoom,

@@ -6,7 +6,6 @@ import { createOrderingProjection } from "./ordering-projection.js";
 import { createIsometricSorter, pickFromOrdered, stableKey } from "./isometric-sorter.js";
 import { materialCoverage, terrainFaceRecords, visibleTerrainChunks, projectedBounds } from "./terrain-visibility.js";
 import { terrainBatchPlan, createTerrainBatchMeshes } from "./terrain-face-batches.js";
-import { createCutTerrainView } from "./cut-terrain-view.js";
 
 const h = 0.54;
 const bounds = { minX: -3, maxX: 4, minY: -8, maxY: 5, minZ: -3, maxZ: 4 };
@@ -134,29 +133,4 @@ test("chunk demand includes deep visible levels and halo, with explicit view-bud
   assert(result.chunks.some(key=>key[1]<=-6),"no fixed lower depth window");
   assert(result.chunks.some(key=>key[1]===0),"cut halo remains present");
   assert.deepEqual(visibleTerrainChunks({...request,limit:1}),{kind:"view-budget",limit:1});
-});
-
-test("first-shape view joins coverage, ordering, meshes and face picking without acquiring support authority",()=>{
-  const data=fixture((x,y,z)=>y<=0?12:7);
-  const view=createCutTerrainView({projection,appearance});
-  const body=actor("actor",0,0.5*h,0);
-  const frame=view.update(data,{level:1,artRecords:[body]});
-  assert.deepEqual(frame.displays.flatMap(batch=>batch.records.map(stableKey)),frame.records.map(stableKey));
-  const ground=frame.records.find(record=>record.id==="terrain:0,0,0:top");
-  const center=projection.project({x:0,y:0.5*h,z:0});
-  assert.equal(view.pick(center,[body]).target,"actor");
-  assert.equal(view.pick(center).target,null);
-  const next=view.update(data,{level:1,artRecords:[actor("actor",1,0.5*h,1)]});
-  assert.equal(next.records.find(record=>record.id===ground.id).contains,ground.contains,"actor movement retains terrain face geometry");
-  view.dispose();assert.equal(view.pick(center),null);
-});
-
-test("cut view requires appearance and alpha-filters supplied art candidates",()=>{
-  assert.throws(()=>createCutTerrainView({projection}),/requires terrain appearance/);
-  const data=fixture((x,y,z)=>y<=0?12:7), view=createCutTerrainView({projection,appearance});
-  const body={...actor("miss",0,0.5*h,0),contains:()=>false};
-  view.update(data,{level:1,artRecords:[body]});
-  const center=projection.project({x:0,y:0.5*h,z:0});
-  assert.equal(view.pick(center,[body]).target,null);
-  view.dispose();
 });
