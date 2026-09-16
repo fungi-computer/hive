@@ -119,6 +119,7 @@ const backOffRejectedMove = action("colony.cat.back-off", {
 const chooseWander = action("colony.cat.choose-wander", {
   reads: [Cat, Position, Destination],
   writes: [Cat],
+  facts: ["terrainSurfaces"],
   exclusive: "movement",
   run(subject, context) {
     const cat = subject.get(Cat);

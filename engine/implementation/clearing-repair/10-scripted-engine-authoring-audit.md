@@ -52,15 +52,19 @@ a second behavior scheduler.
 
 The Colony cat is the first production consumer. Its native movement, retry and
 saved `Cat` state are unchanged, while the bespoke system loop has been removed.
+Authored predicates/actions now declare any native fact doors they read, and the
+behavior boundary rejects undeclared use. Cat wandering explicitly declares its
+`terrainSurfaces` dependency; component reads/writes remain separately declared
+and checked by the existing system boundary.
 `actor().with().behaves()` also exists as immutable preparation-time composition:
 it validates duplicate/missing capabilities and behavior attachments, but does
 not spawn entities or enter `GameSession`. Spawning remains the admitted world
 operation, and sessions receive only compiled systems.
 
-This checkpoint does **not** yet claim declared native-fact enforcement or general
-attachment membership for actors that share the same capability set. Those belong
-to the next real cannon/brewing consumers; do not disguise them with a runtime
-actor registry or make sessions validate authoring metadata.
+This checkpoint does **not** yet claim general attachment membership for actors
+that share the same capability set. That needs another real consumer; do not
+disguise it with a runtime actor registry or make sessions validate authoring
+metadata.
 
 Survival is now a second production consumer with a different shape. Hunger
 reads committed consume outcomes and related material lots; fatigue reads the

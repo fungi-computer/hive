@@ -98,3 +98,27 @@ test("actor composition validates capabilities and behavior attachments", () => 
     /already has test.subject/,
   );
 });
+
+test("behavior rejects native fact reads that were not declared", () => {
+  const undeclared = action("test.undeclared-fact", {
+    run(_subject, world) { world.terrainSurfaces([[0, 0]]); },
+  });
+  const invalid = behavior("test.invalid-fact", (scene) => {
+    scene.find(Subject).do(undeclared);
+  });
+  const fixture = context();
+  fixture.value.terrainSurfaces = () => [];
+  assert.throws(
+    () => invalid.run(fixture.value),
+    /test.undeclared-fact used undeclared native fact terrainSurfaces/,
+  );
+
+  const declared = action("test.declared-fact", {
+    facts: ["terrainSurfaces"],
+    run(_subject, world) { world.terrainSurfaces([[0, 0]]); },
+  });
+  const valid = behavior("test.valid-fact", (scene) => {
+    scene.find(Subject).do(declared);
+  });
+  assert.doesNotThrow(() => valid.run(fixture.value));
+});

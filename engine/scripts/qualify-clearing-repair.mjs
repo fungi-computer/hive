@@ -23,6 +23,7 @@ const groups = Object.freeze({
     "engine/src/games/colony-trees.test.ts",
   ]),
   work: Object.freeze([
+    "engine/src/sdk/behavior.test.ts",
     "engine/src/sdk/work-attempt.test.ts",
     "engine/src/games/colony-brewing.test.ts",
     "engine/src/games/colony-dig-command.test.ts",

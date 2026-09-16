@@ -20,10 +20,41 @@ export interface ActorDefinition {
   readonly behaviors: readonly SystemDefinition[];
 }
 
+export type NativeFact =
+  | "workMaterialFacts"
+  | "workAttempts"
+  | "workAttemptForWorker"
+  | "processRequirements"
+  | "floorOperations"
+  | "worldPoses"
+  | "routeCosts"
+  | "routeToAny"
+  | "transferContacts"
+  | "physicalContacts"
+  | "environmentFacts"
+  | "atmosphereSamples"
+  | "constructionReadiness"
+  | "constructionAccess"
+  | "deconstructionAccess"
+  | "terrainMaterials"
+  | "terrainSurfaces"
+  | "structureSurfaces"
+  | "waterContacts";
+
+const nativeFacts = new Set<NativeFact>([
+  "workMaterialFacts", "workAttempts", "workAttemptForWorker",
+  "processRequirements", "floorOperations", "worldPoses", "routeCosts",
+  "routeToAny", "transferContacts", "physicalContacts", "environmentFacts",
+  "atmosphereSamples", "constructionReadiness", "constructionAccess",
+  "deconstructionAccess", "terrainMaterials", "terrainSurfaces",
+  "structureSurfaces", "waterContacts",
+]);
+
 /** A named, deterministic question used by an authored behavior branch. */
 export interface PredicateDefinition {
   readonly id: ComponentId;
   readonly reads: readonly ComponentDefinition<any>[];
+  readonly facts: readonly NativeFact[];
   readonly test: (subject: QueryRow, context: ReadContext) => boolean;
 }
 
@@ -32,6 +63,7 @@ export interface BehaviorActionDefinition {
   readonly id: ComponentId;
   readonly reads: readonly ComponentDefinition<any>[];
   readonly writes: readonly ComponentDefinition<any>[];
+  readonly facts: readonly NativeFact[];
   readonly exclusive?: string;
   readonly run: (subject: QueryRow, context: WriteContext) => void;
 }
@@ -40,12 +72,14 @@ export function predicate(
   id: ComponentId,
   options: {
     readonly reads?: readonly ComponentDefinition<any>[];
+    readonly facts?: readonly NativeFact[];
     readonly test: PredicateDefinition["test"];
   },
 ): PredicateDefinition {
   return Object.freeze({
     id,
     reads: Object.freeze([...(options.reads ?? [])]),
+    facts: Object.freeze([...(options.facts ?? [])]),
     test: options.test,
   });
 }
@@ -55,6 +89,7 @@ export function action(
   options: {
     readonly reads?: readonly ComponentDefinition<any>[];
     readonly writes?: readonly ComponentDefinition<any>[];
+    readonly facts?: readonly NativeFact[];
     readonly exclusive?: string;
     readonly run: BehaviorActionDefinition["run"];
   },
@@ -63,6 +98,7 @@ export function action(
     id,
     reads: Object.freeze([...(options.reads ?? [])]),
     writes: Object.freeze([...(options.writes ?? [])]),
+    facts: Object.freeze([...(options.facts ?? [])]),
     ...(options.exclusive === undefined ? {} : { exclusive: options.exclusive }),
     run: options.run,
   });
@@ -163,11 +199,38 @@ export function behavior(
           return result;
         },
       };
+      const authoredContexts = new Map<string, WriteContext>();
+      const authoredContext = (
+        owner: { readonly id: ComponentId; readonly facts: readonly NativeFact[] },
+      ) => {
+        let prepared = authoredContexts.get(owner.id);
+        if (prepared) return prepared;
+        const facts = new Set(owner.facts);
+        prepared = new Proxy(phaseContext, {
+          get(target, property, receiver) {
+            if (
+              typeof property === "string" &&
+              nativeFacts.has(property as NativeFact) &&
+              !facts.has(property as NativeFact)
+            )
+              throw new Error(
+                `${owner.id} used undeclared native fact ${property}`,
+              );
+            return Reflect.get(target, property, receiver);
+          },
+        });
+        authoredContexts.set(owner.id, prepared);
+        return prepared;
+      };
       const exclusive = new Set<string>();
       for (const branch of branches) {
         const subjects = phaseContext.query(query(...branch.subjects));
         for (const subject of subjects)
-          if (branch.predicates.every((item) => item.test(subject, phaseContext))) {
+          if (
+            branch.predicates.every((item) =>
+              item.test(subject, authoredContext(item)),
+            )
+          ) {
             if (branch.action.exclusive) {
               const conflict = `${subject.id}|${branch.action.exclusive}`;
               if (exclusive.has(conflict))
@@ -176,7 +239,7 @@ export function behavior(
                 );
               exclusive.add(conflict);
             }
-            branch.action.run(subject, phaseContext);
+            branch.action.run(subject, authoredContext(branch.action));
           }
       }
     },
