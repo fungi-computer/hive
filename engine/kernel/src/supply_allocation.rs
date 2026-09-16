@@ -115,7 +115,7 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
                         && kernel.ecs().get::<crate::components::Body>(worker).is_some_and(|body| body.speed.is_finite() && body.speed > 0.0)
                         && kernel.ecs().get::<crate::work_planner::WorkParticipation>(worker).is_some()
                         && lot.quantity == allocation.quantity
-                        && kernel.work_attempt(id).is_none_or(|attempt| attempt.party == allocation.party && Some(attempt.worker.as_str()) == carrier_worker.as_deref())
+                        && kernel.work_attempt(id).is_none_or(|attempt| attempt.execution.pool == allocation.party && Some(attempt.worker.as_str()) == carrier_worker.as_deref())
                 });
                 let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| {
                     let public_ground = kernel.ecs().get::<GroundStock>(container).is_some() && kernel.ecs().get::<OwnedByParty>(container).is_none();

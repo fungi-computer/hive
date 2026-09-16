@@ -6,7 +6,7 @@ import { entity } from "../sdk/authoring";
 import { cancelWork, ExcavationOrder, ExcavationWork, LotWater, encodeDefinition } from "../sdk/common";
 
 test("excavation uses the shared WorkAttempt boundary", () => {
-  const request = { kind: "begin-work-attempt" as const, task: entity("dig.task"), worker: entity("worker.one"), party: entity("party.one"), operation: { kind: "route" as const, destination: { x: -4, y: -12, z: 8, frame: null } } };
+  const request = { kind: "begin-work-attempt" as const, task: entity("dig.task"), worker: entity("worker.one"), operation: { kind: "route" as const, destination: { x: -4, y: -12, z: 8, frame: null } } };
   assert.deepEqual(checkedAction(request), request);
   assert.deepEqual(checkedAction(cancelWork(entity("worker.one"))), { kind: "cancel-work", entity: "worker.one" });
 });

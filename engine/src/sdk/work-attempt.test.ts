@@ -7,9 +7,9 @@ import type { WorkAttempt, WriteContext } from "../contracts";
 
 const task = entity("attempt.task");
 const worker = entity("attempt.worker");
-const party = entity("attempt.party");
+const party = entity("attempt.execution.pool");
 const attempt = { task, generation: 3 } as const;
-const outcome: WorkAttempt = { key: attempt, worker, party, phase: { kind: "outcome", operation: { attempt, sequence: 7 }, activity: { kind: "route", destination: { x: 1, y: 0, z: 0, frame: null } }, result: { kind: "completed" } } };
+const outcome: WorkAttempt = { key: attempt, worker, execution: { pool: party, initiatingPlayer: null, policyId: "test" }, phase: { kind: "outcome", operation: { attempt, sequence: 7 }, activity: { kind: "route", destination: { x: 1, y: 0, z: 0, frame: null } }, result: { kind: "completed" } } };
 
 function fake(rows: readonly WorkAttempt[] = []): Pick<WriteContext, "action" | "workAttempts"> & { actions: unknown[] } {
   const actions: unknown[] = [];
@@ -18,10 +18,10 @@ function fake(rows: readonly WorkAttempt[] = []): Pick<WriteContext, "action" | 
 
 test("attempt helpers preserve exact identity and sequence", () => {
   const context = fake();
-  beginRouteWorkAttempt(context, task, worker, party, { x: 1, y: 0, z: 0, frame: null });
+  beginRouteWorkAttempt(context, task, worker, { x: 1, y: 0, z: 0, frame: null });
   interruptWorkAttempt(context, attempt, 2, "accessLost");
   assert.deepEqual(context.actions, [
-    { kind: "begin-work-attempt", task, worker, party, operation: { kind: "route", destination: { x: 1, y: 0, z: 0, frame: null } } },
+    { kind: "begin-work-attempt", task, worker, operation: { kind: "route", destination: { x: 1, y: 0, z: 0, frame: null } } },
     { kind: "interrupt-work-attempt", task, generation: 3, sequence: 2, cause: "accessLost" },
   ]);
 });
@@ -33,7 +33,7 @@ test("acknowledgement requires the exact terminal projection", () => {
   assert.deepEqual(context.actions, [{ kind: "acknowledge-work-attempt", task, generation: 3, sequence: 7 }]);
   assert.throws(() => acknowledgeWorkAttempt(fake([outcome]), attempt, 6), /stale/);
   assert.throws(() => interruptWorkAttempt(fake(), attempt, 0, "cancelled"), /positive integer/);
-  assert.throws(() => beginRouteWorkAttempt(fake(), task, worker, party, { x: Number.NaN, y: 0, z: 0, frame: null }), /Invalid|finite/);
+  assert.throws(() => beginRouteWorkAttempt(fake(), task, worker, { x: Number.NaN, y: 0, z: 0, frame: null }), /Invalid|finite/);
 });
 
 test("retarget emits one native exact-key operation", () => {

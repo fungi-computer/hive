@@ -112,7 +112,7 @@ test("Colony cancelDig submits native cancellation for the exact active worker",
     cellX: 0, cellY: 12, cellZ: 0, expected: 1,
     status: "queued", reason: "",
   });
-  const attempt: WorkAttempt = { key: { task: order.id, generation: 1 }, worker, party: entity("host"), phase: { kind: "executing", operation: { attempt: { task: order.id, generation: 1 }, sequence: 1 }, activity: { kind: "excavation", cell: [0, 12, 0], expectedMaterial: 1, replacementMaterial: 0 } } };
+  const attempt: WorkAttempt = { key: { task: order.id, generation: 1 }, worker, execution: { pool: entity("host"), initiatingPlayer: null, policyId: "excavation" }, phase: { kind: "executing", operation: { attempt: { task: order.id, generation: 1 }, sequence: 1 }, activity: { kind: "excavation", cell: [0, 12, 0], expectedMaterial: 1, replacementMaterial: 0 } } };
   const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], attempts: [attempt] }), { entities: [worker] });
   assert.deepEqual(result, { actions: [{ kind: "cancel-excavation", party: entity("host"), area: null, workers: [worker] }], writes: [] });
   assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order] }), { area: { start: [0, 12, 0], end: [0, 12, 0] } }), { actions: [{ kind: "cancel-excavation", party: entity("host"), area: { start: [0, 12, 0], end: [0, 12, 0] }, workers: [] }], writes: [] });

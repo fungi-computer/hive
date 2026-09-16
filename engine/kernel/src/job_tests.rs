@@ -71,7 +71,7 @@ fn cancellation_releases_attempt_and_preserves_completed_matter() {
     kernel.create_job("job-2".into(), plan(), &scope).unwrap();
     add_lot(&mut kernel, "bar-lot", "bar");
     kernel.complete_job_task("job-2:task:prepare", vec![TaskResultBinding { slot: "bar".into(), entity: "bar-lot".into() }]).unwrap();
-    kernel.begin_work_attempt("job-2:task:refine".into(), "worker".into(), "party".into(), crate::work_attempt::ActivityRef::Route { destination: Point { x: 1.0, y: 0.0, z: 0.0, frame: None } }).unwrap();
+    kernel.begin_work_attempt("job-2:task:refine".into(), "worker".into(), crate::work_attempt::ActivityRef::Route { destination: Point { x: 1.0, y: 0.0, z: 0.0, frame: None } }, &ActionScope::Host).unwrap();
     let job_entity = kernel.entity("job-2").unwrap();
     kernel.cancel_job("job-2").unwrap();
     let job = kernel.ecs.get::<crate::job::Job>(job_entity).unwrap();

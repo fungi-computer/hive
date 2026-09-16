@@ -159,8 +159,8 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.bindingId) && typeof action.expectedSequence === "number" && Number.isSafeInteger(action.expectedSequence) && action.expectedSequence > 0 && actorInstantiationPlan(action.plan);
       break;
     case "begin-work-attempt":
-      keys = ["kind", "task", "worker", "party", "operation"];
-      valid = id(action.task) && id(action.worker) && id(action.party) && activity(action.operation) && (action.operation as Record<string, unknown>).kind === "route";
+      keys = ["kind", "task", "worker", "operation"];
+      valid = id(action.task) && id(action.worker) && activity(action.operation) && (action.operation as Record<string, unknown>).kind === "route";
       break;
     case "retarget-work-attempt": {
       keys = ["kind", "task", "generation", "sequence", "destination"];

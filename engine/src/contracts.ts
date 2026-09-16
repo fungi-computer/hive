@@ -213,7 +213,7 @@ export type ConstructionTarget =
   | { readonly kind: "edge"; readonly edge: { readonly cell: Vec3; readonly axis: "x" | "z" } };
 export type ActionRequest =
   | { readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: ActorInstantiationPlan }
-  | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
+  | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly operation: WorkActivityRef }
   | { readonly kind: "retarget-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly destination: MoveDestination }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
   | { readonly kind: "acknowledge-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number }
@@ -375,7 +375,8 @@ export type WorkBlockReason = "accessLost" | "missingInputs" | "capacityUnavaila
 export interface WorkAttemptKey { readonly task: EntityId; readonly generation: number }
 export type WorkOutcome = { readonly kind: "completed" } | { readonly kind: "blocked"; readonly reason: WorkBlockReason } | { readonly kind: "interrupted"; readonly cause: WorkInterruptCause };
 export type WorkAttemptPhase = { readonly kind: "ready" } | { readonly kind: "executing"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef } | { readonly kind: "outcome"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly activity: WorkActivityRef; readonly result: WorkOutcome } | { readonly kind: "settling"; readonly operation: { readonly attempt: WorkAttemptKey; readonly sequence: number }; readonly cause: WorkInterruptCause };
-export interface WorkAttempt { readonly key: WorkAttemptKey; readonly worker: EntityId; readonly party: EntityId; readonly phase: WorkAttemptPhase }
+export interface WorkExecution { readonly pool: EntityId; readonly initiatingPlayer: string | null; readonly policyId: string }
+export interface WorkAttempt { readonly key: WorkAttemptKey; readonly worker: EntityId; readonly execution: WorkExecution; readonly phase: WorkAttemptPhase }
 export interface SimulationClock {
   readonly now: number;
   readonly delta: number;

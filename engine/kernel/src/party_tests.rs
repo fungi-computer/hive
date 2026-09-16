@@ -135,13 +135,13 @@ fn party_scope_rejects_foreign_worker_and_work_attempt_party_drift() {
         {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
         {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
         {"id":"worker","components":{"hive.party-member":{"party":"party:1"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
-        {"id":"task","components":{"hive.owned-by-party":{"party":"party:1"}}}
+        {"id":"task","components":{"hive.owned-by-party":{"party":"party:1"},"hive.work-execution":{"pool":"party:1","initiatingPlayer":"player:1","policyId":"test"}}}
     ]}).to_string()).unwrap();
     let foreign_move = party_batch("party:2", json!({"kind":"move","entity":"worker","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}));
     assert!(!accepted(&mut kernel, foreign_move));
-    let drift = party_batch("party:2", json!({"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party:1","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}));
+    let drift = party_batch("party:2", json!({"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}));
     assert!(kernel.advance_json(&drift.to_string()).is_err());
-    let valid = party_batch("party:1", json!({"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party:1","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}));
+    let valid = party_batch("party:1", json!({"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}));
     assert!(accepted(&mut kernel, valid));
 }
 

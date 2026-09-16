@@ -92,7 +92,7 @@ const placementDecisionResponseSchema = z.object({
 const workAttemptWireSchema = z.object({
   key: z.object({ task: entityIdWireSchema, generation: z.number().int().positive() }),
   worker: entityIdWireSchema,
-  party: entityIdWireSchema,
+  execution: z.object({ pool: entityIdWireSchema, initiatingPlayer: z.string().min(1).nullable(), policyId: z.string().min(1) }).strict(),
   phase: z.object({ kind: z.enum(["ready", "executing", "outcome", "settling"]) }).passthrough(),
 }).passthrough();
 const partyJoinIdentitySchema = z.object({
@@ -714,12 +714,11 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       if (taskIds.length === 0 || taskIds.length > 128) throw new Error("work attempt query must contain between 1 and 128 tasks");
       const result = JSON.parse(binding.work_attempts(JSON.stringify(taskIds))) as unknown;
       if (!Array.isArray(result) || result.length > taskIds.length) throw new Error("invalid work attempt projection");
-      for (const row of result) {
-        if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("invalid work attempt row");
-        const value = row as Record<string, unknown>, key = value.key as Record<string, unknown> | null;
-        if (!key || typeof key.task !== "string" || !taskIds.includes(key.task as EntityId) || !Number.isSafeInteger(key.generation) || (key.generation as number) <= 0 || typeof value.worker !== "string" || typeof value.party !== "string" || !value.phase || typeof value.phase !== "object") throw new Error("invalid work attempt row");
-      }
-      return result as WorkAttempt[];
+      return result.map(row => {
+        const parsed = workAttemptWireSchema.parse(row) as WorkAttempt;
+        if (!taskIds.includes(parsed.key.task)) throw new Error("invalid work attempt row");
+        return parsed;
+      });
     },
     workAttemptForWorker(worker) {
       const result = JSON.parse(binding.work_attempt_for_worker(JSON.stringify(worker))) as unknown;

@@ -219,7 +219,7 @@ mod work_attempt_laws {
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[
             {"id":"game.task-state","version":1,"fields":{"phase":"string"}}
         ],"materialCatalog":[], "initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"game.task-state":{"phase":"queued"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"},"game.task-state":{"phase":"queued"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
         ]}).to_string()).unwrap();
         kernel
     }
@@ -243,13 +243,13 @@ mod work_attempt_laws {
     fn begin_rejects_a_task_owned_by_another_party() {
         let mut kernel = world();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"other"}}},
+            {"id":"task","components":{"hive.owned-by-party":{"party":"other"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"other","components":{"hive.party":{"ownerPlayer":"other-player"}}}
         ]}).to_string()).unwrap();
-        let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string());
-        assert_eq!(result.unwrap_err(), "work attempt task is outside party");
+        let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string());
+        assert_eq!(result.unwrap_err(), "work attempt task is outside pool");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), "[]");
         assert_eq!(kernel.query_json("[\"hive.destination\"]").unwrap(), "[]");
     }
@@ -260,7 +260,7 @@ mod work_attempt_laws {
         let mut unowned: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         unowned.scene.initial.iter_mut().find(|record| record.id == "task").unwrap().components.remove("hive.owned-by-party");
         kernel.restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap();
-        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player","party":"party"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player","party":"party"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap().contains("worker"), true);
     }
@@ -268,7 +268,7 @@ mod work_attempt_laws {
     #[test]
     fn exact_attempt_survives_restore_and_stale_key_cannot_touch_new_attempt() {
         let mut kernel = world();
-        let begin = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
+        let begin = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
         let saved = kernel.snapshot_json().unwrap();
         let mut restored = Kernel::new();
         restored.restore_json(&saved).unwrap();
@@ -279,11 +279,11 @@ mod work_attempt_laws {
         assert_eq!(retained[0]["phase"]["kind"], "outcome");
         assert_eq!(restored.attempts_by_worker.get("worker").map(|key| key.task.as_str()), Some("task"));
         restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"task","generation":key["generation"],"sequence":1}}]}).to_string()).unwrap();
-        let reassigned: Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let reassigned: Value = serde_json::from_str(&restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(reassigned["results"][0]["accepted"], true);
         let task2_key = reassigned["results"][0]["attempt"]["generation"].as_u64().unwrap();
         restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task2","generation":task2_key,"sequence":1,"cause":"cancelled"}}]}).to_string()).unwrap();
-        let replacement = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
+        let replacement = restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
         let new_generation = serde_json::from_str::<Value>(&replacement).unwrap()["results"][0]["attempt"]["generation"].as_u64().unwrap();
         assert!(new_generation > key["generation"].as_u64().unwrap());
         assert!(restored.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task","generation":key["generation"],"sequence":1,"cause":"cancelled"}}]}).to_string()).is_err());
@@ -294,7 +294,7 @@ mod work_attempt_laws {
     #[test]
     fn restore_accepts_unowned_world_tasks_but_rejects_foreign_tasks_and_invalid_frames() {
         let mut kernel = world();
-        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap();
 
         let mut unowned: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         unowned.scene.initial.iter_mut().find(|record| record.id == "task").unwrap().components.remove("hive.owned-by-party");
@@ -314,7 +314,7 @@ mod work_attempt_laws {
     #[test]
     fn interrupt_clears_owned_route_and_releases_worker_without_ack() {
         let mut kernel = world();
-        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":10.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":10.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         let key = &begin["results"][0]["attempt"];
         let interrupted: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task","generation":key["generation"],"sequence":1,"cause":"cancelled"}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(interrupted["results"][0]["accepted"], true);
@@ -324,33 +324,33 @@ mod work_attempt_laws {
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
         let after: Value = serde_json::from_str(&kernel.query_json("[\"hive.position\"]").unwrap()).unwrap();
         assert_eq!(after[0]["components"]["hive.position"]["x"], 0.0);
-        let next: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let next: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(next["results"][0]["accepted"], true);
     }
 
     #[test]
     fn acknowledging_old_outcome_cannot_erase_new_worker_attempt_index() {
         let mut kernel = world();
-        let first: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let first: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         let first_key = first["results"][0]["attempt"].clone();
         kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"interrupt-work-attempt","task":"task","generation":first_key["generation"],"sequence":1,"cause":"cancelled"}}]}).to_string()).unwrap();
-        let second: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let second: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task2","worker":"worker","operation":{"kind":"route","destination":{"x":2.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(second["results"][0]["accepted"], true);
         kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"acknowledge-work-attempt","task":"task","generation":first_key["generation"],"sequence":1}}]}).to_string()).unwrap();
         assert_eq!(kernel.attempts_by_worker.get("worker").map(|key| key.task.as_str()), Some("task2"));
-        assert!(kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":3.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).is_err());
+        assert!(kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":3.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).is_err());
     }
 
     fn material_kernel(destination_capacity: u32, destination_x: f64, quantity: u32) -> (Kernel, u64) {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":destination_capacity},"hive.position":{"x":destination_x,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":quantity,"container":"worker"}}}
         ]}).to_string()).unwrap();
-        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
         (kernel, generation)
@@ -377,14 +377,14 @@ mod work_attempt_laws {
     fn material_transfer_continuation_is_party_owned_and_exactly_once() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":2,"container":"worker"}}}
         ]}).to_string()).unwrap();
-        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
         let transfer = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]}).to_string()).unwrap();
@@ -408,14 +408,14 @@ mod work_attempt_laws {
     fn material_transfer_allows_source_to_worker_pickup_only() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"pickup","components":[],"materialCatalog":[],"initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":2,"container":"source"}}}
         ]}).to_string()).unwrap();
-        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","party":"party","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
         kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
         let pickup = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"source","to":"worker","quantity":1}}}]}).to_string()).unwrap();
@@ -668,7 +668,7 @@ mod process_attempt_tests {
         let process = "process:station:process-v1";
         kernel.admit_process(process, "process-v1", "station").unwrap();
         let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap();
-        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","party":"party:1","operation":{"kind":"process-attendance","process":process,"contact":contact}}}]});
+        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","operation":{"kind":"process-attendance","process":process,"contact":contact}}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&begin.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         let attempt = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
@@ -986,7 +986,7 @@ mod construction_tests {
         }]});
         let response: serde_json::Value = serde_json::from_str(&kernel.advance_json(&batch.to_string()).unwrap()).unwrap();
         assert!(response["results"].as_array().unwrap().iter().all(|result| result["accepted"] == true));
-        let route = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"site-1","worker":"worker-1","party":"party","operation":{"kind":"route","destination":contact}}}]});
+        let route = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"site-1","worker":"worker-1","operation":{"kind":"route","destination":contact}}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&route.to_string()).unwrap()).unwrap();
         let generation = result["results"][0]["attempt"]["generation"].as_u64().unwrap();
         let continue_action = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"site-1","generation":generation,"sequence":1,"nextActivity":{"kind":"construction","site":"site-1","contact":contact,"mode":"work"}}}]});
@@ -995,7 +995,7 @@ mod construction_tests {
     }
 
     fn begin_construction(kernel: &mut Kernel, worker: &str, site: &str, contact: &Point) {
-        let route = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":site,"worker":worker,"party":"party","operation":{"kind":"route","destination":contact}}}]});
+        let route = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":site,"worker":worker,"operation":{"kind":"route","destination":contact}}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&route.to_string()).unwrap()).unwrap();
         assert!(result["results"][0]["accepted"] == true, "{result}");
         let generation = result["results"][0]["attempt"]["generation"].as_u64().unwrap();
@@ -2483,7 +2483,7 @@ impl Kernel {
             if process.phase == ProcessPhase::Working {
                 if definition.stages.get(process.stage_index as usize).is_none_or(|stage| stage.mode != StageMode::Attended) { return Err("working process stage is not attended".into()); }
                 let Some(attempt) = executing_attendance else { return Err("working process has no executing attendance attempt".into()); };
-                if self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(attempt.party.as_str()) { return Err("process attendance party does not match process owner".into()); }
+                if self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(attempt.execution.pool.as_str()) { return Err("process attendance party does not match process owner".into()); }
             } else if executing_attendance.is_some() {
                 return Err("non-working process retains executing attendance attempt".into());
             }
@@ -4028,7 +4028,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 15,
+            version: 16,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4070,7 +4070,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 15
+            || state.version != 16
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -4142,14 +4142,17 @@ impl Kernel {
         }
         let mut attempts = BTreeMap::new();
         for attempt in state.work_attempts {
-            if !valid_id(&attempt.key.task) || !valid_id(&attempt.worker) || !valid_id(&attempt.party)
+            if !valid_id(&attempt.key.task) || !valid_id(&attempt.worker) || !valid_id(&attempt.execution.pool)
                 || !candidate.ids.contains_key(&attempt.key.task) || !candidate.ids.contains_key(&attempt.worker)
-                || !candidate.ids.contains_key(&attempt.party) || attempt.key.generation == 0
+                || !candidate.ids.contains_key(&attempt.execution.pool) || attempt.key.generation == 0
                 || attempts.insert(attempt.key.task.clone(), attempt).is_some() {
                 return Err("invalid work attempt ownership".into());
             }
         }
         for attempt in attempts.values() {
+            if !valid_id(&attempt.execution.policy_id) || attempt.execution.initiating_player.as_ref().is_some_and(|player| !valid_id(player)) {
+                return Err("invalid work attempt execution".into());
+            }
             if let Some(operation) = attempt.current_operation() {
                 if operation.attempt != attempt.key || operation.sequence == 0 { return Err("invalid work attempt operation".into()); }
             }
@@ -4264,13 +4267,18 @@ impl Kernel {
             let attempt = self.ecs.get::<WorkAttempt>(*attempt_entity).ok_or("work attempt index references missing component")?;
             if attempt.version != crate::work_attempt::CURRENT_VERSION { return Err("unsupported work attempt version".into()); }
             if attempt.key.task != *task { return Err("work attempt task index mismatch".into()); }
-            let party = self.entity(&attempt.party)?;
-            if self.ecs.get::<Party>(party).is_none() { return Err("work attempt party is not a party".into()); }
+            let party = self.entity(&attempt.execution.pool)?;
+            let pool = self.ecs.get::<Party>(party).ok_or("work attempt pool is not a party")?;
+            if attempt.execution.initiating_player.as_ref().is_some_and(|player| player != &pool.owner_player) { return Err("work attempt player does not own pool".into()); }
+            if task != &attempt.worker {
+                let task_execution = self.ecs.get::<WorkExecution>(*attempt_entity).ok_or("work attempt task has no execution")?;
+                if task_execution != &attempt.execution { return Err("work attempt execution differs from task".into()); }
+            }
             let worker = self.entity(&attempt.worker)?;
-            if self.ecs.get::<PartyMember>(worker).map(|member| member.party.as_str()) != Some(attempt.party.as_str()) {
+            if self.ecs.get::<PartyMember>(worker).map(|member| member.party.as_str()) != Some(attempt.execution.pool.as_str()) {
                 return Err("work attempt worker is outside party".into());
             }
-            not_owned_by_another_party(task, &attempt.party)?;
+            not_owned_by_another_party(task, &attempt.execution.pool)?;
             let activity = match &attempt.phase {
                 AttemptPhase::Executing { activity, .. } | AttemptPhase::Outcome { activity, .. } => activity,
                 AttemptPhase::Ready | AttemptPhase::Settling { .. } => return Err("work attempt has no recoverable activity".into()),
@@ -4279,34 +4287,34 @@ impl Kernel {
                 crate::work_attempt::ActivityRef::Route { destination } => valid_point(destination)?,
                 crate::work_attempt::ActivityRef::Construction { site, contact, .. } => {
                     if site != task { return Err("construction attempt task mismatch".into()); }
-                    owned_by_attempt_party(site, &attempt.party)?;
+                    owned_by_attempt_party(site, &attempt.execution.pool)?;
                     valid_point(contact)?;
                 }
                 crate::work_attempt::ActivityRef::Excavation { .. } => {}
                 crate::work_attempt::ActivityRef::Deconstruction { site, contact } => {
-                    owned_by_attempt_party(site, &attempt.party)?;
+                    owned_by_attempt_party(site, &attempt.execution.pool)?;
                     valid_point(contact)?;
                 }
                 crate::work_attempt::ActivityRef::ProcessAttendance { process, contact } => {
                     if process != task { return Err("process attendance task mismatch".into()); }
-                    let entity = owned_by_attempt_party(process, &attempt.party)?;
+                    let entity = owned_by_attempt_party(process, &attempt.execution.pool)?;
                     if self.ecs.get::<StagedProcess>(entity).is_none() { return Err("process attendance references non-process task".into()); }
                     valid_point(contact)?;
                     if self.environment.is_some() { self.validate_process_contact(process, contact)?; }
                 }
                 crate::work_attempt::ActivityRef::MaterialTransfer { lot, from, to, quantity } => {
                     if *quantity == 0 { return Err("invalid saved material transfer quantity".into()); }
-                    let lot_entity = owned_by_attempt_party(lot, &attempt.party)?;
+                    let lot_entity = owned_by_attempt_party(lot, &attempt.execution.pool)?;
                     if self.ecs.get::<Lot>(lot_entity).is_none() { return Err("material transfer references non-lot".into()); }
                     for endpoint in [from, to] {
                         let entity = self.entity(endpoint)?;
-                        let party_owned = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(attempt.party.as_str());
-                        let attempt_worker = endpoint == &attempt.worker && self.ecs.get::<PartyMember>(entity).map(|member| member.party.as_str()) == Some(attempt.party.as_str());
+                        let party_owned = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(attempt.execution.pool.as_str());
+                        let attempt_worker = endpoint == &attempt.worker && self.ecs.get::<PartyMember>(entity).map(|member| member.party.as_str()) == Some(attempt.execution.pool.as_str());
                         if !party_owned && !attempt_worker { return Err("material transfer endpoint is outside party".into()); }
                     }
                 }
                 crate::work_attempt::ActivityRef::MaterialDrop { lot } => {
-                    let entity = owned_by_attempt_party(lot, &attempt.party)?;
+                    let entity = owned_by_attempt_party(lot, &attempt.execution.pool)?;
                     if self.ecs.get::<Lot>(entity).is_none() { return Err("material drop references non-lot".into()); }
                 }
                 crate::work_attempt::ActivityRef::ResourceEstablish { site, .. } => { self.entity(site)?; }
@@ -5481,15 +5489,21 @@ impl Kernel {
         }
         serde_json::to_string(&serde_json::json!({"status":"available","sequence":self.next_party_sequence,"player":format!("player:{}", self.next_party_sequence),"party":format!("party:{}", self.next_party_sequence),"people":[]})).map_err(|e| e.to_string())
     }
-    fn begin_work_attempt(&mut self, task: String, worker: String, party: String, activity: crate::work_attempt::ActivityRef) -> Result<AttemptKey> {
-        if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
+    fn begin_work_attempt(&mut self, task: String, worker: String, activity: crate::work_attempt::ActivityRef, scope: &ActionScope) -> Result<AttemptKey> {
+        if !valid_id(&task) || !valid_id(&worker) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) { return Err("work attempt references unknown entity".into()); }
         if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
-        let party_entity = self.entity(&party)?;
-        self.ecs.get::<Party>(party_entity).ok_or("work attempt party is not a party")?;
         let worker_entity = self.entity(&worker)?;
-        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("work attempt worker is outside party".into()); }
         let task_entity = self.entity(&task)?;
-        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != party) { return Err("work attempt task is outside party".into()); }
+        let execution = if let Some(execution) = self.ecs.get::<WorkExecution>(task_entity).cloned() {
+            execution
+        } else if task == worker {
+            let pool = self.ecs.get::<PartyMember>(worker_entity).ok_or("manual work attempt worker has no pool")?.party.clone();
+            self.work_execution_for_scope(scope, &pool, "manual-route")?
+        } else {
+            return Err("work attempt task has no execution".into());
+        };
+        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(execution.pool.as_str()) { return Err("work attempt worker is outside pool".into()); }
+        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != execution.pool) { return Err("work attempt task is outside pool".into()); }
         if self.ecs.get::<crate::job::Task>(task_entity).is_some() {
             self.rebuild_job_index()?;
             if !self.job_index.ready_tasks.contains(&task) { return Err("job task dependencies or result bindings are not ready".into()); }
@@ -5502,7 +5516,7 @@ impl Kernel {
             if process != &task { return Err("process attendance task mismatch".into()); }
             self.attend_process(&worker, process, contact, 0.0)?;
             let entity = task_entity;
-            self.ecs.entity_mut(entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity } });
+            self.ecs.entity_mut(entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, phase: AttemptPhase::Executing { operation, activity } });
             self.work_attempts.insert(task, entity);
             self.attempts_by_worker.insert(worker, key.clone());
             return Ok(key);
@@ -5511,31 +5525,31 @@ impl Kernel {
         let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
         self.ecs.get::<Body>(worker_entity).ok_or("route attempt worker is not movable")?;
         let route = self.route_for(worker_entity, position, &destination)?;
-        self.publish_prepared_route_attempt(task, worker, party, destination, route, key, operation, task_entity, worker_entity)
+        self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity)
     }
-    fn publish_prepared_route_attempt(&mut self, task: String, worker: String, party: String, destination: Point, route: PreparedRoute, key: AttemptKey, operation: OperationKey, task_entity: Entity, worker_entity: Entity) -> Result<AttemptKey> {
+    fn publish_prepared_route_attempt(&mut self, task: String, worker: String, execution: WorkExecution, destination: Point, route: PreparedRoute, key: AttemptKey, operation: OperationKey, task_entity: Entity, worker_entity: Entity) -> Result<AttemptKey> {
         self.direct.remove(&worker_entity);
         let position = *self.ecs.get::<Position>(worker_entity).ok_or("route attempt worker has no position")?;
         self.ecs.entity_mut(worker_entity).insert(Destination { x: destination.x, y: destination.y, z: destination.z, facing: position.facing, frame: destination.frame.clone() });
         self.install_route(worker_entity, route);
-        self.ecs.entity_mut(task_entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), party, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
+        self.ecs.entity_mut(task_entity).insert(WorkAttempt { version: crate::work_attempt::CURRENT_VERSION, key: key.clone(), worker: worker.clone(), execution, phase: AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::Route { destination } } });
         self.work_attempts.insert(task, task_entity);
         self.attempts_by_worker.insert(worker, key.clone());
         Ok(key)
     }
-    fn begin_work_attempt_with_prepared_route(&mut self, task: String, worker: String, party: String, destination: Point, route: PreparedRoute) -> Result<AttemptKey> {
-        if !valid_id(&task) || !valid_id(&worker) || !valid_id(&party) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) || !self.ids.contains_key(&party) { return Err("work attempt references unknown entity".into()); }
+    fn begin_work_attempt_with_prepared_route(&mut self, task: String, worker: String, destination: Point, route: PreparedRoute) -> Result<AttemptKey> {
+        if !valid_id(&task) || !valid_id(&worker) || !self.ids.contains_key(&task) || !self.ids.contains_key(&worker) { return Err("work attempt references unknown entity".into()); }
         if self.work_attempts.contains_key(&task) || self.attempts_by_worker.contains_key(&worker) { return Err("work attempt is already owned".into()); }
-        self.ecs.get::<Party>(self.entity(&party)?).ok_or("work attempt party is not a party")?;
         let worker_entity = self.entity(&worker)?;
-        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("work attempt worker is outside party".into()); }
         let task_entity = self.entity(&task)?;
-        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != party) { return Err("work attempt task is outside party".into()); }
+        let execution = self.ecs.get::<WorkExecution>(task_entity).cloned().ok_or("work attempt task has no execution")?;
+        if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(execution.pool.as_str()) { return Err("work attempt worker is outside pool".into()); }
+        if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != execution.pool) { return Err("work attempt task is outside pool".into()); }
         let generation = self.next_work_generation;
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("work attempt generation exhausted")?;
         let key = AttemptKey { task: task.clone(), generation };
         let operation = OperationKey { attempt: key.clone(), sequence: 1 };
-        self.publish_prepared_route_attempt(task, worker, party, destination, route, key, operation, task_entity, worker_entity)
+        self.publish_prepared_route_attempt(task, worker, execution, destination, route, key, operation, task_entity, worker_entity)
     }
     fn continue_work_attempt_with_prepared_route(&mut self, task: &str, generation: u64, sequence: u32, destination: Point, route: PreparedRoute) -> Result<()> {
         let entity = *self.work_attempts.get(task).ok_or("work attempt is not current")?;
@@ -5659,8 +5673,8 @@ impl Kernel {
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
             let allocation = self.ecs.get::<SupplyAllocation>(entity).cloned();
             let destination = self.entity(&to)?;
-            let destination_owned = self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) == Some(current.party.as_str());
-            let destination_is_worker = to == current.worker && self.ecs.get::<PartyMember>(destination).map(|member| member.party.as_str()) == Some(current.party.as_str());
+            let destination_owned = self.ecs.get::<OwnedByParty>(destination).map(|owner| owner.party.as_str()) == Some(current.execution.pool.as_str());
+            let destination_is_worker = to == current.worker && self.ecs.get::<PartyMember>(destination).map(|member| member.party.as_str()) == Some(current.execution.pool.as_str());
             if !destination_owned && !destination_is_worker { return Err("material transfer destination is outside attempt party or unowned".into()); }
             let source = self.entity(&from)?;
             let lot_entity = self.entity(&lot)?;
@@ -5668,12 +5682,12 @@ impl Kernel {
             let pickup = from != current.worker && to == current.worker;
             let public_ground = self.ecs.get::<GroundStock>(source).is_some()
                 && self.ecs.get::<OwnedByParty>(source).is_none();
-            let lot_owned = self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) == Some(current.party.as_str());
+            let lot_owned = self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) == Some(current.execution.pool.as_str());
             if !lot_owned && !(pickup && public_ground && self.ecs.get::<OwnedByParty>(lot_entity).is_none()) {
                 return Err("material transfer lot is outside attempt party or unowned".into());
             }
-            let source_owned = self.ecs.get::<OwnedByParty>(source).map(|owner| owner.party.as_str()) == Some(current.party.as_str());
-            let source_is_worker = from == current.worker && self.ecs.get::<PartyMember>(source).map(|member| member.party.as_str()) == Some(current.party.as_str());
+            let source_owned = self.ecs.get::<OwnedByParty>(source).map(|owner| owner.party.as_str()) == Some(current.execution.pool.as_str());
+            let source_is_worker = from == current.worker && self.ecs.get::<PartyMember>(source).map(|member| member.party.as_str()) == Some(current.execution.pool.as_str());
             if !source_owned && !source_is_worker && !public_ground { return Err("material transfer source is outside attempt party or unowned".into()); }
             if quantity == 0 { return Err("invalid material transfer quantity".into()); }
             let deposit = from == current.worker && to != current.worker;
@@ -5729,7 +5743,7 @@ impl Kernel {
             let lot_entity = self.entity(&lot)?;
             let lot_state = self.ecs.get::<Lot>(lot_entity).ok_or("material drop lot is missing")?;
             if lot_state.container != current.worker { return Err("material drop lot is not held by attempt worker".into()); }
-            if self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) != Some(current.party.as_str()) { return Err("material drop lot is outside attempt party or unowned".into()); }
+            if self.ecs.get::<OwnedByParty>(lot_entity).map(|owner| owner.party.as_str()) != Some(current.execution.pool.as_str()) { return Err("material drop lot is outside attempt pool or unowned".into()); }
             let next_sequence = sequence.checked_add(1).ok_or("work attempt sequence exhausted")?;
             self.drop_lot(&current.worker, &lot)?;
             let operation = OperationKey { attempt: current.key.clone(), sequence: next_sequence };
@@ -5802,7 +5816,7 @@ impl Kernel {
         if site != task { return Err("construction continuation task mismatch".into()); }
         let site_entity = self.entity(&site)?;
         let owner = self.ecs.get::<OwnedByParty>(site_entity).ok_or("construction site has no party owner")?;
-        if owner.party != current.party { return Err("construction continuation party mismatch".into()); }
+        if owner.party != current.execution.pool { return Err("construction continuation party mismatch".into()); }
         let operation = OperationKey { attempt: current.key.clone(), sequence: sequence.checked_add(1).ok_or("work attempt sequence exhausted")? };
         match mode {
             crate::work_attempt::ConstructionMode::Bind => {
@@ -5830,7 +5844,7 @@ impl Kernel {
     fn apply_action(&mut self, action: Action, delta: f64, scope: &ActionScope) -> Result<ActionEffect> {
         match action {
             Action::InstantiateActors { binding_id, expected_sequence, plan } => self.instantiate_actors(binding_id, expected_sequence, plan).map(ActionEffect::Entity),
-            Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
+            Action::BeginWorkAttempt { task, worker, operation } => self.begin_work_attempt(task, worker, operation, scope).map(ActionEffect::Attempt),
             Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
@@ -6043,8 +6057,7 @@ impl Kernel {
         let mut targets = Vec::new();
         match action {
             Action::InstantiateActors { .. } => return Err("party scope cannot instantiate actors".into()),
-            Action::BeginWorkAttempt { task, worker, party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
+            Action::BeginWorkAttempt { task, worker, .. } => {
                 let worker_entity = self.entity(worker)?;
                 if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("scoped worker is outside party".into()); }
                 targets.push(task.as_str());
@@ -6056,7 +6069,7 @@ impl Kernel {
             | Action::ContinueWorkAttempt { task, .. } => {
                 let task_entity = self.entity(task)?;
                 let attempt_entity = self.work_attempts.get(task).ok_or("scoped work attempt is missing")?;
-                if self.ecs.get::<WorkAttempt>(*attempt_entity).map(|attempt| attempt.party.as_str()) != Some(party.as_str()) { return Err("scoped work attempt party mismatch".into()); }
+                if self.ecs.get::<WorkAttempt>(*attempt_entity).map(|attempt| attempt.execution.pool.as_str()) != Some(party.as_str()) { return Err("scoped work attempt party mismatch".into()); }
                 targets.push(task.as_str());
                 let _ = task_entity;
             }

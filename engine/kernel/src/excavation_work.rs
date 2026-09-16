@@ -424,7 +424,7 @@ mod tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"work-test","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"excavation"}}},
             {"id":"worker","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1},"hive.container":{"capacity":10},"hive.party-member":{"party":"party"}}}
         ]}).to_string()).unwrap();
         let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("timed-work")).unwrap();
@@ -441,7 +441,7 @@ mod tests {
     }
     fn begin_excavation(kernel: &mut Kernel, work: ExcavationWork) {
         let position = *kernel.ecs.get::<Position>(kernel.entity("worker").unwrap()).unwrap();
-        let key = kernel.begin_work_attempt("task".into(), "worker".into(), "party".into(), crate::work_attempt::ActivityRef::Route { destination: Point { x: position.x, y: position.y, z: position.z, frame: None } }).unwrap();
+        let key = kernel.begin_work_attempt("task".into(), "worker".into(), crate::work_attempt::ActivityRef::Route { destination: Point { x: position.x, y: position.y, z: position.z, frame: None } }, &ActionScope::Host).unwrap();
         kernel.advance_json(r#"{"delta":0,"writes":[],"actions":[]}"#).unwrap();
         kernel.continue_work_attempt("task".into(), key.generation, 1, crate::work_attempt::ActivityRef::Excavation { cell: [work.x, work.y, work.z], expected_material: work.expected, replacement_material: work.replacement }).unwrap();
     }

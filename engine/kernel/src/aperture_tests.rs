@@ -65,7 +65,7 @@ fn constructed_aperture() -> (Kernel, Cell, Point) {
     ]});
     let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&setup.to_string()).unwrap()).unwrap();
     assert!(result["results"].as_array().unwrap().iter().all(|r| r["accepted"] == true));
-    let route: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"door","worker":"worker","party":"party","operation":{"kind":"route","destination":contact}}}]}).to_string()).unwrap()).unwrap();
+    let route: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"door","worker":"worker","operation":{"kind":"route","destination":contact}}}]}).to_string()).unwrap()).unwrap();
     let generation = route["results"][0]["attempt"]["generation"].as_u64().unwrap();
     let work: serde_json::Value = serde_json::from_str(&kernel.advance_json(&serde_json::json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"door","generation":generation,"sequence":1,"nextActivity":{"kind":"construction","site":"door","contact":contact,"mode":"work"}}}]}).to_string()).unwrap()).unwrap();
     assert_eq!(work["results"][0]["accepted"], true, "{work}");

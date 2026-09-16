@@ -224,10 +224,10 @@ function exactRouteReplacement(context: CommandContext, worker: EntityId, party:
   // the original provider will acknowledge its own outcome independently.
   if (!current || (current.key.task !== worker && current.phase.kind === "outcome")) {
     const actions: ActionRequest[] = [];
-    beginRouteWorkAttempt({ action: request => actions.push(request) }, worker, worker, party, destination);
+    beginRouteWorkAttempt({ action: request => actions.push(request) }, worker, worker, destination);
     return actions;
   }
-  if (current.worker !== worker || current.party !== party || current.key.task !== worker) throw new Error("worker has an incompatible active work attempt");
+  if (current.worker !== worker || current.execution.pool !== party || current.key.task !== worker) throw new Error("worker has an incompatible active work attempt");
   if (current.phase.kind !== "executing") throw new Error("worker route is waiting for work-attempt reconciliation");
   const actions: ActionRequest[] = [];
   retargetRouteWorkAttempt({ action: request => actions.push(request) }, current.key, current.phase.operation.sequence, destination);
@@ -448,7 +448,7 @@ export const colonyPack: GamePack = {
         const selected = selectedWorkers(context, input.entities);
         const actions: ActionRequest[] = selected.flatMap((worker): ActionRequest[] => {
           const attempt = attemptForWorker(context, worker);
-          if (!attempt || attempt.worker !== worker || attempt.party !== admittedParty(context, worker)) return [];
+          if (!attempt || attempt.worker !== worker || attempt.execution.pool !== admittedParty(context, worker)) return [];
           if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "drafted" as const }];
           if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
           return [];
@@ -466,7 +466,7 @@ export const colonyPack: GamePack = {
         const selected = selectedWorkers(context, input.entities);
         const actions: ActionRequest[] = selected.flatMap((worker): ActionRequest[] => {
           const attempt = attemptForWorker(context, worker);
-          if (!attempt || attempt.key.task !== worker || attempt.party !== admittedParty(context, worker)) return [];
+          if (!attempt || attempt.key.task !== worker || attempt.execution.pool !== admittedParty(context, worker)) return [];
           if (attempt.phase.kind === "executing") return [{ kind: "interrupt-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence, cause: "cancelled" as const }];
           if (attempt.phase.kind === "outcome") return [{ kind: "acknowledge-work-attempt" as const, task: attempt.key.task, generation: attempt.key.generation, sequence: attempt.phase.operation.sequence }];
           throw new Error("worker route is waiting for work-attempt reconciliation");

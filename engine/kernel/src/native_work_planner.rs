@@ -495,7 +495,7 @@ impl Kernel {
         let attempts = self.work_attempts.iter().filter_map(|(attempt_task, entity)| {
             let attempt = self.ecs.get::<crate::work_attempt::WorkAttempt>(*entity)?;
             let crate::work_attempt::AttemptPhase::Executing { operation, activity: crate::work_attempt::ActivityRef::JobTransform { task, contact } } = &attempt.phase else { return None; };
-            Some((attempt_task.clone(), task.clone(), operation.clone(), attempt.party.clone(), attempt.worker.clone(), contact.clone()))
+            Some((attempt_task.clone(), task.clone(), operation.clone(), attempt.execution.pool.clone(), attempt.worker.clone(), contact.clone()))
         }).collect::<Vec<_>>();
         for (attempt_task, task_id, operation_key, party, worker, contact) in attempts {
             let task_entity = self.entity(&task_id)?;
@@ -847,10 +847,10 @@ impl Kernel {
             work.cell_x = cell.x as i32;
             work.cell_y = cell.y;
             work.cell_z = cell.z as i32;
-            self.begin_work_attempt_with_prepared_route(slot.task, worker, slot.requirement.party, destination, route)?;
+            self.begin_work_attempt_with_prepared_route(slot.task, worker, destination, route)?;
         }
         for (requirement, worker, contact, route) in labor {
-            self.begin_work_attempt_with_prepared_route(requirement.task, worker, requirement.pool, contact, route)?;
+            self.begin_work_attempt_with_prepared_route(requirement.task, worker, contact, route)?;
         }
         Ok(supply_count + labor_count + field_count)
     }

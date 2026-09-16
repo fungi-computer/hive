@@ -3,10 +3,10 @@
 //! Physical operations remain owned by their domain modules.  This module only
 //! owns the association, generation and retained terminal result.
 use bevy_ecs::prelude::Component;
-use crate::components::Point;
+use crate::components::{Point, WorkExecution};
 use serde::{Deserialize, Serialize};
 
-pub const CURRENT_VERSION: u16 = 1;
+pub const CURRENT_VERSION: u16 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -22,7 +22,7 @@ pub struct WorkAttempt {
     pub version: u16,
     pub key: AttemptKey,
     pub worker: String,
-    pub party: String,
+    pub execution: WorkExecution,
     pub phase: AttemptPhase,
 }
 

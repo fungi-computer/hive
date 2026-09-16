@@ -134,7 +134,7 @@ test("activity projection rejects competing native and game attendance", () => {
   const attempt: WorkAttempt = {
     key: { task: actor, generation: 1 },
     worker: actor,
-    party: entity("party.activity"),
+    execution: { pool: entity("party.activity"), initiatingPlayer: null, policyId: "test" },
     phase: {
       kind: "executing",
       operation: { attempt: { task: actor, generation: 1 }, sequence: 1 },
@@ -201,7 +201,7 @@ test("native delivery operations project without a client-owned phase", () => {
     {
       key: { task, generation: 1 },
       worker: actor,
-      party: entity("delivery.party"),
+      execution: { pool: entity("delivery.party"), initiatingPlayer: null, policyId: "test" },
       phase: {
         kind: "executing",
         operation: { attempt: { task, generation: 1 }, sequence: 1 },

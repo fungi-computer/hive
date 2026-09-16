@@ -301,7 +301,7 @@ impl Kernel {
                         priority: 0,
                         enabled: true,
                     },
-                    execution,
+                    execution.clone(),
                     crate::work_planner::WorkSchedule {
                         next_review_tick: self.revision,
                         last_considered: self.revision.saturating_sub(1),
@@ -311,7 +311,7 @@ impl Kernel {
                         version: crate::work_attempt::CURRENT_VERSION,
                         key: item.key.clone(),
                         worker: item.worker.clone(),
-                        party,
+                        execution,
                         phase: crate::work_attempt::AttemptPhase::Executing {
                             operation,
                             activity: crate::work_attempt::ActivityRef::Route {

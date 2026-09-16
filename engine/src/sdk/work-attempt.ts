@@ -64,12 +64,10 @@ export function beginRouteWorkAttempt(
   context: Pick<WriteContext, "action">,
   task: EntityId,
   worker: EntityId,
-  party: EntityId,
   destination: MoveDestination,
 ): void {
   entity(task);
   entity(worker);
-  entity(party);
   if (
     ![destination.x, destination.y, destination.z].every((value) =>
       Number.isFinite(value),
@@ -81,7 +79,6 @@ export function beginRouteWorkAttempt(
     kind: "begin-work-attempt",
     task,
     worker,
-    party,
     operation: { kind: "route", destination },
   });
 }

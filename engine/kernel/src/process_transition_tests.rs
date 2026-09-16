@@ -505,7 +505,7 @@ fn process_attendance_retains_selected_contact_and_blocks_after_geometry_change(
     let contact = requirement.contacts.iter().find(|point| point.x != anchor.x || point.y != anchor.y || point.z != anchor.z).cloned().unwrap_or_else(|| requirement.contacts[0].clone());
     kernel.ecs.entity_mut(kernel.entity("worker").unwrap()).insert(crate::components::Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
     let activity = requirement.operation.activity_for_contact(&contact);
-    kernel.begin_work_attempt(process.clone(), "worker".into(), "party:process".into(), activity).unwrap();
+    kernel.begin_work_attempt(process.clone(), "worker".into(), activity, &ActionScope::Host).unwrap();
     let saved = kernel.save_records().unwrap();
     let (mut restored, _) = admitted();
     restored.restore_records(&saved).unwrap();
@@ -538,7 +538,7 @@ fn process_labor_contribution_waits_for_attendance_contact_and_unclaimed_task() 
         version: crate::work_attempt::CURRENT_VERSION,
         key: crate::work_attempt::AttemptKey { task: process.clone(), generation: 1 },
         worker: "worker".into(),
-        party: "party:process".into(),
+        execution: WorkExecution { pool: "party:process".into(), initiating_player: None, policy_id: crate::work_planner::POLICY_PROCESS.into() },
         phase: crate::work_attempt::AttemptPhase::Ready,
     }).id();
     claimed.work_attempts.insert(process.clone(), attempt);
@@ -561,7 +561,7 @@ fn attend_tick(kernel: &mut Kernel, process: &str, delta: f64) -> String {
             _ => panic!("unexpected process attempt phase"),
         }
     } else {
-        json!({"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process,"contact":contact_json}})
+        json!({"kind":"begin-work-attempt","task":process,"worker":"worker","operation":{"kind":"process-attendance","process":process,"contact":contact_json}})
     };
     kernel.advance_json(&json!({"delta":delta,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:process","party":"party:process"},"request":action}]}).to_string()).unwrap()
 }
@@ -758,7 +758,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
     attend_tick(&mut kernel, &process, 0.0);
     let before_replay = kernel.save_records().unwrap();
     let contact_json = serde_json::to_value(kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap()).unwrap();
-    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:process","party":"party:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","party":"party:process","operation":{"kind":"process-attendance","process":process,"contact":contact_json}}}]}).to_string());
+    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:process","party":"party:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","operation":{"kind":"process-attendance","process":process,"contact":contact_json}}}]}).to_string());
     assert_eq!(repeated.unwrap_err(), "process is complete");
     assert_eq!(kernel.save_records().unwrap().entities, before_replay.entities);
     assert_eq!(
