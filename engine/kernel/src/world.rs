@@ -20,6 +20,8 @@ mod initial_placement;
 mod authored_entities;
 #[path = "relation_mutation.rs"]
 mod relation_mutation;
+#[path = "access_roles.rs"]
+mod access_roles;
 #[path = "structure_contact.rs"]
 mod structure_contact;
 #[path = "interaction_contact.rs"]
@@ -6061,7 +6063,6 @@ impl Kernel {
         let party_entity = self.entity(party)?;
         let owner = self.ecs.get::<Party>(party_entity).ok_or("scoped action party is not a party")?;
         if !crate::components::valid_id(player) || owner.owner_player != *player { return Err("scoped action player does not own party".into()); }
-        let mut targets = Vec::new();
         match action {
             Action::InstantiateActors { .. } => return Err("party scope cannot instantiate actors".into()),
             Action::SetRelation { source, target, .. } => {
@@ -6082,8 +6083,7 @@ impl Kernel {
             Action::BeginWorkAttempt { task, worker, .. } => {
                 let worker_entity = self.entity(worker)?;
                 if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("scoped worker is outside party".into()); }
-                targets.push(task.as_str());
-                targets.push(worker.as_str());
+                let _ = self.entity(task)?;
             }
             Action::RetargetWorkAttempt { task, .. }
             | Action::InterruptWorkAttempt { task, .. }
@@ -6092,14 +6092,14 @@ impl Kernel {
                 let task_entity = self.entity(task)?;
                 let attempt_entity = self.work_attempts.get(task).ok_or("scoped work attempt is missing")?;
                 if self.ecs.get::<WorkAttempt>(*attempt_entity).map(|attempt| attempt.execution.pool.as_str()) != Some(party.as_str()) { return Err("scoped work attempt party mismatch".into()); }
-                targets.push(task.as_str());
                 let _ = task_entity;
             }
-            Action::CreateJob { .. } => {}
-            Action::ResumeJob { id, .. } | Action::CancelJob { id } => targets.push(id.as_str()),
-            Action::RequestProcess { station, .. } => targets.push(station.as_str()),
-            Action::AdmitProcess { process, station, .. } => { targets.push(process.as_str()); targets.push(station.as_str()); }
-            Action::ExchangeFieldWater { worker, vessel, .. } => { targets.push(worker.as_str()); targets.push(vessel.as_str()); }
+            Action::CreateJob { .. }
+            | Action::ResumeJob { .. }
+            | Action::CancelJob { .. }
+            | Action::RequestProcess { .. }
+            | Action::AdmitProcess { .. }
+            | Action::ExchangeFieldWater { .. } => {}
             Action::DesignateStockpile { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
             }
@@ -6118,29 +6118,35 @@ impl Kernel {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
                 self.stockpile_clear_ids(party, zone, cells)?;
             }
-            Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
-            Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
+            Action::CancelWork { .. }
+            | Action::Move { .. }
+            | Action::BeginDirect { .. }
+            | Action::DirectInput { .. }
+            | Action::Displace { .. }
+            | Action::Deconstruct { .. }
+            | Action::SetStructureOpen { .. } => {}
             Action::PlanConstructions { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
             }
             Action::PlanExcavation { party: action_party, .. } | Action::CancelExcavation { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
             }
-            Action::PlanDeconstruction { site, party: action_party } => {
+            Action::PlanDeconstruction { party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
-                targets.push(site.as_str());
             }
-            Action::ReplaceFloor { order_id, existing_floor_id, .. } => { targets.push(order_id.as_str()); targets.push(existing_floor_id.as_str()); }
-            Action::BindConstructionStage { site, .. } => targets.push(site.as_str()),
-            Action::BeginEmission { worker, station } => { targets.push(worker.as_str()); targets.push(station.as_str()); }
-            Action::DropLot { entity, lot } | Action::Consume { entity, lot, .. } => { targets.push(entity.as_str()); targets.push(lot.as_str()); }
-            Action::Transfer { lot, from, to, .. } => { targets.push(lot.as_str()); targets.push(from.as_str()); targets.push(to.as_str()); }
-            Action::ExtractResource { worker, source, .. } => { targets.push(worker.as_str()); targets.push(source.as_str()); }
-            Action::EstablishResourceSite { worker, site, .. } | Action::TendResourceSite { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
-            Action::Launch { launcher, ammunition, .. } => { targets.push(launcher.as_str()); targets.push(ammunition.as_str()); }
+            Action::ReplaceFloor { .. }
+            | Action::BindConstructionStage { .. }
+            | Action::BeginEmission { .. }
+            | Action::DropLot { .. }
+            | Action::Consume { .. }
+            | Action::Transfer { .. }
+            | Action::ExtractResource { .. }
+            | Action::EstablishResourceSite { .. }
+            | Action::TendResourceSite { .. }
+            | Action::Launch { .. } => {}
         }
-        for target in targets {
-            let entity = self.entity(target)?;
+        for target in access_roles::action_roles(action) {
+            let entity = self.entity(target.entity)?;
             if let Some(member) = self.ecs.get::<PartyMember>(entity) && member.party != *party { return Err("scoped action worker is outside party".into()); }
             if let Some(owner) = self.ecs.get::<OwnedByParty>(entity) && owner.party != *party { return Err("scoped action target is outside party".into()); }
         }
