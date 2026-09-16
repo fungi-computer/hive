@@ -73,7 +73,7 @@ function performancePackWithPails(workerCount: 32 | 100): GamePack {
         "hive.lot": { quantity: 1, kind: "pail", container: worker },
         "hive.container": { capacity: 7 },
         "hive.vessel-capability": { acceptsWater: true },
-        "hive.owned-by-party": { party: "colony.local-party" },
+        "hive.owned-by-party": { party: "party:1" },
         "hive.visual": { sprite: "pail", label: `Pail ${index + 1}` },
       } },
     );

@@ -64,7 +64,7 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
       session.request(command.action);
       // Party establishment is a host-only composite: settle its prepared
       // native group in this same Region candidate and receipt.
-      return command.action.kind === "establish-party" ? session.step(0) : [];
+      return command.action.kind === "instantiate-actors" ? session.step(0) : [];
     case "command": session.command(command.name, command.input, scope); return [];
     case "join-party": {
       if (scope.kind !== "host") throw new Error("party join requires host scope");
@@ -74,11 +74,13 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
       if (identity.status === "existing") return { player: identity.player, party: identity.party, people: identity.people };
       const spawn = session.findSafeSpawn(capability.footprint);
       if (!spawn) throw new Error("spawn-unavailable");
-      const prepared = capability.prepare(identity.player, identity.party, spawn);
-      session.request({ kind: "establish-party", bindingId: command.credentialBindingId, expectedSequence: identity.sequence, records: prepared.records });
+      const prepared = capability.prepare(spawn);
+      session.request({ kind: "instantiate-actors", bindingId: command.credentialBindingId, expectedSequence: identity.sequence, plan: prepared });
       const result = session.step(0)[0];
       if (!result?.accepted || result.entityId !== identity.party) throw new Error(result?.reason ?? "party join rejected");
-      return { player: identity.player, party: identity.party, people: prepared.people };
+      const committed = session.partyJoinIdentity(command.credentialBindingId);
+      if (committed.status !== "existing") throw new Error("party join binding was not committed");
+      return { player: committed.player, party: committed.party, people: committed.people };
     }
     case "step": return session.step(command.delta);
     case "pause": session.pause(); return [];
@@ -309,6 +311,7 @@ export function createSessionRegionRuntime(options: SessionResidentOptions) {
     components: Object.freeze([...options.pack.components]),
     systems: Object.freeze(options.pack.systems.map(system => Object.freeze({ ...system, reads: Object.freeze([...system.reads]), writes: Object.freeze([...system.writes]) }))),
     commands: Object.freeze(Object.fromEntries(Object.entries(options.pack.commands ?? {}).map(([name, command]) => [name, Object.freeze({ ...command, lifecycle: Object.freeze([...(command.lifecycle ?? [])]), reads: Object.freeze([...(command.reads ?? [])]), writes: Object.freeze([...command.writes]) })]))),
+    bootstrapActions: options.pack.bootstrapActions ? structuredClone(options.pack.bootstrapActions) : undefined,
     initialActions: options.pack.initialActions ? structuredClone(options.pack.initialActions) : undefined,
     partyJoin: options.pack.partyJoin ? Object.freeze({ footprint: Object.freeze(options.pack.partyJoin.footprint.map(cell => Object.freeze([...cell] as [number, number]))), prepare: options.pack.partyJoin.prepare }) : undefined,
   });

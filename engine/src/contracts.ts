@@ -203,7 +203,7 @@ export type ConstructionTarget =
   | { readonly kind: "cell"; readonly cell: Vec3; readonly orientation: CardinalOrientation }
   | { readonly kind: "edge"; readonly edge: { readonly cell: Vec3; readonly axis: "x" | "z" } };
 export type ActionRequest =
-  | { readonly kind: "establish-party"; readonly bindingId: string; readonly expectedSequence: number; readonly records: readonly EntityRecord[] }
+  | { readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: ActorInstantiationPlan }
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly party: EntityId; readonly operation: WorkActivityRef }
   | { readonly kind: "retarget-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly destination: MoveDestination }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
@@ -451,12 +451,31 @@ export type PartyJoinIdentity = Readonly<{
   readonly party: EntityId;
   readonly people: readonly EntityId[];
 }>;
+export type ActorArgument =
+  | { readonly kind: "value"; readonly value: string | number | boolean | null }
+  | { readonly kind: "spawned"; readonly slot: string }
+  | { readonly kind: "existing"; readonly id: EntityId }
+  | { readonly kind: "joining-player" };
+export type ActorInstantiationPlan = Readonly<{
+  readonly actors: readonly Readonly<{
+    readonly slot: string;
+    readonly definition: string;
+    readonly arguments: Readonly<Record<string, ActorArgument>>;
+    readonly surfaceColumn?: readonly [number, number];
+  }>[];
+  readonly initialMaterials: readonly Readonly<{
+    readonly container: ActorArgument;
+    readonly kind: string;
+    readonly quantity: number;
+    readonly actorDefinition?: string;
+    readonly arguments?: Readonly<Record<string, ActorArgument>>;
+  }>[];
+  readonly partySlot: string;
+  readonly peopleSlots: readonly string[];
+}>;
 export type PartyJoinCapability = Readonly<{
   readonly footprint: readonly (readonly [number, number])[];
-  readonly prepare: (player: string, party: EntityId, spawn: Vec3) => Readonly<{
-    readonly records: readonly EntityRecord[];
-    readonly people: readonly EntityId[];
-  }>;
+  readonly prepare: (spawn: Vec3) => ActorInstantiationPlan;
 }>;
 export type ActionScope =
   | { readonly kind: "host" }
@@ -772,6 +791,8 @@ export interface GamePack {
   readonly actors?: readonly ActorDefinition[];
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: GamePresentation;
+  /** Fresh-world setup that must commit before the first player command. */
+  readonly bootstrapActions?: readonly ActionRequest[];
   readonly initialActions?: readonly ActionRequest[];
   readonly partyJoin?: PartyJoinCapability;
   /** Heterogeneous command inputs are erased at the pack registry boundary. */

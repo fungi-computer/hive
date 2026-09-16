@@ -2,16 +2,16 @@ import { actor, actorInput } from "../sdk/behavior";
 import {
   Body,
   Container,
-  MaterialLot,
   Position,
   Traversal,
   VesselCapability,
   Visual,
 } from "../sdk/common";
-import { GroundStock } from "../sdk/ground-stock";
 import { OwnedByParty, Party, PartyMember } from "../sdk/party";
 import { WorkParticipation } from "../sdk/work-control";
+import { StorageProvider } from "../sdk/stockpile";
 import { Worker } from "./colony-components";
+import { Cat } from "./colony-cat";
 
 export const ColonyPartyActor = actor("colony.party")
   .with(Party, { ownerPlayer: actorInput.string("owner-player") });
@@ -43,7 +43,7 @@ export const ColonyStoreActor = actor("colony.store")
     facing: 0,
   })
   .with(Container, { capacity: actorInput.number("capacity") })
-  .with(GroundStock, {})
+  .with(StorageProvider, {})
   .with(OwnedByParty, { party: actorInput.reference("party") })
   .with(Visual, {
     sprite: actorInput.string("sprite"),
@@ -51,15 +51,32 @@ export const ColonyStoreActor = actor("colony.store")
   });
 
 export const ColonyPailActor = actor("colony.pail")
-  .with(MaterialLot, {
-    quantity: 1,
-    kind: "pail",
-    container: actorInput.reference("holder"),
-  })
   .with(Container, { capacity: 7 })
   .with(VesselCapability, { acceptsWater: true })
-  .with(OwnedByParty, { party: actorInput.reference("party") })
   .with(Visual, { sprite: "pail", label: "Pail" });
+
+export const ColonyKegActor = actor("colony.keg")
+  .with(Container, { capacity: 4 });
+
+export const ColonyBarmActor = actor("colony.barm")
+  .with(Container, { capacity: 1 });
+
+export const ColonyCatActor = actor("colony.cat")
+  .with(Position, {
+    x: actorInput.number("spawn-x"),
+    y: actorInput.number("spawn-y"),
+    z: actorInput.number("spawn-z"),
+    facing: 0,
+  })
+  .with(Body, { speed: 0.9 })
+  .with(Traversal, { clearanceCells: 1, maxStepCells: 1 })
+  .with(Cat, {
+    home: actorInput.reference("home"),
+    nextAt: 0,
+    seed: 1,
+    blockedUntil: 0,
+  })
+  .with(Visual, { sprite: "colony.cat", label: "Mallow" });
 
 /** Game-owned templates available to native lifecycle operations. */
 export const colonyActors = Object.freeze([
@@ -67,4 +84,7 @@ export const colonyActors = Object.freeze([
   ColonyWorkerActor,
   ColonyStoreActor,
   ColonyPailActor,
+  ColonyKegActor,
+  ColonyBarmActor,
+  ColonyCatActor,
 ]);

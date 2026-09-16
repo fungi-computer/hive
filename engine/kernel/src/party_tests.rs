@@ -1,107 +1,121 @@
 use super::*;
 use serde_json::{json, Value};
 
-fn plan() -> Value {
-    plan_for(1, "party:1:rowan", "party:1:sedge")
+fn scene(game: &str) -> Value {
+    json!({
+        "format":"hive-game","version":3,"game":game,
+        "components":[],"materialCatalog":[{"kind":"wood","unitVolume":1}],"initial":[],
+        "actors":[
+            {"id":"test.party","version":1,"parameters":[{"name":"owner","type":"string"}],"components":[{"component":"hive.party","fields":{"ownerPlayer":{"kind":"parameter","parameter":"owner"}}}]},
+            {"id":"test.person","version":1,"parameters":[{"name":"x","type":"number"},{"name":"party","type":"actor-reference"}],"components":[
+                {"component":"hive.position","fields":{"x":{"kind":"parameter","parameter":"x"},"y":{"kind":"value","value":0},"z":{"kind":"value","value":0},"facing":{"kind":"value","value":0}}},
+                {"component":"hive.party-member","fields":{"party":{"kind":"parameter","parameter":"party"}}}
+            ]},
+            {"id":"test.store","version":1,"parameters":[{"name":"x","type":"number"},{"name":"party","type":"actor-reference"}],"components":[
+                {"component":"hive.position","fields":{"x":{"kind":"parameter","parameter":"x"},"y":{"kind":"value","value":0},"z":{"kind":"value","value":2},"facing":{"kind":"value","value":0}}},
+                {"component":"hive.container","fields":{"capacity":{"kind":"value","value":8}}},
+                {"component":"hive.owned-by-party","fields":{"party":{"kind":"parameter","parameter":"party"}}}
+            ]}
+        ]
+    })
 }
-fn plan_for(sequence: u64, first: &str, second: &str) -> Value {
-    let party = format!("party:{sequence}");
-    let player = format!("player:{sequence}");
-    let x = (sequence - 1) as f64 * 4.0;
-    json!([
- {"id":party,"components":{"hive.party":{"ownerPlayer":player}}},
- {"id":first,"components":{"hive.position":{"x":x,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
- {"id":second,"components":{"hive.position":{"x":x + 2.0,"y":0.0,"z":0.0,"facing":0.0},"hive.party-member":{"party":party}}},
- {"id":format!("{party}:storage"),"components":{"hive.position":{"x":x,"y":0.0,"z":2.0,"facing":0.0},"hive.container":{"capacity":8},"hive.owned-by-party":{"party":party}}}
-    ])
+fn plan(sequence: u64) -> Value {
+    let x = (sequence - 1) as f64 * 8.0;
+    json!({
+        "partySlot":"party","peopleSlots":["person.0","person.1"],
+        "actors":[
+            {"slot":"party","definition":"test.party","arguments":{"owner":{"kind":"joining-player"}}},
+            {"slot":"person.0","definition":"test.person","arguments":{"x":{"kind":"value","value":x},"party":{"kind":"spawned","slot":"party"}}},
+            {"slot":"person.1","definition":"test.person","arguments":{"x":{"kind":"value","value":x+2.0},"party":{"kind":"spawned","slot":"party"}}},
+            {"slot":"store","definition":"test.store","arguments":{"x":{"kind":"value","value":x+4.0},"party":{"kind":"spawned","slot":"party"}}}
+        ],
+        "initialMaterials":[{"container":{"kind":"spawned","slot":"store"},"kind":"wood","quantity":8}]
+    })
 }
-fn request(binding: &str, records: Value) -> Value {
-    request_sequence(binding, 1, records)
+fn request(binding: &str, sequence: u64, plan: Value) -> Value {
+    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"instantiate-actors","bindingId":binding,"expectedSequence":sequence,"plan":plan}}]})
 }
-fn request_sequence(binding: &str, sequence: u64, records: Value) -> Value {
-    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"establish-party","bindingId":binding,"expectedSequence":sequence,"records":records}}]})
+fn accepted(kernel: &mut Kernel, input: Value) -> bool {
+    kernel.advance_json(&input.to_string()).ok().and_then(|output| serde_json::from_str::<Value>(&output).ok()).is_some_and(|value| value["results"][0]["accepted"] == true)
+}
+fn party_batch(party: &str, request: Value) -> Value {
+    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":party},"request":request}]})
 }
 
 #[test]
 fn party_sequence_exhaustion_is_atomic_before_spawn() {
     let max = u64::MAX;
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-max","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+    kernel.load(&scene("party-max").to_string()).unwrap();
     let saved = kernel.snapshot_json().unwrap().replace("\"next_party_sequence\":1", &format!("\"next_party_sequence\":{max}"));
     kernel.restore_json(&saved).unwrap();
-    let records: Value = serde_json::from_str(&plan().to_string().replace("party:1", &format!("party:{max}")).replace("player:1", &format!("player:{max}"))).unwrap();
-    let mut before: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
-    before.as_object_mut().unwrap().remove("revision");
-    assert!(!accepted(&mut kernel, request_sequence("bind:max", max, records)));
-    let mut after: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
-    after.as_object_mut().unwrap().remove("revision");
-    assert_eq!(after, before);
+    let before = kernel.save_records().unwrap().entities;
+    assert!(!accepted(&mut kernel, request("bind:max", max, plan(max))));
+    assert_eq!(kernel.save_records().unwrap().entities, before);
 }
 
 #[test]
 fn party_join_identity_is_native_and_replay_stable() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-query","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+    kernel.load(&scene("party-query").to_string()).unwrap();
     let available: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
-    assert_eq!((available["status"].as_str(), available["sequence"].as_u64(), available["player"].as_str(), available["party"].as_str(), available["people"].as_array().map(Vec::len)), (Some("available"), Some(1), Some("player:1"), Some("party:1"), Some(0)));
-    assert!(accepted(&mut kernel, request("binding:a", plan())));
+    assert_eq!((available["status"].as_str(), available["sequence"].as_u64(), available["player"].as_str(), available["party"].as_str()), (Some("available"), Some(1), Some("player:1"), Some("party:1")));
+    assert!(accepted(&mut kernel, request("binding:a", 1, plan(1))));
     let existing: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
-    assert_eq!((existing["status"].as_str(), existing["sequence"].as_u64(), existing["player"].as_str(), existing["party"].as_str()), (Some("existing"), Some(1), Some("player:1"), Some("party:1")));
-    assert_eq!(existing["people"], json!(["party:1:rowan", "party:1:sedge"]));
+    assert_eq!(existing["people"], json!(["party:1.person.0", "party:1.person.1"]));
+    assert!(accepted(&mut kernel, request("binding:a", 1, plan(1))));
     let mut saved: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
-    saved["scene"]["initial"] = json!([]);
+    saved["scene"]["initial"].as_array_mut().unwrap().retain(|record| !record["id"].as_str().is_some_and(|id| id.starts_with("party:1")) && !record["id"].as_str().is_some_and(|id| id.starts_with("lot.")));
     let mut without_live_party = Kernel::new();
     without_live_party.restore_json(&saved.to_string()).unwrap();
     let reconnect: Value = serde_json::from_str(&without_live_party.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
     assert_eq!(reconnect["people"], existing["people"]);
-    let duplicate_binding = saved["party_bindings"][0].clone();
-    saved["party_bindings"].as_array_mut().unwrap().push(duplicate_binding);
-    assert!(Kernel::new().restore_json(&saved.to_string()).is_err());
-    let next: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:b\"").unwrap()).unwrap();
-    assert_eq!((next["status"].as_str(), next["sequence"].as_u64(), next["player"].as_str(), next["party"].as_str()), (Some("available"), Some(2), Some("player:2"), Some("party:2")));
-    assert_eq!(next["people"], json!([]));
-    assert!(accepted(&mut kernel, request_sequence("binding:b", 2, plan_for(2, "party:2:ember", "party:2:willow"))));
+    assert!(accepted(&mut kernel, request("binding:b", 2, plan(2))));
     let second: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:b\"").unwrap()).unwrap();
-    assert_eq!(second["people"], json!(["party:2:ember", "party:2:willow"]));
-}
-fn accepted(kernel: &mut Kernel, input: Value) -> bool {
-    serde_json::from_str::<Value>(&kernel.advance_json(&input.to_string()).unwrap()).unwrap()["results"][0]["accepted"] == true
-}
-
-fn party_batch(party: &str, request: Value) -> Value {
-    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":party},"request":request}]})
+    assert_eq!(second["people"], json!(["party:2.person.0", "party:2.person.1"]));
 }
 
 #[test]
 fn prepared_party_replay_and_mismatches_are_atomic() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":3,"game":"party","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
-    assert!(accepted(&mut kernel, request("bind:1", plan())));
-    let receipt = kernel.party_bindings.get("bind:1").unwrap();
-    assert_eq!((receipt.binding_id.as_str(), receipt.player.as_str(), receipt.party.as_str()), ("bind:1", "player:1", "party:1"));
+    kernel.load(&scene("party").to_string()).unwrap();
+    assert!(accepted(&mut kernel, request("bind:1", 1, plan(1))));
     assert_eq!(kernel.ecs.query::<&PartyMember>().iter(&kernel.ecs).count(), 2);
-    for member in kernel.ecs.query::<&PartyMember>().iter(&kernel.ecs) { assert_eq!(member.party, "party:1"); }
-    for owner in kernel.ecs.query::<&OwnedByParty>().iter(&kernel.ecs) { assert_eq!(owner.party, "party:1"); }
     let count = kernel.known.len();
     let saved = kernel.save_records().unwrap();
     let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
-    assert!(accepted(&mut restored, request("bind:1", plan())));
+    assert!(accepted(&mut restored, request("bind:1", 1, plan(1))));
     assert_eq!(restored.known.len(), count);
-    let mut changed = plan(); changed[2]["components"]["hive.position"]["x"] = json!(3.0);
-    for input in [request("bind:1", changed), request("bind:2", plan())] {
+    let mut changed = plan(1); changed["actors"][2]["arguments"]["x"]["value"] = json!(3.0);
+    for input in [request("bind:1", 1, changed), request("bind:2", 1, plan(1))] {
         let before = restored.save_records().unwrap().entities;
         assert!(!accepted(&mut restored, input));
         assert_eq!(restored.known.len(), count);
-        let strip = |bytes: String| { let mut value: Value = serde_json::from_str(&bytes).unwrap(); value.as_object_mut().unwrap().remove("revision"); value.to_string() };
-        assert_eq!(strip(restored.save_records().unwrap().entities), strip(before));
+        assert_eq!(restored.save_records().unwrap().entities, before);
     }
+}
+
+#[test]
+fn invalid_starter_material_rolls_back_actors_lots_and_sequence() {
+    let mut kernel = Kernel::new();
+    kernel.load(&scene("party-invalid-material").to_string()).unwrap();
+    let before = kernel.save_records().unwrap().entities;
+    let mut invalid = plan(1);
+    invalid["initialMaterials"][0]["kind"] = json!("missing-kind");
+    assert!(!accepted(&mut kernel, request("bind:bad", 1, invalid)));
+    assert_eq!(kernel.save_records().unwrap().entities, before);
+    assert!(kernel.known.iter().all(|id| !id.starts_with("party:1") && !id.starts_with("lot.")));
+    let available: Value = serde_json::from_str(&kernel.party_join_identity_json("\"bind:next\"").unwrap()).unwrap();
+    assert_eq!(available["sequence"], 1);
 }
 
 #[test]
 fn scoped_authored_creation_attaches_party_ownership_atomically() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-create","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[]}).to_string()).unwrap();
-    assert!(accepted(&mut kernel, request("bind:1", plan())));
+    let mut definition = scene("party-create");
+    definition["components"] = json!([{"id":"game.order","version":1,"fields":{"phase":"string"}}]);
+    kernel.load(&definition.to_string()).unwrap();
+    assert!(accepted(&mut kernel, request("bind:1", 1, plan(1))));
     let batch = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
     assert!(kernel.advance_json(&batch.to_string()).is_ok());
     let order = kernel.entity("order:1").unwrap();

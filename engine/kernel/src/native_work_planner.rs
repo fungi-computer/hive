@@ -1006,7 +1006,7 @@ impl Kernel {
             lot_matches_material(lot, self.ecs.get::<LotWater>(*entity), &requirement.material)
                 && self.ecs.get::<OwnedByParty>(container).is_some_and(|owner| owner.party == requirement.party)
                 && self.ecs.get::<OwnedByParty>(*entity).is_some_and(|owner| owner.party == requirement.party)
-                && self.ecs.get::<GroundStock>(container).is_some()
+                && self.is_supply_source_container(container)
                 && self.ecs.get::<SealedContainer>(container).is_none()
                 && position.x.is_finite()
                 && lot.quantity.saturating_sub(crate::supply_allocation::reserved_source(self, &lot_id, None)) > 0
@@ -1184,7 +1184,7 @@ impl Kernel {
                     let source_party_ok = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || public_ground;
                     let lot_party_ok = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || (public_ground && self.ecs.get::<OwnedByParty>(entity).is_none());
                     if !source_party_ok || !lot_party_ok
-                        || self.ecs.get::<GroundStock>(container).is_none()
+                        || !self.is_supply_source_container(container)
                         || self.ecs.get::<SealedContainer>(container).is_some()
                     {
                         return None;

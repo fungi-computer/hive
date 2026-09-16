@@ -1,5 +1,5 @@
 import { component } from "./authoring";
-import type { ActionRequest, EntityId, EntityRecord } from "../contracts";
+import type { ActionRequest, ActorInstantiationPlan, EntityId } from "../contracts";
 
 /** Stable player ownership of one work/travel group. */
 export const Party = component<{ ownerPlayer: string }>("hive.party", {
@@ -19,10 +19,10 @@ export const OwnedByParty = component<{ party: EntityId }>(
   { version: 1, fields: { party: "entity" } },
 );
 
-export function establishParty(
+export function instantiateActors(
   bindingId: string,
   expectedSequence: number,
-  records: readonly EntityRecord[],
+  plan: ActorInstantiationPlan,
 ): ActionRequest {
-  return { kind: "establish-party", bindingId, expectedSequence, records };
+  return { kind: "instantiate-actors", bindingId, expectedSequence, plan };
 }

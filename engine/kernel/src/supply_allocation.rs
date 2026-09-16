@@ -119,7 +119,7 @@ pub(crate) fn validate_relations(kernel: &crate::world::Kernel) -> Result<(), St
                 });
                 let at_source = kernel.entity(&lot.container).ok().is_some_and(|container| {
                     let public_ground = kernel.ecs().get::<GroundStock>(container).is_some() && kernel.ecs().get::<OwnedByParty>(container).is_none();
-                    kernel.ecs().get::<GroundStock>(container).is_some()
+                    kernel.is_supply_source_container(container)
                         && (kernel.ecs().get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(allocation.party.as_str()) || public_ground)
                 });
                 if !at_worker && !at_source { return Err("reserved supply allocation has invalid custody".into()); }

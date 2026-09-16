@@ -26,7 +26,7 @@ import { FieldWaterWork, StagedProcess, requestProcess } from "../sdk/process-su
 import { GroundStock } from "../sdk/ground-stock";
 import { WorkParticipation } from "../sdk/work-control";
 import { OwnedByParty, Party, PartyMember } from "../sdk/party";
-import { Cat, catInitial, colonyCatSystem } from "./colony-cat";
+import { Cat, colonyCatSystem } from "./colony-cat";
 import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environment";
 import { ColonyTree, ColonyTreePolicy } from "./colony-work";
 import { ResourceOrder } from "../sdk/resource-work";
@@ -61,13 +61,14 @@ export const Guest = component<{ hungry: boolean }>("colony.guest", {
   fields: { hungry: "boolean" },
 });
 
-const localPartyPlan = createColonyPartyPlan("local", entity("colony.local-party"), { x: 0, y: 0, z: 0 });
-const workerOne = localPartyPlan.people[0];
+const localPartyPlan = createColonyPartyPlan({ x: 0, y: 0.5, z: 0 }, { cat: true });
+const localParty = entity("party:1");
+const workerOne = entity("party:1.person.0");
 const MAX_PARTY_SELECTION = 32;
 const guestId = entity("colony.guest.1");
-const pantryId = entity("colony.local-party.starter-store");
+const pantryId = entity("party:1.starter-store");
 const colonyLumberId = pantryId;
-const catId = entity("colony.cat.1");
+const catId = entity("party:1.cat.0");
 const trees = [
   { id: entity("colony.tree.oak"), x: 2, z: 2 },
   { id: entity("colony.tree.pine"), x: -5, z: 4 },
@@ -121,10 +122,7 @@ export function constructionStatusLabel(
   return "Waiting for materials or a free worker";
 }
 
-const catRecord = catInitial(catId, workerOne, { x: 1, y: 0, z: 1 });
 const colonyInitial = [
-  { ...catRecord, components: { ...catRecord.components, "hive.visual": { sprite: "colony.cat", label: "Mallow" } } },
-  ...localPartyPlan.records,
   {
     id: guestId,
     components: {
@@ -321,17 +319,20 @@ function digArea(input: z.infer<typeof digInput>, party: EntityId): ActionReques
 }
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 7,
-  localScope: { kind: "player", player: "local", party: entity("colony.local-party") },
+  version: 8,
+  localScope: { kind: "player", player: "player:1", party: localParty },
   components: colonyComponents,
   systems: [colonyCatSystem],
   partyJoin: Object.freeze({
     footprint: colonyPartyFootprint,
-    prepare: (player, party, spawn) => {
-      const plan = createColonyPartyPlan(player, party, spawn);
-      return Object.freeze({ records: plan.records, people: plan.people });
-    },
+    prepare: createColonyPartyPlan,
   }),
+  bootstrapActions: [{
+    kind: "instantiate-actors",
+    bindingId: "local.party",
+    expectedSequence: 1,
+    plan: localPartyPlan,
+  }],
   environmentDefinition: colonyEnvironmentDefinition,
   commands: {
     build: colonyBuildCommand,
@@ -807,8 +808,10 @@ export const colonyPack: GamePack = {
             const current = grouped.get(cell.zone) ?? { profile: cell.filterProfile, priority: cell.priority, contents: 0, capacity: 0, cells: [] };
             if (ground) {
               current.contents += total(ground.id);
-              current.capacity += ground.capacity;
             }
+            // A painted cell admits one ordinary ground stack even before its
+            // first lot creates the physical container.
+            current.capacity += ground?.capacity ?? 3;
             current.cells.push(row.id);
             grouped.set(cell.zone, current);
           }
@@ -881,6 +884,7 @@ const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
 export const colonyServerPack: GamePack = {
   ...colonyPack,
   localScope: undefined,
+  bootstrapActions: undefined,
   definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyMaterialCatalog, colonyStockpileProfiles, colonyActors),
   environmentDefinition: neutralColonyEnvironmentDefinition,
 };

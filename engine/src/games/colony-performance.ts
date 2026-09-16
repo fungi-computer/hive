@@ -37,24 +37,25 @@ export function createColonyPerformancePack(
   };
   const half = size / 2;
   const treeCount = 50;
+  initial.push({ id: "party:1", components: { "hive.party": { ownerPlayer: "player:1" } } });
   const existingTrees = initial.filter(record => record.components["colony.tree"]);
   const jobActions = existingTrees.map(record => {
     const id = record.id as import("../contracts").EntityId;
-    record.components["colony.tree-policy"] = { designated: true, party: "colony.local-party", job: null };
-    record.components["hive.owned-by-party"] = { party: "colony.local-party" };
+    record.components["colony.tree-policy"] = { designated: true, party: "party:1", job: null };
+    record.components["hive.owned-by-party"] = { party: "party:1" };
     return { kind: "create-job" as const, id: treeJob(id), plan: treePlan(id) };
   });
   const visualNames = ["colony.rowan", "colony.sedge"];
-  for (let index = 2; index < workerCount; index++) {
-    const id = `colony.worker.${index + 1}`;
+  for (let index = 0; index < workerCount; index++) {
+    const id = index < 2 ? `party:1.person.${index}` : `colony.worker.${index + 1}`;
     const [x, z] = reserveColumn(index);
     initial.push({ id, components: {
       "hive.position": { x, y: 0, z, facing: 0 },
       "hive.body": { speed: 2 }, "hive.container": { capacity: 3 },
       "hive.traversal": { clearanceCells: 1, maxStepCells: 1 },
       "hive.visual": { sprite: visualNames[index % visualNames.length], label: `Worker ${index + 1}` },
-      "hive.party-member": { party: "colony.local-party" },
-      "hive.owned-by-party": { party: "colony.local-party" },
+      "hive.party-member": { party: "party:1" },
+      "hive.owned-by-party": { party: "party:1" },
       "colony.worker": { guest: false }, "hive.work-participation": { automatic: true },
     } });
     placements.push({ entity: id, column: [x, z] });
@@ -65,8 +66,8 @@ export function createColonyPerformancePack(
     initial.push({ id, components: {
       "hive.position": { x, y: 0, z, facing: 0 }, "hive.container": { capacity: 6 },
       "colony.tree": { kind: "wood" }, "hive.finite-resource": { kind: "wood", quantity: 6 },
-      "hive.owned-by-party": { party: "colony.local-party" },
-      "colony.tree-policy": { designated: true, party: "colony.local-party", job: null },
+      "hive.owned-by-party": { party: "party:1" },
+      "colony.tree-policy": { designated: true, party: "party:1", job: null },
     } });
     const tree = id as import("../contracts").EntityId;
     jobActions.push({ kind: "create-job" as const, id: treeJob(tree), plan: treePlan(tree) });
@@ -81,9 +82,11 @@ export function createColonyPerformancePack(
   return {
     ...colonyPack,
     id: gameId,
+    localScope: { kind: "player", player: "player:1", party: "party:1" as import("../contracts").EntityId },
     version: colonyPack.version,
     definition: new TextEncoder().encode(JSON.stringify(definition)),
     environmentDefinition: new TextEncoder().encode(JSON.stringify(environment)),
+    bootstrapActions: undefined,
     initialActions: jobActions,
     presentationWindow: { minX: -32, maxX: 32, minZ: -32, maxZ: 32 },
     presentation: colonyPack.presentation && {

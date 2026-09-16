@@ -81,6 +81,35 @@ const jobPlan = (value: unknown): value is JobPlan => {
     keys.add(step.key); return true;
   });
 };
+const actorArgument = (value: unknown): boolean => {
+  if (!record(value) || typeof value.kind !== "string") return false;
+  if (value.kind === "joining-player") return exactKeys(value, ["kind"]);
+  if (value.kind === "spawned") return exactKeys(value, ["kind", "slot"]) && id(value.slot);
+  if (value.kind === "existing") return exactKeys(value, ["kind", "id"]) && id(value.id);
+  return value.kind === "value" && exactKeys(value, ["kind", "value"])
+    && (value.value === null || typeof value.value === "string" || typeof value.value === "boolean"
+      || (typeof value.value === "number" && Number.isFinite(value.value)));
+};
+const actorInstantiationPlan = (value: unknown): boolean => {
+  if (!record(value) || !exactKeys(value, ["actors", "initialMaterials", "partySlot", "peopleSlots"])
+    || !id(value.partySlot) || !Array.isArray(value.peopleSlots) || value.peopleSlots.length > 32
+    || !value.peopleSlots.every(id) || !Array.isArray(value.actors) || value.actors.length < 1 || value.actors.length > 32
+    || !Array.isArray(value.initialMaterials) || value.initialMaterials.length > 32) return false;
+  return value.actors.every(actor => record(actor)
+      && (exactKeys(actor, ["slot", "definition", "arguments"])
+        || exactKeys(actor, ["slot", "definition", "arguments", "surfaceColumn"]))
+      && id(actor.slot) && id(actor.definition) && record(actor.arguments)
+      && (!Object.hasOwn(actor, "surfaceColumn") || (Array.isArray(actor.surfaceColumn)
+        && actor.surfaceColumn.length === 2 && actor.surfaceColumn.every(coordinate)))
+      && Object.keys(actor.arguments).length <= 64 && Object.entries(actor.arguments).every(([name, argument]) => id(name) && actorArgument(argument)))
+    && value.initialMaterials.every(material => record(material)
+      && (exactKeys(material, ["container", "kind", "quantity"])
+        || exactKeys(material, ["container", "kind", "quantity", "actorDefinition", "arguments"]))
+      && actorArgument(material.container) && id(material.kind) && quantity(material.quantity)
+      && (!Object.hasOwn(material, "actorDefinition") || (id(material.actorDefinition) && record(material.arguments)
+        && Object.keys(material.arguments).length <= 64
+        && Object.entries(material.arguments).every(([name, argument]) => id(name) && actorArgument(argument)))));
+};
 const destination = (value: unknown): boolean =>
   record(value) && exactKeys(value, ["x", "y", "z", "frame"]) &&
   coordinate(value.x) && coordinate(value.y) && coordinate(value.z) &&
@@ -125,9 +154,9 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
-    case "establish-party":
-      keys = ["kind", "bindingId", "expectedSequence", "records"];
-      valid = id(action.bindingId) && typeof action.expectedSequence === "number" && Number.isSafeInteger(action.expectedSequence) && action.expectedSequence > 0 && Array.isArray(action.records) && action.records.length > 0 && action.records.length <= 32;
+    case "instantiate-actors":
+      keys = ["kind", "bindingId", "expectedSequence", "plan"];
+      valid = id(action.bindingId) && typeof action.expectedSequence === "number" && Number.isSafeInteger(action.expectedSequence) && action.expectedSequence > 0 && actorInstantiationPlan(action.plan);
       break;
     case "begin-work-attempt":
       keys = ["kind", "task", "worker", "party", "operation"];

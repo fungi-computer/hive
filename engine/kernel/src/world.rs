@@ -65,7 +65,6 @@ use serde::Serialize;
 use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
-use sha2::{Digest, Sha256};
 use crate::terrain_water::WaterExchangeDirection;
 use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
 use crate::work_planner::PlannerState;
@@ -73,6 +72,8 @@ use crate::work_candidates::NativeIndexes;
 #[cfg(test)]
 #[path = "party_tests.rs"]
 mod party_tests;
+#[path = "lifecycle.rs"]
+mod lifecycle;
 #[cfg(test)]
 #[path = "job_tests.rs"]
 mod job_tests;
@@ -2617,6 +2618,10 @@ impl Kernel {
                 self.ecs.get::<Lot>(*lot_entity).is_none_or(|lot| lot.kind == material)
             })
     }
+    pub(crate) fn is_supply_source_container(&self, entity: Entity) -> bool {
+        self.ecs.get::<GroundStock>(entity).is_some()
+            || self.ecs.get::<StorageProvider>(entity).is_some()
+    }
 
     /// Reserve one exact lot portion and the matching destination capacity.
     /// No quantity moves until the allocation's WorkAttempt performs pickup.
@@ -3389,6 +3394,9 @@ impl Kernel {
             {
                 self.visible_source_containers.insert(id.clone());
             }
+            if self.ecs.get::<StorageProvider>(*entity).is_some() {
+                self.visible_source_containers.insert(id.clone());
+            }
             if self.ecs.get::<SealedContainer>(*entity).is_some()
                 && self.ecs.get::<Container>(*entity).is_none()
             {
@@ -3546,12 +3554,12 @@ impl Kernel {
         let membership = ids.iter().map(|id| self.ids.contains_key(id)).collect::<Vec<_>>();
         serde_json::to_string(&membership).map_err(|e| e.to_string())
     }
-    fn apply_initial_surface_placements(&mut self, placements: &[crate::environment_definition::InitialSurfacePlacement]) -> Result<()> {
+    pub(super) fn place_entities_on_initial_surfaces(&mut self, placements: &[(String, [i64; 2])]) -> Result<()> {
         if placements.is_empty() {
             return Ok(());
         }
-        let entities: Vec<_> = placements.iter().map(|placement| {
-            let entity = self.entity(&placement.entity)?;
+        let entities: Vec<_> = placements.iter().map(|(id, column)| {
+            let entity = self.entity(id)?;
             if self.ecs.get::<Support>(entity).is_some() || self.ecs.get::<Destination>(entity).is_some()
                 || self.ecs.get::<Surface>(entity).is_some() || self.ecs.get::<ExcavationWork>(entity).is_some()
                 || self.routes.contains_key(&entity) || self.direct.contains_key(&entity)
@@ -3559,7 +3567,7 @@ impl Kernel {
                 return Err("initial placement entity has support, surface, excavation, or active route".into());
             }
             let position = *self.ecs.get::<Position>(entity).ok_or("initial placement entity has no position")?;
-            Ok((placement.entity.clone(), position, self.ecs.get::<Traversal>(entity).copied(), placement.column))
+            Ok((id.clone(), position, self.ecs.get::<Traversal>(entity).copied(), *column))
         }).collect::<Result<Vec<_>>>()?;
         let columns: Vec<_> = entities.iter().map(|(_, _, _, column)| (column[0], column[1])).collect();
         let resolved = {
@@ -3577,6 +3585,11 @@ impl Kernel {
         for (entity, position) in resolved { self.ecs.entity_mut(self.entity(&entity)?).insert(position); }
         self.rebuild_physical_indexes(true)?;
         Ok(())
+    }
+
+    fn apply_initial_surface_placements(&mut self, placements: &[crate::environment_definition::InitialSurfacePlacement]) -> Result<()> {
+        let placements = placements.iter().map(|placement| (placement.entity.clone(), placement.column)).collect::<Vec<_>>();
+        self.place_entities_on_initial_surfaces(&placements)
     }
 
     pub fn load_environment(&mut self, definition: &str) -> Result<()> {
@@ -4352,6 +4365,7 @@ impl Kernel {
             || batch.actions.iter().any(|action| {
                 let action = &action.request;
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
+                    | Action::InstantiateActors { .. }
                     | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::ContinueWorkAttempt { .. } | Action::CancelWork { .. }
                     | Action::CreateJob { .. } | Action::ResumeJob { .. } | Action::CancelJob { .. }
@@ -4432,7 +4446,8 @@ impl Kernel {
                 let ScopedAction { scope, request } = action;
                 let requires_atomic_action = matches!(
                     &request,
-                    Action::BeginWorkAttempt { .. }
+                    Action::InstantiateActors { .. }
+                        | Action::BeginWorkAttempt { .. }
                         | Action::RetargetWorkAttempt { .. }
                         | Action::InterruptWorkAttempt { .. }
                         | Action::AcknowledgeWorkAttempt { .. }
@@ -4719,7 +4734,6 @@ impl Kernel {
         self.contents.entry(prepared.container).or_default().insert(entity);
         prepared.lot_id
     }
-    #[cfg(test)]
     fn complete_material_output(&mut self, spec: MaterialOutputSpec) -> Result<String> {
         let prepared = self.prepare_material_output(spec)?;
         Ok(self.publish_material_output(prepared))
@@ -5734,44 +5748,9 @@ impl Kernel {
         }
         Ok(())
     }
-    fn establish_party(&mut self, binding_id: String, expected_sequence: u64, records: Vec<EntityRecord>) -> Result<String> {
-        if !valid_id(&binding_id) || expected_sequence == 0 || records.is_empty() || records.len() > 32 { return Err("invalid prepared party plan".into()); }
-        let player = format!("player:{expected_sequence}");
-        let party = format!("party:{expected_sequence}");
-        let digest = format!("{:x}", Sha256::digest(serde_json::to_vec(&records).map_err(|_| "invalid party plan encoding")?));
-        if let Some(receipt) = self.party_bindings.get(&binding_id) {
-            if receipt.sequence == expected_sequence && receipt.player == player && receipt.party == party && receipt.digest == digest { return Ok(party); }
-            return Err("party binding replay mismatch".into());
-        }
-        if expected_sequence != self.next_party_sequence { return Err("party sequence is stale".into()); }
-        let next_sequence = self.next_party_sequence.checked_add(1).ok_or("party sequence exhausted")?;
-        let mut ids = BTreeSet::new();
-        for record in &records { if !valid_id(&record.id) || !ids.insert(record.id.clone()) || self.ids.contains_key(&record.id) { return Err("party plan identity conflict".into()); } }
-        if !ids.contains(&party) { return Err("party plan lacks party entity".into()); }
-        let mut known = self.known.clone(); known.extend(ids.iter().cloned());
-        for record in &records { for (name, value) in &record.components { self.registry.validate(name, value, &known)?; } }
-        let party_record = records.iter().find(|record| record.id == party).ok_or("party plan lacks party entity")?;
-        if party_record.components.get("hive.party").and_then(|v| v.get("ownerPlayer")).and_then(|v| v.as_str()) != Some(player.as_str()) { return Err("party owner mismatch".into()); }
-        let mut positions = Vec::new();
-        for record in &records {
-            if let Some(owner) = record.components.get("hive.party-member").and_then(|v| v.get("party")).and_then(|v| v.as_str()).or_else(|| record.components.get("hive.owned-by-party").and_then(|v| v.get("party")).and_then(|v| v.as_str())) { if owner != party { return Err("party ownership mismatch".into()); } }
-            if let Some(p) = record.components.get("hive.position") { let x=p.get("x").and_then(|v|v.as_f64()).ok_or("invalid party position")?; let z=p.get("z").and_then(|v|v.as_f64()).ok_or("invalid party position")?; if positions.iter().any(|(a,b):&(f64,f64)| (a-x).abs()<0.75 && (b-z).abs()<0.75) { return Err("party plan positions collide".into()); } for existing in self.ecs.query::<&Position>().iter(&self.ecs) { if (existing.x-x).abs()<0.75 && (existing.z-z).abs()<0.75 { return Err("party position occupied".into()); } } positions.push((x,z)); }
-        }
-        let mut people = records.iter().filter_map(|record| {
-            (record.components.get("hive.party-member").and_then(|value| value.get("party")).and_then(|value| value.as_str()) == Some(party.as_str())).then_some(record.id.clone())
-        }).collect::<Vec<_>>();
-        people.sort();
-        let mut handles = Vec::new();
-        for record in records { let id = record.id; let entity = self.ecs.spawn(ExternalId(id.clone())).id(); for (name, value) in record.components { self.registry.insert(&mut self.ecs, entity, &name, &value)?; } handles.push((id, entity)); }
-        for (id, entity) in handles { self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_planner_index(&id); }
-        self.party_bindings.insert(PartyBinding { binding_id, sequence: expected_sequence, player, party: party.clone(), people, digest })?;
-        self.next_party_sequence = next_sequence;
-        self.refresh_state_weight(); Ok(party)
-    }
-
     fn apply_action(&mut self, action: Action, delta: f64, scope: &ActionScope) -> Result<ActionEffect> {
         match action {
-            Action::EstablishParty { binding_id, expected_sequence, records } => self.establish_party(binding_id, expected_sequence, records).map(ActionEffect::Entity),
+            Action::InstantiateActors { binding_id, expected_sequence, plan } => self.instantiate_actors(binding_id, expected_sequence, plan).map(ActionEffect::Entity),
             Action::BeginWorkAttempt { task, worker, party, operation } => self.begin_work_attempt(task, worker, party, operation).map(ActionEffect::Attempt),
             Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
@@ -5983,7 +5962,7 @@ impl Kernel {
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("scoped action party is not a party".into()); }
         let mut targets = Vec::new();
         match action {
-            Action::EstablishParty { .. } => return Err("party scope cannot establish a party".into()),
+            Action::InstantiateActors { .. } => return Err("party scope cannot instantiate actors".into()),
             Action::BeginWorkAttempt { task, worker, party: action_party, .. } => {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
                 let worker_entity = self.entity(worker)?;

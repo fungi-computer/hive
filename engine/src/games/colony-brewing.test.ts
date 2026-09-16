@@ -14,23 +14,21 @@ initSync({ module: readFileSync("engine/generated/hive_kernel_bg.wasm") });
 
 // This process-focused law supplies its own input fixture. The playable Colony
 // must grow mugwort through the tended-resource owner.
-const brewingDefinition = JSON.parse(
-  new TextDecoder().decode(colonyPack.definition),
-);
-brewingDefinition.initial.push({
-  id: "test.brew.mugwort",
-  components: {
-    "hive.lot": {
-      quantity: 1,
-      kind: "mugwort",
-      container: "colony.local-party.starter-store",
-    },
-    "hive.owned-by-party": { party: "colony.local-party" },
+const bootstrap = structuredClone(colonyPack.bootstrapActions![0]);
+if (bootstrap.kind !== "instantiate-actors") throw new Error("Colony bootstrap must instantiate actors");
+const brewingBootstrap = {
+  ...bootstrap,
+  plan: {
+    ...bootstrap.plan,
+    initialMaterials: [
+      ...bootstrap.plan.initialMaterials,
+      { container: { kind: "spawned" as const, slot: "starter-store" }, kind: "mugwort", quantity: 1 },
+    ],
   },
-});
+};
 const brewingPack = {
   ...colonyPack,
-  definition: new TextEncoder().encode(JSON.stringify(brewingDefinition)),
+  bootstrapActions: [brewingBootstrap],
 };
 
 function finishedStation(session: GameSession) {
@@ -47,6 +45,8 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
   try {
     const session = new GameSession({ port, pack: brewingPack });
     session.start();
+    const keg = session.query(query(MaterialLot)).find(row => row.get(MaterialLot).kind === "keg");
+    assert(keg, "starter lifecycle must create one keg through Materials");
     session.command("build", { catalog: "brew-station", orientation: "north", target: { cell: [1, 13, -1] } });
     for (let tick = 0; tick < 400 && !finishedStation(session); tick++) session.step(0.25);
     const station = finishedStation(session);
@@ -139,7 +139,7 @@ test("one brew request travels, ferments unattended, reassigns, and settles exac
         .filter(
           (lot) =>
             lot.kind === "ale" &&
-            lot.container === "colony.local-party.starter.keg",
+            lot.container === keg.id,
         )
         .reduce((sum, lot) => sum + lot.quantity, 0),
       4,

@@ -50,12 +50,12 @@ test("server Colony admits two starter parties into one generated world", () => 
       assert.equal(identity.status, "available");
       const spawn = session.findSafeSpawn(colonyServerPack.partyJoin!.footprint);
       assert.ok(spawn, `${bindingId} has no safe spawn`);
-      const plan = colonyServerPack.partyJoin!.prepare(identity.player, identity.party, spawn);
+      const plan = colonyServerPack.partyJoin!.prepare(spawn);
       session.request({
-        kind: "establish-party",
+        kind: "instantiate-actors",
         bindingId,
         expectedSequence: identity.sequence,
-        records: plan.records,
+        plan,
       });
       const outcome = session.step(0)[0];
       assert.equal(outcome?.accepted, true, `${bindingId}: ${outcome?.reason}`);
@@ -169,7 +169,7 @@ test("actual Colony water records commit with session and recover after failed S
     const command = { id: "step-1", command: { kind: "step", delta: 0.1 } };
     const receipt = dispatch(region, command);
     assert.equal(receipt.status, "applied");
-    assert.equal(region.readCommitted().state.session.tick, 1);
+    assert.equal(region.readCommitted().state.session.tick, 2, "fresh-world bootstrap and first simulation step are distinct commits");
     const saved = records(region);
     assert.ok(saved.some(record => record.key === "kernel/environment/water"));
     assert.equal(Object.hasOwn(region.readCommitted().state.session.kernel, "records"), false);

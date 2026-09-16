@@ -259,6 +259,16 @@ export class GameSession {
     this.port.load(this.pack.definition);
     if (this.pack.environmentDefinition)
       this.port.loadEnvironment(this.pack.environmentDefinition);
+    if (this.pack.bootstrapActions) {
+      const actions = this.pack.bootstrapActions.map((request): ScopedAction => ({
+        scope: { kind: "host" },
+        request,
+      }));
+      const initialized = this.port.advance(0, [], actions);
+      if (initialized.results.length !== actions.length || initialized.results.some(result => !result.accepted))
+        throw new Error(initialized.results.find(result => !result.accepted)?.reason ?? "initial action rejected");
+      this.tick = initialized.revision;
+    }
     if (this.pack.initialActions)
       this.pendingActions.push(...this.pack.initialActions.map((request): ScopedAction => ({ scope: { kind: "host" }, request })));
     this.poisoned = false;

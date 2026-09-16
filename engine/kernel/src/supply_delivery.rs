@@ -253,7 +253,7 @@ impl Kernel {
         let carried = self.carrier_worker(&lot.container).as_deref() == Some(worker);
         if !carried {
             let container = self.entity(&lot.container)?;
-            if self.ecs.get::<crate::components::GroundStock>(container).is_none() {
+            if !self.is_supply_source_container(container) {
                 return Err("failed supply portion has invalid custody".into());
             }
         }

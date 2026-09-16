@@ -548,6 +548,46 @@ pub struct ActorTemplate {
     pub parameters: Vec<ActorParameterDefinition>,
     pub components: Vec<ActorCapabilityTemplate>,
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum ActorArgument {
+    Value { value: serde_json::Value },
+    Spawned { slot: String },
+    Existing { id: String },
+    JoiningPlayer,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActorInstantiation {
+    pub slot: String,
+    pub definition: String,
+    pub arguments: BTreeMap<String, ActorArgument>,
+    #[serde(default)]
+    pub surface_column: Option<[i64; 2]>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InitialMaterialGrant {
+    pub container: ActorArgument,
+    pub kind: String,
+    pub quantity: u32,
+    #[serde(default, rename = "actorDefinition")]
+    pub actor_definition: Option<String>,
+    #[serde(default)]
+    pub arguments: BTreeMap<String, ActorArgument>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ActorInstantiationPlan {
+    pub actors: Vec<ActorInstantiation>,
+    pub initial_materials: Vec<InitialMaterialGrant>,
+    pub party_slot: String,
+    pub people_slots: Vec<String>,
+}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Snapshot {
@@ -647,7 +687,7 @@ where
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
-    EstablishParty { #[serde(rename = "bindingId")] binding_id: String, #[serde(rename = "expectedSequence")] expected_sequence: u64, records: Vec<EntityRecord> },
+    InstantiateActors { #[serde(rename = "bindingId")] binding_id: String, #[serde(rename = "expectedSequence")] expected_sequence: u64, plan: ActorInstantiationPlan },
     BeginWorkAttempt { task: String, worker: String, party: String, operation: crate::work_attempt::ActivityRef },
     RetargetWorkAttempt { task: String, generation: u64, sequence: u32, destination: Point },
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },

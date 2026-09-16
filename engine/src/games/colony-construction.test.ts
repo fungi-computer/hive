@@ -78,19 +78,21 @@ function joinServerParty(session: GameSession, bindingId: string) {
   assert.equal(identity.status, "available");
   const spawn = session.findSafeSpawn(colonyServerPack.partyJoin!.footprint);
   assert(spawn, `${bindingId} needs a safe Colony spawn`);
-  const plan = createColonyPartyPlan(identity.player, identity.party, spawn);
+  const plan = createColonyPartyPlan(spawn);
   session.request({
-    kind: "establish-party",
+    kind: "instantiate-actors",
     bindingId,
     expectedSequence: identity.sequence,
-    records: plan.records,
+    plan,
   });
   const outcome = session.step(0)[0];
   assert.equal(outcome?.accepted, true, `${bindingId}: ${outcome?.reason}`);
+  const committed = session.partyJoinIdentity(bindingId);
+  assert.equal(committed.status, "existing");
   return {
-    player: identity.player,
-    party: identity.party,
-    people: plan.people,
+    player: committed.player,
+    party: committed.party,
+    people: committed.people,
     scope: { kind: "player" as const, player: identity.player, party: identity.party },
   };
 }
@@ -226,7 +228,7 @@ test("actual Colony staircase supply assigns two concurrent native haul legs", (
     const session = new GameSession({ port, pack: colonyPack });
     session.start();
     session.command("build", { catalog: "timber-stair", orientation: "north", target: { cell: [1, 13, 0] } });
-    const workerIds = ["colony.local-party.person.0", "colony.local-party.person.1"] as const;
+    const workerIds = ["party:1.person.0", "party:1.person.1"] as const;
     let live = workerIds.flatMap(() => [] as NonNullable<ReturnType<typeof port.workAttemptForWorker>>[]);
     for (let tick = 0; tick < 1000; tick++) {
       session.step(0.01);
