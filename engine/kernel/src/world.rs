@@ -1134,9 +1134,7 @@ mod construction_tests {
                 at_site_contact: true,
                 components: vec![
                     ("hive.container".into(), record(&Container { capacity: 6 })),
-                    ("hive.stockpile-cell".into(), record(&StockpileCell {
-                        zone: "shelves".into(), priority: 4, filter_profile: "materials".into(),
-                    })),
+                    ("hive.storage-provider".into(), record(&StorageProvider {})),
                 ],
             }],
         };
@@ -1144,7 +1142,7 @@ mod construction_tests {
         definition["structures"]["catalog"][0]["onComplete"] = json!({
             "ports":[{"key":"storage","at":"site-contact","components":[
                 {"name":"hive.container","value":{"capacity":6}},
-                {"name":"hive.stockpile-cell","value":{"zone":"shelves","priority":4,"filterProfile":"materials"}}
+                {"name":"hive.storage-provider","value":{}}
             ]}]
         });
         environment.definition = definition.to_string();
@@ -1422,6 +1420,9 @@ mod construction_tests {
         install_floor_storage_recipe(&mut kernel);
         setup(&mut kernel, surface, &contact);
         kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
+        let storage_position = kernel.ecs.get::<Position>(kernel.entity("site-1:storage").unwrap()).unwrap().clone();
+        assert_eq!(kernel.storage_provider_candidates_at(&storage_position).map(|(id, _)| id).collect::<Vec<_>>(), vec!["site-1:storage"]);
+        assert_eq!(kernel.stockpile_policy_candidates_at(&storage_position).count(), 0);
 
         let stored = kernel.complete_material_output(MaterialOutputSpec {
             container: "site-1:storage".into(), kind: "stone-spoil".into(), quantity: 1, water_kg: None,
@@ -1446,6 +1447,8 @@ mod construction_tests {
         assert!(!kernel.known.contains("site-1"));
         assert!(!kernel.known.contains("site-1:storage"));
         assert!(!kernel.known.contains(&stored));
+        assert_eq!(kernel.storage_provider_candidates_at(&storage_position).count(), 0, "deconstruction must remove the physical provider index before despawn");
+        assert_eq!(kernel.stockpile_policy_candidates_at(&storage_position).count(), 0, "deconstruction must not leave a stale policy lookup");
         assert_eq!(kernel.quantity("worker-1"), 1);
         let saved = kernel.save_records().unwrap();
         let mut restored = Kernel::new(); restored.restore_records(&saved).unwrap();
@@ -1687,7 +1690,8 @@ mod construction_tests {
         assert_eq!(kernel.ecs.get::<ConstructionSite>(site).unwrap().phase, ConstructionPhase::Finished);
         assert_eq!(kernel.ecs.get::<Container>(port).unwrap().capacity, 6);
         assert_eq!(kernel.ecs.get::<Position>(port), kernel.ecs.get::<Position>(site));
-        assert_eq!(kernel.ecs.get::<StockpileCell>(port).unwrap().zone, "shelves");
+        assert!(kernel.ecs.get::<StockpileCell>(port).is_none(), "a physical shelf provider does not own painted policy");
+        assert!(kernel.ecs.get::<StorageProvider>(port).is_some());
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot.1").unwrap()).unwrap().quantity, 0);
 
         kernel.advance_json(r#"{"delta":1.0,"writes":[],"actions":[]}"#).unwrap();
@@ -1716,39 +1720,55 @@ mod construction_tests {
     #[test]
     fn native_stockpile_designation_creates_surface_cell_and_rejects_mixed_batch() {
         let (mut kernel, surface, _) = world();
-        let action = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}}]});
+        let action = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":2,"filterProfile":"materials"}]}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&action.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true);
         assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap().contains("zone-a"), true);
         let before = kernel.query_json("[\"hive.stockpile-cell\"]").unwrap();
-        let bad = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":2,"filterProfile":"materials","capacity":3}]}}]});
+        let bad = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":2,"filterProfile":"materials"}]}}]});
         let rejected: serde_json::Value = serde_json::from_str(&kernel.advance_json(&bad.to_string()).unwrap()).unwrap();
         assert_eq!(rejected["results"][0]["accepted"], false);
         assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap(), before);
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let position = Position { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 };
+        let ground = kernel.ecs.spawn((ExternalId("clear-ground".into()), position, Container { capacity: 3 }, GroundStock {}, OwnedByParty { party: "party".into() })).id();
+        kernel.ids.insert("clear-ground".into(), ground); kernel.known.insert("clear-ground".into()); kernel.contents.insert("clear-ground".into(), BTreeSet::new()); kernel.index_ground_stock("clear-ground", ground);
+        let lot = kernel.ecs.spawn((ExternalId("clear-lot".into()), Lot { kind: "wood".into(), quantity: 1, container: "clear-ground".into() })).id();
+        kernel.ids.insert("clear-lot".into(), lot); kernel.known.insert("clear-lot".into()); kernel.contents.get_mut("clear-ground").unwrap().insert(lot);
+        let clear = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"clear-stockpile","party":"party","zone":"zone-a","cells":[{"x":surface.x,"y":surface.y,"z":surface.z}]}}]});
+        let cleared: serde_json::Value = serde_json::from_str(&kernel.advance_json(&clear.to_string()).unwrap()).unwrap();
+        assert_eq!(cleared["results"][0]["accepted"], true);
+        assert!(!kernel.query_json("[\"hive.stockpile-cell\"]").unwrap().contains("zone-a"));
+        assert_eq!(kernel.ecs.get::<Lot>(lot).unwrap().container, "clear-ground");
+        assert_eq!(kernel.quantity_in_container("clear-ground"), 1);
     }
 
     #[test]
-    fn native_stockpile_capacity_transfer_shrink_and_restore_are_atomic() {
+    fn native_stockpile_transfer_shrink_and_restore_are_atomic() {
         let (mut kernel, surface, contact) = world();
         setup(&mut kernel, surface, &contact);
         kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[]}).to_string()).unwrap();
-        let designation = |zone: &str, cell: crate::generation::Cell, capacity: u32| json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":zone,"cells":[{"x":cell.x,"y":cell.y,"z":cell.z,"priority":2,"filterProfile":"materials","capacity":capacity}]}}]});
-        let ground = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", surface, 4).to_string()).unwrap()).unwrap();
+        let designation = |zone: &str, cell: crate::generation::Cell| json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":zone,"cells":[{"x":cell.x,"y":cell.y,"z":cell.z,"priority":2,"filterProfile":"materials"}]}}]});
+        let ground = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", surface).to_string()).unwrap()).unwrap();
         assert_eq!(ground["results"][0]["accepted"], true);
         let stockpile_id = ground["results"][0]["entityId"].as_str().unwrap();
-        let transfer = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"transfer","lot":"lot.2","from":"source","to":stockpile_id,"quantity":4}}]});
+        let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
+        let position = Position { x: surface.x as f64 * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 };
+        let ground_entity = kernel.ecs.spawn((ExternalId("ground.1".into()), position, Container { capacity: 4 }, GroundStock {}, OwnedByParty { party: "party".into() })).id();
+        kernel.ids.insert("ground.1".into(), ground_entity); kernel.known.insert("ground.1".into()); kernel.contents.insert("ground.1".into(), BTreeSet::new()); kernel.index_ground_stock("ground.1", ground_entity);
+        let containers: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.container\"]").unwrap()).unwrap();
+        assert!(containers.as_array().unwrap().iter().all(|row| row["id"] != stockpile_id), "designation capacity must not create a container");
+        let transfer = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"transfer","lot":"lot.2","from":"source","to":"ground.1","quantity":4}}]});
         let moved = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&transfer.to_string()).unwrap()).unwrap();
         assert_eq!(moved["results"][0]["accepted"], true);
         let cells: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.stockpile-cell\"]").unwrap()).unwrap();
         assert_eq!(cells[0]["components"]["hive.stockpile-cell"]["zone"], "ground-zone");
-        let containers: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.container\"]").unwrap()).unwrap();
-        assert_eq!(containers.as_array().unwrap().iter().find(|row| row["id"] == stockpile_id).unwrap()["components"]["hive.container"]["capacity"], 4);
         let lots: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.lot\"]").unwrap()).unwrap();
         assert_eq!(lots.as_array().unwrap().iter().find(|row| row["id"] == "lot.2").unwrap()["components"]["hive.lot"]["quantity"], 4);
-        assert_eq!(lots.as_array().unwrap().iter().find(|row| row["id"] == "lot.2").unwrap()["components"]["hive.lot"]["container"], stockpile_id);
+        assert_eq!(lots.as_array().unwrap().iter().find(|row| row["id"] == "lot.2").unwrap()["components"]["hive.lot"]["container"], "ground.1");
         let before_shrink = kernel.save_records().unwrap();
-        let shrink = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", surface, 3).to_string()).unwrap()).unwrap();
-        assert_eq!(shrink["results"][0]["accepted"], false);
+        let shrink = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&designation("ground-zone", surface).to_string()).unwrap()).unwrap();
+        assert_eq!(shrink["results"][0]["accepted"], true);
         let after_shrink = kernel.save_records().unwrap();
         let mut before_entities: serde_json::Value = serde_json::from_str(&before_shrink.entities).unwrap();
         let mut after_entities: serde_json::Value = serde_json::from_str(&after_shrink.entities).unwrap();
@@ -1757,7 +1777,7 @@ mod construction_tests {
         assert_eq!(after_entities, before_entities);
         assert_eq!(after_shrink.environment.as_ref().map(|(_, records)| (&records.header, &records.terrain, &records.water, &records.structures)), before_shrink.environment.as_ref().map(|(_, records)| (&records.header, &records.terrain, &records.water, &records.structures)));
         let before = kernel.query_json("[\"hive.stockpile-cell\"]").unwrap();
-        let mixed = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"ground-zone","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3},{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":4,"filterProfile":"materials","capacity":3}]}}]});
+        let mixed = json!({"delta":0.0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"designate-stockpile","party":"party","zone":"ground-zone","cells":[{"x":surface.x,"y":surface.y,"z":surface.z,"priority":4,"filterProfile":"materials"},{"x":surface.x,"y":surface.y+10,"z":surface.z,"priority":4,"filterProfile":"materials"}]}}]});
         let rejected = serde_json::from_str::<serde_json::Value>(&kernel.advance_json(&mixed.to_string()).unwrap()).unwrap();
         assert_eq!(rejected["results"][0]["accepted"], false);
         assert_eq!(kernel.query_json("[\"hive.stockpile-cell\"]").unwrap(), before);
@@ -2290,6 +2310,9 @@ pub struct Kernel {
     queries: BTreeMap<Vec<String>, QueryState<Entity>>,
     contents: BTreeMap<String, BTreeSet<Entity>>,
     visible_source_containers: BTreeSet<String>,
+    stockpile_policies_by_position: BTreeMap<(u64, u64, u64), BTreeSet<String>>,
+    ground_stocks_by_position: BTreeMap<(u64, u64, u64), BTreeSet<String>>,
+    storage_providers_by_position: BTreeMap<(u64, u64, u64), BTreeSet<String>>,
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     route_cost_failures: route_query::FailureCache,
     routes: BTreeMap<Entity, VecDeque<Point>>,
@@ -2381,7 +2404,7 @@ impl Kernel {
             }
             for port in &definition.on_complete.ports {
                 for (name, value) in &port.components {
-                    if crate::registry::Registry::is_physical(name) && !matches!(name.as_str(), "hive.container" | "hive.stockpile-cell" | "hive.emitter" | "hive.visual") {
+                    if crate::registry::Registry::is_physical(name) && !matches!(name.as_str(), "hive.container" | "hive.storage-provider" | "hive.stockpile-cell" | "hive.emitter" | "hive.visual") {
                         return Err(format!("physical component {name} cannot be installed on a completed structure port"));
                     }
                     self.registry.validate(name, value, &known)?;
@@ -2524,6 +2547,9 @@ impl Kernel {
             queries: BTreeMap::new(),
             contents: BTreeMap::new(),
             visible_source_containers: BTreeSet::new(),
+            stockpile_policies_by_position: BTreeMap::new(),
+            ground_stocks_by_position: BTreeMap::new(),
+            storage_providers_by_position: BTreeMap::new(),
             blocked_by_frame: BTreeMap::new(),
             route_cost_failures: route_query::FailureCache::default(),
             routes: BTreeMap::new(),
@@ -2594,6 +2620,13 @@ impl Kernel {
     pub(crate) fn quantity_in_container(&self, container: &str) -> u32 {
         self.contents.get(container).into_iter().flatten().filter_map(|entity| self.ecs.get::<Lot>(*entity)).filter(|lot| lot.container == container).fold(0, |total, lot| total.saturating_add(lot.quantity))
     }
+    pub(crate) fn ground_stock_accepts(&self, container: &str, material: &str) -> bool {
+        let Ok(entity) = self.entity(container) else { return false; };
+        self.ecs.get::<GroundStock>(entity).is_some()
+            && self.contents.get(container).into_iter().flatten().all(|lot_entity| {
+                self.ecs.get::<Lot>(*lot_entity).is_none_or(|lot| lot.kind == material)
+            })
+    }
 
     /// Reserve one exact lot portion and the matching destination capacity.
     /// No quantity moves until the allocation's WorkAttempt performs pickup.
@@ -2608,6 +2641,7 @@ impl Kernel {
         let lot = self.ecs.get::<Lot>(source).ok_or("supply portion is missing")?;
         if lot.kind != material { return Err("supply portion material mismatch".into()); }
         if self.ecs.get::<Container>(target).is_none() { return Err("supply destination is not a container".into()); }
+        if self.ecs.get::<GroundStock>(target).is_some() && !self.ground_stock_accepts(&destination, &material) { return Err("ground stock material is incompatible".into()); }
         let source_container = self.entity(&lot.container)?;
         let public_ground = self.ecs.get::<GroundStock>(source_container).is_some()
             && self.ecs.get::<OwnedByParty>(source_container).is_none();
@@ -3240,6 +3274,9 @@ impl Kernel {
     }
     fn rebuild_physical_indexes(&mut self, build_routes: bool) -> Result<()> {
         self.visible_source_containers.clear();
+        self.stockpile_policies_by_position.clear();
+        self.ground_stocks_by_position.clear();
+        self.storage_providers_by_position.clear();
         self.bound_process_lots = self.ids.values().filter_map(|entity| self.ecs.get::<crate::staged_process::ProcessBinding>(*entity).map(|binding| binding.lot.clone())).collect();
         self.blocked_by_frame.clear();
         self.routes.clear();
@@ -3331,13 +3368,32 @@ impl Kernel {
             }
             if self.ecs.get::<Container>(*entity).is_some() {
                 self.contents.entry(id.clone()).or_default();
+                if self.ecs.get::<StorageProvider>(*entity).is_some() {
+                    let position = position.ok_or("storage provider requires a position")?;
+                    self.storage_providers_by_position.entry(Self::position_key(position)).or_default().insert(id.clone());
+                }
             }
+            if let Some(policy) = self.ecs.get::<StockpileCell>(*entity) {
+                if self.ecs.get::<Container>(*entity).is_some() {
+                    return Err("stockpile policy cannot own a physical container".into());
+                }
+                let position = position.ok_or("stockpile policy requires a position")?;
+                self.stockpile_policies_by_position.entry(Self::position_key(position)).or_default().insert(id.clone());
+                let _ = policy;
+            }
+            if self.ecs.get::<GroundStock>(*entity).is_some() {
+                let position = position.ok_or("ground stock requires a position")?;
+                self.ground_stocks_by_position.entry(Self::position_key(position)).or_default().insert(id.clone());
+            }
+            if self.ecs.get::<StorageProvider>(*entity).is_some()
+                && (self.ecs.get::<Container>(*entity).is_none() || position.is_none())
+            { return Err("storage provider requires a positioned container".into()); }
             if self.ecs.get::<GroundStock>(*entity).is_some()
                 && (self.ecs.get::<Container>(*entity).is_none() || position.is_none()
                     || self.ecs.get::<Body>(*entity).is_some()) {
                 return Err("ground stock requires a positioned non-actor container".into());
             }
-            if (self.ecs.get::<GroundStock>(*entity).is_some() || self.ecs.get::<StockpileCell>(*entity).is_some())
+            if self.ecs.get::<GroundStock>(*entity).is_some()
                 && self.ecs.get::<Container>(*entity).is_some()
                 && position.is_some()
             {
@@ -4312,7 +4368,7 @@ impl Kernel {
                     | Action::ExtractResource { .. } | Action::EstablishResourceSite { .. } | Action::TendResourceSite { .. } | Action::DesignateStockpile { .. }
                     | Action::DesignateResource { .. }
                     | Action::RequestFieldWater { .. }
-                    | Action::UpdateStockpile { .. } | Action::Deconstruct { .. }
+                    | Action::UpdateStockpile { .. } | Action::ClearStockpile { .. } | Action::Deconstruct { .. }
                     | Action::PlanConstructions { .. }
                     | Action::ReplaceFloor { .. }
                     | Action::RequestProcess { .. } | Action::AdmitProcess { .. } | Action::ExchangeFieldWater { .. }
@@ -4516,12 +4572,105 @@ impl Kernel {
             .copied()
             .ok_or_else(|| format!("unknown entity {id}"))
     }
+    fn position_key(position: &Position) -> (u64, u64, u64) {
+        (position.x.to_bits(), position.y.to_bits(), position.z.to_bits())
+    }
+    pub(crate) fn stockpile_policy_candidates_at(&self, position: &Position) -> impl Iterator<Item = (String, StockpileCell)> + '_ {
+        self.stockpile_policies_by_position.get(&Self::position_key(position)).into_iter().flatten().filter_map(|id| {
+            let entity = self.entity(id).ok()?;
+            Some((id.clone(), self.ecs.get::<StockpileCell>(entity)?.clone()))
+        })
+    }
+    pub(crate) fn ground_stock_candidates_at(&self, position: &Position) -> impl Iterator<Item = (String, Entity)> + '_ {
+        self.ground_stocks_by_position.get(&Self::position_key(position)).into_iter().flatten().filter_map(|id| {
+            let entity = self.entity(id).ok()?;
+            Some((id.clone(), entity))
+        })
+    }
+    pub(crate) fn storage_provider_candidates_at(&self, position: &Position) -> impl Iterator<Item = (String, Entity)> + '_ {
+        self.storage_providers_by_position.get(&Self::position_key(position)).into_iter().flatten().filter_map(|id| {
+            let entity = self.entity(id).ok()?;
+            Some((id.clone(), entity))
+        })
+    }
+    fn index_stockpile_policy(&mut self, id: &str, entity: Entity) {
+        if let Some(position) = self.ecs.get::<Position>(entity) {
+            self.stockpile_policies_by_position.entry(Self::position_key(position)).or_default().insert(id.to_owned());
+        }
+    }
+    fn unindex_stockpile_policy(&mut self, id: &str, entity: Entity) {
+        if let Some(position) = self.ecs.get::<Position>(entity) {
+            let key = Self::position_key(position);
+            if let Some(ids) = self.stockpile_policies_by_position.get_mut(&key) {
+                ids.remove(id);
+                if ids.is_empty() { self.stockpile_policies_by_position.remove(&key); }
+            }
+        }
+    }
+    fn index_ground_stock(&mut self, id: &str, entity: Entity) {
+        if let Some(position) = self.ecs.get::<Position>(entity) {
+            self.ground_stocks_by_position.entry(Self::position_key(position)).or_default().insert(id.to_owned());
+        }
+    }
+    fn index_storage_provider(&mut self, id: &str, entity: Entity) {
+        if self.ecs.get::<StorageProvider>(entity).is_some() {
+            if let Some(position) = self.ecs.get::<Position>(entity) {
+                self.storage_providers_by_position.entry(Self::position_key(position)).or_default().insert(id.to_owned());
+            }
+        }
+    }
+    fn unindex_storage_provider(&mut self, id: &str, entity: Entity) {
+        if let Some(position) = self.ecs.get::<Position>(entity) {
+            let key = Self::position_key(position);
+            if let Some(ids) = self.storage_providers_by_position.get_mut(&key) {
+                ids.remove(id);
+                if ids.is_empty() { self.storage_providers_by_position.remove(&key); }
+            }
+        }
+    }
+    fn unindex_ground_stock(&mut self, id: &str, entity: Entity) {
+        if let Some(position) = self.ecs.get::<Position>(entity) {
+            let key = Self::position_key(position);
+            if let Some(ids) = self.ground_stocks_by_position.get_mut(&key) {
+                ids.remove(id);
+                if ids.is_empty() { self.ground_stocks_by_position.remove(&key); }
+            }
+        }
+    }
+    pub(crate) fn ensure_stockpile_destination(&mut self, policy_id: &str, quantity: u32) -> Result<String> {
+        if quantity == 0 { return Err("stockpile destination quantity must be positive".into()); }
+        let policy_entity = self.entity(policy_id)?;
+        self.ecs.get::<StockpileCell>(policy_entity).ok_or("stockpile destination policy is missing")?;
+        let position = *self.ecs.get::<Position>(policy_entity).ok_or("stockpile policy has no position")?;
+        let party = self.ecs.get::<OwnedByParty>(policy_entity).map(|owner| owner.party.clone()).ok_or("stockpile policy has no party")?;
+        let base = format!("stockpile-ground:{policy_id}");
+        if let Some(entity) = self.ids.get(&base).copied() {
+            if self.ecs.get::<GroundStock>(entity).is_some() { return Ok(base); }
+            return Err("stockpile destination identity is occupied".into());
+        }
+        if self.ground_stocks_by_position.get(&Self::position_key(&position)).is_some_and(|ids| !ids.is_empty()) {
+            return Err("stockpile ground stack is unavailable".into());
+        }
+        if self.ids.len() >= 16_384 { return Err("region entity capacity".into()); }
+        let entity = self.ecs.spawn((ExternalId(base.clone()), position, Container { capacity: stockpile_work::DEFAULT_GROUND_STACK_CAPACITY }, GroundStock {}, OwnedByParty { party })).id();
+        self.ids.insert(base.clone(), entity);
+        self.known.insert(base.clone());
+        self.contents.entry(base.clone()).or_default();
+        self.visible_source_containers.insert(base.clone());
+        self.index_ground_stock(&base, entity);
+        self.ground_stock_cleanup_pending = true;
+        self.refresh_state_weight();
+        Ok(base)
+    }
     fn prepare_material_output(&self, spec: MaterialOutputSpec) -> Result<PreparedMaterialOutput> {
         self.ensure_ready()?;
         if self.ids.len() >= 16384 { return Err("region entity capacity".into()); }
         let container = self.entity(&spec.container)?;
         if self.ecs.get::<SealedContainer>(container).is_some() {
             return Err("sealed container cannot receive material output".into());
+        }
+        if self.ecs.get::<GroundStock>(container).is_some() && !self.ground_stock_accepts(&spec.container, &spec.kind) {
+            return Err("ground stock material is incompatible".into());
         }
         let capacity = self.ecs.get::<Container>(container).ok_or("not a container")?.capacity;
         let quantity = self.quantity(&spec.container)
@@ -4563,6 +4712,7 @@ impl Kernel {
             self.ids.insert(ground.id.clone(), entity);
             self.known.insert(ground.id.clone());
             self.visible_source_containers.insert(ground.id.clone());
+            self.index_ground_stock(&ground.id, entity);
             self.contents.entry(ground.id).or_default();
         }
         let entity = if let Some(water) = prepared.water {
@@ -4645,6 +4795,7 @@ impl Kernel {
             self.known.remove(id);
             self.visible_source_containers.remove(id);
             self.contents.remove(id);
+            self.unindex_ground_stock(id, entity);
             self.ecs.despawn(entity);
         }
         self.refresh_state_weight();
@@ -4872,7 +5023,7 @@ impl Kernel {
         let mut seen = BTreeSet::new();
         let mut prepared = Vec::with_capacity(cells.len());
         for cell in cells {
-            if !valid_id(&cell.filter_profile) || cell.capacity == 0 || !seen.insert((cell.x, cell.y, cell.z)) { return Err("invalid or duplicate stockpile cell".into()); }
+            if !valid_id(&cell.filter_profile) || !seen.insert((cell.x, cell.y, cell.z)) { return Err("invalid or duplicate stockpile cell".into()); }
             let generated = environment.world.surface_cells(&[(i64::from(cell.x), i64::from(cell.z))])?.into_iter().next().flatten();
             let generated_ok = generated.is_some_and(|surface| surface.cell.y == cell.y);
             let structural_ok = !generated_ok && environment.world.structure_surfaces(&[(i64::from(cell.x), i64::from(cell.z))])?.into_iter().flatten().any(|surface| surface.x == i64::from(cell.x) && surface.y == cell.y && surface.z == i64::from(cell.z));
@@ -4884,7 +5035,6 @@ impl Kernel {
         }
         for (id, cell) in &prepared {
             if let Some(entity) = self.ids.get(id).copied() {
-                if self.quantity(id) > u64::from(cell.capacity) { return Err("stockpile capacity is below contained lots".into()); }
                 if self.ecs.get::<StockpileCell>(entity).is_some_and(|old| old.zone != zone) { return Err("stockpile identity belongs to another zone".into()); }
                 if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) { return Err("stockpile cell belongs to another party".into()); }
             }
@@ -4892,15 +5042,15 @@ impl Kernel {
             let policy = StockpileCell { zone: zone.clone(), priority: cell.priority, filter_profile: cell.filter_profile.clone() };
             let owner = OwnedByParty { party: party.clone() };
             let entity = if let Some(entity) = self.ids.get(id).copied() {
-                self.ecs.entity_mut(entity).insert((position, Container { capacity: cell.capacity }, policy, owner));
+                self.ecs.entity_mut(entity).insert((position, policy, owner));
                 entity
             } else {
-                let entity = self.ecs.spawn((ExternalId(id.clone()), position, Container { capacity: cell.capacity }, policy, owner)).id();
-                self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.contents.entry(id.clone()).or_default();
+                let entity = self.ecs.spawn((ExternalId(id.clone()), position, policy, owner)).id();
+                self.ids.insert(id.clone(), entity); self.known.insert(id.clone());
                 entity
             };
+            self.index_stockpile_policy(id, entity);
             stockpile_work::install_planner_state(self, &id, entity)?;
-            self.visible_source_containers.insert(id.clone());
         }
         self.refresh_state_weight();
         Ok(prepared[0].0.clone())
@@ -4922,6 +5072,42 @@ impl Kernel {
             if let Some(schedule) = schedule { self.ecs.entity_mut(entity).insert(schedule); }
             let id = self.external_id(entity)?;
             stockpile_work::install_planner_state(self, &id, entity)?;
+        }
+        self.refresh_state_weight();
+        Ok(zone)
+    }
+
+    fn stockpile_clear_ids(&self, party: &str, zone: &str, cells: &[StockpileCellCoordinate]) -> Result<BTreeSet<String>> {
+        if !valid_id(party) || !valid_id(zone) || cells.is_empty() || cells.len() > 256 { return Err("invalid stockpile clear".into()); }
+        let spacing = self.environment.as_ref().ok_or("stockpile clear requires generated terrain")?.world.cell_spacing_m();
+        let mut policy_ids = BTreeSet::new();
+        for cell in cells {
+            let position = Position { x: f64::from(cell.x) * spacing[0], y: (f64::from(cell.y) + 0.5) * spacing[1], z: f64::from(cell.z) * spacing[2], facing: 0.0 };
+            let Some(id) = self.stockpile_policy_candidates_at(&position).find_map(|(id, policy)| (policy.zone == zone).then_some(id)) else { return Err("stockpile clear cell is not in the requested zone".into()); };
+            let entity = self.entity(&id)?;
+            if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) { return Err("stockpile cell belongs to another party".into()); }
+            if !policy_ids.insert(id) { return Err("duplicate stockpile clear cell".into()); }
+        }
+        Ok(policy_ids)
+    }
+
+    fn clear_stockpile(&mut self, party: String, zone: String, cells: Vec<StockpileCellCoordinate>) -> Result<String> {
+        if !valid_id(&party) || !valid_id(&zone) { return Err("invalid stockpile clear".into()); }
+        let party_entity = self.entity(&party)?;
+        if self.ecs.get::<Party>(party_entity).is_none() { return Err("stockpile party is not a party".into()); }
+        let policy_ids = self.stockpile_clear_ids(&party, &zone, &cells)?;
+        stockpile_work::cancel_unpicked_for_cells(self, &policy_ids)?;
+        for id in policy_ids {
+            let entity = self.entity(&id)?;
+            let id = self.external_id(entity)?;
+            // Clear only policy/schedule/index state. Ground stacks, providers,
+            // and lots remain ordinary physical entities at their positions.
+            self.unindex_stockpile_policy(&id, entity);
+            self.ids.remove(&id);
+            self.known.remove(&id);
+            self.contents.remove(&id);
+            self.planner_indexes.refresh_entity(&self.ecs, &id, None);
+            self.ecs.despawn(entity);
         }
         self.refresh_state_weight();
         Ok(zone)
@@ -5610,6 +5796,7 @@ impl Kernel {
             }
             Action::DesignateStockpile { party, zone, cells } => self.designate_stockpile(party, zone, cells).map(ActionEffect::Entity),
             Action::UpdateStockpile { party, zone, filter_profile, priority } => self.update_stockpile(party, zone, filter_profile, priority).map(ActionEffect::Entity),
+            Action::ClearStockpile { party, zone, cells } => self.clear_stockpile(party, zone, cells).map(ActionEffect::Entity),
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station, scope).map(ActionEffect::Entity),
             Action::AdmitProcess { process, definition, station } => self.admit_process(&process, &definition, &station).map(ActionEffect::Entity),
             Action::CancelWork { entity } => {
@@ -5842,6 +6029,10 @@ impl Kernel {
                 if action_party != party { return Err("scoped action party mismatch".into()); }
                 let cells: Vec<_> = self.ids.values().copied().filter(|entity| self.ecs.get::<StockpileCell>(*entity).is_some_and(|cell| cell.zone == *zone)).collect();
                 if cells.is_empty() || cells.iter().any(|entity| self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(party.as_str())) { return Err("scoped stockpile zone is outside party".into()); }
+            }
+            Action::ClearStockpile { party: action_party, zone, cells } => {
+                if action_party != party { return Err("scoped action party mismatch".into()); }
+                self.stockpile_clear_ids(party, zone, cells)?;
             }
             Action::CancelWork { entity } | Action::Move { entity, .. } | Action::BeginDirect { entity, .. } | Action::DirectInput { entity, .. } | Action::Displace { entity, .. } => targets.push(entity.as_str()),
             Action::Deconstruct { worker, site } | Action::SetStructureOpen { worker, site, .. } => { targets.push(worker.as_str()); targets.push(site.as_str()); }
@@ -6257,6 +6448,7 @@ impl Kernel {
         self.ids.insert(id.clone(), ground);
         self.known.insert(id.clone());
         self.visible_source_containers.insert(id.clone());
+        self.index_ground_stock(&id, ground);
         self.contents.entry(actor_id.into()).or_default().remove(&lot_entity);
         self.contents.entry(id).or_default().insert(lot_entity);
         self.ecs.entity_mut(lot_entity).insert(lot);
@@ -6297,6 +6489,9 @@ impl Kernel {
             .capacity;
         if stock.container != from || stock.quantity < quantity {
             return Err("stock is not available at source".into());
+        }
+        if self.ecs.get::<GroundStock>(dest).is_some() && !self.ground_stock_accepts(to, &stock.kind) {
+            return Err("ground stock material is incompatible".into());
         }
         crate::supply_allocation::validate_capacity(self, e, dest, quantity, ignored_reservation)?;
         if self.quantity(to) + u64::from(quantity) > u64::from(capacity) {

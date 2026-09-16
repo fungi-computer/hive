@@ -1,6 +1,9 @@
 import { command, entity, query } from "../sdk/authoring";
-import { designateStockpile, updateStockpile } from "../sdk/stockpile";
+import { clearStockpile, designateStockpile, updateStockpile } from "../sdk/stockpile";
 import { StockpileCell } from "../sdk/stockpile";
+import { Position } from "../sdk/common";
+import { colonyEnvironment } from "./colony-environment";
+import type { GameCommandContext } from "../contracts";
 import { z } from "zod";
 
 const cell = z.tuple([
@@ -15,8 +18,6 @@ export const colonyStockpileInputSchema = z.object({
   priority: z.number().int().min(1).max(100),
 }).strict();
 export const colonyStockpilePolicyInputSchema = z.object({ cell: z.string().min(1).max(128), filterProfile: z.enum(["wood", "food", "spoil"]).optional(), priority: z.number().int().min(1).max(100).optional() }).strict().refine(value => value.filterProfile !== undefined || value.priority !== undefined, { message: "Choose a stockpile profile or priority" });
-
-const STOCKPILE_CAPACITY = 6;
 
 function cellsFor(areaValue: z.infer<typeof area>): readonly { x: number; y: number; z: number }[] {
   const [startX, y, startZ] = areaValue.start;
@@ -36,6 +37,15 @@ function zoneFor(areaValue: z.infer<typeof area>) {
   const z1 = Math.max(areaValue.start[2], areaValue.end[2]);
   return entity(`colony.stockpile.${x0}.${areaValue.start[1]}.${z0}.${x1}.${z1}`);
 }
+function zoneForExistingArea(context: GameCommandContext, areaValue: z.infer<typeof area>) {
+  const cells = cellsFor(areaValue);
+  const row = context.query(query(StockpileCell, Position)).find(candidate => {
+    const position = candidate.get(Position);
+    const coordinate = { x: Math.round(position.x), y: Math.floor(position.y / colonyEnvironment.world.verticalMetres), z: Math.round(position.z) };
+    return cells.some(cell => cell.x === coordinate.x && cell.y === coordinate.y && cell.z === coordinate.z);
+  });
+  return row ? entity(row.get(StockpileCell).zone) : zoneFor(areaValue);
+}
 
 /** Colony chooses the bounded profile; native stockpile admission owns floor/conflict atomicity. */
 export const colonyStockpileCommand = command({
@@ -52,9 +62,19 @@ export const colonyStockpileCommand = command({
         ...cell,
         priority: value.priority,
         filterProfile: value.filterProfile,
-        capacity: STOCKPILE_CAPACITY,
       })))],
     };
+  },
+});
+
+export const colonyStockpileClearCommand = command({
+  title: "Clear stockpile", category: "Storage", description: "Remove the painted stockpile policy while preserving physical goods.",
+  localPresentation: { bindings: [{ id: "clear-stockpile", label: "Clear stockpile", target: "terrain-area", designation: ["rectangle"] as const }] },
+  input: z.object({ area }).strict(),
+  reads: [], writes: [],
+  run: (context, value) => {
+    if (context.scope.kind !== "player") throw new Error("stockpile clear requires a player party");
+    return { writes: [], actions: [clearStockpile(context.scope.party, zoneForExistingArea(context, value.area), cellsFor(value.area))] };
   },
 });
 

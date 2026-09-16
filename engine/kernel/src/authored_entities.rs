@@ -176,6 +176,9 @@ impl Kernel {
         for id in prepared.removes {
             let entity = self.ids.remove(&id).expect("prepared authored removal");
             self.known.remove(&id);
+            self.unindex_stockpile_policy(&id, entity);
+            self.unindex_storage_provider(&id, entity);
+            self.unindex_ground_stock(&id, entity);
             self.ecs.despawn(entity);
         }
         for row in prepared.creates {
