@@ -14,12 +14,14 @@ use std::{
 pub struct Registry {
     pub schemas: BTreeMap<String, Schema>,
     pub ids: BTreeMap<String, ComponentId>,
+    pub actors: BTreeMap<String, ActorTemplate>,
 }
 impl Registry {
-    pub fn new(world: &mut World, schemas: Vec<Schema>) -> Result<Self> {
+    pub fn new(world: &mut World, schemas: Vec<Schema>, actors: Vec<ActorTemplate>) -> Result<Self> {
         let mut this = Self {
             schemas: BTreeMap::new(),
             ids: BTreeMap::new(),
+            actors: BTreeMap::new(),
         };
         if schemas.len() > 128 {
             return Err("too many schemas".into());
@@ -259,7 +261,61 @@ impl Registry {
             };
             this.ids.insert(name.clone(), id);
         }
+        if actors.len() > 256 { return Err("too many actor templates".into()); }
+        for actor in actors {
+            Self::validate_actor(&this.schemas, &actor)?;
+            if this.actors.insert(actor.id.clone(), actor).is_some() {
+                return Err("duplicate actor template".into());
+            }
+        }
         Ok(this)
+    }
+    fn validate_actor(schemas: &BTreeMap<String, Schema>, actor: &ActorTemplate) -> Result<()> {
+        if !valid_id(&actor.id) || actor.version == 0 || actor.parameters.len() > 64 || actor.components.is_empty() || actor.components.len() > 32 {
+            return Err("invalid actor template".into());
+        }
+        let mut parameters = BTreeMap::new();
+        for parameter in &actor.parameters {
+            if !valid_id(&parameter.name) || parameters.insert(parameter.name.clone(), parameter.parameter_type.clone()).is_some() {
+                return Err("invalid actor parameter".into());
+            }
+        }
+        let mut components = BTreeSet::new();
+        for capability in &actor.components {
+            let schema = schemas.get(&capability.component).ok_or("actor template component is not registered")?;
+            if !components.insert(capability.component.clone()) || capability.fields.len() != schema.fields.len() || capability.fields.keys().ne(schema.fields.keys()) {
+                return Err("invalid actor capability template".into());
+            }
+            for (field, binding) in &capability.fields {
+                let field_type = schema.fields.get(field).ok_or("actor template field is not registered")?;
+                match binding {
+                    ActorFieldBinding::Value { value } => if !Self::template_value_fits(field_type, value) { return Err("invalid actor template value".into()); },
+                    ActorFieldBinding::Parameter { parameter } => {
+                        let parameter_type = parameters.get(parameter).ok_or("actor template parameter is not declared")?;
+                        if !Self::template_parameter_fits(parameter_type, field_type) { return Err("actor template parameter type mismatch".into()); }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+    fn template_value_fits(field_type: &FieldType, value: &serde_json::Value) -> bool {
+        match field_type {
+            FieldType::Number => value.as_f64().is_some_and(f64::is_finite),
+            FieldType::Boolean => value.is_boolean(),
+            FieldType::String => value.is_string(),
+            FieldType::Entity => value.as_str().is_some_and(valid_id),
+            FieldType::NullableEntity => value.is_null() || value.as_str().is_some_and(valid_id),
+        }
+    }
+    fn template_parameter_fits(parameter: &ActorParameterType, field: &FieldType) -> bool {
+        matches!((parameter, field),
+            (ActorParameterType::Number, FieldType::Number)
+            | (ActorParameterType::Boolean, FieldType::Boolean)
+            | (ActorParameterType::String, FieldType::String)
+            | (ActorParameterType::Entity, FieldType::Entity)
+            | (ActorParameterType::NullableEntity, FieldType::NullableEntity)
+            | (ActorParameterType::ActorReference, FieldType::Entity))
     }
     pub fn is_physical(name: &str) -> bool {
         matches!(
@@ -744,5 +800,66 @@ impl Registry {
 unsafe fn drop_record(ptr: OwningPtr<'_>) {
     unsafe {
         ptr.drop_as::<AuthoredRecord>();
+    }
+}
+
+#[cfg(test)]
+mod actor_template_tests {
+    use super::*;
+    use serde_json::json;
+
+    fn position_template() -> ActorTemplate {
+        ActorTemplate {
+            id: "test.worker".into(),
+            version: 1,
+            parameters: vec![
+                ActorParameterDefinition { name: "spawn-x".into(), parameter_type: ActorParameterType::Number },
+                ActorParameterDefinition { name: "spawn-z".into(), parameter_type: ActorParameterType::Number },
+            ],
+            components: vec![ActorCapabilityTemplate {
+                component: "hive.position".into(),
+                fields: BTreeMap::from([
+                    ("facing".into(), ActorFieldBinding::Value { value: json!(0) }),
+                    ("x".into(), ActorFieldBinding::Parameter { parameter: "spawn-x".into() }),
+                    ("y".into(), ActorFieldBinding::Value { value: json!(0) }),
+                    ("z".into(), ActorFieldBinding::Parameter { parameter: "spawn-z".into() }),
+                ]),
+            }],
+        }
+    }
+
+    fn registry_error(actor_templates: Vec<ActorTemplate>) -> String {
+        match Registry::new(&mut World::new(), vec![], actor_templates) {
+            Ok(_) => panic!("expected actor template rejection"),
+            Err(error) => error,
+        }
+    }
+
+    #[test]
+    fn registry_accepts_complete_checked_actor_template() {
+        let mut world = World::new();
+        let registry = Registry::new(&mut world, vec![], vec![position_template()]).unwrap();
+        assert!(registry.actors.contains_key("test.worker"));
+    }
+
+    #[test]
+    fn registry_rejects_actor_template_with_undeclared_or_wrong_parameter() {
+        let mut undeclared = position_template();
+        undeclared.parameters.clear();
+        assert!(registry_error(vec![undeclared]).contains("not declared"));
+
+        let mut wrong = position_template();
+        wrong.parameters[0].parameter_type = ActorParameterType::String;
+        assert!(registry_error(vec![wrong]).contains("type mismatch"));
+    }
+
+    #[test]
+    fn registry_rejects_incomplete_and_duplicate_actor_templates() {
+        let mut incomplete = position_template();
+        incomplete.components[0].fields.remove("facing");
+        assert!(registry_error(vec![incomplete]).contains("invalid actor capability"));
+
+        let actor = position_template();
+        assert!(registry_error(vec![actor.clone(), actor]).contains("duplicate actor template"));
     }
 }

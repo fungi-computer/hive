@@ -155,7 +155,7 @@ mod native_planner_snapshot_tests {
     #[test]
     fn planner_cursor_roundtrips_and_invalid_width_is_rejected() {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"planner","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"planner","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.work-participation":{"automatic":true}}},
             {"id":"task","components":{"hive.work-policy":{"party":"party","priority":3,"enabled":true},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
@@ -195,7 +195,7 @@ mod work_attempt_laws {
 
     fn world() -> Kernel {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"attempts","components":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[
             {"id":"game.task-state","version":1,"fields":{"phase":"string"}}
         ],"materialCatalog":[], "initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"game.task-state":{"phase":"queued"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
@@ -221,7 +221,7 @@ mod work_attempt_laws {
     #[test]
     fn begin_rejects_a_task_owned_by_another_party() {
         let mut kernel = world();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"attempts","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"other"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
@@ -322,7 +322,7 @@ mod work_attempt_laws {
 
     fn material_kernel(destination_capacity: u32, destination_x: f64, quantity: u32) -> (Kernel, u64) {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"attempts","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
@@ -355,7 +355,7 @@ mod work_attempt_laws {
     #[test]
     fn material_transfer_continuation_is_party_owned_and_exactly_once() {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"attempts","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
@@ -386,7 +386,7 @@ mod work_attempt_laws {
     #[test]
     fn material_transfer_allows_source_to_worker_pickup_only() {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"pickup","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"pickup","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"}}},
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
@@ -419,7 +419,7 @@ mod ground_stock_cleanup_tests {
     fn work_material_snapshot_compacts_native_custody_and_capacity_facts() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"work-material-facts",
+            "format":"hive-game", "version":3, "game":"work-material-facts",
             "components":[], "materialCatalog":[], "initial":[
                 {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
                 {"id":"sealed","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":4},"hive.sealed-container":{}}},
@@ -437,7 +437,7 @@ mod ground_stock_cleanup_tests {
     fn authored_reference_retains_ground_stock_until_removal_then_cleanup_releases_it() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"ground-cleanup",
+            "format":"hive-game", "version":3, "game":"ground-cleanup",
             "components":[{"id":"game.delivery","version":1,"fields":{"source":"entity"}}],
             "materialCatalog":[], "initial":[
                 {"id":"ground.1","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":3},"hive.ground-stock":{}}},
@@ -455,7 +455,7 @@ mod ground_stock_cleanup_tests {
     fn actor_drop_keeps_lot_at_supported_pose_across_recovery() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"ground-drop",
+            "format":"hive-game", "version":3, "game":"ground-drop",
             "components":[],
             "materialCatalog":[], "initial":[
                 {"id":"platform","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.surface":{"minX":0.0,"maxX":4.0,"minZ":0.0,"maxZ":4.0,"height":1.0}}},
@@ -490,7 +490,7 @@ mod process_request_tests {
 
     pub(super) fn kernel_with_slot() -> Kernel {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"process-request","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"process-request","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
         kernel.load_environment(&crate::environment_definition::tests::fixture("process-request")).unwrap();
         let station = kernel.ecs.spawn((ExternalId("station".into()), Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Container { capacity: 8 }, SealedContainer {}, ConstructionSite { catalog: "floor".into(), target: ConstructionTarget::Cell { cell: crate::generation::Cell { x: 0, y: 0, z: 0 }, orientation: crate::structure_geometry::Cardinal::North }, seconds: 1.0, phase: ConstructionPhase::Finished })).id();
         kernel.ids.insert("station".into(), station); kernel.known.insert("station".into());
@@ -692,7 +692,7 @@ mod water_exchange_action_tests {
 
     fn kernel() -> Kernel {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"water-action-laws","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"water-action-laws","components":[],"materialCatalog":[],"initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.container":{"capacity":8}}},
             {"id":"pail","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.vessel-capability":{"acceptsWater":true},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}}
         ]}).to_string()).unwrap();
@@ -764,7 +764,7 @@ mod construction_tests {
     fn world() -> (Kernel, crate::generation::Cell, Point) {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"construction",
+            "format":"hive-game", "version":3, "game":"construction",
             "components":[], "materialCatalog":[{"kind":"wood","unitVolume":1},{"kind":"stone-spoil","unitVolume":1}], "stockpileProfiles":[{"id":"materials","allowedMaterials":["wood","stone-spoil"]}], "initial":[
                 {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
                 {"id":"worker-1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
@@ -1707,7 +1707,7 @@ mod construction_tests {
     fn environment_rejects_completion_recipes_that_seize_physical_ownership() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"construction-recipe",
+            "format":"hive-game", "version":3, "game":"construction-recipe",
             "components":[], "materialCatalog":[], "initial":[]
         }).to_string()).unwrap();
         let mut definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("construction-recipe")).unwrap();
@@ -2523,7 +2523,7 @@ impl Kernel {
 
     pub fn new() -> Self {
         let mut ecs = World::new();
-        let registry = Registry::new(&mut ecs, vec![]).expect("builtin schemas");
+        let registry = Registry::new(&mut ecs, vec![], vec![]).expect("builtin schemas");
         Self {
             ecs,
             material_catalog: Default::default(),
@@ -2680,7 +2680,7 @@ impl Kernel {
     }
     fn from_scene_mode(scene: Scene, build_routes: bool) -> Result<Self> {
         if scene.format != "hive-game"
-            || scene.version != 2
+            || scene.version != 3
             || !valid_id(&scene.game)
             || scene.initial.len() > 16384
         {
@@ -2698,7 +2698,7 @@ impl Kernel {
             }
         }
         world.stockpile_profiles = stockpile_profiles;
-        world.registry = Registry::new(&mut world.ecs, scene.components)?;
+        world.registry = Registry::new(&mut world.ecs, scene.components, scene.actors)?;
         world.game = scene.game;
         for row in &scene.initial {
             if !valid_id(&row.id) || !world.known.insert(row.id.clone()) {
@@ -3962,7 +3962,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 13,
+            version: 14,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -3970,10 +3970,11 @@ impl Kernel {
             next_impact: self.next_impact,
             scene: Scene {
                 format: "hive-game".into(),
-                version: 2,
+                version: 3,
                 game: self.game.clone(),
                 components: self.registry.schemas.values().cloned().collect(),
                 initial,
+                actors: self.registry.actors.values().cloned().collect(),
                 material_catalog: self.material_catalog.clone().into_definitions(),
                 stockpile_profiles: self.stockpile_profiles.values().cloned().collect(),
             },
@@ -4003,7 +4004,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 13
+            || state.version != 14
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -6826,7 +6827,7 @@ mod entity_membership_tests {
     fn membership_is_authoritative_bounded_and_rejects_invalid_batches() {
         let mut kernel = Kernel::new();
         kernel.load(&serde_json::to_string(&json!({
-            "format":"hive-game", "version":2, "game":"membership",
+            "format":"hive-game", "version":3, "game":"membership",
             "components":[], "materialCatalog":[], "initial":[{"id":"actor","components":{}}]
         })).unwrap()).unwrap();
         assert_eq!(kernel.entity_membership_json(r#"["actor","missing"]"#).unwrap(), "[true,false]");
@@ -6845,7 +6846,7 @@ mod lot_water_tests {
         let mut lot = json!({"hive.lot":{"kind":"water-lot","quantity":4,"container":"source"}});
         if let Some(value) = water { lot["hive.lot-water"] = value; }
         serde_json::to_string(&json!({
-            "format":"hive-game", "version":2, "game":"lot-water",
+            "format":"hive-game", "version":3, "game":"lot-water",
             "components":[], "materialCatalog":[], "initial":[
                 {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":10}}},
                 {"id":"dest","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":dest_capacity}}},
@@ -6874,7 +6875,7 @@ mod lot_water_tests {
 
     fn portable_scene(holder: &str, vessel_container: &str) -> String {
         serde_json::to_string(&json!({
-            "format":"hive-game", "version":2, "game":"portable-contact",
+            "format":"hive-game", "version":3, "game":"portable-contact",
             "components":[], "materialCatalog":[], "initial":[
                 {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
                 {"id":"dest","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
@@ -7017,7 +7018,7 @@ mod lot_water_tests {
 
         let mut kernel = Kernel::new();
         kernel.load(&serde_json::to_string(&json!({
-            "format":"hive-game", "version":2, "game":"sealed",
+            "format":"hive-game", "version":3, "game":"sealed",
             "components":[], "materialCatalog":[], "initial":[
                 {"id":"actor","components":{}},
                 {"id":"container","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":2}}}
@@ -7043,7 +7044,7 @@ mod combat_tests {
     fn combat_scene() -> String {
         serde_json::to_string(&json!({
             "format": "hive-game",
-            "version": 2,
+            "version": 3,
             "game": "formation-combat",
             "components": [],
             "materialCatalog": [],
@@ -7267,7 +7268,7 @@ mod combat_tests {
     #[test]
     fn repeated_same_move_save_restore_reaches_fractional_destination() {
         let scene = serde_json::to_string(&json!({
-            "format":"hive-game", "version":2, "game":"route-recovery",
+            "format":"hive-game", "version":3, "game":"route-recovery",
             "components":[], "materialCatalog":[], "initial":[{"id":"mover","components":{
                 "hive.position":{"x":0.4,"y":0.0,"z":0.4,"facing":0.0},
                 "hive.body":{"speed":2.0}
@@ -7295,7 +7296,7 @@ mod direct_tests {
 
     fn scene() -> String {
         serde_json::to_string(&json!({
-            "format":"hive-game", "version":2, "game":"survival",
+            "format":"hive-game", "version":3, "game":"survival",
             "components":[], "materialCatalog":[], "initial":[{"id":"survivor","components":{
                 "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
                 "hive.body":{"speed":2.0}
@@ -7367,7 +7368,7 @@ mod finite_resource_tests {
 
     fn kernel() -> Kernel {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"finite","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"finite","components":[],"materialCatalog":[],"initial":[
             {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
             {"id":"tree","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.finite-resource":{"kind":"wood","quantity":4}}}
         ]}).to_string()).unwrap();
@@ -7398,7 +7399,7 @@ mod finite_resource_tests {
     #[test]
     fn establish_resource_site_reuses_existing_intent_entity() {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"finite","components":[],"materialCatalog":[], "initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"hive.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"status":"queued","progressSeconds":0,"reason":""}}}]}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"finite","components":[],"materialCatalog":[], "initial":[{"id":"worker","components":{"hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},{"id":"site","components":{"hive.resource-order":{"definition":"mugwort","cellX":0,"cellY":0,"cellZ":0,"status":"queued","progressSeconds":0,"reason":""}}}]}).to_string()).unwrap();
         let mut environment_definition: serde_json::Value = serde_json::from_str(&crate::environment_definition::tests::fixture("resource")).unwrap();
         environment_definition["resourceSites"] = json!([{
             "id":"mugwort", "outputKind":"mugwort", "outputQuantity":1, "waterKind":"water",

@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn finite_and_item_transforms_publish_once_and_conserve_quantity() {
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"job-transform","components":[],"materialCatalog":[],"initial":[
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"job-transform","components":[],"materialCatalog":[],"initial":[
             {"id":"source","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.finite-resource":{"kind":"wood","quantity":6}}}
         ]}).to_string()).unwrap();
         let fell = crate::job::TypedWorkOperation::FiniteToItem {

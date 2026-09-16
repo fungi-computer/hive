@@ -1502,7 +1502,7 @@ mod tests {
         ];
         initial.extend(workers);
         let mut kernel = Kernel::new();
-        kernel.load(&json!({"format":"hive-game","version":2,"game":"native-supply","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"native-supply","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
         let mut definition: serde_json::Value = serde_json::from_str(
             &crate::environment_definition::tests::fixture("construction"),
         )
@@ -1589,7 +1589,7 @@ mod tests {
         initial.extend(workers);
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"native-stockpile",
+            "format":"hive-game", "version":3, "game":"native-stockpile",
             "components":[],
             "materialCatalog":[{"kind":"stone-spoil","unitVolume":1}],
             "stockpileProfiles":[{"id":"materials","allowedMaterials":["stone-spoil"]}],

@@ -30,7 +30,7 @@ test("actual WASM captures opaque water records and restores atomically", () => 
   const first = new WasmKernel();
   const recovered = new WasmKernel();
   try {
-    first.load(JSON.stringify({ format: "hive-game", version: 2, game: "colony", components: [], materialCatalog: [], initial: [] }));
+    first.load(JSON.stringify({ format: "hive-game", version: 3, game: "colony", components: [], materialCatalog: [], initial: [] }));
     first.load_environment(JSON.stringify(environmentFixture));
     const step = JSON.stringify({ delta: 0.2, writes: [], actions: [] });
     const advanced = JSON.parse(first.advance(step));
@@ -58,7 +58,7 @@ test("actual WASM entity membership is positional and bounded", () => {
   const kernel = new WasmKernel();
   try {
     kernel.load(JSON.stringify({
-      format: "hive-game", version: 2, game: "membership", components: [], materialCatalog: [],
+      format: "hive-game", version: 3, game: "membership", components: [], materialCatalog: [],
       initial: [{ id: "actor", components: {} }],
     }));
     assert.deepEqual(JSON.parse(kernel.entity_membership(JSON.stringify(["actor", "missing"]))), [true, false]);

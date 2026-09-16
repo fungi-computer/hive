@@ -16,7 +16,7 @@ mod tests {
     fn world() -> Kernel {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"authored-orders",
+            "format":"hive-game", "version":3, "game":"authored-orders",
             "components":[{"id":"game.order","version":1,"fields":{"owner":"nullable-entity","phase":"string"}}],
             "materialCatalog":[], "initial":[{"id":"worker","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1}}}]
         }).to_string()).unwrap();

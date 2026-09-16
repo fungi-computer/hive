@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { component, query } from "./authoring.js";
 import { action, actor, actorInput, behavior, predicate } from "./behavior.js";
+import { encodeDefinition, Position } from "./common.js";
 
 const Subject = component<{ value: number }>("test.subject", {
   version: 1,
@@ -112,6 +113,47 @@ test("actor composition validates capabilities and behavior attachments", () => 
     }),
     /invalid initial test.subject/,
   );
+});
+
+test("game definitions encode checked actor templates for the native registry", () => {
+  const Worker = actor("test.worker")
+    .with(Position, {
+      x: actorInput.number("spawn-x"),
+      y: 0,
+      z: actorInput.number("spawn-z"),
+      facing: 0,
+    })
+    .with(Subject, { value: actorInput.number("starting-value") });
+  const scene = JSON.parse(new TextDecoder().decode(
+    encodeDefinition("actor-template-test", [Subject], [], [], [], [Worker]),
+  ));
+  assert.equal(scene.version, 3);
+  assert.deepEqual(scene.actors, [{
+    id: "test.worker",
+    version: 1,
+    parameters: [
+      { name: "spawn-x", type: "number" },
+      { name: "spawn-z", type: "number" },
+      { name: "starting-value", type: "number" },
+    ],
+    components: [
+      {
+        component: "hive.position",
+        fields: {
+          x: { kind: "parameter", parameter: "spawn-x" },
+          y: { kind: "value", value: 0 },
+          z: { kind: "parameter", parameter: "spawn-z" },
+          facing: { kind: "value", value: 0 },
+        },
+      },
+      {
+        component: "test.subject",
+        fields: {
+          value: { kind: "parameter", parameter: "starting-value" },
+        },
+      },
+    ],
+  }]);
 });
 
 test("behavior rejects native fact reads that were not declared", () => {

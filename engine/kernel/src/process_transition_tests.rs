@@ -127,7 +127,7 @@ fn herbal_definition() -> ProcessDefinition {
 
 fn fixture(blocked_air: bool) -> Kernel {
     let mut kernel = Kernel::new();
-    kernel.load(r#"{"format":"hive-game","version":2,"game":"process-transition-laws","components":[],"materialCatalog":[],"initial":[]}"#).unwrap();
+    kernel.load(r#"{"format":"hive-game","version":3,"game":"process-transition-laws","components":[],"materialCatalog":[],"initial":[]}"#).unwrap();
     let emission = EmissionDefinition {
         id: "wood-hearth".into(),
         material_kind: "wood".into(),

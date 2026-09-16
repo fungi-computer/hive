@@ -662,7 +662,7 @@ pub(crate) mod tests {
     #[test]
     fn kernel_clock_and_record_restore_advance_one_authored_environment() {
         let mut kernel = crate::Kernel::new();
-        kernel.load(r#"{"format":"hive-game","version":2,"game":"colony","components":[],"materialCatalog":[],"initial":[]}"#).unwrap();
+        kernel.load(r#"{"format":"hive-game","version":3,"game":"colony","components":[],"materialCatalog":[],"initial":[]}"#).unwrap();
         kernel.load_environment(&fixture("seed-a")).unwrap();
         let before = kernel.environment_facts_json().unwrap();
         let step = r#"{"delta":0.2,"writes":[],"actions":[]}"#;
@@ -703,7 +703,7 @@ pub(crate) mod tests {
         ]);
         let mut kernel = crate::Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"placement", "components":[],
+            "format":"hive-game", "version":3, "game":"placement", "components":[],
             "materialCatalog":[], "initial":[
                 {"id":"actor","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0.25},"hive.body":{"speed":1},"hive.container":{"capacity":2},"hive.traversal":{"clearanceCells":1,"maxStepCells":1}}},
                 {"id":"pantry","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":1.25},"hive.container":{"capacity":20}}}
@@ -748,7 +748,7 @@ pub(crate) mod tests {
         let mut missing: serde_json::Value = serde_json::from_str(&fixture("missing-placement")).unwrap();
         missing["initialPlacements"] = json!([{ "entity":"missing", "column":[0, 0] }]);
         let mut kernel = crate::Kernel::new();
-        kernel.load(r#"{"format":"hive-game","version":2,"game":"placement","components":[],"materialCatalog":[],"initial":[]}"#).unwrap();
+        kernel.load(r#"{"format":"hive-game","version":3,"game":"placement","components":[],"materialCatalog":[],"initial":[]}"#).unwrap();
         let before = kernel.save_records().unwrap().entities;
         assert!(kernel.load_environment(&missing.to_string()).is_err());
         assert_eq!(kernel.save_records().unwrap().entities, before);
@@ -762,7 +762,7 @@ pub(crate) mod tests {
         definition["initialPlacements"] = json!([{ "entity":"actor", "column":[0, 0] }]);
         let mut kernel = crate::Kernel::new();
         kernel.load(&json!({
-            "format":"hive-game", "version":2, "game":"placement", "components":[],
+            "format":"hive-game", "version":3, "game":"placement", "components":[],
             "materialCatalog":[], "initial":[{"id":"actor","components":{
                 "hive.position":{"x":0,"y":0,"z":0,"facing":0},
                 "hive.body":{"speed":1}, "hive.container":{"capacity":2},

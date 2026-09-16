@@ -6,6 +6,7 @@ import type {
   EntityId,
   MoveDestination,
 } from "../contracts";
+import type { ActorDefinition, ActorInput } from "./behavior";
 
 /** Native movement capability; game systems may query it but cannot write it. */
 export const Body = component<{ speed: number }>("hive.body", {
@@ -199,11 +200,12 @@ export const encodeDefinition = (
     allowedMaterials?: readonly string[];
     deniedMaterials?: readonly string[];
   }[] = [],
+  actors: readonly ActorDefinition[] = [],
 ) =>
   new TextEncoder().encode(
     JSON.stringify({
       format: "hive-game",
-      version: 2,
+      version: 3,
       game,
       components: components
         .filter((c) => !isReservedComponent(c.id))
@@ -217,6 +219,30 @@ export const encodeDefinition = (
         allowedMaterials: profile.allowedMaterials ?? [],
         deniedMaterials: profile.deniedMaterials ?? [],
       })),
+      actors: actors.map(actor => {
+        const parameters = new Map<string, ActorInput["type"]>();
+        const components = actor.capabilities.map(capability => {
+          if (capability.initial === undefined)
+            throw new Error(`Actor ${actor.id} needs initial ${capability.component.id}`);
+          const fields = Object.fromEntries(Object.entries(capability.initial).map(([field, value]) => {
+            if ((value as ActorInput | null)?.kind !== "actor-input")
+              return [field, { kind: "value", value }];
+            const input = value as ActorInput;
+            const previous = parameters.get(input.name);
+            if (previous !== undefined && previous !== input.type)
+              throw new Error(`Actor ${actor.id} input ${input.name} has conflicting types`);
+            parameters.set(input.name, input.type);
+            return [field, { kind: "parameter", parameter: input.name }];
+          }));
+          return { component: capability.component.id, fields };
+        });
+        return {
+          id: actor.id,
+          version: actor.version,
+          parameters: [...parameters].map(([name, type]) => ({ name, type })),
+          components,
+        };
+      }),
     }),
   );
 

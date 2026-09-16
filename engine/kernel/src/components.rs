@@ -504,10 +504,49 @@ pub struct Scene {
     pub game: String,
     pub components: Vec<Schema>,
     pub initial: Vec<EntityRecord>,
+    #[serde(default)]
+    pub actors: Vec<ActorTemplate>,
     #[serde(rename = "materialCatalog")]
     pub material_catalog: Vec<crate::material_catalog::Definition>,
     #[serde(default, rename = "stockpileProfiles")]
     pub stockpile_profiles: Vec<crate::stockpile_definition::StockpileProfileDefinition>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ActorParameterType {
+    Number,
+    Boolean,
+    String,
+    Entity,
+    NullableEntity,
+    ActorReference,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ActorParameterDefinition {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub parameter_type: ActorParameterType,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
+pub enum ActorFieldBinding {
+    Value { value: Value },
+    Parameter { parameter: String },
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ActorCapabilityTemplate {
+    pub component: String,
+    pub fields: BTreeMap<String, ActorFieldBinding>,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ActorTemplate {
+    pub id: String,
+    pub version: u32,
+    pub parameters: Vec<ActorParameterDefinition>,
+    pub components: Vec<ActorCapabilityTemplate>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

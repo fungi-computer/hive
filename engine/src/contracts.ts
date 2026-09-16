@@ -3,6 +3,7 @@ import type { terrainSurfaceSchema } from "./runtime/terrain-surface";
 import type { KernelRecordSnapshot } from "./runtime/kernel-records";
 import type { WorkActivity } from "./runtime/work-activity";
 import type { GamePresentation } from "./presentation";
+import type { ActorDefinition } from "./sdk/behavior";
 /** Public boundary between authored TypeScript and the authoritative kernel. */
 export type EntityId = string & { readonly __entityId: unique symbol };
 export type ComponentId = `${string}.${string}`;
@@ -767,6 +768,8 @@ export interface GamePack {
     readonly maxZ: number;
   };
   readonly components: readonly ComponentDefinition<any>[];
+  /** Prepared content templates; native lifecycle owns their instantiation. */
+  readonly actors?: readonly ActorDefinition[];
   readonly systems: readonly SystemDefinition[];
   readonly presentation?: GamePresentation;
   readonly initialActions?: readonly ActionRequest[];

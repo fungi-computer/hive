@@ -26,7 +26,7 @@ fn request_sequence(binding: &str, sequence: u64, records: Value) -> Value {
 fn party_sequence_exhaustion_is_atomic_before_spawn() {
     let max = u64::MAX;
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"party-max","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-max","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
     let saved = kernel.snapshot_json().unwrap().replace("\"next_party_sequence\":1", &format!("\"next_party_sequence\":{max}"));
     kernel.restore_json(&saved).unwrap();
     let records: Value = serde_json::from_str(&plan().to_string().replace("party:1", &format!("party:{max}")).replace("player:1", &format!("player:{max}"))).unwrap();
@@ -41,7 +41,7 @@ fn party_sequence_exhaustion_is_atomic_before_spawn() {
 #[test]
 fn party_join_identity_is_native_and_replay_stable() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"party-query","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-query","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
     let available: Value = serde_json::from_str(&kernel.party_join_identity_json("\"binding:a\"").unwrap()).unwrap();
     assert_eq!((available["status"].as_str(), available["sequence"].as_u64(), available["player"].as_str(), available["party"].as_str(), available["people"].as_array().map(Vec::len)), (Some("available"), Some(1), Some("player:1"), Some("party:1"), Some(0)));
     assert!(accepted(&mut kernel, request("binding:a", plan())));
@@ -75,7 +75,7 @@ fn party_batch(party: &str, request: Value) -> Value {
 #[test]
 fn prepared_party_replay_and_mismatches_are_atomic() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"party","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"party","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
     assert!(accepted(&mut kernel, request("bind:1", plan())));
     let receipt = kernel.party_bindings.get("bind:1").unwrap();
     assert_eq!((receipt.binding_id.as_str(), receipt.player.as_str(), receipt.party.as_str()), ("bind:1", "player:1", "party:1"));
@@ -100,7 +100,7 @@ fn prepared_party_replay_and_mismatches_are_atomic() {
 #[test]
 fn scoped_authored_creation_attaches_party_ownership_atomically() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"party-create","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[]}).to_string()).unwrap();
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-create","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[]}).to_string()).unwrap();
     assert!(accepted(&mut kernel, request("bind:1", plan())));
     let batch = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
     assert!(kernel.advance_json(&batch.to_string()).is_ok());
@@ -114,7 +114,7 @@ fn scoped_authored_creation_attaches_party_ownership_atomically() {
 #[test]
 fn party_scope_rejects_foreign_worker_and_work_attempt_party_drift() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"party-scope","components":[],"materialCatalog":[],"initial":[
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-scope","components":[],"materialCatalog":[],"initial":[
         {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
         {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
         {"id":"worker","components":{"hive.party-member":{"party":"party:1"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
@@ -131,7 +131,7 @@ fn party_scope_rejects_foreign_worker_and_work_attempt_party_drift() {
 #[test]
 fn scoped_batch_rejects_malformed_scope_before_mutation() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"scope-parse","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"scope-parse","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
     let malformed = json!({"delta":0,"writes":[],"actions":[{"scope":{"party":"party:1"},"request":{"kind":"move","entity":"missing","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}]});
     assert!(kernel.advance_json(&malformed.to_string()).is_err());
 }
@@ -139,7 +139,7 @@ fn scoped_batch_rejects_malformed_scope_before_mutation() {
 #[test]
 fn scoped_authored_removal_enforces_party_and_preserves_physical_entities() {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"scoped-remove","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"scoped-remove","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[
         {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
         {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
         {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}}

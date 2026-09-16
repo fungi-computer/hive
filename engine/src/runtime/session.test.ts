@@ -36,7 +36,7 @@ const morale: ComponentDefinition<{ value: number }> = {
 const definition = new TextEncoder().encode(
   JSON.stringify({
     format: "hive-game",
-    version: 2,
+    version: 3,
     game: "colony",
     components: [
       { id: "test.morale", version: 1, fields: { value: "number" } },
@@ -68,12 +68,12 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
-    version: 13,
+    version: 14,
     revision: 0,
     time: 0,
     scene: {
       format: "hive-game",
-      version: 2,
+      version: 3,
       game: "colony",
       initial: [],
       routes: [],

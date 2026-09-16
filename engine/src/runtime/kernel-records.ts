@@ -15,12 +15,12 @@ export interface NativeRecordBinding {
 
 export interface KernelEntitySnapshot {
   readonly format: "hive-kernel";
-  readonly version: 13;
+  readonly version: 14;
   readonly revision: number;
   readonly time: number;
   readonly scene: {
     readonly format: "hive-game";
-    readonly version: 2;
+    readonly version: 3;
     readonly game: string;
     readonly components: readonly unknown[];
     readonly initial: readonly unknown[];
@@ -100,12 +100,12 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
   const value = parsed as Partial<KernelEntitySnapshot>;
   if (
     value.format !== "hive-kernel" ||
-    value.version !== 13 ||
+    value.version !== 14 ||
     !isSafeRevision(value.revision) ||
     !isFiniteTime(value.time) ||
     !value.scene ||
     value.scene.format !== "hive-game" ||
-    value.scene.version !== 2 ||
+    value.scene.version !== 3 ||
     typeof value.scene.game !== "string" ||
     !Array.isArray(value.scene.components) ||
     !Array.isArray(value.scene.initial) ||

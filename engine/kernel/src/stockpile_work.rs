@@ -266,7 +266,7 @@ mod tests {
     fn kernel() -> Kernel {
         let mut kernel = Kernel::new();
         kernel.load(&json!({
-            "format": "hive-game", "version": 2, "game": "stockpile",
+            "format": "hive-game", "version": 3, "game": "stockpile",
             "components": [], "materialCatalog": [{"kind":"bread","unitVolume":1},{"kind":"wood","unitVolume":1}],
             "stockpileProfiles": [
                 {"id":"wood", "materialCategories":{"wood":"building"}, "allowedCategories":["building"]},

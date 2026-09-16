@@ -27,7 +27,7 @@ fn plan() -> JobPlan {
 
 fn world() -> Kernel {
     let mut kernel = Kernel::new();
-    kernel.load(&json!({"format":"hive-game","version":2,"game":"jobs","components":[],"materialCatalog":[],"initial":[
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"jobs","components":[],"materialCatalog":[],"initial":[
         {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
         {"id":"ground","components":{"hive.container":{"capacity":16},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
         {"id":"source","components":{"hive.finite-resource":{"kind":"ore","quantity":1},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},

@@ -95,7 +95,7 @@ mod tests {
             .load(
                 &json!({
                     "format": "hive-game",
-                    "version": 2,
+                    "version": 3,
                     "game": "catalog-roundtrip",
                     "components": [],
                     "materialCatalog": [
