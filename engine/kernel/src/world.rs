@@ -3627,7 +3627,7 @@ impl Kernel {
     }
     /// Bounded authoritative open-water targets for work planning. Contact
     /// approaches are emitted in world coordinates by the terrain owner.
-    pub(crate) fn native_water_contacts(&self, centers: &[Position]) -> Result<Vec<(crate::generation::Cell, Vec<Point>)>> {
+    pub(crate) fn native_water_contacts(&self, centers: &[Position]) -> Result<Vec<(crate::generation::Cell, u8, Vec<Point>)>> {
         if centers.is_empty() || centers.len() > 16 { return Err("water contact query exceeds center budget".into()); }
         if centers.iter().any(|center| ![center.x, center.y, center.z].iter().all(|value| value.is_finite())) {
             return Err("water contact center is invalid".into());
@@ -3640,7 +3640,8 @@ impl Kernel {
         ).into_iter().map(|cell| {
             let [x, y, z] = crate::terrain_water::coordinates(cell)?;
             let point = |dx: f64, dz: f64| Point { x: x as f64 * spacing[0] + dx, y: (f64::from(y) + 0.5) * spacing[1], z: z as f64 * spacing[2] + dz, frame: None };
-            Ok((cell, vec![point(-spacing[0], 0.0), point(spacing[0], 0.0), point(0.0, -spacing[2]), point(0.0, spacing[2])]))
+            let level = environment.world.open_water_level(cell).ok_or("open water contact lost its level")?;
+            Ok((cell, level, vec![point(-spacing[0], 0.0), point(spacing[0], 0.0), point(0.0, -spacing[2]), point(0.0, spacing[2])]))
         }).collect()
     }
     pub fn water_contacts_json(&self, input: &str) -> Result<String> {

@@ -441,6 +441,7 @@ impl TerrainWater {
     pub fn positive_open_cells_near(&self, centers: &[[f64; 3]], limit: usize) -> Vec<Cell> {
         self.field.positive_open_cells_near(centers, self.geometry.spacing, limit)
     }
+    pub(crate) fn open_water_level(&self, cell: Cell) -> Option<u8> { self.field.open_level(cell) }
 
     pub fn prepare_water_exchange(&mut self, at: Cell, direction: WaterExchangeDirection,
         portions: u8) -> Result<PreparedWaterExchange, String> {

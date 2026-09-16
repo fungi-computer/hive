@@ -56,7 +56,7 @@ export function appendVisualProjections(
     ids.add(projection.id);
     const original = existing.get(projection.id);
     if (original && (original.visual || original.collision || original.direct || original.aim || original.support))
-      throw new Error("visual projection cannot replace an existing visual or dynamic body");
+      throw new Error(`visual projection ${projection.id} cannot replace an existing visual or dynamic body`);
     if (projection.cutawayTop !== undefined && !Number.isSafeInteger(projection.cutawayTop)) throw new Error("invalid visual cutaway level");
     if (typeof projection.pickable !== "boolean") throw new Error("invalid visual pickability");
     if (projection.placement !== undefined && !validVisualPlacement(projection.placement)) throw new Error("invalid visual placement");

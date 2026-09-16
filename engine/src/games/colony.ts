@@ -14,6 +14,7 @@ import {
   MaterialLot,
   SupplyAllocation,
   Position,
+  Visual,
   Traversal,
   encodeDefinition,
   transfer,
@@ -629,6 +630,13 @@ export const colonyPack: GamePack = {
         return profile ? { ...visual, visual: `colony.brew-station.profile.${profile}` } : visual;
       }),
       ...(() => {
+        const occupiedVisualIds = new Set([
+          ...context.query(query(Body)).map(row => row.id),
+          ...context.query(query(Visual)).map(row => row.id),
+          ...context.query(query(ColonyTree)).map(row => row.id),
+          ...context.query(query(ResourceSite)).map(row => row.id),
+          ...context.query(query(ConstructionSite)).map(row => row.id),
+        ]);
         const lotsByContainer = new Map<string, { kind: string; quantity: number }>();
         for (const row of context.query(query(MaterialLot))) {
           const lot = row.get(MaterialLot);
@@ -636,6 +644,7 @@ export const colonyPack: GamePack = {
             lotsByContainer.set(lot.container, lot);
         }
         return context.query(query(GroundStock, Position)).flatMap(row => {
+          if (occupiedVisualIds.has(row.id)) return [];
           const position = row.get(Position);
           const lot = lotsByContainer.get(row.id);
           if (!lot) return [];

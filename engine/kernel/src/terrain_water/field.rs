@@ -112,6 +112,9 @@ impl Field {
         cells.sort_by(|(left_distance, left), (right_distance, right)| left_distance.total_cmp(right_distance).then_with(|| left.cmp(right)));
         cells.into_iter().take(limit).map(|(_, cell)| cell).collect()
     }
+    pub(super) fn open_level(&self, cell: Cell) -> Option<u8> {
+        self.get(cell).filter(|stock| stock.shape.kind == WaterCellKind::Void).map(|stock| stock.level())
+    }
     fn wake(&mut self, c: Cell) {
         // Every queued coordinate has one durable stock record. This bounds the
         // queue by MAX_STOCKS and avoids waking six untracked neighbors per flow.

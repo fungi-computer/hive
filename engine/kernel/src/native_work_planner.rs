@@ -64,7 +64,7 @@ struct FieldWaterSlot {
 }
 
 struct WaterContactIndex {
-    flat: Vec<(crate::generation::Cell, Point)>,
+    flat: Vec<(crate::generation::Cell, u8, Point)>,
     targets: Vec<Point>,
 }
 
@@ -91,7 +91,7 @@ impl PlanningObligation {
 
 enum PlanningWitness {
     Supply { destination: Point, route: super::PreparedRoute },
-    FieldWater { vessel: String, cell: crate::generation::Cell, destination: Point, route: super::PreparedRoute },
+    FieldWater { vessel: String, cell: crate::generation::Cell, available: u8, destination: Point, route: super::PreparedRoute },
     Labor(Point, super::PreparedRoute),
 }
 
@@ -620,8 +620,8 @@ impl Kernel {
         };
         let cells = water_contacts;
         let contacts = Arc::new(WaterContactIndex {
-            targets: cells.iter().flat_map(|(_, approaches)| approaches.iter().cloned()).collect(),
-            flat: cells.iter().flat_map(|(cell, approaches)| approaches.iter().map(move |approach| (*cell, approach.clone()))).collect(),
+            targets: cells.iter().flat_map(|(_, _, approaches)| approaches.iter().cloned()).collect(),
+            flat: cells.iter().flat_map(|(cell, level, approaches)| approaches.iter().map(move |approach| (*cell, *level, approach.clone()))).collect(),
         });
 
         // Preserve the source task window's priority/fairness order. Multiple
@@ -745,10 +745,10 @@ impl Kernel {
                     let (vessel, _) = self.water_vessel_for_worker(&candidate.worker).ok_or("native water worker has no compatible vessel")?;
                     match super::route_query::classify_route(self.route_for_any(worker_entity, position, &slot.contacts.targets))? {
                         SearchOutcome::Reachable((index, route)) => {
-                            let (cell, destination) = slot.contacts.flat.get(index).cloned().ok_or("native water contact index is invalid")?;
+                            let (cell, available, destination) = slot.contacts.flat.get(index).cloned().ok_or("native water contact index is invalid")?;
                             let points = std::iter::once(crate::navigation::point(position)).chain(route.points.iter().cloned()).collect::<Vec<_>>();
                             let cost = crate::terrain_route::waypoint_cost_micrometres(points)? as f64 / 1_000_000.0;
-                            Ok(SearchOutcome::Reachable((cost, PlanningWitness::FieldWater { vessel, cell, destination, route })))
+                            Ok(SearchOutcome::Reachable((cost, PlanningWitness::FieldWater { vessel, cell, available, destination, route })))
                         }
                         SearchOutcome::NoPath(error) => Ok(SearchOutcome::NoPath(error)),
                         SearchOutcome::Deferred(error) => Ok(SearchOutcome::Deferred(error)),
@@ -781,11 +781,19 @@ impl Kernel {
                     worker: assignment.worker,
                     route_destination: destination, route,
                 }),
-                (PlanningObligation::FieldWater(slot), PlanningWitness::FieldWater { vessel, cell, destination, route }) => field.push((slot.clone(), assignment.worker, vessel, cell, destination, route)),
+                (PlanningObligation::FieldWater(slot), PlanningWitness::FieldWater { vessel, cell, available, destination, route }) => field.push((slot.clone(), assignment.worker, vessel, cell, available, destination, route)),
                 (PlanningObligation::Labor(requirement), PlanningWitness::Labor(contact, route)) => labor.push((requirement.clone(), assignment.worker, contact, route)),
                 _ => return Err("native planner witness kind mismatch".into()),
             }
         }
+        let mut water_reserved = BTreeMap::<crate::generation::Cell, u8>::new();
+        field.retain(|(slot, _, _, cell, available, _, _)| {
+            let used = water_reserved.entry(*cell).or_default();
+            let Some(next) = used.checked_add(slot.portions) else { return false; };
+            if next > *available { return false; }
+            *used = next;
+            true
+        });
         let generation_steps = supply.len().checked_mul(2).and_then(|count| count.checked_add(labor.len())).and_then(|count| count.checked_add(field.len().saturating_mul(2))).ok_or("native assignment batch is too large")?;
         self.next_work_generation.checked_add(u64::try_from(generation_steps).map_err(|_| "native assignment batch is too large")?).ok_or("native assignment generation exhausted")?;
         let mut selected_workers = BTreeSet::new();
@@ -818,7 +826,7 @@ impl Kernel {
                 return Err("native joint assignment selected a worker twice".into());
             }
         }
-        for (slot, worker, vessel, _, _, _) in &field {
+        for (slot, worker, vessel, _, _, _, _) in &field {
             if !selected_workers.insert(worker.clone()) { return Err("native joint assignment selected a worker twice".into()); }
             let task_entity = self.entity(&slot.task)?;
             let work = self.ecs.get::<FieldWaterWork>(task_entity).ok_or("field water task disappeared")?;
@@ -830,7 +838,7 @@ impl Kernel {
         let supply_count = self.admit_supply_assignments(supply)?.len();
         let labor_count = labor.len();
         let field_count = field.len();
-        for (slot, worker, vessel, cell, destination, route) in field {
+        for (slot, worker, vessel, cell, _, destination, route) in field {
             let entity = self.entity(&slot.task)?;
             let mut work = self.ecs.get_mut::<FieldWaterWork>(entity).ok_or("field water task disappeared")?;
             work.vessel = Some(vessel);

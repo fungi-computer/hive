@@ -51,6 +51,11 @@ export const Position = component<{
   version: 1,
   fields: { x: "number", y: "number", z: "number", facing: "number" },
 });
+/** Native authored sprite identity. Presentation projections must not replace it. */
+export const Visual = component<{ sprite: string; label: string }>("hive.visual", {
+  version: 1,
+  fields: { sprite: "string", label: "string" },
+});
 export const Support = component<{ entity: EntityId }>("hive.support", {
   version: 1,
   fields: { entity: "entity" },
