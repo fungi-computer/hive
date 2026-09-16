@@ -33,8 +33,8 @@ import { Worker } from "./colony-components";
 import { colonyPartyFootprint, createColonyPartyPlan } from "./colony-party";
 import { encodeEnvironmentDefinition } from "../sdk/environment";
 import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
-import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
-import { StockpileCell } from "../sdk/stockpile";
+import { colonyStockpileClearCommand, colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
+import { StockpileCell, StorageProvider } from "../sdk/stockpile";
 import { colonyGroundMaterialVisual } from "./colony-material-presentation";
 import { z } from "zod";
 import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, JobPlan, MoveDestination, ReadContext, GameCommandContext } from "../contracts";
@@ -306,6 +306,7 @@ const colonyComponents = [
   DeconstructionOrder,
   WorkParticipation,
   StockpileCell,
+  StorageProvider,
   FieldWaterWork,
 ] as const;
 
@@ -355,6 +356,7 @@ export const colonyPack: GamePack = {
     }),
     designateStockpile: colonyStockpileCommand,
     updateStockpile: colonyStockpilePolicyCommand,
+    clearStockpile: colonyStockpileClearCommand,
     requestWater: command({
       title: "Fetch water", category: "Colony", description: "Request one portion of water from the clearing.",
       input: emptyInput, reads: [FieldWaterWork], writes: [], lifecycle: [FieldWaterWork],
@@ -779,11 +781,25 @@ export const colonyPack: GamePack = {
           })),
         ...(() => {
           const grouped = new Map<string, { profile: string; priority: number; contents: number; capacity: number; cells: string[] }>();
-          for (const row of context.query(query(StockpileCell, Container, Position))) {
-            const cell = row.get(StockpileCell), container = row.get(Container);
+          const physicalByPosition = new Map<string, { id: string; capacity: number }>();
+          for (const row of [...context.query(query(StorageProvider, Container, Position))].sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)) {
+            const position = row.get(Position);
+            const key = `${position.x}:${position.y}:${position.z}`;
+            if (!physicalByPosition.has(key)) physicalByPosition.set(key, { id: row.id, capacity: row.get(Container).capacity });
+          }
+          for (const row of [...context.query(query(GroundStock, Container, Position))].sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)) {
+            const position = row.get(Position);
+            const key = `${position.x}:${position.y}:${position.z}`;
+            if (!physicalByPosition.has(key)) physicalByPosition.set(key, { id: row.id, capacity: row.get(Container).capacity });
+          }
+          for (const row of context.query(query(StockpileCell, Position))) {
+            const cell = row.get(StockpileCell), position = row.get(Position);
+            const ground = physicalByPosition.get(`${position.x}:${position.y}:${position.z}`);
             const current = grouped.get(cell.zone) ?? { profile: cell.filterProfile, priority: cell.priority, contents: 0, capacity: 0, cells: [] };
-            current.contents += total(row.id);
-            current.capacity += container.capacity;
+            if (ground) {
+              current.contents += total(ground.id);
+              current.capacity += ground.capacity;
+            }
             current.cells.push(row.id);
             grouped.set(cell.zone, current);
           }

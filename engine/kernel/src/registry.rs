@@ -157,6 +157,7 @@ impl Registry {
                 ],
             ),
             ("hive.emitter", vec![("catalog", FieldType::String)]),
+            ("hive.storage-provider", vec![]),
             (
                 "hive.projectile",
                 vec![
@@ -206,6 +207,7 @@ impl Registry {
                 "hive.vessel-capability" => world.register_component::<VesselCapability>(),
                 "hive.sealed-container" => world.register_component::<SealedContainer>(),
                 "hive.ground-stock" => world.register_component::<GroundStock>(),
+                "hive.storage-provider" => world.register_component::<StorageProvider>(),
                 "hive.lot" => world.register_component::<Lot>(),
                 "hive.lot-water" => world.register_component::<LotWater>(),
                 "hive.supply-allocation" => world.register_component::<SupplyAllocation>(),
@@ -271,6 +273,7 @@ impl Registry {
                 | "hive.vessel-capability"
                 | "hive.sealed-container"
                 | "hive.ground-stock"
+                | "hive.storage-provider"
                 | "hive.lot"
                 | "hive.lot-water"
                 | "hive.supply-allocation"
@@ -364,6 +367,7 @@ impl Registry {
                 let _: VesselCapability = decode(value)?;
             }
             "hive.ground-stock" => { let _: GroundStock = decode(value)?; }
+            "hive.storage-provider" => { let _: StorageProvider = decode(value)?; }
             "hive.sealed-container" => {
                 let _: SealedContainer = decode(value)?;
             }
@@ -603,6 +607,7 @@ impl Registry {
                 world.entity_mut(entity).insert(decode::<VesselCapability>(value)?);
             }
             "hive.ground-stock" => { world.entity_mut(entity).insert(decode::<GroundStock>(value)?); }
+            "hive.storage-provider" => { world.entity_mut(entity).insert(decode::<StorageProvider>(value)?); }
             "hive.sealed-container" => {
                 world.entity_mut(entity).insert(decode::<SealedContainer>(value)?);
             }
@@ -703,6 +708,7 @@ impl Registry {
             "hive.vessel-capability" => world.get::<VesselCapability>(entity).map(record),
             "hive.sealed-container" => world.get::<SealedContainer>(entity).map(record),
             "hive.ground-stock" => world.get::<GroundStock>(entity).map(record),
+            "hive.storage-provider" => world.get::<StorageProvider>(entity).map(record),
             "hive.lot" => world.get::<Lot>(entity).map(record),
             "hive.lot-water" => world.get::<LotWater>(entity).map(record),
             "hive.supply-allocation" => world.get::<SupplyAllocation>(entity).map(record),

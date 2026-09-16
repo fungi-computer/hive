@@ -50,6 +50,7 @@ struct SupplySlot {
     requirement: SupplyRequirement,
     lot: String,
     source_position: Position,
+    source_contacts: Arc<Vec<Point>>,
     quantity: u32,
     policy: InputPolicy,
 }
@@ -89,7 +90,7 @@ impl PlanningObligation {
 }
 
 enum PlanningWitness {
-    Supply(super::PreparedRoute),
+    Supply { destination: Point, route: super::PreparedRoute },
     FieldWater { vessel: String, cell: crate::generation::Cell, destination: Point, route: super::PreparedRoute },
     Labor(Point, super::PreparedRoute),
 }
@@ -435,17 +436,27 @@ impl Kernel {
             if self.ecs.get::<StockpileCell>(entity).is_some() {
                 for demand in super::stockpile_work::collect(self, &task.id, &party)? {
                     let generation = super::stockpile_work::policy_generation(self.ecs.get::<StockpileCell>(entity).ok_or("stockpile policy disappeared")?);
+                    let destination = if demand.destination == task.id {
+                        self.ensure_stockpile_destination(&task.id, demand.quantity)?
+                    } else {
+                        demand.destination
+                    };
                     supply_requirements.push(SupplyRequirement {
                         owner: task.id.clone(), role: demand.material.clone(), generation,
                         party: party.clone(), material: demand.material, policy: InputPolicy::Portion,
-                        destination: task.id.clone(), missing: demand.quantity,
+                        destination, missing: demand.quantity,
                         source_lots: Some(demand.source_lots),
                     });
                 }
             }
         }
-        self.ensure_field_water_tasks(&supply_requirements)?;
-        progressed += self.assign_native_obligations(&window, &supply_requirements, requirements)?;
+        if let Err(error) = self.ensure_field_water_tasks(&supply_requirements) {
+            self.cleanup_empty_ground_stock();
+            return Err(error);
+        }
+        let assigned = self.assign_native_obligations(&window, &supply_requirements, requirements);
+        self.cleanup_empty_ground_stock();
+        progressed += assigned?;
         Ok(progressed)
     }
 
@@ -564,6 +575,18 @@ impl Kernel {
                 .cmp(&(&right.owner, &right.role, &right.party, &right.material, &right.destination))
         });
         let raw_slots = self.prepare_supply_slots(&ordered_supply, MAX_SUPPLY_EXPANSIONS)?;
+        let mut raw_slots = raw_slots;
+        for slot in &mut raw_slots {
+            let lot_entity = self.entity(&slot.lot)?;
+            let source_id = self.ecs.get::<Lot>(lot_entity).ok_or("native supply lot disappeared")?.container.clone();
+            let source_entity = self.entity(&source_id)?;
+            let contacts = self.transfer_contact_candidates(
+                &source_id,
+                crate::terrain_traversal::TraversalConfig { spacing: [0.0; 3], clearance_cells: 1, max_step_cells: 1 },
+                self.support_id(source_entity),
+            ).map_err(crate::world::TransferContactError::into_string)?;
+            slot.source_contacts = Arc::new(contacts);
+        }
         let mut supply_slots = Vec::new();
         for slot in raw_slots {
             let Some(limit) = carry_limit_by_party.get(&slot.requirement.party).copied() else { continue; };
@@ -640,11 +663,11 @@ impl Kernel {
         let bound = |worker: &PlannerWorker, obligation: &PlanningObligation| -> Option<f64> {
             if worker.party != obligation.party() { return None; }
             match obligation {
-                PlanningObligation::Supply(slot) if slot.quantity <= worker.free_capacity => Some(
-                    ((worker.position.x - slot.source_position.x).powi(2)
-                        + (worker.position.y - slot.source_position.y).powi(2)
-                        + (worker.position.z - slot.source_position.z).powi(2)).sqrt(),
-                ),
+                PlanningObligation::Supply(slot) if slot.quantity <= worker.free_capacity => slot.source_contacts.iter().map(|contact| {
+                    ((worker.position.x - contact.x).powi(2)
+                        + (worker.position.y - contact.y).powi(2)
+                        + (worker.position.z - contact.z).powi(2)).sqrt()
+                }).min_by(f64::total_cmp),
                 PlanningObligation::Supply(_) => None,
                 PlanningObligation::FieldWater(slot) => self.water_vessel_for_worker(&worker.id).and_then(|(_, free)| {
                     if free < u32::from(slot.portions) { return None; }
@@ -701,12 +724,18 @@ impl Kernel {
             let obligation = obligations_by_task.get(&candidate.task).ok_or("native planner obligation disappeared")?;
             match obligation {
                 PlanningObligation::Supply(slot) => {
-                    let destination = Point { x: slot.source_position.x, y: slot.source_position.y, z: slot.source_position.z, frame: None };
-                    match super::route_query::classify_route(self.route_for(worker_entity, position, &destination))? {
-                        SearchOutcome::Reachable(route) => {
+                    match super::route_query::classify_route(self.route_for_any(worker_entity, position, &slot.source_contacts))? {
+                        SearchOutcome::Reachable((index, route)) => {
+                            let destination = slot.source_contacts.get(index).cloned().ok_or("native supply contact index is invalid")?;
+                            if !super::interaction_contact::within_transfer_reach(
+                                [slot.source_position.x, slot.source_position.y, slot.source_position.z],
+                                [destination.x, destination.y, destination.z],
+                            ) {
+                                return Err("native supply contact is out of transfer reach".into());
+                            }
                             let points = std::iter::once(crate::navigation::point(position)).chain(route.points.iter().cloned()).collect::<Vec<_>>();
                             let cost = crate::terrain_route::waypoint_cost_micrometres(points)? as f64 / 1_000_000.0;
-                            Ok(SearchOutcome::Reachable((cost, PlanningWitness::Supply(route))))
+                            Ok(SearchOutcome::Reachable((cost, PlanningWitness::Supply { destination, route })))
                         }
                         SearchOutcome::NoPath(error) => Ok(SearchOutcome::NoPath(error)),
                         SearchOutcome::Deferred(error) => Ok(SearchOutcome::Deferred(error)),
@@ -744,13 +773,13 @@ impl Kernel {
         for assignment in selected.assignments {
             let obligation = obligations_by_task.get(&assignment.task).ok_or("selected native obligation disappeared")?;
             match (obligation, assignment.witness) {
-                (PlanningObligation::Supply(slot), PlanningWitness::Supply(route)) => supply.push(SupplyAdmissionRequest {
+                (PlanningObligation::Supply(slot), PlanningWitness::Supply { destination, route }) => supply.push(SupplyAdmissionRequest {
                     requirement_owner: slot.requirement.owner.clone(), requirement_role: slot.requirement.role.clone(),
                     requirement_generation: slot.requirement.generation, party: slot.requirement.party.clone(),
                     material: slot.requirement.material.clone(), portion: slot.lot.clone(),
                     destination_container: slot.requirement.destination.clone(), quantity: slot.quantity,
                     worker: assignment.worker,
-                    route_destination: Point { x: slot.source_position.x, y: slot.source_position.y, z: slot.source_position.z, frame: None }, route,
+                    route_destination: destination, route,
                 }),
                 (PlanningObligation::FieldWater(slot), PlanningWitness::FieldWater { vessel, cell, destination, route }) => field.push((slot.clone(), assignment.worker, vessel, cell, destination, route)),
                 (PlanningObligation::Labor(requirement), PlanningWitness::Labor(contact, route)) => labor.push((requirement.clone(), assignment.worker, contact, route)),
@@ -969,7 +998,7 @@ impl Kernel {
             lot_matches_material(lot, self.ecs.get::<LotWater>(*entity), &requirement.material)
                 && self.ecs.get::<OwnedByParty>(container).is_some_and(|owner| owner.party == requirement.party)
                 && self.ecs.get::<OwnedByParty>(*entity).is_some_and(|owner| owner.party == requirement.party)
-                && (self.ecs.get::<GroundStock>(container).is_some() || self.ecs.get::<StockpileCell>(container).is_some())
+                && self.ecs.get::<GroundStock>(container).is_some()
                 && self.ecs.get::<SealedContainer>(container).is_none()
                 && position.x.is_finite()
                 && lot.quantity.saturating_sub(crate::supply_allocation::reserved_source(self, &lot_id, None)) > 0
@@ -1147,8 +1176,7 @@ impl Kernel {
                     let source_party_ok = self.ecs.get::<OwnedByParty>(container).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || public_ground;
                     let lot_party_ok = self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) == Some(requirement.party.as_str()) || (public_ground && self.ecs.get::<OwnedByParty>(entity).is_none());
                     if !source_party_ok || !lot_party_ok
-                        || (self.ecs.get::<GroundStock>(container).is_none()
-                            && self.ecs.get::<StockpileCell>(container).is_none())
+                        || self.ecs.get::<GroundStock>(container).is_none()
                         || self.ecs.get::<SealedContainer>(container).is_some()
                     {
                         return None;
@@ -1188,6 +1216,7 @@ impl Kernel {
                         requirement: requirement.clone(),
                         lot: lot.clone(),
                         source_position,
+                        source_contacts: Arc::new(Vec::new()),
                         quantity,
                         policy: requirement.policy,
                     });
@@ -1532,7 +1561,7 @@ mod tests {
         })).collect::<Vec<_>>();
         let mut initial = vec![
             json!({"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}),
-            json!({"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8},"hive.ground-stock":{}}}),
+            json!({"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}}),
         ];
         initial.extend(workers);
         let mut kernel = Kernel::new();
@@ -1547,12 +1576,20 @@ mod tests {
         let surface = kernel.environment.as_mut().unwrap().world.surface_cells(&[(0, 0)]).unwrap().into_iter().next().flatten().unwrap().cell;
         let spacing = kernel.environment.as_ref().unwrap().world.cell_spacing_m();
         let contact = Position { x: (surface.x as f64 + 1.0) * spacing[0], y: (f64::from(surface.y) + 0.5) * spacing[1], z: surface.z as f64 * spacing[2], facing: 0.0 };
-        for id in std::iter::once("source".to_owned()).chain((1..=worker_count).map(|index| format!("worker-{index}"))) {
-            kernel.ecs.entity_mut(kernel.entity(&id).unwrap()).insert(contact);
+        let source_position = Position { x: contact.x + spacing[0], y: contact.y, z: contact.z, facing: 0.0 };
+        kernel.ecs.entity_mut(kernel.entity("source").unwrap()).insert(source_position);
+        let source_contacts = kernel.transfer_contact_candidates("source", crate::terrain_traversal::TraversalConfig { spacing: [0.0; 3], clearance_cells: 1, max_step_cells: 1 }, None).unwrap();
+        let worker_position = Position {
+            x: source_contacts[0].x,
+            y: source_contacts[0].y,
+            z: source_contacts[0].z,
+            facing: 0.0,
+        };
+        for id in (1..=worker_count).map(|index| format!("worker-{index}")) {
+            kernel.ecs.entity_mut(kernel.entity(&id).unwrap()).insert(worker_position);
         }
         let target = kernel.ecs.spawn((
             ExternalId("target".into()), contact,
-            Container { capacity: 3 },
             StockpileCell { zone: "target-zone".into(), priority: 2, filter_profile: "materials".into() },
             OwnedByParty { party: "party".into() },
         )).id();
@@ -1562,7 +1599,7 @@ mod tests {
         kernel.rebuild_physical_indexes(true).unwrap();
         // Publish a fresh ownerless ground output after the last rebuild. The
         // live source index must expose it immediately, without a reload.
-        let output = kernel.prepare_ground_output(contact, "stone-spoil".into(), 3, None, None).unwrap();
+        let output = kernel.prepare_ground_output(source_position, "stone-spoil".into(), 3, None, Some("party".into())).unwrap();
         kernel.publish_material_output(output);
         kernel
     }
@@ -1625,12 +1662,12 @@ mod tests {
         settle_routes(&mut restored);
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "deposit commits exact quantity");
         assert_eq!(restored.reconcile_supply_allocations().unwrap(), 1, "receipt retires once");
-        assert_eq!(restored.quantity_in_container("target"), 3);
+        assert_eq!(restored.quantity_in_container("stockpile-ground:target"), 3);
         assert_eq!(restored.quantity_in_container("source"), 0);
         assert_eq!(restored.quantity_in_container(&worker), 0);
         assert!(restored.supply_allocations().next().is_none());
         let lot = restored.ecs.get::<Lot>(restored.entity(&allocation.portion).unwrap()).unwrap();
-        assert_eq!(lot.container, "target");
+        assert_eq!(lot.container, "stockpile-ground:target");
         assert_eq!(lot.quantity, 3);
     }
 

@@ -23,14 +23,14 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
     const [x, y, z] = surface.cell;
     session.command("designateStockpile", { area: { start: [x, y, z], end: [x + 1, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
-    const cells = session.query(query(StockpileCell, Container, Position));
+    const cells = session.query(query(StockpileCell, Position));
     assert.equal(cells.length, 2);
     assert.equal(new Set(cells.map(row => row.get(StockpileCell).zone)).size, 1);
     assert.ok(cells[0].get(StockpileCell).zone.startsWith("colony.stockpile."));
     assert.deepEqual(cells.map(row => ({ priority: row.get(StockpileCell).priority, filterProfile: row.get(StockpileCell).filterProfile })), [
       { priority: 9, filterProfile: "wood" }, { priority: 9, filterProfile: "wood" },
     ]);
-    assert.deepEqual(cells.map(row => row.get(Container).capacity), [6, 6]);
+    assert.equal(session.query(query(StockpileCell, Container, Position)).length, 0, "painted policy owns no physical capacity");
 
     const before = session.query(query(StockpileCell)).length;
     assert.throws(() => session.command("designateStockpile", { area: { start: [x, y, z], end: [x, y + 1, z] }, filterProfile: "wood", priority: 9 }), /one level/);
@@ -43,6 +43,14 @@ test("Colony stockpile rectangle is worker independent, atomic, and durable", ()
     session.restore(saved);
     assert.equal(session.query(query(StockpileCell)).length, before);
     assert.equal(session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === "colony.stockpile").length, 0);
+    session.command("clearStockpile", { area: { start: [x, y, z], end: [x + 1, y, z] } });
+    session.step(0);
+    assert.equal(session.query(query(StockpileCell)).length, 0, "clear removes only painted policy");
+    session.restore(saved);
+    assert.equal(session.query(query(StockpileCell)).length, before, "reload restores the cleared policy");
+    session.command("clearStockpile", { area: { start: [x, y, z], end: [x, y, z] } });
+    session.step(0);
+    assert.equal(session.query(query(StockpileCell)).length, 1, "partial clear leaves the other painted cell active");
   } finally {
     port.dispose();
   }
@@ -61,7 +69,7 @@ test("Colony command leaves a conflicting native zone untouched", () => {
     const surface = session.terrainSurfaces([[2, 2]])[0];
     assert.ok(surface);
     const [x, y, z] = surface.cell;
-    session.request({ kind: "designate-stockpile", party: entity("colony.local-party"), zone: entity("foreign.zone"), cells: [{ x, y, z, priority: 1, filterProfile: "wood", capacity: 6 }] });
+    session.request({ kind: "designate-stockpile", party: entity("colony.local-party"), zone: entity("foreign.zone"), cells: [{ x, y, z, priority: 1, filterProfile: "wood" }] });
     session.step(0);
     session.command("designateStockpile", { area: { start: [x, y, z], end: [x + 1, y, z] }, filterProfile: "wood", priority: 9 });
     session.step(0);
@@ -112,7 +120,7 @@ test("stockpile policy is player configurable and survives reload", () => {
       atmosphereSamples: cells => session.atmosphereSamples(cells),
       constructionReadiness: sites => session.constructionReadiness(sites),
     }) ?? [];
-    assert.ok(inspection.some(fact => fact.label === "Stockpile" && fact.value === "food · priority 3 · 0/6"));
+    assert.ok(inspection.some(fact => fact.label === "Stockpile" && fact.value === "food · priority 3 · 0/0"));
     session.restore(saved);
     assert.deepEqual(session.query(query(StockpileCell))[0].get(StockpileCell), reprioritized);
     assert.equal(session.pack.presentation?.terrainMarks?.({ query: spec => session.query(spec), atmosphereSamples: cells => session.atmosphereSamples(cells) }).filter(mark => mark.kind === "stockpile").length, 2);

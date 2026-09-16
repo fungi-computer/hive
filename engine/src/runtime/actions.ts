@@ -194,13 +194,17 @@ export function checkedAction(value: unknown): ActionRequest {
       valid = id(action.party) && id(action.zone) && Array.isArray(cells) && cells.length > 0 && cells.length <= 256 && cells.every(cell => {
         if (!cell || typeof cell !== "object" || Array.isArray(cell)) return false;
         const value = cell as Record<string, unknown>;
-        return Object.keys(value).length === 6 && [value.x, value.y, value.z].every(item => typeof item === "number" && Number.isSafeInteger(item)) && quantity(value.priority) && quantity(value.capacity) && stream(value.filterProfile);
+        return Object.keys(value).length === 5 && [value.x, value.y, value.z].every(item => typeof item === "number" && Number.isSafeInteger(item)) && quantity(value.priority) && stream(value.filterProfile);
       });
       break;
     }
     case "update-stockpile":
       keys = ["kind", "party", "zone", "filterProfile", "priority"];
       valid = id(action.party) && id(action.zone) && stream(action.filterProfile) && quantity(action.priority);
+      break;
+    case "clear-stockpile":
+      keys = ["kind", "party", "zone", "cells"];
+      valid = id(action.party) && id(action.zone) && Array.isArray(action.cells) && action.cells.length > 0 && action.cells.length <= 256 && action.cells.every(cell => cell && typeof cell === "object" && !Array.isArray(cell) && exactKeys(cell, ["x", "y", "z"]) && [cell.x, cell.y, cell.z].every(item => typeof item === "number" && Number.isSafeInteger(item)));
       break;
     case "plan-constructions":
       keys = ["kind", "party", "plans"];

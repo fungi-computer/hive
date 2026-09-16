@@ -13,6 +13,7 @@ export const RESERVED_COMPONENTS = [
   "hive.owned-by-party",
   "hive.party-receipt",
   "hive.stockpile-cell",
+  "hive.storage-provider",
   "hive.position",
   "hive.body",
   "hive.traversal",
@@ -227,10 +228,10 @@ export type ActionRequest =
         readonly z: number;
         readonly priority: number;
         readonly filterProfile: string;
-        readonly capacity: number;
       }[];
     }
   | { readonly kind: "update-stockpile"; readonly party: EntityId; readonly zone: EntityId; readonly filterProfile: string; readonly priority: number }
+  | { readonly kind: "clear-stockpile"; readonly party: EntityId; readonly zone: EntityId; readonly cells: readonly { readonly x: number; readonly y: number; readonly z: number }[] }
   | {
       readonly kind: "set-structure-open";
       readonly worker: EntityId;

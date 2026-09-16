@@ -92,7 +92,7 @@ export const colonyEnvironment: EnvironmentDefinition = {
       { id: "timber-bed", shape: { kind: "fixture", footprint: [[0, 0], [0, 1]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 2 }], workSeconds: 3,
         onRemove: { salvage: [{ kind: "wood", quantity: 2 }] } },
       { id: "timber-shelf", shape: { kind: "fixture", footprint: [[0, 0], [1, 0]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 3 }], workSeconds: 4,
-        onComplete: { ports: [{ key: "storage", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 12 } }, { name: "hive.stockpile-cell", value: { zone: "shelves", priority: 4, filterProfile: "materials" } }] }] }, onRemove: { salvage: [{ kind: "wood", quantity: 3 }], emptyPorts: ["storage"] } },
+        onComplete: { ports: [{ key: "storage", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 12 } }, { name: "hive.storage-provider", value: {} }] }] }, onRemove: { salvage: [{ kind: "wood", quantity: 3 }], emptyPorts: ["storage"] } },
       { id: "brew-station", shape: { kind: "fixture", footprint: [[0, 0], [1, 0], [0, 1], [1, 1]] }, workReachBelowCells: 0, materials: [{ kind: "wood", quantity: 6 }], workSeconds: 12,
         onComplete: { ports: [
           { key: "kettle", at: "site-contact", components: [{ name: "hive.container", value: { capacity: 5 } }] },

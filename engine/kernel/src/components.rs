@@ -75,6 +75,11 @@ pub struct SealedContainer {}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GroundStock {}
+/// A physical authored storage provider whose destination policy is resolved
+/// from painted stockpile cells at its position.
+#[derive(Component, Clone, Copy, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StorageProvider {}
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Lot {
@@ -150,7 +155,10 @@ pub struct StockpileCell {
 }
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StockpileDesignation { pub x: i32, pub y: i32, pub z: i32, pub priority: u32, pub filter_profile: String, pub capacity: u32 }
+pub struct StockpileDesignation { pub x: i32, pub y: i32, pub z: i32, pub priority: u32, pub filter_profile: String }
+#[derive(Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StockpileCellCoordinate { pub x: i32, pub y: i32, pub z: i32 }
 /// Finite authored stock whose kind and remaining quantity are native-owned.
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -611,6 +619,7 @@ pub enum Action {
     ExchangeFieldWater { operation: String, worker: String, vessel: String, x: i32, y: i32, z: i32, direction: crate::terrain_water::WaterExchangeDirection, portions: u8 },
     DesignateStockpile { party: String, zone: String, cells: Vec<StockpileDesignation> },
     UpdateStockpile { party: String, zone: String, #[serde(rename = "filterProfile")] filter_profile: String, priority: u32 },
+    ClearStockpile { party: String, zone: String, cells: Vec<StockpileCellCoordinate> },
     CancelWork { entity: String },
     Deconstruct { worker: String, site: String },
     PlanConstructions { party: String, plans: Vec<ConstructionPlan> },

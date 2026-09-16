@@ -380,6 +380,9 @@ impl Kernel {
         for output in salvage { self.publish_material_output(output); }
         for port_id in port_ids {
             let entity = self.ids.remove(&port_id).ok_or("created port disappeared")?;
+            self.unindex_stockpile_policy(&port_id, entity);
+            self.unindex_storage_provider(&port_id, entity);
+            self.unindex_ground_stock(&port_id, entity);
             let port_lots = self.contents.remove(&port_id).unwrap_or_default();
             for lot_entity in port_lots {
                 let lot_id = self.ecs.get::<ExternalId>(lot_entity).map(|id| id.0.clone()).ok_or("port lot identity missing")?;
@@ -388,6 +391,9 @@ impl Kernel {
             }
             self.known.remove(&port_id); self.ecs.despawn(entity);
         }
+        self.unindex_stockpile_policy(site_id, site_entity);
+        self.unindex_storage_provider(site_id, site_entity);
+        self.unindex_ground_stock(site_id, site_entity);
         for (name, _) in &definition.on_complete.components { if let Some(component_id) = self.registry.ids.get(name).copied() { self.ecs.entity_mut(site_entity).remove_by_id(component_id); } }
         let site_lots = self.contents.remove(site_id).unwrap_or_default();
         for lot_entity in site_lots {
@@ -899,6 +905,7 @@ impl Kernel {
         if has_material {
             self.ecs.entity_mut(site_entity).insert(GroundStock {});
             self.visible_source_containers.insert(site.to_owned());
+            self.index_ground_stock(site, site_entity);
         } else if self.ecs.get::<FloorReplacement>(site_entity).is_none() {
             for lot_entity in lot_entities {
                 if let Some(id) = self.ecs.get::<ExternalId>(lot_entity).map(|id| id.0.clone()) {
@@ -907,6 +914,8 @@ impl Kernel {
                 self.ecs.despawn(lot_entity);
             }
             self.contents.remove(site);
+            self.unindex_stockpile_policy(site, site_entity);
+            self.unindex_ground_stock(site, site_entity);
             self.ids.remove(site); self.known.remove(site); self.ecs.despawn(site_entity);
         }
         self.refresh_planner_index(site);
@@ -969,6 +978,9 @@ impl Kernel {
         for port in &definition.on_complete.ports {
             let id = format!("{site_id}:{}", port.key);
             if !crate::components::valid_id(&id) || self.known.contains(&id) { return Ok(false); }
+            if port.components.iter().any(|(name, _)| name == "hive.container")
+                && port.components.iter().any(|(name, _)| name == "hive.stockpile-cell")
+            { return Ok(false); }
         }
         self.environment.as_mut().ok_or("construction needs environment")?.apply_structures(prepared)?;
         self.bump_placement_revision();
@@ -990,7 +1002,7 @@ impl Kernel {
         }
         if self.ecs.get::<StockpileCell>(site_entity).is_some() {
             super::stockpile_work::install_planner_state(self, site_id, site_entity)?;
-            self.visible_source_containers.insert(site_id.to_owned());
+            self.index_stockpile_policy(site_id, site_entity);
         }
         for port in &definition.on_complete.ports {
             let id = format!("{site_id}:{}", port.key);
@@ -1000,9 +1012,9 @@ impl Kernel {
             for (name, value) in &port.components { self.registry.insert(&mut self.ecs, entity, name, value).expect("validated completion port component"); }
             if self.ecs.get::<StockpileCell>(entity).is_some() {
                 super::stockpile_work::install_planner_state(self, &id, entity)?;
-                self.visible_source_containers.insert(id.clone());
             }
             if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
+            self.index_storage_provider(&id, entity);
             if self.ecs.get::<Container>(entity).is_some() { self.contents.insert(id, BTreeSet::new()); }
         }
         self.refresh_planner_index(site_id);
