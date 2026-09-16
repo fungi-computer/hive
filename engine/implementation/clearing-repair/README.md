@@ -51,12 +51,14 @@ at pack load; batch reads across due behaviors in one world decision phase; retu
 physical requests internally through existing ECS/native/Region owners. No returned
 array required from creators, no second scheduler or state store. It supersedes
 older hook/builder sketches. Includes dependent query stages, conflict/continuation
-laws, actual integration gaps and real-consumer acceptance. This is accepted design,
-not an installed API or a restart of paused implementation. The same report retains
+laws, actual integration gaps and real-consumer acceptance. The prepared behavior
+surface is installed; later lifecycle/relationship work remains staged. The report retains
 the Godot/GameMaker research and source comparison with Knapsack/Mycelium. The
 [actor composition decision](10-scripted-engine-authoring-audit.md#actor-definitions-compose-capabilities-and-behaviors)
-adds `actor(...).with(...).behaves(...)`: shared behavior definitions, scoped subject
-membership and independent ECS instance state. Its creator handoff gate covers
+adds `actor(...).with(...).behaves(...)`: shared behavior definitions and
+independent ECS instance state. Definition composition is installed; general
+attachment membership for overlapping capability sets remains pending a real
+consumer. Its creator handoff gate covers
 custom TypeScript rules and an unusual capability combination without engine special
 cases. Actor does not mean a per-entity runtime or Durable Object.
 

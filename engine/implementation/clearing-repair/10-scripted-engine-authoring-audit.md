@@ -7,9 +7,11 @@ Named predicates/actions support the fluent model; underlying native operations
 continue to enforce ownership and commit laws. New syntax needs a demonstrated
 gap, not merely a new feature example.
 
-September 15, 2026. Personal research and Hive source review at `d71902d8`.
-The definition-building API and cross-behavior batching below are accepted design
-direction, not an installed API or permission to restart paused implementation.
+September 15, 2026. Personal research and Hive source review at `d71902d8`, with
+the implementation checkpoint updated September 16. The definition-building API,
+cross-behavior batching, exclusive-action checks and native-fact declarations
+described below are installed. Later actor lifecycle/relationship sketches remain
+design until their explicit checkpoints say otherwise.
 Read with [the creator study](09-systems-games-and-creator-study.md) and
 [ownership audit](08-engine-ownership-audit.md).
 
