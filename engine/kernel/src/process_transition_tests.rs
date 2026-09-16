@@ -563,7 +563,7 @@ fn attend_tick(kernel: &mut Kernel, process: &str, delta: f64) -> String {
     } else {
         json!({"kind":"begin-work-attempt","task":process,"worker":"worker","operation":{"kind":"process-attendance","process":process,"contact":contact_json}})
     };
-    kernel.advance_json(&json!({"delta":delta,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:process","party":"party:process"},"request":action}]}).to_string()).unwrap()
+    kernel.advance_json(&json!({"delta":delta,"writes":[],"actions":[{"scope":{"kind":"player","player":"player:process"},"request":action}]}).to_string()).unwrap()
 }
 
 #[test]
@@ -758,7 +758,7 @@ fn full_destination_leaves_facts_unchanged_releases_worker_and_retry_succeeds_on
     attend_tick(&mut kernel, &process, 0.0);
     let before_replay = kernel.save_records().unwrap();
     let contact_json = serde_json::to_value(kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap()).unwrap();
-    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:process","party":"party:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","operation":{"kind":"process-attendance","process":process,"contact":contact_json}}}]}).to_string());
+    let repeated = kernel.advance_json(&json!({"delta":1.0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player:process"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker","operation":{"kind":"process-attendance","process":process,"contact":contact_json}}}]}).to_string());
     assert_eq!(repeated.unwrap_err(), "process is complete");
     assert_eq!(kernel.save_records().unwrap().entities, before_replay.entities);
     assert_eq!(
