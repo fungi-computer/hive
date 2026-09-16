@@ -2334,7 +2334,7 @@ pub struct Kernel {
     bound_process_lots: BTreeSet<String>,
     next_work_generation: u64,
     next_party_sequence: u64,
-    party_bindings: BTreeMap<String, PartyBinding>,
+    party_bindings: crate::party_binding::PartyBindingStore,
     work_attempts: BTreeMap<String, Entity>,
     attempts_by_worker: BTreeMap<String, AttemptKey>,
     arrived_routes: BTreeSet<Entity>,
@@ -2372,31 +2372,6 @@ impl Kernel {
             let output = self.ecs.get::<FiniteResource>(*entity).unwrap();
             let mature = site.stage as usize == definition.stages.len();
             if output.kind != definition.output_kind || (!mature && output.quantity != 0) || (mature && output.quantity != 0 && output.quantity != definition.output_quantity) { return Err("saved resource site yield is invalid".into()); }
-        }
-        Ok(())
-    }
-    fn validate_party_bindings(&self) -> Result<()> {
-        let mut bindings = BTreeSet::new();
-        let mut players = BTreeSet::new();
-        let mut parties = BTreeSet::new();
-        for receipt in self.party_bindings.values() {
-            let people = receipt.people.iter().collect::<BTreeSet<_>>();
-            if !valid_id(&receipt.binding_id)
-                || receipt.sequence == 0
-                || receipt.sequence >= self.next_party_sequence
-                || receipt.player != format!("player:{}", receipt.sequence)
-                || receipt.party != format!("party:{}", receipt.sequence)
-                || receipt.people.len() > 32
-                || receipt.people.iter().any(|id| !valid_id(id))
-                || people.len() != receipt.people.len()
-                || receipt.digest.len() != 64
-                || !receipt.digest.bytes().all(|byte| byte.is_ascii_hexdigit())
-                || !bindings.insert(receipt.binding_id.clone())
-                || !players.insert(receipt.player.clone())
-                || !parties.insert(receipt.party.clone())
-            {
-                return Err("invalid party binding".into());
-            }
         }
         Ok(())
     }
@@ -2585,7 +2560,7 @@ impl Kernel {
             bound_process_lots: BTreeSet::new(),
             next_work_generation: 1,
             next_party_sequence: 1,
-            party_bindings: BTreeMap::new(),
+            party_bindings: crate::party_binding::PartyBindingStore::default(),
             work_attempts: BTreeMap::new(),
             attempts_by_worker: BTreeMap::new(),
             arrived_routes: BTreeSet::new(),
@@ -3980,7 +3955,7 @@ impl Kernel {
         if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes) > STATE_BYTES {
             return Err("direct state exceeds canonical capacity".into());
         }
-        let party_bindings = self.party_bindings.values().cloned().collect::<Vec<_>>();
+        let party_bindings = self.party_bindings.snapshot();
         let owned_bytes = serde_json::to_vec(&(&jobs, &tasks, &party_bindings)).map_err(|e| e.to_string())?.len();
         if self.state_weight.saturating_add(route_bytes).saturating_add(direct_bytes).saturating_add(owned_bytes) > STATE_BYTES {
             return Err("job state exceeds canonical capacity".into());
@@ -4114,17 +4089,13 @@ impl Kernel {
         }
         candidate.next_work_generation = state.next_work_generation;
         candidate.next_party_sequence = state.next_party_sequence;
-        let mut party_bindings = BTreeMap::new();
-        for binding in state.party_bindings {
-            if party_bindings.insert(binding.binding_id.clone(), binding).is_some() {
-                return Err("duplicate party binding".into());
-            }
-        }
-        candidate.party_bindings = party_bindings;
+        candidate.party_bindings = crate::party_binding::PartyBindingStore::restore(
+            state.party_bindings,
+            state.next_party_sequence,
+        )?;
         state.planner.validate().map_err(str::to_owned)?;
         candidate.planner = state.planner;
         candidate.rebuild_planner_index();
-        candidate.validate_party_bindings()?;
         for (task, attempt) in attempts {
             let entity = candidate.entity(&task)?;
             candidate.ecs.entity_mut(entity).insert(attempt.clone());
@@ -5792,7 +5763,7 @@ impl Kernel {
         let mut handles = Vec::new();
         for record in records { let id = record.id; let entity = self.ecs.spawn(ExternalId(id.clone())).id(); for (name, value) in record.components { self.registry.insert(&mut self.ecs, entity, &name, &value)?; } handles.push((id, entity)); }
         for (id, entity) in handles { self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_planner_index(&id); }
-        self.party_bindings.insert(binding_id.clone(), PartyBinding { binding_id, sequence: expected_sequence, player, party: party.clone(), people, digest });
+        self.party_bindings.insert(PartyBinding { binding_id, sequence: expected_sequence, player, party: party.clone(), people, digest })?;
         self.next_party_sequence = next_sequence;
         self.refresh_state_weight(); Ok(party)
     }
