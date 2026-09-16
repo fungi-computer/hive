@@ -193,7 +193,7 @@ impl Kernel {
             let task_entity = self.ecs.spawn((ExternalId(task_id.clone()), crate::job::Task { version: crate::job::CURRENT_VERSION, job: id.clone(), step: step.key, after: step.after, operation: step.operation, state: crate::job::TaskState::Pending, continuation: step.continuation.clone(), bound_actor: match step.continuation { crate::job::ContinuationPolicy::AssignedActor(actor) => Some(actor), _ => None } }, crate::job::JobTaskWork { seconds: 0.0 })).id();
             self.ids.insert(task_id.clone(), task_entity); self.known.insert(task_id.clone());
             if let Some(party) = owner.clone() {
-                self.ecs.entity_mut(task_entity).insert((OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { party, priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }));
+                self.ecs.entity_mut(task_entity).insert((OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }));
             }
             self.refresh_planner_index(task_id);
         }

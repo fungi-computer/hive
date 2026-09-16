@@ -23,7 +23,7 @@ impl Kernel {
             let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).ok_or("deconstruction order has no work policy")?;
             let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).ok_or("deconstruction order has no work schedule")?;
             if id.0 != format!("deconstruction-order.{}:{}", order.site.len(), order.site)
-                || owner.party != policy.party || schedule.next_review_tick < schedule.last_considered
+                || owner.party != policy.pool || schedule.next_review_tick < schedule.last_considered
                 || (order.status == "complete") == policy.enabled
             { return Err("invalid saved deconstruction order".into()); }
             if order.status != "complete" {
@@ -52,7 +52,7 @@ impl Kernel {
         if self.ids.len() >= 16_384 || !crate::components::valid_id(&task) { return Err("deconstruction state capacity exceeded".into()); }
         let order = DeconstructionOrder { site, contact_x: 0.0, contact_y: 0.0, contact_z: 0.0, salvage_quantity: 0, work_seconds: 0.0, status: "queued".into(), reason: String::new(), retry_key: String::new() };
         let entity = self.ecs.spawn((ExternalId(task.clone()), order, OwnedByParty { party: party.clone() },
-            crate::work_planner::WorkPolicy { party, priority: 0, enabled: true },
+            crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true },
             crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
         self.ids.insert(task.clone(), entity); self.known.insert(task.clone());
         self.refresh_planner_index(&task); self.refresh_state_weight();

@@ -115,7 +115,7 @@ const piratesInitial = [
     id: breadTaskId,
     components: {
       "hive.owned-by-party": { party: piratePartyId },
-      "hive.work-policy": { party: piratePartyId, priority: 0, enabled: true },
+      "hive.work-policy": { pool: piratePartyId, priority: 0, enabled: true },
       "hive.work-schedule": { nextReviewTick: 0, lastConsidered: 0 },
       "hive.supply-allocation": { requirementOwner: breadTaskId, requirementRole: "pirate-cargo", requirementGeneration: 1, party: piratePartyId, material: "bread", portion: breadId, destination: holdId, quantity: 1, state: "reserved" },
     },
@@ -124,7 +124,7 @@ const piratesInitial = [
     id: woodTaskId,
     components: {
       "hive.owned-by-party": { party: piratePartyId },
-      "hive.work-policy": { party: piratePartyId, priority: 0, enabled: true },
+      "hive.work-policy": { pool: piratePartyId, priority: 0, enabled: true },
       "hive.work-schedule": { nextReviewTick: 0, lastConsidered: 0 },
       "hive.supply-allocation": { requirementOwner: woodTaskId, requirementRole: "pirate-cargo", requirementGeneration: 1, party: piratePartyId, material: "wood", portion: woodId, destination: holdId, quantity: 1, state: "reserved" },
     },
@@ -199,7 +199,7 @@ function controlledCrew(
 
 export const piratesPack: GamePack = {
   id: "pirates",
-  version: 1,
+  version: 2,
   localScope: { kind: "player", player: "pirate-player", party: piratePartyId },
   components: pirateComponents,
   systems: [],

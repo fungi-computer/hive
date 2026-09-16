@@ -15,7 +15,7 @@ export interface NativeRecordBinding {
 
 export interface KernelEntitySnapshot {
   readonly format: "hive-kernel";
-  readonly version: 14;
+  readonly version: 15;
   readonly revision: number;
   readonly time: number;
   readonly scene: {
@@ -100,7 +100,7 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
   const value = parsed as Partial<KernelEntitySnapshot>;
   if (
     value.format !== "hive-kernel" ||
-    value.version !== 14 ||
+    value.version !== 15 ||
     !isSafeRevision(value.revision) ||
     !isFiniteTime(value.time) ||
     !value.scene ||

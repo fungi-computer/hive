@@ -216,7 +216,7 @@ impl Kernel {
         let Some(order) = self.ecs.get::<DeconstructionOrder>(entity).cloned() else { return Ok(None); };
         let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned() else { return Ok(None); };
         let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() else { return Ok(None); };
-        if !policy.enabled || policy.party != party || order.status == "complete" || self.work_attempts.contains_key(task) {
+        if !policy.enabled || policy.pool != party || order.status == "complete" || self.work_attempts.contains_key(task) {
             return Ok(None);
         }
         if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) { return Ok(None); }
@@ -224,7 +224,7 @@ impl Kernel {
         let Some(access) = rows.into_iter().next() else { return Ok(None); };
         if access.removal != "ready" || access.contacts.is_empty() { return Ok(None); }
         Ok(Some(crate::work_planner::WorkRequirement {
-            task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
+            task: task.to_owned(), pool: party.to_owned(), priority: policy.priority, schedule,
             contacts: access.contacts.into_iter().map(|contact| Point { x: contact.x, y: contact.y, z: contact.z, frame: contact.frame }).collect(),
             required_worker: None,
             free_capacity_required: access.salvage_quantity,
@@ -255,7 +255,7 @@ impl Kernel {
         let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() else {
             return Ok(None);
         };
-        if !policy.enabled || policy.party != party || state.phase != ConstructionPhase::Planned {
+        if !policy.enabled || policy.pool != party || state.phase != ConstructionPhase::Planned {
             return Ok(None);
         }
         if self.work_attempts.contains_key(site) {
@@ -328,7 +328,7 @@ impl Kernel {
         }
         Ok(Some(crate::work_planner::WorkRequirement {
             task: site.to_owned(),
-            party: party.to_owned(),
+            pool: party.to_owned(),
             priority: policy.priority,
             schedule,
             contacts,
@@ -780,7 +780,7 @@ impl Kernel {
             added = added.saturating_add(plan.site.len() + 128 + self.registry.weight("hive.container", &record(&Container { capacity }))
                 + self.registry.weight("hive.construction-site", &record(&site_state))
                 + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))
-                + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }))
+                + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }))
                 + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })));
             staged.push((plan.site, site_state, capacity));
         }
@@ -790,7 +790,7 @@ impl Kernel {
         if self.state_weight.saturating_add(added) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         for (site, site_state, capacity) in staged {
             let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, site_state,
-                crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true },
+                crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true },
                 crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
             self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site.clone(), BTreeSet::new());
             self.refresh_planner_index(&site);

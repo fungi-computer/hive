@@ -27,7 +27,7 @@ impl Kernel {
         let Some(allocation) = self.ecs.get::<SupplyAllocation>(entity).cloned() else { return Ok(None); };
         if allocation.state != SupplyAllocationState::Reserved || allocation.party != party || self.work_attempts.contains_key(task) { return Ok(None); }
         let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned().ok_or("supply allocation has no work policy")?;
-        if !policy.enabled || policy.party != party { return Ok(None); }
+        if !policy.enabled || policy.pool != party { return Ok(None); }
         let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().ok_or("supply allocation has no work schedule")?;
         let lot = self.ecs.get::<Lot>(self.entity(&allocation.portion)?).cloned().ok_or("supply portion disappeared")?;
         let carrier = self.supply_carrier(&lot.container);
@@ -47,7 +47,7 @@ impl Kernel {
             ).map_err(TransferContactError::into_string)?
         };
         Ok(Some(crate::work_planner::WorkRequirement {
-            task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
+            task: task.to_owned(), pool: party.to_owned(), priority: policy.priority, schedule,
             contacts,
             required_worker: carrier.clone(), free_capacity_required: if carrier.is_some() { 0 } else { allocation.quantity },
             operation: crate::work_planner::WorkOperation::SupplyAllocation { allocation: task.to_owned() },

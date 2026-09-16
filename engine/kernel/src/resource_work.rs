@@ -20,7 +20,7 @@ impl Kernel {
         let entity = self.ecs.spawn((
             ExternalId(id.clone()), OwnedByParty { party: party.clone() },
             FieldWaterWork { process: id.clone(), role: "manual".into(), generation: 1, party: party.clone(), destination: id.clone(), material, retain_in_vessel: true, portions, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None },
-            WorkPolicy { party, priority: 0, enabled: true },
+            WorkPolicy { pool: party, priority: 0, enabled: true },
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
         )).id();
         self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.contents.insert(id.clone(), Default::default());
@@ -53,7 +53,7 @@ impl Kernel {
             ExternalId(order_id.clone()),
             OwnedByParty { party: party.clone() },
             ResourceOrder { definition, cell_x: x, cell_y: y, cell_z: z, status: "queued".into(), reason: String::new(), progress_seconds: 0.0 },
-            WorkPolicy { party, priority: 0, enabled: true },
+            WorkPolicy { pool: party, priority: 0, enabled: true },
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
         )).id();
         self.ids.insert(order_id.clone(), entity);
@@ -96,7 +96,7 @@ impl Kernel {
         let entity = self.ecs.spawn((
             ExternalId(task_id.clone()), OwnedByParty { party: party.into() },
             FieldWaterWork { process: order_id.into(), role: "tend".into(), generation, party: party.into(), destination: order_id.into(), material: material.into(), retain_in_vessel: true, portions, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None },
-            WorkPolicy { party: party.into(), priority: 0, enabled: true },
+            WorkPolicy { pool: party.into(), priority: 0, enabled: true },
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
         )).id();
         self.ids.insert(task_id.clone(), entity); self.known.insert(task_id.clone()); self.contents.insert(task_id.clone(), Default::default());
@@ -133,7 +133,7 @@ impl Kernel {
         let entity = self.entity(order_id)?;
         let order = self.ecs.get::<ResourceOrder>(entity).cloned().ok_or("resource order disappeared")?;
         let Some((operation, required_worker)) = self.resource_work_operation(order_id, party, None)? else { return Ok(None); };
-        Ok(Some(WorkRequirement { task: order_id.into(), party: party.into(), priority: self.ecs.get::<WorkPolicy>(entity).map(|p| p.priority).unwrap_or(0), schedule: self.ecs.get::<WorkSchedule>(entity).cloned().ok_or("resource order has no schedule")?, contacts: self.resource_contacts(&order)?, required_worker, free_capacity_required: 0, operation }))
+        Ok(Some(WorkRequirement { task: order_id.into(), pool: party.into(), priority: self.ecs.get::<WorkPolicy>(entity).map(|p| p.priority).unwrap_or(0), schedule: self.ecs.get::<WorkSchedule>(entity).cloned().ok_or("resource order has no schedule")?, contacts: self.resource_contacts(&order)?, required_worker, free_capacity_required: 0, operation }))
     }
 
     pub(super) fn advance_resource_work(&mut self, delta: f64) -> Result<()> {

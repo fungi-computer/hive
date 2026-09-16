@@ -47,7 +47,7 @@ impl Kernel {
         let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(process_entity).cloned() else {
             return Ok(None);
         };
-        if !policy.enabled || policy.party != party || state.phase != crate::staged_process::ProcessPhase::Waiting {
+        if !policy.enabled || policy.pool != party || state.phase != crate::staged_process::ProcessPhase::Waiting {
             return Ok(None);
         }
         if self.work_attempts.contains_key(process) {
@@ -110,7 +110,7 @@ impl Kernel {
         };
         Ok(Some(crate::work_planner::WorkRequirement {
             task: process.to_owned(),
-            party: party.to_owned(),
+            pool: party.to_owned(),
             priority: policy.priority,
             schedule,
             contacts,

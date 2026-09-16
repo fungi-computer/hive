@@ -295,7 +295,7 @@ impl Kernel {
                         party: party.clone(),
                     },
                     crate::work_planner::WorkPolicy {
-                        party: party.clone(),
+                        pool: party.clone(),
                         priority: 0,
                         enabled: true,
                     },

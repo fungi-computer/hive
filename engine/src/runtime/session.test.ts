@@ -68,7 +68,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
-    version: 14,
+    version: 15,
     revision: 0,
     time: 0,
     scene: {

@@ -31,7 +31,7 @@ pub struct WorkParticipation {
 #[derive(Component, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct WorkPolicy {
-    pub party: String,
+    pub pool: String,
     pub priority: u8,
     pub enabled: bool,
 }
@@ -53,7 +53,7 @@ pub struct WorkSchedule {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct WorkRequirement {
     pub task: String,
-    pub party: String,
+    pub pool: String,
     pub priority: u8,
     pub schedule: WorkSchedule,
     pub contacts: Vec<Point>,

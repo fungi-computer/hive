@@ -160,7 +160,7 @@ mod native_planner_snapshot_tests {
         kernel.load(&json!({"format":"hive-game","version":3,"game":"planner","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.work-participation":{"automatic":true}}},
-            {"id":"task","components":{"hive.work-policy":{"party":"party","priority":3,"enabled":true},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
+            {"id":"task","components":{"hive.work-policy":{"pool":"party","priority":3,"enabled":true},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
         ]}).to_string()).unwrap();
         let worker_record: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.work-participation\"]").unwrap()).unwrap();
         let task_records: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.work-policy\",\"hive.work-schedule\"]").unwrap()).unwrap();
@@ -2434,7 +2434,7 @@ impl Kernel {
             if let Some(owner) = self.ecs.get::<OwnedByParty>(*entity) {
                 let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(*entity) else { return Err("saved party process has no work policy".into()); };
                 let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(*entity) else { return Err("saved party process has no work schedule".into()); };
-                if policy.party != owner.party || schedule.next_review_tick < schedule.last_considered { return Err("saved party process scheduling is invalid".into()); }
+                if policy.pool != owner.party || schedule.next_review_tick < schedule.last_considered { return Err("saved party process scheduling is invalid".into()); }
             }
             let station = self.entity(&process.station)?;
             let site = self.ecs.get::<ConstructionSite>(station).ok_or("saved process station is missing")?;
@@ -2483,7 +2483,7 @@ impl Kernel {
             let Some(work) = self.ecs.get::<FieldWaterWork>(*entity) else { continue; };
             if !id.starts_with("field-water:")
                 || self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(work.party.as_str())
-                || self.ecs.get::<crate::work_planner::WorkPolicy>(*entity).is_none_or(|policy| policy.party != work.party)
+                || self.ecs.get::<crate::work_planner::WorkPolicy>(*entity).is_none_or(|policy| policy.pool != work.party)
                 || self.ecs.get::<crate::work_planner::WorkSchedule>(*entity).is_none()
             { return Err("invalid field water work ownership".into()); }
             let process = self.entity(&work.process)?;
@@ -2668,7 +2668,7 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("supply allocation identity exhausted")?;
         let id = format!("allocation.{allocation_sequence}");
         if self.known.contains(&id) { return Err("supply allocation identity collides with live state".into()); }
-        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
+        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
         self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_planner_index(&id); self.refresh_supply_index(&id); self.refresh_state_weight();
         Ok(id)
     }
@@ -3991,7 +3991,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 14,
+            version: 15,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4033,7 +4033,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 14
+            || state.version != 15
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -5188,7 +5188,7 @@ impl Kernel {
             });
             if let Some(party) = owner.clone() {
                 self.ecs.entity_mut(existing).insert(OwnedByParty { party: party.clone() });
-                self.ecs.entity_mut(existing).insert(crate::work_planner::WorkPolicy { party, priority: 0, enabled: true });
+                self.ecs.entity_mut(existing).insert(crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true });
                 self.ecs.entity_mut(existing).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
             }
             self.refresh_planner_index(&process_id);
@@ -5203,7 +5203,7 @@ impl Kernel {
         })).id();
         if let Some(party) = owner {
             self.ecs.entity_mut(entity).insert(OwnedByParty { party: party.clone() });
-            self.ecs.entity_mut(entity).insert(crate::work_planner::WorkPolicy { party, priority: 0, enabled: true });
+            self.ecs.entity_mut(entity).insert(crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true });
             self.ecs.entity_mut(entity).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
         }
         self.ids.insert(process_id.clone(), entity);

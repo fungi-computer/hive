@@ -198,7 +198,7 @@ pub(crate) fn collect(kernel: &Kernel, cell_id: &str, party: &str) -> Result<Vec
 pub(super) fn install_planner_state(kernel: &mut Kernel, id: &str, entity: bevy_ecs::prelude::Entity) -> crate::components::Result<()> {
     let Some(owner) = kernel.ecs.get::<OwnedByParty>(entity).cloned() else { return Ok(()); };
     let schedule = kernel.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().unwrap_or(crate::work_planner::WorkSchedule { next_review_tick: kernel.revision, last_considered: kernel.revision.saturating_sub(1) });
-    kernel.ecs.entity_mut(entity).insert((crate::work_planner::WorkPolicy { party: owner.party, priority: 0, enabled: true }, schedule));
+    kernel.ecs.entity_mut(entity).insert((crate::work_planner::WorkPolicy { pool: owner.party, priority: 0, enabled: true }, schedule));
     kernel.refresh_planner_index(id);
     Ok(())
 }

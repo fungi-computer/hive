@@ -319,7 +319,7 @@ function digArea(input: z.infer<typeof digInput>, party: EntityId): ActionReques
 }
 export const colonyPack: GamePack = {
   id: "colony",
-  version: 8,
+  version: 9,
   localScope: { kind: "player", player: "player:1", party: localParty },
   components: colonyComponents,
   systems: [colonyCatSystem],

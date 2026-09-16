@@ -81,7 +81,7 @@ impl PlanningObligation {
     }
 
     fn party(&self) -> &str {
-        match self { Self::Supply(slot) => &slot.requirement.party, Self::FieldWater(slot) => &slot.requirement.party, Self::Labor(requirement) => &requirement.party }
+        match self { Self::Supply(slot) => &slot.requirement.party, Self::FieldWater(slot) => &slot.requirement.party, Self::Labor(requirement) => &requirement.pool }
     }
 
     fn owner(&self) -> &str {
@@ -466,7 +466,7 @@ impl Kernel {
         self.ecs.entity_mut(entity).remove::<WorkPolicy>();
         self.ecs.entity_mut(entity).remove::<WorkSchedule>();
         self.ecs.entity_mut(entity).insert((
-            WorkPolicy { party: work.party.clone(), priority: 0, enabled: true },
+            WorkPolicy { pool: work.party.clone(), priority: 0, enabled: true },
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
             SupplyAllocation {
             requirement_owner: work.process,
@@ -799,16 +799,16 @@ impl Kernel {
         let mut selected_workers = BTreeSet::new();
         let mut selected_tasks = BTreeSet::new();
         for (requirement, worker, _, _) in &labor {
-            if !valid_id(&requirement.task) || !valid_id(worker) || !valid_id(&requirement.party)
+            if !valid_id(&requirement.task) || !valid_id(worker) || !valid_id(&requirement.pool)
                 || !selected_workers.insert(worker.clone()) || !selected_tasks.insert(requirement.task.clone())
                 || self.work_attempts.contains_key(&requirement.task) || self.attempts_by_worker.contains_key(worker)
             {
                 return Err("native labor assignment preflight failed".into());
             }
-            let party = self.entity(&requirement.party)?;
+            let party = self.entity(&requirement.pool)?;
             if self.ecs.get::<Party>(party).is_none() { return Err("native labor party is not a party".into()); }
             let worker_entity = self.entity(worker)?;
-            if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(requirement.party.as_str())
+            if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(requirement.pool.as_str())
                 || self.ecs.get::<Body>(worker_entity).is_none_or(|body| !body.speed.is_finite() || body.speed <= 0.0)
                 || self.ecs.get::<Traversal>(worker_entity).is_none()
                 || self.ecs.get::<Destination>(worker_entity).is_some()
@@ -817,7 +817,7 @@ impl Kernel {
                 return Err("native labor worker became unavailable".into());
             }
             let task_entity = self.entity(&requirement.task)?;
-            if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != requirement.party) {
+            if self.ecs.get::<OwnedByParty>(task_entity).is_some_and(|owner| owner.party != requirement.pool) {
                 return Err("native labor task changed party".into());
             }
         }
@@ -848,7 +848,7 @@ impl Kernel {
             self.begin_work_attempt_with_prepared_route(slot.task, worker, slot.requirement.party, destination, route)?;
         }
         for (requirement, worker, contact, route) in labor {
-            self.begin_work_attempt_with_prepared_route(requirement.task, worker, requirement.party, contact, route)?;
+            self.begin_work_attempt_with_prepared_route(requirement.task, worker, requirement.pool, contact, route)?;
         }
         Ok(supply_count + labor_count + field_count)
     }
@@ -876,7 +876,7 @@ impl Kernel {
             crate::job::ContinuationPolicy::AnyEligible | crate::job::ContinuationPolicy::PreferStarter => None,
         };
         Ok(Some(WorkRequirement {
-            task: task_id.into(), party: party.into(), priority: self.ecs.get::<WorkPolicy>(task_entity).map(|policy| policy.priority).unwrap_or(0),
+            task: task_id.into(), pool: party.into(), priority: self.ecs.get::<WorkPolicy>(task_entity).map(|policy| policy.priority).unwrap_or(0),
             schedule, contacts: self.job_work_contacts(&task)?,
             required_worker, free_capacity_required: 0,
             operation: WorkOperation::JobTransform { task: task_id.into() },
@@ -1035,7 +1035,7 @@ impl Kernel {
                         party: requirement.party.clone(), destination: requirement.destination.clone(), material: requirement.material.clone(), retain_in_vessel: false, portions: 1, vessel: None,
                         cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
                     },
-                    WorkPolicy { party: requirement.party.clone(), priority: 0, enabled: true },
+                    WorkPolicy { pool: requirement.party.clone(), priority: 0, enabled: true },
                     WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
                 )).id();
                 self.ids.insert(id.clone(), entity);
@@ -1979,12 +1979,12 @@ mod tests {
         let first = kernel.entity("site").unwrap();
         let second = kernel.entity("site-2").unwrap();
         kernel.ecs.entity_mut(first).insert(crate::work_planner::WorkPolicy {
-            party: "party".into(),
+            pool: "party".into(),
             priority: 9,
             enabled: true,
         });
         kernel.ecs.entity_mut(second).insert(crate::work_planner::WorkPolicy {
-            party: "party".into(),
+            pool: "party".into(),
             priority: 1,
             enabled: true,
         });
@@ -2253,7 +2253,7 @@ mod tests {
             .unwrap()
             .expect("complete construction demand should contribute labor");
         assert_eq!(requirement.task, "site");
-        assert_eq!(requirement.party, "party");
+        assert_eq!(requirement.pool, "party");
         assert!(!requirement.contacts.is_empty());
         assert!(matches!(&requirement.operation, crate::work_planner::WorkOperation::Construction { site, mode: crate::work_attempt::ConstructionMode::Work } if site == "site"));
         assert!(requirement.contacts.len() > 1);

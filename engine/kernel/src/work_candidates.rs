@@ -173,21 +173,21 @@ pub fn assign_verified<Witness>(
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct NativeIndexes {
     pub workers_by_party: BTreeMap<String, Vec<WorkerCandidate>>,
-    pub tasks_by_party: BTreeMap<String, Vec<TaskCandidate>>,
+    pub tasks_by_pool: BTreeMap<String, Vec<TaskCandidate>>,
     worker_party_by_id: BTreeMap<String, String>,
-    task_party_by_id: BTreeMap<String, String>,
+    task_pool_by_id: BTreeMap<String, String>,
     rebuilds: u64,
 }
 
 impl NativeIndexes {
     pub(crate) fn task_ids(&self) -> impl Iterator<Item = &str> {
-        self.task_party_by_id.keys().map(String::as_str)
+        self.task_pool_by_id.keys().map(String::as_str)
     }
     #[cfg(test)]
     pub(crate) fn rebuild_count(&self) -> u64 { self.rebuilds }
 
     pub(crate) fn has_due_task(&self, tick: u64) -> bool {
-        self.tasks_by_party
+        self.tasks_by_pool
             .values()
             .flatten()
             .any(|task| task.due_tick <= tick)
@@ -198,15 +198,15 @@ impl NativeIndexes {
             if let Some(values) = self.workers_by_party.get_mut(&party) { values.retain(|candidate| candidate.id != id); }
             if self.workers_by_party.get(&party).is_some_and(Vec::is_empty) { self.workers_by_party.remove(&party); }
         }
-        if let Some(party) = self.task_party_by_id.remove(id) {
-            if let Some(values) = self.tasks_by_party.get_mut(&party) { values.retain(|candidate| candidate.id != id); }
-            if self.tasks_by_party.get(&party).is_some_and(Vec::is_empty) { self.tasks_by_party.remove(&party); }
+        if let Some(pool) = self.task_pool_by_id.remove(id) {
+            if let Some(values) = self.tasks_by_pool.get_mut(&pool) { values.retain(|candidate| candidate.id != id); }
+            if self.tasks_by_pool.get(&pool).is_some_and(Vec::is_empty) { self.tasks_by_pool.remove(&pool); }
         }
     }
 
     fn sort(&mut self) {
         for values in self.workers_by_party.values_mut() { values.sort(); }
-        for values in self.tasks_by_party.values_mut() {
+        for values in self.tasks_by_pool.values_mut() {
             values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id)));
         }
     }
@@ -215,8 +215,8 @@ impl NativeIndexes {
         if let Some(values) = self.workers_by_party.get_mut(party) { values.sort(); }
     }
 
-    fn sort_task_party(&mut self, party: &str) {
-        if let Some(values) = self.tasks_by_party.get_mut(party) {
+    fn sort_task_pool(&mut self, pool: &str) {
+        if let Some(values) = self.tasks_by_pool.get_mut(pool) {
             values.sort_by(|a, b| b.priority.cmp(&a.priority).then(a.last_considered.cmp(&b.last_considered)).then(a.id.cmp(&b.id)));
         }
     }
@@ -225,7 +225,7 @@ impl NativeIndexes {
     /// Removal is represented by an absent id/entity and clears old membership.
     pub fn refresh_entity(&mut self, relations: &RelationIndex, world: &World, id: &str, entity: Option<Entity>) {
         let old_worker_party = self.worker_party_by_id.get(id).cloned();
-        let old_task_party = self.task_party_by_id.get(id).cloned();
+        let old_task_pool = self.task_pool_by_id.get(id).cloned();
         self.remove_id(id);
         let Some(entity) = entity else { return; };
         if let Some(party) = relations.target("hive.party-member", id)
@@ -240,23 +240,23 @@ impl NativeIndexes {
         if let Some(policy) = world.get::<WorkPolicy>(entity) && policy.enabled
             && let Some(schedule) = world.get::<WorkSchedule>(entity)
         {
-            self.task_party_by_id.insert(id.to_owned(), policy.party.clone());
-            self.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate {
-                id: id.to_owned(), party: policy.party.clone(), priority: policy.priority,
+            self.task_pool_by_id.insert(id.to_owned(), policy.pool.clone());
+            self.tasks_by_pool.entry(policy.pool.clone()).or_default().push(TaskCandidate {
+                id: id.to_owned(), party: policy.pool.clone(), priority: policy.priority,
                 last_considered: schedule.last_considered, due_tick: schedule.next_review_tick,
             });
         }
         if let Some(party) = old_worker_party.as_deref() { self.sort_worker_party(party); }
-        if let Some(party) = old_task_party.as_deref() { self.sort_task_party(party); }
+        if let Some(party) = old_task_pool.as_deref() { self.sort_task_pool(party); }
         if let Some(party) = self.worker_party_by_id.get(id).cloned() { self.sort_worker_party(&party); }
-        if let Some(party) = self.task_party_by_id.get(id).cloned() { self.sort_task_party(&party); }
+        if let Some(pool) = self.task_pool_by_id.get(id).cloned() { self.sort_task_pool(&pool); }
     }
 
     /// Rebuild once after initial load/reset/restore. Steady-state callers use
     /// refresh_entity so planning queries never scan the entity registry.
     pub fn rebuild(&mut self, relations: &RelationIndex, world: &World, ids: &BTreeMap<String, Entity>) {
-        self.workers_by_party.clear(); self.tasks_by_party.clear();
-        self.worker_party_by_id.clear(); self.task_party_by_id.clear();
+        self.workers_by_party.clear(); self.tasks_by_pool.clear();
+        self.worker_party_by_id.clear(); self.task_pool_by_id.clear();
         self.rebuilds = self.rebuilds.saturating_add(1);
         for (id, entity) in ids {
             if let Some(party) = relations.target("hive.party-member", id)
@@ -270,8 +270,8 @@ impl NativeIndexes {
             if let Some(policy) = world.get::<WorkPolicy>(*entity) && policy.enabled
                 && let Some(schedule) = world.get::<WorkSchedule>(*entity)
             {
-                self.task_party_by_id.insert(id.clone(), policy.party.clone());
-                self.tasks_by_party.entry(policy.party.clone()).or_default().push(TaskCandidate { id: id.clone(), party: policy.party.clone(), priority: policy.priority, last_considered: schedule.last_considered, due_tick: schedule.next_review_tick });
+                self.task_pool_by_id.insert(id.clone(), policy.pool.clone());
+                self.tasks_by_pool.entry(policy.pool.clone()).or_default().push(TaskCandidate { id: id.clone(), party: policy.pool.clone(), priority: policy.priority, last_considered: schedule.last_considered, due_tick: schedule.next_review_tick });
             }
         }
         self.sort();
@@ -293,15 +293,15 @@ pub fn eligible_workers(indexes: &NativeIndexes, party: &str, limit: usize) -> V
     result
 }
 
-pub fn due_tasks_from_index(indexes: &NativeIndexes, party: &str, tick: u64, limit: usize) -> Vec<TaskCandidate> {
-    due_tasks(indexes.tasks_by_party.get(party).into_iter().flatten().cloned(), tick, limit)
+pub fn due_tasks_from_index(indexes: &NativeIndexes, pool: &str, tick: u64, limit: usize) -> Vec<TaskCandidate> {
+    due_tasks(indexes.tasks_by_pool.get(pool).into_iter().flatten().cloned(), tick, limit)
 }
 
 /// Select directly from the rebuilt by-party indexes. The worker cap is applied
 /// after party rotation, so a later party cannot be starved by an earlier one.
 pub fn next_fair_indexed_window(state: &mut PlannerState, indexes: &NativeIndexes, tick: u64) -> PlanningWindow {
     let mut parties = indexes.workers_by_party.keys().cloned().collect::<BTreeSet<_>>();
-    parties.extend(indexes.tasks_by_party.keys().cloned());
+    parties.extend(indexes.tasks_by_pool.keys().cloned());
     let parties = parties.into_iter().collect::<Vec<_>>();
     let party = parties.get((state.party_cursor as usize) % parties.len().max(1)).cloned().unwrap_or_default();
     if !parties.is_empty() { state.party_cursor = state.party_cursor.wrapping_add(1) % parties.len() as u64; }
@@ -432,7 +432,7 @@ mod tests {
             let entity = world.spawn((ExternalId(id.clone()), PartyMember { party: party.into() }, Body { speed: 1.0 }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, WorkParticipation { automatic: true })).id();
             ids.insert(id, entity);
         }
-        let task = world.spawn((WorkPolicy { party: party.into(), priority: 7, enabled: true }, WorkSchedule { next_review_tick: 4, last_considered: 2 })).id();
+        let task = world.spawn((WorkPolicy { pool: party.into(), priority: 7, enabled: true }, WorkSchedule { next_review_tick: 4, last_considered: 2 })).id();
         ids.insert("task".into(), task);
         let mut relations = RelationIndex::default();
         relations.rebuild(&registry, &world, &ids).unwrap();
@@ -488,7 +488,7 @@ mod index_refresh_tests {
     #[test]
     fn refresh_reorders_task_and_repeated_windows_do_not_rebuild() {
         let mut world = World::new();
-        let entity = world.spawn((WorkPolicy { party: "p".into(), priority: 1, enabled: true }, WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
+        let entity = world.spawn((WorkPolicy { pool: "p".into(), priority: 1, enabled: true }, WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
         let ids = BTreeMap::from([("task".to_owned(), entity)]);
         let relations = RelationIndex::default();
         let mut indexes = NativeIndexes::default();
@@ -496,7 +496,7 @@ mod index_refresh_tests {
         let mut state = PlannerState::default();
         let _ = next_fair_indexed_window(&mut state, &indexes, 0);
         let before = indexes.rebuilds;
-        world.entity_mut(entity).insert(WorkPolicy { party: "p".into(), priority: 9, enabled: true });
+        world.entity_mut(entity).insert(WorkPolicy { pool: "p".into(), priority: 9, enabled: true });
         indexes.refresh_entity(&relations, &world, "task", Some(entity));
         assert_eq!(indexes.rebuilds, before);
         assert_eq!(due_tasks_from_index(&indexes, "p", 0, 10)[0].priority, 9);

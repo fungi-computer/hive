@@ -74,7 +74,7 @@ impl Kernel {
         let Some(order) = self.ecs.get::<ExcavationOrder>(entity).cloned() else { return Ok(None); };
         let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).cloned() else { return Ok(None); };
         let Some(schedule) = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned() else { return Ok(None); };
-        if !policy.enabled || policy.party != party || order.status == "cancelling" || self.work_attempts.contains_key(task) { return Ok(None); }
+        if !policy.enabled || policy.pool != party || order.status == "cancelling" || self.work_attempts.contains_key(task) { return Ok(None); }
         if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party) { return Ok(None); }
         let target = Cell { x: i64::from(order.cell_x), y: order.cell_y, z: i64::from(order.cell_z) };
         let material = self.environment.as_mut().ok_or("excavation needs environment")?.world.material(target)?;
@@ -110,7 +110,7 @@ impl Kernel {
         let contacts = self.excavation_contacts(&order, designated)?;
         if contacts.is_empty() { return Ok(None); }
         Ok(Some(crate::work_planner::WorkRequirement {
-            task: task.to_owned(), party: party.to_owned(), priority: policy.priority, schedule,
+            task: task.to_owned(), pool: party.to_owned(), priority: policy.priority, schedule,
             contacts, required_worker, free_capacity_required: 0,
             operation: crate::work_planner::WorkOperation::Excavation { cell: [order.cell_x, order.cell_y, order.cell_z], expected, replacement: 0 },
         }))
@@ -160,10 +160,10 @@ impl Kernel {
         let existing_orders = self.ids.values().filter(|entity| self.ecs.get::<ExcavationOrder>(**entity).is_some()).count();
         if existing_orders.saturating_add(prepared.len()) > 256 { return Err("Finish or cancel existing dig orders before adding more than 256".into()); }
         if prepared.is_empty() && replayed == 0 { return Err("excavation area has no valid diggable cells".into()); }
-        let added_weight = prepared.iter().map(|(id, order)| id.len() + 128 + self.registry.weight("hive.excavation-order", &record(order)) + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() })) + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true })) + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }))).sum::<usize>();
+        let added_weight = prepared.iter().map(|(id, order)| id.len() + 128 + self.registry.weight("hive.excavation-order", &record(order)) + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() })) + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true })) + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }))).sum::<usize>();
         if self.state_weight.saturating_add(added_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         for (id, order) in prepared {
-            let entity = self.ecs.spawn((ExternalId(id.clone()), order, OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { party: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
+            let entity = self.ecs.spawn((ExternalId(id.clone()), order, OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
             self.ids.insert(id.clone(), entity);
             self.known.insert(id.clone());
             self.refresh_planner_index(&id);
@@ -304,7 +304,7 @@ impl Kernel {
             let policy = self.ecs.get::<crate::work_planner::WorkPolicy>(entity).ok_or("excavation order has no work policy")?;
             let schedule = self.ecs.get::<crate::work_planner::WorkSchedule>(entity).ok_or("excavation order has no work schedule")?;
             if !valid_id(&id.0)
-                || owner.party != policy.party
+                || owner.party != policy.pool
                 || schedule.next_review_tick < schedule.last_considered
                 || !matches!(order.status.as_str(), "queued" | "blocked" | "cancelling")
                 || order.reason.len() > 256

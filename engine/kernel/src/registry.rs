@@ -86,7 +86,7 @@ impl Registry {
             ("hive.party-member", vec![("party", FieldType::Entity)]),
             ("hive.owned-by-party", vec![("party", FieldType::Entity)]),
             ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
-            ("hive.work-policy", vec![("party", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
+            ("hive.work-policy", vec![("pool", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
             ("hive.work-schedule", vec![("nextReviewTick", FieldType::Number), ("lastConsidered", FieldType::Number)]),
             ("hive.job-task-work", vec![("seconds", FieldType::Number)]),
             (
@@ -675,7 +675,7 @@ impl Registry {
                 }
             }
             "hive.work-participation" => { let _: crate::work_planner::WorkParticipation = decode(value)?; }
-            "hive.work-policy" => { let policy: crate::work_planner::WorkPolicy = decode(value)?; if !valid_id(&policy.party) { return Err("invalid work policy party".into()); } }
+            "hive.work-policy" => { let policy: crate::work_planner::WorkPolicy = decode(value)?; if !valid_id(&policy.pool) { return Err("invalid work policy pool".into()); } }
             "hive.work-schedule" => { let schedule: crate::work_planner::WorkSchedule = decode(value)?; if schedule.next_review_tick < schedule.last_considered { return Err("invalid work schedule".into()); } }
             "hive.job-task-work" => { let work: crate::job::JobTaskWork = decode(value)?; if !work.seconds.is_finite() || work.seconds < 0.0 { return Err("invalid job task work".into()); } }
             "hive.excavation-order" => {
