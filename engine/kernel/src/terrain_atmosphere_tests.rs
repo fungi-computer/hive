@@ -5,6 +5,7 @@ use super::terrain_atmosphere::{
 };
 use super::terrain_water::{MaterialWater, TerrainWater, TerrainWaterGeometry};
 use std::collections::BTreeMap;
+use std::time::Instant;
 fn world() -> TerrainWater {
     world_with_stock(0.0)
 }
@@ -240,4 +241,32 @@ fn smoke_covers_the_clearing_and_deep_caves_without_ticking_empty_volume() {
     restored.advance(&mut world, 0.25, &[]).unwrap();
     assert_eq!(postcard::to_allocvec(&air.save().unwrap()).unwrap(),
         postcard::to_allocvec(&restored.save().unwrap()).unwrap());
+}
+
+#[test]
+#[ignore = "manual gas scaling measurement"]
+fn measure_smoke_step_cost_at_fixed_work() {
+    let bounds = Bounds { min_x: -32, max_x: 32, min_y: -32, max_y: 40,
+        min_z: -32, max_z: 32 };
+    for active in [256, 1024, 4096] {
+        let mut world = world_with_bounds(0.0, bounds, "colony-world-v1", "gas-cost", 12);
+        let mut definition = config(ExteriorPolicy::Closed);
+        definition.min = Cell { x: bounds.min_x, y: bounds.min_y, z: bounds.min_z };
+        definition.max = Cell { x: bounds.max_x, y: bounds.max_y, z: bounds.max_z };
+        let mut air = TerrainAtmosphere::fresh(&mut world, definition).unwrap();
+        let cells: Vec<_> = (0..active).map(|index| Cell {
+            x: bounds.min_x + (index % 64) as i64,
+            y: 39,
+            z: bounds.min_z + (index / 64) as i64,
+        }).collect();
+        air.seed_benchmark_cells(&cells);
+        let copy_validate = air.benchmark_copy_validate(100);
+        let started = Instant::now();
+        let mut processed = 0;
+        for _ in 0..100 {
+            processed += air.advance(&mut world, 0.25, &[]).unwrap().processed_cells;
+        }
+        eprintln!("gas active={active} processed={processed} step_us={} copy_validate_us={}",
+            started.elapsed().as_micros(), copy_validate.as_micros());
+    }
 }

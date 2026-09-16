@@ -439,3 +439,22 @@ choosing a new renderer or query architecture. Escalate an actual failing geomet
 fixture, impossible coverage budget, or conflicting current source ownership with
 exact evidence; don't improvise a fallback. This document is ready for implementation
 and first-shape review, not a claim that the designs are already visually proven.
+
+## September 16 R3 implementation receipt
+
+The synthetic fixed-work witness processes 25,600 cell turns at 256, 1,024 and
+4,096 active stocks. Before the correction, 100 whole-state clone/validation
+passes cost 46,890 / 128,188 / 473,280 microseconds and total steps cost
+1,092,622 / 1,067,992 / 1,011,325 microseconds in the first debug run. The
+prepared-delta implementation reduced the corresponding total step measurements
+to 526,767 / 578,334 / 466,988 microseconds. These are local debug diagnostics,
+not release throughput claims; the retained ignored test reproduces the witness.
+
+`PreparedSmokeAdvance` now owns touched amounts, queue consumption/appends, clock
+and ledger deltas. It validates touched state and delta conservation before one
+infallible publication into the existing environment transaction. Full relational
+validation remains at save/restore. `run-u1826` passed all 419 kernel library tests
+(one manual benchmark ignored). The full Cargo command's 14 standalone integration
+fixtures still fail at their pre-existing stale `materialCatalog` schema boundary;
+they do not execute atmosphere code and are not counted as R3 proof. `run-u1821`
+reproduced that same failure on the untouched integration parent.
