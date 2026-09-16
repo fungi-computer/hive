@@ -57,6 +57,143 @@ struct SmokeState {
     smoke_deposited: f64,
     heat_deposited: f64,
 }
+#[derive(Default)]
+struct SmokeLedgerDelta {
+    emitted_smoke: f64,
+    emitted_heat: f64,
+    escaped_smoke: f64,
+    escaped_heat: f64,
+    deposited_smoke: f64,
+    deposited_heat: f64,
+    stock_smoke: f64,
+    stock_heat: f64,
+}
+struct PreparedSmokeAdvance {
+    clock: f64,
+    changes: BTreeMap<Cell, Option<Amount>>,
+    base_queue_consumed: usize,
+    appended: VecDeque<Cell>,
+    active: usize,
+    ledger: SmokeLedgerDelta,
+}
+impl PreparedSmokeAdvance {
+    fn new(state: &SmokeState, clock: f64) -> Self {
+        Self {
+            clock,
+            changes: BTreeMap::new(),
+            base_queue_consumed: 0,
+            appended: VecDeque::new(),
+            active: state.stocks.len(),
+            ledger: SmokeLedgerDelta::default(),
+        }
+    }
+    fn amount(&self, state: &SmokeState, cell: Cell) -> Option<Amount> {
+        self.changes.get(&cell).copied().unwrap_or_else(|| state.stocks.get(&cell).copied())
+    }
+    fn put(&mut self, state: &SmokeState, cell: Cell, amount: Amount) {
+        let before = self.amount(state, cell);
+        if before.is_none() {
+            self.active += 1;
+        }
+        self.ledger.stock_smoke += amount.smoke - before.map_or(0.0, |value| value.smoke);
+        self.ledger.stock_heat += amount.heat - before.map_or(0.0, |value| value.heat);
+        self.changes.insert(cell, Some(amount));
+    }
+    fn remove(&mut self, state: &SmokeState, cell: Cell) {
+        if let Some(before) = self.amount(state, cell) {
+            self.active -= 1;
+            self.ledger.stock_smoke -= before.smoke;
+            self.ledger.stock_heat -= before.heat;
+            self.changes.insert(cell, None);
+        }
+    }
+    fn add(
+        &mut self,
+        state: &SmokeState,
+        cell: Cell,
+        smoke: f64,
+        heat: f64,
+        time: f64,
+    ) -> Result<(), String> {
+        if smoke == 0.0 && heat == 0.0 {
+            return Ok(());
+        }
+        let existing = self.amount(state, cell);
+        if existing.is_none() {
+            if self.active >= MAX_ACTIVE {
+                return Err("active smoke budget reached".into());
+            }
+            self.appended.push_back(cell);
+        }
+        let mut amount = existing.unwrap_or(Amount {
+            smoke: 0.0,
+            heat: 0.0,
+            updated: time,
+        });
+        amount.smoke += smoke;
+        amount.heat += heat;
+        self.put(state, cell, amount);
+        Ok(())
+    }
+    fn pop_work(&mut self, state: &SmokeState) -> Option<Cell> {
+        if let Some(cell) = state.queue.get(self.base_queue_consumed).copied() {
+            self.base_queue_consumed += 1;
+            Some(cell)
+        } else {
+            self.appended.pop_front()
+        }
+    }
+    fn validate(&self, state: &SmokeState, config: &TerrainAtmosphereConfig) -> Result<(), String> {
+        if !self.clock.is_finite() || self.clock < state.clock || self.active > MAX_ACTIVE {
+            return Err("invalid prepared smoke state".into());
+        }
+        for (cell, amount) in &self.changes {
+            if !config.contains(*cell) {
+                return Err("invalid prepared smoke cell".into());
+            }
+            if let Some(amount) = amount {
+                if ![amount.smoke, amount.heat, amount.updated].iter().all(|v| v.is_finite() && *v >= 0.0)
+                    || amount.updated > self.clock
+                {
+                    return Err("invalid prepared smoke amount".into());
+                }
+            }
+        }
+        let ledger = &self.ledger;
+        if ![ledger.emitted_smoke, ledger.emitted_heat, ledger.escaped_smoke, ledger.escaped_heat,
+            ledger.deposited_smoke, ledger.deposited_heat, ledger.stock_smoke, ledger.stock_heat]
+            .iter().all(|value| value.is_finite())
+        {
+            return Err("invalid prepared smoke ledger".into());
+        }
+        if (ledger.stock_smoke + ledger.escaped_smoke + ledger.deposited_smoke - ledger.emitted_smoke).abs() > 1e-10
+            || (ledger.stock_heat + ledger.escaped_heat + ledger.deposited_heat - ledger.emitted_heat).abs() > 1e-8 {
+            return Err("prepared smoke amount conservation".into());
+        }
+        Ok(())
+    }
+    fn publish(self, state: &mut SmokeState) {
+        state.clock = self.clock;
+        for (cell, amount) in self.changes {
+            if let Some(amount) = amount {
+                state.stocks.insert(cell, amount);
+            } else {
+                state.stocks.remove(&cell);
+            }
+        }
+        for _ in 0..self.base_queue_consumed {
+            state.queue.pop_front().expect("prepared queue consumption");
+        }
+        state.queue.extend(self.appended);
+        state.smoke_emitted += self.ledger.emitted_smoke;
+        state.heat_emitted += self.ledger.emitted_heat;
+        state.smoke_out += self.ledger.escaped_smoke;
+        state.heat_out += self.ledger.escaped_heat;
+        state.smoke_deposited += self.ledger.deposited_smoke;
+        state.heat_deposited += self.ledger.deposited_heat;
+        debug_assert_eq!(state.stocks.len(), state.queue.len());
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TerrainAtmosphereRecords {
@@ -101,6 +238,33 @@ pub(crate) struct SmokeSample {
     smoke_kg_m3: f64,
 }
 impl TerrainAtmosphere {
+    #[cfg(test)]
+    pub(crate) fn seed_benchmark_cells(&mut self, cells: &[Cell]) {
+        self.state = SmokeState::default();
+        for (index, &cell) in cells.iter().enumerate() {
+            let amount = Amount {
+                smoke: 0.001,
+                heat: 1.0,
+                updated: 0.0,
+            };
+            self.state.stocks.insert(cell, amount);
+            self.state.queue.push_back(cell);
+            self.state.smoke_emitted += amount.smoke;
+            self.state.heat_emitted += amount.heat;
+            assert_eq!(self.state.stocks.len(), index + 1);
+        }
+        validate_state(&self.state, &self.config).unwrap();
+    }
+    #[cfg(test)]
+    pub(crate) fn benchmark_copy_validate(&self, repetitions: usize) -> std::time::Duration {
+        let started = std::time::Instant::now();
+        for _ in 0..repetitions {
+            let next = self.state.clone();
+            validate_state(&next, &self.config).unwrap();
+            std::hint::black_box(next);
+        }
+        started.elapsed()
+    }
     pub fn fresh(
         world: &mut TerrainWater,
         config: TerrainAtmosphereConfig,
@@ -200,6 +364,7 @@ impl TerrainAtmosphere {
         Ok(result)
     }
     pub fn save(&self) -> Result<TerrainAtmosphereRecords, String> {
+        validate_state(&self.state, &self.config)?;
         Ok(TerrainAtmosphereRecords {
             version: VERSION,
             config: self.config.clone(),
@@ -242,28 +407,28 @@ impl TerrainAtmosphere {
                 return Err("invalid smoke source".into());
             }
         }
-        let mut next = self.state.clone();
-        next.clock += seconds;
-        if !next.clock.is_finite() {
+        let next_clock = self.state.clock + seconds;
+        if !next_clock.is_finite() {
             return Err("smoke clock overflow".into());
         }
+        let mut prepared = PreparedSmokeAdvance::new(&self.state, next_clock);
         for s in sources {
-            add(&mut next, s.cell, s.smoke_kg, s.heat_j, self.state.clock)?;
-            next.smoke_emitted += s.smoke_kg;
-            next.heat_emitted += s.heat_j;
+            prepared.add(&self.state, s.cell, s.smoke_kg, s.heat_j, self.state.clock)?;
+            prepared.ledger.emitted_smoke += s.smoke_kg;
+            prepared.ledger.emitted_heat += s.heat_j;
         }
         let count = if seconds > 0.0 {
-            next.queue.len().min(WORK_PER_UPDATE)
+            (self.state.queue.len() + prepared.appended.len()).min(WORK_PER_UPDATE)
         } else {
             0
         };
         let mut processed = 0;
         for _ in 0..count {
-            let cell = next.queue.pop_front().ok_or("smoke queue mismatch")?;
-            let amount = *next.stocks.get(&cell).ok_or("smoke stock missing")?;
-            let dt = (next.clock - amount.updated).min(INTERVAL);
+            let cell = prepared.pop_work(&self.state).ok_or("smoke queue mismatch")?;
+            let amount = prepared.amount(&self.state, cell).ok_or("smoke stock missing")?;
+            let dt = (prepared.clock - amount.updated).min(INTERVAL);
             if dt < INTERVAL {
-                next.queue.push_back(cell);
+                prepared.appended.push_back(cell);
                 continue;
             }
             let contact = self.contact(world, cell)?;
@@ -273,9 +438,9 @@ impl TerrainAtmosphere {
             // Construction/water occupying a cell deposits its trace pollution
             // locally. This explicit gameplay sink cannot block physical work.
             if contact.physical.volume_m3 <= 0.0 {
-                next.smoke_deposited += remaining.smoke;
-                next.heat_deposited += remaining.heat;
-                next.stocks.remove(&cell);
+                prepared.ledger.deposited_smoke += remaining.smoke;
+                prepared.ledger.deposited_heat += remaining.heat;
+                prepared.remove(&self.state, cell);
                 continue;
             }
             if contact.outdoor {
@@ -284,14 +449,14 @@ impl TerrainAtmosphere {
                 let heat = remaining.heat * fraction;
                 remaining.smoke -= smoke;
                 remaining.heat -= heat;
-                next.smoke_out += smoke;
-                next.heat_out += heat;
+                prepared.ledger.escaped_smoke += smoke;
+                prepared.ledger.escaped_heat += heat;
             }
             let targets: Vec<_> = contact
                 .physical
                 .neighbors
                 .iter()
-                .filter(|c| next.stocks.contains_key(c) || next.stocks.len() < MAX_ACTIVE)
+                .filter(|c| prepared.amount(&self.state, **c).is_some() || prepared.active < MAX_ACTIVE)
                 .map(|&c| {
                     let direction = [
                         (c.x - cell.x) as f64,
@@ -321,62 +486,40 @@ impl TerrainAtmosphere {
                 for (target, weight) in targets {
                     let share = weight / weights;
                     if share == 0.0
-                        || (!next.stocks.contains_key(&target) && next.stocks.len() >= MAX_ACTIVE)
+                        || (prepared.amount(&self.state, target).is_none() && prepared.active >= MAX_ACTIVE)
                     {
                         continue;
                     }
                     let (s, h) = (smoke * share, heat * share);
-                    add(&mut next, target, s, h, self.state.clock)?;
+                    prepared.add(&self.state, target, s, h, self.state.clock)?;
                     remaining.smoke -= s;
                     remaining.heat -= h;
                 }
             }
             if remaining.smoke <= TRACE_SMOKE && remaining.heat <= TRACE_HEAT {
-                next.smoke_deposited += remaining.smoke;
-                next.heat_deposited += remaining.heat;
-                next.stocks.remove(&cell);
+                prepared.ledger.deposited_smoke += remaining.smoke;
+                prepared.ledger.deposited_heat += remaining.heat;
+                prepared.remove(&self.state, cell);
             } else {
-                next.stocks.insert(cell, remaining);
-                next.queue.push_back(cell);
+                prepared.put(&self.state, cell, remaining);
+                prepared.appended.push_back(cell);
             }
         }
-        validate_state(&next, &self.config)?;
+        prepared.validate(&self.state, &self.config)?;
         let receipt = SmokeReceipt {
             processed_cells: processed,
-            pending_cells: next.queue.len(),
-            active_cells: next.stocks.len(),
-            source_smoke_kg: next.smoke_emitted - self.state.smoke_emitted,
-            source_heat_j: next.heat_emitted - self.state.heat_emitted,
-            escaped_smoke_kg: next.smoke_out - self.state.smoke_out,
-            escaped_heat_j: next.heat_out - self.state.heat_out,
-            deposited_smoke_kg: next.smoke_deposited - self.state.smoke_deposited,
-            deposited_heat_j: next.heat_deposited - self.state.heat_deposited,
+            pending_cells: self.state.queue.len() - prepared.base_queue_consumed + prepared.appended.len(),
+            active_cells: prepared.active,
+            source_smoke_kg: prepared.ledger.emitted_smoke,
+            source_heat_j: prepared.ledger.emitted_heat,
+            escaped_smoke_kg: prepared.ledger.escaped_smoke,
+            escaped_heat_j: prepared.ledger.escaped_heat,
+            deposited_smoke_kg: prepared.ledger.deposited_smoke,
+            deposited_heat_j: prepared.ledger.deposited_heat,
         };
-        self.state = next;
+        prepared.publish(&mut self.state);
         Ok(receipt)
     }
-}
-fn add(state: &mut SmokeState, cell: Cell, smoke: f64, heat: f64, time: f64) -> Result<(), String> {
-    if smoke == 0.0 && heat == 0.0 {
-        return Ok(());
-    }
-    if !state.stocks.contains_key(&cell) {
-        if state.stocks.len() >= MAX_ACTIVE {
-            return Err("active smoke budget reached".into());
-        }
-        state.stocks.insert(
-            cell,
-            Amount {
-                updated: time,
-                ..Amount::default()
-            },
-        );
-        state.queue.push_back(cell);
-    }
-    let amount = state.stocks.get_mut(&cell).unwrap();
-    amount.smoke += smoke;
-    amount.heat += heat;
-    Ok(())
 }
 fn validate_config(world: &TerrainWater, c: &TerrainAtmosphereConfig) -> Result<(), String> {
     let b = world.bounds();
