@@ -36,7 +36,7 @@ test("projected unpickable subjects are excluded from point, box, and surface pa
   assert.deepEqual(eligibleSelectedIds(subjects, ["hidden"]), []);
 });
 
-test("cutaway displays only published exterior columns at or below the selected level", () => {
+test("cutaway retains published cave water at or below the selected level", () => {
   const frame = {
     revision: 4,
     structureSurfaces: [], verticalMetres: 0.5,
@@ -52,11 +52,11 @@ test("cutaway displays only published exterior columns at or below the selected 
   const view = setTerrainLevelRange(createWorldView(), terrainLevelRange(frame), 1);
   const cut = displayedTerrain(frame, toggleWorldCutaway(view, true));
   assert.deepEqual(cut.surfaces.map(({ cell }) => cell), [[1, 1, 0]]);
-  assert.deepEqual(cut.water.map(({ at }) => at), [[1, 1, 0]]);
+  assert.deepEqual(cut.water.map(({ at }) => at), [[0, 1, 0], [1, 1, 0]]);
   assert.deepEqual(displayedTerrain(frame, view).surfaces, frame.surfaces);
 });
 
-test("cutaway keeps published water in open columns without terrain", () => {
+test("cutaway water visibility follows height rather than the old exterior-column filter", () => {
   const frame = {
     revision: 5,
     structureSurfaces: [],
@@ -67,7 +67,7 @@ test("cutaway keeps published water in open columns without terrain", () => {
     ],
   };
   const view = toggleWorldCutaway(createWorldView({ range: { min: 0, max: 3 }, level: 1 }), true);
-  assert.deepEqual(displayedTerrain(frame, view).water.map(({ at }) => at), [[1, 1, 0]]);
+  assert.deepEqual(displayedTerrain(frame, view).water.map(({ at }) => at), [[0, 1, 0], [1, 1, 0]]);
 });
 
 test("terrain projection cache reuses surfaces while accepting newer water", () => {
