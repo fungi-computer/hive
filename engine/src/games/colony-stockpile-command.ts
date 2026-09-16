@@ -71,7 +71,7 @@ export const colonyStockpileClearCommand = command({
   title: "Clear stockpile", category: "Storage", description: "Remove the painted stockpile policy while preserving physical goods.",
   localPresentation: { bindings: [{ id: "clear-stockpile", label: "Clear stockpile", target: "terrain-area", designation: ["rectangle"] as const }] },
   input: z.object({ area }).strict(),
-  reads: [], writes: [],
+  reads: [StockpileCell, Position], writes: [],
   run: (context, value) => {
     if (context.scope.kind !== "player") throw new Error("stockpile clear requires a player party");
     return { writes: [], actions: [clearStockpile(context.scope.party, zoneForExistingArea(context, value.area), cellsFor(value.area))] };
