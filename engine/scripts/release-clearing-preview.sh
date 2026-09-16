@@ -12,9 +12,10 @@ cd "$repo_root"
 
 credential_file="/home/levi/src/Botanical-next/.botanical/credentials/cloudflare.env"
 backend_origin="https://hive-public-engine-demo.levi-fe0.workers.dev"
-client_origin="https://clearing-garden-fungi-goblin-bnb.levi-fe0.workers.dev"
 source_sha="$(git rev-parse HEAD)"
 source_short="$(git rev-parse --short=8 HEAD)"
+preview_alias="clearing-$source_short"
+client_origin="https://$preview_alias-fungi-goblin-bnb.levi-fe0.workers.dev"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 receipt_dir="$repo_root/.botanical/clearing-releases/${stamp}-${source_short}"
 backend_dir="$receipt_dir/backend"
@@ -72,7 +73,7 @@ if [[ "$mode" == "all" ]]; then
 fi
 
 ./node_modules/.bin/wrangler versions upload \
-  --preview-alias clearing-garden \
+  --preview-alias "$preview_alias" \
   --config wrangler.jsonc \
   --env-file "$credential_file" \
   2>&1 | tee "$receipt_dir/frontend-upload.log"

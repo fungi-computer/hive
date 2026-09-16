@@ -8,10 +8,11 @@ The maintained release command is:
 ```
 
 Run it from the accepted, pushed Hive worktree. It builds the root site first and
-the engine entry second, deploys the Durable Object backend with the exact public
-Clearing origin, uploads the static client to the `clearing-garden` preview alias,
-and compares every served byte with `dist/` through both the immutable version URL
-and the public alias.
+the engine entry second, derives a fresh `clearing-<source-sha>` preview alias,
+deploys the Durable Object backend with that exact public Clearing origin, uploads
+the static client to the same alias, and compares every served byte with `dist/`
+through both the immutable version URL and the public alias. Source-named aliases
+avoid Cloudflare returning retained bytes from a previously reused alias.
 
 For a client-only release whose backend contract and implementation are unchanged:
 
@@ -31,11 +32,11 @@ success. If the alias retains old bytes, the script exits nonzero and preserves
 the evidence. Do not run browser acceptance or announce the public URL in that
 state.
 
-The targets are fixed:
+The targets are fixed except for the source-named preview alias:
 
-- client: `fungi-goblin-bnb`, preview alias `clearing-garden`
+- client: `fungi-goblin-bnb`, preview alias `clearing-<source-sha>`
 - backend: `hive-public-engine-demo`
-- public game: <https://clearing-garden-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony>
+- public game: the `public client` URL recorded in the release receipt
 - backend origin: <https://hive-public-engine-demo.levi-fe0.workers.dev>
 
 The credential file is passed to Wrangler with `--env-file`; never print, source,
