@@ -31,6 +31,7 @@ mod world;
 mod supply_allocation;
 mod record_bundle;
 mod party_binding;
+mod relations;
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};

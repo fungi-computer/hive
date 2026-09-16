@@ -242,6 +242,7 @@ impl Kernel {
             }
         }
         self.rebuild_physical_indexes(false)?;
+        self.rebuild_relation_index()?;
         self.party_bindings.insert(PartyBinding {
             binding_id,
             sequence: expected_sequence,

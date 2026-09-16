@@ -69,6 +69,7 @@ use crate::terrain_water::WaterExchangeDirection;
 use crate::work_attempt::{AttemptKey, AttemptPhase, InterruptCause, WorkAttempt, WorkOutcome, OperationKey};
 use crate::work_planner::PlannerState;
 use crate::work_candidates::NativeIndexes;
+use crate::relations::RelationIndex;
 #[cfg(test)]
 #[path = "party_tests.rs"]
 mod party_tests;
@@ -2341,6 +2342,7 @@ pub struct Kernel {
     arrived_routes: BTreeSet<Entity>,
     planner: PlannerState,
     planner_indexes: NativeIndexes,
+    relations: RelationIndex,
     supply_index: crate::supply_allocation::SupplyAllocationIndex,
     job_index: job_owner::JobIndex,
 }
@@ -2567,6 +2569,7 @@ impl Kernel {
             arrived_routes: BTreeSet::new(),
             planner: PlannerState::default(),
             planner_indexes: NativeIndexes::default(),
+            relations: RelationIndex::default(),
             supply_index: crate::supply_allocation::SupplyAllocationIndex::default(),
             job_index: job_owner::JobIndex::default(),
         }
@@ -2584,6 +2587,18 @@ impl Kernel {
     }
     pub(crate) fn rebuild_planner_index(&mut self) {
         self.planner_indexes.rebuild(&self.ecs, &self.ids);
+    }
+    pub(crate) fn refresh_relation_source(&mut self, source: &str) -> Result<()> {
+        self.relations.refresh_source(&self.registry, &self.ecs, &self.ids, source)
+    }
+    pub(crate) fn rebuild_relation_index(&mut self) -> Result<()> {
+        self.relations.rebuild(&self.registry, &self.ecs, &self.ids)
+    }
+    pub(crate) fn relation_target(&self, kind: &str, source: &str) -> Option<&str> {
+        self.relations.target(kind, source)
+    }
+    pub(crate) fn relation_sources(&self, kind: &str, target: &str) -> &[String] {
+        self.relations.sources(kind, target)
     }
     pub(crate) fn supply_index(&self) -> &crate::supply_allocation::SupplyAllocationIndex { &self.supply_index }
     pub(crate) fn supply_allocation(&self, id: &str) -> Option<&SupplyAllocation> {
@@ -2724,6 +2739,7 @@ impl Kernel {
             }
         }
         world.rebuild_physical_indexes(build_routes)?;
+        world.relations.rebuild(&world.registry, &world.ecs, &world.ids)?;
         let stockpile_cells = world.ids.iter().filter_map(|(id, entity)| {
             world.ecs.get::<StockpileCell>(*entity).and_then(|cell| {
                 world.stockpile_profiles.get(&cell.filter_profile).map(|_| (id.clone(), *entity))
