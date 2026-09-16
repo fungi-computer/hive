@@ -31,6 +31,7 @@ import { colonyEnvironment, colonyEnvironmentDefinition } from "./colony-environ
 import { ColonyTree, ColonyTreePolicy } from "./colony-work";
 import { ResourceOrder } from "../sdk/resource-work";
 import { Worker } from "./colony-components";
+import { colonyActors } from "./colony-actors";
 import { colonyPartyFootprint, createColonyPartyPlan } from "./colony-party";
 import { encodeEnvironmentDefinition } from "../sdk/environment";
 import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
@@ -860,7 +861,8 @@ export const colonyPack: GamePack = {
       ];
     },
   },
-  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyMaterialCatalog, colonyStockpileProfiles),
+  actors: colonyActors,
+  definition: encodeDefinition("colony", colonyComponents, colonyInitial, colonyMaterialCatalog, colonyStockpileProfiles, colonyActors),
 };
 
 const neutralColonyInitial = [
@@ -879,6 +881,6 @@ const neutralColonyEnvironmentDefinition = encodeEnvironmentDefinition({
 export const colonyServerPack: GamePack = {
   ...colonyPack,
   localScope: undefined,
-  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyMaterialCatalog, colonyStockpileProfiles),
+  definition: encodeDefinition("colony", colonyComponents, neutralColonyInitial, colonyMaterialCatalog, colonyStockpileProfiles, colonyActors),
   environmentDefinition: neutralColonyEnvironmentDefinition,
 };
