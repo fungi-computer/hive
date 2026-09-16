@@ -35,6 +35,9 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...brewStationProfileBindings,
   soil: Object.freeze({ kind: "static", path: ["soil", 3], facing: false, anchor: "propAnchor", worldRole: "item" }),
   stone: Object.freeze({ kind: "static", path: ["stone", 3], facing: false, anchor: "propAnchor", worldRole: "item" }),
+  "colony.material.wood": Object.freeze({ kind: "static", path: ["wood", 3], facing: false, anchor: "propAnchor", worldRole: "item" }),
+  "colony.material.bread": Object.freeze({ kind: "static", path: ["ration", 3], facing: false, anchor: "propAnchor", worldRole: "item" }),
+  "colony.material.mugwort": Object.freeze({ kind: "static", path: ["herbs", "mugwort", "bundle"], facing: false, anchor: "propAnchor", worldRole: "item" }),
   // These bindings prepare the retained clearing scenery for native facts.
   // They are inert until Colony publishes a physical entity with this visual;
   // art never creates a tree, resource, or pick target by itself.

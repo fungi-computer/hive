@@ -35,6 +35,7 @@ import { encodeEnvironmentDefinition } from "../sdk/environment";
 import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from "../sdk/work-attempt";
 import { colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell } from "../sdk/stockpile";
+import { colonyGroundMaterialVisual } from "./colony-material-presentation";
 import { z } from "zod";
 import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, JobPlan, MoveDestination, ReadContext, GameCommandContext } from "../contracts";
 
@@ -629,14 +630,15 @@ export const colonyPack: GamePack = {
         const lotsByContainer = new Map<string, { kind: string; quantity: number }>();
         for (const row of context.query(query(MaterialLot))) {
           const lot = row.get(MaterialLot);
-          if (lot.quantity > 0 && (lot.kind === "soil-spoil" || lot.kind === "stone-spoil" || lot.kind === "wood-felled"))
+          if (lot.quantity > 0 && colonyGroundMaterialVisual.has(lot.kind))
             lotsByContainer.set(lot.container, lot);
         }
         return context.query(query(GroundStock, Position)).flatMap(row => {
           const position = row.get(Position);
           const lot = lotsByContainer.get(row.id);
           if (!lot) return [];
-          const visual = lot.kind === "soil-spoil" ? "soil" : lot.kind === "stone-spoil" ? "stone" : "colony.tree.felled";
+          const visual = colonyGroundMaterialVisual.get(lot.kind);
+          if (!visual) return [];
           return [{ id: row.id, visual, label: `${lot.kind} · ${lot.quantity}`, pickable: true,
             pose: { position: { x: position.x, y: position.y, z: position.z }, facing: position.facing } }];
         });
