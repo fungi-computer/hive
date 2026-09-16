@@ -295,7 +295,7 @@ impl Kernel {
         }
         self.ids.remove(task);
         self.known.remove(task);
-        self.planner_indexes.refresh_entity(&self.ecs, task, None);
+        self.planner_indexes.refresh_entity(&self.relations, &self.ecs, task, None);
         self.supply_index.refresh(task, None);
         self.ecs.despawn(entity);
         Ok(())

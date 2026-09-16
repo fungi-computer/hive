@@ -1,6 +1,7 @@
 //! Bounded, deterministic candidate/index mechanics used by the native planner.
 use crate::assign::{self, Assignment, Candidate};
-use crate::components::{Body, PartyMember, Position, Traversal};
+use crate::components::{Body, Position, Traversal};
+use crate::relations::RelationIndex;
 use crate::world::route_query::SearchOutcome;
 use crate::work_planner::{PlannerState, WorkParticipation, WorkPolicy, WorkSchedule, DEFAULT_REVIEW_INTERVAL, MAX_ASSIGNMENTS, MAX_CANDIDATE_PAIRS, MAX_ELIGIBLE_WORKERS, MAX_TASK_REVIEWS};
 use bevy_ecs::prelude::{Entity, World};
@@ -222,19 +223,19 @@ impl NativeIndexes {
 
     /// Refresh only one externally identified entity after a canonical mutation.
     /// Removal is represented by an absent id/entity and clears old membership.
-    pub fn refresh_entity(&mut self, world: &World, id: &str, entity: Option<Entity>) {
+    pub fn refresh_entity(&mut self, relations: &RelationIndex, world: &World, id: &str, entity: Option<Entity>) {
         let old_worker_party = self.worker_party_by_id.get(id).cloned();
         let old_task_party = self.task_party_by_id.get(id).cloned();
         self.remove_id(id);
         let Some(entity) = entity else { return; };
-        if let Some(worker) = world.get::<PartyMember>(entity)
+        if let Some(party) = relations.target("hive.party-member", id)
             && world.get::<Body>(entity).is_some()
             && world.get::<Position>(entity).is_some()
             && world.get::<Traversal>(entity).is_some()
             && world.get::<WorkParticipation>(entity).is_some_and(|participation| participation.automatic)
         {
-            self.worker_party_by_id.insert(id.to_owned(), worker.party.clone());
-            self.workers_by_party.entry(worker.party.clone()).or_default().push(WorkerCandidate { id: id.to_owned(), party: worker.party.clone() });
+            self.worker_party_by_id.insert(id.to_owned(), party.to_owned());
+            self.workers_by_party.entry(party.to_owned()).or_default().push(WorkerCandidate { id: id.to_owned(), party: party.to_owned() });
         }
         if let Some(policy) = world.get::<WorkPolicy>(entity) && policy.enabled
             && let Some(schedule) = world.get::<WorkSchedule>(entity)
@@ -253,18 +254,18 @@ impl NativeIndexes {
 
     /// Rebuild once after initial load/reset/restore. Steady-state callers use
     /// refresh_entity so planning queries never scan the entity registry.
-    pub fn rebuild(&mut self, world: &World, ids: &BTreeMap<String, Entity>) {
+    pub fn rebuild(&mut self, relations: &RelationIndex, world: &World, ids: &BTreeMap<String, Entity>) {
         self.workers_by_party.clear(); self.tasks_by_party.clear();
         self.worker_party_by_id.clear(); self.task_party_by_id.clear();
         self.rebuilds = self.rebuilds.saturating_add(1);
         for (id, entity) in ids {
-            if let Some(worker) = world.get::<PartyMember>(*entity)
+            if let Some(party) = relations.target("hive.party-member", id)
                 && world.get::<Body>(*entity).is_some() && world.get::<Position>(*entity).is_some()
                 && world.get::<Traversal>(*entity).is_some()
                 && world.get::<WorkParticipation>(*entity).is_some_and(|participation| participation.automatic)
             {
-                self.worker_party_by_id.insert(id.clone(), worker.party.clone());
-                self.workers_by_party.entry(worker.party.clone()).or_default().push(WorkerCandidate { id: id.clone(), party: worker.party.clone() });
+                self.worker_party_by_id.insert(id.clone(), party.to_owned());
+                self.workers_by_party.entry(party.to_owned()).or_default().push(WorkerCandidate { id: id.clone(), party: party.to_owned() });
             }
             if let Some(policy) = world.get::<WorkPolicy>(*entity) && policy.enabled
                 && let Some(schedule) = world.get::<WorkSchedule>(*entity)
@@ -278,9 +279,9 @@ impl NativeIndexes {
 }
 
 /// Build only the two membership indexes needed by the first planning window.
-pub fn rebuild_indexes(world: &World, ids: &BTreeMap<String, Entity>) -> NativeIndexes {
+pub fn rebuild_indexes(relations: &RelationIndex, world: &World, ids: &BTreeMap<String, Entity>) -> NativeIndexes {
     let mut indexes = NativeIndexes::default();
-    indexes.rebuild(world, ids);
+    indexes.rebuild(relations, world, ids);
     indexes
 }
 
@@ -348,6 +349,8 @@ pub fn match_window(window: &PlanningWindow, pairs: &[Candidate]) -> Result<Vec<
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::components::{ExternalId, Party, PartyMember};
+    use crate::registry::Registry;
     use crate::work_planner::PlannerState;
     #[test]
     fn fairness_rotates_parties_and_advances_on_empty_window() {
@@ -419,17 +422,25 @@ mod tests {
     #[test]
     fn direct_ecs_index_caps_within_party_and_filters_due_tasks() {
         let mut world = World::new();
+        let registry = Registry::new(&mut world, vec![], vec![]).unwrap();
         let mut ids = BTreeMap::new();
         let party = "late-party";
+        let party_entity = world.spawn((ExternalId(party.into()), Party { owner_player: "player".into() })).id();
+        ids.insert(party.into(), party_entity);
         for number in 0..300 {
             let id = format!("worker-{number:03}");
-            let entity = world.spawn((PartyMember { party: party.into() }, Body { speed: 1.0 }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, WorkParticipation { automatic: true })).id();
+            let entity = world.spawn((ExternalId(id.clone()), PartyMember { party: party.into() }, Body { speed: 1.0 }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, WorkParticipation { automatic: true })).id();
             ids.insert(id, entity);
         }
         let task = world.spawn((WorkPolicy { party: party.into(), priority: 7, enabled: true }, WorkSchedule { next_review_tick: 4, last_considered: 2 })).id();
         ids.insert("task".into(), task);
-        let indexes = rebuild_indexes(&world, &ids);
+        let mut relations = RelationIndex::default();
+        relations.rebuild(&registry, &world, &ids).unwrap();
+        let indexes = rebuild_indexes(&relations, &world, &ids);
         assert_eq!(eligible_workers(&indexes, party, usize::MAX).len(), MAX_ELIGIBLE_WORKERS);
+        let stable_workers = indexes.workers_by_party.get(party).unwrap();
+        assert_eq!(stable_workers.first().map(|worker| worker.id.as_str()), Some("worker-000"));
+        assert_eq!(stable_workers.get(1).map(|worker| worker.id.as_str()), Some("worker-001"));
         let indexed_window = next_fair_indexed_window(&mut PlannerState::default(), &indexes, 4);
         assert_eq!(indexed_window.workers.len(), MAX_ELIGIBLE_WORKERS);
         assert_eq!(indexed_window.tasks[0].id, "task");
@@ -441,26 +452,35 @@ mod tests {
 #[cfg(test)]
 mod index_refresh_tests {
     use super::*;
+    use crate::components::{ExternalId, Party, PartyMember};
+    use crate::registry::Registry;
 
-    fn worker(world: &mut World, party: &str, automatic: bool) -> Entity {
-        world.spawn((PartyMember { party: party.into() }, Body { speed: 1.0 }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, WorkParticipation { automatic })).id()
+    fn worker(world: &mut World, id: &str, party: &str, automatic: bool) -> Entity {
+        world.spawn((ExternalId(id.into()), PartyMember { party: party.into() }, Body { speed: 1.0 }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, WorkParticipation { automatic })).id()
     }
 
     #[test]
     fn refresh_moves_party_and_removes_membership_without_rebuild() {
         let mut world = World::new();
-        let entity = worker(&mut world, "a", true);
-        let mut ids = BTreeMap::from([("worker".to_owned(), entity)]);
+        let registry = Registry::new(&mut world, vec![], vec![]).unwrap();
+        let party_a = world.spawn((ExternalId("a".into()), Party { owner_player: "player-a".into() })).id();
+        let party_b = world.spawn((ExternalId("b".into()), Party { owner_player: "player-b".into() })).id();
+        let entity = worker(&mut world, "worker", "a", true);
+        let mut ids = BTreeMap::from([("a".to_owned(), party_a), ("b".to_owned(), party_b), ("worker".to_owned(), entity)]);
+        let mut relations = RelationIndex::default();
+        relations.rebuild(&registry, &world, &ids).unwrap();
         let mut indexes = NativeIndexes::default();
-        indexes.rebuild(&world, &ids);
+        indexes.rebuild(&relations, &world, &ids);
         assert_eq!(indexes.rebuilds, 1);
         assert_eq!(eligible_workers(&indexes, "a", 10)[0].id, "worker");
         world.entity_mut(entity).insert(PartyMember { party: "b".into() });
-        indexes.refresh_entity(&world, "worker", Some(entity));
+        relations.refresh_source(&registry, &world, &ids, "worker").unwrap();
+        indexes.refresh_entity(&relations, &world, "worker", Some(entity));
         assert!(eligible_workers(&indexes, "a", 10).is_empty());
         assert_eq!(eligible_workers(&indexes, "b", 10)[0].party, "b");
-        ids.clear();
-        indexes.refresh_entity(&world, "worker", None);
+        ids.remove("worker");
+        relations.refresh_source(&registry, &world, &ids, "worker").unwrap();
+        indexes.refresh_entity(&relations, &world, "worker", None);
         assert!(eligible_workers(&indexes, "b", 10).is_empty());
         assert_eq!(indexes.rebuilds, 1);
     }
@@ -470,13 +490,14 @@ mod index_refresh_tests {
         let mut world = World::new();
         let entity = world.spawn((WorkPolicy { party: "p".into(), priority: 1, enabled: true }, WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
         let ids = BTreeMap::from([("task".to_owned(), entity)]);
+        let relations = RelationIndex::default();
         let mut indexes = NativeIndexes::default();
-        indexes.rebuild(&world, &ids);
+        indexes.rebuild(&relations, &world, &ids);
         let mut state = PlannerState::default();
         let _ = next_fair_indexed_window(&mut state, &indexes, 0);
         let before = indexes.rebuilds;
         world.entity_mut(entity).insert(WorkPolicy { party: "p".into(), priority: 9, enabled: true });
-        indexes.refresh_entity(&world, "task", Some(entity));
+        indexes.refresh_entity(&relations, &world, "task", Some(entity));
         assert_eq!(indexes.rebuilds, before);
         assert_eq!(due_tasks_from_index(&indexes, "p", 0, 10)[0].priority, 9);
     }

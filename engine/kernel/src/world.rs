@@ -2583,10 +2583,10 @@ impl Kernel {
     pub(crate) fn stockpile_profile(&self, id: &str) -> Option<&crate::stockpile_definition::StockpileProfileDefinition> { self.stockpile_profiles.get(id) }
     pub(crate) fn refresh_planner_index(&mut self, id: &str) {
         let entity = self.ids.get(id).copied();
-        self.planner_indexes.refresh_entity(&self.ecs, id, entity);
+        self.planner_indexes.refresh_entity(&self.relations, &self.ecs, id, entity);
     }
     pub(crate) fn rebuild_planner_index(&mut self) {
-        self.planner_indexes.rebuild(&self.ecs, &self.ids);
+        self.planner_indexes.rebuild(&self.relations, &self.ecs, &self.ids);
     }
     pub(crate) fn refresh_relation_source(&mut self, source: &str) -> Result<()> {
         self.relations.refresh_source(&self.registry, &self.ecs, &self.ids, source)
@@ -5127,7 +5127,7 @@ impl Kernel {
             self.ids.remove(&id);
             self.known.remove(&id);
             self.contents.remove(&id);
-            self.planner_indexes.refresh_entity(&self.ecs, &id, None);
+            self.planner_indexes.refresh_entity(&self.relations, &self.ecs, &id, None);
             self.ecs.despawn(entity);
         }
         self.refresh_state_weight();

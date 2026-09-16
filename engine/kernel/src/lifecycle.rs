@@ -188,7 +188,6 @@ impl Kernel {
         for (id, entity) in handles {
             self.ids.insert(id.clone(), entity);
             self.known.insert(id.clone());
-            self.refresh_planner_index(&id);
         }
         self.place_entities_on_initial_surfaces(&surface_placements)?;
         self.refresh_state_weight();
@@ -238,11 +237,11 @@ impl Kernel {
                     self.registry.validate(&capability.component, &fields, &self.known)?;
                     self.registry.insert(&mut self.ecs, entity, &capability.component, &fields)?;
                 }
-                self.refresh_planner_index(&lot);
             }
         }
         self.rebuild_physical_indexes(false)?;
         self.rebuild_relation_index()?;
+        self.rebuild_planner_index();
         self.party_bindings.insert(PartyBinding {
             binding_id,
             sequence: expected_sequence,
