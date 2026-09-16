@@ -19,11 +19,15 @@ const definition: EnvironmentDefinition = {
     verticalMetres: 0.5,
   },
   structures: { maxSpanSteps: 6, catalog: [{ id: "fixture-floor", shape: { kind: "floor" }, workReachBelowCells: 0, materials: [{ kind: "stone-spoil", quantity: 1 }], workSeconds: 1 }] },
-  materials: [],
+  materials: [
+    { slot: 0, solid: false, diggable: false, water: { kind: "open" } },
+    { slot: 1, solid: true, diggable: true, water: { kind: "closed" } },
+    { slot: 2, solid: true, diggable: true, water: { kind: "closed" } },
+  ],
   water: { id: "water", cells: [], fallMPerS: 0, spreadMPerS: 0 },
 };
 
-test("surface sampling is cached and subterranean water stays hidden", () => {
+test("surface sampling is cached and subterranean water remains available for covered cave geometry", () => {
   let revision = 1;
   let surfaceY = 5;
   let surfaceCalls = 0;
@@ -58,6 +62,7 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
   assert.deepEqual(
     first.water.map((cell) => cell.at),
     [
+      [0, 4, 0],
       [0, 5, 0],
       [1, -4, 0],
     ],
@@ -82,6 +87,26 @@ test("surface sampling is cached and subterranean water stays hidden", () => {
   owner.read();
   assert.equal(surfaceCalls, 3);
   assert.equal(structureCalls, 3);
+});
+
+test("material chunks are bounded, complete, coalesced and revision guarded", () => {
+  let revision = 7; let calls = 0;
+  const owner = new TerrainPresentationOwner(fakePort(
+    () => ({ terrainRevision: revision, placementRevision: revision, cells: [] }),
+    columns => columns.map(([x, z]) => ({ cell: [x, 0, z], material: 1, generatedTop: 0 })), undefined,
+    () => ({ kind: "full-reset", revision, reason: "history" }),
+    cells => { calls++; return cells.map(([, y]) => y < 0 ? 2 : y === 0 ? 1 : 0); },
+  ), definition);
+  const request = { requestId: 3, epoch: 2, terrainRevision: 7, chunks: [[0, -1, 0]] as const };
+  const ready = owner.readChunks(request, 2);
+  assert.equal(ready.kind, "ready"); if (ready.kind !== "ready") return;
+  assert.equal(calls, 1); assert.deepEqual(ready.chunks[0].min, [0, -8, 0]); assert.deepEqual(ready.chunks[0].max, [2, 0, 1]);
+  assert.equal(ready.chunks[0].columns.length, 2);
+  assert.deepEqual(ready.chunks[0].columns[0], { x: 0, z: 0, runs: [{ minY: -8, maxY: 0, material: 2 }] });
+  revision = 8;
+  assert.deepEqual(owner.readChunks(request, 2), { kind: "stale", requestId: 3, epoch: 2, terrainRevision: 8 });
+  assert.throws(() => owner.readChunks({ ...request, terrainRevision: 8, chunks: [[1, 0, 0]] }, 2), /does not intersect/);
+  assert.throws(() => owner.readChunks({ ...request, terrainRevision: 8, chunks: [[0, 0, 0], [0, 0, 0]] }, 2), /duplicate terrain chunk key/);
 });
 
 test("physical column changes patch terrain and structures in canonical order", () => {
@@ -205,6 +230,7 @@ function fakePort(
     revision: 1,
     reason: "history",
   }),
+  materials: (cells: readonly [number, number, number][]) => readonly number[] = () => [],
 ): KernelPort {
   return {
     routeCosts: () => {
@@ -228,7 +254,7 @@ function fakePort(
     constructionReadiness: (sites) => sites.map((site) => ({ site, status: "ready" })),
     constructionAccess: () => [],
     deconstructionAccess: () => [],
-    terrainMaterials: () => [],
+    terrainMaterials: materials,
     terrainSurfaces: surfaces,
     structureSurfaces: structures,
     terrainChanges: changes,

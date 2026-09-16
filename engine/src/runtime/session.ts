@@ -1279,6 +1279,16 @@ export class GameSession {
     }
     return this.terrainPresentation.read();
   }
+  terrainChunks(request: import("./terrain-chunks").TerrainChunkRequest, epoch: number) {
+    this.ensureLive();
+    if (!this.pack.environmentDefinition) return { kind: "unavailable", requestId: request.requestId, reason: "terrain observation is unavailable" } as const;
+    if (!this.terrainPresentation) {
+      const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
+      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
+    }
+    return this.terrainPresentation.readChunks(request, epoch);
+  }
+  terrainChanges(sinceRevision: number) { this.ensureLive(); return this.port.terrainChanges(sinceRevision); }
   presentationCues() {
     this.ensureLive();
     return structuredClone(this.cues.recent);

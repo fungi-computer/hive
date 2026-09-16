@@ -18,6 +18,8 @@ const frame = (epoch: number, terrain?: unknown): WorkerTransportEvent => ({
 });
 const baseline = {
   revision: 4, placementRevision: 4, verticalMetres: 0.5,
+  baseline: { protocolVersion: 2, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
+    materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }] },
   surfaces: [{ cell: [0, 2, 0], material: 1, generatedTop: 2 }],
   structureSurfaces: [{ cell: [0, 4, 0] }], water: [],
 };
@@ -41,6 +43,20 @@ test("local terrain references hydrate geometry and replace it after an epoch", 
   assert(replacement?.type === "frame" && replacement.terrain);
   assert.notEqual(replacement.terrain.surfaces, first.terrain.surfaces);
   runtime.dispose();
+});
+
+test("local material chunk reads allow one checked correlated request", async () => {
+  const worker = new FakeWorker(); const runtime = connectBrowserRuntime({ worker: worker as unknown as Worker });
+  const request = { requestId: 11, epoch: 2, terrainRevision: 4, chunks: [[0, 0, 0]] as const };
+  const pending = runtime.terrainChunks(request);
+  assert.deepEqual(worker.posted.at(-1), { type: "terrain-chunks", ...request });
+  await assert.rejects(runtime.terrainChunks({ ...request, requestId: 12 }), /already in flight/);
+  worker.emit({ type: "terrain-chunks", reply: { kind: "ready", requestId: 11, epoch: 2, terrainRevision: 4, chunks: [{
+    key: [0, 0, 0], min: [0, 0, 0], max: [1, 2, 1], columns: [{ x: 0, z: 0, runs: [
+      { minY: 0, maxY: 1, material: 1 }, { minY: 1, maxY: 2, material: 0 },
+    ] }],
+  }] } });
+  assert.equal((await pending).kind, "ready"); runtime.dispose();
 });
 
 test("absent terrain clears local cache and malformed references become errors", () => {
