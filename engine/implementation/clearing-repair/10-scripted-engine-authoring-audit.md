@@ -44,6 +44,12 @@ related component reads are cached once inside that behavior phase, and named
 exclusive action domains fail deterministically if two matching branches try to
 control the same actor.
 
+The existing `GameSession` decision phase now also shares an identical component
+selection across prepared behaviors and ordinary systems. Every consumer still
+sees the same committed overlay; proposed writes remain invisible until the one
+native commit. This is a phase-local query plan/cache, not retained world state or
+a second behavior scheduler.
+
 The Colony cat is the first production consumer. Its native movement, retry and
 saved `Cat` state are unchanged, while the bespoke system loop has been removed.
 `actor().with().behaves()` also exists as immutable preparation-time composition:
@@ -51,11 +57,10 @@ it validates duplicate/missing capabilities and behavior attachments, but does
 not spawn entities or enter `GameSession`. Spawning remains the admitted world
 operation, and sessions receive only compiled systems.
 
-This checkpoint does **not** yet claim cross-behavior query batching, declared
-native-fact enforcement, or general attachment membership for actors that share
-the same capability set. Those belong to the next real cannon/brewing consumers;
-do not disguise them with a runtime actor registry or make sessions validate
-authoring metadata.
+This checkpoint does **not** yet claim declared native-fact enforcement or general
+attachment membership for actors that share the same capability set. Those belong
+to the next real cannon/brewing consumers; do not disguise them with a runtime
+actor registry or make sessions validate authoring metadata.
 
 Survival is now a second production consumer with a different shape. Hunger
 reads committed consume outcomes and related material lots; fatigue reads the

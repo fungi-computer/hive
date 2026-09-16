@@ -839,6 +839,15 @@ export class GameSession {
       let routeRequests = 0;
       let committedWorkMaterialFacts: WorkMaterialFacts | undefined;
       let activeReads: readonly ComponentDefinition<any>[] = [];
+      const phaseQueries = new Map<string, readonly QueryRow[]>();
+      const phaseQuery = <T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] => {
+        const key = spec.components.map((component) => component.id).sort().join("\0");
+        const cached = phaseQueries.get(key);
+        if (cached) return cached;
+        const rows = this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves);
+        phaseQueries.set(key, rows);
+        return rows;
+      };
       const requireRouteReads = () => {
         if (
           !activeReads.some((definition) => definition.id === Position.id) ||
@@ -888,8 +897,7 @@ export class GameSession {
           return this.port.routeToAny(request);
         },
         outcomes: structuredClone(this.outcomes),
-        query: (spec) =>
-          this.queryOverlay(spec, queuedWrites, queuedCreates, queuedRemoves),
+        query: phaseQuery,
         workMaterialFacts: () => {
           // Physical material actions commit at the native boundary. Authored
           // overlays cannot write reserved material components, so this

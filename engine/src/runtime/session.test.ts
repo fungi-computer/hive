@@ -94,6 +94,7 @@ class TestPort implements KernelPort {
   loaded = 0;
   acceptedConsumes = 0;
   acceptConsume = false;
+  queryCalls = 0;
   load(_definition: Uint8Array): void {
     this.loaded++;
   }
@@ -158,6 +159,7 @@ class TestPort implements KernelPort {
     return ids.map((id) => id === "actor");
   }
   query<T extends object>(_spec: QuerySpec<T>): readonly QueryRow<T>[] {
+    this.queryCalls++;
     return _spec.components.every((component) =>
       [morale.id, "test.link"].includes(component.id),
     )
@@ -345,6 +347,24 @@ test("session rejects duplicate system write authority", () => {
       }),
     /duplicate system write authority/,
   );
+});
+
+test("one decision phase shares identical component queries across systems", () => {
+  const port = new TestPort();
+  let visits = 0;
+  const reader = (id: string): SystemDefinition => ({
+    id, version: 1, reads: [morale], writes: [],
+    run(context) { visits += context.query({ components: [morale] }).length; },
+  });
+  const value = new GameSession({
+    port,
+    pack: pack(port, undefined, undefined, [reader("test.read-first"), reader("test.read-second")]),
+  });
+  value.start();
+  port.queryCalls = 0;
+  value.step(0.1);
+  assert.equal(visits, 2);
+  assert.equal(port.queryCalls, 1);
 });
 
 test("game command inputs are cloned and parsed once before the handler", () => {
