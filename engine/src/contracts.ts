@@ -487,7 +487,7 @@ export type PartyJoinCapability = Readonly<{
 }>;
 export type ActionScope =
   | { readonly kind: "host" }
-  | { readonly kind: "party"; readonly party: EntityId };
+  | { readonly kind: "party"; readonly player: string; readonly party: EntityId };
 export interface ScopedAction {
   readonly scope: ActionScope;
   readonly request: ActionRequest;

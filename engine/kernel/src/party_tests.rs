@@ -39,7 +39,7 @@ fn accepted(kernel: &mut Kernel, input: Value) -> bool {
     kernel.advance_json(&input.to_string()).ok().and_then(|output| serde_json::from_str::<Value>(&output).ok()).is_some_and(|value| value["results"][0]["accepted"] == true)
 }
 fn party_batch(party: &str, request: Value) -> Value {
-    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","party":party},"request":request}]})
+    json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":party.replace("party", "player"),"party":party},"request":request}]})
 }
 
 #[test]
@@ -116,13 +116,16 @@ fn scoped_authored_creation_attaches_party_ownership_atomically() {
     definition["components"] = json!([{"id":"game.order","version":1,"fields":{"phase":"string"}}]);
     kernel.load(&definition.to_string()).unwrap();
     assert!(accepted(&mut kernel, request("bind:1", 1, plan(1))));
-    let batch = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
+    let batch = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
     assert!(kernel.advance_json(&batch.to_string()).is_ok());
     let order = kernel.entity("order:1").unwrap();
     assert_eq!(kernel.ecs.get::<OwnedByParty>(order).unwrap().party, "party:1");
-    let forged = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:2","components":{"hive.owned-by-party":{"party":"party:2"},"game.order":{"phase":"queued"}}}}],"actions":[]});
+    let forged = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"record":{"id":"order:2","components":{"hive.owned-by-party":{"party":"party:2"},"game.order":{"phase":"queued"}}}}],"actions":[]});
     assert!(kernel.advance_json(&forged.to_string()).is_err());
     assert!(kernel.entity("order:2").is_err());
+    let forged_player = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","player":"player:2","party":"party:1"},"record":{"id":"order:3","components":{"game.order":{"phase":"queued"}}}}],"actions":[]});
+    assert!(kernel.advance_json(&forged_player.to_string()).is_err());
+    assert!(kernel.entity("order:3").is_err());
 }
 
 #[test]
@@ -143,6 +146,17 @@ fn party_scope_rejects_foreign_worker_and_work_attempt_party_drift() {
 }
 
 #[test]
+fn party_scope_requires_authenticated_owner_player() {
+    let mut kernel = Kernel::new();
+    kernel.load(&json!({"format":"hive-game","version":3,"game":"party-owner-scope","components":[],"materialCatalog":[],"initial":[
+        {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}}
+    ]}).to_string()).unwrap();
+    let forged = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:2","party":"party:1"},"request":{"kind":"move","entity":"missing","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}]});
+    let result: Value = serde_json::from_str(&kernel.advance_json(&forged.to_string()).unwrap()).unwrap();
+    assert_eq!(result["results"][0]["accepted"], false);
+}
+
+#[test]
 fn scoped_batch_rejects_malformed_scope_before_mutation() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":3,"game":"scope-parse","components":[],"materialCatalog":[],"initial":[]}).to_string()).unwrap();
@@ -158,13 +172,16 @@ fn scoped_authored_removal_enforces_party_and_preserves_physical_entities() {
         {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
         {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}}
     ]}).to_string()).unwrap();
-    let create = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"removes":[],"actions":[]});
+    let create = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"removes":[],"actions":[]});
     assert!(kernel.advance_json(&create.to_string()).is_ok());
     let before = kernel.save_records().unwrap().entities;
-    let foreign = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","party":"party:2"},"entity":"order:1"}],"actions":[]});
+    let foreign = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","player":"player:2","party":"party:2"},"entity":"order:1"}],"actions":[]});
     assert!(kernel.advance_json(&foreign.to_string()).is_err());
     assert_eq!(kernel.save_records().unwrap().entities, before);
-    let owned = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","party":"party:1"},"entity":"order:1"}],"actions":[]});
+    let forged_player = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","player":"player:2","party":"party:1"},"entity":"order:1"}],"actions":[]});
+    assert!(kernel.advance_json(&forged_player.to_string()).is_err());
+    assert_eq!(kernel.save_records().unwrap().entities, before);
+    let owned = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"entity":"order:1"}],"actions":[]});
     assert!(kernel.advance_json(&owned.to_string()).is_ok());
     let physical = json!({"delta":0,"writes":[],"creates":[],"removes":[{"scope":{"kind":"host"},"entity":"worker"}],"actions":[]});
     assert!(kernel.advance_json(&physical.to_string()).is_err());

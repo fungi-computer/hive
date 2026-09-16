@@ -774,7 +774,7 @@ pub struct ConstructionPlan {
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ActionScope {
     Host,
-    Party { party: String },
+    Party { player: String, party: String },
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

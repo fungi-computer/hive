@@ -12,7 +12,7 @@ import { checkedAction } from "./actions";
 import { readKernelEntities } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
 import { query } from "../sdk/authoring";
-import { OwnedByParty, PartyMember } from "../sdk/party";
+import { OwnedByParty, Party, PartyMember } from "../sdk/party";
 import type {
   ActionRequest,
   ActionScope,
@@ -71,7 +71,7 @@ export interface SessionOptions {
 }
 export interface SessionSnapshot {
   readonly format: "hive-session";
-  readonly version: 10;
+  readonly version: 11;
   readonly cues: CueSnapshot;
   readonly game: string;
   readonly gameVersion: number;
@@ -113,7 +113,7 @@ function checkedActionScope(value: unknown): ActionScope {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid action scope");
   const scope = value as Record<string, unknown>;
   if (scope.kind === "host" && Object.keys(scope).length === 1) return { kind: "host" };
-  if (scope.kind === "party" && Object.keys(scope).length === 2 && typeof scope.party === "string") return { kind: "party", party: checkedAuthoredId(scope.party) };
+  if (scope.kind === "party" && Object.keys(scope).length === 3 && typeof scope.player === "string" && typeof scope.party === "string") return { kind: "party", player: checkedAuthoredId(scope.player), party: checkedAuthoredId(scope.party) };
   throw new Error("invalid action scope");
 }
 function finiteVec3(
@@ -429,7 +429,7 @@ export class GameSession {
       (result.removes !== undefined && !Array.isArray(result.removes))
     )
       throw new Error("invalid command result");
-    const actionScope: ActionScope = scope.kind === "host" ? scope : { kind: "party", party: scope.party };
+    const actionScope: ActionScope = scope.kind === "host" ? scope : { kind: "party", player: scope.player, party: scope.party };
     const actions = result.actions.map((action) => ({ scope: actionScope, request: checkedAction(action) }));
     const actionCreatedReferences = new Set<EntityId>(actions.flatMap(({ request }) =>
       request.kind === "create-job" || request.kind === "resume-job" ? [request.id] : [],
@@ -740,11 +740,19 @@ export class GameSession {
     const owner = this.port.query(query(OwnedByParty)).find((row) => row.id === id);
     return owner?.get(OwnedByParty).party;
   }
+  private canonicalPlayerFor(party: EntityId): string | undefined {
+    return this.port.query(query(Party)).find((row) => row.id === party)?.get(Party).ownerPlayer;
+  }
+  private canonicalActionScope(party: EntityId): ActionScope {
+    const player = this.canonicalPlayerFor(party);
+    if (!player) throw new Error("system action party has no canonical player owner");
+    return { kind: "party", player, party };
+  }
   private derivedActionScope(action: ActionRequest): ActionScope {
     const values = Object.values(action as unknown as Record<string, unknown>).filter((value): value is EntityId => typeof value === "string");
     const parties = [...new Set(values.map((id) => this.canonicalPartyFor(id)).filter((party): party is EntityId => party !== undefined))];
     if (parties.length > 1) throw new Error("system action crosses party scope");
-    return parties.length ? { kind: "party", party: parties[0]! } : { kind: "host" };
+    return parties.length ? this.canonicalActionScope(parties[0]!) : { kind: "host" };
   }
   private derivedCreateScope(record: EntityRecord): ActionScope {
     const values = Object.values(record.components).flatMap((value) => {
@@ -753,7 +761,7 @@ export class GameSession {
     });
     const parties = [...new Set(values.map((id) => this.canonicalPartyFor(id)).filter((party): party is EntityId => party !== undefined))];
     if (parties.length > 1) throw new Error("system creation crosses party scope");
-    return parties.length ? { kind: "party", party: parties[0]! } : { kind: "host" };
+    return parties.length ? this.canonicalActionScope(parties[0]!) : { kind: "host" };
   }
   private queryOverlay<T extends object>(
     spec: QuerySpec<T>,
@@ -1041,7 +1049,7 @@ export class GameSession {
     this.ensureLive();
     return {
       format: "hive-session",
-      version: 10,
+      version: 11,
       cues: structuredClone(this.cues),
       outcomes: structuredClone(this.outcomes),
       game: this.pack.id,
@@ -1070,7 +1078,7 @@ export class GameSession {
   restore(snapshot: SessionSnapshot): void {
     if (
       snapshot.format !== "hive-session" ||
-      snapshot.version !== 10 ||
+      snapshot.version !== 11 ||
       snapshot.game !== this.pack.id ||
       snapshot.gameVersion !== this.pack.version ||
       typeof snapshot.paused !== "boolean" ||

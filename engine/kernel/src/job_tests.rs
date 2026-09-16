@@ -44,7 +44,7 @@ fn add_lot(kernel: &mut Kernel, id: &str, kind: &str) {
 #[test]
 fn admission_is_atomic_replayable_and_rebuilds_dependency_readiness_after_reload() {
     let mut kernel = world();
-    let scope = ActionScope::Party { party: "party".into() };
+    let scope = ActionScope::Party { player: "player".into(), party: "party".into() };
     kernel.create_job("job-1".into(), plan(), &scope).unwrap();
     assert_eq!(kernel.ready_job_tasks().unwrap(), vec!["job-1:task:prepare"]);
     kernel.create_job("job-1".into(), plan(), &scope).unwrap();
@@ -67,7 +67,7 @@ fn admission_is_atomic_replayable_and_rebuilds_dependency_readiness_after_reload
 #[test]
 fn cancellation_releases_attempt_and_preserves_completed_matter() {
     let mut kernel = world();
-    let scope = ActionScope::Party { party: "party".into() };
+    let scope = ActionScope::Party { player: "player".into(), party: "party".into() };
     kernel.create_job("job-2".into(), plan(), &scope).unwrap();
     add_lot(&mut kernel, "bar-lot", "bar");
     kernel.complete_job_task("job-2:task:prepare", vec![TaskResultBinding { slot: "bar".into(), entity: "bar-lot".into() }]).unwrap();
@@ -92,7 +92,7 @@ fn invalid_late_plan_does_not_mutate_world() {
         input_kind: "wrong-kind".into(), input_quantity: 1,
         output_kind: "plate".into(), output_quantity: 2, work_seconds: 1.0, result_slot: "plates".into(),
     };
-    assert!(kernel.create_job("job-invalid".into(), invalid, &ActionScope::Party { party: "party".into() }).is_err());
+    assert!(kernel.create_job("job-invalid".into(), invalid, &ActionScope::Party { player: "player".into(), party: "party".into() }).is_err());
     assert_eq!(kernel.snapshot_json().unwrap(), before);
 }
 

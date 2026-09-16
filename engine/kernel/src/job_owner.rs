@@ -151,7 +151,7 @@ impl Kernel {
     pub(crate) fn create_job(&mut self, id: String, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<String> {
         crate::job::validate_plan(&id, &plan)?;
         let owner = match scope {
-            ActionScope::Party { party } => { self.ecs.get::<Party>(self.entity(party)?).ok_or("job scope is not a party")?; Some(party.clone()) },
+            ActionScope::Party { party, .. } => { self.ecs.get::<Party>(self.entity(party)?).ok_or("job scope is not a party")?; Some(party.clone()) },
             ActionScope::Host => plan.steps.iter().find_map(|step| match step.operation.source_binding() {
                 crate::job::EntityBinding::Exact(source) => self.ids.get(source).and_then(|entity| self.ecs.get::<OwnedByParty>(*entity)).map(|owner| owner.party.clone()),
                 crate::job::EntityBinding::Result { .. } => None,
@@ -161,7 +161,7 @@ impl Kernel {
             let entity = self.entity(&id)?;
             let existing = self.ecs.get::<crate::job::Job>(entity).ok_or("job identity is already in use")?;
             if existing.definition != plan.definition || existing.definition_version != plan.definition_version || existing.task_ids.len() != plan.steps.len() { return Err("job replay identity conflicts with committed plan".into()); }
-            if let ActionScope::Party { party } = scope
+            if let ActionScope::Party { party, .. } = scope
                 && self.ecs.get::<OwnedByParty>(entity).map(|owned| owned.party.as_str()) != Some(party.as_str())
             {
                 return Err("job replay authority conflicts with committed plan".into());
@@ -213,7 +213,7 @@ impl Kernel {
             if task.step != step.key || task.after != step.after || task.operation != step.operation || task.continuation != step.continuation { return Err("job replay identity conflicts with committed plan".into()); }
         }
         if job.state != crate::job::JobState::Cancelled { return Err("only a cancelled job can resume".into()); }
-        if let ActionScope::Party { party } = scope
+        if let ActionScope::Party { party, .. } = scope
             && self.ecs.get::<OwnedByParty>(job_entity).map(|value| value.party.as_str()) != Some(party.as_str())
         {
             return Err("job scope authority mismatch".into());
