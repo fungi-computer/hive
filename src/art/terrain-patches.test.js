@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { patchShapes, terrainPatch, cliffPart } from "./terrain-patches.js";
+import { patchShapes, terrainPatch, terrainPatchEmissions, cliffPart } from "./terrain-patches.js";
 import { terrainPatchPlacements, terrainCliffPlacements } from "./terrain-columns.js";
 import { terrainColumnMap } from "./terrain-faces.js";
 
@@ -78,6 +78,20 @@ test("all authored variants and cliff facings contain finite geometry", () => {
       object.geometry.dispose();
     });
   assert.equal(scenes.length, 180);
+});
+
+test("terrain cover emissions face upward for the shared one-sided material", () => {
+  for (let mask = 1; mask < 16; mask++) {
+    const emissions = terrainPatchEmissions("grass", mask);
+    for (const { vertices } of emissions) {
+      if (vertices.length < 3) continue;
+      const [a, b, c] = vertices;
+      const ab = b.map((value, index) => value - a[index]);
+      const ac = c.map((value, index) => value - a[index]);
+      const normalY = ab[2] * ac[0] - ab[0] * ac[2];
+      assert.ok(normalY > 0, `terrain mask ${mask} emitted a downward face`);
+    }
+  }
 });
 
 const surface = (x, y, z, material = 1, generatedTop = y) => ({ cell: [x, y, z], material, generatedTop });

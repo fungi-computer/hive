@@ -9,7 +9,16 @@ test("terrain scene cache retains unaffected chunks and rebuilds neighbor chunks
   const initial = Array.from({ length: 24 }, (_, x) => surface(x, 1, 0));
   const first = cache.update(initial);
   assert.equal(first.initial, true);
-  assert.deepEqual(first.dirtyChunks, ["0,0", "1,0", "2,0"]);
+  assert.deepEqual(first.dirtyChunks, [
+    "-1,0",
+    "0,-1",
+    "0,0",
+    "1,-1",
+    "1,0",
+    "2,-1",
+    "2,0",
+    "3,0",
+  ]);
   const firstGroups = [...cache.scene.children].filter(
     (child) => child.isGroup,
   );
@@ -31,10 +40,13 @@ test("terrain scene cache retains unaffected chunks and rebuilds neighbor chunks
   const secondGroups = [...cache.scene.children].filter(
     (child) => child.isGroup,
   );
-  assert.equal(secondGroups.length, 3);
-  assert.notEqual(secondGroups[0], firstGroups[0]);
+  assert.equal(secondGroups.length, 7);
+  assert.equal(secondGroups[0], firstGroups[0]);
   assert.notEqual(secondGroups[1], firstGroups[1]);
-  assert.ok(secondGroups.includes(firstGroups[2]));
+  assert.notEqual(secondGroups[2], firstGroups[2]);
+  assert.equal(secondGroups[3], firstGroups[3]);
+  assert.notEqual(secondGroups[4], firstGroups[4]);
+  assert.deepEqual(secondGroups.slice(5), firstGroups.slice(5));
   cache.dispose();
 });
 

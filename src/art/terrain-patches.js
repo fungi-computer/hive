@@ -82,12 +82,28 @@ export function terrainPatchEmissions(kind, mask, variant = 0) {
   const palette = TERRAIN_PALETTES[kind];
   if (!palette) throw new Error("unknown terrain palette");
   if (!Number.isInteger(variant) || variant < 0 || variant > 2) throw new Error("terrain variant must be 0..2");
-  const emissions = patchShapes(mask).map((shape) => ({ color: palette.cover, vertices: shape.getPoints(12).map(({ x, y }) => [x, 0.001, y]) }));
+  // These masks include concave rounded outlines, so a triangle fan is not a
+  // lawful tessellation. Emit THREE's actual triangulation and normalize every
+  // triangle upward for the shared front-face-only material.
+  const emissions = patchShapes(mask).flatMap((shape) => {
+    const contour = shape.getPoints(12);
+    if (contour.length > 1 && contour[0].equals(contour.at(-1))) contour.pop();
+    return THREE.ShapeUtils.triangulateShape(contour, []).map((face) => {
+      const vertices = face.map((index) => {
+        const { x, y } = contour[index];
+        return [x, 0.001, y];
+      });
+      const [a, b, c] = vertices;
+      const normalY = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+      if (normalY < 0) [vertices[1], vertices[2]] = [vertices[2], vertices[1]];
+      return { color: palette.cover, vertices };
+    });
+  });
   if (mask === 15) {
     const rng = random(1027 + variant * 93);
     for (let i = 0; i < (kind === "rock" ? 11 : 7); i++) {
       const x = (rng() - 0.5) * 0.94, z = (rng() - 0.5) * 0.94;
-      emissions.push({ color: palette.flecks[i % 3], vertices: [[x - 0.04, 0.004, z - 0.02], [x + 0.04, 0.004, z - 0.02], [x + 0.04, 0.004, z + 0.02], [x - 0.04, 0.004, z + 0.02]] });
+      emissions.push({ color: palette.flecks[i % 3], vertices: [[x - 0.04, 0.004, z + 0.02], [x + 0.04, 0.004, z + 0.02], [x + 0.04, 0.004, z - 0.02], [x - 0.04, 0.004, z - 0.02]] });
     }
   }
   return emissions;

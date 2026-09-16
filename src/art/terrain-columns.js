@@ -236,10 +236,10 @@ export function createTerrainSceneCache({
       ready && sameScale
         ? changedTerrainColumns(columnIndex, nextIndex)
         : nextSurfaces.map(({ cell: [x, , z] }) => ({ x, z }));
-    const affectedColumns =
-      ready && sameScale
-        ? affectedTerrainColumns(changedColumns)
-        : changedColumns;
+    // Dual-grid patches live on column vertices and can belong to a neighboring
+    // chunk even during the first build. Initial population therefore needs the
+    // same one-column expansion as an incremental edit.
+    const affectedColumns = affectedTerrainColumns(changedColumns);
     const dirtyChunks = terrainChunkKeys(affectedColumns, chunkSize);
     if (!ready || !sameScale) {
       for (const old of chunks.values()) disposeObject(old);
