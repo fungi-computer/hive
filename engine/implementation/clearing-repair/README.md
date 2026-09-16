@@ -1,5 +1,11 @@
 # Clearing repair implementation packet
 
+**September 16 rendering correction:** [Cut-level rendering and Ingnomia study](13-cut-level-rendering.md)
+records selected-level cuts, visible lower terrain, whole supported actors,
+underground cross-sections, safe batching, and source-grounded lessons from
+Ingnomia. Read before implementing section 04; superseded level-band and layer
+bake rules must not survive the repair.
+
 ## Read first: preserve the accepted creator API
 
 **Levi's explicit direction, September 15: everything that can be expressed with

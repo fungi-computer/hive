@@ -7,6 +7,11 @@ vertical extents. Ordinary Pixi, spatial indexing and the shared picker remain.
 
 [Packet index](README.md) · [Coordinates](02-construction.md)
 
+September 16: [Cut-level rendering and Ingnomia study](13-cut-level-rendering.md)
+owns terrain visibility, underground cross-sections and safe batch boundaries.
+It supersedes unconditional terrain/storey ordering and runtime layer-picture
+baking. This is an implementation plan, not a deployed repair.
+
 ## Decision
 
 The Clearing uses ordinary Pixi sprites and `zIndex`. The renderer derives a
@@ -53,12 +58,11 @@ remain owned by their physical systems.
 
 ## Ordering
 
-First partition records into explicit voxel storey bands. Terrain and floor faces
-form the base of their band. Structures, actors and items occupy the bands covered
-by their physical vertical extent. Cutaway and selected level filter records before
-ordering, so a hidden upper floor cannot occlude a lower actor.
+Filter by the cut-level contract in section 13, then use spatial neighborhoods
+and vertical extents to narrow comparisons. A storey is an indexing hint, never
+an unconditional painter order: a higher terrain face may be behind a lower actor.
 
-Within relevant bands:
+Within relevant neighborhoods:
 
 1. Compare only visible records whose projected bounds overlap.
 2. Compare point, line and multi-cell bounds in the shared camera coordinate
@@ -93,9 +97,9 @@ world facts and are never saved or broadcast.
 
 ## Terrain, water and overlays
 
-Terrain is ordinary Pixi imagery produced by the existing bounded terrain
-scene/cache. It occupies explicit terrain/storey bands instead of a depth-writing
-render target. Water remains a translucent, nonpickable presentation layer derived
+Terrain uses reusable original baked artwork and disposable presentation batches
+under section 13. Batch boundaries must preserve interleaving with actors and
+structures; do not flatten a complete level into an indivisible picture. Water remains a translucent, nonpickable presentation layer derived
 from the authoritative 0-7 water facts. It follows cutaway/level visibility,
 writes no physical state and never becomes an opaque picking surface.
 
