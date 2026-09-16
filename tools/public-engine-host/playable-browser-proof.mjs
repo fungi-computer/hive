@@ -78,6 +78,13 @@ const waitForVisible = async (page, name) => {
   await button.waitFor({ state: "visible", timeout: 20_000 });
   return button;
 };
+const waitForSelectedPeopleAction = async (page, name) => {
+  const button = page
+    .getByRole("region", { name: "Selected people actions", exact: true })
+    .getByRole("button", { name, exact: true });
+  await button.waitFor({ state: "visible", timeout: 20_000 });
+  return button;
+};
 const canvasBox = async (page) => {
   const box = await page.locator("canvas").first().boundingBox();
   assert(box, "Pixi canvas is not visible");
@@ -340,9 +347,9 @@ try {
   record("Go is rejected before Draft", { command: rejectedBeforeDraft.name });
 
   const beforeDraftCommand = commandCount();
-  await (await waitForVisible(page, "Draft")).click();
+  await (await waitForSelectedPeopleAction(page, "Draft")).click();
   assert.equal((await waitCommandAccepted(beforeDraftCommand, "Draft")).name, "draft");
-  await waitForVisible(page, "Undraft");
+  await waitForSelectedPeopleAction(page, "Undraft");
   record("Draft appears in the persistent action dock");
   await screenshot(page, "desktop-02-drafted.png");
   const beforeGo = commandCount();
@@ -369,9 +376,9 @@ try {
   assert.equal(digCommand.name, "dig", "dragging Dig area submitted the wrong command");
   record("dragging Dig area submits one area order", { digCommands: evidence.commands.filter(command => command.name === "dig").length });
   const beforeUndraftCommand = commandCount();
-  await (await waitForVisible(page, "Undraft")).click();
+  await (await waitForSelectedPeopleAction(page, "Undraft")).click();
   assert.equal((await waitCommandAccepted(beforeUndraftCommand, "Undraft")).name, "undraft");
-  await waitForVisible(page, "Draft");
+  await waitForSelectedPeopleAction(page, "Draft");
   await page.waitForTimeout(1_000);
   const workStateText = await page.locator("body").innerText();
   assert(/blocked|waiting|queued|working/i.test(workStateText), "dig did not expose a blocked/waiting/queued/working state");
