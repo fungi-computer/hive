@@ -2,8 +2,6 @@ import { z } from "zod";
 import { terrainSurfaceSchema } from "./terrain-surface";
 import { physicalContactQuery } from "./physical-contact-query";
 import type {
-  AssignmentCandidate,
-  AssignmentPair,
   ActionRequest,
   ScopedAction,
   ScopedCreate,
@@ -35,7 +33,6 @@ import type {
   MoveDestination,
   PartyJoinIdentity,
 } from "../contracts";
-import { ASSIGNMENT_MAX_EDGES, checkedAssignments } from "../sdk/assignment";
 import { WasmKernelRecords } from "../../generated/hive_kernel.js";
 import {
   captureKernelRecords,
@@ -73,7 +70,6 @@ export interface WasmKernelBinding extends NativeRecordBinding {
   world_pose(json: string): string;
   route_costs(json: string): string;
   route_to_any(json: string): string;
-  assign(json: string): string;
 }
 type QueryWire = { id: EntityId; components: Record<string, unknown> };
 const surfaceResultsSchema = z.array(terrainSurfaceSchema.nullable()).max(64);
@@ -807,18 +803,6 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
       return JSON.parse(
         binding.world_pose(JSON.stringify(entities)),
       ) as WorldPose[];
-    },
-    assign(
-      candidates: readonly AssignmentCandidate[],
-      maxEdges = ASSIGNMENT_MAX_EDGES,
-    ): readonly AssignmentPair[] {
-      const checked = checkedAssignments(candidates, maxEdges);
-      const result = JSON.parse(
-        binding.assign(
-          JSON.stringify({ candidates: checked, max_edges: maxEdges }),
-        ),
-      ) as { assignments: AssignmentPair[] };
-      return result.assignments;
     },
   };
 }

@@ -7,7 +7,6 @@ import { checkedAction } from "./actions";
 import { z } from "zod";
 const emptyInput = z.object({}).strict();
 import type {
-  AssignmentCandidate,
   ActionRequest,
   ActionResult,
   AdvanceResult,
@@ -242,11 +241,6 @@ class TestPort implements KernelPort {
     _entities: readonly import("../contracts").EntityId[],
   ): readonly WorldPose[] {
     return [];
-  }
-  assign(
-    candidates: readonly AssignmentCandidate[],
-  ): readonly AssignmentCandidate[] {
-    return candidates.slice(0, 128);
   }
 }
 
