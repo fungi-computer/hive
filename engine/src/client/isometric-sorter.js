@@ -7,6 +7,8 @@
  * creates a depth texture, or owns physical geometry.
  */
 
+import { compareOrderingPlanes, prepareOrderingProxy } from "./plane-order.js";
+
 const EPSILON = 1e-7;
 const ROLE_ORDER = Object.freeze({ terrain: 0, water: 1, floor: 2, structure: 3, item: 4, actor: 5 });
 const SURFACE_ROLES = new Set(["terrain", "water", "floor"]);
@@ -210,6 +212,7 @@ function geometrySignature(node) {
     node.relationPolicy,
     node.screenBounds,
     node.storeyBand,
+    node.orderingProxy,
     node.footprint.map(({ x, y, z }) => [x, y, z]),
   ]);
 }
@@ -300,7 +303,7 @@ function relationKey(a, b) {
  * invalidates every cached relation. Moving nodes bypass the cache, so actor
  * motion never leaves stale edges behind.
  */
-export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
+export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 }, projection } = {}) {
   const basis = point(camera, "camera basis");
   const length = Math.hypot(basis.x, basis.y, basis.z);
   if (!(length > 0)) throw new Error("invalid isometric camera basis");
@@ -395,7 +398,15 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     if (!moving && staticRelations.get(key)?.signature === signature)
       return staticRelations.get(key).result;
     relationTests++;
-    const result = edgeFor(left, right, normalized);
+    let result;
+    if (projection) {
+      const comparison = compareOrderingPlanes(left, right, projection);
+      if (comparison.kind === "interleaving")
+        throw new Error(`interleaving ordering planes: ${stableKey(left)} / ${stableKey(right)}`);
+      result = comparison.kind === "ordered" ? comparison.edge : null;
+      if (comparison.kind === "tie" && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
+        result = (ROLE_ORDER[left.role] ?? 0) < (ROLE_ORDER[right.role] ?? 0) ? [left, right] : [right, left];
+    } else result = edgeFor(left, right, normalized);
     if (!moving) staticRelations.set(key, { signature, result });
     return result;
   }
@@ -439,6 +450,7 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     const nodes = inputs
       .filter((node) => node?.visible !== false)
       .map(validateNode)
+      .map(node => projection ? { ...node, orderingProxy: prepareOrderingProxy(node, projection) } : node)
       .sort(compareStable);
     const byKey = new Map(nodes.map((node) => [stableKey(node), node]));
     const outgoing = new Map(nodes.map((node) => [stableKey(node), new Set()]));
@@ -479,6 +491,7 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 } } = {}) {
     // Cycles are possible for whole sprites. Remove one deterministic incoming
     // edge from the stalled node, then resume Kahn's algorithm.
     while (result.length < nodes.length) {
+      if (projection) throw new Error(`cyclic ordering planes: ${nodes.filter(node => !result.includes(node)).map(stableKey).join(" / ")}`);
       const remaining = nodes
         .filter((node) => !result.includes(node))
         .sort(compareStable);
