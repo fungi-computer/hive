@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { component, query } from "./authoring.js";
-import { action, actor, behavior, predicate } from "./behavior.js";
+import { action, actor, actorInput, behavior, predicate } from "./behavior.js";
 
 const Subject = component<{ value: number }>("test.subject", {
   version: 1,
@@ -100,6 +100,18 @@ test("actor composition validates capabilities and behavior attachments", () => 
   const inert = actor("test.inert").with(Related, { value: 2 });
   assert.equal(inert.capabilities[0].component, Related);
   assert.deepEqual(inert.behaviors, []);
+  const parameterized = actor("test.parameterized").with(Subject, {
+    value: actorInput.number("starting-value"),
+  });
+  assert.deepEqual(parameterized.capabilities[0].initial, {
+    value: { kind: "actor-input", name: "starting-value", type: "number" },
+  });
+  assert.throws(
+    () => actor("test.bad-input").with(Subject, {
+      value: actorInput.string("starting-value"),
+    }),
+    /invalid initial test.subject/,
+  );
 });
 
 test("behavior rejects native fact reads that were not declared", () => {

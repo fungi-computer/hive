@@ -1,6 +1,7 @@
 import type {
   ComponentDefinition,
   ComponentId,
+  FieldType,
   NativeFact,
   QueryRow,
   ReadContext,
@@ -11,8 +12,47 @@ import { query, system } from "./authoring";
 
 export interface ActorCapability {
   readonly component: ComponentDefinition<any>;
-  readonly initial?: object;
+  readonly initial?: Readonly<Record<string, unknown>>;
 }
+
+export interface ActorInput {
+  readonly kind: "actor-input";
+  readonly name: string;
+  readonly type: FieldType | "actor-reference";
+}
+
+const input = (name: string, type: ActorInput["type"]): ActorInput => {
+  if (!name || !/^[A-Za-z][A-Za-z0-9._-]*$/.test(name))
+    throw new Error(`Invalid actor input ${name}`);
+  return Object.freeze({ kind: "actor-input", name, type });
+};
+
+/** Declared instance inputs; templates bind these to checked component fields. */
+export const actorInput = Object.freeze({
+  number: (name: string) => input(name, "number"),
+  boolean: (name: string) => input(name, "boolean"),
+  string: (name: string) => input(name, "string"),
+  reference: (name: string) => input(name, "actor-reference"),
+  optionalReference: (name: string) => input(name, "nullable-entity"),
+});
+
+const isActorInput = (value: unknown): value is ActorInput =>
+  !!value && typeof value === "object" && !Array.isArray(value) &&
+  (value as { readonly kind?: unknown }).kind === "actor-input";
+
+const inputFits = (inputType: ActorInput["type"], fieldType: FieldType) =>
+  inputType === fieldType ||
+  (inputType === "actor-reference" && fieldType === "entity");
+
+const fieldValueFits = (value: unknown, fieldType: FieldType) =>
+  fieldType === "number" ? typeof value === "number" && Number.isFinite(value) :
+  fieldType === "boolean" ? typeof value === "boolean" :
+  fieldType === "string" || fieldType === "entity" ? typeof value === "string" :
+  value === null || typeof value === "string";
+
+type ActorInitial<T extends object> = {
+  readonly [K in keyof T]: T[K] | ActorInput;
+};
 
 export interface ActorDefinition extends ActorBuilder {
   readonly id: string;
@@ -247,7 +287,7 @@ export function behavior(
 export interface ActorBuilder {
   with<T extends object>(
     component: ComponentDefinition<T>,
-    initial?: T,
+    initial?: ActorInitial<T>,
   ): ActorDefinition;
   behaves(...behaviors: readonly SystemDefinition[]): ActorDefinition;
 }
@@ -270,12 +310,23 @@ export function actor(
       behaviors,
       with<T extends object>(
         component: ComponentDefinition<T>,
-        initial?: T,
+        initial?: ActorInitial<T>,
       ) {
         if (capabilities.some(({ component: existing }) => existing.id === component.id))
           throw new Error(`Actor ${id} already has ${component.id}`);
-        if (initial !== undefined && !component.validate(initial))
-          throw new Error(`Actor ${id} has invalid initial ${component.id}`);
+        if (initial !== undefined) {
+          const fields = Object.entries(component.fields) as [string, FieldType][];
+          if (
+            Object.keys(initial).length !== fields.length ||
+            fields.some(([field, fieldType]) => {
+              const value = (initial as Record<string, unknown>)[field];
+              return isActorInput(value)
+                ? !inputFits(value.type, fieldType)
+                : !fieldValueFits(value, fieldType);
+            })
+          )
+            throw new Error(`Actor ${id} has invalid initial ${component.id}`);
+        }
         return build(
           Object.freeze([
             ...capabilities,
