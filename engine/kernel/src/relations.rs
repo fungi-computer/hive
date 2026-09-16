@@ -1,7 +1,11 @@
-use crate::components::{FieldType, RelationRemovalPolicy, Result};
+use crate::components::{FieldType, Result};
+#[cfg(test)]
+use crate::components::RelationRemovalPolicy;
 use crate::registry::Registry;
 use bevy_ecs::{entity::Entity, world::World};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+#[cfg(test)]
+use std::collections::BTreeSet;
 
 /// A derived view of the registered one-target relations.
 ///

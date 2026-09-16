@@ -18,6 +18,8 @@ mod excavation_work;
 mod initial_placement;
 #[path = "authored_entities.rs"]
 mod authored_entities;
+#[path = "relation_mutation.rs"]
+mod relation_mutation;
 #[path = "structure_contact.rs"]
 mod structure_contact;
 #[path = "interaction_contact.rs"]
@@ -4447,6 +4449,7 @@ impl Kernel {
                 let action = &action.request;
                 matches!(action, Action::Launch { .. } | Action::Displace { .. }
                     | Action::InstantiateActors { .. }
+                    | Action::SetRelation { .. } | Action::ClearRelation { .. }
                     | Action::BeginWorkAttempt { .. } | Action::RetargetWorkAttempt { .. } | Action::InterruptWorkAttempt { .. } | Action::AcknowledgeWorkAttempt { .. }
                     | Action::ContinueWorkAttempt { .. } | Action::CancelWork { .. }
                     | Action::CreateJob { .. } | Action::ResumeJob { .. } | Action::CancelJob { .. }
@@ -4530,6 +4533,8 @@ impl Kernel {
                 let requires_atomic_action = matches!(
                     &request,
                     Action::InstantiateActors { .. }
+                        | Action::SetRelation { .. }
+                        | Action::ClearRelation { .. }
                         | Action::BeginWorkAttempt { .. }
                         | Action::RetargetWorkAttempt { .. }
                         | Action::InterruptWorkAttempt { .. }
@@ -5844,6 +5849,8 @@ impl Kernel {
     fn apply_action(&mut self, action: Action, delta: f64, scope: &ActionScope) -> Result<ActionEffect> {
         match action {
             Action::InstantiateActors { binding_id, expected_sequence, plan } => self.instantiate_actors(binding_id, expected_sequence, plan).map(ActionEffect::Entity),
+            Action::SetRelation { relation, source, target } => self.set_relation(&relation, &source, &target, scope).map(|_| ActionEffect::None),
+            Action::ClearRelation { relation, source } => self.clear_relation(&relation, &source, scope).map(|_| ActionEffect::None),
             Action::BeginWorkAttempt { task, worker, operation } => self.begin_work_attempt(task, worker, operation, scope).map(ActionEffect::Attempt),
             Action::RetargetWorkAttempt { task, generation, sequence, destination } => self.retarget_work_attempt(task, generation, sequence, destination).map(|_| ActionEffect::None),
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
@@ -6057,6 +6064,21 @@ impl Kernel {
         let mut targets = Vec::new();
         match action {
             Action::InstantiateActors { .. } => return Err("party scope cannot instantiate actors".into()),
+            Action::SetRelation { source, target, .. } => {
+                let source_entity = self.entity(source)?;
+                let source_party = self.ecs.get::<PartyMember>(source_entity).map(|member| member.party.as_str())
+                    .or_else(|| self.ecs.get::<OwnedByParty>(source_entity).map(|owner| owner.party.as_str()));
+                if source != party && source_party != Some(party.as_str()) { return Err("scoped relation source is outside party".into()); }
+                let target_entity = self.entity(target)?;
+                if let Some(member) = self.ecs.get::<PartyMember>(target_entity) && member.party != *party { return Err("scoped relation target is outside party".into()); }
+                if let Some(owner) = self.ecs.get::<OwnedByParty>(target_entity) && owner.party != *party { return Err("scoped relation target is outside party".into()); }
+            }
+            Action::ClearRelation { source, .. } => {
+                let source_entity = self.entity(source)?;
+                let source_party = self.ecs.get::<PartyMember>(source_entity).map(|member| member.party.as_str())
+                    .or_else(|| self.ecs.get::<OwnedByParty>(source_entity).map(|owner| owner.party.as_str()));
+                if source != party && source_party != Some(party.as_str()) { return Err("scoped relation source is outside party".into()); }
+            }
             Action::BeginWorkAttempt { task, worker, .. } => {
                 let worker_entity = self.entity(worker)?;
                 if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("scoped worker is outside party".into()); }

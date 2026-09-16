@@ -48,6 +48,9 @@ fn validate_relation_schemas(schemas: &BTreeMap<String, Schema>) -> Result<()> {
             Some(_) => return Err(format!("relation target field is not an entity: {}.{}", schema.id, target_field)),
             None => return Err(format!("relation target field is missing: {}.{}", schema.id, target_field)),
         }
+        if schema.fields.len() != 1 {
+            return Err(format!("relation schema {} must contain only its target field", schema.id));
+        }
         if schema.on_target_removed.is_none() {
             return Err(format!("relation schema {} has no target removal policy", schema.id));
         }
@@ -803,6 +806,12 @@ impl Registry {
                 });
             }
         }
+        Ok(())
+    }
+
+    pub fn remove(&self, world: &mut World, entity: Entity, name: &str) -> Result<()> {
+        let component = *self.ids.get(name).ok_or_else(|| format!("unknown component {name}"))?;
+        world.entity_mut(entity).remove_by_id(component);
         Ok(())
     }
     pub fn read(&self, world: &World, entity: Entity, name: &str) -> Option<Record> {

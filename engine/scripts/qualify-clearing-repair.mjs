@@ -53,6 +53,7 @@ const groups = Object.freeze({
     "engine/src/games/colony-construction.test.ts",
   ]),
   parties: Object.freeze([
+    "engine/src/sdk/authoring.test.ts",
     "engine/src/sdk/public.test.ts",
     "engine/src/games/colony-party.test.ts",
     "engine/src/runtime/colony-player-control.test.ts",

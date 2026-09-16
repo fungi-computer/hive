@@ -6,6 +6,7 @@ pub(super) struct PreparedAuthoredEntities {
     creates: Vec<EntityRecord>,
     removes: Vec<String>,
     writes: Vec<Write>,
+    relation_detaches: Vec<(String, String)>,
     weight: usize,
 }
 
@@ -76,6 +77,68 @@ mod tests {
         assert!(!kernel.known.contains("job"));
         assert!(kernel.known.contains("claim"));
     }
+
+    fn relation_world(policy: &str) -> Kernel {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({
+            "format":"hive-game", "version":3, "game":"authored-relations",
+            "components":[
+                {"id":"game.marker","version":1,"fields":{"name":"string"}},
+                {"id":"game.member","version":1,"fields":{"target":"entity"},"targetField":"target","onTargetRemoved":policy}
+            ],
+            "materialCatalog":[],
+            "initial":[
+                {"id":"source","components":{"game.marker":{"name":"source"}}},
+                {"id":"target-a","components":{"game.marker":{"name":"a"}}},
+                {"id":"target-b","components":{"game.marker":{"name":"b"}}}
+            ]
+        }).to_string()).unwrap();
+        kernel
+    }
+
+    fn relation_action(kernel: &mut Kernel, request: serde_json::Value) -> Result<String> {
+        kernel.advance_json(&json!({
+            "delta":0, "creates":[], "removes":[], "writes":[],
+            "actions":[{"scope":{"kind":"host"},"request":request}]
+        }).to_string())
+    }
+
+    #[test]
+    fn relation_operations_are_the_only_mutation_door_and_update_both_directions() {
+        let mut kernel = relation_world("detach");
+        relation_action(&mut kernel, json!({"kind":"set-relation","relation":"game.member","source":"source","target":"target-a"})).unwrap();
+        assert_eq!(kernel.relation_target("game.member", "source"), Some("target-a"));
+        assert_eq!(kernel.relation_sources("game.member", "target-a"), &["source"]);
+
+        relation_action(&mut kernel, json!({"kind":"set-relation","relation":"game.member","source":"source","target":"target-b"})).unwrap();
+        assert_eq!(kernel.relation_sources("game.member", "target-a"), &[] as &[String]);
+        assert_eq!(kernel.relation_sources("game.member", "target-b"), &["source"]);
+
+        relation_action(&mut kernel, json!({"kind":"clear-relation","relation":"game.member","source":"source"})).unwrap();
+        assert_eq!(kernel.relation_target("game.member", "source"), None);
+
+        let before = kernel.snapshot_json().unwrap();
+        assert!(advance(&mut kernel, json!([]), json!([]), json!([{
+            "component":"game.member", "entity":"source", "value":{"target":"target-a"}
+        }])).unwrap_err().contains("relations must use"));
+        assert_eq!(kernel.snapshot_json().unwrap(), before);
+    }
+
+    #[test]
+    fn target_removal_detaches_or_restricts_atomically() {
+        let mut detach = relation_world("detach");
+        relation_action(&mut detach, json!({"kind":"set-relation","relation":"game.member","source":"source","target":"target-a"})).unwrap();
+        advance(&mut detach, json!([]), json!(["target-a"]), json!([])).unwrap();
+        assert_eq!(detach.relation_target("game.member", "source"), None);
+        assert!(detach.known.contains("source"));
+        assert!(!detach.known.contains("target-a"));
+
+        let mut restrict = relation_world("restrict");
+        relation_action(&mut restrict, json!({"kind":"set-relation","relation":"game.member","source":"source","target":"target-a"})).unwrap();
+        let before = restrict.snapshot_json().unwrap();
+        assert!(advance(&mut restrict, json!([]), json!(["target-a"]), json!([])).unwrap_err().contains("restricts removal"));
+        assert_eq!(restrict.snapshot_json().unwrap(), before);
+    }
 }
 
 impl Kernel {
@@ -131,6 +194,9 @@ impl Kernel {
         for row in &creates {
             for (name, value) in &row.components {
                 if Registry::is_physical(name) { return Err("physical component is not game-writable".into()); }
+                if self.registry.schemas.get(name).is_some_and(|schema| schema.target_field.is_some()) {
+                    return Err("relations must use set-relation after creating the source".into());
+                }
                 self.registry.validate(name, value, &reference_known)?;
                 weight += self.registry.weight(name, value);
                 final_values.insert((row.id.clone(), name.clone()), value.clone());
@@ -139,6 +205,9 @@ impl Kernel {
         for write in &writes {
             if !known.contains(&write.entity) { return Err("unknown authored write target".into()); }
             if Registry::is_physical(&write.component) { return Err("physical component is not game-writable".into()); }
+            if self.registry.schemas.get(&write.component).is_some_and(|schema| schema.target_field.is_some()) {
+                return Err("relations must use set-relation or clear-relation".into());
+            }
             self.registry.validate(&write.component, &write.value, &reference_known)?;
             let key = (write.entity.clone(), write.component.clone());
             let old = final_values.get(&key).cloned().or_else(|| {
@@ -148,19 +217,39 @@ impl Kernel {
             weight += self.registry.weight(&write.component, &write.value);
             final_values.insert(key, write.value.clone());
         }
+        let mut relation_detaches = Vec::new();
+        for target in &removed {
+            for (kind, schema) in &self.registry.schemas {
+                if schema.target_field.is_none() { continue; }
+                for source in self.relation_sources(kind, target) {
+                    if removed.contains(source) { continue; }
+                    match schema.on_target_removed.as_ref().expect("registered relation policy") {
+                        RelationRemovalPolicy::Restrict => return Err(format!("relation {kind} restricts removal of {target}")),
+                        RelationRemovalPolicy::Detach => {
+                            let entity = self.entity(source)?;
+                            if let Some(value) = self.registry.read(&self.ecs, entity, kind) {
+                                weight -= self.registry.weight(kind, &value);
+                            }
+                            relation_detaches.push((source.clone(), kind.clone()));
+                        }
+                    }
+                }
+            }
+        }
         if !removed.is_empty() {
             for (id, entity) in &self.ids {
                 if removed.contains(id) { continue; }
                 for (name, schema) in &self.registry.schemas {
                     if !schema.fields.values().any(|kind| matches!(kind, FieldType::Entity | FieldType::NullableEntity)) { continue; }
-                    let value = final_values.get(&(id.clone(), name.clone())).cloned()
-                        .or_else(|| self.registry.read(&self.ecs, *entity, name));
+                    let value = if relation_detaches.iter().any(|(source, kind)| source == id && kind == name) { None } else { final_values.get(&(id.clone(), name.clone())).cloned()
+                        .or_else(|| self.registry.read(&self.ecs, *entity, name))
+                    };
                     if let Some(value) = value { self.registry.validate(name, &value, &known)?; }
                 }
             }
         }
         if weight > STATE_BYTES { return Err("region canonical state capacity".into()); }
-        Ok(PreparedAuthoredEntities { creates, removes, writes, weight })
+        Ok(PreparedAuthoredEntities { creates, removes, writes, relation_detaches, weight })
     }
 
     pub(super) fn publish_authored_entities(&mut self, prepared: PreparedAuthoredEntities) {
@@ -168,6 +257,7 @@ impl Kernel {
         touched.extend(prepared.removes.iter().cloned());
         touched.extend(prepared.creates.iter().map(|row| row.id.clone()));
         touched.extend(prepared.writes.iter().map(|write| write.entity.clone()));
+        touched.extend(prepared.relation_detaches.iter().map(|(source, _)| source.clone()));
         let writes_can_release_reference = prepared.writes.iter().any(|write| {
             self.registry.schemas.get(&write.component).is_some_and(|schema|
                 schema.fields.values().any(|kind| matches!(kind, FieldType::Entity | FieldType::NullableEntity)))
@@ -180,6 +270,10 @@ impl Kernel {
             self.unindex_storage_provider(&id, entity);
             self.unindex_ground_stock(&id, entity);
             self.ecs.despawn(entity);
+        }
+        for (source, kind) in prepared.relation_detaches {
+            let entity = self.ids[&source];
+            self.registry.remove(&mut self.ecs, entity, &kind).expect("prepared relation detach");
         }
         for row in prepared.creates {
             let entity = self.ecs.spawn(ExternalId(row.id.clone())).id();
@@ -194,6 +288,9 @@ impl Kernel {
                 .expect("prepared authored write");
         }
         self.state_weight = prepared.weight;
-        for id in touched { self.refresh_planner_index(&id); }
+        for id in touched {
+            self.refresh_relation_source(&id).expect("prepared relation refresh");
+            self.refresh_planner_index(&id);
+        }
     }
 }

@@ -712,6 +712,8 @@ where
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Action {
     InstantiateActors { #[serde(rename = "bindingId")] binding_id: String, #[serde(rename = "expectedSequence")] expected_sequence: u64, plan: ActorInstantiationPlan },
+    SetRelation { relation: String, source: String, target: String },
+    ClearRelation { relation: String, source: String },
     BeginWorkAttempt { task: String, worker: String, operation: crate::work_attempt::ActivityRef },
     RetargetWorkAttempt { task: String, generation: u64, sequence: u32, destination: Point },
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },

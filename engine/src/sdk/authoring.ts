@@ -1,4 +1,5 @@
 import type {
+  ActionRequest,
   ComponentDefinition,
   ComponentId,
   EntityId,
@@ -49,6 +50,8 @@ export function component<T extends object>(
     const targetType = fields[options.targetField];
     if (targetType !== "entity" && targetType !== "nullable-entity")
       throw new Error(`Invalid relation target ${id}.${options.targetField}`);
+    if (Object.keys(fields).length !== 1)
+      throw new Error(`Relation ${id} must contain only its target field`);
   } else if (
     options.sourceRequires !== undefined ||
     options.targetRequires !== undefined ||
@@ -103,6 +106,25 @@ export function relation<T extends object>(
     onTargetRemoved: options.onTargetRemoved,
     allowSelf: options.allowSelf,
   });
+}
+
+export function setRelation<T extends object>(
+  definition: ComponentDefinition<T>,
+  source: EntityId,
+  target: EntityId,
+): ActionRequest {
+  if (definition.targetField === undefined)
+    throw new Error(`${definition.id} is not a relation`);
+  return { kind: "set-relation", relation: definition.id, source, target };
+}
+
+export function clearRelation<T extends object>(
+  definition: ComponentDefinition<T>,
+  source: EntityId,
+): ActionRequest {
+  if (definition.targetField === undefined)
+    throw new Error(`${definition.id} is not a relation`);
+  return { kind: "clear-relation", relation: definition.id, source };
 }
 
 export function query<T extends object>(

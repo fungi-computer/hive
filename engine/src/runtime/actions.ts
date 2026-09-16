@@ -154,6 +154,14 @@ export function checkedAction(value: unknown): ActionRequest {
   let keys: string[];
   let valid = false;
   switch (action.kind) {
+    case "set-relation":
+      keys = ["kind", "relation", "source", "target"];
+      valid = id(action.relation) && id(action.source) && id(action.target);
+      break;
+    case "clear-relation":
+      keys = ["kind", "relation", "source"];
+      valid = id(action.relation) && id(action.source);
+      break;
     case "instantiate-actors":
       keys = ["kind", "bindingId", "expectedSequence", "plan"];
       valid = id(action.bindingId) && typeof action.expectedSequence === "number" && Number.isSafeInteger(action.expectedSequence) && action.expectedSequence > 0 && actorInstantiationPlan(action.plan);

@@ -1,4 +1,4 @@
-import { component, relation, system } from "./authoring";
+import { clearRelation, component, relation, setRelation, system } from "./authoring";
 import { entity } from "./authoring";
 
 const Own = component<{ value: number }>("test.own", {
@@ -83,6 +83,10 @@ export function authoringContractProof(): void {
     membership.onTargetRemoved !== "detach" ||
     membership.allowSelf !== false
   ) throw new Error("relation metadata was not defaulted or preserved");
+  if (setRelation(membership, id, entity("party:1")).kind !== "set-relation")
+    throw new Error("set relation action was not authored");
+  if (clearRelation(membership, id).kind !== "clear-relation")
+    throw new Error("clear relation action was not authored");
 
   let rejected = false;
   try {
@@ -95,4 +99,16 @@ export function authoringContractProof(): void {
     rejected = true;
   }
   if (!rejected) throw new Error("invalid relation target was accepted");
+
+  rejected = false;
+  try {
+    relation<{ target: string; label: string }>("test.overloaded-membership", {
+      version: 1,
+      fields: { target: "entity", label: "string" },
+      targetField: "target",
+    });
+  } catch {
+    rejected = true;
+  }
+  if (!rejected) throw new Error("relation metadata was mixed into the edge component");
 }

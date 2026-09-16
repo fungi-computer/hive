@@ -213,6 +213,8 @@ export type ConstructionTarget =
   | { readonly kind: "edge"; readonly edge: { readonly cell: Vec3; readonly axis: "x" | "z" } };
 export type ActionRequest =
   | { readonly kind: "instantiate-actors"; readonly bindingId: string; readonly expectedSequence: number; readonly plan: ActorInstantiationPlan }
+  | { readonly kind: "set-relation"; readonly relation: ComponentId; readonly source: EntityId; readonly target: EntityId }
+  | { readonly kind: "clear-relation"; readonly relation: ComponentId; readonly source: EntityId }
   | { readonly kind: "begin-work-attempt"; readonly task: EntityId; readonly worker: EntityId; readonly operation: WorkActivityRef }
   | { readonly kind: "retarget-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly destination: MoveDestination }
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }

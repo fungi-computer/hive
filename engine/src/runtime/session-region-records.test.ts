@@ -72,14 +72,14 @@ test("disconnected party residents remain eligible for automatic work while anot
     pack: colonyServerPack,
     createKernel: () => wasmKernelPort(new WasmKernel()),
     implementationHash: "9".repeat(64),
-    ownerPrincipal: "player-1",
+    ownerPrincipal: "player:1",
     hostPrincipal: "clock",
     seed: 17,
     scopeForPrincipal: principal => principal === "clock"
       ? { kind: "host" }
-      : principal === "player-1"
+      : principal === "player:1"
         ? { kind: "player", player: principal, party: entity("party:1") }
-        : principal === "player-2"
+        : principal === "player:2"
           ? { kind: "player", player: principal, party: entity("party:2") }
           : null,
   });
@@ -104,7 +104,7 @@ test("disconnected party residents remain eligible for automatic work while anot
 
     // The first player's connection ends after creating the order. Only the
     // independent clock principal advances the shared resident below.
-    dispatch("player-1", "designate-1", { kind: "command", name: "designateTrees", input: { entities: ["colony.tree.oak"] } });
+    dispatch("player:1", "designate-1", { kind: "command", name: "designateTrees", input: { entities: ["colony.tree.oak"] } });
     for (let tick = 0; tick < 20; tick++) dispatch("clock", `clock-${tick}`, { kind: "step", delta: 0.1 });
 
     const committed = region.readCommitted();

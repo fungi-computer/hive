@@ -68,7 +68,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
-    version: 15,
+    version: 16,
     revision: 0,
     time: 0,
     scene: {
@@ -916,7 +916,7 @@ test("command writes are rejected atomically when undeclared or untargeted", () 
   assert.throws(() => value.command("bad", {}));
   assert.deepEqual(value.save().pendingActions, before.pendingActions);
   assert.deepEqual(value.save().pendingWrites, []);
-  assert.equal(value.save().version, 10);
+  assert.equal(value.save().version, 11);
 });
 
 test("an accepted consume is observed on exactly the next step and survives restore", () => {
