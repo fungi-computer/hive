@@ -1,5 +1,5 @@
 import type { PresentationCue } from "./presentation-cues";
-import type { ReadContext, RenderFact } from "../contracts";
+import type { QueryRow, QuerySpec, ReadContext, RenderFact } from "../contracts";
 import {
   projectPresentation,
 } from "../presentation";
@@ -45,11 +45,20 @@ export function buildObservation(
     );
   if (!Number.isFinite(session.simulationTime) || session.simulationTime < 0)
     throw new Error("observation time must be finite and nonnegative");
+  const queryCache = new Map<string, readonly QueryRow[]>();
+  const query = <T extends object>(spec: QuerySpec<T>): readonly QueryRow<T>[] => {
+    const key = spec.components.map((component) => component.id).sort().join("\0");
+    const cached = queryCache.get(key);
+    if (cached) return cached;
+    const rows = session.query(spec);
+    queryCache.set(key, rows);
+    return rows;
+  };
   const context: Pick<ReadContext, "query" | "workAttempts" | "atmosphereSamples" | "environmentFacts" | "constructionReadiness"> = {
     environmentFacts: () => session.environmentFacts(),
     atmosphereSamples: cells => session.atmosphereSamples(cells),
     constructionReadiness: sites => session.constructionReadiness(sites),
-    query: (spec) => session.query(spec),
+    query,
     workAttempts: taskIds => session.workAttempts(taskIds),
   };
   const projected = projectPresentation(session.pack, context);
