@@ -493,7 +493,6 @@ export interface SystemDefinition {
   readonly consumesImpacts?: boolean;
   readonly run: (context: WriteContext) => void;
 }
-
 export interface ProjectileAim {
   readonly origin: Vec3;
   readonly muzzle: Vec3;

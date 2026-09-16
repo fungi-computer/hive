@@ -1,0 +1,261 @@
+import type {
+  ComponentDefinition,
+  ComponentId,
+  QueryRow,
+  ReadContext,
+  SystemDefinition,
+  WriteContext,
+} from "../contracts";
+import { query, system } from "./authoring";
+
+export interface ActorCapability {
+  readonly component: ComponentDefinition<any>;
+  readonly initial?: object;
+}
+
+export interface ActorDefinition {
+  readonly id: string;
+  readonly version: number;
+  readonly capabilities: readonly ActorCapability[];
+  readonly behaviors: readonly SystemDefinition[];
+}
+
+/** A named, deterministic question used by an authored behavior branch. */
+export interface PredicateDefinition {
+  readonly id: ComponentId;
+  readonly reads: readonly ComponentDefinition<any>[];
+  readonly test: (subject: QueryRow, context: ReadContext) => boolean;
+}
+
+/** A named proposal producer. The existing system/session owners commit its work. */
+export interface BehaviorActionDefinition {
+  readonly id: ComponentId;
+  readonly reads: readonly ComponentDefinition<any>[];
+  readonly writes: readonly ComponentDefinition<any>[];
+  readonly exclusive?: string;
+  readonly run: (subject: QueryRow, context: WriteContext) => void;
+}
+
+export function predicate(
+  id: ComponentId,
+  options: {
+    readonly reads?: readonly ComponentDefinition<any>[];
+    readonly test: PredicateDefinition["test"];
+  },
+): PredicateDefinition {
+  return Object.freeze({
+    id,
+    reads: Object.freeze([...(options.reads ?? [])]),
+    test: options.test,
+  });
+}
+
+export function action(
+  id: ComponentId,
+  options: {
+    readonly reads?: readonly ComponentDefinition<any>[];
+    readonly writes?: readonly ComponentDefinition<any>[];
+    readonly exclusive?: string;
+    readonly run: BehaviorActionDefinition["run"];
+  },
+): BehaviorActionDefinition {
+  return Object.freeze({
+    id,
+    reads: Object.freeze([...(options.reads ?? [])]),
+    writes: Object.freeze([...(options.writes ?? [])]),
+    ...(options.exclusive === undefined ? {} : { exclusive: options.exclusive }),
+    run: options.run,
+  });
+}
+
+interface BehaviorBranch {
+  readonly subjects: readonly ComponentDefinition<any>[];
+  readonly predicates: readonly PredicateDefinition[];
+  readonly action: BehaviorActionDefinition;
+}
+
+const behaviorSubjects = new WeakMap<
+  SystemDefinition,
+  readonly ComponentDefinition<any>[]
+>();
+
+export interface BehaviorSelection {
+  where(...predicates: readonly PredicateDefinition[]): BehaviorSelection;
+  do(action: BehaviorActionDefinition): void;
+}
+
+export interface BehaviorScene {
+  find(...subjects: readonly ComponentDefinition<any>[]): BehaviorSelection;
+}
+
+/**
+ * Prepare friendly behavior syntax into the existing checked system runtime.
+ * The callback records branches once; it never reads or mutates a live world.
+ */
+export function behavior(
+  id: ComponentId,
+  define: (scene: BehaviorScene) => void,
+  options: { readonly version?: number; readonly every?: number } = {},
+): SystemDefinition {
+  const branches: BehaviorBranch[] = [];
+  const scene: BehaviorScene = {
+    find(...subjects) {
+      if (subjects.length === 0)
+        throw new Error(`Behavior ${id} must find at least one component`);
+      const select = (
+        predicates: readonly PredicateDefinition[],
+      ): BehaviorSelection =>
+        Object.freeze({
+          where(...next) {
+            if (next.length === 0)
+              throw new Error(`Behavior ${id} where requires a predicate`);
+            return select(Object.freeze([...predicates, ...next]));
+          },
+          do(nextAction) {
+            branches.push(
+              Object.freeze({
+                subjects: Object.freeze([...subjects]),
+                predicates: Object.freeze([...predicates]),
+                action: nextAction,
+              }),
+            );
+          },
+        });
+      return select(Object.freeze([]));
+    },
+  };
+  define(Object.freeze(scene));
+  if (branches.length === 0)
+    throw new Error(`Behavior ${id} must define at least one branch`);
+  const unique = <T extends { readonly id: ComponentId }>(values: readonly T[]) =>
+    [...new Map(values.map((value) => [value.id, value])).values()];
+  const reads = unique(
+    branches.flatMap((branch) => [
+      ...branch.subjects,
+      ...branch.predicates.flatMap((item) => item.reads),
+      ...branch.action.reads,
+    ]),
+  );
+  const writes = unique(branches.flatMap((branch) => branch.action.writes));
+  const seenBranches = new Set<string>();
+  for (const branch of branches) {
+    const key = `${branch.subjects.map(({ id: component }) => component).join("+")}|${branch.predicates.map(({ id: predicateId }) => predicateId).join("+")}|${branch.action.id}`;
+    if (seenBranches.has(key)) throw new Error(`Behavior ${id} has a duplicate branch`);
+    seenBranches.add(key);
+  }
+  const prepared = system({
+    id,
+    version: options.version ?? 1,
+    ...(options.every === undefined ? {} : { every: options.every }),
+    reads,
+    writes,
+    run(context) {
+      const rows = new Map<string, readonly QueryRow[]>();
+      const phaseContext: WriteContext = {
+        ...context,
+        query(spec) {
+          const key = spec.components.map(({ id: component }) => component).join("+");
+          let result = rows.get(key);
+          if (!result) {
+            result = context.query(spec);
+            rows.set(key, result);
+          }
+          return result;
+        },
+      };
+      const exclusive = new Set<string>();
+      for (const branch of branches) {
+        const subjects = phaseContext.query(query(...branch.subjects));
+        for (const subject of subjects)
+          if (branch.predicates.every((item) => item.test(subject, phaseContext))) {
+            if (branch.action.exclusive) {
+              const conflict = `${subject.id}|${branch.action.exclusive}`;
+              if (exclusive.has(conflict))
+                throw new Error(
+                  `Behavior ${id} produced competing ${branch.action.exclusive} actions for ${subject.id}`,
+                );
+              exclusive.add(conflict);
+            }
+            branch.action.run(subject, phaseContext);
+          }
+      }
+    },
+  });
+  behaviorSubjects.set(
+    prepared,
+    Object.freeze(unique(branches.flatMap((branch) => branch.subjects))),
+  );
+  return prepared;
+}
+
+export interface ActorBuilder {
+  with<T extends object>(
+    component: ComponentDefinition<T>,
+    initial?: T,
+  ): ActorBuilder;
+  behaves(...behaviors: readonly SystemDefinition[]): ActorDefinition;
+}
+
+/** Compose an immutable actor definition; spawning remains an admitted world operation. */
+export function actor(
+  id: string,
+  options: { readonly version?: number } = {},
+): ActorBuilder {
+  if (!id || !/^[A-Za-z0-9._:-]+$/.test(id))
+    throw new Error(`Invalid actor id ${id}`);
+  const build = (capabilities: readonly ActorCapability[]): ActorBuilder =>
+    Object.freeze({
+      with<T extends object>(
+        component: ComponentDefinition<T>,
+        initial?: T,
+      ) {
+        if (capabilities.some(({ component: existing }) => existing.id === component.id))
+          throw new Error(`Actor ${id} already has ${component.id}`);
+        if (initial !== undefined && !component.validate(initial))
+          throw new Error(`Actor ${id} has invalid initial ${component.id}`);
+        return build(
+          Object.freeze([
+            ...capabilities,
+            Object.freeze({
+              component,
+              ...(initial === undefined
+                ? {}
+                : { initial: Object.freeze(structuredClone(initial)) }),
+            }),
+          ]),
+        );
+      },
+      behaves(...behaviors) {
+        if (behaviors.length === 0)
+          throw new Error(`Actor ${id} must attach at least one behavior`);
+        const componentIds = new Set(
+          capabilities.map(({ component }) => component.id),
+        );
+        const behaviorIds = new Set<string>();
+        for (const authoredBehavior of behaviors) {
+          if (behaviorIds.has(authoredBehavior.id))
+            throw new Error(`Actor ${id} attaches ${authoredBehavior.id} twice`);
+          behaviorIds.add(authoredBehavior.id);
+          const subjects = behaviorSubjects.get(authoredBehavior);
+          if (!subjects)
+            throw new Error(
+              `Actor ${id} can only attach prepared behavior definitions`,
+            );
+          const missing = subjects.filter(
+            ({ id: componentId }) => !componentIds.has(componentId),
+          );
+          if (missing.length > 0)
+            throw new Error(
+              `Actor ${id} behavior ${authoredBehavior.id} requires ${missing.map(({ id: componentId }) => componentId).join(", ")}`,
+            );
+        }
+        return Object.freeze({
+          id,
+          version: options.version ?? 1,
+          capabilities: Object.freeze([...capabilities]),
+          behaviors: Object.freeze([...behaviors]),
+        });
+      },
+    });
+  return build(Object.freeze([]));
+}

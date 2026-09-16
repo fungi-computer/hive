@@ -1,6 +1,7 @@
-import { component, query, system } from "../sdk/authoring.js";
+import { component, query } from "../sdk/authoring.js";
+import { action, actor, behavior, predicate } from "../sdk/behavior.js";
 import { Body, Destination, Position, Traversal, move } from "../sdk/common.js";
-import type { EntityId, WriteContext } from "../contracts.js";
+import type { EntityId, ReadContext } from "../contracts.js";
 import { colonyEnvironment } from "./colony-environment.js";
 
 /** Authored cat intent. Movement and reachability remain native-owned. */
@@ -54,10 +55,6 @@ function offset(seed: number): { x: number; z: number } {
   return { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
 }
 
-function catRows(context: WriteContext) {
-  return context.query(query(Cat, Position, Body, Traversal));
-}
-
 function sameDestination(
   left: { readonly x: number; readonly y: number; readonly z: number; readonly frame: EntityId | null },
   right: { readonly x: number; readonly y: number; readonly z: number; readonly frame: EntityId | null },
@@ -65,98 +62,135 @@ function sameDestination(
   return left.x === right.x && left.y === right.y && left.z === right.z && left.frame === right.frame;
 }
 
+function currentDestination(context: ReadContext, entity: EntityId) {
+  return context
+    .query(query(Destination))
+    .find((candidate) => candidate.id === entity)
+    ?.get(Destination);
+}
+
+function rejectedMove(
+  context: ReadContext,
+  entity: EntityId,
+): boolean {
+  const destination = currentDestination(context, entity);
+  return context.outcomes.some(
+    ({ action: request, result }) =>
+      !result.accepted &&
+      request.kind === "move" &&
+      request.entity === entity &&
+      (!destination || sameDestination(request.destination, destination)),
+  );
+}
+
+const moveWasRejected = predicate("colony.cat.move-rejected", {
+  reads: [Destination],
+  test: (subject, context) => rejectedMove(context, subject.id),
+});
+
+const wanderIsDue = predicate("colony.cat.wander-due", {
+  reads: [Cat, Destination],
+  test(subject, context) {
+    const cat = subject.get(Cat);
+    return (
+      context.clock.now >= cat.nextAt &&
+      context.clock.now >= cat.blockedUntil &&
+      !rejectedMove(context, subject.id)
+    );
+  },
+});
+
+const backOffRejectedMove = action("colony.cat.back-off", {
+  reads: [Cat],
+  writes: [Cat],
+  exclusive: "movement",
+  run(subject, context) {
+    const cat = subject.get(Cat);
+    const seed = nextSeed(cat.seed);
+    context.write(Cat, subject.id, {
+      ...cat,
+      seed,
+      nextAt: context.clock.now + RETRY_INTERVAL,
+      blockedUntil: context.clock.now + RETRY_INTERVAL,
+    });
+  },
+});
+
+const chooseWander = action("colony.cat.choose-wander", {
+  reads: [Cat, Position, Destination],
+  writes: [Cat],
+  exclusive: "movement",
+  run(subject, context) {
+    const cat = subject.get(Cat);
+    const position = subject.get(Position);
+    const home = context
+      .query(query(Position))
+      .find((candidate) => candidate.id === cat.home)
+      ?.get(Position);
+    const seed = nextSeed(cat.seed);
+    if (!home || currentDestination(context, subject.id)) {
+      context.write(Cat, subject.id, {
+        ...cat,
+        seed,
+        nextAt: context.clock.now + RETRY_INTERVAL,
+      });
+      return;
+    }
+    const delta = offset(seed);
+    const x = Math.round(home.x + delta.x);
+    const z = Math.round(home.z + delta.z);
+    const surface = context.terrainSurfaces([[x, z]])[0];
+    if (!surface) {
+      context.write(Cat, subject.id, {
+        ...cat,
+        seed,
+        nextAt: context.clock.now + RETRY_INTERVAL,
+        blockedUntil: context.clock.now + RETRY_INTERVAL,
+      });
+      return;
+    }
+    const target = {
+      x,
+      y: (surface.cell[1] + 0.5) * colonyEnvironment.world.verticalMetres,
+      z,
+      frame: null,
+    };
+    const facing =
+      Math.round(
+        Math.atan2(target.x - position.x, target.z - position.z) /
+          (Math.PI / 2),
+      ) || 0;
+    context.action(move(subject.id, target, ((facing % 4) + 4) % 4));
+    context.write(Cat, subject.id, {
+      ...cat,
+      seed,
+      nextAt: context.clock.now + WANDER_INTERVAL,
+      blockedUntil: 0,
+    });
+  },
+});
+
 /**
  * Small authored behavior for later composition into Colony. It only submits
  * ordinary native moves, keeps its schedule in Cat, and backs off after a
  * rejected route instead of retrying every tick.
  */
-export const colonyCatSystem = system({
-  id: "colony.cat-wander",
-  version: 1,
-  every: 1,
-  reads: [Cat, Position, Body, Traversal, Destination],
-  writes: [Cat],
-  run(context) {
-    const now = context.clock.now;
-    const destinations = new Set(
-      context.query(query(Destination)).map((row) => row.id),
-    );
-    for (const row of catRows(context)) {
-      const cat = row.get(Cat);
-      const destination = context
-        .query(query(Destination))
-        .find((candidate) => candidate.id === row.id)
-        ?.get(Destination);
-      const rejected = context.outcomes.find(
-        ({ action, result }) =>
-          !result.accepted &&
-          action.kind === "move" &&
-          action.entity === row.id &&
-          (!destination || sameDestination(action.destination, destination)),
-      );
-      // Outcomes describe the move submitted by the immediately prior step.
-      // Consume a rejection before the schedule gate, or a long wander
-      // interval can hide it and leave the cat waiting on a failed route.
-      if (rejected) {
-        const seed = nextSeed(cat.seed);
-        context.write(Cat, row.id, {
-          ...cat,
-          seed,
-          nextAt: now + RETRY_INTERVAL,
-          blockedUntil: now + RETRY_INTERVAL,
-        });
-        continue;
-      }
-      if (now < cat.nextAt || now < cat.blockedUntil) continue;
-
-      const position = row.get(Position);
-      const home = context
-        .query(query(Position))
-        .find((candidate) => candidate.id === cat.home)
-        ?.get(Position);
-      const seed = nextSeed(cat.seed);
-      if (!home || destinations.has(row.id)) {
-        context.write(Cat, row.id, {
-          ...cat,
-          seed,
-          nextAt: now + RETRY_INTERVAL,
-        });
-        continue;
-      }
-      const delta = offset(seed);
-      const x = Math.round(home.x + delta.x),
-        z = Math.round(home.z + delta.z);
-      const surface = context.terrainSurfaces([[x, z]])[0];
-      if (!surface) {
-        context.write(Cat, row.id, {
-          ...cat,
-          seed,
-          nextAt: now + RETRY_INTERVAL,
-          blockedUntil: now + RETRY_INTERVAL,
-        });
-        continue;
-      }
-      const target = {
-        x,
-        y: (surface.cell[1] + 0.5) * colonyEnvironment.world.verticalMetres,
-        z,
-        frame: null,
-      };
-      const facing =
-        Math.round(
-          Math.atan2(target.x - position.x, target.z - position.z) /
-            (Math.PI / 2),
-        ) || 0;
-      context.action(move(row.id, target, ((facing % 4) + 4) % 4));
-      context.write(Cat, row.id, {
-        ...cat,
-        seed,
-        nextAt: now + WANDER_INTERVAL,
-        blockedUntil: 0,
-      });
-    }
+export const colonyCatSystem = behavior(
+  "colony.cat-wander",
+  (scene) => {
+    const cats = scene.find(Cat, Position, Body, Traversal);
+    cats.where(moveWasRejected).do(backOffRejectedMove);
+    cats.where(wanderIsDue).do(chooseWander);
   },
-});
+  { every: 1 },
+);
+
+export const colonyCatActor = actor("colony.cat")
+  .with(Cat)
+  .with(Position)
+  .with(Body, { speed: 0.9 })
+  .with(Traversal, { clearanceCells: 1, maxStepCells: 1 })
+  .behaves(colonyCatSystem);
 
 export const colonyCatComponents = Object.freeze([
   Cat,

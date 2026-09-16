@@ -34,6 +34,29 @@ behavior lifecycle rather than introducing a competing actor runtime. A game
 entity is not a Durable Object, a network connection or an LLM agent. One Region
 hosts many entities and their behavior.
 
+### Implementation checkpoint — September 16
+
+The first real slice now exists in `engine/src/sdk/behavior.ts`. `behavior`,
+`predicate` and `action` prepare `.find().where().do()` branches into an ordinary
+checked `SystemDefinition`; `GameSession` still owns scheduling, write authority,
+action admission and the single native commit. Repeated component selections and
+related component reads are cached once inside that behavior phase, and named
+exclusive action domains fail deterministically if two matching branches try to
+control the same actor.
+
+The Colony cat is the first production consumer. Its native movement, retry and
+saved `Cat` state are unchanged, while the bespoke system loop has been removed.
+`actor().with().behaves()` also exists as immutable preparation-time composition:
+it validates duplicate/missing capabilities and behavior attachments, but does
+not spawn entities or enter `GameSession`. Spawning remains the admitted world
+operation, and sessions receive only compiled systems.
+
+This checkpoint does **not** yet claim cross-behavior query batching, declared
+native-fact enforcement, or general attachment membership for actors that share
+the same capability set. Those belong to the next real cannon/brewing consumers;
+do not disguise them with a runtime actor registry or make sessions validate
+authoring metadata.
+
 ## Accepted authoring contract: definitions and shared query batches
 
 September 15 follow-through, accepted by Levi after inspecting the current engine
