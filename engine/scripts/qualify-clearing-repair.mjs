@@ -36,6 +36,7 @@ const groups = Object.freeze({
     "engine/src/runtime/colony-work-route-recovery.test.ts",
     "engine/src/runtime/physical-contact-query.test.ts",
     "engine/src/runtime/work-activity.test.ts",
+    "engine/src/games/survival-behavior.test.ts",
   ]),
   process: Object.freeze([
     "engine/src/games/colony-brewing.test.ts",

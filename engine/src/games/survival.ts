@@ -1,4 +1,5 @@
-import { command, component, entity, query, system } from "../sdk/authoring";
+import { command, component, entity, query } from "../sdk/authoring";
+import { action, actor, behavior } from "../sdk/behavior";
 import {
   Body,
   MaterialLot,
@@ -38,75 +39,58 @@ export const Fatigue = component<{
     lastZ: "number",
   },
 });
-export const survival = system({
-  id: "survival.hunger",
-  version: 1,
-  reads: [Survivor, Condition, MaterialLot, MealRule],
+const advanceHunger = action("survival.advance-hunger", {
+  reads: [MaterialLot],
   writes: [Condition],
-  run(ctx) {
-    for (const row of ctx.query(query(Survivor, Condition))) {
-      const survivor = row.get(Survivor),
-        value = row.get(Condition),
-        recovery = ctx.query(query(MealRule))[0]?.get(MealRule).recovery ?? 25;
-      const eaten = ctx.outcomes.reduce((total, outcome) => {
-        if (
-          !outcome.result.accepted ||
-          outcome.action.kind !== "consume" ||
-          outcome.action.entity !== row.id
-        )
-          return total;
-        const action = outcome.action;
-        const lot = ctx
-          .query(query(MaterialLot))
-          .find((lot) => lot.id === action.lot);
-        return (
-          total +
-          (lot?.get(MaterialLot).kind === "bread" ? outcome.action.quantity : 0)
-        );
-      }, 0);
-      const hunger = Math.max(
-        0,
-        Math.min(100, value.hunger + ctx.clock.delta * 0.5 - eaten * recovery),
-      );
-      ctx.write(Condition, row.id, {
-        hunger,
-        wellbeing:
-          hunger > 80
-            ? Math.max(0, value.wellbeing - ctx.clock.delta)
-            : value.wellbeing,
-      });
-    }
+  run(subject, world) {
+    const value = subject.get(Condition);
+    const recovery = subject.get(MealRule).recovery;
+    const lots = new Map(world.query(query(MaterialLot)).map((lot) => [lot.id, lot.get(MaterialLot)]));
+    const eaten = world.outcomes.reduce((total, outcome) => {
+      if (!outcome.result.accepted || outcome.action.kind !== "consume" || outcome.action.entity !== subject.id)
+        return total;
+      return total + (lots.get(outcome.action.lot)?.kind === "bread" ? outcome.action.quantity : 0);
+    }, 0);
+    const hunger = Math.max(0, Math.min(100, value.hunger + world.clock.delta * 0.5 - eaten * recovery));
+    world.write(Condition, subject.id, {
+      hunger,
+      wellbeing: hunger > 80 ? Math.max(0, value.wellbeing - world.clock.delta) : value.wellbeing,
+    });
   },
 });
-export const fatigue = system({
-  id: "survival.fatigue",
-  version: 1,
+
+export const survival = behavior("survival.hunger", (scene) => {
+  scene.find(Survivor, Condition, MealRule).do(advanceHunger);
+});
+
+const advanceFatigue = action("survival.advance-fatigue", {
   reads: [Position, Body, Fatigue],
   writes: [Fatigue],
-  run(ctx) {
-    for (const row of ctx.query(query(Position, Body, Fatigue))) {
-      const position = row.get(Position);
-      const previous = row.get(Fatigue);
-      const moved =
-        position.x !== previous.lastX ||
-        position.y !== previous.lastY ||
-        position.z !== previous.lastZ;
-      ctx.write(Fatigue, row.id, {
-        value: Math.max(
-          0,
-          Math.min(
-            100,
-            previous.value +
-              (moved ? ctx.clock.delta * 5 : -ctx.clock.delta * 2),
-          ),
-        ),
-        lastX: position.x,
-        lastY: position.y,
-        lastZ: position.z,
-      });
-    }
+  run(subject, world) {
+    const position = subject.get(Position);
+    const previous = subject.get(Fatigue);
+    const moved = position.x !== previous.lastX || position.y !== previous.lastY || position.z !== previous.lastZ;
+    world.write(Fatigue, subject.id, {
+      value: Math.max(0, Math.min(100, previous.value + (moved ? world.clock.delta * 5 : -world.clock.delta * 2))),
+      lastX: position.x,
+      lastY: position.y,
+      lastZ: position.z,
+    });
   },
 });
+
+export const fatigue = behavior("survival.fatigue", (scene) => {
+  scene.find(Position, Body, Fatigue).do(advanceFatigue);
+});
+
+export const survivorActor = actor("survival.survivor")
+  .with(Survivor, { controlled: true })
+  .with(Condition, { hunger: 40, wellbeing: 100 })
+  .with(MealRule, { recovery: 25 })
+  .with(Position)
+  .with(Body, { speed: 2 })
+  .with(Fatigue, { value: 0, lastX: 0, lastY: 0, lastZ: 0 })
+  .behaves(survival, fatigue);
 const survivorId = entity("survival.survivor.1"),
   lockerId = entity("survival.locker"),
   foodId = entity("survival.food.1");

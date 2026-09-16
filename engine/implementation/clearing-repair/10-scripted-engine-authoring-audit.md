@@ -57,6 +57,14 @@ the same capability set. Those belong to the next real cannon/brewing consumers;
 do not disguise them with a runtime actor registry or make sessions validate
 authoring metadata.
 
+Survival is now a second production consumer with a different shape. Hunger
+reads committed consume outcomes and related material lots; fatigue reads the
+actor's position and saved fatigue state. Both use prepared behaviors and one
+`survivorActor` capability composition while native consumption and movement
+remain unchanged. The focused real definitions prove the friendly surface can
+express independent condition rules without installing Colony work or adding a
+second actor runtime.
+
 ## Accepted authoring contract: definitions and shared query batches
 
 September 15 follow-through, accepted by Levi after inspecting the current engine
