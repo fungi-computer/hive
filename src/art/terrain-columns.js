@@ -105,8 +105,13 @@ export function terrainPatchPlacements(surfaces, columnIndex = terrainColumnMap(
   for (const { cell: [x, y, z] } of context) for (const [dx, dz] of [[0, 0], [1, 0], [1, 1], [0, 1]]) vertices.add(`${x + dx},${y},${z + dz}`);
   for (const key of [...vertices].sort()) {
     const [vx, y, vz] = key.split(",").map(Number), x = vx - 1, z = vz - 1;
-    if (ownerChunk !== undefined && terrainChunkKey(x, z) !== ownerChunk) continue;
-    const neighbors = [[x, z], [x + 1, z], [x + 1, z + 1], [x, z + 1]].map(([cx, cz]) => columnIndex.get(`${cx},${cz}`));
+    const neighborCells = [[x, z], [x + 1, z], [x + 1, z + 1], [x, z + 1]];
+    const neighbors = neighborCells.map(([cx, cz]) => columnIndex.get(`${cx},${cz}`));
+    // Chunk sprites have opaque terrain bases. Repeat a boundary patch in every
+    // chunk containing one of its real neighboring columns, so later sprites
+    // cannot cover another chunk's rounded green overhang with bare soil.
+    if (ownerChunk !== undefined && !neighborCells.some(([cx, cz], index) =>
+      neighbors[index] && terrainChunkKey(cx, cz) === ownerChunk)) continue;
     const kinds = neighbors.map((neighbor) => neighbor?.cell[1] === y ? terrainKind(neighbor, soilMaterial) : null);
     for (const kind of ["grass", "rock"]) {
       const mask = kinds.reduce((bits, value, index) => bits | (value === kind ? 1 << index : 0), 0);
