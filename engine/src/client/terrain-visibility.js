@@ -79,6 +79,7 @@ export function terrainFaceRecords(coverage, { level, projection, viewport, appe
         if (viewport && !overlaps(screenBounds, viewport)) continue;
         const record = {
           id: `terrain:${key(cell)}:${face}`, part: "face", role: "terrain", cell, face,
+          partRole: face === "top" || face === "bottom" ? "supporting-surface" : "upright-boundary",
           material: material.material, cap, planarCorners, footprint: planarCorners,
           screenBounds, storeyBand: y, pickable: false, visible: true,
           // Appearance receives material and cap, so grass cannot be inferred

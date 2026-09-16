@@ -3,7 +3,7 @@ import { WorkerRuntime } from "./worker";
 import type { WorkerCommand, WorkerPlacementCommand, WorkerTerrainChunksCommand, WorkerTransportEvent } from "./protocol";
 import { wasmKernelPort } from "./wasm-kernel";
 import { piratesPack } from "../games/pirates";
-import { colonyServerPack } from "../games/colony";
+import { colonyPack } from "../games/colony";
 import { survivalPack } from "../games/survival";
 import { formationsPack } from "../games/formations";
 import * as generated from "../../generated/hive_kernel.js";
@@ -36,7 +36,9 @@ export async function bootGeneratedWorker(
 ): Promise<WorkerRuntime> {
   return installWorkerRuntime(scope, createKernel, {
     pirates: piratesPack,
-    colony: colonyServerPack,
+    // This entry only backs ?runtime=local. The Durable Object host composes
+    // colonyServerPack with an authenticated scope in region-program.ts.
+    colony: colonyPack,
     survival: survivalPack,
     formations: formationsPack,
   });

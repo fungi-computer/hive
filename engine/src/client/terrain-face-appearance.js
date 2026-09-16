@@ -32,7 +32,7 @@ export function createTerrainFaceAppearance({ soil = 1, stone = 2 } = {}) {
     const index = material === stone ? (top ? 3 : 4)
       : material === soil ? (natural ? 1 : top ? 0 : 2)
       : top ? 0 : 2;
-    return { texture, uvs: uv(index), blendMode: "normal", state: "terrain-opaque" };
+    return { texture, uvs: uv(index), blendMode: "normal", stateKey: "terrain-opaque" };
   }
   return Object.freeze({ appearance, dispose: () => texture.destroy(true) });
 }

@@ -316,6 +316,15 @@ cut cap uses the intersected material, not grass. Decorations are separate decla
 art parts when they can overlap actors. Flat detail can share its supporting face.
 No new terrain material or gameplay item is created by decoration.
 
+Grass remains living cover separate from substrate and constructed floors. Its
+continuous artwork uses the maintained four-neighbor dual grid, while each
+resulting visible patch is an ordinary positioned object in this same geometry
+sorter. It orders against actors, walls, trees and furniture exactly as any other
+object does. Do not add grass-specific depth rules, actor-foot handling,
+front/back layers or per-blade entities. One changed cover cell invalidates the
+four dual-grid patches that read it. The complete simulation and art contract is
+in [Living ground](../../../docs/decisions/living-ground-grass-and-water-art.md).
+
 ### Geometry order, without a second projection
 
 Adapt existing `isometric-sorter.js` record preparation to use the same camera

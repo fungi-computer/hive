@@ -26,11 +26,99 @@ Start with a small family of original clumps: short turf, broad lush grass, dry 
 - Use a few stable, seeded differences in height, lean, density and silhouette. Choose placements from global cell/patch identity so regeneration, camera movement and chunk arrival do not reshuffle the grass.
 - Use quiet areas deliberately: paths, workspaces, door approaches and inspection targets need visual breathing room. Dense grass should make a meadow feel lush without concealing all dropped goods.
 - Anchor wind at the roots. A short baked loop can bend the upper clump with a small phase offset between nearby patches; avoid synchronized rows and whole-sprite sliding. Cosmetic wind cannot advance plant growth, consume water, or change collisions.
-- Separate low ground cover from taller foreground clumps when actors must interleave with them. Do not flatten a whole raised patch into one image and then attempt to fix all overlap with one arbitrary z-index.
+- Give each baked grass patch an ordinary world position and footprint. It uses the same lawful isometric ordering as walls, trees, furniture and actors: an actor behind the patch draws behind it, and an actor in front draws in front. Do not invent grass-specific depth rules or per-blade entities.
 
 In our pipeline, the runtime billboard is the baked Pixi sprite. We do not need a second live Three renderer to obtain bushy grass. Author and bake the original clump geometry, then place and animate a bounded set of shared textures through the existing projection/depth/picking owners.
 
 Reuse the already accepted original foliage work recorded in `.botanical/foliage-wind-study-20260908/ACCEPTANCE.md`. Its eight authored poses include gentle crown drift and soft, unoutlined 32×32 grass, with a separately derived grass anchor; 112×112 whole-tree art retains `propAnchor`. This new reference should deepen that vocabulary, not discard the accepted source or reset its review. The accepted isolated study does not establish a main-game foliage join. Its main-view contract freezes wind with the existing fixed tick while paused, refreshes silhouette bindings when tree poses change, and allocates no new geometry/textures during animation. Preserve those decisions unless a later explicit caller change replaces them.
+
+## Surface composition: earth is not grass
+
+Levi's September 16 clarification makes the reference blocks a composition
+contract rather than a catalogue of combined voxel types. A soil or stone voxel
+owns the solid substrate. Grass is living cover rooted in an eligible exposed
+surface; it is neither the substrate nor a constructed floor. The presentation
+may make the combination read as one attractive block, but the simulation must
+not replace `soil` with a `grass-soil` material merely because grass is visible.
+
+Keep these authoritative facts distinct:
+
+| Fact | Examples | Owner and law |
+| --- | --- | --- |
+| Solid substrate | soil, stone, sand | Terrain/material owner; supplies volume, support and exposed faces. |
+| Constructed surface | boards, tile, carpet | Construction/floor owner; may cover or exclude growth without changing the substrate below it. |
+| Living surface cover | grass, moss, low fungus | Organism/ground-cover owner; can establish, spread, wear, burn, die and regrow only through simulation. |
+| Surface deposit | snow, ash, filth | The relevant finite-material/environment owner; accumulation is not plant growth. |
+| Tall anchored growth | reeds, flowers, shrubs, crops | Ordinary positioned organisms or declared art parts when actors must pass in front of or behind them. |
+
+Do not turn this table into one universal optional-flags component. These owners
+can expose a narrow surface observation that the renderer composes. One surface
+can therefore appear as an earth body plus a grass cap plus a snow deposit, while
+each physical fact retains its own mutation laws. Floors normally occlude or
+suppress living cover; definitions may explicitly permit exceptions such as moss
+or weeds through cracked paving. Removing a floor reveals the substrate and any
+lawfully surviving state; it does not manufacture mature grass.
+
+The first grass fact should be compact and gameplay-readable: a cover kind plus a
+bounded established amount for an eligible surface. Exact representation belongs
+to the organism/cover owner after inspecting its growth callers; `0..255` is an
+illustrative storage scale, not a frozen API. Growth evaluates bounded due work
+and affected neighbors, not every grass cell every tick. Light, root-zone water,
+temperature, substrate suitability, disturbance and content rules can influence
+that transition. Walking and repeated work may reduce cover into worn paths;
+render frequency and camera visibility never do.
+
+### Original substrate-and-cover artwork
+
+Author a small original Three.js vocabulary and bake it through the maintained
+fixed-camera, low-resolution Pixi pipeline:
+
+- reusable earth and stone bodies with top and exposed-side pieces;
+- sparse, medium and thick grass cover, each with a top silhouette and selected
+  hanging fringe pieces for exposed edges;
+- a bounded set of seeded blade/clump, bare-spot and pebble variants.
+
+Runtime appearance selects from shared atlas pieces using the authoritative
+surface facts and stable world identity. Neighbor masks choose continuous cover,
+end fringes and corners. They do not decide whether grass physically exists.
+Sparse-to-thick growth can change caps without changing the dirt body. Exposing a
+ledge draws the same substrate side beneath the selected cap instead of requiring
+a separately authored `thick-grass-on-dirt-cliff` material.
+
+Use the maintained **dual-grid** contract for continuous low cover. Simulation
+facts remain on ordinary physical surface cells. Presentation patches are centered
+on the intersections of four physical cells; their NW/NE/SE/SW four-bit mask is
+derived from those cells' compatible cover kind and density band. The resulting
+15 non-empty masks provide equally rounded outer and inner corners. Shared outer
+edges stay exact, partial masks retain transparency, and chunk halos supply all
+four inputs so seams cannot change when neighboring chunks stream in. Unknown
+neighbors withhold the undecidable patch rather than treating unknown terrain as
+bare ground. Stable patch identity chooses cosmetic variants independently of
+request order, camera movement and regeneration.
+
+Dual-grid patches are presentation over physical cells, never support, collision,
+growth, permission or picking cells of their own. Each visible patch is an
+ordinary positioned render object with declared geometry in the shared isometric
+sorter. Grass has no special actor, foot, foreground/background, or per-blade
+ordering path. Exposed cliff fringe remains an ordinary declared part selected
+from the physical ledge and cover above it; it is not a stretched dual-grid top or
+a second grass fact. Changing one cover cell invalidates the four visual dual-grid
+patches that read it.
+
+Biomes compose distributions and rules over these facts. Temperate soil may grow
+lush grass; steppe soil sparse dry grass; wet margins reeds; cave stone moss or
+fungus; alpine surfaces seasonal deposits. A biome does not own a renderer and
+does not require a Cartesian atlas of substrate × cover × wetness × season. Add a
+new supported cover primarily through definitions and original assets; add a new
+physical behavior only through the relevant typed owner.
+
+Qualify the vocabulary in small scenes before joining it to generated worlds:
+flat meadow, a worn dirt path, sparse-to-thick growth, raised grassy ledges, a pit
+and cut cave, soil beside stone, a constructed floor boundary, and removal of the
+floor. Inspect native and game scale, seams, deterministic variants, actor
+interleaving, picking, cache invalidation and draw cost. The current cut-rendering
+repair may restore the retained terrain patches first; that restoration is not
+evidence that this richer growing-cover artwork or simulation has shipped.
 
 ## Soil type, wetness and fertility are different facts
 

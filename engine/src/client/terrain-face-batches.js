@@ -2,7 +2,7 @@ import { Mesh, MeshGeometry } from "pixi.js";
 import { stableKey } from "./isometric-sorter.js";
 
 const MAX_QUADS = 16000;
-const compatible = (a, b) => a.texture.source === b.texture.source && a.blendMode === b.blendMode && a.state === b.state;
+const compatible = (a, b) => a.texture.source === b.texture.source && a.blendMode === b.blendMode && a.stateKey === b.stateKey;
 
 /** Input is already ordered. This function is deliberately unaware of space. */
 export function terrainBatchPlan(ordered, maxQuads = MAX_QUADS) {
@@ -69,7 +69,7 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
           const geometry = new MeshGeometry(buffers(batch.records));
           const mesh = new Mesh({ geometry, texture: batch.style.texture });
           mesh.eventMode = "none";
-          entry = { key, mesh, geometry, stamp, defaultState: mesh.state };
+          entry = { key, mesh, geometry, stamp };
         }
         entry.key = key;
         if (entry.stamp !== stamp) {
@@ -81,7 +81,6 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
         }
         entry.mesh.texture = batch.style.texture;
         entry.mesh.blendMode = batch.style.blendMode ?? "normal";
-        entry.mesh.state = batch.style.state ?? entry.defaultState;
         entry.mesh.zIndex = displays.length;
         next.push(entry);
         displays.push({ ...batch, display: entry.mesh, zIndex: displays.length });

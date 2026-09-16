@@ -7,7 +7,7 @@
  * creates a depth texture, or owns physical geometry.
  */
 
-import { compareOrderingPlanes, prepareOrderingProxy } from "./plane-order.js";
+import { compareOrderingPlanes, planeDepth, polygonContains, prepareOrderingProxy } from "./plane-order.js";
 
 const EPSILON = 1e-7;
 const ROLE_ORDER = Object.freeze({ terrain: 0, water: 1, floor: 2, structure: 3, item: 4, actor: 5 });
@@ -176,6 +176,13 @@ function uprightRelation(boundary, occupant, camera) {
   const minY = Math.min(...boundary.footprint.map(p => p.y));
   const maxY = Math.max(...boundary.footprint.map(p => p.y));
   if (along < -EPSILON || along > 1 + EPSILON || pointValue.y < minY - EPSILON || pointValue.y > maxY + EPSILON) return null;
+  // The horizontal support face owns the shared top edge. A body based on or
+  // above that edge is wholly above this lower curtain when it is actually in
+  // the neighboring cell. A distant body remains on its camera side of the
+  // curtain; treating the infinite dividing line as contact creates cycles.
+  const perpendicular = Math.abs(dx * (pointValue.z - start.z) - dz * (pointValue.x - start.x)) / Math.hypot(dx, dz);
+  if (boundary.role === "terrain" && pointValue.y >= maxY - EPSILON && perpendicular <= 0.5 + EPSILON)
+    return [boundary, occupant];
   const side = dx * (pointValue.z - start.z) - dz * (pointValue.x - start.x);
   const cameraSide = dx * camera.z - dz * camera.x;
   if (Math.abs(side) <= EPSILON || Math.abs(cameraSide) <= EPSILON) return null;
@@ -198,6 +205,33 @@ function supportRelation(surface, occupant) {
     return at.y < height - EPSILON ? [occupant, surface] : [surface, occupant];
   }
   return null;
+}
+
+function compactPlaneRelation(compact, plane, projection) {
+  if (compact.orderingKind !== "compact" || !plane.planarCorners || !plane.orderingProxy) return null;
+  const at = compact.footprint[0];
+  if (!at) return null;
+  const screen = projection.project(at);
+  if (!polygonContains(plane.orderingProxy.polygon, screen)) {
+    const center = plane.planarCorners.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y, z: sum.z + point.z }), { x: 0, y: 0, z: 0 });
+    center.x /= plane.planarCorners.length; center.y /= plane.planarCorners.length; center.z /= plane.planarCorners.length;
+    const pointAxis = at.x * projection.direction.x + at.y * projection.direction.y + at.z * projection.direction.z;
+    const faceAxis = center.x * projection.direction.x + center.y * projection.direction.y + center.z * projection.direction.z;
+    const epsilon = EPSILON * Math.max(1, Math.abs(pointAxis), Math.abs(faceAxis));
+    return pointAxis > faceAxis + epsilon ? [compact, plane]
+      : faceAxis > pointAxis + epsilon ? [plane, compact]
+        : (ROLE_ORDER[plane.role] ?? 0) <= (ROLE_ORDER[compact.role] ?? 0) ? [plane, compact] : [compact, plane];
+  }
+  const ray = projection.ray(screen);
+  const denominator = ray.direction.x ** 2 + ray.direction.y ** 2 + ray.direction.z ** 2;
+  const pointDepth = ((at.x - ray.origin.x) * ray.direction.x +
+    (at.y - ray.origin.y) * ray.direction.y +
+    (at.z - ray.origin.z) * ray.direction.z) / denominator;
+  const surfaceDepth = planeDepth(plane.orderingProxy, screen, projection);
+  const epsilon = EPSILON * Math.max(1, Math.abs(pointDepth), Math.abs(surfaceDepth));
+  return pointDepth > surfaceDepth + epsilon ? [compact, plane]
+    : surfaceDepth > pointDepth + epsilon ? [plane, compact]
+      : (ROLE_ORDER[plane.role] ?? 0) <= (ROLE_ORDER[compact.role] ?? 0) ? [plane, compact] : [compact, plane];
 }
 
 function compareStable(a, b) {
@@ -295,6 +329,27 @@ function edgeFor(left, right, camera) {
 
 function relationKey(a, b) {
   return `${stableKey(a)}\u0000\u0000${stableKey(b)}`;
+}
+
+function cyclePath(keys, outgoing) {
+  const allowed = new Set(keys);
+  const visiting = new Set(), visited = new Set(), stack = [];
+  function visit(key) {
+    if (visiting.has(key)) return [...stack.slice(stack.indexOf(key)), key];
+    if (visited.has(key)) return null;
+    visiting.add(key); stack.push(key);
+    for (const next of [...(outgoing.get(key) ?? [])].filter(value => allowed.has(value)).sort()) {
+      const cycle = visit(next);
+      if (cycle) return cycle;
+    }
+    stack.pop(); visiting.delete(key); visited.add(key);
+    return null;
+  }
+  for (const key of [...keys].sort()) {
+    const cycle = visit(key);
+    if (cycle) return cycle;
+  }
+  return [...keys].sort();
 }
 
 /**
@@ -400,12 +455,26 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 }, projectio
     relationTests++;
     let result;
     if (projection) {
-      const comparison = compareOrderingPlanes(left, right, projection);
-      if (comparison.kind === "interleaving")
-        throw new Error(`interleaving ordering planes: ${stableKey(left)} / ${stableKey(right)}`);
-      result = comparison.kind === "ordered" ? comparison.edge : null;
-      if (comparison.kind === "tie" && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
-        result = (ROLE_ORDER[left.role] ?? 0) < (ROLE_ORDER[right.role] ?? 0) ? [left, right] : [right, left];
+      // Whole upright sprites are presentation curtains, so their pixel bounds
+      // can mathematically cross the plane that physically supports or borders
+      // them. Resolve those declared contacts from canonical world geometry
+      // before comparing the remaining arbitrary planes.
+      result = uprightRelation(left, right, normalized) ?? uprightRelation(right, left, normalized);
+      const support = left.partRole === "supporting-surface" ? left : right.partRole === "supporting-surface" ? right : null;
+      const occupant = support === left ? right : support === right ? left : null;
+      // Face-to-face ordering stays planar. Treating a vertical terrain face's
+      // first corner as an occupant manufactures edges between merely adjacent
+      // faces and can close a body/side/top cycle.
+      if (!result && support && occupant && !occupant.planarCorners) result = supportRelation(support, occupant);
+      if (!result) result = compactPlaneRelation(left, right, projection) ?? compactPlaneRelation(right, left, projection);
+      if (!result) {
+        const comparison = compareOrderingPlanes(left, right, projection);
+        if (comparison.kind === "interleaving")
+          throw new Error(`interleaving ordering planes: ${stableKey(left)} / ${stableKey(right)}`);
+        result = comparison.kind === "ordered" ? comparison.edge : null;
+        if (comparison.kind === "tie" && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
+          result = (ROLE_ORDER[left.role] ?? 0) < (ROLE_ORDER[right.role] ?? 0) ? [left, right] : [right, left];
+      }
     } else result = edgeFor(left, right, normalized);
     if (!moving) staticRelations.set(key, { signature, result });
     return result;
@@ -491,7 +560,15 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 }, projectio
     // Cycles are possible for whole sprites. Remove one deterministic incoming
     // edge from the stalled node, then resume Kahn's algorithm.
     while (result.length < nodes.length) {
-      if (projection) throw new Error(`cyclic ordering planes: ${nodes.filter(node => !result.includes(node)).map(stableKey).join(" / ")}`);
+      if (projection) {
+        const remaining = nodes.filter(node => !result.includes(node)).map(stableKey);
+        const cycle = cyclePath(remaining, outgoing);
+        const describe = key => {
+          const node = byKey.get(key);
+          return `${key}[${node?.partRole ?? "body"};${node?.orderingKind ?? "plane"};${node?.footprint.map(point => `${point.x},${point.y},${point.z}`).join("|") ?? "missing"}]`;
+        };
+        throw new Error(`cyclic ordering planes: ${cycle.map(describe).join(" -> ")}`);
+      }
       const remaining = nodes
         .filter((node) => !result.includes(node))
         .sort(compareStable);

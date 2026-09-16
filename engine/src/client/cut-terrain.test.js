@@ -87,6 +87,67 @@ test("ray ordering ignores terrain role/storey precedence and shares logical fac
   assert.deepEqual(sorter.order([tall,ground]).map(stableKey),first);
 });
 
+test("a tall whole sprite orders from its terrain contact instead of its crossing pixel curtain",()=>{
+  const top=has(faces(fixture((x,y,z)=>y<=0?12:7),1),[0,0,0],"top");
+  const contactY=(0.5)*h;
+  const tree=actor("tree",0,contactY,0,96);
+  const sorter=createIsometricSorter({projection});
+  assert.equal(top.partRole,"supporting-surface");
+  assert.deepEqual(sorter.order([tree,top]).map(record=>record.id),[top.id,"tree"]);
+  assert.deepEqual(sorter.order([top,tree]).map(record=>record.id),[top.id,"tree"]);
+});
+
+test("a distant terrain face overlapping tall compact art uses the actor point, not crossing sprite pixels",()=>{
+  const records=faces(fixture((x,y,z)=>y<=0?12:7),1);
+  const remote=has(records,[0,0,2],"top");
+  const tree=actor("tree",2,0.5*h,0,128);
+  tree.screenBounds={left:remote.screenBounds.left-8,right:remote.screenBounds.right+8,top:remote.screenBounds.top-128,bottom:remote.screenBounds.bottom+8};
+  const sorter=createIsometricSorter({projection});
+  const first=sorter.order([tree,remote]).map(record=>record.id);
+  assert.deepEqual(sorter.order([remote,tree]).map(record=>record.id),first);
+  assert.deepEqual(new Set(first),new Set([tree.id,remote.id]));
+});
+
+test("a body on a voxel top cannot cycle through that voxel's side curtain",()=>{
+  const records=faces(fixture((x,y,z)=>x===0&&y===0&&z===0?12:7),1);
+  const top=has(records,[0,0,0],"top"),side=has(records,[0,0,0],"east");
+  const body=actor("body",0,0.5*h,0,80);
+  body.screenBounds={left:Math.min(top.screenBounds.left,side.screenBounds.left)-4,
+    right:Math.max(top.screenBounds.right,side.screenBounds.right)+4,
+    top:Math.min(top.screenBounds.top,side.screenBounds.top)-80,
+    bottom:Math.max(top.screenBounds.bottom,side.screenBounds.bottom)+4};
+  const order=createIsometricSorter({projection}).order([body,side,top]).map(record=>record.id);
+  assert(order.indexOf(side.id)<order.indexOf(body.id));
+  assert(order.indexOf(top.id)<order.indexOf(body.id));
+});
+
+test("overlapping art whose support point is remote from a voxel keeps one camera-depth relation to its faces",()=>{
+  const records=faces(fixture((x,y,z)=>x===0&&y===0&&z===0?12:7),1);
+  const top=has(records,[0,0,0],"top"),side=has(records,[0,0,0],"east");
+  const body=actor("remote-body",-7,0.5*h,-3,80);
+  body.screenBounds={left:Math.min(top.screenBounds.left,side.screenBounds.left)-4,
+    right:Math.max(top.screenBounds.right,side.screenBounds.right)+4,
+    top:Math.min(top.screenBounds.top,side.screenBounds.top)-80,
+    bottom:Math.max(top.screenBounds.bottom,side.screenBounds.bottom)+4};
+  const sorter=createIsometricSorter({projection});
+  const first=sorter.order([body,side,top]).map(record=>record.id);
+  assert.deepEqual(sorter.order([top,body,side]).map(record=>record.id),first);
+  assert.deepEqual(new Set(first),new Set([body.id,side.id,top.id]));
+});
+
+test("adjacent terrain faces do not treat one another as bodies and close a remote-body cycle",()=>{
+  const records=faces(fixture((x,y,z)=>(x===0&&y===0&&(z===0||z===-1))?12:7),1);
+  const side=has(records,[0,0,0],"east"),top=has(records,[0,0,-1],"top");
+  const body=actor("remote-body",-3,0.5*h,2,80);
+  body.screenBounds={left:Math.min(top.screenBounds.left,side.screenBounds.left)-4,
+    right:Math.max(top.screenBounds.right,side.screenBounds.right)+4,
+    top:Math.min(top.screenBounds.top,side.screenBounds.top)-80,
+    bottom:Math.max(top.screenBounds.bottom,side.screenBounds.bottom)+4};
+  const sorter=createIsometricSorter({projection});
+  const first=sorter.order([body,side,top]).map(record=>record.id);
+  assert.deepEqual(sorter.order([top,body,side]).map(record=>record.id),first);
+});
+
 test("separate stair rail curtains order a body between them; conflicting planes fail explicitly",()=>{
   const center=projection.project({x:0,y:0,z:0});
   const rail=(id,z)=>({id,partRole:"upright-boundary",role:"structure",footprint:[{x:-2,y:0,z},{x:2,y:1,z}],screenBounds:{left:center.x-12,right:center.x+12,top:center.y-30,bottom:center.y}});
@@ -104,7 +165,7 @@ test("consecutive batches preserve IDs across actors, rails, state/texture chang
   const f=id=>({...record,id});
   const texture={source:{}};
   const changed={...f("texture"),terrainBatch:{...record.terrainBatch,texture}};
-  const state={...f("state"),terrainBatch:{...record.terrainBatch,blendMode:"add"}};
+  const state={...f("state"),terrainBatch:{...record.terrainBatch,stateKey:"terrain-debug"}};
   const ordered=[f("one"),f("two"),{id:"actor"},f("three"),{id:"rail"},changed,state,f("four"),f("five"),f("six")];
   const plan=terrainBatchPlan(ordered,2);
   assert.deepEqual(plan.flatMap(batch=>batch.records.map(r=>r.id)),ordered.map(r=>r.id));
