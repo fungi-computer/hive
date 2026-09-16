@@ -4,9 +4,9 @@ import { wasmKernelPort } from "./wasm-kernel";
 import { colonyPack } from "../games/colony";
 import { createColonyPerformancePack } from "../games/colony-performance";
 import { colonyPerformanceGameId, parseColonyPerformanceWorkerName } from "../games/colony-performance-config";
-import type { WorkerCommand, WorkerPlacementCommand } from "./protocol";
+import type { WorkerCommand, WorkerPlacementCommand, WorkerTerrainChunksCommand } from "./protocol";
 
-const early: MessageEvent<WorkerCommand | WorkerPlacementCommand>[] = [];
+const early: MessageEvent<WorkerCommand | WorkerPlacementCommand | WorkerTerrainChunksCommand>[] = [];
 self.onmessage = event => {
   if (early.length < 64) early.push(event);
   else self.postMessage({ type: "error", message: "performance worker startup queue full" });

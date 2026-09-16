@@ -1,7 +1,8 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
-import type { WorkerCommand, WorkerPlacementCommand, WorkerTransportEvent } from "./protocol";
+import type { WorkerCommand, WorkerPlacementCommand, WorkerTerrainChunksCommand, WorkerTransportEvent } from "./protocol";
+import { terrainChunkRequestSchema } from "./terrain-chunks";
 import { terrainWireForRevision } from "./terrain-wire";
 
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
@@ -73,7 +74,9 @@ export class WorkerRuntime {
       sequence: this.frameSequence + 1,
     });
     this.frameSequence = observation.sequence;
-    const terrain = observation.terrain === undefined ? undefined : terrainWireForRevision(observation.terrain, this.terrainRevision);
+    const changes = observation.terrain !== undefined && this.terrainRevision !== undefined && this.terrainRevision !== observation.terrain.revision
+      ? this.session.terrainChanges(this.terrainRevision) : undefined;
+    const terrain = observation.terrain === undefined ? undefined : terrainWireForRevision(observation.terrain, this.terrainRevision, changes);
     if (observation.terrain === undefined) this.terrainRevision = undefined;
     else this.terrainRevision = observation.terrain.revision;
     this.emit({
@@ -96,7 +99,7 @@ export class WorkerRuntime {
       this.emit({ type: "whistle", agent: observation.whistleAgent, targets: observation.whistleTargets });
     }
   }
-  command(command: WorkerCommand | WorkerPlacementCommand): void {
+  command(command: WorkerCommand | WorkerPlacementCommand | WorkerTerrainChunksCommand): void {
     try {
       if (command.type === "start") {
         const pack = this.packs[command.game];
@@ -112,7 +115,11 @@ export class WorkerRuntime {
       }
       const session = this.session;
       if (!session) throw new Error("runtime has not started");
-      if (command.type === "placement-decisions") {
+      if (command.type === "terrain-chunks") {
+        const { type: _type, ...raw } = command;
+        const request = terrainChunkRequestSchema.parse(raw);
+        this.emit({ type: "terrain-chunks", reply: session.terrainChunks(request, this.frameEpoch) });
+      } else if (command.type === "placement-decisions") {
         try {
           const result = session.placementDecisions(command.party as import("../contracts").EntityId, command.candidates);
           this.emit({ type: "placement-decisions", requestId: command.requestId,

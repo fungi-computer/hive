@@ -1,5 +1,6 @@
 import type { EnvironmentDefinition } from "../sdk/environment";
 import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainSurface } from "../contracts";
+import { MAX_TERRAIN_CHUNK_REPLY_BYTES, TERRAIN_CHUNK_EDGE, terrainBaselineSchema, terrainChunkReplySchema, terrainChunkRequestSchema, type TerrainBaseline, type TerrainChunkReply, type TerrainChunkRequest } from "./terrain-chunks";
 
 type Coordinate = readonly [number, number, number];
 
@@ -20,6 +21,7 @@ export interface TerrainPresentationFrame {
   readonly revision: number;
   readonly placementRevision: number;
   readonly verticalMetres: number;
+  readonly baseline: TerrainBaseline;
   readonly surfaces: readonly TerrainSurface[];
   readonly structureSurfaces: readonly StructureSurface[];
   readonly water: readonly TerrainWaterFact[];
@@ -131,6 +133,63 @@ export class TerrainPresentationOwner {
     this.cached = undefined;
   }
 
+  baseline(): TerrainBaseline {
+    return terrainBaselineSchema.parse({ protocolVersion: 2, bounds: this.definition.world.bounds,
+      verticalMetres: this.definition.world.verticalMetres,
+      materials: this.definition.materials.map(({ slot, solid }) => ({ slot, solid })) });
+  }
+
+  readChunks(raw: TerrainChunkRequest, currentEpoch: number): TerrainChunkReply {
+    const request = terrainChunkRequestSchema.parse(raw);
+    const facts = parseFacts(this.port.environmentFacts());
+    if (request.epoch !== currentEpoch || request.terrainRevision !== facts.terrainRevision)
+      return Object.freeze({ kind: "stale", requestId: request.requestId, epoch: currentEpoch, terrainRevision: facts.terrainRevision });
+    const bounds = this.definition.world.bounds;
+    const slots = new Set(this.baseline().materials.map(material => material.slot));
+    const prepared: { key: TerrainChunkRequest["chunks"][number]; min: readonly [number, number, number]; max: readonly [number, number, number]; columns: { x: number; z: number; length: number }[] }[] = [];
+    const cells: [number, number, number][] = [];
+    for (const key of request.chunks) {
+      const origin = key.map(value => value * TERRAIN_CHUNK_EDGE);
+      if (origin.some(value => !signedInteger(value))) throw new Error("terrain chunk origin is outside signed cell coordinates");
+      const min = [Math.max(origin[0], bounds.minX), Math.max(origin[1], bounds.minY), Math.max(origin[2], bounds.minZ)] as const;
+      const max = [Math.min(origin[0] + TERRAIN_CHUNK_EDGE, bounds.maxX), Math.min(origin[1] + TERRAIN_CHUNK_EDGE, bounds.maxY), Math.min(origin[2] + TERRAIN_CHUNK_EDGE, bounds.maxZ)] as const;
+      if (min.some((value, axis) => value >= max[axis])) throw new Error("terrain chunk does not intersect authoritative bounds");
+      const columns: { x: number; z: number; length: number }[] = [];
+      for (let x = min[0]; x < max[0]; x++) for (let z = min[2]; z < max[2]; z++) {
+        for (let y = min[1]; y < max[1]; y++) cells.push([x, y, z]);
+        columns.push({ x, z, length: max[1] - min[1] });
+      }
+      prepared.push({ key, min, max, columns });
+    }
+    if (cells.length > 4096) throw new Error("terrain chunk request exceeds sample budget");
+    const sampled: number[] = [];
+    for (let offset = 0; offset < cells.length; offset += 256) {
+      const batch = cells.slice(offset, offset + 256);
+      const result = this.port.terrainMaterials(batch);
+      if (result.length !== batch.length) throw new Error("terrain material query returned the wrong count");
+      sampled.push(...result);
+    }
+    let cursor = 0;
+    const chunks: Extract<TerrainChunkReply, { kind: "ready" }>["chunks"][number][] = prepared.map(chunk => ({ key: chunk.key, min: chunk.min, max: chunk.max,
+      columns: chunk.columns.map(column => {
+        const materials = sampled.slice(cursor, cursor += column.length);
+        const runs: { minY: number; maxY: number; material: number }[] = [];
+        for (let index = 0; index < materials.length; index++) {
+          const material = materials[index];
+          if (!Number.isInteger(material) || !slots.has(material)) throw new Error("terrain material query returned an unknown slot");
+          const y = chunk.min[1] + index;
+          const previous = runs.at(-1);
+          if (previous?.material === material) previous.maxY = y + 1;
+          else runs.push({ minY: y, maxY: y + 1, material });
+        }
+        return { x: column.x, z: column.z, runs };
+      }) }));
+    const reply = terrainChunkReplySchema.parse({ kind: "ready", requestId: request.requestId, epoch: currentEpoch, terrainRevision: facts.terrainRevision, chunks });
+    if (new TextEncoder().encode(JSON.stringify(reply)).byteLength > MAX_TERRAIN_CHUNK_REPLY_BYTES)
+      return Object.freeze({ kind: "unavailable", requestId: request.requestId, reason: "terrain chunk reply exceeds byte budget" });
+    return reply;
+  }
+
   read(): TerrainPresentationFrame {
     const facts = parseFacts(this.port.environmentFacts());
     if (!this.cached) this.cached = this.sampleSurfaces(facts.terrainRevision);
@@ -142,11 +201,12 @@ export class TerrainPresentationOwner {
         ? this.sampleSurfaces(facts.terrainRevision)
         : this.patchSurfaces(this.cached, facts.terrainRevision, changes);
     }
-    const water = facts.cells.filter((cell) => this.isExteriorWater(cell));
+    const water = facts.cells.filter((cell) => this.isObservedWater(cell));
     return Object.freeze({
       revision: facts.terrainRevision,
       placementRevision: facts.placementRevision,
       verticalMetres: this.definition.world.verticalMetres,
+      baseline: this.baseline(),
       surfaces: this.cached.surfaces,
       structureSurfaces: this.cached.structureSurfaces,
       water: Object.freeze(water),
@@ -264,11 +324,11 @@ export class TerrainPresentationOwner {
     };
   }
 
-  private isExteriorWater(cell: TerrainWaterFact): boolean {
+  private isObservedWater(cell: TerrainWaterFact): boolean {
     const { minX, maxX, minY, maxY, minZ, maxZ } = this.definition.world.bounds;
     const [x, y, z] = cell.at;
     if (x < minX || x >= maxX || z < minZ || z >= maxZ || y < minY || y >= maxY) return false;
-    const surface = this.cached?.byColumn.get(columnKey(x, z));
-    return surface === null || (surface !== undefined && y >= surface.cell[1]);
+    const window = residentWindow(this.definition.world.bounds, this.configuredWindow);
+    return x >= window.minX && x < window.maxX && z >= window.minZ && z < window.maxZ;
   }
 }

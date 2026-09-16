@@ -1,5 +1,6 @@
-import type { StructureSurface, TerrainSurface } from "../contracts";
+import type { StructureSurface, TerrainChangeSet, TerrainSurface } from "../contracts";
 import { terrainSurfaceSchema } from "./terrain-surface";
+import { terrainBaselineSchema, terrainChangeSchema, type TerrainBaseline } from "./terrain-chunks";
 
 export interface TerrainWireWater {
   readonly id?: string;
@@ -17,9 +18,11 @@ export interface TerrainWireFrame {
   readonly revision: number;
   readonly placementRevision: number;
   readonly verticalMetres: number;
+  readonly baseline: TerrainBaseline;
   readonly surfaces: readonly TerrainSurface[];
   readonly structureSurfaces: readonly StructureSurface[];
   readonly water: readonly TerrainWireWater[];
+  readonly changes?: TerrainChangeSet;
 }
 export interface TerrainWireReference {
   readonly revision: number;
@@ -34,8 +37,9 @@ export type TerrainWireObservation = TerrainWireFrame | TerrainWireReference;
 export function terrainWireForRevision(
   frame: TerrainWireFrame,
   knownRevision: number | undefined,
+  changes?: TerrainChangeSet,
 ): TerrainWireObservation {
-  if (knownRevision !== frame.revision) return frame;
+  if (knownRevision !== frame.revision) return changes === undefined ? frame : { ...frame, changes };
   return {
     revision: frame.revision,
     placementRevision: frame.placementRevision,
@@ -119,19 +123,25 @@ export function parseTerrainFrame(value: unknown): TerrainWireFrame | undefined 
     !Array.isArray(value.structureSurfaces) ||
     !Array.isArray(value.water) || value.water.length > MAX_WATER)
     throw new Error("invalid terrain observation");
+  const baseline = terrainBaselineSchema.safeParse(value.baseline);
+  if (!baseline.success || baseline.data.verticalMetres !== value.verticalMetres) throw new Error("invalid terrain observation");
   const surfaces = value.surfaces.map(parseSurface);
   const structureSurfaces = parseStructureSurfaces(value.structureSurfaces);
   const water = value.water.map(parseWater);
+  const changes = value.changes === undefined ? undefined : terrainChangeSchema.safeParse(value.changes);
   if (surfaces.some((surface): surface is undefined => surface === undefined) ||
-    water.some((entry): entry is undefined => entry === undefined) || !structureSurfaces)
+    water.some((entry): entry is undefined => entry === undefined) || !structureSurfaces || changes?.success === false ||
+    changes?.data.revision !== undefined && changes.data.revision !== value.revision)
     throw new Error("invalid terrain observation");
   return Object.freeze({
     revision: value.revision,
     placementRevision: value.placementRevision,
     verticalMetres: value.verticalMetres,
+    baseline: baseline.data,
     surfaces: Object.freeze(surfaces as TerrainSurface[]),
     structureSurfaces,
     water: Object.freeze(water as TerrainWireWater[]),
+    ...(changes?.data === undefined ? {} : { changes: changes.data }),
   });
 }
 
@@ -164,6 +174,7 @@ export function parseTerrainObservation(
     revision: value.revision,
     placementRevision: value.placementRevision,
     verticalMetres: cached.verticalMetres,
+    baseline: cached.baseline,
     surfaces: cached.surfaces,
     structureSurfaces: cached.structureSurfaces,
     water: Object.freeze(water as TerrainWireWater[]),

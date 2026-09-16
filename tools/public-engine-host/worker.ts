@@ -22,6 +22,7 @@ import {
   readCommand,
   readColonyJoin,
   readPlacementDecision,
+  readTerrainChunks,
   colonyWorldRoute,
   readColonySocketMessage,
   tokenFromRequest,
@@ -526,8 +527,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     forceComplete = false,
   ): boolean {
     const terrain = payload.observation.terrain;
+    const changes = terrain && attachment.terrainRevision !== undefined && attachment.terrainRevision !== terrain.revision
+      ? this.resident.observe(payload.revision, this.region.readCommitted().state, this.residentRecords(payload.revision), session => session.terrainChanges(attachment.terrainRevision!))
+      : undefined;
     const wireTerrain = terrain && !forceComplete
-      ? terrainWireForRevision(terrain, attachment.terrainRevision)
+      ? terrainWireForRevision(terrain, attachment.terrainRevision, changes)
       : terrain;
     const observation = {
       ...payload.observation,
@@ -710,6 +714,15 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const native = this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session =>
           session.placementDecisions(binding.party_id, query.candidates));
         return { observationRevision: committed.revision, nativeRevision: native.revision, placementRevision: native.placementRevision, decisions: native.decisions };
+      });
+      await this.renewLease(now);
+      return jsonResponse(result, 200, this.hostEnv.PUBLIC_ORIGIN);
+    }
+    if (route.operation === "terrain" && request.method === "POST") {
+      const query = await readTerrainChunks(request);
+      const result = await this.serial(() => {
+        const committed = this.region.readCommitted();
+        return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session => session.terrainChunks(query, 0));
       });
       await this.renewLease(now);
       return jsonResponse(result, 200, this.hostEnv.PUBLIC_ORIGIN);
