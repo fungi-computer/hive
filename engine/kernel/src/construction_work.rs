@@ -759,7 +759,8 @@ impl Kernel {
         self.registry.validate(name, &value, &self.known)
             .map_err(|reason| format!("finished construction {owner} has invalid component {name}: {reason}"))
     }
-    pub(super) fn plan_constructions(&mut self, party: String, plans: Vec<ConstructionPlan>) -> Result<()> {
+    pub(super) fn plan_constructions(&mut self, party: String, plans: Vec<ConstructionPlan>, scope: &ActionScope) -> Result<()> {
+        let execution = self.work_execution_for_scope(scope, &party, crate::work_planner::POLICY_CONSTRUCTION)?;
         let party_entity = self.entity(&party)?;
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("construction owner is not a party".into()); }
         if plans.is_empty() || plans.len() > 256 || self.ids.len().saturating_add(plans.len()) > 16384 {
@@ -781,6 +782,7 @@ impl Kernel {
                 + self.registry.weight("hive.construction-site", &record(&site_state))
                 + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() }))
                 + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }))
+                + self.registry.weight("hive.work-execution", &record(&execution))
                 + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })));
             staged.push((plan.site, site_state, capacity));
         }
@@ -791,6 +793,7 @@ impl Kernel {
         for (site, site_state, capacity) in staged {
             let entity = self.ecs.spawn((ExternalId(site.clone()), Container { capacity }, OwnedByParty { party: party.clone() }, site_state,
                 crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true },
+                execution.clone(),
                 crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 })).id();
             self.ids.insert(site.clone(), entity); self.known.insert(site.clone()); self.contents.insert(site.clone(), BTreeSet::new());
             self.refresh_planner_index(&site);
@@ -969,6 +972,7 @@ impl Kernel {
         let prepared_consumption = self.prepare_material_consumption(&portions)?;
         let marker_weight = self.registry.weight("hive.sealed-container", &record(&SealedContainer {}));
         let site_owner = self.ecs.get::<OwnedByParty>(site_entity).cloned().ok_or("construction site has no party owner")?;
+        let site_execution = self.ecs.get::<crate::components::WorkExecution>(site_entity).cloned().ok_or("construction site has no work execution")?;
         let recipe_weight: usize = definition.on_complete.components.iter().map(|(name, value)| self.registry.weight(name, value)).sum();
         let site_position = self.ecs.get::<Position>(site_entity).copied();
         if definition.on_complete.ports.iter().any(|port| port.at_site_contact && site_position.is_none()) { return Ok(false); }
@@ -1001,7 +1005,7 @@ impl Kernel {
             self.registry.insert(&mut self.ecs, site_entity, name, value).expect("validated completion component");
         }
         if self.ecs.get::<StockpileCell>(site_entity).is_some() {
-            super::stockpile_work::install_planner_state(self, site_id, site_entity)?;
+            super::stockpile_work::install_planner_state(self, site_id, site_entity, Some(site_execution.clone()))?;
             self.index_stockpile_policy(site_id, site_entity);
         }
         for port in &definition.on_complete.ports {
@@ -1009,9 +1013,10 @@ impl Kernel {
             let entity = self.ecs.spawn(ExternalId(id.clone())).id();
             self.ids.insert(id.clone(), entity); self.known.insert(id.clone());
             self.ecs.entity_mut(entity).insert(site_owner.clone());
+            self.ecs.entity_mut(entity).insert(site_execution.clone());
             for (name, value) in &port.components { self.registry.insert(&mut self.ecs, entity, name, value).expect("validated completion port component"); }
             if self.ecs.get::<StockpileCell>(entity).is_some() {
-                super::stockpile_work::install_planner_state(self, &id, entity)?;
+                super::stockpile_work::install_planner_state(self, &id, entity, Some(site_execution.clone()))?;
             }
             if port.at_site_contact { self.ecs.entity_mut(entity).insert(site_position.expect("preflight site position")); }
             self.index_storage_provider(&id, entity);

@@ -35,6 +35,7 @@ export const RESERVED_COMPONENTS = [
   "hive.field-water-work",
   "hive.vessel-capability",
   "hive.work-policy",
+  "hive.work-execution",
   "hive.work-schedule",
   "hive.job-task-work",
   "hive.destination",
@@ -147,7 +148,7 @@ export interface ComponentDefinition<T extends object> {
   readonly validate: (value: unknown) => value is T;
 }
 export type FieldType =
-  "number" | "boolean" | "string" | "entity" | "nullable-entity";
+  "number" | "boolean" | "string" | "nullable-string" | "entity" | "nullable-entity";
 export type RelationRemovalPolicy = "detach" | "restrict";
 export type ComponentValue<T> = { readonly id: EntityId; readonly value: T };
 

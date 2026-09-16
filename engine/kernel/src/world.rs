@@ -155,12 +155,31 @@ mod native_planner_snapshot_tests {
     use serde_json::json;
 
     #[test]
+    fn every_work_policy_keeps_one_valid_execution_even_while_disabled() {
+        let scene = |task: serde_json::Value| json!({
+            "format":"hive-game", "version":3, "game":"planner", "components":[], "materialCatalog":[],
+            "initial":[
+                {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+                task,
+            ],
+        });
+        let mut missing = Kernel::new();
+        assert_eq!(missing.load(&scene(json!({"id":"task","components":{"hive.work-policy":{"pool":"party","priority":0,"enabled":false}}})).to_string()).unwrap_err(), "work policy task has no work execution");
+
+        let mut foreign_player = Kernel::new();
+        assert_eq!(foreign_player.load(&scene(json!({"id":"task","components":{
+            "hive.work-policy":{"pool":"party","priority":0,"enabled":true},
+            "hive.work-execution":{"pool":"party","initiatingPlayer":"other-player","policyId":"job"}
+        }})).to_string()).unwrap_err(), "work execution player does not own pool for task");
+    }
+
+    #[test]
     fn planner_cursor_roundtrips_and_invalid_width_is_rejected() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"planner","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.work-participation":{"automatic":true}}},
-            {"id":"task","components":{"hive.work-policy":{"pool":"party","priority":3,"enabled":true},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
+            {"id":"task","components":{"hive.work-policy":{"pool":"party","priority":3,"enabled":true},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"job"},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
         ]}).to_string()).unwrap();
         let worker_record: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.work-participation\"]").unwrap()).unwrap();
         let task_records: serde_json::Value = serde_json::from_str(&kernel.query_json("[\"hive.work-policy\",\"hive.work-schedule\"]").unwrap()).unwrap();
@@ -868,7 +887,7 @@ mod construction_tests {
         assert!(backward["decisions"].as_array().unwrap().iter().all(|row| row["status"] == "ready"));
         kernel.plan_constructions("party".into(), vec![
             serde_json::from_value(left.clone()).unwrap(), serde_json::from_value(right).unwrap(),
-        ]).unwrap();
+        ], &ActionScope::Host).unwrap();
         let entity = kernel.entity("batch-a").unwrap();
         kernel.ecs.entity_mut(entity).insert(OwnedByParty { party: "other-party".into() });
         let other = kernel.ecs.spawn((ExternalId("other-party".into()), Party { owner_player: "other-player".into() })).id();
@@ -887,7 +906,7 @@ mod construction_tests {
         kernel.plan_constructions("party".into(), vec![ConstructionPlan {
             site: "revision-floor".into(), catalog: "floor".into(),
             target: ConstructionTarget::Cell { cell: surface, orientation: crate::structure_geometry::Cardinal::North },
-        }]).unwrap();
+        }], &ActionScope::Host).unwrap();
         assert_eq!(kernel.placement_revision, initial + 1, "pending occupancy invalidates previews");
 
         let before_excavation = kernel.placement_revision;
@@ -1522,7 +1541,7 @@ mod construction_tests {
         kernel.plan_constructions("party".into(), vec![
             ConstructionPlan { catalog: "floor-two".into(), site: "upper-floor".into(), target: ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North } },
             ConstructionPlan { catalog: "test-fixture".into(), site: "upper-fixture".into(), target: ConstructionTarget::Cell { cell: crate::generation::Cell { y: upper.y + 1, ..upper }, orientation: crate::structure_geometry::Cardinal::North } },
-        ]).unwrap();
+        ], &ActionScope::Host).unwrap();
         kernel.ecs.entity_mut(kernel.entity("upper-floor").unwrap()).insert(Position { x: contact.x, y: contact.y, z: contact.z, facing: 0.0 });
         kernel.transfer("lot.2", "source", "upper-floor", 1).unwrap();
         let delivered_lot = kernel.contents["upper-floor"].iter().next().copied().unwrap();
@@ -1563,7 +1582,7 @@ mod construction_tests {
         install_committed_test_wall(&mut kernel, "wall-a", first_edge, &contact);
         install_committed_test_wall(&mut kernel, "wall-b", second_edge, &contact);
         let upper = crate::generation::Cell { x: surface.x, y: surface.y + 4, z: surface.z };
-        kernel.plan_constructions("party".into(), vec![ConstructionPlan { catalog: "floor".into(), site: "alternative-floor".into(), target: ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North } }]).unwrap();
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan { catalog: "floor".into(), site: "alternative-floor".into(), target: ConstructionTarget::Cell { cell: upper, orientation: crate::structure_geometry::Cardinal::North } }], &ActionScope::Host).unwrap();
 
         move_worker_to_deconstruction_contact(&mut kernel, "worker-1", "wall-a");
         kernel.deconstruct_construction("worker-1", "wall-a").unwrap();
@@ -1586,7 +1605,7 @@ mod construction_tests {
         };
         kernel.environment.as_mut().unwrap().world.apply_excavation(opened).unwrap();
         let edge = Face { cell: crate::generation::Cell { y: surface.y + 1, ..surface }, axis: FaceAxis::X };
-        kernel.plan_constructions("party".into(), vec![ConstructionPlan { catalog: "test-wall".into(), site: "terrain-wall".into(), target: ConstructionTarget::Edge { edge } }]).unwrap();
+        kernel.plan_constructions("party".into(), vec![ConstructionPlan { catalog: "test-wall".into(), site: "terrain-wall".into(), target: ConstructionTarget::Edge { edge } }], &ActionScope::Host).unwrap();
         let expected = kernel.environment.as_mut().unwrap().world.material(surface).unwrap();
         kernel.environment.as_mut().unwrap().excavation_rules.insert(expected, crate::environment_definition::ExcavationRule {
             work_seconds: 1.0, output_kind: "stone-spoil".into(), units_per_cell: 1,
@@ -2357,6 +2376,20 @@ pub(super) fn earned_work_seconds(current: f64, delta: f64, required: f64) -> Re
 }
 
 impl Kernel {
+    pub(crate) fn work_execution_for_scope(&self, scope: &ActionScope, pool: &str, policy_id: &str) -> Result<WorkExecution> {
+        if !valid_id(pool) || !valid_id(policy_id) { return Err("invalid work execution identity".into()); }
+        match scope {
+            ActionScope::Host => Ok(WorkExecution { pool: pool.into(), initiating_player: None, policy_id: policy_id.into() }),
+            ActionScope::Party { player, party } if party == pool && valid_id(player) => {
+                let pool_entity = self.entity(pool)?;
+                let owner = self.ecs.get::<Party>(pool_entity).ok_or("work execution pool is not a party")?;
+                if owner.owner_player != *player { return Err("work execution player does not own pool".into()); }
+                Ok(WorkExecution { pool: pool.into(), initiating_player: Some(player.into()), policy_id: policy_id.into() })
+            }
+            ActionScope::Party { .. } => Err("work execution scope pool mismatch".into()),
+        }
+    }
+
     pub(crate) fn bump_placement_revision(&mut self) {
         self.placement_revision = self.placement_revision.checked_add(1).unwrap_or(1);
     }
@@ -2668,7 +2701,9 @@ impl Kernel {
         self.next_work_generation = self.next_work_generation.checked_add(1).ok_or("supply allocation identity exhausted")?;
         let id = format!("allocation.{allocation_sequence}");
         if self.known.contains(&id) { return Err("supply allocation identity collides with live state".into()); }
-        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
+        let execution = self.ecs.get::<WorkExecution>(self.entity(&requirement_owner)?).cloned().ok_or("supply requirement owner has no work execution")?;
+        if execution.pool != party { return Err("supply execution pool mismatch".into()); }
+        let entity = self.ecs.spawn((ExternalId(id.clone()), OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }, execution, crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 }, SupplyAllocation { requirement_owner, requirement_role, requirement_generation, party, material, portion, destination, quantity, state: SupplyAllocationState::Reserved })).id();
         self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.refresh_planner_index(&id); self.refresh_supply_index(&id); self.refresh_state_weight();
         Ok(id)
     }
@@ -2749,8 +2784,9 @@ impl Kernel {
             return Err("stockpile cell references unknown profile".into());
         }
         for (id, entity) in stockpile_cells {
-            stockpile_work::install_planner_state(&mut world, &id, entity)?;
+            stockpile_work::install_planner_state(&mut world, &id, entity, None)?;
         }
+        world.validate_work_execution()?;
         world.rebuild_planner_index();
         world.supply_index.rebuild(&world.ids, &world.ecs);
         world.projectile_count = world
@@ -3936,6 +3972,7 @@ impl Kernel {
         candidate.validate_excavation_orders()?;
         candidate.validate_deconstruction_work()?;
         candidate.validate_deconstruction_orders()?;
+        candidate.validate_work_execution()?;
         candidate.ground_stock_cleanup_pending = true;
         candidate.placement_revision = self.next_placement_revision();
         *self = candidate;
@@ -4157,6 +4194,7 @@ impl Kernel {
         candidate.projectile_count = candidate.ids.values().filter(|entity| candidate.ecs.get::<Projectile>(**entity).is_some_and(|p| p.state == "flying" || p.state == "rolling")).count();
         candidate.ground_stock_cleanup_pending = true;
         candidate.validate_party_relations()?;
+        candidate.validate_work_execution()?;
         candidate.validate_field_water_records()?;
         crate::supply_allocation::validate_relations(&candidate)?;
         candidate.validate_work_attempt_relations()?;
@@ -4177,6 +4215,25 @@ impl Kernel {
             if let Some(owner) = self.ecs.get::<OwnedByParty>(*entity) {
                 let party = self.entity(&owner.party)?;
                 if self.ecs.get::<Party>(party).is_none() { return Err("owned entity references a non-party".into()); }
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_work_execution(&self) -> Result<()> {
+        for (id, entity) in &self.ids {
+            let Some(policy) = self.ecs.get::<crate::work_planner::WorkPolicy>(*entity) else { continue; };
+            let execution = self.ecs.get::<WorkExecution>(*entity).ok_or_else(|| format!("work policy {id} has no work execution"))?;
+            if execution.pool != policy.pool {
+                return Err(format!("work execution pool does not match work policy for {id}"));
+            }
+            if !valid_id(&execution.policy_id) || execution.initiating_player.as_ref().is_some_and(|player| !valid_id(player)) {
+                return Err(format!("invalid work execution for {id}"));
+            }
+            let pool = self.entity(&execution.pool)?;
+            let party = self.ecs.get::<Party>(pool).ok_or_else(|| format!("work execution pool is not a party for {id}"))?;
+            if execution.initiating_player.as_ref().is_some_and(|player| player != &party.owner_player) {
+                return Err(format!("work execution player does not own pool for {id}"));
             }
         }
         Ok(())
@@ -5036,7 +5093,8 @@ impl Kernel {
         Ok(())
     }
 
-    fn designate_stockpile(&mut self, party: String, zone: String, cells: Vec<StockpileDesignation>) -> Result<String> {
+    fn designate_stockpile(&mut self, party: String, zone: String, cells: Vec<StockpileDesignation>, scope: &ActionScope) -> Result<String> {
+        let execution = self.work_execution_for_scope(scope, &party, crate::work_planner::POLICY_STOCKPILE)?;
         if !valid_id(&party) || !valid_id(&zone) || cells.is_empty() || cells.len() > 256 { return Err("invalid stockpile designation".into()); }
         let party_entity = self.entity(&party)?;
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("stockpile party is not a party".into()); }
@@ -5065,15 +5123,15 @@ impl Kernel {
             let policy = StockpileCell { zone: zone.clone(), priority: cell.priority, filter_profile: cell.filter_profile.clone() };
             let owner = OwnedByParty { party: party.clone() };
             let entity = if let Some(entity) = self.ids.get(id).copied() {
-                self.ecs.entity_mut(entity).insert((position, policy, owner));
+                self.ecs.entity_mut(entity).insert((position, policy, owner, execution.clone()));
                 entity
             } else {
-                let entity = self.ecs.spawn((ExternalId(id.clone()), position, policy, owner)).id();
+                let entity = self.ecs.spawn((ExternalId(id.clone()), position, policy, owner, execution.clone())).id();
                 self.ids.insert(id.clone(), entity); self.known.insert(id.clone());
                 entity
             };
             self.index_stockpile_policy(id, entity);
-            stockpile_work::install_planner_state(self, &id, entity)?;
+            stockpile_work::install_planner_state(self, &id, entity, Some(execution.clone()))?;
         }
         self.refresh_state_weight();
         Ok(prepared[0].0.clone())
@@ -5094,7 +5152,7 @@ impl Kernel {
             self.ecs.entity_mut(entity).insert(policy);
             if let Some(schedule) = schedule { self.ecs.entity_mut(entity).insert(schedule); }
             let id = self.external_id(entity)?;
-            stockpile_work::install_planner_state(self, &id, entity)?;
+            stockpile_work::install_planner_state(self, &id, entity, None)?;
         }
         self.refresh_state_weight();
         Ok(zone)
@@ -5168,6 +5226,7 @@ impl Kernel {
             }
             ActionScope::Host => None,
         };
+        let execution = owner.as_deref().map(|party| self.work_execution_for_scope(scope, party, crate::work_planner::POLICY_PROCESS)).transpose()?;
         if !crate::components::valid_id(&process_id) || self.ids.len() >= 16_384 {
             return Err("process identity or state capacity exceeded".into());
         }
@@ -5191,6 +5250,7 @@ impl Kernel {
             if let Some(party) = owner.clone() {
                 self.ecs.entity_mut(existing).insert(OwnedByParty { party: party.clone() });
                 self.ecs.entity_mut(existing).insert(crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true });
+                self.ecs.entity_mut(existing).insert(execution.clone().ok_or("process execution missing")?);
                 self.ecs.entity_mut(existing).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
             }
             self.refresh_planner_index(&process_id);
@@ -5206,6 +5266,7 @@ impl Kernel {
         if let Some(party) = owner {
             self.ecs.entity_mut(entity).insert(OwnedByParty { party: party.clone() });
             self.ecs.entity_mut(entity).insert(crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true });
+            self.ecs.entity_mut(entity).insert(execution.ok_or("process execution missing")?);
             self.ecs.entity_mut(entity).insert(crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision });
         }
         self.ids.insert(process_id.clone(), entity);
@@ -5781,7 +5842,7 @@ impl Kernel {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
                 Ok(ActionEffect::None)
             }
-            Action::DesignateStockpile { party, zone, cells } => self.designate_stockpile(party, zone, cells).map(ActionEffect::Entity),
+            Action::DesignateStockpile { party, zone, cells } => self.designate_stockpile(party, zone, cells, scope).map(ActionEffect::Entity),
             Action::UpdateStockpile { party, zone, filter_profile, priority } => self.update_stockpile(party, zone, filter_profile, priority).map(ActionEffect::Entity),
             Action::ClearStockpile { party, zone, cells } => self.clear_stockpile(party, zone, cells).map(ActionEffect::Entity),
             Action::RequestProcess { definition, station } => self.request_process(&definition, &station, scope).map(ActionEffect::Entity),
@@ -5794,11 +5855,11 @@ impl Kernel {
                 Ok(ActionEffect::None)
             }
             Action::PlanConstructions { party, plans } => {
-                self.plan_constructions(party, plans)?;
+                self.plan_constructions(party, plans, scope)?;
                 Ok(ActionEffect::None)
             }
             Action::PlanExcavation { party, prefix, start, end } => {
-                self.plan_excavation(party, prefix, start, end)?;
+                self.plan_excavation(party, prefix, start, end, scope)?;
                 Ok(ActionEffect::None)
             }
             Action::CancelExcavation { party, area, workers } => {
@@ -5806,7 +5867,7 @@ impl Kernel {
                 self.cancel_excavation(party, area, workers)?;
                 Ok(ActionEffect::None)
             }
-            Action::PlanDeconstruction { site, party } => self.plan_deconstruction(site, party).map(ActionEffect::Entity),
+            Action::PlanDeconstruction { site, party } => self.plan_deconstruction(site, party, scope).map(ActionEffect::Entity),
             Action::ReplaceFloor { order_id, existing_floor_id, desired_catalog } => {
                 self.replace_floor(order_id, existing_floor_id, desired_catalog)?;
                 Ok(ActionEffect::None)
@@ -5960,8 +6021,8 @@ impl Kernel {
             Action::ExtractResource { operation: _, worker, source } => self.extract_resource(&worker, &source).map(ActionEffect::Entity),
             Action::EstablishResourceSite { operation, worker, site, definition, x, y, z } => self.establish_resource_site(&operation, &worker, &site, &definition, x, y, z).map(ActionEffect::Entity),
             Action::TendResourceSite { operation, worker, site, vessel } => self.tend_resource_site(&operation, &worker, &site, &vessel).map(|()| ActionEffect::None),
-            Action::DesignateResource { order, party, definition, x, y, z } => self.designate_resource(order, party, definition, x, y, z).map(ActionEffect::Entity),
-            Action::RequestFieldWater { party, material, portions } => self.request_field_water(party, material, portions).map(ActionEffect::Entity),
+            Action::DesignateResource { order, party, definition, x, y, z } => self.designate_resource(order, party, definition, x, y, z, scope).map(ActionEffect::Entity),
+            Action::RequestFieldWater { party, material, portions } => self.request_field_water(party, material, portions, scope).map(ActionEffect::Entity),
             Action::Launch {
                 launcher,
                 ammunition,

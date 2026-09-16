@@ -26,6 +26,13 @@ pub struct PartyMember {
 pub struct OwnedByParty {
     pub party: String,
 }
+#[derive(Component, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WorkExecution {
+    pub pool: String,
+    pub initiating_player: Option<String>,
+    pub policy_id: String,
+}
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PartyBinding {
@@ -480,6 +487,7 @@ pub enum FieldType {
     Number,
     Boolean,
     String,
+    NullableString,
     Entity,
     NullableEntity,
 }

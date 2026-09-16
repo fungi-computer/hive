@@ -3,7 +3,7 @@
 //! A stockpile cell is policy painted onto a position. This module turns
 //! available visible lots into ordinary supply requirements; it does not own
 //! contents, capacity, or a second inventory/delivery lifecycle.
-use crate::components::{Container, GroundStock, Lot, OwnedByParty, Position, SealedContainer, StockpileCell};
+use crate::components::{Container, GroundStock, Lot, OwnedByParty, Position, SealedContainer, StockpileCell, WorkExecution};
 use crate::supply_allocation::reserved_source;
 use crate::world::Kernel;
 use std::collections::{BTreeMap, BTreeSet};
@@ -195,10 +195,12 @@ pub(crate) fn collect(kernel: &Kernel, cell_id: &str, party: &str) -> Result<Vec
 /// Install the shared scheduler records at each stockpile creation/load
 /// boundary. The planner tick consumes its existing indexed task set and does
 /// not discover cells by crawling the whole ECS.
-pub(super) fn install_planner_state(kernel: &mut Kernel, id: &str, entity: bevy_ecs::prelude::Entity) -> crate::components::Result<()> {
+pub(super) fn install_planner_state(kernel: &mut Kernel, id: &str, entity: bevy_ecs::prelude::Entity, execution: Option<WorkExecution>) -> crate::components::Result<()> {
     let Some(owner) = kernel.ecs.get::<OwnedByParty>(entity).cloned() else { return Ok(()); };
+    let execution = execution.or_else(|| kernel.ecs.get::<WorkExecution>(entity).cloned()).ok_or("stockpile has no work execution")?;
+    if execution.pool != owner.party { return Err("stockpile execution pool mismatch".into()); }
     let schedule = kernel.ecs.get::<crate::work_planner::WorkSchedule>(entity).cloned().unwrap_or(crate::work_planner::WorkSchedule { next_review_tick: kernel.revision, last_considered: kernel.revision.saturating_sub(1) });
-    kernel.ecs.entity_mut(entity).insert((crate::work_planner::WorkPolicy { pool: owner.party, priority: 0, enabled: true }, schedule));
+    kernel.ecs.entity_mut(entity).insert((crate::work_planner::WorkPolicy { pool: owner.party, priority: 0, enabled: true }, execution, schedule));
     kernel.refresh_planner_index(id);
     Ok(())
 }
@@ -275,11 +277,11 @@ mod tests {
             "initial": [
                 {"id":"party", "components":{"hive.party":{"ownerPlayer":"p"}}},
                 {"id":"source", "components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
-                {"id":"source-policy", "components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"low","priority":1,"filterProfile":"wood"},"hive.owned-by-party":{"party":"party"}}},
-                {"id":"target", "components":{"hive.position":{"x":1,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"high","priority":2,"filterProfile":"wood"},"hive.owned-by-party":{"party":"party"}}},
+                {"id":"source-policy", "components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"low","priority":1,"filterProfile":"wood"},"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"stockpile"}}},
+                {"id":"target", "components":{"hive.position":{"x":1,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"high","priority":2,"filterProfile":"wood"},"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"stockpile"}}},
                 {"id":"target-ground", "components":{"hive.position":{"x":1,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
                 {"id":"target-shelf", "components":{"hive.position":{"x":1,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4},"hive.storage-provider":{},"hive.owned-by-party":{"party":"party"}}},
-                {"id":"invalid", "components":{"hive.position":{"x":2,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"bad","priority":1,"filterProfile":"food"},"hive.owned-by-party":{"party":"party"}}},
+                {"id":"invalid", "components":{"hive.position":{"x":2,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"bad","priority":1,"filterProfile":"food"},"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"stockpile"}}},
                 {"id":"invalid-ground", "components":{"hive.position":{"x":2,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
                 {"id":"ground", "components":{"hive.position":{"x":3,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
                 {"id":"lot-low", "components":{"hive.lot":{"kind":"wood","quantity":2,"container":"source"},"hive.owned-by-party":{"party":"party"}}},

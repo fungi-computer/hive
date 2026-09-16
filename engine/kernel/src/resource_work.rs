@@ -9,7 +9,8 @@ use crate::work_attempt::{ActivityRef, AttemptPhase, WorkBlockReason, WorkOutcom
 use crate::work_planner::{WorkOperation, WorkParticipation, WorkPolicy, WorkRequirement, WorkSchedule};
 
 impl Kernel {
-    pub(super) fn request_field_water(&mut self, party: String, material: String, portions: u8) -> Result<String> {
+    pub(super) fn request_field_water(&mut self, party: String, material: String, portions: u8, scope: &ActionScope) -> Result<String> {
+        let execution = self.work_execution_for_scope(scope, &party, crate::work_planner::POLICY_FIELD_WATER)?;
         if !valid_id(&party) || !valid_id(&material) || portions == 0 || portions > 7 {
             return Err("invalid field water request".into());
         }
@@ -21,12 +22,14 @@ impl Kernel {
             ExternalId(id.clone()), OwnedByParty { party: party.clone() },
             FieldWaterWork { process: id.clone(), role: "manual".into(), generation: 1, party: party.clone(), destination: id.clone(), material, retain_in_vessel: true, portions, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None },
             WorkPolicy { pool: party, priority: 0, enabled: true },
+            execution,
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
         )).id();
         self.ids.insert(id.clone(), entity); self.known.insert(id.clone()); self.contents.insert(id.clone(), Default::default());
         self.refresh_planner_index(&id); self.refresh_state_weight(); Ok(id)
     }
-    pub(super) fn designate_resource(&mut self, order_id: String, party: String, definition: String, x: i32, y: i32, z: i32) -> Result<String> {
+    pub(super) fn designate_resource(&mut self, order_id: String, party: String, definition: String, x: i32, y: i32, z: i32, scope: &ActionScope) -> Result<String> {
+        let execution = self.work_execution_for_scope(scope, &party, crate::work_planner::POLICY_RESOURCE)?;
         if !valid_id(&order_id) || !valid_id(&party) || !valid_id(&definition) || self.known.contains(&order_id) {
             return Err("invalid resource designation".into());
         }
@@ -54,6 +57,7 @@ impl Kernel {
             OwnedByParty { party: party.clone() },
             ResourceOrder { definition, cell_x: x, cell_y: y, cell_z: z, status: "queued".into(), reason: String::new(), progress_seconds: 0.0 },
             WorkPolicy { pool: party, priority: 0, enabled: true },
+            execution,
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
         )).id();
         self.ids.insert(order_id.clone(), entity);
@@ -93,10 +97,13 @@ impl Kernel {
         let task_id = format!("resource-water:{order_id}:{generation}");
         if self.known.contains(&task_id) { return Ok(()); }
         if self.ids.len() >= 16_384 { return Err("region entity capacity".into()); }
+        let parent = self.entity(order_id)?;
+        let execution = self.ecs.get::<WorkExecution>(parent).cloned().ok_or("resource order has no work execution")?;
         let entity = self.ecs.spawn((
             ExternalId(task_id.clone()), OwnedByParty { party: party.into() },
             FieldWaterWork { process: order_id.into(), role: "tend".into(), generation, party: party.into(), destination: order_id.into(), material: material.into(), retain_in_vessel: true, portions, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None },
             WorkPolicy { pool: party.into(), priority: 0, enabled: true },
+            execution,
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
         )).id();
         self.ids.insert(task_id.clone(), entity); self.known.insert(task_id.clone()); self.contents.insert(task_id.clone(), Default::default());

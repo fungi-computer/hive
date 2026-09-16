@@ -287,6 +287,8 @@ impl Kernel {
                 sequence: 1,
             };
             let party = item.allocation.party.clone();
+            let execution = self.ecs.get::<WorkExecution>(self.entity(&item.allocation.requirement_owner)?).cloned()
+                .ok_or("supply requirement owner has no work execution")?;
             let entity = self
                 .ecs
                 .spawn((
@@ -299,6 +301,7 @@ impl Kernel {
                         priority: 0,
                         enabled: true,
                     },
+                    execution,
                     crate::work_planner::WorkSchedule {
                         next_review_tick: self.revision,
                         last_considered: self.revision.saturating_sub(1),

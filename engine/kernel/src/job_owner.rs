@@ -157,6 +157,7 @@ impl Kernel {
                 crate::job::EntityBinding::Result { .. } => None,
             }),
         };
+        let execution = owner.as_deref().map(|party| self.work_execution_for_scope(scope, party, crate::work_planner::POLICY_JOB)).transpose()?;
         if self.ids.contains_key(&id) {
             let entity = self.entity(&id)?;
             let existing = self.ecs.get::<crate::job::Job>(entity).ok_or("job identity is already in use")?;
@@ -188,12 +189,15 @@ impl Kernel {
         if self.state_weight.saturating_add(projected_job_bytes) > super::STATE_BYTES { return Err("job state exceeds canonical capacity".into()); }
         let job_entity = self.ecs.spawn((ExternalId(id.clone()), crate::job::Job { version: crate::job::CURRENT_VERSION, definition: plan.definition.clone(), definition_version: plan.definition_version, task_ids: task_ids.clone(), state: crate::job::JobState::Active })).id();
         self.ids.insert(id.clone(), job_entity); self.known.insert(id.clone());
-        if let Some(party) = owner.clone() { self.ecs.entity_mut(job_entity).insert(OwnedByParty { party }); }
+        if let Some(party) = owner.clone() {
+            self.ecs.entity_mut(job_entity).insert(OwnedByParty { party });
+            self.ecs.entity_mut(job_entity).insert(execution.clone().ok_or("job execution missing")?);
+        }
         for (step, task_id) in plan.steps.into_iter().zip(task_ids.iter()) {
             let task_entity = self.ecs.spawn((ExternalId(task_id.clone()), crate::job::Task { version: crate::job::CURRENT_VERSION, job: id.clone(), step: step.key, after: step.after, operation: step.operation, state: crate::job::TaskState::Pending, continuation: step.continuation.clone(), bound_actor: match step.continuation { crate::job::ContinuationPolicy::AssignedActor(actor) => Some(actor), _ => None } }, crate::job::JobTaskWork { seconds: 0.0 })).id();
             self.ids.insert(task_id.clone(), task_entity); self.known.insert(task_id.clone());
             if let Some(party) = owner.clone() {
-                self.ecs.entity_mut(task_entity).insert((OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }));
+                self.ecs.entity_mut(task_entity).insert((OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true }, execution.clone().ok_or("job execution missing")?, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }));
             }
             self.refresh_planner_index(task_id);
         }

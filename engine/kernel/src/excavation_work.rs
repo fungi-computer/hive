@@ -116,7 +116,8 @@ impl Kernel {
         }))
     }
 
-    pub(super) fn plan_excavation(&mut self, party: String, prefix: String, start: [i32; 3], end: [i32; 3]) -> Result<()> {
+    pub(super) fn plan_excavation(&mut self, party: String, prefix: String, start: [i32; 3], end: [i32; 3], scope: &ActionScope) -> Result<()> {
+        let execution = self.work_execution_for_scope(scope, &party, crate::work_planner::POLICY_EXCAVATION)?;
         if !valid_id(&party) || !valid_id(&prefix) || prefix.len() > 96 { return Err("invalid excavation designation identity".into()); }
         let party_entity = self.entity(&party)?;
         if self.ecs.get::<Party>(party_entity).is_none() { return Err("excavation designation party is not a party".into()); }
@@ -160,10 +161,10 @@ impl Kernel {
         let existing_orders = self.ids.values().filter(|entity| self.ecs.get::<ExcavationOrder>(**entity).is_some()).count();
         if existing_orders.saturating_add(prepared.len()) > 256 { return Err("Finish or cancel existing dig orders before adding more than 256".into()); }
         if prepared.is_empty() && replayed == 0 { return Err("excavation area has no valid diggable cells".into()); }
-        let added_weight = prepared.iter().map(|(id, order)| id.len() + 128 + self.registry.weight("hive.excavation-order", &record(order)) + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() })) + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true })) + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }))).sum::<usize>();
+        let added_weight = prepared.iter().map(|(id, order)| id.len() + 128 + self.registry.weight("hive.excavation-order", &record(order)) + self.registry.weight("hive.owned-by-party", &record(&OwnedByParty { party: party.clone() })) + self.registry.weight("hive.work-policy", &record(&crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true })) + self.registry.weight("hive.work-execution", &record(&execution)) + self.registry.weight("hive.work-schedule", &record(&crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision }))).sum::<usize>();
         if self.state_weight.saturating_add(added_weight) > STATE_BYTES { return Err("region canonical state capacity".into()); }
         for (id, order) in prepared {
-            let entity = self.ecs.spawn((ExternalId(id.clone()), order, OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }, crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
+            let entity = self.ecs.spawn((ExternalId(id.clone()), order, OwnedByParty { party: party.clone() }, crate::work_planner::WorkPolicy { pool: party.clone(), priority: 0, enabled: true }, execution.clone(), crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
             self.ids.insert(id.clone(), entity);
             self.known.insert(id.clone());
             self.refresh_planner_index(&id);
@@ -556,7 +557,7 @@ mod tests {
         let (mut kernel, work) = planner_fixture();
         let at = [work.x, work.y, work.z];
         kernel
-            .plan_excavation("party".into(), "dig".into(), at, at)
+            .plan_excavation("party".into(), "dig".into(), at, at, &ActionScope::Host)
             .unwrap();
         let task = format!("dig.{}.{}.{}", work.x, work.y, work.z);
         let entity = kernel.entity(&task).unwrap();
@@ -578,7 +579,7 @@ mod tests {
         let (mut kernel, work) = planner_fixture();
         let at = [work.x, work.y, work.z];
         kernel
-            .plan_excavation("party".into(), "dig".into(), at, at)
+            .plan_excavation("party".into(), "dig".into(), at, at, &ActionScope::Host)
             .unwrap();
         let task = format!("dig.{}.{}.{}", work.x, work.y, work.z);
         assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);

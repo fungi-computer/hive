@@ -16,14 +16,14 @@ import type { z } from "zod";
 
 type Shape = Record<
   string,
-  "number" | "boolean" | "string" | "entity" | "nullable-entity"
+  "number" | "boolean" | "string" | "nullable-string" | "entity" | "nullable-entity"
 >;
 type CapabilityReference = ComponentDefinition<any> | ComponentId;
 
 const capabilityId = (value: CapabilityReference): ComponentId =>
   typeof value === "string" ? value : value.id;
 const valid = (type: Shape[string], value: unknown): boolean =>
-  (type === "nullable-entity" &&
+  ((type === "nullable-entity" || type === "nullable-string") &&
     (value === null || typeof value === "string")) ||
   (type === "number" && typeof value === "number" && Number.isFinite(value)) ||
   (type === "boolean" && typeof value === "boolean") ||

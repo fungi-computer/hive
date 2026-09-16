@@ -377,6 +377,7 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
     kernel.ecs.entity_mut(process_entity).insert((
         OwnedByParty { party: "party:process".into() },
         crate::work_planner::WorkPolicy { pool: "party:process".into(), priority: 0, enabled: true },
+        WorkExecution { pool: "party:process".into(), initiating_player: None, policy_id: crate::work_planner::POLICY_PROCESS.into() },
         crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
     ));
     for (id, quantity) in [("partial-keg-a", 2), ("partial-keg-b", 3)] {
@@ -468,6 +469,7 @@ fn admitted() -> (Kernel, String) {
         // These lifecycle tests drive attendance explicitly. Keep the enabled
         // domain policy but schedule its automatic review beyond this fixture.
         crate::work_planner::WorkPolicy { pool: "party:process".into(), priority: 0, enabled: true },
+        WorkExecution { pool: "party:process".into(), initiating_player: None, policy_id: crate::work_planner::POLICY_PROCESS.into() },
         crate::work_planner::WorkSchedule { next_review_tick: u64::MAX, last_considered: 0 },
     ));
     kernel.refresh_state_weight();
@@ -784,6 +786,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
         k.ecs.entity_mut(process_entity).insert((
             OwnedByParty { party: "party:process".into() },
             crate::work_planner::WorkPolicy { pool: "party:process".into(), priority: 0, enabled: true },
+            WorkExecution { pool: "party:process".into(), initiating_player: None, policy_id: crate::work_planner::POLICY_PROCESS.into() },
             crate::work_planner::WorkSchedule { next_review_tick: u64::MAX, last_considered: 0 },
         ));
         k.refresh_state_weight();

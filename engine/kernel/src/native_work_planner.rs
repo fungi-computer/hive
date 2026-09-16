@@ -462,11 +462,13 @@ impl Kernel {
 
     fn install_field_water_allocation(&mut self, task: &str, work: FieldWaterWork, lot: String) -> Result<()> {
         let entity = self.entity(task)?;
+        let execution = self.ecs.get::<WorkExecution>(entity).cloned().ok_or("field water task has no work execution")?;
         self.ecs.entity_mut(entity).remove::<FieldWaterWork>();
         self.ecs.entity_mut(entity).remove::<WorkPolicy>();
         self.ecs.entity_mut(entity).remove::<WorkSchedule>();
         self.ecs.entity_mut(entity).insert((
             WorkPolicy { pool: work.party.clone(), priority: 0, enabled: true },
+            execution,
             WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
             SupplyAllocation {
             requirement_owner: work.process,
@@ -1027,6 +1029,8 @@ impl Kernel {
                 let id = field_water_task_id(&requirement.owner, &requirement.role, requirement.generation, ordinal);
                 if self.known.contains(&id) { continue; }
                 if self.ids.len() >= 16_384 { return Err("region entity capacity".into()); }
+                let execution = self.ecs.get::<WorkExecution>(self.entity(&requirement.owner)?).cloned()
+                    .ok_or("field water requirement owner has no work execution")?;
                 let entity = self.ecs.spawn((
                     ExternalId(id.clone()),
                     OwnedByParty { party: requirement.party.clone() },
@@ -1036,6 +1040,7 @@ impl Kernel {
                         cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
                     },
                     WorkPolicy { pool: requirement.party.clone(), priority: 0, enabled: true },
+                    execution,
                     WorkSchedule { next_review_tick: self.revision, last_considered: self.revision.saturating_sub(1) },
                 )).id();
                 self.ids.insert(id.clone(), entity);
@@ -1557,7 +1562,7 @@ mod tests {
                     cell: surface,
                     orientation: Cardinal::North,
                 },
-            }])
+            }], &ActionScope::Host)
             .unwrap();
         kernel
             .bind_construction_stage("site", contact.clone())
@@ -1618,7 +1623,9 @@ mod tests {
         )).id();
         kernel.ids.insert("target".into(), target);
         kernel.known.insert("target".into());
-        super::super::stockpile_work::install_planner_state(&mut kernel, "target", target).unwrap();
+        super::super::stockpile_work::install_planner_state(&mut kernel, "target", target, Some(WorkExecution {
+            pool: "party".into(), initiating_player: None, policy_id: crate::work_planner::POLICY_STOCKPILE.into(),
+        })).unwrap();
         kernel.rebuild_physical_indexes(true).unwrap();
         // Publish a fresh ownerless ground output after the last rebuild. The
         // live source index must expose it immediately, without a reload.
@@ -1869,7 +1876,7 @@ mod tests {
         kernel.ecs.entity_mut(site).insert(ConstructionSite { phase: ConstructionPhase::Finished, ..state });
         kernel.ecs.entity_mut(site).insert(SealedContainer {});
         kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap().on_remove.salvage.insert("stone-spoil".into(), 6);
-        let task = kernel.plan_deconstruction("site".into(), "party".into()).unwrap();
+        let task = kernel.plan_deconstruction("site".into(), "party".into(), &ActionScope::Host).unwrap();
         assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
         assert!(matches!(
             &kernel.work_attempt(&task).expect("native planner must assign deconstruction").phase,
@@ -1895,7 +1902,7 @@ mod tests {
         kernel.ecs.entity_mut(site).insert(ConstructionSite { phase: ConstructionPhase::Finished, ..state });
         kernel.ecs.entity_mut(site).insert(SealedContainer {});
         kernel.environment.as_mut().unwrap().structures.get_mut("floor").unwrap().on_remove.salvage.insert("stone-spoil".into(), 6);
-        let task = kernel.plan_deconstruction("site".into(), "party".into()).unwrap();
+        let task = kernel.plan_deconstruction("site".into(), "party".into(), &ActionScope::Host).unwrap();
         assert_eq!(kernel.advance_native_work_planner(8).unwrap(), 1);
         settle_routes(&mut kernel);
         assert_eq!(kernel.advance_native_work_planner(16).unwrap(), 1);
@@ -1921,7 +1928,7 @@ mod tests {
         kernel.plan_constructions("party".into(), vec![ConstructionPlan {
             catalog: "floor".into(), site: "site-2".into(),
             target: ConstructionTarget::Cell { cell: second_cell, orientation: Cardinal::North },
-        }]).unwrap();
+        }], &ActionScope::Host).unwrap();
         kernel.bind_construction_stage("site-2", second_contact).unwrap();
         let source = kernel.entity("source").unwrap();
         let lot = kernel.ecs.spawn((
@@ -1959,7 +1966,7 @@ mod tests {
                     cell: second_cell,
                     orientation: Cardinal::North,
                 },
-            }])
+            }], &ActionScope::Host)
             .unwrap();
         kernel
             .bind_construction_stage(

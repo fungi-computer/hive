@@ -13,6 +13,14 @@ pub const MAX_TASK_REVIEWS: usize = 32;
 pub const MAX_ELIGIBLE_WORKERS: usize = 256;
 pub const MAX_CANDIDATE_PAIRS: usize = 4096;
 pub const MAX_ASSIGNMENTS: usize = 8;
+pub const POLICY_CONSTRUCTION: &str = "construction";
+pub const POLICY_DECONSTRUCTION: &str = "deconstruction";
+pub const POLICY_EXCAVATION: &str = "excavation";
+pub const POLICY_RESOURCE: &str = "resource";
+pub const POLICY_STOCKPILE: &str = "stockpile";
+pub const POLICY_PROCESS: &str = "process";
+pub const POLICY_JOB: &str = "job";
+pub const POLICY_FIELD_WATER: &str = "field-water";
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "kind", content = "entity", deny_unknown_fields)]

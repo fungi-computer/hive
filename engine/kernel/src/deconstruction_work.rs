@@ -37,7 +37,8 @@ impl Kernel {
         Ok(())
     }
 
-    pub(super) fn plan_deconstruction(&mut self, site: String, party: String) -> Result<String> {
+    pub(super) fn plan_deconstruction(&mut self, site: String, party: String, scope: &ActionScope) -> Result<String> {
+        let execution = self.work_execution_for_scope(scope, &party, crate::work_planner::POLICY_DECONSTRUCTION)?;
         if !crate::components::valid_id(&site) || !crate::components::valid_id(&party) { return Err("invalid deconstruction plan identity".into()); }
         let site_entity = self.entity(&site)?;
         let state = self.ecs.get::<ConstructionSite>(site_entity).ok_or("not a construction site")?;
@@ -53,6 +54,7 @@ impl Kernel {
         let order = DeconstructionOrder { site, contact_x: 0.0, contact_y: 0.0, contact_z: 0.0, salvage_quantity: 0, work_seconds: 0.0, status: "queued".into(), reason: String::new(), retry_key: String::new() };
         let entity = self.ecs.spawn((ExternalId(task.clone()), order, OwnedByParty { party: party.clone() },
             crate::work_planner::WorkPolicy { pool: party, priority: 0, enabled: true },
+            execution,
             crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision })).id();
         self.ids.insert(task.clone(), entity); self.known.insert(task.clone());
         self.refresh_planner_index(&task); self.refresh_state_weight();

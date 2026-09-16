@@ -87,6 +87,7 @@ impl Registry {
             ("hive.owned-by-party", vec![("party", FieldType::Entity)]),
             ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
             ("hive.work-policy", vec![("pool", FieldType::Entity), ("priority", FieldType::Number), ("enabled", FieldType::Boolean)]),
+            ("hive.work-execution", vec![("pool", FieldType::Entity), ("initiatingPlayer", FieldType::NullableString), ("policyId", FieldType::String)]),
             ("hive.work-schedule", vec![("nextReviewTick", FieldType::Number), ("lastConsidered", FieldType::Number)]),
             ("hive.job-task-work", vec![("seconds", FieldType::Number)]),
             (
@@ -289,6 +290,7 @@ impl Registry {
                 "hive.owned-by-party" => world.register_component::<OwnedByParty>(),
                 "hive.work-participation" => world.register_component::<crate::work_planner::WorkParticipation>(),
                 "hive.work-policy" => world.register_component::<crate::work_planner::WorkPolicy>(),
+                "hive.work-execution" => world.register_component::<WorkExecution>(),
                 "hive.work-schedule" => world.register_component::<crate::work_planner::WorkSchedule>(),
                 "hive.job-task-work" => world.register_component::<crate::job::JobTaskWork>(),
                 _ => {
@@ -353,6 +355,7 @@ impl Registry {
             FieldType::Number => value.as_f64().is_some_and(f64::is_finite),
             FieldType::Boolean => value.is_boolean(),
             FieldType::String => value.is_string(),
+            FieldType::NullableString => value.is_null() || value.is_string(),
             FieldType::Entity => value.as_str().is_some_and(valid_id),
             FieldType::NullableEntity => value.is_null() || value.as_str().is_some_and(valid_id),
         }
@@ -361,7 +364,7 @@ impl Registry {
         matches!((parameter, field),
             (ActorParameterType::Number, FieldType::Number)
             | (ActorParameterType::Boolean, FieldType::Boolean)
-            | (ActorParameterType::String, FieldType::String)
+            | (ActorParameterType::String, FieldType::String | FieldType::NullableString)
             | (ActorParameterType::Entity, FieldType::Entity)
             | (ActorParameterType::NullableEntity, FieldType::NullableEntity)
             | (ActorParameterType::ActorReference, FieldType::Entity))
@@ -417,6 +420,7 @@ impl Registry {
                     let size = match self.schemas[name].fields[key] {
                         FieldType::Entity | FieldType::NullableEntity => 132,
                         FieldType::Number | FieldType::Boolean => 64,
+                        FieldType::NullableString => v.as_str().map_or(16, |value| value.len().saturating_add(16)),
                         FieldType::String => {
                             serde_json::to_string(v).expect("validated string").len()
                         }
@@ -441,6 +445,7 @@ impl Registry {
                 FieldType::Number => v.as_f64().is_some_and(f64::is_finite),
                 FieldType::Boolean => v.is_boolean(),
                 FieldType::String => v.as_str().is_some_and(|s| s.len() <= 4096),
+                FieldType::NullableString => v.is_null() || v.as_str().is_some_and(|s| s.len() <= 4096),
                 FieldType::Entity => v.as_str().is_some_and(|s| known.contains(s)),
                 FieldType::NullableEntity => {
                     v.is_null() || v.as_str().is_some_and(|s| known.contains(s))
@@ -676,6 +681,12 @@ impl Registry {
             }
             "hive.work-participation" => { let _: crate::work_planner::WorkParticipation = decode(value)?; }
             "hive.work-policy" => { let policy: crate::work_planner::WorkPolicy = decode(value)?; if !valid_id(&policy.pool) { return Err("invalid work policy pool".into()); } }
+            "hive.work-execution" => {
+                let execution: WorkExecution = decode(value)?;
+                if !valid_id(&execution.pool) || !valid_id(&execution.policy_id)
+                    || execution.initiating_player.as_ref().is_some_and(|player| !valid_id(player))
+                { return Err("invalid work execution".into()); }
+            }
             "hive.work-schedule" => { let schedule: crate::work_planner::WorkSchedule = decode(value)?; if schedule.next_review_tick < schedule.last_considered { return Err("invalid work schedule".into()); } }
             "hive.job-task-work" => { let work: crate::job::JobTaskWork = decode(value)?; if !work.seconds.is_finite() || work.seconds < 0.0 { return Err("invalid job task work".into()); } }
             "hive.excavation-order" => {
@@ -779,6 +790,7 @@ impl Registry {
             "hive.owned-by-party" => { world.entity_mut(entity).insert(decode::<OwnedByParty>(value)?); }
             "hive.work-participation" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkParticipation>(value)?); }
             "hive.work-policy" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkPolicy>(value)?); }
+            "hive.work-execution" => { world.entity_mut(entity).insert(decode::<WorkExecution>(value)?); }
             "hive.work-schedule" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkSchedule>(value)?); }
             "hive.job-task-work" => { world.entity_mut(entity).insert(decode::<crate::job::JobTaskWork>(value)?); }
             _ => {
@@ -800,6 +812,7 @@ impl Registry {
             "hive.owned-by-party" => world.get::<OwnedByParty>(entity).map(record),
             "hive.work-participation" => world.get::<crate::work_planner::WorkParticipation>(entity).map(record),
             "hive.work-policy" => world.get::<crate::work_planner::WorkPolicy>(entity).map(record),
+            "hive.work-execution" => world.get::<WorkExecution>(entity).map(record),
             "hive.work-schedule" => world.get::<crate::work_planner::WorkSchedule>(entity).map(record),
             "hive.job-task-work" => world.get::<crate::job::JobTaskWork>(entity).map(record),
             "hive.position" => world.get::<Position>(entity).map(record),

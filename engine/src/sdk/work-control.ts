@@ -9,6 +9,10 @@ export const WorkPolicy = component<{ pool: string; priority: number; enabled: b
   version: 1,
   fields: { pool: "entity", priority: "number", enabled: "boolean" },
 });
+export const WorkExecution = component<{ pool: string; initiatingPlayer: string | null; policyId: string }>("hive.work-execution", {
+  version: 1,
+  fields: { pool: "entity", initiatingPlayer: "nullable-string", policyId: "string" },
+});
 export const WorkSchedule = component<{ nextReviewTick: number; lastConsidered: number }>("hive.work-schedule", {
   version: 1,
   fields: { nextReviewTick: "number", lastConsidered: "number" },

@@ -13,7 +13,7 @@ import {
   SupplyAllocation,
 } from "../sdk/common";
 import { Party, PartyMember, OwnedByParty } from "../sdk/party";
-import { WorkParticipation, WorkPolicy, WorkSchedule } from "../sdk/work-control";
+import { WorkExecution, WorkParticipation, WorkPolicy, WorkSchedule } from "../sdk/work-control";
 import type { EntityId, GamePack, ReadContext } from "../contracts";
 
 export const PirateCrew = component<{ controlled: boolean }>("pirates.crew", {
@@ -116,6 +116,7 @@ const piratesInitial = [
     components: {
       "hive.owned-by-party": { party: piratePartyId },
       "hive.work-policy": { pool: piratePartyId, priority: 0, enabled: true },
+      "hive.work-execution": { pool: piratePartyId, initiatingPlayer: null, policyId: "supply-allocation" },
       "hive.work-schedule": { nextReviewTick: 0, lastConsidered: 0 },
       "hive.supply-allocation": { requirementOwner: breadTaskId, requirementRole: "pirate-cargo", requirementGeneration: 1, party: piratePartyId, material: "bread", portion: breadId, destination: holdId, quantity: 1, state: "reserved" },
     },
@@ -125,6 +126,7 @@ const piratesInitial = [
     components: {
       "hive.owned-by-party": { party: piratePartyId },
       "hive.work-policy": { pool: piratePartyId, priority: 0, enabled: true },
+      "hive.work-execution": { pool: piratePartyId, initiatingPlayer: null, policyId: "supply-allocation" },
       "hive.work-schedule": { nextReviewTick: 0, lastConsidered: 0 },
       "hive.supply-allocation": { requirementOwner: woodTaskId, requirementRole: "pirate-cargo", requirementGeneration: 1, party: piratePartyId, material: "wood", portion: woodId, destination: holdId, quantity: 1, state: "reserved" },
     },
@@ -147,6 +149,7 @@ const pirateComponents = [
   SupplyAllocation,
   WorkParticipation,
   WorkPolicy,
+  WorkExecution,
   WorkSchedule,
 ] as const;
 
