@@ -27,7 +27,13 @@ export function materialCoverage({ chunks, palette, bounds, verticalMetres, epoc
     const chunk = indexed.get(key(cell.map(value => Math.floor(value / 8))));
     if (!chunk) return { kind: "unknown" };
     const runs = chunk.columns.get(key([cell[0], cell[2]]));
-    const run = runs?.find(run => run.minY <= cell[1] && cell[1] < run.maxY);
+    let low = 0, high = (runs?.length ?? 0) - 1, run;
+    while (low <= high) {
+      const middle = (low + high) >> 1, candidate = runs[middle];
+      if (cell[1] < candidate.minY) high = middle - 1;
+      else if (cell[1] >= candidate.maxY) low = middle + 1;
+      else { run = candidate; break; }
+    }
     if (!run) throw new Error("incomplete terrain coverage column");
     const material = materials.get(run.material);
     if (!material || typeof material.solid !== "boolean") throw new Error("unknown terrain material slot");
@@ -51,7 +57,7 @@ export function projectedBounds(points) {
 }
 
 /** Exposed cell faces only. Undecided neighbor faces stay absent, not open air. */
-export function terrainFaceRecords(coverage, { level, projection, viewport, appearance }) {
+export function terrainFaceRecords(coverage, { level, projection, viewport, appearance, generatedTops = new Map() }) {
   if (!Number.isSafeInteger(level)) throw new Error("terrain cut needs an integer support level");
   const records = [];
   for (const chunk of coverage.chunks) for (const column of chunk.columns) for (const run of column.runs) {
@@ -77,7 +83,8 @@ export function terrainFaceRecords(coverage, { level, projection, viewport, appe
           screenBounds, storeyBand: y, pickable: false, visible: true,
           // Appearance receives material and cap, so grass cannot be inferred
           // from the highest column. Original art selection stays its owner.
-          ...(appearance ? { terrainBatch: appearance({ cell, face, material: material.material, cap }), projected } : {}),
+          ...(appearance ? { terrainBatch: appearance({ cell, face, material: material.material, cap,
+            generatedTop: generatedTops.get(`${cell[0]},${cell[2]}`) }), projected } : {}),
         };
         const proxy = prepareOrderingProxy(record, projection);
         if (!proxy) continue;

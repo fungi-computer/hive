@@ -43,7 +43,7 @@ const signature = records => JSON.stringify(records.map(record => [stableKey(rec
  * Unchanged runs retain buffers. At most maxMeshes mesh/buffer pairs survive;
  * callers may set one common parent transform for pan/zoom without repacking.
  */
-export function createTerrainBatchMeshes({ maxMeshes = 512 } = {}) {
+export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
   if (!Number.isInteger(maxMeshes) || maxMeshes < 1 || maxMeshes > 4096) throw new Error("invalid terrain mesh budget");
   let active = [], spare = [], disposed = false;
   function destroy(entry) { entry.mesh.removeFromParent(); entry.mesh.destroy(); entry.geometry.destroy(true); }
@@ -92,7 +92,10 @@ export function createTerrainBatchMeshes({ maxMeshes = 512 } = {}) {
         else destroy(entry);
       }
       active = next;
-      for (const batch of displays) if (batch.display) batch.display.zIndex = batch.zIndex;
+      for (const batch of displays) if (batch.display) {
+        batch.display.zIndex = batch.zIndex;
+        if (parent && batch.display.parent !== parent) parent.addChild(batch.display);
+      }
       return displays;
     },
     get size() { return active.length; },

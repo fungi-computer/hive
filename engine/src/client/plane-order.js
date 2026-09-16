@@ -56,10 +56,11 @@ export function prepareOrderingProxy(node, projection) {
       const candidate = cross3(subtract(points[i], origin), subtract(points[i + 1], origin));
       if (Math.hypot(candidate.x, candidate.y, candidate.z) > PLANE_EPSILON) { normal = candidate; break; }
     }
-  } else {
+  } else if (node.orderingKind === "line" || node.partRole === "upright-boundary") {
     const end = points.find(p => Math.hypot(p.x - origin.x, p.z - origin.z) > PLANE_EPSILON);
-    normal = end ? { x: end.z - origin.z, y: 0, z: origin.x - end.x } : { x: projection.direction.x, y: 0, z: projection.direction.z };
-  }
+    if (!end) throw new Error(`line ordering proxy needs two distinct endpoints: ${node.id}`);
+    normal = { x: end.z - origin.z, y: 0, z: origin.x - end.x };
+  } else normal = { x: projection.direction.x, y: 0, z: projection.direction.z };
   if (!normal) return null;
   const length = Math.hypot(normal.x, normal.y, normal.z);
   normal = { x: normal.x / length, y: normal.y / length, z: normal.z / length };

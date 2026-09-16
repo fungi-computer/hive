@@ -30,7 +30,7 @@ const faces = (data, level, view=projection) => terrainFaceRecords(materialCover
 const has = (records,cell,face) => records.find(record=>record.cell.join(",")===cell.join(",")&&record.face===face);
 function actor(id,x,y,z,height=32) {
   const p=projection.project({x,y,z});
-  return {id,role:"actor",footprint:[{x,y,z}],screenBounds:{left:p.x-5,right:p.x+5,top:p.y-height,bottom:p.y},moving:true,pickable:true};
+  return {id,role:"actor",orderingKind:"compact",footprint:[{x,y,z}],screenBounds:{left:p.x-5,right:p.x+5,top:p.y-height,bottom:p.y},moving:true,pickable:true,contains:point=>point.x>=p.x-5&&point.x<=p.x+5&&point.y>=p.y-height&&point.y<=p.y};
 }
 
 test("flat, deep pit, cave cap, lake bed, material palette and unknown halo share cell faces",()=>{
@@ -93,7 +93,7 @@ test("separate stair rail curtains order a body between them; conflicting planes
   const rail=(id,z)=>({id,partRole:"upright-boundary",role:"structure",footprint:[{x:-2,y:0,z},{x:2,y:1,z}],screenBounds:{left:center.x-12,right:center.x+12,top:center.y-30,bottom:center.y}});
   const sorter=createIsometricSorter({projection});
   assert.deepEqual(sorter.order([rail("front",1),actor("body",0,0,0),rail("back",-1)]).map(r=>r.id),["back","body","front"]);
-  const a={id:"cross-a",role:"structure",footprint:[{x:-2,y:0,z:-2},{x:2,y:0,z:2}],screenBounds:{left:center.x-12,right:center.x+12,top:center.y-30,bottom:center.y}};
+  const a={id:"cross-a",role:"structure",orderingKind:"line",footprint:[{x:-2,y:0,z:-2},{x:2,y:0,z:2}],screenBounds:{left:center.x-12,right:center.x+12,top:center.y-30,bottom:center.y}};
   const b={...a,id:"cross-b",footprint:[{x:-2,y:0,z:1},{x:2,y:0,z:-1}]};
   // First curtain is edge-on to this camera, so use a nondegenerate slope.
   a.footprint=[{x:-2,y:0,z:-1},{x:2,y:0,z:1}];
@@ -149,4 +149,14 @@ test("first-shape view joins coverage, ordering, meshes and face picking without
   const next=view.update(data,{level:1,artRecords:[actor("actor",1,0.5*h,1)]});
   assert.equal(next.records.find(record=>record.id===ground.id).contains,ground.contains,"actor movement retains terrain face geometry");
   view.dispose();assert.equal(view.pick(center),null);
+});
+
+test("cut view requires appearance and alpha-filters supplied art candidates",()=>{
+  assert.throws(()=>createCutTerrainView({projection}),/requires terrain appearance/);
+  const data=fixture((x,y,z)=>y<=0?12:7), view=createCutTerrainView({projection,appearance});
+  const body={...actor("miss",0,0.5*h,0),contains:()=>false};
+  view.update(data,{level:1,artRecords:[body]});
+  const center=projection.project({x:0,y:0.5*h,z:0});
+  assert.equal(view.pick(center,[body]).target,null);
+  view.dispose();
 });
