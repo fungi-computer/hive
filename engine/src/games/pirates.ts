@@ -40,7 +40,7 @@ const shipFrame = shipId;
 const piratesInitial = [
   {
     id: piratePartyId,
-    components: { "hive.party": { ownerPlayer: "pirate-player" } },
+    components: { "hive.party": {}, "hive.owned-by": { player: "pirate-player" } },
   },
   {
     id: shipId,

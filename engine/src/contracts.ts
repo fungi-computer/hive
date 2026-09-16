@@ -10,6 +10,7 @@ export type ComponentId = `${string}.${string}`;
 export type GameId = string;
 export const RESERVED_COMPONENTS = [
   "hive.party",
+  "hive.owned-by",
   "hive.party-member",
   "hive.owned-by-party",
   "hive.stockpile-cell",

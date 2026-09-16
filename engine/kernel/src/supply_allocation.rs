@@ -140,7 +140,7 @@ mod tests {
     fn kernel() -> Kernel {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"supplies","components":[],"materialCatalog":[],"initial":[
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"p"}}},
             {"id":"w1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
             {"id":"w2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8},"hive.ground-stock":{}}},

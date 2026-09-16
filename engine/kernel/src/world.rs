@@ -163,7 +163,7 @@ mod native_planner_snapshot_tests {
         let scene = |task: serde_json::Value| json!({
             "format":"hive-game", "version":3, "game":"planner", "components":[], "materialCatalog":[],
             "initial":[
-                {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+                {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
                 task,
             ],
         });
@@ -181,7 +181,7 @@ mod native_planner_snapshot_tests {
     fn planner_cursor_roundtrips_and_invalid_width_is_rejected() {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"planner","components":[],"materialCatalog":[],"initial":[
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.work-participation":{"automatic":true}}},
             {"id":"task","components":{"hive.work-policy":{"pool":"party","priority":3,"enabled":true},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"job"},"hive.work-schedule":{"nextReviewTick":0,"lastConsidered":0}}}
         ]}).to_string()).unwrap();
@@ -223,7 +223,7 @@ mod work_attempt_laws {
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[
             {"id":"game.task-state","version":1,"fields":{"phase":"string"}}
         ],"materialCatalog":[], "initial":[
-            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"},"game.task-state":{"phase":"queued"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"},"game.task-state":{"phase":"queued"}}},{"id":"task2","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},{"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},{"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}}
         ]}).to_string()).unwrap();
         kernel
     }
@@ -249,8 +249,8 @@ mod work_attempt_laws {
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"other"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
-            {"id":"other","components":{"hive.party":{"ownerPlayer":"other-player"}}}
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
+            {"id":"other","components":{"hive.party":{},"hive.owned-by":{"player":"other-player"}}}
         ]}).to_string()).unwrap();
         let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string());
         assert_eq!(result.unwrap_err(), "work attempt task is outside pool");
@@ -305,7 +305,7 @@ mod work_attempt_laws {
         Kernel::new().restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap();
 
         let mut foreign: Value = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
-        foreign["scene"]["initial"].as_array_mut().unwrap().push(json!({"id":"other","components":{"hive.party":{"ownerPlayer":"other"}}}));
+        foreign["scene"]["initial"].as_array_mut().unwrap().push(json!({"id":"other","components":{"hive.party":{},"hive.owned-by":{"player":"other"}}}));
         foreign["scene"]["initial"].as_array_mut().unwrap().iter_mut().find(|record| record["id"] == "task").unwrap()["components"]["hive.owned-by-party"] = json!({"party":"other"});
         assert_eq!(Kernel::new().restore_json(&serde_json::to_string(&foreign).unwrap()).unwrap_err(), "work attempt reference is outside party");
 
@@ -350,7 +350,7 @@ mod work_attempt_laws {
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":destination_capacity},"hive.position":{"x":destination_x,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":quantity,"container":"worker"}}}
         ]}).to_string()).unwrap();
@@ -383,7 +383,7 @@ mod work_attempt_laws {
         kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":2,"container":"worker"}}}
@@ -413,7 +413,7 @@ mod work_attempt_laws {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"pickup","components":[],"materialCatalog":[],"initial":[
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
             {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
             {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
@@ -658,7 +658,7 @@ mod process_attempt_tests {
     #[test]
     fn scoped_attendance_keeps_worker_reserved_until_terminal_process_outcome() {
         let mut kernel = process_request_tests::kernel_with_slot();
-        let party = kernel.ecs.spawn((ExternalId("party:1".into()), Party { owner_player: "player:1".into() })).id();
+        let party = kernel.ecs.spawn((ExternalId("party:1".into()), Party {}, OwnedBy { player: "player:1".into() })).id();
         kernel.ids.insert("party:1".into(), party); kernel.known.insert("party:1".into());
         let station = kernel.entity("station").unwrap();
         kernel.ecs.entity_mut(station).insert(OwnedByParty { party: "party:1".into() });
@@ -791,7 +791,7 @@ mod construction_tests {
         kernel.load(&json!({
             "format":"hive-game", "version":3, "game":"construction",
             "components":[], "materialCatalog":[{"kind":"wood","unitVolume":1},{"kind":"stone-spoil","unitVolume":1}], "stockpileProfiles":[{"id":"materials","allowedMaterials":["wood","stone-spoil"]}], "initial":[
-                {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+                {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
                 {"id":"worker-1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
                 {"id":"worker-2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
                 {"id":"worker-3","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0},"hive.traversal":{"clearanceCells":1,"maxStepCells":1},"hive.container":{"capacity":10}}},
@@ -894,7 +894,7 @@ mod construction_tests {
         ], &ActionScope::Host).unwrap();
         let entity = kernel.entity("batch-a").unwrap();
         kernel.ecs.entity_mut(entity).insert(OwnedByParty { party: "other-party".into() });
-        let other = kernel.ecs.spawn((ExternalId("other-party".into()), Party { owner_player: "other-player".into() })).id();
+        let other = kernel.ecs.spawn((ExternalId("other-party".into()), Party {}, OwnedBy { player: "other-player".into() })).id();
         kernel.ids.insert("other-party".into(), other); kernel.known.insert("other-party".into());
         let cross = placement_row(&mut kernel, "party", left);
         assert_eq!(cross["status"], "rejected");
@@ -2366,6 +2366,7 @@ pub struct Kernel {
     planner: PlannerState,
     planner_indexes: NativeIndexes,
     relations: RelationIndex,
+    ownership: crate::ownership::OwnershipIndex,
     supply_index: crate::supply_allocation::SupplyAllocationIndex,
     job_index: job_owner::JobIndex,
 }
@@ -2386,8 +2387,8 @@ impl Kernel {
             ActionScope::Host => Ok(WorkExecution { pool: pool.into(), initiating_player: None, policy_id: policy_id.into() }),
             ActionScope::Party { player, party } if party == pool && valid_id(player) => {
                 let pool_entity = self.entity(pool)?;
-                let owner = self.ecs.get::<Party>(pool_entity).ok_or("work execution pool is not a party")?;
-                if owner.owner_player != *player { return Err("work execution player does not own pool".into()); }
+                self.ecs.get::<Party>(pool_entity).ok_or("work execution pool is not a party")?;
+                if self.ownership.player(pool) != Some(player.as_str()) { return Err("work execution player does not own pool".into()); }
                 Ok(WorkExecution { pool: pool.into(), initiating_player: Some(player.into()), policy_id: policy_id.into() })
             }
             ActionScope::Party { .. } => Err("work execution scope pool mismatch".into()),
@@ -2607,6 +2608,7 @@ impl Kernel {
             planner: PlannerState::default(),
             planner_indexes: NativeIndexes::default(),
             relations: RelationIndex::default(),
+            ownership: crate::ownership::OwnershipIndex::default(),
             supply_index: crate::supply_allocation::SupplyAllocationIndex::default(),
             job_index: job_owner::JobIndex::default(),
         }
@@ -2624,6 +2626,9 @@ impl Kernel {
     }
     pub(crate) fn rebuild_planner_index(&mut self) {
         self.planner_indexes.rebuild(&self.relations, &self.ecs, &self.ids);
+    }
+    pub(crate) fn refresh_ownership_index(&mut self, id: &str) {
+        self.ownership.refresh(&self.ecs, id, self.ids.get(id).copied());
     }
     pub(crate) fn refresh_relation_source(&mut self, source: &str) -> Result<()> {
         self.relations.refresh_source(&self.registry, &self.ecs, &self.ids, source)
@@ -3324,6 +3329,7 @@ impl Kernel {
         Ok(())
     }
     fn rebuild_physical_indexes(&mut self, build_routes: bool) -> Result<()> {
+        self.ownership.rebuild(&self.ecs, &self.ids);
         self.visible_source_containers.clear();
         self.stockpile_policies_by_position.clear();
         self.ground_stocks_by_position.clear();
@@ -4032,7 +4038,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 16,
+            version: 17,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4074,7 +4080,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 16
+            || state.version != 17
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -4238,8 +4244,8 @@ impl Kernel {
                 return Err(format!("invalid work execution for {id}"));
             }
             let pool = self.entity(&execution.pool)?;
-            let party = self.ecs.get::<Party>(pool).ok_or_else(|| format!("work execution pool is not a party for {id}"))?;
-            if execution.initiating_player.as_ref().is_some_and(|player| player != &party.owner_player) {
+            self.ecs.get::<Party>(pool).ok_or_else(|| format!("work execution pool is not a party for {id}"))?;
+            if execution.initiating_player.as_ref().is_some_and(|player| self.ownership.player(&execution.pool) != Some(player.as_str())) {
                 return Err(format!("work execution player does not own pool for {id}"));
             }
         }
@@ -4272,8 +4278,8 @@ impl Kernel {
             if attempt.version != crate::work_attempt::CURRENT_VERSION { return Err("unsupported work attempt version".into()); }
             if attempt.key.task != *task { return Err("work attempt task index mismatch".into()); }
             let party = self.entity(&attempt.execution.pool)?;
-            let pool = self.ecs.get::<Party>(party).ok_or("work attempt pool is not a party")?;
-            if attempt.execution.initiating_player.as_ref().is_some_and(|player| player != &pool.owner_player) { return Err("work attempt player does not own pool".into()); }
+            self.ecs.get::<Party>(party).ok_or("work attempt pool is not a party")?;
+            if attempt.execution.initiating_player.as_ref().is_some_and(|player| self.ownership.player(&attempt.execution.pool) != Some(player.as_str())) { return Err("work attempt player does not own pool".into()); }
             if task != &attempt.worker {
                 let task_execution = self.ecs.get::<WorkExecution>(*attempt_entity).ok_or("work attempt task has no execution")?;
                 if task_execution != &attempt.execution { return Err("work attempt execution differs from task".into()); }
@@ -4498,9 +4504,9 @@ impl Kernel {
                 if record.components.contains_key("hive.owned-by-party") { return Err("authored records cannot provide party ownership".into()); }
                 if let ActionScope::Party { ref player, ref party } = scope {
                     let party_entity = self.entity(party)?;
-                    let owner = self.ecs.get::<Party>(party_entity).ok_or("creation scope is not a party")?;
-                    if !valid_id(player) || owner.owner_player != *player { return Err("creation scope player does not own party".into()); }
-                    owned_creates.push((record.id.clone(), party.clone()));
+                    self.ecs.get::<Party>(party_entity).ok_or("creation scope is not a party")?;
+                    if !valid_id(player) || self.ownership.player(party) != Some(player.as_str()) { return Err("creation scope player does not own party".into()); }
+                    owned_creates.push((record.id.clone(), player.clone(), party.clone()));
                 }
                 Ok(record)
         }).collect::<Result<Vec<_>>>()?;
@@ -4510,8 +4516,8 @@ impl Kernel {
                 ActionScope::Host => {}
                 ActionScope::Party { player, party } => {
                     let party_entity = self.entity(&party)?;
-                    let owner = self.ecs.get::<Party>(party_entity).ok_or("removal scope is not a party")?;
-                    if !valid_id(&player) || owner.owner_player != player { return Err("removal scope player does not own party".into()); }
+                    self.ecs.get::<Party>(party_entity).ok_or("removal scope is not a party")?;
+                    if !valid_id(&player) || self.ownership.player(&party) != Some(player.as_str()) { return Err("removal scope player does not own party".into()); }
                     if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) {
                         return Err("scoped authored removal is outside party".into());
                     }
@@ -4521,9 +4527,10 @@ impl Kernel {
         }).collect::<Result<Vec<_>>>()?;
         let prepared = self.prepare_authored_entities(creates, removes, batch.writes, action_created_references)?;
         self.publish_authored_entities(prepared);
-        for (id, party) in owned_creates {
+        for (id, player, party) in owned_creates {
             let entity = self.entity(&id)?;
-            self.ecs.entity_mut(entity).insert(OwnedByParty { party });
+            self.ecs.entity_mut(entity).insert((OwnedBy { player }, OwnedByParty { party }));
+            self.refresh_ownership_index(&id);
         }
         self.refresh_state_weight();
         self.revision += 1;
@@ -6061,8 +6068,8 @@ impl Kernel {
     fn validate_action_scope(&self, scope: &ActionScope, action: &Action) -> Result<()> {
         let ActionScope::Party { player, party } = scope else { return Ok(()); };
         let party_entity = self.entity(party)?;
-        let owner = self.ecs.get::<Party>(party_entity).ok_or("scoped action party is not a party")?;
-        if !crate::components::valid_id(player) || owner.owner_player != *player { return Err("scoped action player does not own party".into()); }
+        self.ecs.get::<Party>(party_entity).ok_or("scoped action party is not a party")?;
+        if !crate::components::valid_id(player) || self.ownership.player(party) != Some(player.as_str()) { return Err("scoped action player does not own party".into()); }
         match action {
             Action::InstantiateActors { .. } => return Err("party scope cannot instantiate actors".into()),
             Action::SetRelation { source, target, .. } => {

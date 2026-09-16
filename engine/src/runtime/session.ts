@@ -12,7 +12,7 @@ import { checkedAction } from "./actions";
 import { readKernelEntities } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
 import { query } from "../sdk/authoring";
-import { OwnedByParty, Party, PartyMember } from "../sdk/party";
+import { OwnedBy, OwnedByParty, Party, PartyMember } from "../sdk/party";
 import type {
   ActionRequest,
   ActionScope,
@@ -741,7 +741,8 @@ export class GameSession {
     return owner?.get(OwnedByParty).party;
   }
   private canonicalPlayerFor(party: EntityId): string | undefined {
-    return this.port.query(query(Party)).find((row) => row.id === party)?.get(Party).ownerPlayer;
+    const row = this.port.query(query(Party, OwnedBy)).find((candidate) => candidate.id === party);
+    return row?.get(OwnedBy).player;
   }
   private canonicalActionScope(party: EntityId): ActionScope {
     const player = this.canonicalPlayerFor(party);

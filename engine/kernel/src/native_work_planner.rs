@@ -1501,7 +1501,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let mut initial = vec![
-            json!({"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}),
+            json!({"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}}),
             json!({"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":6},"hive.ground-stock":{}}}),
             json!({"id":"wood","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"stone-spoil","quantity":6,"container":"source"}}}),
         ];
@@ -1588,7 +1588,7 @@ mod tests {
             }
         })).collect::<Vec<_>>();
         let mut initial = vec![
-            json!({"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}}),
+            json!({"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}}),
             json!({"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}}),
         ];
         initial.extend(workers);

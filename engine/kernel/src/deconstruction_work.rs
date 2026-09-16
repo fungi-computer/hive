@@ -166,7 +166,7 @@ mod tests {
 
     fn saved(task_owner: Option<&str>, site_owner: &str) -> String {
         let task_owner = task_owner.map(|party| json!({"party": party}));
-        let mut initial = vec![json!({"id":"site","components":{"hive.owned-by-party":{"party":site_owner}}}), json!({"id":"party","components":{"hive.party":{"ownerPlayer":"p"}}}), json!({"id":"other","components":{"hive.party":{"ownerPlayer":"other"}}})];
+        let mut initial = vec![json!({"id":"site","components":{"hive.owned-by-party":{"party":site_owner}}}), json!({"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"p"}}}), json!({"id":"other","components":{"hive.party":{},"hive.owned-by":{"player":"other"}}})];
         let mut task = json!({"id":"task","components":{"hive.deconstruction-work":{"site":"site","contactX":0.0,"contactY":0.0,"contactZ":0.0,"seconds":1.0,"requiredSeconds":2.0}}});
         if let Some(owner) = task_owner { task["components"]["hive.owned-by-party"] = owner; }
         initial.push(task);

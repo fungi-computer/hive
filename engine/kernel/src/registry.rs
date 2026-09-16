@@ -85,7 +85,8 @@ impl Registry {
             }
         }
         for (name, fields) in [
-            ("hive.party", vec![("ownerPlayer", FieldType::String)]),
+            ("hive.party", vec![]),
+            ("hive.owned-by", vec![("player", FieldType::String)]),
             ("hive.party-member", vec![("party", FieldType::Entity)]),
             ("hive.owned-by-party", vec![("party", FieldType::Entity)]),
             ("hive.work-participation", vec![("automatic", FieldType::Boolean)]),
@@ -289,6 +290,7 @@ impl Registry {
                 "hive.projectile" => world.register_component::<Projectile>(),
                 "hive.visual" => world.register_component::<Visual>(),
                 "hive.party" => world.register_component::<Party>(),
+                "hive.owned-by" => world.register_component::<OwnedBy>(),
                 "hive.party-member" => world.register_component::<PartyMember>(),
                 "hive.owned-by-party" => world.register_component::<OwnedByParty>(),
                 "hive.work-participation" => world.register_component::<crate::work_planner::WorkParticipation>(),
@@ -789,6 +791,7 @@ impl Registry {
                 world.entity_mut(entity).insert(decode::<Visual>(value)?);
             }
             "hive.party" => { world.entity_mut(entity).insert(decode::<Party>(value)?); }
+            "hive.owned-by" => { world.entity_mut(entity).insert(decode::<OwnedBy>(value)?); }
             "hive.party-member" => { world.entity_mut(entity).insert(decode::<PartyMember>(value)?); }
             "hive.owned-by-party" => { world.entity_mut(entity).insert(decode::<OwnedByParty>(value)?); }
             "hive.work-participation" => { world.entity_mut(entity).insert(decode::<crate::work_planner::WorkParticipation>(value)?); }
@@ -817,6 +820,7 @@ impl Registry {
     pub fn read(&self, world: &World, entity: Entity, name: &str) -> Option<Record> {
         match name {
             "hive.party" => world.get::<Party>(entity).map(record),
+            "hive.owned-by" => world.get::<OwnedBy>(entity).map(record),
             "hive.party-member" => world.get::<PartyMember>(entity).map(record),
             "hive.owned-by-party" => world.get::<OwnedByParty>(entity).map(record),
             "hive.work-participation" => world.get::<crate::work_planner::WorkParticipation>(entity).map(record),

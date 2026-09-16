@@ -425,7 +425,7 @@ mod tests {
         let registry = Registry::new(&mut world, vec![], vec![]).unwrap();
         let mut ids = BTreeMap::new();
         let party = "late-party";
-        let party_entity = world.spawn((ExternalId(party.into()), Party { owner_player: "player".into() })).id();
+        let party_entity = world.spawn((ExternalId(party.into()), Party {}, crate::components::OwnedBy { player: "player".into() })).id();
         ids.insert(party.into(), party_entity);
         for number in 0..300 {
             let id = format!("worker-{number:03}");
@@ -463,8 +463,8 @@ mod index_refresh_tests {
     fn refresh_moves_party_and_removes_membership_without_rebuild() {
         let mut world = World::new();
         let registry = Registry::new(&mut world, vec![], vec![]).unwrap();
-        let party_a = world.spawn((ExternalId("a".into()), Party { owner_player: "player-a".into() })).id();
-        let party_b = world.spawn((ExternalId("b".into()), Party { owner_player: "player-b".into() })).id();
+        let party_a = world.spawn((ExternalId("a".into()), Party {}, crate::components::OwnedBy { player: "player-a".into() })).id();
+        let party_b = world.spawn((ExternalId("b".into()), Party {}, crate::components::OwnedBy { player: "player-b".into() })).id();
         let entity = worker(&mut world, "worker", "a", true);
         let mut ids = BTreeMap::from([("a".to_owned(), party_a), ("b".to_owned(), party_b), ("worker".to_owned(), entity)]);
         let mut relations = RelationIndex::default();

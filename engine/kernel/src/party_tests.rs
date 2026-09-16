@@ -6,14 +6,16 @@ fn scene(game: &str) -> Value {
         "format":"hive-game","version":3,"game":game,
         "components":[],"materialCatalog":[{"kind":"wood","unitVolume":1}],"initial":[],
         "actors":[
-            {"id":"test.party","version":1,"parameters":[{"name":"owner","type":"string"}],"components":[{"component":"hive.party","fields":{"ownerPlayer":{"kind":"parameter","parameter":"owner"}}}]},
-            {"id":"test.person","version":1,"parameters":[{"name":"x","type":"number"},{"name":"party","type":"actor-reference"}],"components":[
+            {"id":"test.party","version":1,"parameters":[{"name":"owner","type":"string"}],"components":[{"component":"hive.party","fields":{}},{"component":"hive.owned-by","fields":{"player":{"kind":"parameter","parameter":"owner"}}}]},
+            {"id":"test.person","version":1,"parameters":[{"name":"x","type":"number"},{"name":"party","type":"actor-reference"},{"name":"owner","type":"string"}],"components":[
                 {"component":"hive.position","fields":{"x":{"kind":"parameter","parameter":"x"},"y":{"kind":"value","value":0},"z":{"kind":"value","value":0},"facing":{"kind":"value","value":0}}},
-                {"component":"hive.party-member","fields":{"party":{"kind":"parameter","parameter":"party"}}}
+                {"component":"hive.party-member","fields":{"party":{"kind":"parameter","parameter":"party"}}},
+                {"component":"hive.owned-by","fields":{"player":{"kind":"parameter","parameter":"owner"}}}
             ]},
-            {"id":"test.store","version":1,"parameters":[{"name":"x","type":"number"},{"name":"party","type":"actor-reference"}],"components":[
+            {"id":"test.store","version":1,"parameters":[{"name":"x","type":"number"},{"name":"party","type":"actor-reference"},{"name":"owner","type":"string"}],"components":[
                 {"component":"hive.position","fields":{"x":{"kind":"parameter","parameter":"x"},"y":{"kind":"value","value":0},"z":{"kind":"value","value":2},"facing":{"kind":"value","value":0}}},
                 {"component":"hive.container","fields":{"capacity":{"kind":"value","value":8}}},
+                {"component":"hive.owned-by","fields":{"player":{"kind":"parameter","parameter":"owner"}}},
                 {"component":"hive.owned-by-party","fields":{"party":{"kind":"parameter","parameter":"party"}}}
             ]}
         ]
@@ -25,9 +27,9 @@ fn plan(sequence: u64) -> Value {
         "partySlot":"party","peopleSlots":["person.0","person.1"],
         "actors":[
             {"slot":"party","definition":"test.party","arguments":{"owner":{"kind":"joining-player"}}},
-            {"slot":"person.0","definition":"test.person","arguments":{"x":{"kind":"value","value":x},"party":{"kind":"spawned","slot":"party"}}},
-            {"slot":"person.1","definition":"test.person","arguments":{"x":{"kind":"value","value":x+2.0},"party":{"kind":"spawned","slot":"party"}}},
-            {"slot":"store","definition":"test.store","arguments":{"x":{"kind":"value","value":x+4.0},"party":{"kind":"spawned","slot":"party"}}}
+            {"slot":"person.0","definition":"test.person","arguments":{"x":{"kind":"value","value":x},"party":{"kind":"spawned","slot":"party"},"owner":{"kind":"joining-player"}}},
+            {"slot":"person.1","definition":"test.person","arguments":{"x":{"kind":"value","value":x+2.0},"party":{"kind":"spawned","slot":"party"},"owner":{"kind":"joining-player"}}},
+            {"slot":"store","definition":"test.store","arguments":{"x":{"kind":"value","value":x+4.0},"party":{"kind":"spawned","slot":"party"},"owner":{"kind":"joining-player"}}}
         ],
         "initialMaterials":[{"container":{"kind":"spawned","slot":"store"},"kind":"wood","quantity":8}]
     })
@@ -132,8 +134,8 @@ fn scoped_authored_creation_attaches_party_ownership_atomically() {
 fn party_scope_rejects_foreign_worker_and_work_attempt_party_drift() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":3,"game":"party-scope","components":[],"materialCatalog":[],"initial":[
-        {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
-        {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
+        {"id":"party:1","components":{"hive.party":{},"hive.owned-by":{"player":"player:1"}}},
+        {"id":"party:2","components":{"hive.party":{},"hive.owned-by":{"player":"player:2"}}},
         {"id":"worker","components":{"hive.party-member":{"party":"party:1"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}},
         {"id":"task","components":{"hive.owned-by-party":{"party":"party:1"},"hive.work-execution":{"pool":"party:1","initiatingPlayer":"player:1","policyId":"test"}}}
     ]}).to_string()).unwrap();
@@ -149,7 +151,7 @@ fn party_scope_rejects_foreign_worker_and_work_attempt_party_drift() {
 fn party_scope_requires_authenticated_owner_player() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":3,"game":"party-owner-scope","components":[],"materialCatalog":[],"initial":[
-        {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}}
+        {"id":"party:1","components":{"hive.party":{},"hive.owned-by":{"player":"player:1"}}}
     ]}).to_string()).unwrap();
     let forged = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:2","party":"party:1"},"request":{"kind":"move","entity":"missing","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}]});
     let result: Value = serde_json::from_str(&kernel.advance_json(&forged.to_string()).unwrap()).unwrap();
@@ -168,8 +170,8 @@ fn scoped_batch_rejects_malformed_scope_before_mutation() {
 fn scoped_authored_removal_enforces_party_and_preserves_physical_entities() {
     let mut kernel = Kernel::new();
     kernel.load(&json!({"format":"hive-game","version":3,"game":"scoped-remove","components":[{"id":"game.order","version":1,"fields":{"phase":"string"}}],"materialCatalog":[], "initial":[
-        {"id":"party:1","components":{"hive.party":{"ownerPlayer":"player:1"}}},
-        {"id":"party:2","components":{"hive.party":{"ownerPlayer":"player:2"}}},
+        {"id":"party:1","components":{"hive.party":{},"hive.owned-by":{"player":"player:1"}}},
+        {"id":"party:2","components":{"hive.party":{},"hive.owned-by":{"player":"player:2"}}},
         {"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.body":{"speed":1.0}}}
     ]}).to_string()).unwrap();
     let create = json!({"delta":0,"writes":[],"creates":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"record":{"id":"order:1","components":{"game.order":{"phase":"queued"}}}}],"removes":[],"actions":[]});

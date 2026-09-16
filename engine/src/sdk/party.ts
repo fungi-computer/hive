@@ -1,10 +1,16 @@
 import { component, relation } from "./authoring";
 import type { ActionRequest, ActorInstantiationPlan, EntityId } from "../contracts";
 
-/** Stable player ownership of one work/travel group. */
-export const Party = component<{ ownerPlayer: string }>("hive.party", {
+/** Gameplay group identity. Membership and ownership are separate facts. */
+export const Party = component<Record<string, never>>("hive.party", {
   version: 1,
-  fields: { ownerPlayer: "string" },
+  fields: {},
+});
+
+/** Stable player property. Access rules decide which operations it permits. */
+export const OwnedBy = component<{ player: string }>("hive.owned-by", {
+  version: 1,
+  fields: { player: "string" },
 });
 
 /** A person belongs to this party without duplicating their physical identity. */

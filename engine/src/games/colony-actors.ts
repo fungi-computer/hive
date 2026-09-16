@@ -7,14 +7,15 @@ import {
   VesselCapability,
   Visual,
 } from "../sdk/common";
-import { OwnedByParty, Party, PartyMember } from "../sdk/party";
+import { OwnedBy, OwnedByParty, Party, PartyMember } from "../sdk/party";
 import { WorkParticipation } from "../sdk/work-control";
 import { StorageProvider } from "../sdk/stockpile";
 import { Worker } from "./colony-components";
 import { Cat } from "./colony-cat";
 
 export const ColonyPartyActor = actor("colony.party")
-  .with(Party, { ownerPlayer: actorInput.string("owner-player") });
+  .with(Party, {})
+  .with(OwnedBy, { player: actorInput.string("owner-player") });
 
 export const ColonyWorkerActor = actor("colony.worker")
   .with(Position, {
@@ -31,6 +32,7 @@ export const ColonyWorkerActor = actor("colony.worker")
     label: actorInput.string("label"),
   })
   .with(PartyMember, { party: actorInput.reference("party") })
+  .with(OwnedBy, { player: actorInput.string("owner-player") })
   .with(OwnedByParty, { party: actorInput.reference("party") })
   .with(WorkParticipation, { automatic: true })
   .with(Worker, { guest: false });
@@ -44,6 +46,7 @@ export const ColonyStoreActor = actor("colony.store")
   })
   .with(Container, { capacity: actorInput.number("capacity") })
   .with(StorageProvider, {})
+  .with(OwnedBy, { player: actorInput.string("owner-player") })
   .with(OwnedByParty, { party: actorInput.reference("party") })
   .with(Visual, {
     sprite: actorInput.string("sprite"),

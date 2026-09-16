@@ -12,9 +12,12 @@ pub const MAX_CARRIED_WATER_KG: f64 = 1.0e12;
 #[derive(Component, Clone)]
 pub struct ExternalId(pub String);
 #[derive(Component, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Party {
-    pub owner_player: String,
+#[serde(deny_unknown_fields)]
+pub struct Party {}
+#[derive(Component, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OwnedBy {
+    pub player: String,
 }
 #[derive(Component, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

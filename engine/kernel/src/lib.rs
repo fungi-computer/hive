@@ -32,6 +32,7 @@ mod supply_allocation;
 mod record_bundle;
 mod party_binding;
 mod relations;
+mod ownership;
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};

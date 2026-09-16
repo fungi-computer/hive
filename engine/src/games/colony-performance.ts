@@ -37,7 +37,7 @@ export function createColonyPerformancePack(
   };
   const half = size / 2;
   const treeCount = 50;
-  initial.push({ id: "party:1", components: { "hive.party": { ownerPlayer: "player:1" } } });
+  initial.push({ id: "party:1", components: { "hive.party": {}, "hive.owned-by": { player: "player:1" } } });
   const existingTrees = initial.filter(record => record.components["colony.tree"]);
   const jobActions = existingTrees.map(record => {
     const id = record.id as import("../contracts").EntityId;

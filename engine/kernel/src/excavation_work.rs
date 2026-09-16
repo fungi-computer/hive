@@ -423,7 +423,7 @@ mod tests {
     fn fixture() -> (Kernel, ExcavationWork) {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"work-test","components":[],"materialCatalog":[],"initial":[
-            {"id":"party","components":{"hive.party":{"ownerPlayer":"player"}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
             {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"excavation"}}},
             {"id":"worker","components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.body":{"speed":1},"hive.container":{"capacity":10},"hive.party-member":{"party":"party"}}}
         ]}).to_string()).unwrap();

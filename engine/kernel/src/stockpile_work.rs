@@ -275,7 +275,7 @@ mod tests {
                 {"id":"food", "materialCategories":{"bread":"food"}, "allowedCategories":["food"]}
             ],
             "initial": [
-                {"id":"party", "components":{"hive.party":{"ownerPlayer":"p"}}},
+                {"id":"party", "components":{"hive.party":{},"hive.owned-by":{"player":"p"}}},
                 {"id":"source", "components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8},"hive.ground-stock":{},"hive.owned-by-party":{"party":"party"}}},
                 {"id":"source-policy", "components":{"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"low","priority":1,"filterProfile":"wood"},"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"stockpile"}}},
                 {"id":"target", "components":{"hive.position":{"x":1,"y":0,"z":0,"facing":0},"hive.stockpile-cell":{"zone":"high","priority":2,"filterProfile":"wood"},"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"stockpile"}}},

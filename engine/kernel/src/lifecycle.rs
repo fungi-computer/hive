@@ -150,12 +150,12 @@ impl Kernel {
             .ok_or("actor plan lacks party actor")?;
         if party_record
             .components
-            .get("hive.party")
-            .and_then(|record| record.get("ownerPlayer"))
+            .get("hive.owned-by")
+            .and_then(|record| record.get("player"))
             .and_then(Value::as_str)
             != Some(player.as_str())
         {
-            return Err("actor party owner mismatch".into());
+            return Err("actor party ownership mismatch".into());
         }
         for person in &people {
             let actor = prepared.iter().find(|actor| &actor.id == person).ok_or("person actor missing")?;
@@ -164,6 +164,10 @@ impl Kernel {
             }
         }
         for actor in &prepared {
+            if actor.components.get("hive.owned-by").is_some()
+                && actor.components.get("hive.owned-by").and_then(|record| record.get("player")).and_then(Value::as_str) != Some(player.as_str()) {
+                return Err("initial actor ownership mismatch".into());
+            }
             for component in ["hive.party-member", "hive.owned-by-party"] {
                 if let Some(reference) = actor.components.get(component) {
                     if reference.get("party").and_then(Value::as_str) != Some(party.as_str()) {
@@ -203,7 +207,7 @@ impl Kernel {
                 water_kg: None,
             })?;
             let lot_entity = self.entity(&lot)?;
-            self.ecs.entity_mut(lot_entity).insert(OwnedByParty { party: party.clone() });
+            self.ecs.entity_mut(lot_entity).insert((OwnedBy { player: player.clone() }, OwnedByParty { party: party.clone() }));
             if let Some(definition) = grant.actor_definition {
                 let template = self.registry.actors.get(&definition).cloned().ok_or("unknown material actor definition")?;
                 if template.components.iter().any(|component| component.component == "hive.lot" || component.component == "hive.lot-water") {

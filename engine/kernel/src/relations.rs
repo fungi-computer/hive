@@ -215,7 +215,7 @@ mod tests {
     }
 
     fn party_record() -> Record {
-        BTreeMap::from([("ownerPlayer".into(), json!("player"))])
+        BTreeMap::new()
     }
 
     #[test]

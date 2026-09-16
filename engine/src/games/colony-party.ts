@@ -36,6 +36,7 @@ export function createColonyPartyPlan(
           sprite: value(workerLooks[index].sprite),
           label: value(workerLooks[index].label),
           party: spawned(partySlot),
+          "owner-player": joiningPlayer,
         },
       })),
       {
@@ -50,6 +51,7 @@ export function createColonyPartyPlan(
           sprite: value("crate"),
           label: value("Starter store"),
           party: spawned(partySlot),
+          "owner-player": joiningPlayer,
         },
       },
       ...(options.cat ? [{

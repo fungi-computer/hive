@@ -306,7 +306,7 @@ fn native_process_supply_uses_shared_delivery_and_preserves_whole_lots() {
         let structure = kernel.environment.as_mut().unwrap().structures.get_mut("brew-station").unwrap();
         structure.on_complete.ports.iter_mut().find(|entry| entry.key == port).unwrap().at_site_contact = true;
     }
-    let party = kernel.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
+    let party = kernel.ecs.spawn((ExternalId("party:process".into()), Party {}, OwnedBy { player: "player:process".into() })).id();
     kernel.ids.insert("party:process".into(), party);
     kernel.known.insert("party:process".into());
     kernel.ecs.entity_mut(kernel.entity("station").unwrap()).insert(OwnedByParty { party: "party:process".into() });
@@ -458,7 +458,7 @@ fn admitted() -> (Kernel, String) {
     kernel
         .admit_process(&process, "herbal-ale-v1", "station")
         .unwrap();
-    let party = kernel.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
+    let party = kernel.ecs.spawn((ExternalId("party:process".into()), Party {}, OwnedBy { player: "player:process".into() })).id();
     kernel.ids.insert("party:process".into(), party);
     kernel.known.insert("party:process".into());
     let worker = kernel.entity("worker").unwrap();
@@ -779,7 +779,7 @@ fn blocked_air_preserves_physical_facts_and_releases_worker() {
         let mut k = fixture(true);
         let p = k.request_process("herbal-ale-v1", "station", &ActionScope::Host).unwrap();
         k.admit_process(&p, "herbal-ale-v1", "station").unwrap();
-        let party = k.ecs.spawn((ExternalId("party:process".into()), Party { owner_player: "player:process".into() })).id();
+        let party = k.ecs.spawn((ExternalId("party:process".into()), Party {}, OwnedBy { player: "player:process".into() })).id();
         k.ids.insert("party:process".into(), party); k.known.insert("party:process".into());
         k.ecs.entity_mut(k.entity("worker").unwrap()).insert(PartyMember { party: "party:process".into() });
         let process_entity = k.entity(&p).unwrap();
