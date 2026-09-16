@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { command, component, entity, query, system } from "../sdk/authoring";
-import { Destination, Position, MaterialLot, encodeDefinition, move } from "../sdk/common";
+import { action, actor, behavior, predicate } from "../sdk/behavior";
+import { Body, Destination, Position, MaterialLot, encodeDefinition, move } from "../sdk/common";
 import { Collider, Launcher, ImpactMaterial, launch, displace } from "../sdk/combat";
 import type { EntityId, GamePack } from "../contracts";
 
@@ -50,23 +51,34 @@ export const FormationSettings = component<{
   version: 1,
   fields: { facing: "number", retreatBelow: "number" },
 });
-export const formations = system({
-  id: "formations.retreat",
-  version: 1,
-  reads: [FormationMember, Morale, Position, FormationSettings],
-  run(ctx) {
-    for (const unit of ctx.query(query(FormationMember, Morale, Position))) {
-      const morale = unit.get(Morale);
-      const settings = ctx
-        .query(query(FormationSettings))[0]
-        ?.get(FormationSettings);
-      if (settings && morale.value < settings.retreatBelow)
-        ctx.action(
-          move(unit.id, { x: -4, y: 0, z: -4, frame: null }, settings.facing),
-        );
-    }
+const shouldRetreat = predicate("formations.should-retreat", {
+  reads: [FormationSettings],
+  test(subject, world) {
+    const settings = world.query(query(FormationSettings))[0]?.get(FormationSettings);
+    return settings !== undefined && subject.get(Morale).value < settings.retreatBelow;
   },
 });
+
+const retreat = action("formations.retreat-move", {
+  reads: [FormationSettings],
+  exclusive: "movement",
+  run(subject, world) {
+    const settings = world.query(query(FormationSettings))[0]?.get(FormationSettings);
+    if (!settings) return;
+    world.action(move(subject.id, { x: -4, y: 0, z: -4, frame: null }, settings.facing));
+  },
+});
+
+export const formations = behavior("formations.retreat", (scene) => {
+  scene.find(FormationMember, Morale, Position).where(shouldRetreat).do(retreat);
+});
+
+export const formationUnitActor = actor("formations.unit")
+  .with(FormationMember)
+  .with(Morale, { value: 80 })
+  .with(Position)
+  .with(Body, { speed: 1.5 })
+  .behaves(formations);
 const groupId = entity("formations.group.1");
 const formationInitial = [
   { id: cannonId, components: {

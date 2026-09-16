@@ -65,6 +65,13 @@ remain unchanged. The focused real definitions prove the friendly surface can
 express independent condition rules without installing Colony work or adding a
 second actor runtime.
 
+Formation retreat is the third consumer. It shares one related settings query
+across unit predicates/actions and submits the existing native move operation.
+The cannon impact system deliberately remains an event consumer: projectile
+impacts are ordered transient inputs, not persistent actors or an ECS selection.
+This is the first concrete boundary proving that `.find().where().do()` should
+cover actor rules without forcing event streams into the same shape.
+
 ## Accepted authoring contract: definitions and shared query batches
 
 September 15 follow-through, accepted by Levi after inspecting the current engine
