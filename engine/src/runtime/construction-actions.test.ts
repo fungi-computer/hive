@@ -20,7 +20,7 @@ test("construction authoring cannot choose earned effort, cost or embedded custo
     { ...request, plans: [{ ...request.plans[0], target: { kind: "cell", cell: { x: 0, y: 2147483648, z: 0 }, orientation: "north" } }] },
     { ...request, plans: [{ ...request.plans[0], target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "diagonal" } }] },
     { ...request, contact: { x: 0, y: 0, z: 0, frame: "ship" } },
-    { kind: "plan-constructions", party: entity("party"), plans: [{ catalog: "timber-floor", site, x: 0, y: 0, z: 0, orientation: "north" }] },
+    { kind: "plan-constructions", plans: [{ catalog: "timber-floor", site, x: 0, y: 0, z: 0, orientation: "north" }] },
   ]) assert.throws(() => checkedAction(invalid), /invalid action/);
 });
 

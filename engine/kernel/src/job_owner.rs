@@ -148,24 +148,17 @@ impl Kernel {
             crate::job::TypedWorkOperation::ItemToItems { input_kind, input_quantity, .. } => self.ecs.get::<Lot>(entity).is_some_and(|source| source.kind == *input_kind && source.quantity >= *input_quantity),
         }
     }
-    pub(crate) fn create_job(&mut self, id: String, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<String> {
+    pub(crate) fn create_job(&mut self, id: String, pool: String, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<String> {
         crate::job::validate_plan(&id, &plan)?;
-        let owner = match scope {
-            ActionScope::Party { party, .. } => { self.ecs.get::<Party>(self.entity(party)?).ok_or("job scope is not a party")?; Some(party.clone()) },
-            ActionScope::Host => plan.steps.iter().find_map(|step| match step.operation.source_binding() {
-                crate::job::EntityBinding::Exact(source) => self.ids.get(source).and_then(|entity| self.ecs.get::<OwnedByParty>(*entity)).map(|owner| owner.party.clone()),
-                crate::job::EntityBinding::Result { .. } => None,
-            }),
-        };
-        let execution = owner.as_deref().map(|party| self.work_execution_for_scope(scope, party, crate::work_planner::POLICY_JOB)).transpose()?;
+        self.ecs.get::<Party>(self.entity(&pool)?).ok_or("job pool is not a party")?;
+        let owner = Some(pool.clone());
+        let execution = Some(self.work_execution_for_scope(scope, &pool, crate::work_planner::POLICY_JOB)?);
         if self.ids.contains_key(&id) {
             let entity = self.entity(&id)?;
             let existing = self.ecs.get::<crate::job::Job>(entity).ok_or("job identity is already in use")?;
             if existing.definition != plan.definition || existing.definition_version != plan.definition_version || existing.task_ids.len() != plan.steps.len() { return Err("job replay identity conflicts with committed plan".into()); }
-            if let ActionScope::Party { party, .. } = scope
-                && self.ecs.get::<OwnedByParty>(entity).map(|owned| owned.party.as_str()) != Some(party.as_str())
-            {
-                return Err("job replay authority conflicts with committed plan".into());
+            if self.ecs.get::<crate::components::WorkExecution>(entity).map(|execution| execution.pool.as_str()) != Some(pool.as_str()) {
+                return Err("job replay work pool conflicts with committed plan".into());
             }
             for (step, task_id) in plan.steps.iter().zip(&existing.task_ids) {
                 let task = self.ecs.get::<crate::job::Task>(self.entity(task_id)?).ok_or("job replay task is missing")?;
@@ -203,9 +196,9 @@ impl Kernel {
         }
         self.rebuild_job_index()?; self.refresh_state_weight(); Ok(id)
     }
-    pub(crate) fn resume_job(&mut self, id: &str, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<()> {
+    pub(crate) fn resume_job(&mut self, id: &str, pool: &str, plan: crate::job::JobPlan, scope: &ActionScope) -> Result<()> {
         if !self.ids.contains_key(id) {
-            self.create_job(id.to_owned(), plan, scope)?;
+            self.create_job(id.to_owned(), pool.to_owned(), plan, scope)?;
             return Ok(());
         }
         crate::job::validate_plan(id, &plan)?;
@@ -217,11 +210,9 @@ impl Kernel {
             if task.step != step.key || task.after != step.after || task.operation != step.operation || task.continuation != step.continuation { return Err("job replay identity conflicts with committed plan".into()); }
         }
         if job.state != crate::job::JobState::Cancelled { return Err("only a cancelled job can resume".into()); }
-        if let ActionScope::Party { party, .. } = scope
-            && self.ecs.get::<OwnedByParty>(job_entity).map(|value| value.party.as_str()) != Some(party.as_str())
-        {
-            return Err("job scope authority mismatch".into());
-        }
+        let execution = self.ecs.get::<crate::components::WorkExecution>(job_entity).ok_or("job execution is missing")?;
+        if execution.pool != pool { return Err("job work pool mismatch".into()); }
+        self.work_execution_for_scope(scope, pool, crate::work_planner::POLICY_JOB)?;
         self.ecs.get_mut::<crate::job::Job>(job_entity).ok_or("job is missing")?.state = crate::job::JobState::Active;
         for task_id in job.task_ids {
             let task_entity = self.entity(&task_id)?;

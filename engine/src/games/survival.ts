@@ -136,7 +136,7 @@ const survivalComponents = [
 export const survivalPack: GamePack = {
   id: "survival",
   version: 1,
-  localScope: { kind: "player", player: "local", party: entity("survival.local-party") },
+  localScope: { kind: "player", player: "local" },
   components: survivalComponents,
   systems: [survival, fatigue],
   commands: {

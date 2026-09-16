@@ -190,12 +190,12 @@ export function checkedAction(value: unknown): ActionRequest {
       break;
     }
     case "create-job":
-      keys = ["kind", "id", "plan"];
-      valid = id(action.id) && jobPlan(action.plan);
+      keys = ["kind", "id", "pool", "plan"];
+      valid = id(action.id) && id(action.pool) && jobPlan(action.plan);
       break;
     case "resume-job":
-      keys = ["kind", "id", "plan"];
-      valid = id(action.id) && jobPlan(action.plan);
+      keys = ["kind", "id", "pool", "plan"];
+      valid = id(action.id) && id(action.pool) && jobPlan(action.plan);
       break;
     case "cancel-job":
       keys = ["kind", "id"];

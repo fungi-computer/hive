@@ -19,8 +19,8 @@ test("category toggling is deterministic", () => {
 
 test("draft controls use the persistent action dock without changing selection", () => {
   const controls = [
-    { id: "draft", placement: "action-bar", selection: "entities" },
-    { id: "undraft", placement: "action-bar", selection: "entities" },
+    { id: "draft", placement: "action-bar", selection: "entities", subjects: ["party/1/person/0"] },
+    { id: "undraft", placement: "action-bar", selection: "entities", subjects: ["party/1/person/0"] },
     { id: "deconstruct", selection: { field: "site", cardinality: "one" } },
   ];
   assert.deepEqual(selectedActionBarControls(controls, []), []);
@@ -29,8 +29,8 @@ test("draft controls use the persistent action dock without changing selection",
 
 test("unavailable action-dock controls remain visible with their server reason", () => {
   const controls = selectedActionBarControls([
-    { id: "draft", placement: "action-bar", selection: "entities", availability: { status: "unavailable", reason: "already drafted" } },
-    { id: "undraft", placement: "action-bar", selection: "entities" },
+    { id: "draft", placement: "action-bar", selection: "entities", subjects: ["worker"], availability: { status: "unavailable", reason: "already drafted" } },
+    { id: "undraft", placement: "action-bar", selection: "entities", subjects: ["worker"] },
   ], ["worker"]);
   assert.deepEqual(controls.map(({ id }) => id), ["draft", "undraft"]);
   assert.equal(controls[0].availability.reason, "already drafted");
@@ -38,9 +38,17 @@ test("unavailable action-dock controls remain visible with their server reason",
 
 test("ordinary selection only changes the selected IDs supplied to the dock", () => {
   const controls = [
-    { id: "draft", placement: "action-bar", selection: "entities" },
-    { id: "undraft", placement: "action-bar", selection: "entities" },
+    { id: "draft", placement: "action-bar", selection: "entities", subjects: ["worker-a", "worker-b"] },
+    { id: "undraft", placement: "action-bar", selection: "entities", subjects: ["worker-a", "worker-b"] },
   ];
   assert.deepEqual(selectedActionBarControls(controls, ["worker-a"]).map(({ id }) => id), ["draft", "undraft"]);
   assert.deepEqual(selectedActionBarControls(controls, ["worker-b"]).map(({ id }) => id), ["draft", "undraft"]);
+});
+
+test("action dock rejects selected objects outside the advertised subjects", () => {
+  const controls = [
+    { id: "draft", placement: "action-bar", selection: "entities", subjects: ["worker"] },
+  ];
+  assert.deepEqual(selectedActionBarControls(controls, ["tree"]), []);
+  assert.deepEqual(selectedActionBarControls(controls, ["worker", "tree"]), []);
 });

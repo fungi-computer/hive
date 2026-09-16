@@ -67,7 +67,7 @@ function context(overrides: Partial<Fixture> = {}) {
     [ExcavationOrder.id, fixture.orders],
   ]);
   return {
-    scope: { kind: "player" as const, player: "tester", party: entity("host") },
+    scope: { kind: "player" as const, player: "tester" },
     physicalContacts: () => {
       throw new Error("unexpected physical contact query");
     },
@@ -92,7 +92,7 @@ test("Colony dig submits one bounded native designation without requiring a work
   });
   assert.deepEqual(result.writes, []);
   assert.deepEqual(result.creates, undefined);
-  assert.deepEqual(result.actions, [{ kind: "plan-excavation", party: entity("host"), prefix: "colony.dig", start: [0, 12, 0], end: [0, 12, 0] }]);
+  assert.deepEqual(result.actions, [{ kind: "plan-excavation", prefix: "colony.dig", start: [0, 12, 0], end: [0, 12, 0] }]);
 });
 
 test("Colony dig rejects the superseded worker-target input and accepts a designation while workers are busy", () => {
@@ -114,8 +114,8 @@ test("Colony cancelDig submits native cancellation for the exact active worker",
   });
   const attempt: WorkAttempt = { key: { task: order.id, generation: 1 }, worker, execution: { pool: entity("host"), initiatingPlayer: null, policyId: "excavation" }, phase: { kind: "executing", operation: { attempt: { task: order.id, generation: 1 }, sequence: 1 }, activity: { kind: "excavation", cell: [0, 12, 0], expectedMaterial: 1, replacementMaterial: 0 } } };
   const result = colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order], attempts: [attempt] }), { entities: [worker] });
-  assert.deepEqual(result, { actions: [{ kind: "cancel-excavation", party: entity("host"), area: null, workers: [worker] }], writes: [] });
-  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order] }), { area: { start: [0, 12, 0], end: [0, 12, 0] } }), { actions: [{ kind: "cancel-excavation", party: entity("host"), area: { start: [0, 12, 0], end: [0, 12, 0] }, workers: [] }], writes: [] });
+  assert.deepEqual(result, { actions: [{ kind: "cancel-excavation", area: null, workers: [worker] }], writes: [] });
+  assert.deepEqual(colonyPack.commands!.cancelDig.invoke(context({ work: [work], orders: [order] }), { area: { start: [0, 12, 0], end: [0, 12, 0] } }), { actions: [{ kind: "cancel-excavation", area: { start: [0, 12, 0], end: [0, 12, 0] }, workers: [] }], writes: [] });
 });
 
 test("Colony deposit emits stable whole-lot transfers for unreserved cargo", () => {

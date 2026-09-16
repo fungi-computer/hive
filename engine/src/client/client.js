@@ -502,7 +502,10 @@ export function createHiveClient({
         ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
       ],
     });
-    const selectedActionControls = selectedActionBarControls(localControls(), state.selectedIds);
+    const selectedActionControls = selectedActionBarControls(
+      contextualPresentation.selection.controls,
+      state.selectedIds,
+    );
     // Only world-scoped commands belong in the global dock. Selection-scoped
     // work remains on the selected person/object card.
     const actionGroups = actionBarGroups(contextualPresentation.world.controls, buildIds);

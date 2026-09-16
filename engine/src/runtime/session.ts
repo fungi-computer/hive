@@ -12,7 +12,7 @@ import { checkedAction } from "./actions";
 import { readKernelEntities } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
 import { query } from "../sdk/authoring";
-import { OwnedBy, OwnedByParty, Party, PartyMember } from "../sdk/party";
+import { OwnedBy } from "../sdk/party";
 import type {
   ActionRequest,
   ActionScope,
@@ -113,7 +113,7 @@ function checkedActionScope(value: unknown): ActionScope {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid action scope");
   const scope = value as Record<string, unknown>;
   if (scope.kind === "host" && Object.keys(scope).length === 1) return { kind: "host" };
-  if (scope.kind === "party" && Object.keys(scope).length === 3 && typeof scope.player === "string" && typeof scope.party === "string") return { kind: "party", player: checkedAuthoredId(scope.player), party: checkedAuthoredId(scope.party) };
+  if (scope.kind === "player" && Object.keys(scope).length === 2 && typeof scope.player === "string") return { kind: "player", player: checkedAuthoredId(scope.player) };
   throw new Error("invalid action scope");
 }
 function finiteVec3(
@@ -429,7 +429,7 @@ export class GameSession {
       (result.removes !== undefined && !Array.isArray(result.removes))
     )
       throw new Error("invalid command result");
-    const actionScope: ActionScope = scope.kind === "host" ? scope : { kind: "party", player: scope.player, party: scope.party };
+    const actionScope: ActionScope = scope;
     const actions = result.actions.map((action) => ({ scope: actionScope, request: checkedAction(action) }));
     const actionCreatedReferences = new Set<EntityId>(actions.flatMap(({ request }) =>
       request.kind === "create-job" || request.kind === "resume-job" ? [request.id] : [],
@@ -633,10 +633,10 @@ export class GameSession {
       if (removeIds.some((id) => !owned.has(id)))
         throw new Error("authored removal has no owned record");
       for (const remove of allRemoves) {
-        if (remove.scope.kind !== "party") continue;
-        const owner = this.port.query(query(OwnedByParty)).find((row) => row.id === remove.entity);
-        if (!owner || owner.get(OwnedByParty).party !== remove.scope.party)
-          throw new Error("scoped authored removal is outside party");
+        if (remove.scope.kind !== "player") continue;
+        const owner = this.port.query(query(OwnedBy)).find((row) => row.id === remove.entity);
+        if (!owner || owner.get(OwnedBy).player !== remove.scope.player)
+          throw new Error("scoped authored removal is outside player ownership");
       }
     }
     return {
@@ -733,36 +733,6 @@ export class GameSession {
       }
       return structuredClone(write);
     });
-  }
-  private canonicalPartyFor(id: EntityId): EntityId | undefined {
-    const member = this.port.query(query(PartyMember)).find((row) => row.id === id);
-    if (member) return member.get(PartyMember).party;
-    const owner = this.port.query(query(OwnedByParty)).find((row) => row.id === id);
-    return owner?.get(OwnedByParty).party;
-  }
-  private canonicalPlayerFor(party: EntityId): string | undefined {
-    const row = this.port.query(query(Party, OwnedBy)).find((candidate) => candidate.id === party);
-    return row?.get(OwnedBy).player;
-  }
-  private canonicalActionScope(party: EntityId): ActionScope {
-    const player = this.canonicalPlayerFor(party);
-    if (!player) throw new Error("system action party has no canonical player owner");
-    return { kind: "party", player, party };
-  }
-  private derivedActionScope(action: ActionRequest): ActionScope {
-    const values = Object.values(action as unknown as Record<string, unknown>).filter((value): value is EntityId => typeof value === "string");
-    const parties = [...new Set(values.map((id) => this.canonicalPartyFor(id)).filter((party): party is EntityId => party !== undefined))];
-    if (parties.length > 1) throw new Error("system action crosses party scope");
-    return parties.length ? this.canonicalActionScope(parties[0]!) : { kind: "host" };
-  }
-  private derivedCreateScope(record: EntityRecord): ActionScope {
-    const values = Object.values(record.components).flatMap((value) => {
-      if (!value || typeof value !== "object") return [];
-      return Object.values(value as Record<string, unknown>).filter((item): item is EntityId => typeof item === "string");
-    });
-    const parties = [...new Set(values.map((id) => this.canonicalPartyFor(id)).filter((party): party is EntityId => party !== undefined))];
-    if (parties.length > 1) throw new Error("system creation crosses party scope");
-    return parties.length ? this.canonicalActionScope(parties[0]!) : { kind: "host" };
   }
   private queryOverlay<T extends object>(
     spec: QuerySpec<T>,
@@ -929,12 +899,12 @@ export class GameSession {
         write: (definition, entity, value) => {
           writes.push({ component: definition.id, entity, value });
         },
-        action: (action, scope = this.derivedActionScope(action)) => {
+        action: (action, scope = { kind: "host" }) => {
           if (++systemActionCount > 128)
             throw new Error("game systems exceeded 128 actions per step");
           actions.push({ scope, request: checkedAction(action) });
         },
-        createAuthoredEntity: (record, scope = this.derivedCreateScope(record)) => {
+        createAuthoredEntity: (record, scope = { kind: "host" }) => {
           if (queuedCreates.length >= MAX_AUTHORED_RECORDS)
             throw new Error("authored creation budget exceeded");
           queuedCreates.push({ scope, record: structuredClone(record) });

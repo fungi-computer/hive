@@ -264,7 +264,7 @@ mod work_attempt_laws {
         let mut unowned: Snapshot = serde_json::from_str(&kernel.snapshot_json().unwrap()).unwrap();
         unowned.scene.initial.iter_mut().find(|record| record.id == "task").unwrap().components.remove("hive.owned-by-party");
         kernel.restore_json(&serde_json::to_string(&unowned).unwrap()).unwrap();
-        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player","party":"party"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let result: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":1.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap().contains("worker"), true);
     }
@@ -666,13 +666,16 @@ mod process_attempt_tests {
         kernel.ids.insert("grain:1".into(), grain); kernel.known.insert("grain:1".into()); kernel.refresh_state_weight();
         let worker = kernel.ecs.spawn((ExternalId("worker:1".into()), PartyMember { party: "party:1".into() }, Position { x: 0.0, y: 0.0, z: 0.0, facing: 0.0 }, Body { speed: 1.0 }, Traversal { clearance_cells: 1, max_step_cells: 1 }, Container { capacity: 4 })).id();
         kernel.ids.insert("worker:1".into(), worker); kernel.known.insert("worker:1".into());
-        let request = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]});
+        kernel.rebuild_physical_indexes(true).unwrap();
+        kernel.rebuild_relation_index().unwrap();
+        kernel.rebuild_planner_index();
+        let request = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player:1"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&request.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         let process = "process:station:process-v1";
         kernel.admit_process(process, "process-v1", "station").unwrap();
         let contact = kernel.native_supply_contacts("station").unwrap().into_iter().next().unwrap();
-        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","operation":{"kind":"process-attendance","process":process,"contact":contact}}}]});
+        let begin = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player:1"},"request":{"kind":"begin-work-attempt","task":process,"worker":"worker:1","operation":{"kind":"process-attendance","process":process,"contact":contact}}}]});
         let result: serde_json::Value = serde_json::from_str(&kernel.advance_json(&begin.to_string()).unwrap()).unwrap();
         assert_eq!(result["results"][0]["accepted"], true, "{result}");
         let attempt = kernel.work_attempt_for_worker_json("\"worker:1\"").unwrap();
@@ -691,12 +694,12 @@ mod process_attempt_tests {
         assert_eq!(restored_state.progress_seconds, waiting.progress_seconds);
         assert!(!restored.query_json(r#"["hive.process-binding"]"#).unwrap().is_empty());
         assert!(restored.work_attempts_json(&format!("[\"{process}\"]")).unwrap().contains("workerUnavailable"));
-        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:1","party":"party:1"},"request":{"kind":"acknowledge-work-attempt","task":process,"generation":1,"sequence":1}}]}).to_string()).unwrap();
+        kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player:1"},"request":{"kind":"acknowledge-work-attempt","task":process,"generation":1,"sequence":1}}]}).to_string()).unwrap();
         kernel.ecs.entity_mut(kernel.entity("worker:1").unwrap()).insert(Body { speed: 1.0 });
         let rebegin = kernel.advance_json(&begin.to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&rebegin).unwrap()["results"][0]["accepted"], true, "{rebegin}");
 
-        let wrong_party = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"party","player":"player:2","party":"party:2"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]}).to_string()).unwrap();
+        let wrong_party = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player:2"},"request":{"kind":"request-process","definition":"process-v1","station":"station"}}]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&wrong_party).unwrap()["results"][0]["accepted"], false);
         let half = kernel.advance_json(&json!({"delta":0.5,"writes":[],"actions":[]}).to_string()).unwrap();
         assert_eq!(serde_json::from_str::<serde_json::Value>(&half).unwrap()["results"].as_array().unwrap().len(), 0);
@@ -2385,13 +2388,13 @@ impl Kernel {
         if !valid_id(pool) || !valid_id(policy_id) { return Err("invalid work execution identity".into()); }
         match scope {
             ActionScope::Host => Ok(WorkExecution { pool: pool.into(), initiating_player: None, policy_id: policy_id.into() }),
-            ActionScope::Party { player, party } if party == pool && valid_id(player) => {
+            ActionScope::Player { player } if valid_id(player) => {
                 let pool_entity = self.entity(pool)?;
                 self.ecs.get::<Party>(pool_entity).ok_or("work execution pool is not a party")?;
                 if self.ownership.player(pool) != Some(player.as_str()) { return Err("work execution player does not own pool".into()); }
                 Ok(WorkExecution { pool: pool.into(), initiating_player: Some(player.into()), policy_id: policy_id.into() })
             }
-            ActionScope::Party { .. } => Err("work execution scope pool mismatch".into()),
+            ActionScope::Player { .. } => Err("invalid work execution player".into()),
         }
     }
 
@@ -4038,7 +4041,7 @@ impl Kernel {
         }
         let state = Snapshot {
             format: "hive-kernel".into(),
-            version: 17,
+            version: 18,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4080,7 +4083,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 17
+            || state.version != 18
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -4501,25 +4504,22 @@ impl Kernel {
         let mut owned_creates = Vec::new();
         let creates = batch.creates.into_iter().map(|create| {
             let ScopedCreate { scope, record } = create;
-                if record.components.contains_key("hive.owned-by-party") { return Err("authored records cannot provide party ownership".into()); }
-                if let ActionScope::Party { ref player, ref party } = scope {
-                    let party_entity = self.entity(party)?;
-                    self.ecs.get::<Party>(party_entity).ok_or("creation scope is not a party")?;
-                    if !valid_id(player) || self.ownership.player(party) != Some(player.as_str()) { return Err("creation scope player does not own party".into()); }
-                    owned_creates.push((record.id.clone(), player.clone(), party.clone()));
+                if record.components.contains_key("hive.owned-by") || record.components.contains_key("hive.owned-by-party") {
+                    return Err("authored records cannot provide ownership".into());
+                }
+                if let ActionScope::Player { ref player } = scope {
+                    if !valid_id(player) { return Err("invalid creation player".into()); }
+                    owned_creates.push((record.id.clone(), player.clone()));
                 }
                 Ok(record)
         }).collect::<Result<Vec<_>>>()?;
         let removes = batch.removes.into_iter().map(|remove| {
-            let entity = self.entity(&remove.entity)?;
+            self.entity(&remove.entity)?;
             match remove.scope {
                 ActionScope::Host => {}
-                ActionScope::Party { player, party } => {
-                    let party_entity = self.entity(&party)?;
-                    self.ecs.get::<Party>(party_entity).ok_or("removal scope is not a party")?;
-                    if !valid_id(&player) || self.ownership.player(&party) != Some(player.as_str()) { return Err("removal scope player does not own party".into()); }
-                    if self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()) != Some(party.as_str()) {
-                        return Err("scoped authored removal is outside party".into());
+                ActionScope::Player { player } => {
+                    if !valid_id(&player) || self.ownership.player(&remove.entity) != Some(player.as_str()) {
+                        return Err("scoped authored removal is outside player ownership".into());
                     }
                 }
             }
@@ -4527,9 +4527,9 @@ impl Kernel {
         }).collect::<Result<Vec<_>>>()?;
         let prepared = self.prepare_authored_entities(creates, removes, batch.writes, action_created_references)?;
         self.publish_authored_entities(prepared);
-        for (id, player, party) in owned_creates {
+        for (id, player) in owned_creates {
             let entity = self.entity(&id)?;
-            self.ecs.entity_mut(entity).insert((OwnedBy { player }, OwnedByParty { party }));
+            self.ecs.entity_mut(entity).insert(OwnedBy { player });
             self.refresh_ownership_index(&id);
         }
         self.refresh_state_weight();
@@ -5242,9 +5242,10 @@ impl Kernel {
         }
         let process_id = format!("process:{station_id}:{definition_id}");
         let owner = match scope {
-            ActionScope::Party { party, .. } => {
-                if self.ecs.get::<OwnedByParty>(station).map(|value| value.party.as_str()) != Some(party.as_str()) { return Err("process station is outside party".into()); }
-                Some(party.clone())
+            ActionScope::Player { player } => {
+                let party = self.ecs.get::<OwnedByParty>(station).map(|value| value.party.clone()).ok_or("process station has no work pool")?;
+                if self.ownership.player(&party) != Some(player.as_str()) { return Err("process station is outside player access".into()); }
+                Some(party)
             }
             ActionScope::Host => None,
         };
@@ -5865,8 +5866,8 @@ impl Kernel {
             Action::InterruptWorkAttempt { task, generation, sequence, cause } => self.interrupt_work_attempt(task, generation, sequence, cause).map(|_| ActionEffect::None),
             Action::AcknowledgeWorkAttempt { task, generation, sequence } => self.acknowledge_work_attempt(task, generation, sequence).map(|_| ActionEffect::None),
             Action::ContinueWorkAttempt { task, generation, sequence, next_activity } => self.continue_work_attempt(task, generation, sequence, next_activity).map(|_| ActionEffect::None),
-            Action::CreateJob { id, plan } => self.create_job(id, plan, scope).map(ActionEffect::Entity),
-            Action::ResumeJob { id, plan } => self.resume_job(&id, plan, scope).map(|_| ActionEffect::None),
+            Action::CreateJob { id, pool, plan } => self.create_job(id, pool, plan, scope).map(ActionEffect::Entity),
+            Action::ResumeJob { id, pool, plan } => self.resume_job(&id, &pool, plan, scope).map(|_| ActionEffect::None),
             Action::CancelJob { id } => self.cancel_job(&id).map(|_| ActionEffect::None),
             Action::ExchangeFieldWater { operation: _, worker, vessel, x, y, z, direction, portions } => {
                 self.exchange_field_water(&worker, &vessel, crate::generation::Cell { x: i64::from(x), y, z: i64::from(z) }, direction, portions)?;
@@ -5899,7 +5900,7 @@ impl Kernel {
             }
             Action::PlanDeconstruction { site, party } => self.plan_deconstruction(site, party, scope).map(ActionEffect::Entity),
             Action::ReplaceFloor { order_id, existing_floor_id, desired_catalog } => {
-                self.replace_floor(order_id, existing_floor_id, desired_catalog)?;
+                self.replace_floor(order_id, existing_floor_id, desired_catalog, scope)?;
                 Ok(ActionEffect::None)
             }
             Action::Deconstruct { worker, site } => {
@@ -6065,97 +6066,48 @@ impl Kernel {
         }
     }
 
+    fn player_has_role(&self, player: &str, target: access_roles::RoleTarget<'_>) -> Result<bool> {
+        use access_roles::OperationRole;
+        let entity = self.entity(target.entity)?;
+        if target.role == OperationRole::RelationTarget { return Ok(true); }
+        if self.ownership.player(target.entity) == Some(player) { return Ok(true); }
+        let party = self.ecs.get::<PartyMember>(entity).map(|member| member.party.as_str())
+            .or_else(|| self.ecs.get::<OwnedByParty>(entity).map(|owner| owner.party.as_str()));
+        if party.is_some_and(|party| self.ownership.player(party) == Some(player)) { return Ok(true); }
+        if target.role == OperationRole::WorkTask {
+            if let Some(execution) = self.ecs.get::<WorkExecution>(entity) {
+                return Ok(execution.initiating_player.as_deref() == Some(player)
+                    || self.ownership.player(&execution.pool) == Some(player));
+            }
+            if let Some(attempt_entity) = self.work_attempts.get(target.entity)
+                && let Some(attempt) = self.ecs.get::<WorkAttempt>(*attempt_entity)
+            {
+                return Ok(attempt.execution.initiating_player.as_deref() == Some(player)
+                    || self.ownership.player(&attempt.execution.pool) == Some(player));
+            }
+        }
+        Ok(false)
+    }
+
     fn validate_action_scope(&self, scope: &ActionScope, action: &Action) -> Result<()> {
-        let ActionScope::Party { player, party } = scope else { return Ok(()); };
-        let party_entity = self.entity(party)?;
-        self.ecs.get::<Party>(party_entity).ok_or("scoped action party is not a party")?;
-        if !crate::components::valid_id(player) || self.ownership.player(party) != Some(player.as_str()) { return Err("scoped action player does not own party".into()); }
-        match action {
-            Action::InstantiateActors { .. } => return Err("party scope cannot instantiate actors".into()),
-            Action::SetRelation { source, target, .. } => {
-                let source_entity = self.entity(source)?;
-                let source_party = self.ecs.get::<PartyMember>(source_entity).map(|member| member.party.as_str())
-                    .or_else(|| self.ecs.get::<OwnedByParty>(source_entity).map(|owner| owner.party.as_str()));
-                if source != party && source_party != Some(party.as_str()) { return Err("scoped relation source is outside party".into()); }
-                let target_entity = self.entity(target)?;
-                if let Some(member) = self.ecs.get::<PartyMember>(target_entity) && member.party != *party { return Err("scoped relation target is outside party".into()); }
-                if let Some(owner) = self.ecs.get::<OwnedByParty>(target_entity) && owner.party != *party { return Err("scoped relation target is outside party".into()); }
-            }
-            Action::ClearRelation { source, .. } => {
-                let source_entity = self.entity(source)?;
-                let source_party = self.ecs.get::<PartyMember>(source_entity).map(|member| member.party.as_str())
-                    .or_else(|| self.ecs.get::<OwnedByParty>(source_entity).map(|owner| owner.party.as_str()));
-                if source != party && source_party != Some(party.as_str()) { return Err("scoped relation source is outside party".into()); }
-            }
-            Action::BeginWorkAttempt { task, worker, .. } => {
-                let worker_entity = self.entity(worker)?;
-                if self.ecs.get::<PartyMember>(worker_entity).map(|member| member.party.as_str()) != Some(party.as_str()) { return Err("scoped worker is outside party".into()); }
-                let _ = self.entity(task)?;
-            }
-            Action::RetargetWorkAttempt { task, .. }
-            | Action::InterruptWorkAttempt { task, .. }
-            | Action::AcknowledgeWorkAttempt { task, .. }
-            | Action::ContinueWorkAttempt { task, .. } => {
-                let task_entity = self.entity(task)?;
-                let attempt_entity = self.work_attempts.get(task).ok_or("scoped work attempt is missing")?;
-                if self.ecs.get::<WorkAttempt>(*attempt_entity).map(|attempt| attempt.execution.pool.as_str()) != Some(party.as_str()) { return Err("scoped work attempt party mismatch".into()); }
-                let _ = task_entity;
-            }
-            Action::CreateJob { .. }
-            | Action::ResumeJob { .. }
-            | Action::CancelJob { .. }
-            | Action::RequestProcess { .. }
-            | Action::AdmitProcess { .. }
-            | Action::ExchangeFieldWater { .. } => {}
-            Action::DesignateStockpile { party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-            }
-            Action::DesignateResource { party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-            }
-            Action::RequestFieldWater { party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-            }
-            Action::UpdateStockpile { party: action_party, zone, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-                let cells: Vec<_> = self.ids.values().copied().filter(|entity| self.ecs.get::<StockpileCell>(*entity).is_some_and(|cell| cell.zone == *zone)).collect();
-                if cells.is_empty() || cells.iter().any(|entity| self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(party.as_str())) { return Err("scoped stockpile zone is outside party".into()); }
-            }
-            Action::ClearStockpile { party: action_party, zone, cells } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-                self.stockpile_clear_ids(party, zone, cells)?;
-            }
-            Action::CancelWork { .. }
-            | Action::Move { .. }
-            | Action::BeginDirect { .. }
-            | Action::DirectInput { .. }
-            | Action::Displace { .. }
-            | Action::Deconstruct { .. }
-            | Action::SetStructureOpen { .. } => {}
-            Action::PlanConstructions { party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-            }
-            Action::PlanExcavation { party: action_party, .. } | Action::CancelExcavation { party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-            }
-            Action::PlanDeconstruction { party: action_party, .. } => {
-                if action_party != party { return Err("scoped action party mismatch".into()); }
-            }
-            Action::ReplaceFloor { .. }
-            | Action::BindConstructionStage { .. }
-            | Action::BeginEmission { .. }
-            | Action::DropLot { .. }
-            | Action::Consume { .. }
-            | Action::Transfer { .. }
-            | Action::ExtractResource { .. }
-            | Action::EstablishResourceSite { .. }
-            | Action::TendResourceSite { .. }
-            | Action::Launch { .. } => {}
+        let ActionScope::Player { player } = scope else { return Ok(()); };
+        if !valid_id(player) { return Err("invalid action player".into()); }
+        if matches!(action, Action::InstantiateActors { .. }) {
+            return Err("player scope cannot instantiate actors".into());
         }
         for target in access_roles::action_roles(action) {
-            let entity = self.entity(target.entity)?;
-            if let Some(member) = self.ecs.get::<PartyMember>(entity) && member.party != *party { return Err("scoped action worker is outside party".into()); }
-            if let Some(owner) = self.ecs.get::<OwnedByParty>(entity) && owner.party != *party { return Err("scoped action target is outside party".into()); }
+            if !self.player_has_role(player, target)? {
+                return Err(format!("player lacks {:?} access to {}", target.role, target.entity));
+            }
+        }
+        if let Action::UpdateStockpile { party, zone, .. } = action {
+            let cells: Vec<_> = self.ids.values().copied().filter(|entity| self.ecs.get::<StockpileCell>(*entity).is_some_and(|cell| cell.zone == *zone)).collect();
+            if cells.is_empty() || cells.iter().any(|entity| self.ecs.get::<OwnedByParty>(*entity).map(|owner| owner.party.as_str()) != Some(party.as_str())) {
+                return Err("stockpile zone is outside its work pool".into());
+            }
+        }
+        if let Action::ClearStockpile { party, zone, cells } = action {
+            self.stockpile_clear_ids(party, zone, cells)?;
         }
         Ok(())
     }

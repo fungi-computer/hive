@@ -43,7 +43,7 @@ export function createColonyPerformancePack(
     const id = record.id as import("../contracts").EntityId;
     record.components["colony.tree-policy"] = { designated: true, party: "party:1", job: null };
     record.components["hive.owned-by-party"] = { party: "party:1" };
-    return { kind: "create-job" as const, id: treeJob(id), plan: treePlan(id) };
+    return { kind: "create-job" as const, id: treeJob(id), pool: "party:1" as import("../contracts").EntityId, plan: treePlan(id) };
   });
   const visualNames = ["colony.rowan", "colony.sedge"];
   for (let index = 0; index < workerCount; index++) {
@@ -70,7 +70,7 @@ export function createColonyPerformancePack(
       "colony.tree-policy": { designated: true, party: "party:1", job: null },
     } });
     const tree = id as import("../contracts").EntityId;
-    jobActions.push({ kind: "create-job" as const, id: treeJob(tree), plan: treePlan(tree) });
+    jobActions.push({ kind: "create-job" as const, id: treeJob(tree), pool: "party:1" as import("../contracts").EntityId, plan: treePlan(tree) });
     placements.push({ entity: id, column: [x, z] });
   }
   definition.initial = initial;
@@ -82,7 +82,7 @@ export function createColonyPerformancePack(
   return {
     ...colonyPack,
     id: gameId,
-    localScope: { kind: "player", player: "player:1", party: "party:1" as import("../contracts").EntityId },
+    localScope: { kind: "player", player: "player:1" },
     version: colonyPack.version,
     definition: new TextEncoder().encode(JSON.stringify(definition)),
     environmentDefinition: new TextEncoder().encode(JSON.stringify(environment)),

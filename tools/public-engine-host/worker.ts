@@ -295,7 +295,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const raw = this.owner.sql.exec("SELECT credential_hash,principal,player_id,party_id FROM hive_public_participants WHERE principal=?", principal).toArray()[0];
         if (!raw) return null;
         const participant = participantRow(raw);
-        return { kind: "player", player: participant.player_id, party: participant.party_id };
+        return { kind: "player", player: participant.player_id };
       },
     });
     this.resident = runtime.resident;

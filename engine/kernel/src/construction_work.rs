@@ -816,19 +816,25 @@ impl Kernel {
         Ok(())
     }
 
-    pub(super) fn replace_floor(&mut self, order_id: String, existing_id: String, desired_catalog: String) -> Result<()> {
+    pub(super) fn replace_floor(&mut self, order_id: String, existing_id: String, desired_catalog: String, scope: &ActionScope) -> Result<()> {
         if !crate::components::valid_id(&order_id) || self.known.contains(&order_id) { return Err("invalid or duplicate floor replacement order".into()); }
         self.validate_floor_replacement(&existing_id, &desired_catalog, None)?;
         let target_entity = self.entity(&existing_id)?;
         let target = self.ecs.get::<ConstructionSite>(target_entity).cloned().ok_or("existing floor is not a construction site")?;
         let owner = self.ecs.get::<OwnedByParty>(target_entity).cloned().ok_or("existing floor has no party owner")?;
+        let execution = self.work_execution_for_scope(scope, &owner.party, crate::work_planner::POLICY_CONSTRUCTION)?;
         let desired = self.environment.as_ref().ok_or("construction needs environment")?.structures.get(&desired_catalog).ok_or("unknown replacement catalog")?;
         if target.catalog == desired_catalog { return Ok(()); }
         let ConstructionTarget::Cell { cell, orientation } = target.target else { return Err("floor replacement target must be cell construction".into()); };
         let staged = ConstructionSite { catalog: desired_catalog.clone(), target: ConstructionTarget::Cell { cell, orientation }, seconds: 0.0, phase: ConstructionPhase::Planned };
         let capacity = desired.materials.values().try_fold(0u32, |sum, quantity| sum.checked_add(*quantity)).ok_or("replacement material capacity overflow")?;
-        let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, owner, staged, FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: cell.x, support_y: i64::from(cell.y), support_z: cell.z, phase: FloorReplacementPhase::Queued })).id();
-        self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id, BTreeSet::new());
+        let entity = self.ecs.spawn((ExternalId(order_id.clone()), Container { capacity }, owner.clone(), staged,
+            crate::work_planner::WorkPolicy { pool: owner.party, priority: 0, enabled: true },
+            execution,
+            crate::work_planner::WorkSchedule { next_review_tick: self.revision, last_considered: self.revision },
+            FloorReplacement { version: 1, target_floor: existing_id, expected_catalog: target.catalog, desired_catalog, support_x: cell.x, support_y: i64::from(cell.y), support_z: cell.z, phase: FloorReplacementPhase::Queued })).id();
+        self.ids.insert(order_id.clone(), entity); self.known.insert(order_id.clone()); self.contents.insert(order_id.clone(), BTreeSet::new());
+        self.refresh_planner_index(&order_id);
         self.refresh_state_weight();
         Ok(())
     }

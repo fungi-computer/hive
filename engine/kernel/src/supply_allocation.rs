@@ -141,6 +141,7 @@ mod tests {
         let mut kernel = Kernel::new();
         kernel.load(&json!({"format":"hive-game","version":3,"game":"supplies","components":[],"materialCatalog":[],"initial":[
             {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"p"}}},
+            {"id":"requirement","components":{"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test-supply"}}},
             {"id":"w1","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
             {"id":"w2","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":4}}},
             {"id":"source","components":{"hive.owned-by-party":{"party":"party"},"hive.position":{"x":0,"y":0,"z":0,"facing":0},"hive.container":{"capacity":8},"hive.ground-stock":{}}},
@@ -156,10 +157,10 @@ mod tests {
     #[test]
     fn two_partial_allocations_are_independent_and_overbooking_is_rejected() {
         let mut kernel = kernel();
-        let a = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
-        let b = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
+        let a = kernel.reserve_supply_allocation("requirement".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
+        let b = kernel.reserve_supply_allocation("requirement".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
         assert_ne!(a, b);
-        assert!(kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 1).is_err());
+        assert!(kernel.reserve_supply_allocation("requirement".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 1).is_err());
         assert_eq!(kernel.ecs().get::<Lot>(kernel.entity("wood").unwrap()).unwrap().quantity, 6);
         let rows: Value = serde_json::from_str(&kernel.query_json("[\"hive.supply-allocation\"]").unwrap()).unwrap();
         assert_eq!(rows.as_array().unwrap().len(), 2);
@@ -176,9 +177,9 @@ mod tests {
     #[test]
     fn cancellation_releases_capacity_and_delivery_preserves_custody() {
         let mut kernel = kernel();
-        let a = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
+        let a = kernel.reserve_supply_allocation("requirement".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
         kernel.cancel_supply_allocation(&a).unwrap();
-        let b = kernel.reserve_supply_allocation("party".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
+        let b = kernel.reserve_supply_allocation("requirement".into(), "wood".into(), 1, "party".into(), "wood".into(), "wood".into(), "destination".into(), 3).unwrap();
         let wood = kernel.ecs().get::<Lot>(kernel.entity("wood").unwrap()).unwrap();
         assert_eq!((wood.container.as_str(), wood.quantity), ("source", 6));
         assert_eq!(kernel.quantity_in_container("destination"), 0);

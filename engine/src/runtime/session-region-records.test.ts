@@ -145,7 +145,7 @@ test("actual Colony water records commit with session and recover after failed S
     const runtime = createSessionRegionRuntime({
       pack, createKernel: () => wasmKernelPort(new WasmKernel()), implementationHash: "a".repeat(64),
       ownerPrincipal: "player", hostPrincipal: "clock", seed: 17,
-      scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal, party: "local" as import("../contracts").EntityId } : null,
+      scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal } : null,
     });
     resident = runtime.resident;
     return openRegion({ owner, region: "wet-colony", program: runtime.program });
@@ -233,7 +233,7 @@ test("resident discards rolled-back multi-command work and accepts historical re
       return { ...port, dispose: () => { disposed++; release(); } };
     },
     implementationHash: "c".repeat(64), ownerPrincipal: "player", hostPrincipal: "clock", seed: 17,
-    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal, party: "local" as import("../contracts").EntityId } : null,
+    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal } : null,
   });
   const region = openRegion({ owner, region: "outer-resident", program: runtime.program });
   const reader = (revision: number) => {
@@ -289,7 +289,7 @@ test("resident session reuses accepted candidate and fails closed across retry a
     ownerPrincipal: "player",
     hostPrincipal: "clock",
     seed: 17,
-    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal, party: "local" as import("../contracts").EntityId } : null,
+    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal } : null,
   });
   const resident = runtime.resident;
   const region = openRegion({ owner, region: "resident-colony", program: runtime.program });
@@ -360,7 +360,7 @@ test("resident detaches failed native candidates and preserves primary errors", 
     ownerPrincipal: "player",
     hostPrincipal: "clock",
     seed: 17,
-    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal, party: "local" as import("../contracts").EntityId } : null,
+    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal } : null,
   });
   const resident = runtime.resident;
   const region = openRegion({ owner, region: "resident-failure-cleanup", program: runtime.program });
@@ -423,7 +423,7 @@ test("resident preserves an undefined application failure during cleanup", () =>
     ownerPrincipal: "player",
     hostPrincipal: "clock",
     seed: 17,
-    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal, party: "local" as import("../contracts").EntityId } : null,
+    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal } : null,
   });
   const resident = runtime.resident;
   const region = openRegion({ owner, region: "resident-undefined-failure", program: runtime.program });
@@ -473,7 +473,7 @@ test("initial resident program preserves start failure when native disposal thro
     ownerPrincipal: "player",
     hostPrincipal: "clock",
     seed: 17,
-    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal, party: "local" as import("../contracts").EntityId } : null,
+    scopeForPrincipal: principal => principal === "clock" ? { kind: "host" } : principal === "player" ? { kind: "player", player: principal } : null,
   });
   try {
     assert.throws(

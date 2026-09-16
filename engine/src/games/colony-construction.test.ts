@@ -93,7 +93,7 @@ function joinServerParty(session: GameSession, bindingId: string) {
     player: committed.player,
     party: committed.party,
     people: committed.people,
-    scope: { kind: "player" as const, player: identity.player, party: identity.party },
+    scope: { kind: "player" as const, player: identity.player },
   };
 }
 

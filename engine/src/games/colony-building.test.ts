@@ -6,7 +6,7 @@ import { entity } from "../sdk/authoring";
 test("building command preserves four stair directions without selecting a contact", () => {
   for (const orientation of ["north", "east", "south", "west"] as const) {
     const result = colonyBuildCommand.invoke({
-      scope: { kind: "player" as const, player: "player", party: entity("party") },
+      scope: { kind: "player" as const, player: "player" },
       query: () => [],
       floorOperations: (cells: readonly unknown[]) => cells.map(() => ({ kind: "build" as const })),
       physicalContacts: () => [],
@@ -30,11 +30,11 @@ test("local build detail follows the authoritative definition supplied at compos
   assert.equal(colonyBuildBindingDetail("thing", "north", environment, placement), "7 wood · 2×2 · click point · north");
 });
 test("building designation leaves support and access to native staging", () => {
-  assert.equal(colonyBuildCommand.invoke({ scope: { kind: "player", player: "player", party: entity("party") }, query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] } as never,
+  assert.equal(colonyBuildCommand.invoke({ scope: { kind: "player", player: "player" }, query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] } as never,
     { catalog: "timber-wall", target: { edges: [{ cell: [0, 17, 0], axis: "x" }] } }).actions.length, 1);
 });
 test("structures use one shape-owned support-to-origin convention", () => {
-  const context = { scope: { kind: "player" as const, player: "player", party: entity("party") }, query: () => [], floorOperations: (cells: readonly unknown[]) => cells.map(() => ({ kind: "build" as const })), physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] };
+  const context = { scope: { kind: "player" as const, player: "player" }, query: () => [], floorOperations: (cells: readonly unknown[]) => cells.map(() => ({ kind: "build" as const })), physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [] };
   for (const [catalog, expectedY] of [
     ["timber-floor", 17], ["timber-roof", 17], ["timber-stair", 17],
     ["timber-bed", 18], ["timber-shelf", 18],
@@ -50,7 +50,7 @@ test("structures use one shape-owned support-to-origin convention", () => {
 test("oversized build area rejects before terrain queries and leaves subsequent orders usable", () => {
   let queries = 0;
   const context = {
-    scope: { kind: "player" as const, player: "player", party: entity("party") },
+    scope: { kind: "player" as const, player: "player" },
     query: () => [],
     floorOperations: (cells: readonly unknown[]) => {
       queries += 1;
@@ -74,7 +74,7 @@ test("oversized build area rejects before terrain queries and leaves subsequent 
 
 test("building expands deterministic point, line and rectangle designations without workers", () => {
   const context = {
-    scope: { kind: "player" as const, player: "player", party: entity("party") },
+    scope: { kind: "player" as const, player: "player" },
     query: () => [],
     floorOperations: (cells: readonly unknown[]) => cells.map(() => ({ kind: "build" as const })),
     physicalContacts: (cells: readonly unknown[]) => cells.map((_, index) => ({ solid: index === 0, sealedTop: false, outside: false })),
@@ -98,7 +98,7 @@ test("building expands deterministic point, line and rectangle designations with
 
 test("building skips an already planned site deterministically", () => {
   const duplicate = colonyBuildCommand.invoke({
-    scope: { kind: "player", player: "player", party: entity("party") },
+    scope: { kind: "player", player: "player" },
     query: () => [{ id: entity("colony.build.timber-wall.edge.0.18.0.x") }],
     physicalContacts: (cells: readonly unknown[]) => cells.map(() => ({ solid: true, sealedTop: false, outside: false })),
     terrainMaterials: () => [], terrainSurfaces: () => [],
@@ -108,7 +108,7 @@ test("building skips an already planned site deterministically", () => {
 
 test("wall edge designation deduplicates and sorts before native planning", () => {
   const context = {
-    scope: { kind: "player" as const, player: "player", party: entity("party") },
+    scope: { kind: "player" as const, player: "player" },
     query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
   };
   const result = colonyBuildCommand.invoke(context, { catalog: "timber-wall", target: { edges: [
@@ -133,7 +133,7 @@ test("door uses the same worker-free canonical edge designation as walls", () =>
     preset: { catalog: "timber-door" },
   });
   const result = colonyBuildCommand.invoke({
-    scope: { kind: "player" as const, player: "player", party: entity("party") },
+    scope: { kind: "player" as const, player: "player" },
     query: () => [], physicalContacts: () => [], terrainMaterials: () => [], terrainSurfaces: () => [],
   }, { catalog: "timber-door", target: { edges: [{ cell: [-3, 17, 4], axis: "z" }] } });
   assert.deepEqual(result.actions, [{

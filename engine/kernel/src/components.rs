@@ -722,8 +722,8 @@ pub enum Action {
     InterruptWorkAttempt { task: String, generation: u64, sequence: u32, cause: crate::work_attempt::InterruptCause },
     AcknowledgeWorkAttempt { task: String, generation: u64, sequence: u32 },
     ContinueWorkAttempt { task: String, generation: u64, sequence: u32, #[serde(rename = "nextActivity")] next_activity: crate::work_attempt::ActivityRef },
-    CreateJob { id: String, plan: crate::job::JobPlan },
-    ResumeJob { id: String, plan: crate::job::JobPlan },
+    CreateJob { id: String, pool: String, plan: crate::job::JobPlan },
+    ResumeJob { id: String, pool: String, plan: crate::job::JobPlan },
     CancelJob { id: String },
     RequestProcess { definition: String, station: String },
     AdmitProcess { process: String, definition: String, station: String },
@@ -787,7 +787,7 @@ pub struct ConstructionPlan {
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum ActionScope {
     Host,
-    Party { player: String, party: String },
+    Player { player: String },
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

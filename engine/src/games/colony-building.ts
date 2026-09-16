@@ -1,4 +1,6 @@
 import { command, entity, query } from "../sdk/authoring";
+import { OwnedBy, Party } from "../sdk/party";
+import { colonyPartyForPlayer } from "./colony-player-party";
 import { ConstructionSite, FloorReplacement, planConstructions, replaceFloor } from "../sdk/construction";
 import { placementOrientation, structureOriginCell } from "../sdk/placement";
 import { colonyPlacement } from "./colony-placement";
@@ -107,7 +109,7 @@ export const colonyBuildCommand = command({
     ...["north", "east", "south", "west"].map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface" as const, designation: ["point"] as const, detail: colonyBuildBindingDetail("timber-stair", orientation), preset: { catalog: "timber-stair", orientation } })),
   ] },
   input: buildInput,
-  reads: [ConstructionSite, FloorReplacement], writes: [],
+  reads: [ConstructionSite, FloorReplacement, Party, OwnedBy], writes: [],
   run(context, input) {
     if (context.scope.kind !== "player")
       throw new Error("building requires a player party");
@@ -119,7 +121,7 @@ export const colonyBuildCommand = command({
       const candidates = colonyPlacementCandidates(input);
       if (sites.length + candidates.length > 128) throw new Error("Construction site limit reached");
       const plans = candidates.filter(candidate => !sites.some(site => site.id === candidate.site));
-      return { writes: [], actions: plans.length ? [planConstructions(context.scope.party, plans)] : [] };
+      return { writes: [], actions: plans.length ? [planConstructions(colonyPartyForPlayer(context), plans)] : [] };
     }
     if (definition.shape.kind === "wall" || definition.shape.kind === "aperture") throw new Error("Boundary structures require edge placement");
     const candidates = colonyPlacementCandidates(input);
@@ -144,7 +146,7 @@ export const colonyBuildCommand = command({
       if (sites.some(site => site.id === candidate.site)) continue;
       plans.push(candidate);
     }
-    if (plans.length) actions.push(planConstructions(context.scope.party, plans));
+    if (plans.length) actions.push(planConstructions(colonyPartyForPlayer(context), plans));
     return { writes: [], actions };
   },
 });

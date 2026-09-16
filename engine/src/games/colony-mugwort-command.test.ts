@@ -24,7 +24,7 @@ function context(options: {
 } = {}) {
   const material = options.material ?? 1;
   return {
-    scope: { kind: "player" as const, player: "player", party: "party" },
+    scope: { kind: "player" as const, player: "player" },
     clock: { now: 0, delta: 0, tick: 1 },
     physicalContacts: () => [],
     terrainMaterials: () => [material],
@@ -48,7 +48,7 @@ function orderRow() {
 
 test("sow mugwort accepts the current terrain-cell material and stays workerless", () => {
   const result = colonyPack.commands!.sowMugwort.invoke(context(), { target: { cell, material: 1 } });
-  assert.deepEqual(result.actions, [{ kind: "designate-resource", order: "colony.resource.mugwort.0.13.0", party: "party", definition: "mugwort", x: 0, y: 13, z: 0 }]);
+  assert.deepEqual(result.actions, [{ kind: "designate-resource", order: "colony.resource.mugwort.0.13.0", definition: "mugwort", x: 0, y: 13, z: 0 }]);
   assert.deepEqual(result.writes, []);
   assert.equal(result.creates, undefined);
 

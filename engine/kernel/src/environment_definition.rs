@@ -689,7 +689,12 @@ pub(crate) mod tests {
         assert!(restored.save_records().is_err());
         assert!(restored.advance_json(step).is_err());
         restored.restore_records(&committed).unwrap();
-        assert_eq!(restored.environment_facts_json().unwrap(), kernel.environment_facts_json().unwrap());
+        let mut recovered: serde_json::Value = serde_json::from_str(&restored.environment_facts_json().unwrap()).unwrap();
+        let mut expected: serde_json::Value = serde_json::from_str(&kernel.environment_facts_json().unwrap()).unwrap();
+        let recovered_revision = recovered.as_object_mut().unwrap().remove("placementRevision").unwrap();
+        let expected_revision = expected.as_object_mut().unwrap().remove("placementRevision").unwrap();
+        assert_eq!(recovered, expected, "restore preserves physical environment facts");
+        assert_eq!(recovered_revision.as_u64(), expected_revision.as_u64().map(|revision| revision + 1), "restore advances the runtime placement invalidation frontier");
 
     }
 

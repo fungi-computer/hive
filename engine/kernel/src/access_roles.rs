@@ -51,8 +51,9 @@ pub(crate) fn action_roles(action: &Action) -> Vec<RoleTarget<'_>> {
         | Action::InterruptWorkAttempt { task, .. }
         | Action::AcknowledgeWorkAttempt { task, .. }
         | Action::ContinueWorkAttempt { task, .. } => vec![role(WorkTask, task)],
-        Action::CreateJob { .. } => vec![],
-        Action::ResumeJob { id, .. } | Action::CancelJob { id } => vec![role(WorkTask, id)],
+        Action::CreateJob { pool, .. } => vec![role(PlanSubject, pool)],
+        Action::ResumeJob { id, pool, .. } => vec![role(WorkTask, id), role(PlanSubject, pool)],
+        Action::CancelJob { id } => vec![role(WorkTask, id)],
         Action::RequestProcess { station, .. } => vec![role(StationUse, station)],
         Action::AdmitProcess { process, station, .. } => {
             vec![role(Process, process), role(StationUse, station)]
@@ -103,9 +104,7 @@ pub(crate) fn action_roles(action: &Action) -> Vec<RoleTarget<'_>> {
         Action::ExtractResource { worker, source, .. } => {
             vec![role(Control, worker), role(Withdraw, source)]
         }
-        Action::EstablishResourceSite { worker, site, .. } => {
-            vec![role(Control, worker), role(PlanSubject, site)]
-        }
+        Action::EstablishResourceSite { worker, .. } => vec![role(Control, worker)],
         Action::TendResourceSite { worker, site, vessel, .. } => vec![
             role(Control, worker),
             role(PlanSubject, site),

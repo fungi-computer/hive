@@ -1,4 +1,6 @@
 import { command, entity, query } from "../sdk/authoring";
+import { OwnedBy, Party } from "../sdk/party";
+import { colonyPartyForPlayer } from "./colony-player-party";
 import { clearStockpile, designateStockpile, updateStockpile } from "../sdk/stockpile";
 import { StockpileCell } from "../sdk/stockpile";
 import { Position } from "../sdk/common";
@@ -52,13 +54,13 @@ export const colonyStockpileCommand = command({
   title: "Designate stockpile", category: "Storage", description: "Designate a floor area for physical material storage.",
   localPresentation: { bindings: [{ id: "designate-stockpile", label: "Designate stockpile", target: "terrain-area", designation: ["rectangle"] as const, preset: { filterProfile: "wood", priority: 50 } }] },
   input: colonyStockpileInputSchema,
-  reads: [],
+  reads: [Party, OwnedBy],
   writes: [],
   run: (context, value) => {
     if (context.scope.kind !== "player") throw new Error("stockpile designation requires a player party");
     return {
       writes: [],
-      actions: [designateStockpile(context.scope.party, zoneFor(value.area), cellsFor(value.area).map(cell => ({
+      actions: [designateStockpile(colonyPartyForPlayer(context), zoneFor(value.area), cellsFor(value.area).map(cell => ({
         ...cell,
         priority: value.priority,
         filterProfile: value.filterProfile,
@@ -71,10 +73,10 @@ export const colonyStockpileClearCommand = command({
   title: "Clear stockpile", category: "Storage", description: "Remove the painted stockpile policy while preserving physical goods.",
   localPresentation: { bindings: [{ id: "clear-stockpile", label: "Clear stockpile", target: "terrain-area", designation: ["rectangle"] as const }] },
   input: z.object({ area }).strict(),
-  reads: [StockpileCell, Position], writes: [],
+  reads: [StockpileCell, Position, Party, OwnedBy], writes: [],
   run: (context, value) => {
     if (context.scope.kind !== "player") throw new Error("stockpile clear requires a player party");
-    return { writes: [], actions: [clearStockpile(context.scope.party, zoneForExistingArea(context, value.area), cellsFor(value.area))] };
+    return { writes: [], actions: [clearStockpile(colonyPartyForPlayer(context), zoneForExistingArea(context, value.area), cellsFor(value.area))] };
   },
 });
 
@@ -90,12 +92,12 @@ export const colonyStockpilePolicyCommand = command({
   ] },
   input: colonyStockpilePolicyInputSchema,
   subjects: context => context.query(query(StockpileCell)).map(row => row.id),
-  reads: [StockpileCell], writes: [],
+  reads: [StockpileCell, Party, OwnedBy], writes: [],
   run: (context, value) => {
     const cell = context.query(query(StockpileCell)).find(row => row.id === value.cell);
     if (!cell) throw new Error("Choose a stockpile cell");
     const current = cell.get(StockpileCell);
     if (context.scope.kind !== "player") throw new Error("stockpile update requires a player party");
-    return { writes: [], actions: [updateStockpile(context.scope.party, entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority ?? current.priority)] };
+    return { writes: [], actions: [updateStockpile(colonyPartyForPlayer(context), entity(current.zone), value.filterProfile ?? current.filterProfile, value.priority ?? current.priority)] };
   },
 });

@@ -221,8 +221,8 @@ export type ActionRequest =
   | { readonly kind: "interrupt-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly cause: WorkInterruptCause }
   | { readonly kind: "acknowledge-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number }
   | { readonly kind: "continue-work-attempt"; readonly task: EntityId; readonly generation: number; readonly sequence: number; readonly nextActivity: WorkActivityRef }
-  | { readonly kind: "create-job"; readonly id: EntityId; readonly plan: JobPlan }
-  | { readonly kind: "resume-job"; readonly id: EntityId; readonly plan: JobPlan }
+  | { readonly kind: "create-job"; readonly id: EntityId; readonly pool: EntityId; readonly plan: JobPlan }
+  | { readonly kind: "resume-job"; readonly id: EntityId; readonly pool: EntityId; readonly plan: JobPlan }
   | { readonly kind: "cancel-job"; readonly id: EntityId }
   | { readonly kind: "establish-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly definition: string; readonly x: number; readonly y: number; readonly z: number }
   | { readonly kind: "tend-resource-site"; readonly operation: string; readonly worker: EntityId; readonly site: EntityId; readonly vessel: EntityId }
@@ -456,7 +456,7 @@ export type NativeFact = Exclude<
 >;
 export type CommandScope =
   | { readonly kind: "host" }
-  | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
+  | { readonly kind: "player"; readonly player: string };
 export type PartyJoinIdentity = Readonly<{
   readonly status: "existing" | "available";
   readonly sequence: number;
@@ -492,7 +492,7 @@ export type PartyJoinCapability = Readonly<{
 }>;
 export type ActionScope =
   | { readonly kind: "host" }
-  | { readonly kind: "party"; readonly player: string; readonly party: EntityId };
+  | { readonly kind: "player"; readonly player: string };
 export interface ScopedAction {
   readonly scope: ActionScope;
   readonly request: ActionRequest;

@@ -25,6 +25,8 @@ export function selectedActionBarControls(controls, selectedIds) {
   if (!Array.isArray(selectedIds) || selectedIds.length === 0) return [];
   return (controls ?? []).filter((control) =>
     control.placement === "action-bar" &&
-    control.selection === "entities",
+    control.selection === "entities" &&
+    Array.isArray(control.subjects) &&
+    selectedIds.every((id) => control.subjects.includes(id)),
   );
 }
