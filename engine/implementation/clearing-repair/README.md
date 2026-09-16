@@ -81,9 +81,7 @@ one pack entrypoint and a fast art/gameplay iteration loop. It does not turn the
 Clearing repair into another editor or engine rewrite.
 It owns the current deep-module correction and repair order. All automatic jobs
 share one Rust scheduler. Domain modules own requirements and physical effects;
-they do not grow individual scheduling or delivery lifecycles. Native migration
-is still incomplete at this source checkpoint. Historical runtime receipts
-below are not evidence of its acceptance.
+they do not grow individual scheduling or delivery lifecycles.
 
 **September 15 implementation design:** [Native work planner](07-native-work-planner.md)
 specifies the complete Rust planning pipeline, ownership, budgets, recovery and
@@ -112,13 +110,17 @@ across its plan, and cancelling future tasks never removes committed physical
 results. The engine executes typed resource/item transformations; Goblin supplies
 tree, trunk, log, duration and presentation definitions.
 
-**Current job architecture correction (September 14):**
+**Current job architecture (source-audited September 16):**
 [Rust-owned declarative job planning](01-work.md#rust-owned-declarative-job-planning-current-correction)
-supersedes the earlier TypeScript provider scheduling design. This migration is
-INCOMPLETE. Native physical operations and a shared matcher do not establish
-engine-owned planning. TypeScript declares game requirements; Rust owns bounded
-discovery, eligibility, assignment and execution of supported work. The water
-query batching patch is an interim bug fix, not acceptance of this architecture.
+supersedes the earlier TypeScript provider scheduling design. For every currently
+supported Clearing work family, TypeScript declares checked content and semantic
+commands while Rust owns discovery, eligibility, material allocation, candidate
+generation, route cost, joint assignment and continuation. Construction,
+production, field water, excavation, deconstruction, trees/resources and
+stockpile hauling use that one planner. The former TypeScript automatic planners,
+worker/job scans and candidate-pair generators are deleted. Manual Draft/Go
+commands still submit typed native WorkAttempt operations; they do not assign
+automatic jobs.
 
 [Native placement admission audit](02-construction.md#current-audit-reject-conflicting-plans-at-the-native-boundary)
 adds required geometric conflict and prerequisite checks before a construction
@@ -134,15 +136,11 @@ the historical status and earlier construction/drawing instructions below.
 It is an implementation plan, not a claim of landed code or hosted acceptance.
 
 Status: active integration on `engine/clearing-edge-integration-20260914`.
-The reviewed and pushed checkpoint is `1854e31d`. The native scheduler owns
-construction, processes and their supplies, field water, excavation,
-deconstruction, trees/resources and stockpile demand. Placement preview and
-final admission now share one atomic native batch, structurally invalid plans
-cancel through the construction owner, and render support picking uses the same
-deterministic order as drawing. The remaining consumer cutover is ordinary
-material delivery and native manual-result reconciliation; its TypeScript
-provider, shadow custody record and allocation scans must be deleted together.
-Historical branches and receipts remain evidence; they are not the active queue.
+The pushed checkpoint is `a46d5fcc`. Placement preview and final admission share
+one atomic native batch, structurally invalid plans cancel through the
+construction owner, and render support picking uses the same deterministic order
+as drawing. Historical branches and receipts remain evidence; they are not the
+active queue.
 
 The joined source now contains the native WorkAttempt identity/lifecycle owner,
 party-scoped pending actions and authored creation, lawful transfer contacts,
@@ -164,8 +162,8 @@ vessel, converts that same durable task into an ordinary native allocation, carr
 the exact water portion into the kettle, and admits the original brewing recipe.
 Mugwort harvested by native physical work enters that same supply owner. The dead
 TypeScript `processSupplyPhase`/`planSiteSupplies` planner and its duplicate tests
-are deleted. Stockpile planning, tended-resource water and general resource worker
-selection remain TypeScript-owned at this checkpoint and are the next cutovers.
+are deleted. Stockpile, tended-resource water and general resource worker
+selection now enter the same native planner.
 
 Original retained art placement metadata is owned beside the bed, brewer and stair
 recipes and survives the v5 static pack. The client converts canonical point and
@@ -176,18 +174,20 @@ existing alpha silhouette. The superseded per-pixel depth renderer is deleted.
 Terrain and water occupy explicit storey bands rather than pretending to be
 physical sprites.
 
-At `1854e31d`, the maintained performance qualification passes 16/16 and the
-focused sorter/world-view proof passes 29/29. Productive 90-step measurements
-retain every actor and complete all 50 trees: 32 workers have a 12.58 ms median
-simulation step and 38.70 ms p95; 100 workers have a 14.88 ms median and 71.99 ms
-p95. The bounded 200-worker stress has a 23.02 ms median and 111.39 ms p95;
-snapshot save and observation are measured separately, with 200-worker medians
-of 48.56 ms and 99.16 ms. These results prove productive native work and expose
-remaining tail/observation cost; they do not yet prove smooth hosted rendering.
-Strict TypeScript and the production Vite build pass at this checkpoint.
+At `512ecf53`, productive measurements preserve actual water and work: median
+simulation step is 6.51 ms at 32 workers, 4.84 ms at 100 and 6.43 ms at 200.
+Median observation is 5.74/7.32/9.62 ms respectively; median full snapshot at
+200 is 26.42 ms and remains the largest measured boundary. The maintained joined
+qualification passes 238/238. The later authored-fact boundary at `a46d5fcc`
+passes its 39-law work group.
 
-The public Clearing must be redeployed only after the delivery/manual cutover,
-joined lifecycle qualification and source-matched WASM rebuild are accepted.
+The matching `512ecf53` client/backend is live at
+`https://clearing-512ecf53-fungi-goblin-bnb.levi-fe0.workers.dev`. All 196 hosted
+files match the release inventory; a fresh hosted API witness joined one party,
+received two persistent people and observed 4,096 terrain surfaces. A fresh
+browser automation run is unavailable on this host because its Chromium lacks
+`libnspr4.so`; the preceding `883dc484` hosted browser proof passed 14 assertions
+and 18 public commands. Do not relabel the API witness as current rendered proof.
 Historical backend and alias receipts do not establish parity for the current
 source.
 

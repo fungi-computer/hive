@@ -1,6 +1,7 @@
 import type {
   ComponentDefinition,
   ComponentId,
+  NativeFact,
   QueryRow,
   ReadContext,
   SystemDefinition,
@@ -20,35 +21,27 @@ export interface ActorDefinition {
   readonly behaviors: readonly SystemDefinition[];
 }
 
-export type NativeFact =
-  | "workMaterialFacts"
-  | "workAttempts"
-  | "workAttemptForWorker"
-  | "processRequirements"
-  | "floorOperations"
-  | "worldPoses"
-  | "routeCosts"
-  | "routeToAny"
-  | "transferContacts"
-  | "physicalContacts"
-  | "environmentFacts"
-  | "atmosphereSamples"
-  | "constructionReadiness"
-  | "constructionAccess"
-  | "deconstructionAccess"
-  | "terrainMaterials"
-  | "terrainSurfaces"
-  | "structureSurfaces"
-  | "waterContacts";
-
-const nativeFacts = new Set<NativeFact>([
-  "workMaterialFacts", "workAttempts", "workAttemptForWorker",
-  "processRequirements", "floorOperations", "worldPoses", "routeCosts",
-  "routeToAny", "transferContacts", "physicalContacts", "environmentFacts",
-  "atmosphereSamples", "constructionReadiness", "constructionAccess",
-  "deconstructionAccess", "terrainMaterials", "terrainSurfaces",
-  "structureSurfaces", "waterContacts",
-]);
+const nativeFactNames: Readonly<Record<NativeFact, true>> = Object.freeze({
+  workMaterialFacts: true,
+  workAttempts: true,
+  workAttemptForWorker: true,
+  processRequirements: true,
+  floorOperations: true,
+  worldPoses: true,
+  routeCosts: true,
+  routeToAny: true,
+  transferContacts: true,
+  physicalContacts: true,
+  environmentFacts: true,
+  atmosphereSamples: true,
+  constructionReadiness: true,
+  constructionAccess: true,
+  deconstructionAccess: true,
+  terrainMaterials: true,
+  terrainSurfaces: true,
+  structureSurfaces: true,
+  waterContacts: true,
+});
 
 /** A named, deterministic question used by an authored behavior branch. */
 export interface PredicateDefinition {
@@ -210,7 +203,7 @@ export function behavior(
           get(target, property, receiver) {
             if (
               typeof property === "string" &&
-              nativeFacts.has(property as NativeFact) &&
+              property in nativeFactNames &&
               !facts.has(property as NativeFact)
             )
               throw new Error(

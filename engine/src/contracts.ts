@@ -436,6 +436,11 @@ export interface ReadContext {
   ): readonly (readonly StructureSurface[])[];
   waterContacts(centers: readonly [number, number, number][]): readonly { readonly at: readonly [number, number, number]; readonly approaches: readonly MoveDestination[] }[];
 }
+/** Native read doors available to authored decisions beyond ECS/query state. */
+export type NativeFact = Exclude<
+  keyof ReadContext,
+  "clock" | "outcomes" | "random" | "impacts" | "query"
+>;
 export type CommandScope =
   | { readonly kind: "host" }
   | { readonly kind: "player"; readonly player: string; readonly party: EntityId };
