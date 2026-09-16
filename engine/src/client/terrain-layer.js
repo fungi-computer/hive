@@ -63,6 +63,24 @@ function projectedPoint(camera, x, y, z) {
   return { x: ((point.x + 1) * WIDTH) / 2, y: ((1 - point.y) * HEIGHT) / 2 };
 }
 
+export function terrainBakePadding(camera) {
+  const origin = projectedPoint(camera, 0, 0, 0);
+  const axisX = projectedPoint(camera, 1, 0, 0);
+  const axisZ = projectedPoint(camera, 0, 0, 1);
+  const detail = projectedPoint(camera, 0, TERRAIN_DETAIL_HEIGHT, 0);
+  // A dual-grid patch is owned by a vertex and extends half a cell beyond the
+  // owning chunk's exterior face bounds. Retain that overhang in each bake so
+  // neighboring transparent sprites meet without exposing the soil base.
+  return {
+    x: Math.ceil(Math.max(Math.abs(axisX.x - origin.x), Math.abs(axisZ.x - origin.x)) / 2) + 2,
+    y: Math.ceil(Math.max(
+      Math.abs(axisX.y - origin.y) / 2,
+      Math.abs(axisZ.y - origin.y) / 2,
+      Math.abs(detail.y - origin.y),
+    )) + 2,
+  };
+}
+
 /** Client-only cached image of the host's exterior projection. */
 export function createTerrainLayer() {
   const container = new Container();
@@ -117,9 +135,8 @@ export function createTerrainLayer() {
       }
       prior?.sprite.destroy({ children: true, texture: true, textureSource: true });
       const raw = terrainFaceBounds(selected, selected.map(({ cell: [x, , z] }) => ({ x, z })), frame.verticalMetres, (x, y, z) => projectedPoint(canonicalCamera, x, y, z), terrainColumnMap(terrainSurfaces));
-      const detail = Math.abs(projectedPoint(canonicalCamera, 0, TERRAIN_DETAIL_HEIGHT, 0).y - projectedPoint(canonicalCamera, 0, 0, 0).y);
-      const padding = Math.ceil(detail) + 2;
-      const bounds = raw && { left: Math.max(0, Math.floor(raw.left) - padding), top: Math.max(0, Math.floor(raw.top) - padding), right: Math.min(WIDTH, Math.ceil(raw.right) + padding), bottom: Math.min(HEIGHT, Math.ceil(raw.bottom) + padding) };
+      const padding = terrainBakePadding(canonicalCamera);
+      const bounds = raw && { left: Math.max(0, Math.floor(raw.left) - padding.x), top: Math.max(0, Math.floor(raw.top) - padding.y), right: Math.min(WIDTH, Math.ceil(raw.right) + padding.x), bottom: Math.min(HEIGHT, Math.ceil(raw.bottom) + padding.y) };
       if (!bounds) continue;
       const bandCamera = canonicalCamera.clone();
       bandCamera.setViewOffset(WIDTH, HEIGHT, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);

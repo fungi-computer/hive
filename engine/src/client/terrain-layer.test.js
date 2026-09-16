@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createTerrainLayer, terrainScreenTransform } from "./terrain-layer.js";
+import { createTerrainLayer, terrainBakePadding, terrainScreenTransform } from "./terrain-layer.js";
+import { camera } from "../../../src/art/prop-camera.js";
 
 test("terrain layer owns an ordinary Pixi terrain sprite and repeatable disposal", () => {
   const layer = createTerrainLayer();
@@ -18,4 +19,10 @@ test("terrain transform scales the centered bake offset", () => {
     y: -1116,
     scale: 2,
   });
+});
+
+test("terrain bake retains the dual-grid half-cell overhang at chunk seams", () => {
+  const padding = terrainBakePadding(camera(2304, 1536, 1.03, 256));
+  assert.ok(padding.x >= 10);
+  assert.ok(padding.y >= 6);
 });
