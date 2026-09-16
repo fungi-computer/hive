@@ -97,6 +97,9 @@ test("actor composition validates capabilities and behavior attachments", () => 
     () => actor("test.duplicate").with(Subject).with(Subject),
     /already has test.subject/,
   );
+  const inert = actor("test.inert").with(Related, { value: 2 });
+  assert.equal(inert.capabilities[0].component, Related);
+  assert.deepEqual(inert.behaviors, []);
 });
 
 test("behavior rejects native fact reads that were not declared", () => {

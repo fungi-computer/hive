@@ -14,7 +14,7 @@ export interface ActorCapability {
   readonly initial?: object;
 }
 
-export interface ActorDefinition {
+export interface ActorDefinition extends ActorBuilder {
   readonly id: string;
   readonly version: number;
   readonly capabilities: readonly ActorCapability[];
@@ -248,7 +248,7 @@ export interface ActorBuilder {
   with<T extends object>(
     component: ComponentDefinition<T>,
     initial?: T,
-  ): ActorBuilder;
+  ): ActorDefinition;
   behaves(...behaviors: readonly SystemDefinition[]): ActorDefinition;
 }
 
@@ -256,11 +256,18 @@ export interface ActorBuilder {
 export function actor(
   id: string,
   options: { readonly version?: number } = {},
-): ActorBuilder {
+): ActorDefinition {
   if (!id || !/^[A-Za-z0-9._:-]+$/.test(id))
     throw new Error(`Invalid actor id ${id}`);
-  const build = (capabilities: readonly ActorCapability[]): ActorBuilder =>
-    Object.freeze({
+  const build = (
+    capabilities: readonly ActorCapability[],
+    behaviors: readonly SystemDefinition[],
+  ): ActorDefinition => {
+    const definition: ActorDefinition = {
+      id,
+      version: options.version ?? 1,
+      capabilities,
+      behaviors,
       with<T extends object>(
         component: ComponentDefinition<T>,
         initial?: T,
@@ -279,16 +286,17 @@ export function actor(
                 : { initial: Object.freeze(structuredClone(initial)) }),
             }),
           ]),
+          behaviors,
         );
       },
-      behaves(...behaviors) {
-        if (behaviors.length === 0)
+      behaves(...nextBehaviors) {
+        if (nextBehaviors.length === 0)
           throw new Error(`Actor ${id} must attach at least one behavior`);
         const componentIds = new Set(
           capabilities.map(({ component }) => component.id),
         );
-        const behaviorIds = new Set<string>();
-        for (const authoredBehavior of behaviors) {
+        const behaviorIds = new Set(behaviors.map(({ id: behaviorId }) => behaviorId));
+        for (const authoredBehavior of nextBehaviors) {
           if (behaviorIds.has(authoredBehavior.id))
             throw new Error(`Actor ${id} attaches ${authoredBehavior.id} twice`);
           behaviorIds.add(authoredBehavior.id);
@@ -305,13 +313,13 @@ export function actor(
               `Actor ${id} behavior ${authoredBehavior.id} requires ${missing.map(({ id: componentId }) => componentId).join(", ")}`,
             );
         }
-        return Object.freeze({
-          id,
-          version: options.version ?? 1,
-          capabilities: Object.freeze([...capabilities]),
-          behaviors: Object.freeze([...behaviors]),
-        });
+        return build(
+          capabilities,
+          Object.freeze([...behaviors, ...nextBehaviors]),
+        );
       },
-    });
-  return build(Object.freeze([]));
+    };
+    return Object.freeze(definition);
+  };
+  return build(Object.freeze([]), Object.freeze([]));
 }
