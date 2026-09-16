@@ -209,7 +209,18 @@ export const encodeDefinition = (
       game,
       components: components
         .filter((c) => !isReservedComponent(c.id))
-        .map((c) => ({ id: c.id, version: c.version, fields: c.fields })),
+        .map((c) => ({
+          id: c.id,
+          version: c.version,
+          fields: c.fields,
+          ...(c.targetField === undefined ? {} : {
+            targetField: c.targetField,
+            sourceRequires: c.sourceRequires ?? [],
+            targetRequires: c.targetRequires ?? [],
+            onTargetRemoved: c.onTargetRemoved ?? "detach",
+            allowSelf: c.allowSelf ?? false,
+          }),
+        })),
       initial,
       materialCatalog,
       stockpileProfiles: stockpileProfiles.map(profile => ({

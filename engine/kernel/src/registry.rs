@@ -16,6 +16,48 @@ pub struct Registry {
     pub ids: BTreeMap<String, ComponentId>,
     pub actors: BTreeMap<String, ActorTemplate>,
 }
+
+fn reserved_relation_metadata(name: &str) -> (Option<String>, Vec<String>, Vec<String>, Option<RelationRemovalPolicy>, bool) {
+    match name {
+        "hive.party-member" => (
+            Some("party".into()),
+            Vec::new(),
+            vec!["hive.party".into()],
+            Some(RelationRemovalPolicy::Detach),
+            false,
+        ),
+        _ => (None, Vec::new(), Vec::new(), None, false),
+    }
+}
+
+fn validate_relation_schemas(schemas: &BTreeMap<String, Schema>) -> Result<()> {
+    for schema in schemas.values() {
+        let has_metadata = schema.target_field.is_some()
+            || !schema.source_requires.is_empty()
+            || !schema.target_requires.is_empty()
+            || schema.on_target_removed.is_some()
+            || schema.allow_self;
+        let Some(target_field) = schema.target_field.as_deref() else {
+            if has_metadata {
+                return Err(format!("relation schema {} has no target field", schema.id));
+            }
+            continue;
+        };
+        match schema.fields.get(target_field) {
+            Some(FieldType::Entity | FieldType::NullableEntity) => {}
+            Some(_) => return Err(format!("relation target field is not an entity: {}.{}", schema.id, target_field)),
+            None => return Err(format!("relation target field is missing: {}.{}", schema.id, target_field)),
+        }
+        if schema.on_target_removed.is_none() {
+            return Err(format!("relation schema {} has no target removal policy", schema.id));
+        }
+        if schema.source_requires.iter().chain(schema.target_requires.iter()).any(|id| !schemas.contains_key(id)) {
+            return Err(format!("relation schema {} references an unknown capability", schema.id));
+        }
+    }
+    Ok(())
+}
+
 impl Registry {
     pub fn new(world: &mut World, schemas: Vec<Schema>, actors: Vec<ActorTemplate>) -> Result<Self> {
         let mut this = Self {
@@ -186,10 +228,16 @@ impl Registry {
                 vec![("sprite", FieldType::String), ("label", FieldType::String)],
             ),
         ] {
+            let (target_field, source_requires, target_requires, on_target_removed, allow_self) = reserved_relation_metadata(name);
             let schema = Schema {
                 id: name.into(),
                 version: match name { "hive.construction-site" => 2, "hive.deconstruction-order" => 4, _ => 1 },
                 fields: fields.into_iter().map(|(n, t)| (n.into(), t)).collect(),
+                target_field,
+                source_requires,
+                target_requires,
+                on_target_removed,
+                allow_self,
             };
             if this.schemas.get(name).is_some_and(|s| s != &schema) {
                 return Err(format!("reserved schema differs: {name}"));
@@ -199,6 +247,7 @@ impl Registry {
         if this.schemas.len() > 128 {
             return Err("too many total schemas".into());
         }
+        validate_relation_schemas(&this.schemas)?;
         for name in this.schemas.keys() {
             let id = match name.as_str() {
                 "hive.position" => world.register_component::<Position>(),
@@ -861,5 +910,47 @@ mod actor_template_tests {
 
         let actor = position_template();
         assert!(registry_error(vec![actor.clone(), actor]).contains("duplicate actor template"));
+    }
+
+    fn relation_schema(target: FieldType) -> Schema {
+        Schema {
+            id: "test.member-of".into(),
+            version: 1,
+            fields: BTreeMap::from([("target".into(), target)]),
+            target_field: Some("target".into()),
+            source_requires: vec![],
+            target_requires: vec!["hive.party".into()],
+            on_target_removed: Some(RelationRemovalPolicy::Detach),
+            allow_self: false,
+        }
+    }
+
+    #[test]
+    fn registry_validates_relation_target_and_capability_metadata() {
+        let mut world = World::new();
+        let registry = Registry::new(&mut world, vec![relation_schema(FieldType::Entity)], vec![]).unwrap();
+        assert_eq!(registry.schemas["test.member-of"].target_field.as_deref(), Some("target"));
+
+        let wrong_target = relation_schema(FieldType::String);
+        let wrong_target_error = Registry::new(&mut World::new(), vec![wrong_target], vec![]).err().expect("relation target should be rejected");
+        assert!(wrong_target_error.contains("not an entity"));
+        let mut unknown_capability = relation_schema(FieldType::Entity);
+        unknown_capability.target_requires = vec!["missing.capability".into()];
+        let unknown_capability_error = Registry::new(&mut World::new(), vec![unknown_capability], vec![]).err().expect("unknown relation capability should be rejected");
+        assert!(unknown_capability_error.contains("unknown capability"));
+
+        let mut missing_policy = relation_schema(FieldType::Entity);
+        missing_policy.on_target_removed = None;
+        let missing_policy_error = Registry::new(&mut World::new(), vec![missing_policy], vec![]).err().expect("relation removal policy should be required");
+        assert!(missing_policy_error.contains("no target removal policy"));
+
+        let mut metadata_without_target = relation_schema(FieldType::Entity);
+        metadata_without_target.target_field = None;
+        metadata_without_target.source_requires.clear();
+        metadata_without_target.target_requires.clear();
+        metadata_without_target.on_target_removed = None;
+        metadata_without_target.allow_self = true;
+        let metadata_error = Registry::new(&mut World::new(), vec![metadata_without_target], vec![]).err().expect("relation metadata without target should be rejected");
+        assert!(metadata_error.contains("has no target field"));
     }
 }

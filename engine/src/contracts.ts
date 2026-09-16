@@ -137,10 +137,18 @@ export interface ComponentDefinition<T extends object> {
   readonly id: ComponentId;
   readonly version: number;
   readonly fields: Readonly<Record<keyof T & string, FieldType>>;
+  /** The single entity field targeted by this registered relation, when present. */
+  readonly targetField?: keyof T & string;
+  /** Capability IDs required on the source and target relation endpoints. */
+  readonly sourceRequires?: readonly ComponentId[];
+  readonly targetRequires?: readonly ComponentId[];
+  readonly onTargetRemoved?: RelationRemovalPolicy;
+  readonly allowSelf?: boolean;
   readonly validate: (value: unknown) => value is T;
 }
 export type FieldType =
   "number" | "boolean" | "string" | "entity" | "nullable-entity";
+export type RelationRemovalPolicy = "detach" | "restrict";
 export type ComponentValue<T> = { readonly id: EntityId; readonly value: T };
 
 export interface EntityRecord {

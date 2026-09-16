@@ -484,11 +484,27 @@ pub enum FieldType {
     NullableEntity,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(rename_all = "kebab-case")]
+pub enum RelationRemovalPolicy {
+    Detach,
+    Restrict,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct Schema {
     pub id: String,
     pub version: u32,
     pub fields: BTreeMap<String, FieldType>,
+    #[serde(default)]
+    pub target_field: Option<String>,
+    #[serde(default)]
+    pub source_requires: Vec<String>,
+    #[serde(default)]
+    pub target_requires: Vec<String>,
+    #[serde(default)]
+    pub on_target_removed: Option<RelationRemovalPolicy>,
+    #[serde(default)]
+    pub allow_self: bool,
 }
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

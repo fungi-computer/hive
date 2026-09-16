@@ -2,6 +2,7 @@ import type {
   ComponentDefinition,
   ComponentId,
   EntityId,
+  RelationRemovalPolicy,
   QuerySpec,
   SystemDefinition,
   WriteContext,
@@ -17,6 +18,10 @@ type Shape = Record<
   string,
   "number" | "boolean" | "string" | "entity" | "nullable-entity"
 >;
+type CapabilityReference = ComponentDefinition<any> | ComponentId;
+
+const capabilityId = (value: CapabilityReference): ComponentId =>
+  typeof value === "string" ? value : value.id;
 const valid = (type: Shape[string], value: unknown): boolean =>
   (type === "nullable-entity" &&
     (value === null || typeof value === "string")) ||
@@ -27,15 +32,42 @@ const valid = (type: Shape[string], value: unknown): boolean =>
 
 export function component<T extends object>(
   id: ComponentId,
-  options: { version: number; fields: Shape },
+  options: {
+    version: number;
+    fields: Shape;
+    targetField?: string;
+    sourceRequires?: readonly ComponentId[];
+    targetRequires?: readonly ComponentId[];
+    onTargetRemoved?: RelationRemovalPolicy;
+    allowSelf?: boolean;
+  },
 ): ComponentDefinition<T> {
   if (!id.includes(".") || options.version < 1)
     throw new Error(`Invalid component ${id}`);
   const fields = Object.freeze({ ...options.fields });
+  if (options.targetField !== undefined) {
+    const targetType = fields[options.targetField];
+    if (targetType !== "entity" && targetType !== "nullable-entity")
+      throw new Error(`Invalid relation target ${id}.${options.targetField}`);
+  } else if (
+    options.sourceRequires !== undefined ||
+    options.targetRequires !== undefined ||
+    options.onTargetRemoved !== undefined ||
+    options.allowSelf !== undefined
+  ) {
+    throw new Error(`Relation metadata requires a target field: ${id}`);
+  }
   return Object.freeze({
     id,
     version: options.version,
     fields: fields as ComponentDefinition<T>["fields"],
+    ...(options.targetField === undefined ? {} : {
+      targetField: options.targetField as keyof T & string,
+      sourceRequires: Object.freeze([...(options.sourceRequires ?? [])]),
+      targetRequires: Object.freeze([...(options.targetRequires ?? [])]),
+      onTargetRemoved: options.onTargetRemoved ?? "detach",
+      allowSelf: options.allowSelf ?? false,
+    }),
     validate(value: unknown): value is T {
       if (!value || typeof value !== "object" || Array.isArray(value))
         return false;
@@ -46,6 +78,30 @@ export function component<T extends object>(
         )
       );
     },
+  });
+}
+
+/** Register a one-target relation through the same component definition path. */
+export function relation<T extends object>(
+  id: ComponentId,
+  options: {
+    version: number;
+    fields: Shape;
+    targetField: keyof T & string;
+    sourceRequires?: readonly CapabilityReference[];
+    targetRequires?: readonly CapabilityReference[];
+    onTargetRemoved?: RelationRemovalPolicy;
+    allowSelf?: boolean;
+  },
+): ComponentDefinition<T> {
+  return component<T>(id, {
+    version: options.version,
+    fields: options.fields,
+    targetField: options.targetField,
+    sourceRequires: options.sourceRequires?.map(capabilityId),
+    targetRequires: options.targetRequires?.map(capabilityId),
+    onTargetRemoved: options.onTargetRemoved,
+    allowSelf: options.allowSelf,
   });
 }
 

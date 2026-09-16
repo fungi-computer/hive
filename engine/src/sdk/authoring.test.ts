@@ -1,4 +1,4 @@
-import { component, system } from "./authoring";
+import { component, relation, system } from "./authoring";
 import { entity } from "./authoring";
 
 const Own = component<{ value: number }>("test.own", {
@@ -68,4 +68,31 @@ export function authoringContractProof(): void {
     action: () => {},
   });
   if (writes.length !== 1) throw new Error("declared write was not recorded");
+
+  const membership = relation<{ target: string }>("test.membership", {
+    version: 1,
+    fields: { target: "entity" },
+    targetField: "target",
+    sourceRequires: [Own],
+    targetRequires: [Other.id],
+  });
+  if (
+    membership.targetField !== "target" ||
+    membership.sourceRequires?.[0] !== Own.id ||
+    membership.targetRequires?.[0] !== Other.id ||
+    membership.onTargetRemoved !== "detach" ||
+    membership.allowSelf !== false
+  ) throw new Error("relation metadata was not defaulted or preserved");
+
+  let rejected = false;
+  try {
+    relation<{ target: string; label: string }>("test.invalid-membership", {
+      version: 1,
+      fields: { target: "entity", label: "string" },
+      targetField: "label",
+    });
+  } catch {
+    rejected = true;
+  }
+  if (!rejected) throw new Error("invalid relation target was accepted");
 }
