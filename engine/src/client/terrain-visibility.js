@@ -82,6 +82,7 @@ export function terrainFaceRecords(coverage, { level, projection, viewport, appe
           projection, verticalMetres: coverage.verticalMetres });
         const record = {
           id: `terrain:${key(cell)}:${face}`, part: "face", role: "terrain", cell, face,
+          renderPass: "opaque", attachment: Object.freeze({ kind: "cell-face", cell: Object.freeze([...cell]), face }),
           ...(face === "top" ? { partRole: "supporting-surface" } : {}),
           material: material.material, cap, planarCorners, footprint: planarCorners,
           screenBounds, storeyBand: y, pickable: false, visible: true,
@@ -131,6 +132,7 @@ export function terrainCoverRecords(surfaces, { level, projection, viewport, app
       if (viewport && !overlaps(screenBounds, viewport)) continue;
       const record = { id: `cover:${root[0]}:${y}:${root[1]}:${kind}:${condition}:${height}`, part: "cover", role: "terrain-cover",
         relationPolicy: "surface-cover", orderingKind: "compact", mask, footprint, screenBounds, storeyBand: y,
+        renderPass: "opaque", attachment: Object.freeze({ kind: "surface-root", supports: Object.freeze([...supportIds]), point: footprint[0] }),
         supportIds, pickable: false, visible: true, ...visual };
       const proxy = prepareOrderingProxy(record, projection);
       if (!proxy) continue;

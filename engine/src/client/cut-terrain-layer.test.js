@@ -56,6 +56,8 @@ test("water draw records preserve the physical surface independently of Pixi spr
   });
   assert.equal(record.id, "water:4:-2:7");
   assert.equal(record.role, "water");
+  assert.equal(record.renderPass, "transparent");
+  assert.equal(record.attachment.kind, "surface-root");
   assert.equal(record.pickable, false);
   assert.equal(record.footprint[0].x, 4);
   assert.equal(record.footprint[0].z, 7);

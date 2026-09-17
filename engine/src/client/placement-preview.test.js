@@ -41,7 +41,9 @@ test("selected-plane guide owns stable world cells and projected corners", () =>
     [3,2,8],[4,2,8],[5,2,8],
   ]);
   assert.equal(tiles.find(tile => tile.hovered)?.id, "placement-guide:4:2:7");
-  assert.deepEqual(tiles.filter(tile => tile.footprint).map(tile => tile.cell), [[4,2,7],[5,2,7]]);
+  assert.deepEqual(tiles.filter(tile => tile.isFootprint).map(tile => tile.cell), [[4,2,7],[5,2,7]]);
+  assert(tiles.every(tile => tile.attachment.kind === "surface-mark" && tile.renderPass === "opaque"));
+  assert(tiles.every(tile => tile.footprint.length === 4));
   assert.equal(tiles[0].worldCorners.every(point => point.y === 1.35), true);
   assert.deepEqual(tiles[0].projected, tiles[0].worldCorners.map(point => project(point.x, point.y, point.z)));
 });

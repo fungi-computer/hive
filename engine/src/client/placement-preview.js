@@ -67,11 +67,18 @@ export function placementGuideTiles({ hoveredCell, planeY, footprintCells = [], 
     ];
     result.push(Object.freeze({
       id: `placement-guide:${cell.join(":")}`,
+      part: "tile",
+      role: "build-guide",
+      renderPass: "opaque",
+      attachment: Object.freeze({ kind: "surface-mark", cell: Object.freeze([...cell]) }),
       cell: Object.freeze(cell),
       worldCorners: Object.freeze(worldCorners),
+      footprint: Object.freeze(worldCorners),
       projected: Object.freeze(worldCorners.map(point => Object.freeze(project(point.x, point.y, point.z)))),
+      pickable: false,
+      visible: true,
       hovered: hoveredCell.every((value, index) => value === cell[index]),
-      footprint: footprint.has(cell.join(",")),
+      isFootprint: footprint.has(cell.join(",")),
     }));
   }
   return Object.freeze(result);

@@ -32,6 +32,8 @@ export function waterDrawRecord(cell, { verticalMetres, projection = project, di
     id: `water:${x}:${y}:${z}`,
     part: "surface",
     role: "water",
+    renderPass: "transparent",
+    attachment: Object.freeze({ kind: "surface-root", supports: Object.freeze([Object.freeze([x, y, z])]), point: Object.freeze({ x, y: top, z }) }),
     orderingKind: "compact",
     ...(display ? { display } : {}),
     footprint: Object.freeze([{ x, y: top, z }]),

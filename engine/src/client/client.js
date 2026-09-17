@@ -1177,10 +1177,10 @@ export function createHiveClient({
           verticalMetres: displayed.verticalMetres, project });
         for (const tile of guide) {
           const points = tile.projected.flatMap(point => [point.x * camera.zoom + camera.x, point.y * camera.zoom + camera.y]);
-          const rejected = tile.footprint && state.placementDecision?.status === "rejected";
-          const color = rejected ? 0xe47c72 : tile.footprint || tile.hovered ? 0xe8c779 : 0x9fd8ff;
-          placementGraphic.poly(points).fill({ color, alpha: tile.footprint || tile.hovered ? 0.3 : 0.12 })
-            .stroke({ color, width: tile.footprint ? 2 : 1, alpha: 0.9 });
+          const rejected = tile.isFootprint && state.placementDecision?.status === "rejected";
+          const color = rejected ? 0xe47c72 : tile.isFootprint || tile.hovered ? 0xe8c779 : 0x9fd8ff;
+          placementGraphic.poly(points).fill({ color, alpha: tile.isFootprint || tile.hovered ? 0.3 : 0.12 })
+            .stroke({ color, width: tile.isFootprint ? 2 : 1, alpha: 0.9 });
         }
         placementGraphic.visible = true;
       }

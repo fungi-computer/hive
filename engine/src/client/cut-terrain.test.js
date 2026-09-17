@@ -36,6 +36,8 @@ test("flat, deep pit, cave cap, lake bed, material palette and unknown halo shar
   const flat=fixture((x,y,z)=>y<=0?12:7);
   const flatFaces=faces(flat,2);
   assert(has(flatFaces,[0,0,0],"top"));
+  assert.equal(has(flatFaces,[0,0,0],"top").attachment.kind,"cell-face");
+  assert.equal(has(flatFaces,[0,0,0],"top").renderPass,"opaque");
   assert(!has(flatFaces,[0,-1,0],"top"));
   assert(!has(flatFaces,[0,0,0],"south"));
   const pit=fixture((x,y,z)=>y<=(x===0&&z===0?-7:0)?12:7);
@@ -137,6 +139,7 @@ test("dual-grid covers derive stable masks from explicit same-level surface fact
   assert.equal(center.mask,15);
   assert.deepEqual(first.map(record=>[record.id,record.mask]).sort(),shuffled.map(record=>[record.id,record.mask]).sort());
   assert(first.every(record=>record.role==="terrain-cover"&&record.footprint.length===1));
+  assert(first.every(record=>record.attachment.kind==="surface-root"&&record.renderPass==="opaque"));
 });
 
 test("chunk demand includes deep visible levels and halo, with explicit view-budget rejection",()=>{

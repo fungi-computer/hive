@@ -17,7 +17,7 @@ test("Stage 1A fixture exposes real mixed geometry in every camera orientation",
     assert.equal(fixture.bed.footprint.length, 2, `${orientation}: full bed footprint`);
     assert.equal(fixture.guide.cells.length, 2, `${orientation}: guide uses full bed footprint`);
     assert.equal(fixture.guide.tiles.length, 49);
-    assert.deepEqual(fixture.guide.tiles.filter(tile => tile.footprint).map(tile => tile.cell).sort(),
+    assert.deepEqual(fixture.guide.tiles.filter(tile => tile.isFootprint).map(tile => tile.cell).sort(),
       fixture.guide.cells.map(cell => [...cell]).sort());
     assert.deepEqual(fixture.actors.filter(record => record.fixturePosition?.startsWith("stair-")).map(record => record.fixturePosition),
       ["stair-entrance", "stair-middle", "stair-landing"]);
