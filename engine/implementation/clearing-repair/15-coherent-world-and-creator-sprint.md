@@ -258,6 +258,14 @@ it is not a universal list of content types. World rotation selects another
 predefined traversal and matching authored orientation. Pan and zoom do not alter
 physical order.
 
+Cell/layer traversal is primary. Do not replace it with one global scalar made
+from a sprite origin, footprint centroid or camera-distance extreme and consult
+slots only when those unrelated scalars tie. A terrain top's corners and an
+actor's feet must first resolve to the same canonical voxel insertion context so
+the structural slot law applies. Extended records retain their complete oriented
+footprint. Their declared emission cells/parts determine where they enter the
+traversal; selecting one endpoint and discarding the rest is not footprint-aware.
+
 ```text
 for cell in visibleCellsBackToFront(cameraOrientation, selectedCut):
   emit(cell.rearVisibleFaces)
@@ -282,6 +290,15 @@ If a required fixture cannot be represented by its existing footprint and a
 small meaningful authored split, stop and retain that exact counterexample before
 inventing a more general renderer.
 
+For the existing stair, stage 1A consumes the actual authored `surface`,
+`rail.left` and `rail.right` geometry for every facing. It derives which rail is
+behind or in front from camera orientation and transformed world geometry; art or
+game definitions never rename the rails to precomputed `front`/`rear` content.
+The actor must remain between those rails at entrance, midpoint and landing.
+Decorative vertical extent cannot become an insertion point: declared local
+contact/boundary anchors come from the authored part contract, not the highest
+visible pixel or geometry bound.
+
 Terrain top, cliff side, cut cap and structural face records already carry world
 geometry. Emit only faces admitted by the selected-level cut and insert actors
 whole when their support position is visible; a goblin is not clipped because
@@ -295,8 +312,9 @@ front/back blade layers or grass-only comparator. Dual-grid patches are visual
 records derived from neighboring canonical cover cells, not new physical actors.
 
 Water and other genuinely blended art use a declared transparent pass after the
-opaque/cutout stream, ordered back-to-front from their physical surfaces. Keep
-this limited to supported effects; arbitrary intersecting transparent volumes are
+entire opaque/cutout stream, ordered back-to-front from their physical surfaces.
+This is a pass boundary, not merely a late slot used only when two traversal keys
+tie. Keep this limited to supported effects; arbitrary intersecting transparent volumes are
 outside the slice. HUD remains last. Visible-object picking walks the same final
 records front-to-back and applies the existing alpha silhouette. Construction
 targeting continues to use the canonical selected plane, not whichever picture
@@ -309,6 +327,9 @@ Check cliff/cap/water overlaps, reverse input enumeration before compilation, an
 obtain the same final stream, image and pick. Preserve original color art. Any
 failure records world facts, emitted slots/parts and a screenshot; do not restore
 the pair graph, add arbitrary numeric offsets or introduce a per-pixel depth path.
+Synthetic records that predeclare disputed front/rear, slot or insertion answers
+do not satisfy this gate. Use the production terrain/cover producers, actual
+authored multipart metadata and the same actor projection used by play.
 
 ## Stage 1C — retained chunks, bounded updates, real play
 
