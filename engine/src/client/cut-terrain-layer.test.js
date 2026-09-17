@@ -38,5 +38,13 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   assert.equal(layer.container.x, 13);
   assert.equal(layer.container.y, 17);
   assert.equal(layer.container.scale.x, 2);
+  const beforePan = layer.sortableItems;
+  layer.position({ ...camera, x: camera.x - 8 }, view, { width: 640, height: 400 });
+  assert.equal(layer.sortableItems[0], beforePan[0], "small pans retain prepared face records");
+  layer.position({ ...camera, x: -250 }, view, { width: 640, height: 400 });
+  const afterPan = layer.sortableItems;
+  assert.equal(reads, 1, "panning inside resident chunk demand does not fetch terrain again");
+  const previousIds = new Set(beforePan.map(record => record.id));
+  assert(afterPan.some(record => !previousIds.has(record.id)), "same-demand pan reveals previously culled terrain");
   layer.dispose(); layer.dispose();
 });

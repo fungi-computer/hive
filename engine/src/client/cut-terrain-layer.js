@@ -33,6 +33,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
   const waterTexture = createWaterTile();
   let waterEntries = new Map(), frame, epoch, level, records = [], disposed = false;
   let demandIdentity, coverageIdentity, observedService, serviceTurn = 0, servedTurn = -1;
+  let retainedViewport;
 
   function installArt(pack) {
     if (disposed || terrainArt) throw new Error("terrain art can only be installed once");
@@ -85,16 +86,23 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
     if (!snapshot.viewComplete || snapshot.chunks.length === 0) return;
     if (!appearance) throw new Error("cut terrain art is not installed");
     const identity = `${snapshot.epoch}:${snapshot.terrainRevision}:${level}:${nextDemand}`;
-    if (identity === coverageIdentity) return;
+    const viewportRetained = retainedViewport && viewport.left >= retainedViewport.left
+      && viewport.right <= retainedViewport.right && viewport.top >= retainedViewport.top
+      && viewport.bottom <= retainedViewport.bottom;
+    if (identity === coverageIdentity && viewportRetained) return;
     coverageIdentity = identity;
+    // Keep a little offscreen geometry so small pans only move the container.
+    // Chunk demand alone cannot key records culled against a narrower viewport.
+    retainedViewport = { left: viewport.left - 64, right: viewport.right + 64,
+      top: viewport.top - 64, bottom: viewport.bottom + 64 };
     const generatedTops = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface.generatedTop]));
     const coverage = materialCoverage({ chunks: snapshot.chunks, palette: snapshot.baseline.materials,
       bounds: snapshot.baseline.bounds, verticalMetres: snapshot.baseline.verticalMetres,
       variantSeed: snapshot.baseline.variantSeed,
       epoch: snapshot.epoch, terrainRevision: snapshot.terrainRevision });
-    records = terrainFaceRecords(coverage, { level, projection, viewport,
+    records = terrainFaceRecords(coverage, { level, projection, viewport: retainedViewport,
       appearance, generatedTops });
-    records.push(...terrainCoverRecords(frame.surfaces, { level, projection, viewport, appearance,
+    records.push(...terrainCoverRecords(frame.surfaces, { level, projection, viewport: retainedViewport, appearance,
       verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed }));
   }
 
