@@ -1,3 +1,10 @@
+# Current follow-through
+
+[Section 15](15-coherent-world-and-creator-sprint.md) supersedes this document's
+cover-not-actor restriction and instructions to feed every visual through the
+existing sorter. Preserve dual-grid topology, original art, coordinate contracts
+and surface/structure separation. Actor authoring does not require personal ticks.
+
 # Grid-edge buildings and declarative art parts
 
 September 14, 2026. Implementation specification, not implemented or qualified.

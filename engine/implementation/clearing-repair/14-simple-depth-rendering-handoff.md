@@ -1,3 +1,13 @@
+# Current follow-through
+
+[Section 15](15-coherent-world-and-creator-sprint.md) supersedes the remaining
+rendering implementation sequence here. Keep completed native construction and
+creator work. Neither the geometric pair graph nor the old scalar experiment is
+the selected final renderer. Per-pixel baked depth is also rejected. Compile the
+current voxel-ordered stream from XYZ, footprints, support surfaces and named
+authored parts as section 15 specifies. Historical findings and receipts below
+remain evidence, not executable stages.
+
 # Unified building, creator API and rendering sprint
 
 September 17, 2026. Current planning handoff. Building and creator integration

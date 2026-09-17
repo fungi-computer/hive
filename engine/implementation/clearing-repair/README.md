@@ -1,10 +1,26 @@
-**September 17 unified building/creator follow-through:** section 14's
+**Current delivery priority:** section 15's **Authoritative delivery order** owns
+the queue: rendering/interaction -> unified building/surfaces -> core work and
+measured environment performance -> world continuity/regional boundaries -> one
+existing creator-tool join. Creator API improvements accompany every touched seam.
+Shoes, human customization and RP businesses are future design checks, not the
+active sprint. The packet states the active implementation order; it is not proof
+that any unfinished stage has shipped.
+
+**Current September 17 correction:** [One world, ordinary actors, dependable drawing](15-coherent-world-and-creator-sprint.md)
+owns the next sprint and supersedes the remaining ordering sequence below and
+section 06's categorical cover-not-actor restriction. It specifies a voxel-ordered
+Pixi draw stream over ordinary baked color art, retained drawing, shared surface
+placement, native actor cover, bounded creator queries and mowing through existing
+work. It explicitly rejects per-pixel baked depth. This is a plan, not
+an implemented renderer or performance claim. Earlier completed work is retained.
+
+**Earlier September 17 unified building/creator follow-through:** section 14's
 [coherent implementation sequence](14-simple-depth-rendering-handoff.md#coherent-implementation-sequence-definitions--placement--work--drawing)
-owns the current order: reproduce the upstairs bed defect, unify definitions and
+historically ordered: reproduce the upstairs bed defect, unify definitions and
 selected-plane proposals, reuse native admission/work, migrate the real creator
 consumer, then qualify extended-art ordering. Earlier scalar-sort stages are not
-an approved general solution. Rendering representation remains an explicit design
-gate; building has no separate upper-floor mode.
+an approved general solution. Section 15 now owns execution. Building still has
+no separate upper-floor mode.
 
 # Clearing repair implementation packet
 

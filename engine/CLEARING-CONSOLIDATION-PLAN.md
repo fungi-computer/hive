@@ -1,5 +1,11 @@
 # Sprint: bring the Clearing back to life
 
+**September 17 current implementation sequence:**
+[One world, ordinary actors, dependable drawing](implementation/clearing-repair/15-coherent-world-and-creator-sprint.md)
+owns the ordered renderer, building/surface, everyday work/performance, durable
+continuity/region and existing creator-tool stages. It preserves completed native
+work and supersedes conflicting older sequencing.
+
 King Bolete · September 12, 2026 · **active Colony delivery plan**
 
 September 14: [Grid-edge buildings and declarative art parts](implementation/clearing-repair/06-edge-buildings-and-art-parts.md)

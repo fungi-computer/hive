@@ -1,5 +1,13 @@
 # Vishnu's many faces: Shiitake inside a living world
 
+**Naming direction, September 17:** Levi names the creator/game engine **Vishnu**;
+Hive is the current repository and implementation name. Build a web workshop for
+people and their AI collaborators, compile editable assets into pixel art, and
+play the resulting games in Pixi over the authoritative engine. Three.js belongs
+in authoring, fitting and baking, not a live Three.js Clearing world. Naming does
+not authorize a disruptive package/path rename. The [creator-to-player sprint](../../engine/implementation/clearing-repair/15-coherent-world-and-creator-sprint.md)
+owns the current ordered handoff.
+
 Game CTO product synthesis, 2026-09-09. This consolidates Levi's direct direction
 and the existing player/storyteller studies. The phrase is his design metaphor:
 the same underlying AI technology can inhabit many different relationships with
