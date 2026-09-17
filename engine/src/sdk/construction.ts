@@ -1,8 +1,113 @@
 import { z } from "zod";
 import { component, entity } from "./authoring";
 import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, FloorOperation, PlacementCandidate, Vec3 } from "../contracts";
-import type { EnvironmentStructureDefinition } from "./environment";
+import { validateEnvironmentDefinition, type EnvironmentDefinition, type EnvironmentStructureDefinition, type EnvironmentStructureRemoval, type EnvironmentCompletionPort } from "./environment";
 import { placementOrientation, structureOriginCell, type PlacementAlignment, type PlacementArea } from "./placement";
+import { definitionCapability, type ActorDefinition } from "./behavior";
+
+export interface BuildableDefinition {
+  readonly shape: EnvironmentStructureDefinition["shape"];
+  readonly materials: EnvironmentStructureDefinition["materials"];
+  readonly workSeconds: number;
+  readonly workReachBelowCells: number;
+  readonly placement: {
+    readonly alignment: PlacementAlignment;
+    readonly facing?: Readonly<Record<CardinalOrientation, number>>;
+  };
+  readonly ports?: readonly EnvironmentCompletionPort[];
+  readonly onRemove?: EnvironmentStructureRemoval;
+}
+
+const isBuildableDefinition = (value: unknown): value is BuildableDefinition => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<BuildableDefinition>;
+  return !!candidate.shape
+    && Array.isArray(candidate.materials)
+    && typeof candidate.workSeconds === "number" && Number.isFinite(candidate.workSeconds)
+    && Number.isSafeInteger(candidate.workReachBelowCells)
+    && !!candidate.placement
+    && (candidate.placement.alignment === "fixed" || candidate.placement.alignment === "stroke")
+    && (candidate.placement.facing === undefined
+      || ["north", "east", "south", "west"].every(direction =>
+        Number.isFinite(candidate.placement?.facing?.[direction as CardinalOrientation])));
+};
+
+/** A structure actor is created by native construction, on its existing site identity. */
+export const Buildable = definitionCapability<BuildableDefinition>("hive.buildable", {
+  validate: isBuildableDefinition,
+  externalCreation: true,
+});
+
+export interface CompiledBuildable {
+  readonly definition: EnvironmentStructureDefinition;
+  readonly placement: BuildableDefinition["placement"];
+  readonly visual?: { readonly sprite: string; readonly label: string };
+}
+
+const forbiddenCompletionComponents = new Set([
+  "hive.position", "hive.construction-site", "hive.owned-by-party",
+  "hive.work-policy", "hive.work-execution", "hive.work-schedule",
+  "hive.sealed-container",
+]);
+
+/** Compile one actor capability set into the existing native structure owner. */
+export function compileBuildable(actor: ActorDefinition): CompiledBuildable | null {
+  const authored = actor.definitionCapabilities.find(({ capability }) => capability === Buildable);
+  if (!authored) return null;
+  const buildable = authored.value as unknown as BuildableDefinition;
+  let visual: CompiledBuildable["visual"];
+  const components = actor.capabilities.flatMap(({ component, initial }) => {
+    if (forbiddenCompletionComponents.has(component.id))
+      throw new Error(`Buildable actor ${actor.id} cannot install ${component.id}`);
+    if (initial === undefined) throw new Error(`Buildable actor ${actor.id} needs initial ${component.id}`);
+    if (Object.values(initial).some(value => value && typeof value === "object" && (value as { kind?: unknown }).kind === "actor-input"))
+      throw new Error(`Buildable actor ${actor.id} cannot use spawn inputs in ${component.id}`);
+    if (component.id === "hive.visual") {
+      const value = initial as { readonly sprite: string; readonly label: string };
+      visual = Object.freeze({ sprite: value.sprite, label: value.label });
+      return [];
+    }
+    return [{ name: component.id, value: structuredClone(initial) }];
+  });
+  return Object.freeze({
+    definition: Object.freeze({
+      id: actor.id,
+      shape: structuredClone(buildable.shape),
+      materials: structuredClone(buildable.materials),
+      workSeconds: buildable.workSeconds,
+      workReachBelowCells: buildable.workReachBelowCells,
+      ...((components.length || buildable.ports?.length) ? {
+        onComplete: {
+          ...(components.length ? { components } : {}),
+          ...(buildable.ports?.length ? { ports: structuredClone(buildable.ports) } : {}),
+        },
+      } : {}),
+      ...(buildable.onRemove ? { onRemove: structuredClone(buildable.onRemove) } : {}),
+    }),
+    placement: Object.freeze(structuredClone(buildable.placement)),
+    ...(visual ? { visual } : {}),
+  });
+}
+
+/** Add actor-authored structures to one environment and run its full validator. */
+export function compileBuildableEnvironment(
+  environment: EnvironmentDefinition,
+  actors: readonly ActorDefinition[],
+): EnvironmentDefinition {
+  const buildables = actors.flatMap(actor => {
+    const compiled = compileBuildable(actor);
+    return compiled ? [compiled.definition] : [];
+  });
+  const existing = new Set(environment.structures.catalog.map(({ id }) => id));
+  const duplicate = buildables.find(({ id }) => existing.has(id));
+  if (duplicate) throw new Error(`Buildable actor duplicates structure ${duplicate.id}`);
+  const compiled = {
+    ...environment,
+    structures: { ...environment.structures, catalog: [...environment.structures.catalog, ...buildables] },
+  } satisfies EnvironmentDefinition;
+  validateEnvironmentDefinition(compiled);
+  return Object.freeze(compiled);
+}
 
 const placementCellSchema = z.tuple([
   z.number().int().min(-1_000_000).max(1_000_000),

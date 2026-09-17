@@ -15,6 +15,36 @@ export interface ActorCapability {
   readonly initial?: Readonly<Record<string, unknown>>;
 }
 
+/** Authoring-only capability compiled by an owning engine module. */
+export interface ActorDefinitionCapability<T extends object> {
+  readonly kind: "actor-definition-capability";
+  readonly id: ComponentId;
+  readonly validate: (value: unknown) => value is T;
+  /** Another owner creates this actor; omit it from direct spawn templates. */
+  readonly externalCreation?: boolean;
+}
+
+export interface ActorDefinitionCapabilityValue {
+  readonly capability: ActorDefinitionCapability<any>;
+  readonly value: Readonly<Record<string, unknown>>;
+}
+
+export function definitionCapability<T extends object>(
+  id: ComponentId,
+  options: {
+    readonly validate: (value: unknown) => value is T;
+    readonly externalCreation?: boolean;
+  },
+): ActorDefinitionCapability<T> {
+  if (!id.includes(".")) throw new Error(`Invalid actor definition capability ${id}`);
+  return Object.freeze({
+    kind: "actor-definition-capability" as const,
+    id,
+    validate: options.validate,
+    ...(options.externalCreation === undefined ? {} : { externalCreation: options.externalCreation }),
+  });
+}
+
 export interface ActorInput {
   readonly kind: "actor-input";
   readonly name: string;
@@ -58,6 +88,7 @@ export interface ActorDefinition extends ActorBuilder {
   readonly id: string;
   readonly version: number;
   readonly capabilities: readonly ActorCapability[];
+  readonly definitionCapabilities: readonly ActorDefinitionCapabilityValue[];
   readonly behaviors: readonly SystemDefinition[];
 }
 
@@ -289,6 +320,10 @@ export interface ActorBuilder {
     component: ComponentDefinition<T>,
     initial?: ActorInitial<T>,
   ): ActorDefinition;
+  with<T extends object>(
+    capability: ActorDefinitionCapability<T>,
+    value: T,
+  ): ActorDefinition;
   behaves(...behaviors: readonly SystemDefinition[]): ActorDefinition;
 }
 
@@ -301,17 +336,31 @@ export function actor(
     throw new Error(`Invalid actor id ${id}`);
   const build = (
     capabilities: readonly ActorCapability[],
+    definitionCapabilities: readonly ActorDefinitionCapabilityValue[],
     behaviors: readonly SystemDefinition[],
   ): ActorDefinition => {
     const definition: ActorDefinition = {
       id,
       version: options.version ?? 1,
       capabilities,
+      definitionCapabilities,
       behaviors,
       with<T extends object>(
-        component: ComponentDefinition<T>,
-        initial?: ActorInitial<T>,
+        feature: ComponentDefinition<T> | ActorDefinitionCapability<T>,
+        initial?: ActorInitial<T> | T,
       ) {
+        if (feature.kind === "actor-definition-capability") {
+          if (capabilities.some(({ component }) => component.id === feature.id)
+            || definitionCapabilities.some(({ capability }) => capability.id === feature.id))
+            throw new Error(`Actor ${id} already has ${feature.id}`);
+          if (initial === undefined || !feature.validate(initial))
+            throw new Error(`Actor ${id} has invalid ${feature.id}`);
+          return build(capabilities, Object.freeze([
+            ...definitionCapabilities,
+            Object.freeze({ capability: feature, value: Object.freeze(structuredClone(initial)) }),
+          ]), behaviors);
+        }
+        const component = feature;
         if (capabilities.some(({ component: existing }) => existing.id === component.id))
           throw new Error(`Actor ${id} already has ${component.id}`);
         if (initial !== undefined) {
@@ -337,6 +386,7 @@ export function actor(
                 : { initial: Object.freeze(structuredClone(initial)) }),
             }),
           ]),
+          definitionCapabilities,
           behaviors,
         );
       },
@@ -366,11 +416,12 @@ export function actor(
         }
         return build(
           capabilities,
+          definitionCapabilities,
           Object.freeze([...behaviors, ...nextBehaviors]),
         );
       },
     };
     return Object.freeze(definition);
   };
-  return build(Object.freeze([]), Object.freeze([]));
+  return build(Object.freeze([]), Object.freeze([]), Object.freeze([]));
 }

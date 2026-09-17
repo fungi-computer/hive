@@ -12,6 +12,7 @@ import { WorkParticipation } from "../sdk/work-control";
 import { StorageProvider } from "../sdk/stockpile";
 import { Worker } from "./colony-components";
 import { Cat } from "./colony-cat";
+import { Buildable } from "../sdk/construction";
 
 export const ColonyPartyActor = actor("colony.party")
   .with(Party, {})
@@ -81,6 +82,40 @@ export const ColonyCatActor = actor("colony.cat")
   })
   .with(Visual, { sprite: "colony.cat", label: "Mallow" });
 
+/** One real furniture consumer of the actor-to-native-construction compiler. */
+export const TimberBedActor = actor("timber-bed")
+  .with(Buildable, {
+    shape: { kind: "fixture", footprint: [[0, 0], [0, 1]] },
+    materials: [{ kind: "wood", quantity: 2 }],
+    workSeconds: 3,
+    workReachBelowCells: 0,
+    placement: { alignment: "fixed", facing: { south: 0, east: 1, north: 0, west: 1 } },
+    onRemove: { salvage: [{ kind: "wood", quantity: 2 }] },
+  })
+  .with(Visual, { sprite: "colony.bed.finished", label: "Timber bed" });
+
+export const TimberFloorActor = actor("timber-floor")
+  .with(Buildable, {
+    shape: { kind: "floor" },
+    materials: [{ kind: "wood", quantity: 2 }],
+    workSeconds: 2,
+    workReachBelowCells: 4,
+    placement: { alignment: "fixed", facing: { south: 0, east: 1, north: 2, west: 3 } },
+    onRemove: { salvage: [{ kind: "wood", quantity: 2 }] },
+  })
+  .with(Visual, { sprite: "colony.floor.finished", label: "Timber floor" });
+
+export const TimberWallActor = actor("timber-wall")
+  .with(Buildable, {
+    shape: { kind: "wall", height: 4 },
+    materials: [{ kind: "wood", quantity: 4 }],
+    workSeconds: 4,
+    workReachBelowCells: 0,
+    placement: { alignment: "stroke", facing: { south: 0, east: 1, north: 2, west: 3 } },
+    onRemove: { salvage: [{ kind: "wood", quantity: 4 }] },
+  })
+  .with(Visual, { sprite: "colony.wall.finished", label: "Timber wall" });
+
 /** Game-owned templates available to native lifecycle operations. */
 export const colonyActors = Object.freeze([
   ColonyPartyActor,
@@ -90,4 +125,7 @@ export const colonyActors = Object.freeze([
   ColonyKegActor,
   ColonyBarmActor,
   ColonyCatActor,
+  TimberBedActor,
+  TimberFloorActor,
+  TimberWallActor,
 ]);

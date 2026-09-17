@@ -231,7 +231,21 @@ stable layer beneath the future actor/buildable compilation join; do not move
 the geometry back into the game command. The SDK also owns batched build versus
 replacement resolution and duplicate-site handling; the actual Colony lifecycle
 passes through that path with construction, cancellation, reload and independent
-parties. The structure-definition-to-actor compilation join still remains.
+parties.
+
+September 17 actor join: the real timber bed, floor and wall now use
+`actor(...).with(Buildable, ...).with(Visual, ...)`. These prove point, area and
+edge authored structures through one capability. `Buildable` is a
+checked definition-time capability: its compiler contributes the actor's shape,
+materials, work, removal policy and placement metadata to the one existing native
+structure catalog. Native construction remains the sole creation owner, so the
+actor is omitted from direct spawn templates. Completion retains the construction
+site identity and installs supported non-presentation capabilities there. Visual
+metadata stays definition-linked and feeds the existing construction projection;
+it is not installed as a second live visual at the worker's staging contact.
+Duplicate catalog IDs, spawn parameters and owner-conflicting completion
+components fail at compilation. The full Colony construction lifecycle passes
+with all three migrated and no parallel bed/floor/wall catalog entries.
 
 Use the installed actor `.with(...)` composition and prepared query
 `.where(...).do(...)` collection contract from section 10. Construction action

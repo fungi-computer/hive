@@ -230,7 +230,7 @@ export const encodeDefinition = (
         allowedMaterials: profile.allowedMaterials ?? [],
         deniedMaterials: profile.deniedMaterials ?? [],
       })),
-      actors: actors.map(actor => {
+      actors: actors.filter(actor => !actor.definitionCapabilities.some(({ capability }) => capability.externalCreation)).map(actor => {
         const parameters = new Map<string, ActorInput["type"]>();
         const components = actor.capabilities.map(capability => {
           if (capability.initial === undefined)

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { component, query } from "./authoring.js";
-import { action, actor, actorInput, behavior, predicate } from "./behavior.js";
+import { action, actor, actorInput, behavior, definitionCapability, predicate } from "./behavior.js";
 import { encodeDefinition, Position } from "./common.js";
 
 const Subject = component<{ value: number }>("test.subject", {
@@ -113,6 +113,17 @@ test("actor composition validates capabilities and behavior attachments", () => 
     }),
     /invalid initial test.subject/,
   );
+});
+
+test("actor composition accepts checked definition-time capabilities", () => {
+  const Paint = definitionCapability<{ color: string }>("test.paint", {
+    validate: (value): value is { color: string } => !!value && typeof value === "object" && typeof (value as { color?: unknown }).color === "string",
+    externalCreation: true,
+  });
+  const definition = actor("test.paintable").with(Paint, { color: "purple" }).with(Subject, { value: 1 });
+  assert.deepEqual(definition.definitionCapabilities[0], { capability: Paint, value: { color: "purple" } });
+  assert.throws(() => actor("test.bad-paint").with(Paint, { color: 4 } as never), /invalid test.paint/);
+  assert.throws(() => definition.with(Paint, { color: "green" }), /already has test.paint/);
 });
 
 test("game definitions encode checked actor templates for the native registry", () => {
