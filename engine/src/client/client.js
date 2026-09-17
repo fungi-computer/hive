@@ -41,8 +41,6 @@ import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisual, resolveStaticVisualParts } from "./visual-resolver.js";
 import { createMultipartVisualOwner, multipartOverlayZIndex, transformBakedPartPoint } from "./multipart-visual-owner.js";
 import { terrainCameraFocus } from "./camera-focus.js";
-import { createUpperPlacementCache, structureAnchor } from "./upper-placement.js";
-
 import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
@@ -285,7 +283,6 @@ export function createHiveClient({
   let markSurfaces;
   const terrainProjection = createTerrainProjectionCache();
   const terrainPicker = createTerrainPicker();
-  const placementCache = createUpperPlacementCache();
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
@@ -1155,14 +1152,10 @@ export function createHiveClient({
         ? buildPlacementCommand(buildControl, state.selectedIds, { edges: canonicalEdges(edge.context.edges), mode: "edge-line" }).input
         : null);
     }
-    const anchored = displayed && targetSnapshot.context.anchor ? structureAnchor(displayed, targetSnapshot.context.anchor) : null;
-    const upperCandidates = anchored ? placementCache.candidates(displayed, anchored) : [];
     if (buildControl && buildControl.target !== "world-edge" && displayed) {
       const cells = placementCells({
         area: area.value === "dragging" ? area.context : null,
         target: targetSnapshot.context.hover,
-        anchor: anchored,
-        upperCandidates,
       });
       syncPlacementGhosts(placementGhosts, placementVisualSpec(buildControl, cells, placementVisuals, area.value === "dragging" ? { start: area.context.start, end: area.context.current } : undefined, latestFacts, displayed.verticalMetres), {
         art, bindings, resolve: resolveStaticVisual, project,
@@ -1176,16 +1169,18 @@ export function createHiveClient({
       requestPlacementDecision(buildControl, previewInput);
     }
     if (targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayed) {
-      const anchor = structureAnchor(displayed, targetSnapshot.context.anchor);
-      if (targetSnapshot.context.anchor && !anchor) clearPlacement();
-      else if (anchor) {
-        for (const cell of placementCache.candidates(displayed, anchor)) {
+      const planeY = targetSnapshot.context.planeY;
+      const hoveredCell = targetSnapshot.context.hover;
+      if (Number.isInteger(planeY) && hoveredCell) {
+        const radius = 3;
+        for (let dz = -radius; dz <= radius; dz++) for (let dx = -radius; dx <= radius; dx++) {
+          const cell = [hoveredCell[0] + dx, planeY, hoveredCell[2] + dz];
           const height = (cell[1] + 0.5) * displayed.verticalMetres;
           const points = [[cell[0] - 0.5, cell[2] - 0.5], [cell[0] + 0.5, cell[2] - 0.5], [cell[0] + 0.5, cell[2] + 0.5], [cell[0] - 0.5, cell[2] + 0.5]].flatMap(([x, z]) => {
             const projected = project(x, height, z);
             return [projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y];
           });
-          const hovered = targetSnapshot.context.hover?.every((value, index) => value === cell[index]);
+          const hovered = hoveredCell.every((value, index) => value === cell[index]);
           placementGraphic.poly(points).fill({ color: hovered ? 0xe8c779 : 0x9fd8ff, alpha: hovered ? 0.3 : 0.12 })
             .stroke({ color: hovered ? 0xe8c779 : 0x9fd8ff, width: 1, alpha: 0.9 });
         }
@@ -1226,8 +1221,8 @@ export function createHiveClient({
       if (!state.ready) return;
       const displayed = displayedTerrainFrame();
       const localPoint = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      if (displayed && targetControl.target === "world-surface" && terrainTarget.getSnapshot().context.anchor) {
-          const candidate = placementCache.at(localPoint, displayed, terrainTarget.getSnapshot().context.anchor);
+      if (displayed && targetControl.target === "world-surface" && Number.isInteger(terrainTarget.getSnapshot().context.planeY)) {
+        const candidate = terrainPlaneCell(localPoint.x, localPoint.y, terrainTarget.getSnapshot().context.planeY, displayed.verticalMetres);
         if (candidate) {
           if (executeWhistle(targetControl, terrainCellCommand(targetControl, state.selectedIds, { cell: candidate, source: "placement" }).input)) clearPlacement();
           return;
@@ -1266,9 +1261,8 @@ export function createHiveClient({
         draw();
         return;
       }
-      if (targetControl.target === "world-surface" && structure) {
-        terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
-      }
+      if (targetControl.target === "world-surface")
+        terrainTarget.send({ type: "SET_BUILD_PLANE", y: surface.cell[1] });
       executeWhistle(targetControl, terrainCellCommand(targetControl, state.selectedIds, { cell: surface.cell, ...(structure ? { source: "structure" } : { material: surface.material }) }).input);
       return;
     }
@@ -1319,12 +1313,13 @@ export function createHiveClient({
       const displayed = displayedTerrainFrame();
       const at = point(event);
       const local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
-      const hit = displayed && displayedTerrainHit(local.x, local.y, displayed);
-      if (displayed && hit?.kind === "structure-top")
-        terrainTarget.send({ type: "SET_ANCHOR", anchor: hit.surface.cell });
-      const anchor = terrainTarget.getSnapshot().context.anchor;
-      const candidate = displayed && anchor
-        ? placementCache.at(local, displayed, anchor)
+      const spriteSurface = displayed ? structureSurfaceFromOrderedSprites(orderedSprites, state.subjects, local, local, displayed, project) : null;
+      const hit = spriteSurface ? { kind: "structure-top", surface: spriteSurface } : displayed && displayedTerrainHit(local.x, local.y, displayed);
+      if (hit?.surface && !Number.isInteger(targetSnapshot.context.planeY))
+        terrainTarget.send({ type: "SET_BUILD_PLANE", y: hit.surface.cell[1] });
+      const planeY = terrainTarget.getSnapshot().context.planeY;
+      const candidate = displayed && Number.isInteger(planeY)
+        ? terrainPlaneCell(local.x, local.y, planeY, displayed.verticalMetres)
         : (targetSnapshot.context.control?.command === "build" && hit?.surface ? [...hit.surface.cell] : null);
       terrainTarget.send({ type: "HOVER", cell: candidate });
       draw();

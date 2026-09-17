@@ -37,6 +37,11 @@ test("ghost strokes reject oversized selections but expose programming errors", 
   assert.throws(() => placementCells({ area: { mode: "typo", start: [0, 0, 0], current: [2, 0, 2] } }), /mode is invalid/);
 });
 
+test("one point target produces one object origin regardless of its physical footprint", () => {
+  assert.deepEqual(placementCells({ target: [3, 8, -2] }), [[3, 8, -2]]);
+  assert.deepEqual(placementCells({ target: null }), []);
+});
+
 test("cell placement never reconstructs physical edges from visual names", () => {
   const control = { input: { catalog: "timber-wall" } };
   const placement = { "timber-wall": { visual: "colony.wall.finished", alignment: "stroke", facing: { north: 2, east: 1, south: 0, west: 3 } } };

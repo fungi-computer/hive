@@ -630,6 +630,45 @@ mod tests {
     }
 
     #[test]
+    fn two_cell_bed_requires_head_and_foot_support_in_every_orientation() {
+        let origin = Cell { x: 0, y: 1, z: 0 };
+        let footprint = vec![[0, 0], [0, 1]];
+        for orientation in [Cardinal::North, Cardinal::East, Cardinal::South, Cardinal::West] {
+            let occupied = fixture_cells(origin, orientation, &footprint).unwrap();
+            let floors = occupied.iter().enumerate().map(|(index, cell)| StaticInstance::Floor {
+                id: format!("floor-{orientation:?}-{index}"),
+                support: Cell { y: cell.y - 1, ..*cell },
+            }).collect::<Vec<_>>();
+            let bed = StaticInstance::Fixture {
+                id: format!("bed-{orientation:?}"), origin, orientation, footprint: footprint.clone(),
+            };
+
+            let mut no_terrain = terrain(&[]);
+            let fully_supported = resolve(
+                &StaticGeometry::new(bounds(), floors.clone()).unwrap(),
+                policy(2),
+                &mut no_terrain,
+            ).unwrap();
+            let mut no_terrain = terrain(&[]);
+            assert!(candidate_supported(&fully_supported, &bed, 2, &mut no_terrain).unwrap());
+
+            for retained in 0..2 {
+                let mut no_terrain = terrain(&[]);
+                let partial = resolve(
+                    &StaticGeometry::new(bounds(), vec![floors[retained].clone()]).unwrap(),
+                    policy(2),
+                    &mut no_terrain,
+                ).unwrap();
+                let mut no_terrain = terrain(&[]);
+                assert!(
+                    !candidate_supported(&partial, &bed, 2, &mut no_terrain).unwrap(),
+                    "{orientation:?} bed was accepted with only footprint cell {retained} supported",
+                );
+            }
+        }
+    }
+
+    #[test]
     fn cover_span_carries_distance_without_becoming_load_support() {
         let covers = (1..=3).map(|x| StaticInstance::Cover {
             id: format!("roof-{x}"), support: Cell { x, y: 0, z: 0 },

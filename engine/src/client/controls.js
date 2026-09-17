@@ -51,14 +51,14 @@ export const pointerGestureMachine = createMachine(
 export const terrainTargetMachine = createMachine({
   id: "hive-terrain-target",
   initial: "idle",
-  context: { control: null, anchor: null, hover: null },
+  context: { control: null, planeY: null, hover: null },
   states: {
     idle: { on: { ARM: { target: "armed", actions: "arm" } } },
     armed: { on: {
       ARM: { actions: "arm" },
       ROTATE: { actions: "rotate" },
       CLEAR_PLACEMENT: { actions: "clearPlacement" },
-      SET_ANCHOR: { actions: "anchor" },
+      SET_BUILD_PLANE: { actions: "setBuildPlane" },
       HOVER: { actions: "hover" },
       CANCEL_STROKE: {},
       ESCAPE: { target: "idle", actions: "clear" },
@@ -66,11 +66,11 @@ export const terrainTargetMachine = createMachine({
     } },
   },
 }, { actions: {
-      arm: assign(({ event }) => ({ control: event.control, anchor: null, hover: null })),
+      arm: assign(({ event }) => ({ control: event.control, planeY: null, hover: null })),
       rotate: assign(({ event }) => ({ control: event.control })),
-      clear: assign({ control: null, anchor: null, hover: null }),
-      clearPlacement: assign({ anchor: null, hover: null }),
-      anchor: assign(({ event }) => ({ anchor: event.anchor, hover: null })),
+      clear: assign({ control: null, planeY: null, hover: null }),
+      clearPlacement: assign({ planeY: null, hover: null }),
+      setBuildPlane: assign(({ event }) => ({ planeY: event.y, hover: null })),
       hover: assign(({ event }) => ({ hover: event.cell ?? null })),
 } });
 

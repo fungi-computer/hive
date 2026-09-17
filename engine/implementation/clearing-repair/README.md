@@ -1,10 +1,19 @@
+**September 17 unified building/creator follow-through:** section 14's
+[coherent implementation sequence](14-simple-depth-rendering-handoff.md#coherent-implementation-sequence-definitions--placement--work--drawing)
+owns the current order: reproduce the upstairs bed defect, unify definitions and
+selected-plane proposals, reuse native admission/work, migrate the real creator
+consumer, then qualify extended-art ordering. Earlier scalar-sort stages are not
+an approved general solution. Rendering representation remains an explicit design
+gate; building has no separate upper-floor mode.
+
 # Clearing repair implementation packet
 
-**September 17 sorter correction:** Read [Simple depth rendering handoff](14-simple-depth-rendering-handoff.md)
-first for rendering work. It supersedes the plane/dependency-graph algorithm in
-section 13 with a staged Ingnomia-inspired scalar-depth qualification and cutover.
-The first real-art fixture is an acceptance gate; unresolved ordering must not be
-patched with exceptions by the implementer. Cut visibility and original art remain.
+**Current combined sprint:** [Unified building, creator API and rendering](14-simple-depth-rendering-handoff.md#current-sprint-a-buildable-upstairs-room-through-the-supported-api)
+owns delivery: visible upstairs bed, real creator API consumers, stairs/cuts and
+room editing, then a matched playable release. Move touched callers onto supported
+operations in the same slice. The old scalar-depth cutover is not an accepted
+algorithm. Section 13 still owns cut visibility and accepted original art; section
+14 owns the current building/ordering reconciliation and API boundaries.
 
 **September 16 rendering correction:** [Cut-level rendering and Ingnomia study](13-cut-level-rendering.md)
 records selected-level cuts, visible lower terrain, whole supported actors,

@@ -28,12 +28,11 @@ export function createPlacementAdvisory(decide, publish) {
 
 
 /** Build the exact cells a placement gesture owns. No admission is inferred. */
-export function placementCells({ area, target, anchor, upperCandidates = [] }) {
+export function placementCells({ area, target }) {
   if (area?.start && area.current) {
     const result = evaluateDesignation(area.mode, area.start, area.current, 256);
     return result.accepted ? result.designation.cells : [];
   }
-  if (anchor) return upperCandidates;
   return target ? [target] : [];
 }
 
