@@ -2,7 +2,7 @@
 
 September 17, 2026. Design and implementation handoff, not delivered capability.
 Source originally inspected at `46641200`; renderer and packet corrections were
-rechecked in `engine/living-terrain-integration-20260917` through `b5554870`.
+rechecked in `engine/living-terrain-integration-20260917` through `4da4587e`.
 
 ## Authoritative delivery order — finish Clearing through reusable Vishnu owners
 
@@ -87,6 +87,13 @@ Rejected implementation shortcuts:
 - the global pairwise plane/graph sorter and arbitrary cycle-edge deletion;
 - content-name z-index exceptions, bounding-box-bottom order or magic offsets;
 - treating every extended object as one point while ignoring its footprint/parts;
+- drawing every lower world layer before every upper layer; horizontal proximity
+  and vertical level must participate in one physical voxel traversal, so a lower
+  foreground actor can remain in front of a farther raised cell;
+- retaining all footprint/support points only in diagnostics while choosing one
+  lexicographic minimum/maximum as the real insertion answer;
+- replacing a rooted patch's declared physical root with whichever supporting
+  cell happens to be visited last;
 - turning grass into anonymous presentation because actor storage needs work; and
 - advancing creator/character tooling ahead of playable drawing, work and recovery.
 
