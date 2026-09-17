@@ -87,6 +87,20 @@ export function placementGuideTiles({ hoveredCell, planeY, footprintCells = [], 
   return Object.freeze(result);
 }
 
+/** Draw one already-projected guide tile. The world cell remains owned by the
+ * placement record; this helper only owns the established Pixi appearance. */
+export function drawPlacementGuideTile(graphic, tile, { transform = point => point, status } = {}) {
+  const points = tile.projected.flatMap(point => {
+    const next = transform(point);
+    return [next.x, next.y];
+  });
+  const rejected = tile.isFootprint && status === "rejected";
+  const color = rejected ? 0xe47c72 : tile.isFootprint || tile.hovered ? 0xe8c779 : 0x9fd8ff;
+  graphic.poly(points).fill({ color, alpha: tile.isFootprint || tile.hovered ? 0.3 : 0.12 })
+    .stroke({ color, width: tile.isFootprint ? 2 : 1, alpha: 0.9 });
+  return graphic;
+}
+
 /**
  * Resolve ordinary cell-placement art. Edge placement owns a different
  * acquisition shape and never reconstructs physical edges from visual names.

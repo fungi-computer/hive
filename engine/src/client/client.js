@@ -52,7 +52,7 @@ import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromOrderedSprites } from "./build-placement.js";
-import { createPlacementAdvisory, placementCells, placementFootprintCells, placementGuideTiles, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
+import { createPlacementAdvisory, placementCells, placementFootprintCells, placementGuideTiles, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts, drawPlacementGuideTile } from "./placement-preview.js";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
@@ -1137,11 +1137,10 @@ export function createHiveClient({
         const guide = placementGuideTiles({ hoveredCell, planeY, footprintCells,
           verticalMetres: displayed.verticalMetres, project });
         for (const tile of guide) {
-          const points = tile.projected.flatMap(point => [point.x * camera.zoom + camera.x, point.y * camera.zoom + camera.y]);
-          const rejected = tile.isFootprint && state.placementDecision?.status === "rejected";
-          const color = rejected ? 0xe47c72 : tile.isFootprint || tile.hovered ? 0xe8c779 : 0x9fd8ff;
-          placementGraphic.poly(points).fill({ color, alpha: tile.isFootprint || tile.hovered ? 0.3 : 0.12 })
-            .stroke({ color, width: tile.isFootprint ? 2 : 1, alpha: 0.9 });
+          drawPlacementGuideTile(placementGraphic, tile, {
+            transform: point => ({ x: point.x * camera.zoom + camera.x, y: point.y * camera.zoom + camera.y }),
+            status: state.placementDecision?.status,
+          });
         }
         placementGraphic.visible = true;
       }
