@@ -21,6 +21,8 @@ test("Stage 1A fixture exposes real mixed geometry in every camera orientation",
       fixture.guide.cells.map(cell => [...cell]).sort());
     assert.deepEqual(fixture.actors.filter(record => record.probe?.startsWith("stair-")).map(record => record.probe),
       ["stair-entrance", "stair-middle", "stair-landing"]);
+    assert(fixture.actors.filter(record => record.probe?.startsWith("stair-")).every(record => record.support === "fixture:stair"),
+      `${orientation}: stair probes retain support identity`);
     assert.deepEqual(fixture.actors.filter(record => record.probe?.startsWith("bed-")).map(record => record.probe),
       ["bed-end-start", "bed-end-finish", "bed-side-left", "bed-side-right"]);
     assert(fixture.actors.every(record => record.visual === "goblin.worker"), `${orientation}: actor art binding`);
