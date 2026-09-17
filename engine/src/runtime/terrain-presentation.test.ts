@@ -109,6 +109,39 @@ test("material chunks are bounded, complete, coalesced and revision guarded", ()
   assert.throws(() => owner.readChunks({ ...request, terrainRevision: 8, chunks: [[0, 0, 0], [0, 0, 0]] }, 2), /duplicate terrain chunk key/);
 });
 
+test("game-authored generated cover is checked, deterministic and removed below its supporting surface", () => {
+  let revision = 1;
+  let surfaceY = 0;
+  const seen: string[] = [];
+  const port = fakePort(
+    () => ({ terrainRevision: revision, placementRevision: revision, cells: [] }),
+    columns => columns.map(([x, z]) => ({ cell: [x, surfaceY, z] as const, material: 1, generatedTop: 0 })),
+    undefined,
+    () => ({ kind: "changed-columns", revision, columns: [[0, 0], [1, 0]] }),
+  );
+  const owner = new TerrainPresentationOwner(port, definition, undefined, {
+    materials: [{ slot: 1, art: "earth" }, { slot: 2, art: "stone" }],
+    generatedCover(input) {
+      seen.push(`${input.worldIdentity}:${input.worldSeed}:${input.cell.join(",")}`);
+      return { kind: "grass", condition: input.cell[0] === 0 ? "green" : "dead", height: input.cell[0] === 0 ? "full" : "short" };
+    },
+  });
+  assert.deepEqual(owner.read().surfaces.map(surface => surface.cover), [
+    { kind: "grass", condition: "green", height: "full" },
+    { kind: "grass", condition: "dead", height: "short" },
+  ]);
+  assert.deepEqual(seen, ["surface-test:surface-test:0,0,0", "surface-test:surface-test:1,0,0"]);
+  revision = 2;
+  surfaceY = -1;
+  assert.deepEqual(owner.read().surfaces.map(surface => surface.cover), [undefined, undefined]);
+  assert.equal(seen.length, 2, "excavated surfaces cannot regenerate decorative cover");
+  surfaceY = 0;
+  assert.throws(() => new TerrainPresentationOwner(port, definition, undefined, {
+    materials: [{ slot: 1, art: "earth" }],
+    generatedCover: () => ({ kind: "grass", condition: "green", height: "" }),
+  }).read(), /too[_ ]small/i);
+});
+
 test("physical column changes patch terrain and structures in canonical order", () => {
   let revision = 1;
   let surfaceCalls = 0;

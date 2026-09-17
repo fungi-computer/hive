@@ -53,18 +53,18 @@ test("terrain chunk cache loads priority batches and retains the last complete v
   assert.deepEqual(owner.snapshot().coverage.map(item => item.status), ["unknown", "unknown"]);
 });
 
-test("terrain changes invalidate vertical coverage and horizontal neighbor chunks", async () => {
+test("terrain changes invalidate vertical coverage and all dual-grid neighbor chunks", async () => {
   const runtime = controlledRuntime();
   const owner = createTerrainChunkCache({ runtime });
   owner.updateFrame(frame(2, 8));
-  const keys = [[0, -1, 0], [0, 0, 0], [1, 0, 0], [2, 0, 0], [0, 0, 2]];
+  const keys = [[0, -1, 0], [0, 0, 0], [1, 0, 0], [0, 0, 1], [1, 0, 1], [2, 0, 0], [0, 0, 2]];
   owner.updateDemand(keys);
   const read = owner.service();
   runtime.requests[0].resolve({ kind: "ready", requestId: 1, epoch: 2, terrainRevision: 8, chunks: keys.map(chunk) });
   await read;
-  owner.updateFrame(frame(2, 9, { kind: "changed-columns", revision: 9, columns: [[7, 0]] }));
+  owner.updateFrame(frame(2, 9, { kind: "changed-columns", revision: 9, columns: [[7, 7]] }));
   owner.updateDemand(keys);
-  assert.deepEqual(owner.snapshot().coverage.map(item => item.status), ["unknown", "unknown", "unknown", "ready", "ready"]);
+  assert.deepEqual(owner.snapshot().coverage.map(item => item.status), ["unknown", "unknown", "unknown", "unknown", "unknown", "ready", "ready"]);
   assert.equal(owner.snapshot().viewComplete, false, "a topology edit never retains stale complete geometry");
 });
 

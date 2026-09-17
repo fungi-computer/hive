@@ -63,9 +63,10 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
     for (const column of changes.columns) {
       if (!Array.isArray(column) || column.length !== 2 || column.some(value => !Number.isInteger(value)))
         throw new Error("invalid terrain changed column");
-      for (const [x, z] of [[column[0], column[1]], [column[0] - 1, column[1]],
-        [column[0] + 1, column[1]], [column[0], column[1] - 1], [column[0], column[1] + 1]])
-        dirty.add(horizontalId(chunkAxis(x), chunkAxis(z)));
+      // A dual-grid cover vertex depends on four cells, including diagonals.
+      // Invalidate the full local 3×3 cell neighborhood across chunk seams.
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++)
+        dirty.add(horizontalId(chunkAxis(column[0] + dx), chunkAxis(column[1] + dz)));
     }
     let invalidatedView = false;
     for (const [id, entry] of cache) {

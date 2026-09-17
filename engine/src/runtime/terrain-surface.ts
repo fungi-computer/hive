@@ -6,4 +6,9 @@ export const terrainSurfaceSchema = z.object({
   cell: z.tuple([coordinate, coordinate, coordinate]).readonly(),
   material: z.number().int().min(0).max(65535),
   generatedTop: coordinate,
+  cover: z.object({
+    kind: z.string().min(1).max(64),
+    condition: z.string().min(1).max(64),
+    height: z.string().min(1).max(64),
+  }).strict().readonly().optional(),
 }).readonly();

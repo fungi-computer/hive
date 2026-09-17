@@ -1,5 +1,6 @@
 import type { EnvironmentDefinition } from "../sdk/environment";
-import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainSurface } from "../contracts";
+import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainPresentationDefinition, TerrainSurface } from "../contracts";
+import { terrainSurfaceSchema } from "./terrain-surface";
 import { MAX_TERRAIN_CHUNK_REPLY_BYTES, TERRAIN_CHUNK_EDGE, terrainBaselineSchema, terrainChunkReplySchema, terrainChunkRequestSchema, type TerrainBaseline, type TerrainChunkReply, type TerrainChunkRequest } from "./terrain-chunks";
 
 type Coordinate = readonly [number, number, number];
@@ -125,8 +126,14 @@ export class TerrainPresentationOwner {
     private readonly port: KernelPort,
     private readonly definition: EnvironmentDefinition,
     private readonly configuredWindow?: { readonly minX: number; readonly maxX: number; readonly minZ: number; readonly maxZ: number },
+    private readonly presentation?: TerrainPresentationDefinition,
   ) {
     validateDefinition(definition, configuredWindow);
+    const slots = new Set(definition.materials.map(material => material.slot));
+    const presented = presentation?.materials ?? [];
+    if (presented.length !== new Set(presented.map(material => material.slot)).size ||
+      presented.some(material => !slots.has(material.slot) || typeof material.art !== "string" || material.art.length < 1 || material.art.length > 64))
+      throw new Error("invalid terrain presentation material definition");
   }
 
   reset(): void {
@@ -274,11 +281,22 @@ export class TerrainPresentationOwner {
           if (cell[0] !== column[0] || cell[2] !== column[1] || !signedInteger(cell[1]) ||
             !Number.isInteger(surface.material) || surface.material < 0 || surface.material > 65535)
             throw new Error("invalid terrain surface projection");
-          byColumn.set(columnKey(column[0], column[1]), Object.freeze({
+          const cover = surface.cell[1] === surface.generatedTop
+            ? this.presentation?.generatedCover?.({
+                cell: [cell[0], cell[1], cell[2]],
+                material: surface.material,
+                generatedTop: surface.generatedTop,
+                worldSeed: this.definition.world.seed,
+                worldIdentity: this.definition.world.identity,
+              }) ?? undefined
+            : undefined;
+          const projected = terrainSurfaceSchema.parse({
             cell: Object.freeze([cell[0], cell[1], cell[2]]) as TerrainSurface["cell"],
             material: surface.material,
             generatedTop: surface.generatedTop,
-          }));
+            ...(cover === undefined ? {} : { cover }),
+          });
+          byColumn.set(columnKey(column[0], column[1]), Object.freeze(projected));
         } else byColumn.set(columnKey(column[0], column[1]), null);
         const parsed: StructureSurface[] = [];
         const seenHeights = new Set<number>();

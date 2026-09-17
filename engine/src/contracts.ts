@@ -700,6 +700,22 @@ export type PhysicalContact = {
 };
 
 export type TerrainSurface = z.infer<typeof terrainSurfaceSchema>;
+export type TerrainSurfaceCover = NonNullable<TerrainSurface["cover"]>;
+export interface TerrainPresentationDefinition {
+  /** Content-owned art family for each physical material slot. */
+  readonly materials: readonly {
+    readonly slot: number;
+    readonly art: string;
+  }[];
+  /** Pure fresh-world cover projection. Later physical cover mutations override it. */
+  readonly generatedCover?: (input: {
+    readonly cell: readonly [number, number, number];
+    readonly material: number;
+    readonly generatedTop: number;
+    readonly worldSeed: string;
+    readonly worldIdentity: string;
+  }) => TerrainSurfaceCover | null;
+}
 export type StructureSurface = {
   readonly cell: readonly [number, number, number];
 };
@@ -799,6 +815,8 @@ export interface GamePack {
     readonly minZ: number;
     readonly maxZ: number;
   };
+  /** Game-authored terrain vocabulary. The engine owns no grass or biome IDs. */
+  readonly terrainPresentation?: TerrainPresentationDefinition;
   readonly components: readonly ComponentDefinition<any>[];
   /** Prepared content templates; native lifecycle owns their instantiation. */
   readonly actors?: readonly ActorDefinition[];

@@ -333,7 +333,7 @@ export class GameSession {
     if (offsets.length < 1 || offsets.length > 16) throw new Error("spawn-footprint-limit");
     if (!this.terrainPresentation && this.pack.environmentDefinition) {
       const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
-      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
+      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow, this.pack.terrainPresentation);
     }
     const vertical = this.terrainPresentation?.verticalMetres() ?? null;
     if (!vertical) return null;
@@ -1275,6 +1275,7 @@ export class GameSession {
         this.port,
         definition,
         this.pack.presentationWindow,
+        this.pack.terrainPresentation,
       );
     }
     return this.terrainPresentation.read();
@@ -1284,7 +1285,7 @@ export class GameSession {
     if (!this.pack.environmentDefinition) return { kind: "unavailable", requestId: request.requestId, reason: "terrain observation is unavailable" } as const;
     if (!this.terrainPresentation) {
       const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
-      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow);
+      this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow, this.pack.terrainPresentation);
     }
     return this.terrainPresentation.readChunks(request, epoch);
   }

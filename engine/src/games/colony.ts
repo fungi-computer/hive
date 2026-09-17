@@ -38,6 +38,7 @@ import { beginRouteWorkAttempt, retargetRouteWorkAttempt, workAttemptsFor } from
 import { colonyStockpileClearCommand, colonyStockpileCommand, colonyStockpilePolicyCommand } from "./colony-stockpile-command";
 import { StockpileCell, StorageProvider } from "../sdk/stockpile";
 import { colonyGroundMaterialVisual } from "./colony-material-presentation";
+import { colonyTerrainPresentation } from "./colony-terrain-presentation";
 import { z } from "zod";
 import { colonyPartyForPlayer } from "./colony-player-party";
 import type { ActionRequest, ConstructionReadinessStatus, EntityId, GamePack, JobPlan, MoveDestination, ReadContext, GameCommandContext } from "../contracts";
@@ -336,6 +337,7 @@ export const colonyPack: GamePack = {
     plan: localPartyPlan,
   }],
   environmentDefinition: colonyEnvironmentDefinition,
+  terrainPresentation: colonyTerrainPresentation,
   commands: {
     build: colonyBuildCommand,
     deconstruct: command({
