@@ -421,6 +421,15 @@ per-frame compiler regression. It does not yet clear all of Stage 1C: a terrain,
 cover, water, cut, demand or static-structure revision still rebuilds the complete
 visible static stream rather than only affected chunks.
 
+**September 17 hosted proof.** Source `80e39fd9` is deployed as one verified
+client/backend pair at
+<https://clearing-80e39fd9-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony>.
+Both the immutable deployment and public alias matched all 224 built client
+files, and the paired Durable Object join/observe proof returned revision 2 with
+the expected two-person party. This is the first playable retained-stream proof;
+it does not claim the remaining Stage 1C chunk invalidation or later placement,
+work, world-continuity and creator stages.
+
 Cut over the production world pass and remove the pair graph, support/grass sort
 exceptions and signature-driven run rebuilding together. Retain visible exposed
 terrain and cover buffers by chunk/material/revision. Batch only consecutive
