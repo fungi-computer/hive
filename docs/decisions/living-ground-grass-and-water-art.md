@@ -15,6 +15,21 @@ Astra personally opened `iso_tile_cover.png`, `iso_tile_export.png`, `iso_tile_s
 
 Keep Hive's softer original forms, character proportions and readable work targets. The reference's individual-pixel detail is not a requirement to make our entire screen busier. Take the clustered silhouettes, material transitions and clear construction of volume; author new geometry, arrangement, colors and motion.
 
+## Product description
+
+Hive renders its ground as a **chunked voxel tile map with dual-grid surface
+cover**. The phrase is suitable for product and making-of pages: the world is a
+real multi-level voxel grid; the client requests bounded chunks and draws only
+visible tops and exposed sides; grass and other covers use four-corner dual-grid
+masks for rounded connected boundaries. It communicates both the scalable tile
+map vocabulary and the vertical world that a conventional flat TileMap cannot
+represent.
+
+Do not shorten this to a claim that Hive uses a conventional 2D TileMap. Do not
+claim that dual-grid art changes physics, smooths voxel topology, or makes every
+blade an independently simulated object. A useful shorter caption is: “Voxel
+terrain, tiled in chunks, with dual-grid living surfaces.”
+
 The five supplied files remain outside the repository, under `/home/levi/`. They are private references, not public study assets, texture inputs, distributable source, or material to crop/recolor into an atlas. Levi reports having checked the license and requests openly shared original work without selling these art assets. The complete license/creator record was not supplied with these five files, so this note does not certify additional redistribution rights. Our implementation route is original Three geometry and original baked output; retain the source so the new art can be shared under the project's applicable terms. Private file hashes are recorded separately, without copying the assets into Hive.
 
 ## Grass should have a readable body

@@ -474,6 +474,52 @@ restarting patterns at each chunk. Preserve edited terrain and current-format
 reload. A generator/format change cannot silently alter an existing world's land.
 No preset hearth, settlement or building is required to produce attractive land.
 
+### Accepted implementation shape: chunked voxel tile map with dual-grid surface cover
+
+Use **chunked voxel tile map with dual-grid surface cover** as the concise name
+for this renderer and as approved product language. It is accurate only when the
+full phrase is preserved: authoritative terrain is a three-dimensional grid,
+visible chunks emit exposed tops and sides, and offset cover patches derive
+their masks from four neighboring compatible surfaces. It is not a flat 2D
+TileMap, one complete cube sprite per voxel, or a claim that every blade is an
+entity.
+
+The production join is now mechanical and uses these owners:
+
+1. The game/world owner publishes material and optional surface-cover facts.
+   Cover is generic bounded state (`kind`, `condition`, `height` or another
+   definition-owned profile), not a renderer guess from soil color. Goblin may
+   define grass; another game may define snow, ash, moss, slime or corruption.
+2. The game definition maps material and cover IDs to art IDs. The engine must
+   not contain Goblin grass, meadow, path or biome switches.
+3. The art-pack compiler reuses the accepted editable Three models. Preserve the
+   complete-body review atlas, and derive face-addressable top/side assets from
+   that same source for the cut renderer. Do not map a complete top-plus-sides
+   body frame onto every logical face.
+4. The terrain renderer emits retained atlas-backed face records. It emits a
+   separate ordinary cover record for each nonzero four-corner mask. Faces,
+   covers, actors, items, water and structures enter the same isometric sorter.
+5. A changed terrain or cover cell invalidates its own presentation and all
+   eight horizontal neighbors because a dual-grid corner can depend on a
+   diagonal cell. Preserve remote chunk and mesh identities.
+
+Ordinary continuous cover is compact surface state rather than one Actor per
+cell or blade. Work may target a surface coordinate and submit a typed cover
+operation; for example mowing changes full grass to short grass and may create a
+physical clipping item. A plant that needs independent identity, custody,
+health, knowledge or behavior is an Actor. This keeps future mowing, grazing,
+wear, fire and regrowth lawful without making dense ground cover thousands of
+independently ticking objects. Growth and mowing simulation are follow-on
+consumers, not requirements for the current art integration.
+
+Implementation order: add the generic checked cover fact and game definition;
+compile the accepted body source into face assets; register those assets and the
+accepted grass masks through one disposable art owner; derive stable masks and
+variants; join all records to the existing sorter and batch owner; extend local
+invalidation to diagonals; qualify digging, pits, cuts, ordering, deterministic
+reload and retained allocation; then personally review and deploy the client.
+No additional renderer research round precedes this sequence.
+
 ### Art and transitions
 
 Reference: https://github.com/jess-hammer/dual-grid-tilemap-system-godot
