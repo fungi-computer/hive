@@ -51,9 +51,9 @@ function materialTotal(session: GameSession) {
   return session.query(query(MaterialLot)).reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0);
 }
 
-function buildFinished(session: GameSession, catalog: string, cell: readonly [number, number, number]) {
+function buildFinished(session: GameSession, catalog: string, cell: readonly [number, number, number], orientation = "north") {
   const before = new Set(session.query(query(ConstructionSite)).map(row => row.id));
-  session.command("build", { catalog, orientation: "north", target: { cell } });
+  session.command("build", { catalog, orientation, target: { cell } });
   for (let tick = 0; tick < 800; tick++) {
     session.step(0.25);
     const site = session.query(query(ConstructionSite)).find(row => !before.has(row.id) && row.get(ConstructionSite).catalog === catalog);
@@ -419,6 +419,46 @@ test("actual Colony queues an upper floor before its timber wall and waits for s
     assert(session.query(query(ConstructionSite)).every(row => row.get(ConstructionSite).phase === "finished"));
     assert.equal(port.constructionAccess([floor.id])[0].support, "ready");
     assert.deepEqual(port.structureSurfaces([[1, 0]]), surfaces);
+  } finally { port.dispose(); }
+});
+
+test("authored wall, floors and stair make one rotated upstairs bed playable", () => {
+  const port = wasmKernelPort(new WasmKernel());
+  try {
+    const session = new GameSession({ port, pack: colonyPack });
+    session.start();
+
+    const stair = buildFinished(session, "timber-stair", [1, 13, 0], "north");
+    assert.equal(stair.get(ConstructionSite).phase, "finished");
+    session.command("build", { catalog: "timber-wall", target: { edges: [{ cell: [2, 13, -2], axis: "z" }] } });
+    for (let tick = 0; tick < 800; tick++) {
+      session.step(0.25);
+      if (session.query(query(ConstructionSite)).some(row => row.get(ConstructionSite).catalog === "timber-wall" && row.get(ConstructionSite).phase === "finished")) break;
+    }
+    assert(session.query(query(ConstructionSite)).some(row => row.get(ConstructionSite).catalog === "timber-wall" && row.get(ConstructionSite).phase === "finished"));
+
+    session.command("build", { catalog: "timber-floor", orientation: "north", target: { area: { start: [2, 17, -2], end: [3, 17, -1] } } });
+    for (let tick = 0; tick < 1_200; tick++) {
+      session.step(0.25);
+      const floors = session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).catalog === "timber-floor");
+      if (floors.length === 4 && floors.every(row => row.get(ConstructionSite).phase === "finished")) break;
+    }
+    const floors = session.query(query(ConstructionSite)).filter(row => row.get(ConstructionSite).catalog === "timber-floor");
+    assert.equal(floors.length, 4);
+    assert(floors.every(row => row.get(ConstructionSite).phase === "finished"));
+
+    const bed = buildFinished(session, "timber-bed", [3, 17, -1], "east");
+    const bedState = bed.get(ConstructionSite);
+    assert.deepEqual(constructionCell(bedState), { x: 3, y: 18, z: -1 });
+    const bedFact = session.renderFacts().find(fact => fact.id === bed.id);
+    assert.equal(bedFact?.visual, "colony.bed.finished");
+    assert.deepEqual(bedFact?.placement, { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "east" });
+    assert.deepEqual(bedFact?.view, { pickable: true, cutawayTop: 18 });
+
+    const saved = session.save();
+    session.restore(saved);
+    assert.deepEqual(session.save(), saved);
+    assert.deepEqual(session.renderFacts().find(fact => fact.id === bed.id), bedFact);
   } finally { port.dispose(); }
 });
 

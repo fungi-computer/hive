@@ -247,6 +247,15 @@ Duplicate catalog IDs, spawn parameters and owner-conflicting completion
 components fail at compilation. The full Colony construction lifecycle passes
 with all three migrated and no parallel bed/floor/wall catalog entries.
 
+The focused room story now completes through the real Colony session: workers
+build a north-facing stair, timber wall, four-cell upper floor and east-facing
+two-cell bed; the bed retains one finished site identity, exposes its authored
+footprint/orientation in render facts and survives exact current-format reload.
+The initial two-cell platform correctly proved insufficient for work access even
+though it supported the bed, so the maintained fixture includes a separate
+standing/approach floor. This is source/runtime proof, not yet a visually reviewed
+browser screenshot or hosted parity claim.
+
 Use the installed actor `.with(...)` composition and prepared query
 `.where(...).do(...)` collection contract from section 10. Construction action
 builders describe requests consumed by that pipeline; they do not mutate state.
