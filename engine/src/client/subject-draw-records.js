@@ -97,7 +97,7 @@ export function ordinarySubjectDrawRecord({ subject, binding, geometry, display,
   if (!geometry?.footprint?.length) throw new Error("subject draw geometry required");
   const isStatic = binding?.kind === "static";
   const attachment = isStatic
-    ? Object.freeze({ kind: "footprint", cells: geometry.footprint })
+    ? Object.freeze({ kind: "footprint", points: geometry.footprint })
     : Object.freeze({ kind: "supported", support: subject.support ?? null, feet: geometry.footprint[0] });
   return Object.freeze({
     id: subject.id,

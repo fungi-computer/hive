@@ -44,7 +44,7 @@ test("the real bed binding aligns and retains its whole authored footprint", () 
     assert.equal(record.role, "structure");
     assert.equal(record.moving, false);
     assert.equal(record.renderPass, "opaque");
-    assert.deepEqual(record.attachment, { kind: "footprint", cells: record.footprint });
+    assert.deepEqual(record.attachment, { kind: "footprint", points: record.footprint });
   } finally {
     source.traverse(object => object.geometry?.dispose());
   }

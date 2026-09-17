@@ -123,8 +123,8 @@ function guideFixture(orientation, projection) {
  * Stage 1B must derive traversal from their XYZ/footprint/part facts and must
  * produce the same result when `input` is reversed.
  */
-export function createMixedRenderFixture(orientation = "north") {
-  const projection = projectionFor(orientation), appearance = terrainAppearance();
+export function createMixedRenderFixture(cameraOrientation = "north", objectOrientation = "north") {
+  const projection = projectionFor(cameraOrientation), appearance = terrainAppearance();
   const coverage = materialCoverage(terrainSnapshot());
   const terrain = terrainFaceRecords(coverage, { level: 1, projection, appearance });
   // This names the current production seam honestly. Stage 2 migrates these
@@ -133,7 +133,7 @@ export function createMixedRenderFixture(orientation = "north") {
   const grassSurfaces = [[1,0,1,"full"],[2,0,1,"full"],[1,0,2,"full"],[2,0,2,"full"],[3,0,2,"short"]].map(([x,y,z,height]) =>
     ({ cell: [x,y,z], material: x === 2 ? 2 : 1, cover: { kind: "grass", condition: "green", height } }));
   const grass = terrainCoverRecords(grassSurfaces, { level: 1, projection, appearance, verticalMetres: VERTICAL_METRES, variantSeed: 41 });
-  const stairs = stairRecords(orientation, projection), bed = bedRecord(orientation, projection);
+  const stairs = stairRecords(objectOrientation, projection), bed = bedRecord(objectOrientation, projection);
   const stairSurface = stairs.find(record => record.part === "surface");
   const [entrance, landing] = [stairSurface.footprint[0], stairSurface.footprint[2]];
   const middle = { x: (entrance.x + landing.x) / 2, y: (entrance.y + landing.y) / 2, z: (entrance.z + landing.z) / 2 };
@@ -154,8 +154,9 @@ export function createMixedRenderFixture(orientation = "north") {
     actorRecord("fixture:goblin:bed-side-right", { x: bedMiddle.x - across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z - across.z * 0.6 }, projection, "bed-side-right"),
   ];
   const water = [waterDrawRecord({ at: [1, -1, 0], level: 7, liquidVolumeM3: 1 }, { projection: (x, y, z) => projection.project({ x, y, z }), verticalMetres: VERTICAL_METRES })];
-  const input = Object.freeze([...terrain, ...grass, ...stairs, bed, ...actors, ...water]);
-  return Object.freeze({ orientation, projection, verticalMetres: VERTICAL_METRES, terrain, grassSurfaces: Object.freeze(grassSurfaces), grass,
-    stairs, bed, actors: Object.freeze(actors), water: Object.freeze(water), guide: guideFixture(orientation, projection),
+  const guide = guideFixture(objectOrientation, projection);
+  const input = Object.freeze([...terrain, ...grass, ...stairs, bed, ...actors, ...water, ...guide.tiles]);
+  return Object.freeze({ cameraOrientation, objectOrientation, projection, verticalMetres: VERTICAL_METRES, terrain, grassSurfaces: Object.freeze(grassSurfaces), grass,
+    stairs, bed, actors: Object.freeze(actors), water: Object.freeze(water), guide,
     input, reversedInput: Object.freeze([...input].reverse()) });
 }

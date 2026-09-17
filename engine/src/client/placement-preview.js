@@ -65,6 +65,7 @@ export function placementGuideTiles({ hoveredCell, planeY, footprintCells = [], 
       { x: cell[0] + 0.5, y: height, z: cell[2] + 0.5 },
       { x: cell[0] - 0.5, y: height, z: cell[2] + 0.5 },
     ];
+    const projected = worldCorners.map(point => Object.freeze(project(point.x, point.y, point.z)));
     result.push(Object.freeze({
       id: `placement-guide:${cell.join(":")}`,
       part: "tile",
@@ -74,7 +75,9 @@ export function placementGuideTiles({ hoveredCell, planeY, footprintCells = [], 
       cell: Object.freeze(cell),
       worldCorners: Object.freeze(worldCorners),
       footprint: Object.freeze(worldCorners),
-      projected: Object.freeze(worldCorners.map(point => Object.freeze(project(point.x, point.y, point.z)))),
+      projected: Object.freeze(projected),
+      screenBounds: Object.freeze({ left: Math.min(...projected.map(point => point.x)), right: Math.max(...projected.map(point => point.x)),
+        top: Math.min(...projected.map(point => point.y)), bottom: Math.max(...projected.map(point => point.y)) }),
       pickable: false,
       visible: true,
       hovered: hoveredCell.every((value, index) => value === cell[index]),

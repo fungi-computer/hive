@@ -5,9 +5,10 @@ import { createMixedRenderFixture, MIXED_FIXTURE_ORIENTATIONS } from "./mixed-re
 const key = record => `${record.id}\u0000${record.part}`;
 const finitePoint = point => [point.x, point.y, point.z].every(Number.isFinite);
 
-test("Stage 1A fixture exposes real mixed geometry in every camera orientation", () => {
-  for (const orientation of MIXED_FIXTURE_ORIENTATIONS) {
-    const fixture = createMixedRenderFixture(orientation);
+test("Stage 1A fixture exposes real mixed geometry for every camera and object orientation", () => {
+  for (const cameraOrientation of MIXED_FIXTURE_ORIENTATIONS) for (const objectOrientation of MIXED_FIXTURE_ORIENTATIONS) {
+    const orientation = `${cameraOrientation}/${objectOrientation}`;
+    const fixture = createMixedRenderFixture(cameraOrientation, objectOrientation);
     assert(fixture.terrain.some(record => record.cap), `${orientation}: cut cap`);
     assert(fixture.terrain.some(record => record.cell[1] === -2 && record.face === "top"), `${orientation}: pit bottom`);
     assert(fixture.terrain.some(record => record.face !== "top"), `${orientation}: exposed cliff`);
@@ -17,6 +18,7 @@ test("Stage 1A fixture exposes real mixed geometry in every camera orientation",
     assert.equal(fixture.bed.footprint.length, 2, `${orientation}: full bed footprint`);
     assert.equal(fixture.guide.cells.length, 2, `${orientation}: guide uses full bed footprint`);
     assert.equal(fixture.guide.tiles.length, 49);
+    assert(fixture.guide.tiles.every(tile => fixture.input.includes(tile)), `${orientation}: guide joins draw input`);
     assert.deepEqual(fixture.guide.tiles.filter(tile => tile.isFootprint).map(tile => tile.cell).sort(),
       fixture.guide.cells.map(cell => [...cell]).sort());
     assert.deepEqual(fixture.actors.filter(record => record.fixturePosition?.startsWith("stair-")).map(record => record.fixturePosition),
@@ -34,8 +36,9 @@ test("Stage 1A fixture exposes real mixed geometry in every camera orientation",
 });
 
 test("Stage 1A fixture carries facts rather than a pre-labelled sorting answer", () => {
-  for (const orientation of MIXED_FIXTURE_ORIENTATIONS) {
-    const fixture = createMixedRenderFixture(orientation);
+  for (const cameraOrientation of MIXED_FIXTURE_ORIENTATIONS) for (const objectOrientation of MIXED_FIXTURE_ORIENTATIONS) {
+    const orientation = `${cameraOrientation}/${objectOrientation}`;
+    const fixture = createMixedRenderFixture(cameraOrientation, objectOrientation);
     assert.deepEqual(fixture.input.map(key).sort(), fixture.reversedInput.map(key).sort());
     assert.notDeepEqual(fixture.input.map(key), fixture.reversedInput.map(key));
     for (const record of fixture.input) {
