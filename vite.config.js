@@ -22,6 +22,7 @@ export default defineConfig({
         soilWaterLab: "soil-water-lab.html",
         sloshLab: "slosh-lab.html",
         verticalStudy: "vertical-study.html",
+        livingTerrainArt: "living-terrain-art.html",
         engine: "engine/index.html",
         engineColony: "engine/colony.html",
         enginePerformance: "engine/colony-performance.html",
