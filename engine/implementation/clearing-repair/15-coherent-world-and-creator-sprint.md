@@ -267,8 +267,13 @@ proof pass with all six record roles and no browser errors. Reviewed screenshots
 cover the joined scene, bed and opposite stair facings. The shipped art bank and
 playable client use one fixed north camera; four-camera compiler cases exercise
 the general traversal math without falsely claiming a rotatable game camera.
-This is still a harness beside production. Continuous movement and live cutover
-remain required before Stage 1B/1C acceptance.
+The production client was cut over at `47552c3e`: drawing and picking consume the
+same compiled record references, graph-sort invalidation is gone from the live
+path, retained terrain batching and viewport culling remain, and a real local
+Colony page renders without browser errors. The proof also exposed and removed a
+content import cycle in which the cat imported the compiled environment that
+compiled the actor catalog containing the cat. Continuous movement and retained
+stream performance remain required before Stage 1B/1C acceptance.
 
 Create one maintained mixed fixture from actual original art: raised platform,
 2x1 bed, rug, both stair railings, animated goblin, short/full grass, cliff, pit,
@@ -388,6 +393,13 @@ do not satisfy this gate. Use the production terrain/cover producers, actual
 authored multipart metadata and the same actor projection used by play.
 
 ## Stage 1C — retained chunks, bounded updates, real play
+
+**Measured cutover boundary.** The correctness cutover is not yet a performance
+acceptance. Its first live measurement compiled 5,774 visible records on every
+`draw()` call and reported 29.2 ms p50 / 65.4 ms p95 in headless software
+Chromium. Keep that intermediate off the feature preview until the retained
+stream owner below removes full static recompilation and the same workload is
+remeasured. Do not conceal this cost with a lower record count or idle scene.
 
 Cut over the production world pass and remove the pair graph, support/grass sort
 exceptions and signature-driven run rebuilding together. Retain visible exposed
