@@ -19,6 +19,29 @@ function createWaterTile() {
     height: WATER_HEIGHT, format: "rgba8unorm", alphaMode: "no-premultiply-alpha", scaleMode: "nearest" }) });
 }
 
+/** One authoritative world-space presentation record for a visible liquid cell. */
+export function waterDrawRecord(cell, { verticalMetres, projection = project, display } = {}) {
+  if (!cell || !Array.isArray(cell.at) || cell.at.length !== 3 || !cell.at.every(Number.isFinite)
+    || !Number.isFinite(cell.level) || !(verticalMetres > 0) || typeof projection !== "function")
+    throw new Error("invalid water draw cell");
+  const [x, y, z] = cell.at;
+  const top = (y - 0.5) * verticalMetres + (cell.level / 7) * verticalMetres;
+  const at = projection(x, top, z);
+  if (!at || !Number.isFinite(at.x) || !Number.isFinite(at.y)) throw new Error("invalid projected water cell");
+  return Object.freeze({
+    id: `water:${x}:${y}:${z}`,
+    part: "surface",
+    role: "water",
+    orderingKind: "compact",
+    ...(display ? { display } : {}),
+    footprint: Object.freeze([{ x, y: top, z }]),
+    screenBounds: Object.freeze({ left: at.x - 16, right: at.x + 16, top: at.y - 8, bottom: at.y + 8 }),
+    storeyBand: y,
+    pickable: false,
+    visible: true,
+  });
+}
+
 /** One disposable owner for requested terrain coverage, logical faces, water and
  * consecutive Pixi mesh runs. The simulation remains authoritative elsewhere.
  */
@@ -118,13 +141,8 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       },
       dispose: sprite => sprite.destroy(),
     });
-    return shown.map(cell => {
-      const [x, y, z] = cell.at, top = (y - 0.5) * frame.verticalMetres + (cell.level / 7) * frame.verticalMetres;
-      const at = project(x, top, z), sprite = waterEntries.get(waterCellKey(cell)).sprite;
-      return { id: `water:${x}:${y}:${z}`, part: "surface", role: "water", orderingKind: "compact",
-        display: sprite, footprint: [{ x, y: top, z }], screenBounds: { left: at.x - 16, right: at.x + 16,
-          top: at.y - 8, bottom: at.y + 8 }, storeyBand: y, pickable: false, visible: true };
-    });
+    return shown.map(cell => waterDrawRecord(cell, { verticalMetres: frame.verticalMetres,
+      display: waterEntries.get(waterCellKey(cell)).sprite }));
   }
 
   return Object.freeze({

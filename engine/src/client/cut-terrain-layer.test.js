@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Texture } from "pixi.js";
-import { createCutTerrainLayer } from "./cut-terrain-layer.js";
+import { createCutTerrainLayer, waterDrawRecord } from "./cut-terrain-layer.js";
 import { createOrderingProjection } from "./ordering-projection.js";
 
 function chunk(key) {
@@ -47,4 +47,18 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   const previousIds = new Set(beforePan.map(record => record.id));
   assert(afterPan.some(record => !previousIds.has(record.id)), "same-demand pan reveals previously culled terrain");
   layer.dispose(); layer.dispose();
+});
+
+test("water draw records preserve the physical surface independently of Pixi sprites", () => {
+  const record = waterDrawRecord({ at: [4, -2, 7], level: 5, liquidVolumeM3: 1 }, {
+    verticalMetres: 0.56,
+    projection: (x, y, z) => ({ x: x * 10 - z * 10, y: x * 4 + z * 4 - y * 8 }),
+  });
+  assert.equal(record.id, "water:4:-2:7");
+  assert.equal(record.role, "water");
+  assert.equal(record.pickable, false);
+  assert.equal(record.footprint[0].x, 4);
+  assert.equal(record.footprint[0].z, 7);
+  assert(Math.abs(record.footprint[0].y - (-2.5 * 0.56 + (5 / 7) * 0.56)) < 1e-12);
+  assert.equal("display" in record, false);
 });
