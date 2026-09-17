@@ -29,6 +29,7 @@ test("Stage 1A fixture exposes real mixed geometry in every camera orientation",
     assert.equal(fixture.water.length, 1);
     assert(fixture.input.every(record => record.footprint.length > 0 && record.footprint.every(finitePoint)), `${orientation}: canonical footprints`);
     assert(fixture.input.every(record => Object.values(record.screenBounds).every(Number.isFinite)), `${orientation}: projected bounds`);
+    assert(fixture.input.every(record => record.renderPass && record.attachment?.kind), `${orientation}: factual draw attachments`);
   }
 });
 

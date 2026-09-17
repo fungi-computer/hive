@@ -1,8 +1,7 @@
 import { createCutTerrainLayer } from "./cut-terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
-import { createIsometricSorter, pickFromOrdered, storeyBandFor, subjectSortFootprint, surfaceSubjectFromOrdered } from "./isometric-sorter.js";
-import { resolveWorldArtPlacement } from "./art-placement.js";
+import { createIsometricSorter, pickFromOrdered, surfaceSubjectFromOrdered } from "./isometric-sorter.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -39,7 +38,14 @@ import {
 } from "@opentui/keymap/extras";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisual, resolveStaticVisualParts } from "./visual-resolver.js";
-import { createMultipartVisualOwner, multipartOverlayZIndex, transformBakedPartPoint } from "./multipart-visual-owner.js";
+import { createMultipartVisualOwner, multipartOverlayZIndex } from "./multipart-visual-owner.js";
+import {
+  multipartSubjectDrawRecords,
+  multipartSubjectPartInputs,
+  multipartSubjectSync,
+  ordinarySubjectDrawRecord,
+  subjectDrawGeometry,
+} from "./subject-draw-records.js";
 import { terrainCameraFocus } from "./camera-focus.js";
 import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
@@ -978,95 +984,50 @@ export function createHiveClient({
       subject.hitArea = texture
         ? visibleHitAreaFor(texture, anchor)
         : undefined;
-      let placement;
-      let resolvedPlacement;
-      if (texture && isStatic && subject.placement) {
-        const resolved = resolveWorldArtPlacement({
-          subjectPlacement: subject.placement,
-          artPlacement: art.placementByTexture?.get(texture),
-          orientation: subject.placement.orientation,
-        });
-        resolvedPlacement = resolved;
-        const shifted = project(subject.x + resolved.offset[0], subject.y, subject.z + resolved.offset[1]);
-        const base = project(subject.x, subject.y, subject.z);
-        placement = { offset: resolved.offset, screenOffset: [
-          shifted.x - base.x,
-          shifted.y - base.y,
-        ] };
-      }
+      const canSort = Boolean(terrainFrame || Number.isFinite(subject.support?.level) || Number.isFinite(subject.surface?.level));
+      const geometry = texture && canSort ? subjectDrawGeometry({
+        subject,
+        binding,
+        texture,
+        anchor,
+        artPlacement: art.placementByTexture?.get(texture),
+        verticalMetres: terrainFrame?.verticalMetres,
+        project,
+        hitArea: subject.hitArea,
+      }) : undefined;
       // Every static visual uses the same owner lifecycle; a one-part visual
       // simply produces one sibling record.
       const multipart = isStatic && staticVisual?.parts?.length ? staticVisual.parts : null;
       entry.multipartRecords = [];
       if (!multipart) entry.multipart?.sync({ entityId: subject.id, parts: [] });
       entry.sprite.texture = multipart ? Texture.EMPTY : texture ?? Texture.EMPTY;
-      const canSort = Boolean(terrainFrame || Number.isFinite(subject.support?.level) || Number.isFinite(subject.surface?.level));
       entry.sprite.visible = canSort && !multipart;
       if (multipart && canSort) {
         entry.multipart ??= createMultipartVisualOwner({ parent: terrainLayer.container, createSprite: () => new Sprite(), emptyTexture: Texture.EMPTY });
         const partRecords = entry.multipart.sync({
-          entityId: subject.id,
-          parts: multipart.map((part) => ({
-            ...part,
-            screenBounds: {
-              left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * part.texture.width,
-              right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * part.texture.width,
-              top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * part.texture.height,
-              bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * part.texture.height,
-            },
-            storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
-          })),
-          anchor,
-          screen: { x: subject.screen.x + (placement?.screenOffset?.[0] ?? 0), y: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) },
-          scale: 1,
-          transform: (point) => transformBakedPartPoint(point, physicalFacing, subject, resolvedPlacement?.offset),
-          pickable: subject.pickable !== false,
-          hitAreaFor: (partTexture) => visibleHitAreaFor(partTexture, anchor),
+          ...multipartSubjectSync({
+            subject,
+            geometry,
+            facing: physicalFacing,
+            pickable: subject.pickable,
+            hitAreaFor: partTexture => visibleHitAreaFor(partTexture, anchor),
+          }),
+          parts: multipartSubjectPartInputs({ parts: multipart, geometry }),
         });
         entry.multipartRecords = partRecords;
-        for (const record of partRecords) sortableSprites.push({
-          ...record,
-          relationPolicy: "multipart-geometry",
-          partRole: record.role,
-          role: "structure",
-          moving: false,
-          contains: (point) => record.hitArea?.contains(point.x - record.display.x, point.y - record.display.y) === true,
-        });
+        sortableSprites.push(...multipartSubjectDrawRecords(partRecords));
       } else if (multipart) entry.multipart?.sync({ entityId: subject.id, parts: [] });
       if (texture && canSort && !multipart) {
-        const sortFootprint = subjectSortFootprint(subject, resolvedPlacement);
-        const footprintXs = new Set(sortFootprint.map(point => point.x));
-        const footprintZs = new Set(sortFootprint.map(point => point.z));
-        const longFootprint = resolvedPlacement?.kind === "stair" ||
-          (resolvedPlacement?.kind === "footprint" && sortFootprint.length > 1 &&
-            (footprintXs.size === 1 || footprintZs.size === 1));
         entry.sprite.anchor.set(anchor.x, anchor.y);
         entry.sprite.scale.set(1);
-        entry.sprite.position.set(placement?.screenOffset?.[0] ?? 0, placement?.screenOffset?.[1] ?? 0);
-        sortableSprites.push({
-          id: subject.id,
-          role: isStatic ? (binding.worldRole === "floor" ? "floor" : "structure") : "actor",
-          part: "body",
-          relationPolicy: isStatic ? "structure" : "actor",
-          orderingKind: longFootprint ? "line" : "compact",
-          pickable: subject.pickable !== false,
+        entry.sprite.position.set(...geometry.screenOffset);
+        sortableSprites.push(ordinarySubjectDrawRecord({
+          subject,
+          binding,
+          geometry,
           display: entry.container,
-          moving: !isStatic,
-          footprint: sortFootprint,
-          storeyBand: storeyBandFor(subject, terrainFrame?.verticalMetres),
-          screenBounds: {
-            left: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) - anchor.x * texture.width,
-            right: subject.screen.x + (placement?.screenOffset?.[0] ?? 0) + (1 - anchor.x) * texture.width,
-            top: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) - anchor.y * texture.height,
-            bottom: subject.screen.y + (placement?.screenOffset?.[1] ?? 0) + (1 - anchor.y) * texture.height,
-          },
-          hitArea: subject.hitArea,
-          contains: (point) => subject.hitArea?.contains(
-            point.x - entry.container.x - entry.sprite.x,
-            point.y - entry.container.y - entry.sprite.y,
-          ) === true,
-          visible: true,
-        });
+          sprite: entry.sprite,
+        }));
       }
       entry.label.text = subject.name;
       entry.label.anchor.set(0.5, 1);
