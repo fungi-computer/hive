@@ -401,6 +401,26 @@ Chromium. Keep that intermediate off the feature preview until the retained
 stream owner below removes full static recompilation and the same workload is
 remeasured. Do not conceal this cost with a lower record count or idle scene.
 
+**September 17 retained-stream checkpoint.** `4b769a7b` installs one disposable
+presentation owner over the same authoritative records. It retains the compiled
+terrain/cover/water/static-structure descriptors and current record references;
+ordinary frames compile and binary-place only the four moving supported actors.
+Unchanged placement refreshes their current picking records without rescanning
+the 5,766 static records or calling the terrain batch owner. Geometry changes are
+explicit revisions, and unsupported dynamic record kinds fail rather than enter
+a second ordering path. The pure full compiler remains the oracle: the retained
+owner matches it across the 4x4 camera/object fixture, reversed enumeration,
+continuous movement, and stair entrance/midpoint/landing positions.
+
+The same 5,774-record browser-local Clearing measured 0.10 ms p50 / 1.5 ms p95
+for retained dynamic insertion over 70 stable samples in software Chromium at
+1440x1000. Startup performed two static rebuilds and two Pixi order applications;
+ordinary animation performed neither, with no browser/request errors. Focused
+proof passes 31/31 and the production build passes. This clears the immediate
+per-frame compiler regression. It does not yet clear all of Stage 1C: a terrain,
+cover, water, cut, demand or static-structure revision still rebuilds the complete
+visible static stream rather than only affected chunks.
+
 Cut over the production world pass and remove the pair graph, support/grass sort
 exceptions and signature-driven run rebuilding together. Retain visible exposed
 terrain and cover buffers by chunk/material/revision. Batch only consecutive
