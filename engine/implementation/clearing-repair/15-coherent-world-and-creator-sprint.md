@@ -243,6 +243,20 @@ Snow, ash and moss are design checks, not mandatory new gameplay in this sprint.
 
 ## Stage 1A — one drawing contract and one measured fixture
 
+**September 17 implementation checkpoint.** The mixed factual fixture, shared
+subject-record producer and pure `voxel-draw-stream.js` compiler now exist beside
+the live sorter. The compiler walks fixed-camera XYZ contacts, waits for every
+contact of an extended footprint, retains a surface-root's declared point while
+waiting for its named supports, treats multipart supports as far-boundary/open
+surface/positioned occupants/near-boundary spans, and appends transparent records
+after opaque. Focused integration proof passes 23/23 across the 4×4 camera/object
+orientation matrix, reversed input, empty/occupied stairs, complete bed contacts,
+cover supports, water and build guides. A real projected cross-layer case proves
+a lower foreground actor draws after farther raised terrain; it rejected the
+earlier layer-first prototype. Production still uses the old sorter. Rendered
+image, shared reverse-stream picking, continuous movement and live cutover remain
+required before Stage 1B/1C acceptance.
+
 Create one maintained mixed fixture from actual original art: raised platform,
 2x1 bed, rug, both stair railings, animated goblin, short/full grass, cliff, pit,
 cut cap, water and blue build guide. Use the same asset/runtime producers as play.
