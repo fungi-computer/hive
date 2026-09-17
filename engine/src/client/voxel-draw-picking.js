@@ -20,7 +20,7 @@ export function pickVoxelDrawRecord(records, point, contains = (record, value) =
   if (typeof contains !== "function") throw new Error("voxel draw picking requires a hit predicate");
   for (const record of frontToBackVoxelDrawRecords(records)) {
     if (record.visible === false || !contains(record, point)) continue;
-    return Object.freeze({ record, target: record.pickable === false ? null : record,
+    return Object.freeze({ record, target: record.pickable === false ? null : record.target ?? record.id,
       occluded: record.pickable === false });
   }
   return Object.freeze({ record: null, target: null, occluded: false });

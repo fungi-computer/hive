@@ -40,7 +40,7 @@ test("injected fixture traversal reaches each record class through one reverse s
         visited.push(voxelDrawRecordKey(record));
         return voxelDrawRecordKey(record) === voxelDrawRecordKey(target);
       });
-      assert.equal(voxelDrawRecordKey(selected.target), voxelDrawRecordKey(target),
+      assert.equal(selected.target, target.target ?? target.id,
         `${camera}/${object}: ${voxelDrawRecordKey(target)}`);
       const targetIndex = selectable.findIndex(record => voxelDrawRecordKey(record) === voxelDrawRecordKey(target));
       assert.deepEqual(visited, selectable.slice(targetIndex).reverse()
@@ -67,7 +67,7 @@ test("a lower near actor wins over overlapping raised far terrain", () => {
     verticalMetres: fixture.verticalMetres,
   });
   assert.deepEqual(records, [terrain, actor], "physical traversal paints far raised terrain first");
-  assert.equal(pickVoxelDrawRecord(records, { x: 0, y: 0 }, () => true).target, actor,
+  assert.equal(pickVoxelDrawRecord(records, { x: 0, y: 0 }, () => true).target, actor.id,
     "reverse of that same stream picks the lower near actor first");
 });
 
@@ -77,7 +77,7 @@ test("default picking requires authored hit geometry and never falls back to spr
   assert.deepEqual(pickVoxelDrawRecord([record], { x: 0, y: 0 }),
     { record: null, target: null, occluded: false });
   const authored = Object.freeze({ ...record, contains: point => point.x === 0 && point.y === 0 });
-  assert.equal(pickVoxelDrawRecord([authored], { x: 0, y: 0 }).target, authored);
+  assert.equal(pickVoxelDrawRecord([authored], { x: 0, y: 0 }).target, authored.id);
 });
 
 test("a visible non-pickable silhouette occludes selectable records behind it", () => {
@@ -87,4 +87,11 @@ test("a visible non-pickable silhouette occludes selectable records behind it", 
     contains: () => true });
   const result = pickVoxelDrawRecord([behind, wall], { x: 4, y: 7 });
   assert.deepEqual(result, { record: wall, target: null, occluded: true });
+});
+
+test("picking returns the established logical target identity", () => {
+  const part = Object.freeze({ id: "stair:part", target: "stair:owner", part: "rail", visible: true,
+    pickable: true, contains: () => true });
+  assert.deepEqual(pickVoxelDrawRecord([part], { x: 1, y: 2 }),
+    { record: part, target: "stair:owner", occluded: false });
 });
