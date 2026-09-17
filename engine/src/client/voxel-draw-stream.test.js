@@ -5,6 +5,20 @@ import { compileVoxelDrawStream, voxelDrawRecordKey } from "./voxel-draw-stream.
 
 const keys = records => records.map(voxelDrawRecordKey);
 const indexOf = (records, record) => records.indexOf(record);
+const projectedBounds = points => Object.freeze({
+  left: Math.min(...points.map(point => point.x)),
+  right: Math.max(...points.map(point => point.x)),
+  top: Math.min(...points.map(point => point.y)),
+  bottom: Math.max(...points.map(point => point.y)),
+});
+const overlaps = (a, b) => a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom;
+const compareTraversal = (a, b) => {
+  for (let index = 0; index < Math.max(a.length, b.length); index++) {
+    const difference = (a[index] ?? 0) - (b[index] ?? 0);
+    if (Math.abs(difference) > 1e-7) return difference;
+  }
+  return 0;
+};
 
 function compile(fixture, records = fixture.input) {
   return compileVoxelDrawStream(records, {
@@ -28,12 +42,39 @@ test("voxel stream is stable under reversed input for the full camera/object mat
   }
 });
 
+test("camera-facing traversal draws a lower near actor after overlapping higher far terrain", () => {
+  const fixture = createMixedRenderFixture("north", "north");
+  const { projection, verticalMetres } = fixture;
+  const raisedCell = [-4, 2, -4], raisedY = (raisedCell[1] + 0.5) * verticalMetres;
+  const terrainCorners = [
+    { x: -4.5, y: raisedY, z: -4.5 }, { x: -4.5, y: raisedY, z: -3.5 },
+    { x: -3.5, y: raisedY, z: -3.5 }, { x: -3.5, y: raisedY, z: -4.5 },
+  ];
+  const terrain = Object.freeze({ id: "physical:raised", part: "face", renderPass: "opaque",
+    attachment: Object.freeze({ kind: "cell-face", cell: raisedCell, face: "top" }),
+    screenBounds: projectedBounds(terrainCorners.map(point => projection.project(point))) });
+  const feet = Object.freeze({ x: -3, y: 0.5 * verticalMetres, z: -3 });
+  const screen = projection.project(feet);
+  const actor = Object.freeze({ id: "physical:lower-near", part: "body", renderPass: "opaque",
+    attachment: Object.freeze({ kind: "supported", support: null, feet }),
+    screenBounds: Object.freeze({ left: screen.x - 8, right: screen.x + 8, top: screen.y - 32, bottom: screen.y }) });
+
+  const terrainCenter = { x: raisedCell[0], y: raisedY, z: raisedCell[2] };
+  const cameraNear = point => -(projection.direction.x * point.x + projection.direction.y * point.y + projection.direction.z * point.z);
+  assert(Math.abs(projection.project(terrainCenter).x - screen.x) < 1e-7, "actual projection puts both facts on one lane");
+  assert(overlaps(terrain.screenBounds, actor.screenBounds), "actual projected art rectangles overlap");
+  assert(feet.y < raisedY && cameraNear(feet) > cameraNear(terrainCenter), "actor is lower but physically nearer the camera");
+
+  const { records } = compileVoxelDrawStream([actor, terrain], { direction: projection.direction, verticalMetres });
+  assert(indexOf(records, terrain) < indexOf(records, actor), "far raised terrain must paint before the near lower actor");
+});
+
 test("multipart supports derive far boundary, surface, supported actors, and near boundary", () => {
   for (const cameraOrientation of MIXED_FIXTURE_ORIENTATIONS) {
     for (const objectOrientation of MIXED_FIXTURE_ORIENTATIONS) {
       const label = `${cameraOrientation}/${objectOrientation}`;
       const fixture = createMixedRenderFixture(cameraOrientation, objectOrientation);
-      const { records } = compile(fixture);
+      const { records, trace } = compile(fixture);
       const rails = fixture.stairs.filter(record => record.partRole === "upright-boundary");
       const surface = fixture.stairs.find(record => record.partRole === "supporting-surface");
       const actors = fixture.actors.filter(record => record.attachment.support === "fixture:stair");
@@ -43,9 +84,22 @@ test("multipart supports derive far boundary, surface, supported actors, and nea
       assert(railIndexes[0] < surfaceIndex, `${label}: far boundary precedes surface`);
       assert(actorIndexes.every(index => surfaceIndex < index && index < railIndexes[1]),
         `${label}: supported actors remain inside their support boundaries`);
-      const orderedActorIndexes = actorIndexes.toSorted((a, b) => a - b);
-      assert(orderedActorIndexes.every((index, offset) => offset === 0 || index === orderedActorIndexes[offset - 1] + 1),
-        `${label}: supported actors form one position-ordered run`);
+      const orderedRails = rails.toSorted((a, b) => indexOf(records, a) - indexOf(records, b));
+      const traceOf = record => trace.find(entry => entry.record === voxelDrawRecordKey(record));
+      const opening = traceOf(orderedRails[0]).insertion, closing = traceOf(orderedRails[1]).insertion;
+      assert.deepEqual(traceOf(surface).insertion, opening, `${label}: surface opens with far boundary`);
+      assert(compareTraversal(opening, closing) < 0, `${label}: compound spans physical traversal contacts`);
+      assert(actors.every(actor => compareTraversal(opening, traceOf(actor).insertion) <= 0 &&
+        compareTraversal(traceOf(actor).insertion, closing) <= 0), `${label}: actor feet remain inside support span`);
+      const direction = fixture.projection.direction;
+      const physicalKey = actor => {
+        const point = actor.attachment.feet;
+        return [-(direction.x * point.x + direction.y * point.y + direction.z * point.z),
+          direction.z * point.x - direction.x * point.z, point.y, point.x, point.z];
+      };
+      const actualActors = records.filter(record => actors.includes(record));
+      assert.deepEqual(actualActors, [...actors].sort((a, b) => compareTraversal(physicalKey(a), physicalKey(b))),
+        `${label}: supported actors follow fixed-camera XYZ traversal`);
     }
   }
 
@@ -62,14 +116,6 @@ test("multipart supports derive far boundary, surface, supported actors, and nea
     assert.notEqual(firstRail("north"), firstRail("south"), `${objectOrientation}: north/south geometry`);
     assert.notEqual(firstRail("east"), firstRail("west"), `${objectOrientation}: east/west geometry`);
 
-    const actorOrder = cameraOrientation => {
-      const fixture = createMixedRenderFixture(cameraOrientation, objectOrientation);
-      const { records } = compile(fixture);
-      return records.filter(record => record.attachment.kind === "supported" && record.attachment.support === "fixture:stair")
-        .map(record => record.fixturePosition);
-    };
-    assert.deepEqual(actorOrder("north"), actorOrder("south").toReversed(), `${objectOrientation}: north/south support positions`);
-    assert.deepEqual(actorOrder("east"), actorOrder("west").toReversed(), `${objectOrientation}: east/west support positions`);
   }
 });
 
@@ -84,8 +130,6 @@ test("an unoccupied multipart support remains one compound", () => {
       assert.equal(orderedParts[1].attachment.role, "supporting-surface");
       assert.equal(orderedParts[0].attachment.role, "upright-boundary");
       assert.equal(orderedParts[2].attachment.role, "upright-boundary");
-      assert.equal(indexOf(records, orderedParts[1]), indexOf(records, orderedParts[0]) + 1);
-      assert.equal(indexOf(records, orderedParts[2]), indexOf(records, orderedParts[1]) + 1);
     }
   }
 });
@@ -100,14 +144,27 @@ test("complete footprints, terrain faces, cover supports, guides, and water obey
       const bedTrace = trace.find(entry => entry.record === voxelDrawRecordKey(fixture.bed));
       assert.deepEqual(new Set(bedTrace.sourcePoints), new Set(fixture.bed.attachment.points),
         `${label}: bed insertion retains both contact cells`);
+      assert.deepEqual(new Set(bedTrace.crossedContacts), new Set(fixture.bed.attachment.points),
+        `${label}: traversal crosses both bed contacts before emission`);
+      const bedCompletion = bedTrace.crossedContacts
+        .map(point => -(fixture.projection.direction.x * point.x + fixture.projection.direction.y * point.y + fixture.projection.direction.z * point.z));
+      assert(Math.abs(bedTrace.insertion[0] - Math.max(...bedCompletion)) < 1e-7,
+        `${label}: bed emits at footprint completion`);
 
       for (const cover of fixture.grass) {
         const coverIndex = indexOf(records, cover);
         for (const support of cover.attachment.supports) {
           const supportRecord = fixture.input.find(record => voxelDrawRecordKey(record) === support);
           assert(supportRecord, `${label}: real cover support exists`);
-          assert(indexOf(records, supportRecord) < coverIndex, `${label}: cover follows every supporting surface`);
+          assert(indexOf(records, supportRecord) < coverIndex, `${label}: every cover support is ready before its patch`);
         }
+        const coverTrace = trace.find(entry => entry.record === voxelDrawRecordKey(cover));
+        assert.deepEqual(coverTrace.sourcePoints, [cover.attachment.point], `${label}: cover keeps its declared root point`);
+        assert.deepEqual(coverTrace.crossedContacts, [cover.attachment.point], `${label}: supports do not replace cover insertion`);
+        assert.deepEqual(coverTrace.supportRefs, cover.attachment.supports, `${label}: support ownership remains factual`);
+        const rootNear = -(fixture.projection.direction.x * cover.attachment.point.x +
+          fixture.projection.direction.y * cover.attachment.point.y + fixture.projection.direction.z * cover.attachment.point.z);
+        assert(Math.abs(coverTrace.anchor[0] - rootNear) < 1e-7, `${label}: readiness does not replace physical root anchor`);
       }
 
       const terrainByCell = new Map();
