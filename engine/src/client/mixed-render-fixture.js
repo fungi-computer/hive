@@ -1,13 +1,13 @@
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { building } from "../../../src/art/home.js";
-import { resolveWorldArtPlacement } from "./art-placement.js";
 import { waterDrawRecord } from "./cut-terrain-layer.js";
 import { createOrderingProjection } from "./ordering-projection.js";
-import { subjectSortFootprint } from "./isometric-sorter.js";
 import { transformBakedPartPoint, transformedPartGeometry } from "./multipart-visual-owner.js";
+import { multipartSubjectDrawRecords, ordinarySubjectDrawRecord, subjectDrawGeometry } from "./subject-draw-records.js";
 import { placementFootprintCells, placementGuideTiles } from "./placement-preview.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { materialCoverage, projectedBounds, terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
+import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 
 export const MIXED_FIXTURE_ORIENTATIONS = Object.freeze(["north", "east", "south", "west"]);
 const ORIENTATION_TURNS = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
@@ -63,9 +63,12 @@ function terrainAppearance() {
 
 function actorRecord(id, point, projection, fixturePosition, { visual = "goblin.worker", support = null } = {}) {
   const at = projection.project(point);
-  return Object.freeze({ id, part: "body", role: "actor", relationPolicy: "actor", orderingKind: "compact",
-    footprint: Object.freeze([Object.freeze({ ...point })]), screenBounds: Object.freeze({ left: at.x - 8, right: at.x + 8, top: at.y - 32, bottom: at.y }),
-    storeyBand: Math.floor(point.y / VERTICAL_METRES), moving: true, pickable: true, visible: true, fixturePosition, visual, support });
+  const subject = { id, ...point, screen: at, support };
+  const display = { x: at.x, y: at.y }, sprite = { x: 0, y: 0 };
+  const geometry = subjectDrawGeometry({ subject, binding: DEFAULT_VISUAL_BINDINGS[visual], texture: { width: 16, height: 32 },
+    anchor: { x: 0.5, y: 1 }, verticalMetres: VERTICAL_METRES });
+  return Object.freeze({ ...ordinarySubjectDrawRecord({ subject, binding: DEFAULT_VISUAL_BINDINGS[visual], geometry, display, sprite }),
+    fixturePosition, visual, support });
 }
 
 function structureRecord(id, footprint, projection, extra = {}) {
@@ -78,9 +81,9 @@ function stairRecords(orientation, projection) {
   const facing = ORIENTATION_TURNS[orientation], origin = { x: -1, y: VERTICAL_METRES / 2, z: 1 };
   const source = building("stair", "finished", facing);
   try {
-    return source.userData.staticParts.map(part => structureRecord("fixture:stair", transformedPartGeometry(part,
+    return multipartSubjectDrawRecords(source.userData.staticParts.map(part => structureRecord("fixture:stair", transformedPartGeometry(part,
       point => transformBakedPartPoint(point, facing, origin)), projection,
-    { part: part.id, partRole: part.role, relationPolicy: "multipart-geometry", target: "fixture:stair" }));
+    { part: part.id, role: part.role, target: "fixture:stair" })));
   } finally {
     source.traverse(object => object.geometry?.dispose());
   }
@@ -90,14 +93,19 @@ function bedRecord(orientation, projection) {
   const facing = ORIENTATION_TURNS[orientation], origin = { x: 2, y: 1.5 * VERTICAL_METRES, z: -1 };
   const source = building("bed", "finished", facing);
   try {
-    const placement = resolveWorldArtPlacement({
-      // This is the same two-cell footprint compiled by TimberBedActor.  The
+    const binding = DEFAULT_VISUAL_BINDINGS["colony.bed.finished"];
+    const screen = projection.project(origin);
+    const subject = { id: "fixture:bed", ...origin, screen,
+      // This is the same two-cell footprint compiled by TimberBedActor. The
       // authored bake datum below must agree or resolution rejects the fixture.
-      subjectPlacement: { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation },
-      artPlacement: source.userData.staticPlacement, orientation,
+      placement: { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation } };
+    const geometry = subjectDrawGeometry({
+      subject, binding, texture: { width: 32, height: 32 }, anchor: { x: 0.5, y: 1 },
+      artPlacement: source.userData.staticPlacement, verticalMetres: VERTICAL_METRES,
+      project: (x, y, z) => projection.project({ x, y, z }),
     });
-    return structureRecord("fixture:bed", subjectSortFootprint(origin, placement), projection,
-      { part: "body", relationPolicy: "structure", placement });
+    return Object.freeze({ ...ordinarySubjectDrawRecord({ subject, binding, geometry, display: { x: screen.x, y: screen.y }, sprite: { x: geometry.screenOffset[0], y: geometry.screenOffset[1] } }),
+      placement: geometry.resolvedPlacement });
   } finally {
     source.traverse(object => object.geometry?.dispose());
   }
