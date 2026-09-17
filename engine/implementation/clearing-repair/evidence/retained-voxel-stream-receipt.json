@@ -1,0 +1,28 @@
+{
+  "url": "http://127.0.0.1:5199/engine/colony.html?game=colony&runtime=local&diagnostics=draw",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "recordCount": 5774,
+  "counts": {
+    "compile": 72,
+    "staticRebuild": 2,
+    "dynamicInsert": 280,
+    "applyOrder": 2
+  },
+  "totalsMs": {
+    "compileMs": 70.30000007152557,
+    "staticRebuildMs": 73.00000011920929,
+    "dynamicInsertMs": 15.600000262260437,
+    "applyOrderMs": 36.299999952316284
+  },
+  "dynamicInsert": {
+    "samples": 70,
+    "p50Ms": 0.10000002384185791,
+    "p95Ms": 1.5,
+    "maxMs": 6
+  },
+  "errors": [],
+  "badResponses": []
+}

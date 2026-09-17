@@ -56,7 +56,9 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
   let appearance, terrainArt;
   const batches = createTerrainBatchMeshes({ parent: container });
   const waterTexture = createWaterSurfaceTexture();
-  let waterEntries = new Map(), frame, epoch, level, records = [], disposed = false;
+  let waterEntries = new Map(), waterRecordEntries = new Map(), waterRecords = [];
+  let frame, epoch, level, records = [], disposed = false, recordRevision = 0;
+  let retainedRecords = Object.freeze([]);
   let demandIdentity, coverageIdentity, observedService, serviceTurn = 0, servedTurn = -1;
   let retainedViewport;
 
@@ -67,11 +69,22 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
     coverageIdentity = undefined;
   }
 
+  function publishRecords(nextTerrain = records, nextWater = waterRecords) {
+    records = nextTerrain;
+    waterRecords = nextWater;
+    retainedRecords = Object.freeze([...records, ...waterRecords]);
+    recordRevision++;
+  }
+
   function update(frameValue, nextEpoch) {
     if (disposed) throw new Error("cut terrain layer is disposed");
     frame = frameValue;
     epoch = nextEpoch;
-    if (!frameValue) { records = []; batches.update([]); container.visible = false; return; }
+    if (!frameValue) {
+      waterRecordEntries.clear();
+      publishRecords([], []);
+      batches.update([]); container.visible = false; return;
+    }
     cache.updateFrame({ epoch: nextEpoch, terrain: frameValue });
     serviceTurn++;
   }
@@ -87,7 +100,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
     const planned = visibleTerrainChunks({ bounds: frame.baseline.bounds, level,
       verticalMetres: frame.baseline.verticalMetres, projection, viewport });
     if (planned.kind === "view-budget") {
-      records = [];
+      publishRecords([], []);
       onCoverage?.({ kind: "view-budget", limit: planned.limit });
       return;
     }
@@ -125,15 +138,16 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       bounds: snapshot.baseline.bounds, verticalMetres: snapshot.baseline.verticalMetres,
       variantSeed: snapshot.baseline.variantSeed,
       epoch: snapshot.epoch, terrainRevision: snapshot.terrainRevision });
-    records = terrainFaceRecords(coverage, { level, projection, viewport: retainedViewport,
+    const nextRecords = terrainFaceRecords(coverage, { level, projection, viewport: retainedViewport,
       appearance, generatedTops });
-    const availableSupports = new Set(records.map(record => `${record.id}\u0000${record.part ?? ""}`));
-    records.push(...terrainCoverRecords(frame.surfaces, { level, projection, viewport: retainedViewport, appearance,
+    const availableSupports = new Set(nextRecords.map(record => `${record.id}\u0000${record.part ?? ""}`));
+    nextRecords.push(...terrainCoverRecords(frame.surfaces, { level, projection, viewport: retainedViewport, appearance,
       verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed, availableSupports }));
+    publishRecords(nextRecords, waterRecords);
   }
 
-  function waterRecords() {
-    if (!frame) return [];
+  function refreshWaterRecords() {
+    if (!frame) return;
     const shown = frame.water.filter(cell => cell.liquidVolumeM3 > 0 && cell.at[1] <= level);
     waterEntries = reconcileWaterSprites(waterEntries, shown, {
       key: waterCellKey,
@@ -144,8 +158,20 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       },
       dispose: sprite => sprite.destroy(),
     });
-    return shown.map(cell => waterDrawRecord(cell, { verticalMetres: frame.verticalMetres,
-      display: waterEntries.get(waterCellKey(cell)).sprite }));
+    const nextEntries = new Map(), nextRecords = shown.map(cell => {
+      const key = waterCellKey(cell), display = waterEntries.get(key).sprite;
+      const signature = `${cell.at.join(",")}:${cell.level}:${cell.liquidVolumeM3}:${frame.verticalMetres}`;
+      const previous = waterRecordEntries.get(key);
+      const record = previous?.signature === signature && previous.record.display === display
+        ? previous.record
+        : waterDrawRecord(cell, { verticalMetres: frame.verticalMetres, display });
+      nextEntries.set(key, { signature, record });
+      return record;
+    });
+    const unchanged = nextRecords.length === waterRecords.length
+      && nextRecords.every((record, index) => record === waterRecords[index]);
+    waterRecordEntries = nextEntries;
+    if (!unchanged) publishRecords(records, nextRecords);
   }
 
   return Object.freeze({
@@ -153,14 +179,18 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
     installArt,
     update,
     position,
-    get sortableItems() { return [...records, ...waterRecords()]; },
+    get sortableItems() { refreshWaterRecords(); return retainedRecords; },
+    get retainedRecords() {
+      refreshWaterRecords();
+      return Object.freeze({ revision: recordRevision, records: retainedRecords });
+    },
     applyOrder: ordered => batches.update(ordered),
     get coverage() { return cache.snapshot(); },
     dispose() {
       if (disposed) return;
       disposed = true; cache.dispose(); batches.dispose(); terrainArt?.dispose();
       for (const entry of waterEntries.values()) entry.sprite.destroy();
-      waterEntries.clear(); waterTexture.destroy(true); records = [];
+      waterEntries.clear(); waterRecordEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = [];
     },
   });
 }
