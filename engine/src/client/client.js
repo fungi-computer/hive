@@ -2,7 +2,8 @@ import { createCutTerrainLayer } from "./cut-terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
 import { surfaceSubjectFromOrdered } from "./isometric-sorter.js";
-import { compileVoxelDrawStream } from "./voxel-draw-stream.js";
+import { voxelDrawRecordKey } from "./voxel-draw-stream.js";
+import { createVoxelDrawStreamOwner } from "./voxel-draw-stream-owner.js";
 import { pickVoxelDrawRecord } from "./voxel-draw-picking.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
@@ -283,6 +284,8 @@ export function createHiveClient({
   const orderingProjection = createOrderingProjection();
   const terrainLayer = createCutTerrainLayer({ runtime, projection: orderingProjection, onCoverage: () => draw() });
   let orderedSprites = [];
+  let drawStreamOwner;
+  let drawStreamScale;
   let terrainFrame;
   let markSurfaceSource;
   let markSurfaces;
@@ -354,6 +357,7 @@ export function createHiveClient({
     terrainProjection.update(undefined, state.view, undefined);
     terrainPicker.reset();
     terrainLayer.update(undefined, undefined);
+    drawStreamOwner?.reset();
     state.view = createWorldView(worldView);
     state.dragging = null;
     intendedDestinations.clear();
@@ -1040,17 +1044,33 @@ export function createHiveClient({
       entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
-    const drawRecords = [...terrainLayer.sortableItems, ...sortableSprites];
-    if (drawRecords.length) {
+    const retainedTerrain = terrainLayer.retainedRecords;
+    const staticSprites = sortableSprites.filter(record => record.moving !== true);
+    const dynamicSprites = sortableSprites.filter(record => record.moving === true);
+    if (retainedTerrain.records.length || sortableSprites.length) {
       const verticalMetres = displayedTerrain?.verticalMetres;
       if (!Number.isFinite(verticalMetres) || verticalMetres <= 0)
         throw new Error("voxel draw requires displayed terrain scale");
-      orderedSprites = compileVoxelDrawStream(drawRecords, {
-        direction: orderingProjection.direction,
-        verticalMetres,
-      }).records;
-    } else orderedSprites = [];
-    terrainLayer.applyOrder(orderedSprites);
+      if (!drawStreamOwner || drawStreamScale !== verticalMetres) {
+        drawStreamScale = verticalMetres;
+        drawStreamOwner = createVoxelDrawStreamOwner({ direction: orderingProjection.direction, verticalMetres });
+      }
+      const structureRevision = staticSprites.map(record =>
+        `${voxelDrawRecordKey(record)}:${record.renderPass}:${JSON.stringify(record.attachment)}`).join("|");
+      const stream = drawStreamOwner.update({
+        revision: `${retainedTerrain.revision}:${structureRevision}`,
+        staticRecords: () => [...retainedTerrain.records, ...staticSprites],
+        currentStaticRecords: staticSprites,
+        dynamicRecords: dynamicSprites,
+      });
+      orderedSprites = stream.records;
+      if (stream.applyOrderRequired)
+        drawStreamOwner.measureApplyOrder(() => terrainLayer.applyOrder(orderedSprites));
+    } else {
+      orderedSprites = [];
+      drawStreamOwner?.reset();
+      terrainLayer.applyOrder(orderedSprites);
+    }
     // The entity adornment is one shared overlay owner. It follows the
     // foremost sorted part without becoming another physical/sort record.
     for (const entry of actorCache.values()) {
@@ -1849,5 +1869,9 @@ export function createHiveClient({
       });
     },
     send: emit,
+    diagnostics() {
+      return Object.freeze({ voxelDraw: drawStreamOwner?.metrics() ?? null,
+        visibleDrawRecords: orderedSprites.length });
+    },
   };
 }

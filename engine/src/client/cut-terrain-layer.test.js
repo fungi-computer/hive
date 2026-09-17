@@ -25,7 +25,8 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   const terrain = { revision: 1, placementRevision: 1, verticalMetres: 0.54,
     baseline: { protocolVersion: 2, bounds: { minX: 0, maxX: 8, minY: 0, maxY: 8, minZ: 0, maxZ: 8 },
       verticalMetres: 0.54, materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] },
-    surfaces: [{ cell: [4, 0, 4], material: 1, generatedTop: 0 }], structureSurfaces: [], water: [] };
+    surfaces: [{ cell: [4, 0, 4], material: 1, generatedTop: 0 }], structureSurfaces: [],
+    water: [{ at: [4, 0, 4], level: 4, liquidVolumeM3: 0.5 }] };
   layer.update(terrain, 2);
   const camera = { x: 13, y: 17, zoom: 2 }, view = { cutaway: true, level: 0, range: { min: 0, max: 7 } };
   layer.position(camera, view, { width: 640, height: 400 });
@@ -34,6 +35,12 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   assert.equal(reads, 1);
   assert.equal(layer.coverage.viewComplete, true);
   assert(layer.sortableItems.some(record => record.id.startsWith("terrain:")));
+  const retained = layer.retainedRecords;
+  const water = retained.records.find(record => record.id === "water:4:0:4");
+  assert(water, "water joins the retained physical record stream");
+  assert.equal(layer.retainedRecords.revision, retained.revision);
+  assert.equal(layer.retainedRecords.records.find(record => record.id === "water:4:0:4"), water,
+    "unchanged water retains its record identity");
   layer.applyOrder(layer.sortableItems);
   assert.equal(layer.container.x, 13);
   assert.equal(layer.container.y, 17);
@@ -41,6 +48,7 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   const beforePan = layer.sortableItems;
   layer.position({ ...camera, x: camera.x - 8 }, view, { width: 640, height: 400 });
   assert.equal(layer.sortableItems[0], beforePan[0], "small pans retain prepared face records");
+  assert.equal(layer.retainedRecords.revision, retained.revision, "small pans retain the complete record revision");
   layer.position({ ...camera, x: -250 }, view, { width: 640, height: 400 });
   const afterPan = layer.sortableItems;
   assert.equal(reads, 1, "panning inside resident chunk demand does not fetch terrain again");

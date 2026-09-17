@@ -71,7 +71,9 @@ function mount(mode, config) {
       connectLocal: connectBrowserRuntime,
       connectRemote: connectRemoteRuntime,
     });
-    createHiveClient({ root, mode, runtime: connection.runtime, persistence: connection.persistence, ...config });
+    const client = createHiveClient({ root, mode, runtime: connection.runtime, persistence: connection.persistence, ...config });
+    if (new URLSearchParams(location.search).get("diagnostics") === "draw")
+      window.__HIVE_DRAW_DIAGNOSTICS = () => client.diagnostics();
   } catch (error) {
     root.innerHTML = `<div class="hive-hub"><div class="hive-kicker">HIVE / CONNECTION</div><h1>World unavailable</h1><p>${error.message}</p><p>Use <code>?runtime=local</code> for a browser-local demo.</p></div>`;
   }
