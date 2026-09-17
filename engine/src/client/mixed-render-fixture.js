@@ -61,11 +61,11 @@ function terrainAppearance() {
   } });
 }
 
-function actorRecord(id, point, projection, probe) {
+function actorRecord(id, point, projection, probe, visual = "goblin.worker") {
   const at = projection.project(point);
   return Object.freeze({ id, part: "body", role: "actor", relationPolicy: "actor", orderingKind: "compact",
     footprint: Object.freeze([Object.freeze({ ...point })]), screenBounds: Object.freeze({ left: at.x - 8, right: at.x + 8, top: at.y - 32, bottom: at.y }),
-    storeyBand: Math.floor(point.y / VERTICAL_METRES), moving: true, pickable: true, visible: true, probe });
+    storeyBand: Math.floor(point.y / VERTICAL_METRES), moving: true, pickable: true, visible: true, probe, visual });
 }
 
 function structureRecord(id, footprint, projection, extra = {}) {
@@ -119,23 +119,35 @@ export function createMixedRenderFixture(orientation = "north") {
   const projection = projectionFor(orientation), appearance = terrainAppearance();
   const coverage = materialCoverage(terrainSnapshot());
   const terrain = terrainFaceRecords(coverage, { level: 1, projection, appearance });
-  const grassActors = [[1,0,1,"full"],[2,0,1,"full"],[1,0,2,"full"],[2,0,2,"full"],[3,0,2,"short"]].map(([x,y,z,height], index) =>
-    ({ id: `grass:${index}`, cell: [x,y,z], material: x === 2 ? 2 : 1, cover: { kind: "grass", condition: "green", height } }));
-  const grass = terrainCoverRecords(grassActors, { level: 1, projection, appearance, verticalMetres: VERTICAL_METRES, variantSeed: 41 });
+  // This names the current production seam honestly. Stage 2 migrates these
+  // legacy surface cover inputs to ordinary grass actors without changing the
+  // dual-grid visual records exercised here.
+  const grassSurfaces = [[1,0,1,"full"],[2,0,1,"full"],[1,0,2,"full"],[2,0,2,"full"],[3,0,2,"short"]].map(([x,y,z,height]) =>
+    ({ cell: [x,y,z], material: x === 2 ? 2 : 1, cover: { kind: "grass", condition: "green", height } }));
+  const grass = terrainCoverRecords(grassSurfaces, { level: 1, projection, appearance, verticalMetres: VERTICAL_METRES, variantSeed: 41 });
   const stairs = stairRecords(orientation, projection), bed = bedRecord(orientation, projection);
   const stairSurface = stairs.find(record => record.part === "surface");
   const [entrance, landing] = [stairSurface.footprint[0], stairSurface.footprint[2]];
   const middle = { x: (entrance.x + landing.x) / 2, y: (entrance.y + landing.y) / 2, z: (entrance.z + landing.z) / 2 };
+  const [bedStart, bedEnd] = bed.footprint;
+  const bedDx = bedEnd.x - bedStart.x, bedDz = bedEnd.z - bedStart.z;
+  const bedLength = Math.hypot(bedDx, bedDz) || 1;
+  const along = { x: bedDx / bedLength, z: bedDz / bedLength };
+  const across = { x: -along.z, z: along.x };
+  const bedMiddle = { x: (bedStart.x + bedEnd.x) / 2, y: bedStart.y, z: (bedStart.z + bedEnd.z) / 2 };
   const actors = [
     actorRecord("fixture:goblin", { x: 1, y: VERTICAL_METRES / 2, z: -1 }, projection, "ground"),
     actorRecord("probe:stair-entrance", entrance, projection, "stair-entrance"),
     actorRecord("probe:stair-middle", middle, projection, "stair-middle"),
     actorRecord("probe:stair-landing", landing, projection, "stair-landing"),
-    ...bed.footprint.map((point, index) => actorRecord(`probe:bed-side-${index}`, { ...point, x: point.x + (index ? 0.35 : -0.35) }, projection, `bed-side-${index}`)),
+    actorRecord("probe:bed-end-start", { x: bedStart.x - along.x * 0.6, y: bedStart.y, z: bedStart.z - along.z * 0.6 }, projection, "bed-end-start"),
+    actorRecord("probe:bed-end-finish", { x: bedEnd.x + along.x * 0.6, y: bedEnd.y, z: bedEnd.z + along.z * 0.6 }, projection, "bed-end-finish"),
+    actorRecord("probe:bed-side-left", { x: bedMiddle.x + across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z + across.z * 0.6 }, projection, "bed-side-left"),
+    actorRecord("probe:bed-side-right", { x: bedMiddle.x - across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z - across.z * 0.6 }, projection, "bed-side-right"),
   ];
   const water = [waterDrawRecord({ at: [1, -1, 0], level: 7, liquidVolumeM3: 1 }, { projection: (x, y, z) => projection.project({ x, y, z }), verticalMetres: VERTICAL_METRES })];
   const input = Object.freeze([...terrain, ...grass, ...stairs, bed, ...actors, ...water]);
-  return Object.freeze({ orientation, projection, verticalMetres: VERTICAL_METRES, terrain, grassActors: Object.freeze(grassActors), grass,
+  return Object.freeze({ orientation, projection, verticalMetres: VERTICAL_METRES, terrain, grassSurfaces: Object.freeze(grassSurfaces), grass,
     stairs, bed, actors: Object.freeze(actors), water: Object.freeze(water), guide: guideFixture(orientation, projection),
     input, reversedInput: Object.freeze([...input].reverse()) });
 }
