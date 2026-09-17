@@ -266,6 +266,21 @@ the structural slot law applies. Extended records retain their complete oriented
 footprint. Their declared emission cells/parts determine where they enter the
 traversal; selecting one endpoint and discarding the rest is not footprint-aware.
 
+The shared record boundary uses factual attachments, not content names:
+
+```text
+cell-face(cell, face)
+surface-root(supports, point)
+supported(supportActorOrTerrain, feet)
+footprint(allWorldContactPoints)
+part(owner, semanticRole, transformedGeometry)
+surface-mark(cell)
+```
+
+Records also declare `opaque` or `transparent`; the compiler never checks for a
+water, grass, goblin, bed or stair ID. Producers validate these facts once. The
+draw compiler consumes them without consulting sprite bounds for physical order.
+
 ```text
 for cell in visibleCellsBackToFront(cameraOrientation, selectedCut):
   emit(cell.rearVisibleFaces)
@@ -298,6 +313,13 @@ The actor must remain between those rails at entrance, midpoint and landing.
 Decorative vertical extent cannot become an insertion point: declared local
 contact/boundary anchors come from the authored part contract, not the highest
 visible pixel or geometry bound.
+
+The stair compiles as one support-local compound. Derive the far and near upright
+boundaries from transformed geometry and camera traversal; emit the supporting
+surface and actors whose canonical `support` names that stair between them. Order
+those actors by position along the support. This is a reusable multipart-support
+law, not a stair-name branch. A bed has no legal occupants inside its obstructed
+footprint and enters only after traversal crosses its complete oriented footprint.
 
 Terrain top, cliff side, cut cap and structural face records already carry world
 geometry. Emit only faces admitted by the selected-level cut and insert actors
