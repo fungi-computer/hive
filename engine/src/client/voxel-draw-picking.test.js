@@ -20,7 +20,7 @@ test("picking traverses the exact compiled draw records in reverse", () => {
   }
 });
 
-test("mixed fixture picking reaches each authored class through one reverse stream", () => {
+test("injected fixture traversal reaches each record class through one reverse stream", () => {
   const point = Object.freeze({ x: 0, y: 0 });
   for (const camera of MIXED_FIXTURE_ORIENTATIONS) for (const object of MIXED_FIXTURE_ORIENTATIONS) {
     const fixture = createMixedRenderFixture(camera, object);
@@ -40,11 +40,11 @@ test("mixed fixture picking reaches each authored class through one reverse stre
         visited.push(voxelDrawRecordKey(record));
         return voxelDrawRecordKey(record) === voxelDrawRecordKey(target);
       });
-      assert.equal(voxelDrawRecordKey(selected), voxelDrawRecordKey(target),
+      assert.equal(voxelDrawRecordKey(selected.target), voxelDrawRecordKey(target),
         `${camera}/${object}: ${voxelDrawRecordKey(target)}`);
       const targetIndex = selectable.findIndex(record => voxelDrawRecordKey(record) === voxelDrawRecordKey(target));
       assert.deepEqual(visited, selectable.slice(targetIndex).reverse()
-        .filter(record => record.visible !== false && record.pickable !== false)
+        .filter(record => record.visible !== false)
         .map(voxelDrawRecordKey), `${camera}/${object}: no second picking order`);
     }
   }
@@ -67,14 +67,24 @@ test("a lower near actor wins over overlapping raised far terrain", () => {
     verticalMetres: fixture.verticalMetres,
   });
   assert.deepEqual(records, [terrain, actor], "physical traversal paints far raised terrain first");
-  assert.equal(pickVoxelDrawRecord(records, { x: 0, y: 0 }, () => true), actor,
+  assert.equal(pickVoxelDrawRecord(records, { x: 0, y: 0 }, () => true).target, actor,
     "reverse of that same stream picks the lower near actor first");
 });
 
 test("default picking requires authored hit geometry and never falls back to sprite bounds", () => {
   const record = Object.freeze({ id: "a", part: "body", visible: true, pickable: true,
     screenBounds: Object.freeze({ left: -100, right: 100, top: -100, bottom: 100 }) });
-  assert.equal(pickVoxelDrawRecord([record], { x: 0, y: 0 }), null);
+  assert.deepEqual(pickVoxelDrawRecord([record], { x: 0, y: 0 }),
+    { record: null, target: null, occluded: false });
   const authored = Object.freeze({ ...record, contains: point => point.x === 0 && point.y === 0 });
-  assert.equal(pickVoxelDrawRecord([authored], { x: 0, y: 0 }), authored);
+  assert.equal(pickVoxelDrawRecord([authored], { x: 0, y: 0 }).target, authored);
+});
+
+test("a visible non-pickable silhouette occludes selectable records behind it", () => {
+  const behind = Object.freeze({ id: "behind", part: "body", visible: true, pickable: true,
+    contains: () => true });
+  const wall = Object.freeze({ id: "wall", part: "face", visible: true, pickable: false,
+    contains: () => true });
+  const result = pickVoxelDrawRecord([behind, wall], { x: 4, y: 7 });
+  assert.deepEqual(result, { record: wall, target: null, occluded: true });
 });

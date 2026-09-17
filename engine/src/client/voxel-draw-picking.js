@@ -10,14 +10,18 @@ export function frontToBackVoxelDrawRecords(records) {
   return Object.freeze([...records].reverse());
 }
 
-/** Return the first visible, pickable record whose authored hit geometry wins. */
+/**
+ * Stop at the first visible authored silhouette. A non-pickable silhouette is
+ * still an occluder; it cannot make a wall, cliff, or cover click-through.
+ */
 export function pickVoxelDrawRecord(records, point, contains = (record, value) => record.contains?.(value) === true) {
   if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y))
     throw new Error("voxel draw picking requires a finite screen point");
   if (typeof contains !== "function") throw new Error("voxel draw picking requires a hit predicate");
   for (const record of frontToBackVoxelDrawRecords(records)) {
-    if (record.visible === false || record.pickable === false) continue;
-    if (contains(record, point)) return record;
+    if (record.visible === false || !contains(record, point)) continue;
+    return Object.freeze({ record, target: record.pickable === false ? null : record,
+      occluded: record.pickable === false });
   }
-  return null;
+  return Object.freeze({ record: null, target: null, occluded: false });
 }
