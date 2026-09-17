@@ -228,8 +228,10 @@ edge proposal schema, deterministic expansion, support-to-origin conversion and
 site proposal identity. The real Colony command consumes it, and a non-Colony
 three-cell bone bed proves the helper has no Goblin catalog branches. This is the
 stable layer beneath the future actor/buildable compilation join; do not move
-the geometry back into the game command. Floor replacement orchestration and the
-structure-definition-to-actor join still remain in this stage.
+the geometry back into the game command. The SDK also owns batched build versus
+replacement resolution and duplicate-site handling; the actual Colony lifecycle
+passes through that path with construction, cancellation, reload and independent
+parties. The structure-definition-to-actor compilation join still remains.
 
 Use the installed actor `.with(...)` composition and prepared query
 `.where(...).do(...)` collection contract from section 10. Construction action

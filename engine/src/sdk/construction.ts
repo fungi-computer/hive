@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { component, entity } from "./authoring";
-import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, PlacementCandidate, Vec3 } from "../contracts";
+import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, FloorOperation, PlacementCandidate, Vec3 } from "../contracts";
 import type { EnvironmentStructureDefinition } from "./environment";
 import { placementOrientation, structureOriginCell, type PlacementAlignment, type PlacementArea } from "./placement";
 
@@ -87,6 +87,63 @@ export function constructionCandidates(
     const target: ConstructionTarget = { kind: "cell", cell: { x, y, z }, orientation };
     return { site: constructionSite(namespace, definition, target), catalog: definition.id, target };
   });
+}
+
+export interface ConstructionPlanOptions {
+  readonly party: EntityId;
+  readonly definition: EnvironmentStructureDefinition;
+  readonly candidates: readonly PlacementCandidate[];
+  readonly existingSites: readonly EntityId[];
+  readonly floorOperations: (requests: readonly {
+    readonly cell: readonly [number, number, number];
+    readonly desiredCatalog: string;
+  }[]) => readonly FloorOperation[];
+  readonly replacementGenerations: ReadonlyMap<EntityId, number>;
+  readonly replacementId: (floor: EntityId, generation: number) => EntityId;
+}
+
+/**
+ * Turn checked proposals into ordinary engine actions. This resolves existing
+ * floors and duplicate sites; native action admission still rechecks all laws.
+ */
+export function constructionPlanActions(options: ConstructionPlanOptions): readonly ActionRequest[] {
+  const existing = new Set(options.existingSites);
+  const candidates = options.candidates.filter(candidate => {
+    if (candidate.catalog !== options.definition.id)
+      throw new Error("Construction candidate does not match its definition");
+    return !existing.has(candidate.site);
+  });
+  if (options.definition.shape.kind !== "floor")
+    return candidates.length ? [planConstructions(options.party, candidates)] : [];
+
+  const floorCandidates = candidates.map(candidate => {
+    if (candidate.target.kind !== "cell") throw new Error("Floor construction requires cell placement");
+    const { x, y, z } = candidate.target.cell;
+    return { candidate, request: { cell: [x, y, z] as const, desiredCatalog: options.definition.id } };
+  });
+  if (floorCandidates.length === 0) return [];
+  const operations = options.floorOperations(floorCandidates.map(({ request }) => request));
+  if (operations.length !== floorCandidates.length) throw new Error("Floor operation result count mismatch");
+
+  const actions: ActionRequest[] = [];
+  const plans: PlacementCandidate[] = [];
+  for (let index = 0; index < floorCandidates.length; index++) {
+    const { candidate } = floorCandidates[index]!;
+    const operation = operations[index]!;
+    switch (operation.kind) {
+      case "build": case "waiting-for-support": plans.push(candidate); break;
+      case "unchanged": break;
+      case "conflict": throw new Error(`floor replacement conflicts with ${operation.floor}`);
+      case "invalid": throw new Error(operation.reason);
+      case "replace": {
+        const generation = (options.replacementGenerations.get(operation.floor) ?? 0) + 1;
+        actions.push(replaceFloor(options.replacementId(operation.floor, generation), operation.floor, options.definition.id));
+        break;
+      }
+    }
+  }
+  if (plans.length) actions.push(planConstructions(options.party, plans));
+  return actions;
 }
 
 /** Native custody is observable; authored writes cannot lock or unlock goods. */

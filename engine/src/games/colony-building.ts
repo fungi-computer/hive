@@ -1,10 +1,10 @@
 import { command, entity, query } from "../sdk/authoring";
 import { OwnedBy, Party } from "../sdk/party";
 import { colonyPartyForPlayer } from "./colony-player-party";
-import { ConstructionSite, FloorReplacement, constructionCandidates, constructionProposalInput, planConstructions, replaceFloor } from "../sdk/construction";
+import { ConstructionSite, FloorReplacement, constructionCandidates, constructionPlanActions, constructionProposalInput, planConstructions } from "../sdk/construction";
 import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";
-import type { PlacementCandidate } from "../contracts";
+import type { EntityId, PlacementCandidate } from "../contracts";
 
 /** Build copy is composed once beside the authoritative Goblin definition. */
 export function colonyBuildBindingDetail(catalog: string, orientation?: string, environment = colonyEnvironment, placement = colonyPlacement): string {
@@ -72,27 +72,17 @@ export const colonyBuildCommand = command({
     if (definition.shape.kind === "wall" || definition.shape.kind === "aperture") throw new Error("Boundary structures require edge placement");
     const candidates = colonyPlacementCandidates(input);
     if (sites.length + candidates.length > 128) throw new Error("Construction site limit reached");
-    const actions = [];
-    const plans: PlacementCandidate[] = [];
-    for (const candidate of candidates) {
-      if (candidate.target.kind !== "cell") throw new Error("Boundary structures require edge placement");
-      const { x, y, z } = candidate.target.cell;
-      const cell: [number, number, number] = definition.shape.kind === "fixture" ? [x, y - 1, z] : [x, y, z];
-      if (definition.shape.kind === "floor") {
-        const operation = context.floorOperations([{ cell, desiredCatalog: definition.id }])[0];
-        if (operation.kind === "unchanged") continue;
-        if (operation.kind === "conflict") throw new Error(`floor replacement conflicts with ${operation.floor}`);
-        if (operation.kind === "invalid") throw new Error(operation.reason);
-        if (operation.kind === "replace") {
-          const generation = replacements.filter(candidate => candidate.get(FloorReplacement).targetFloor === operation.floor).length + 1;
-          actions.push(replaceFloor(entity(`colony.replace.${operation.floor}.${generation}`), operation.floor, definition.id));
-          continue;
-        }
-      }
-      if (sites.some(site => site.id === candidate.site)) continue;
-      plans.push(candidate);
+    const replacementGenerations = new Map<EntityId, number>();
+    for (const row of replacements) {
+      const floor = row.get(FloorReplacement).targetFloor;
+      replacementGenerations.set(floor, (replacementGenerations.get(floor) ?? 0) + 1);
     }
-    if (plans.length) actions.push(planConstructions(colonyPartyForPlayer(context), plans));
-    return { writes: [], actions };
+    return { writes: [], actions: constructionPlanActions({
+      party: colonyPartyForPlayer(context), definition, candidates,
+      existingSites: sites.map(site => site.id),
+      floorOperations: requests => context.floorOperations(requests),
+      replacementGenerations,
+      replacementId: (floor, generation) => entity(`colony.replace.${floor}.${generation}`),
+    }) };
   },
 });
