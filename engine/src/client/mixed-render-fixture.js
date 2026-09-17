@@ -61,11 +61,11 @@ function terrainAppearance() {
   } });
 }
 
-function actorRecord(id, point, projection, probe, { visual = "goblin.worker", support = null } = {}) {
+function actorRecord(id, point, projection, fixturePosition, { visual = "goblin.worker", support = null } = {}) {
   const at = projection.project(point);
   return Object.freeze({ id, part: "body", role: "actor", relationPolicy: "actor", orderingKind: "compact",
     footprint: Object.freeze([Object.freeze({ ...point })]), screenBounds: Object.freeze({ left: at.x - 8, right: at.x + 8, top: at.y - 32, bottom: at.y }),
-    storeyBand: Math.floor(point.y / VERTICAL_METRES), moving: true, pickable: true, visible: true, probe, visual, support });
+    storeyBand: Math.floor(point.y / VERTICAL_METRES), moving: true, pickable: true, visible: true, fixturePosition, visual, support });
 }
 
 function structureRecord(id, footprint, projection, extra = {}) {
@@ -137,13 +137,13 @@ export function createMixedRenderFixture(orientation = "north") {
   const bedMiddle = { x: (bedStart.x + bedEnd.x) / 2, y: bedStart.y, z: (bedStart.z + bedEnd.z) / 2 };
   const actors = [
     actorRecord("fixture:goblin", { x: 1, y: VERTICAL_METRES / 2, z: -1 }, projection, "ground"),
-    actorRecord("probe:stair-entrance", entrance, projection, "stair-entrance", { support: "fixture:stair" }),
-    actorRecord("probe:stair-middle", middle, projection, "stair-middle", { support: "fixture:stair" }),
-    actorRecord("probe:stair-landing", landing, projection, "stair-landing", { support: "fixture:stair" }),
-    actorRecord("probe:bed-end-start", { x: bedStart.x - along.x * 0.6, y: bedStart.y, z: bedStart.z - along.z * 0.6 }, projection, "bed-end-start"),
-    actorRecord("probe:bed-end-finish", { x: bedEnd.x + along.x * 0.6, y: bedEnd.y, z: bedEnd.z + along.z * 0.6 }, projection, "bed-end-finish"),
-    actorRecord("probe:bed-side-left", { x: bedMiddle.x + across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z + across.z * 0.6 }, projection, "bed-side-left"),
-    actorRecord("probe:bed-side-right", { x: bedMiddle.x - across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z - across.z * 0.6 }, projection, "bed-side-right"),
+    actorRecord("fixture:goblin:stair-entrance", entrance, projection, "stair-entrance", { support: "fixture:stair" }),
+    actorRecord("fixture:goblin:stair-middle", middle, projection, "stair-middle", { support: "fixture:stair" }),
+    actorRecord("fixture:goblin:stair-landing", landing, projection, "stair-landing", { support: "fixture:stair" }),
+    actorRecord("fixture:goblin:bed-end-start", { x: bedStart.x - along.x * 0.6, y: bedStart.y, z: bedStart.z - along.z * 0.6 }, projection, "bed-end-start"),
+    actorRecord("fixture:goblin:bed-end-finish", { x: bedEnd.x + along.x * 0.6, y: bedEnd.y, z: bedEnd.z + along.z * 0.6 }, projection, "bed-end-finish"),
+    actorRecord("fixture:goblin:bed-side-left", { x: bedMiddle.x + across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z + across.z * 0.6 }, projection, "bed-side-left"),
+    actorRecord("fixture:goblin:bed-side-right", { x: bedMiddle.x - across.x * 0.6, y: bedMiddle.y, z: bedMiddle.z - across.z * 0.6 }, projection, "bed-side-right"),
   ];
   const water = [waterDrawRecord({ at: [1, -1, 0], level: 7, liquidVolumeM3: 1 }, { projection: (x, y, z) => projection.project({ x, y, z }), verticalMetres: VERTICAL_METRES })];
   const input = Object.freeze([...terrain, ...grass, ...stairs, bed, ...actors, ...water]);

@@ -19,11 +19,11 @@ test("Stage 1A fixture exposes real mixed geometry in every camera orientation",
     assert.equal(fixture.guide.tiles.length, 49);
     assert.deepEqual(fixture.guide.tiles.filter(tile => tile.footprint).map(tile => tile.cell).sort(),
       fixture.guide.cells.map(cell => [...cell]).sort());
-    assert.deepEqual(fixture.actors.filter(record => record.probe?.startsWith("stair-")).map(record => record.probe),
+    assert.deepEqual(fixture.actors.filter(record => record.fixturePosition?.startsWith("stair-")).map(record => record.fixturePosition),
       ["stair-entrance", "stair-middle", "stair-landing"]);
-    assert(fixture.actors.filter(record => record.probe?.startsWith("stair-")).every(record => record.support === "fixture:stair"),
-      `${orientation}: stair probes retain support identity`);
-    assert.deepEqual(fixture.actors.filter(record => record.probe?.startsWith("bed-")).map(record => record.probe),
+    assert(fixture.actors.filter(record => record.fixturePosition?.startsWith("stair-")).every(record => record.support === "fixture:stair"),
+      `${orientation}: stair fixture actors retain support identity`);
+    assert.deepEqual(fixture.actors.filter(record => record.fixturePosition?.startsWith("bed-")).map(record => record.fixturePosition),
       ["bed-end-start", "bed-end-finish", "bed-side-left", "bed-side-right"]);
     assert(fixture.actors.every(record => record.visual === "goblin.worker"), `${orientation}: actor art binding`);
     assert.equal(fixture.water.length, 1);
