@@ -872,6 +872,8 @@ export type GameLocalBinding = Readonly<{
   readonly selection?: "entities" | Readonly<{ readonly field: string; readonly cardinality: "one" }>;
   readonly target?: "terrain-cell" | "terrain-area" | "world-surface" | "world-edge";
   readonly designation?: readonly ("point" | "line" | "rectangle" | "edge-line" | "entities")[];
+  /** Definition-derived fixture cells for local preview only; native admission remains authoritative. */
+  readonly footprint?: readonly (readonly [number, number])[];
   /** Local placement in the persistent bottom action dock. */
   readonly placement?: "action-bar";
   readonly preset?: JsonValue;

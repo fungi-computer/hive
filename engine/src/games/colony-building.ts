@@ -43,6 +43,22 @@ export function colonyBuildBindingDetail(catalog: string, orientation?: string, 
   return `${cost} · ${footprint} · ${gesture} · ${facing}`;
 }
 
+function colonyBuildBinding(catalog: string, orientation?: CardinalOrientation) {
+  const definition = colonyEnvironment.structures.catalog.find(item => item.id === catalog);
+  if (!definition) throw new Error(`Unknown building ${catalog}`);
+  const boundary = definition.shape.kind === "wall" || definition.shape.kind === "aperture";
+  const area = definition.shape.kind === "floor" || definition.shape.kind === "cover";
+  return {
+    id: orientation ? `${catalog.replace("timber-", "")}-${orientation}` : catalog,
+    label: orientation ? `${catalog.replace("timber-", "")} ${orientation}` : `Build ${catalog.replace("timber-", "")}`,
+    target: (boundary ? "world-edge" : "world-surface") as "world-edge" | "world-surface",
+    designation: (boundary ? ["edge-line"] : area ? ["point", "rectangle"] : ["point"]) as ("point" | "rectangle" | "edge-line")[],
+    detail: colonyBuildBindingDetail(catalog, orientation ?? (area || definition.shape.kind === "fixture" ? "north" : undefined)),
+    preset: { catalog, ...((orientation ?? (area || definition.shape.kind === "fixture" ? "north" : undefined)) ? { orientation: orientation ?? "north" } : {}) },
+    ...(definition.shape.kind === "fixture" ? { footprint: definition.shape.footprint } : {}),
+  };
+}
+
 function areaCells(area: { start: [number, number, number]; end: [number, number, number] }): [number, number, number][] {
   const start = area.start, end = area.end;
   if (start[1] !== end[1])
@@ -100,13 +116,8 @@ export function colonyPlacementCandidates(value: unknown): readonly PlacementCan
 export const colonyBuildCommand = command({
   title: "Build structure", category: "Construction", description: "Place a construction plan on a visible world surface.",
   localPresentation: { bindings: [
-    ...["timber-floor", "timber-wall", "timber-door", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => ({
-      id: catalog, label: `Build ${catalog.replace("timber-", "")}`, target: (catalog === "timber-wall" || catalog === "timber-door" ? "world-edge" : "world-surface") as "world-edge" | "world-surface",
-      designation: (catalog === "timber-wall" || catalog === "timber-door" ? ["edge-line"] : catalog === "timber-floor" || catalog === "timber-roof" ? ["point", "rectangle"] : ["point"]) as ("point" | "rectangle" | "edge-line")[],
-      detail: colonyBuildBindingDetail(catalog, catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? "north" : undefined),
-      preset: { catalog, ...(catalog === "timber-floor" || catalog === "timber-roof" || catalog === "timber-bed" || catalog === "timber-shelf" || catalog === "brew-station" ? { orientation: "north" } : {}) },
-    })),
-    ...["north", "east", "south", "west"].map(orientation => ({ id: `stair-${orientation}`, label: `Stair ${orientation}`, target: "world-surface" as const, designation: ["point"] as const, detail: colonyBuildBindingDetail("timber-stair", orientation), preset: { catalog: "timber-stair", orientation } })),
+    ...["timber-floor", "timber-wall", "timber-door", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => colonyBuildBinding(catalog)),
+    ...(["north", "east", "south", "west"] as const).map(orientation => colonyBuildBinding("timber-stair", orientation)),
   ] },
   input: buildInput,
   reads: [ConstructionSite, FloorReplacement, Party, OwnedBy], writes: [],

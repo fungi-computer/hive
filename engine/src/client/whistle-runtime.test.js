@@ -26,7 +26,7 @@ test("local Whistle binds only locally acquired rows and submits once", async ()
   const submitted = [];
   const local = createLocalGameWhistle({
     agent: [row()],
-    bindings: [{ commandId: "colony:test", id: "test", label: "Test order", detail: "3 wood · 2×2 · click point · north", preset: { value: 1 } }],
+    bindings: [{ commandId: "colony:test", id: "test", label: "Test order", detail: "3 wood · 2×2 · click point · north", footprint: [[0, 0], [0, 1]], preset: { value: 1 } }],
     submit: command => { submitted.push(command); },
   });
   const menu = local.whistle.snapshot().menu;
@@ -34,6 +34,7 @@ test("local Whistle binds only locally acquired rows and submits once", async ()
   assert.equal(menu[0].commandId, "colony:test");
   assert.equal(menu[0].action.presentation.type, "custom");
   assert.equal(menu[0].action.presentation.data.bindings[0].detail, "3 wood · 2×2 · click point · north");
+  assert.deepEqual(menu[0].action.presentation.data.bindings[0].footprint, [[0, 0], [0, 1]]);
   assert.deepEqual((await local.whistle.execute("colony:test", { origin: "browser", arguments: { value: 1 } })).status, "handled");
   assert.deepEqual(submitted, [{ type: "command", name: "test", input: { value: 1 } }]);
 });

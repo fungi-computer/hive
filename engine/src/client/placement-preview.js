@@ -1,5 +1,6 @@
 import { placementOrientation } from "../sdk/placement.ts";
 import { evaluateDesignation } from "./spatial-designation.js";
+import { rotatePlacementPoint } from "./art-placement.js";
 
 /** Own one advisory preview generation so an older async reply cannot repaint a newer gesture. */
 export function createPlacementAdvisory(decide, publish) {
@@ -34,6 +35,18 @@ export function placementCells({ area, target }) {
     return result.accepted ? result.designation.cells : [];
   }
   return target ? [target] : [];
+}
+
+/** Expand one object origin for display without creating extra construction targets. */
+export function placementFootprintCells(control, origin) {
+  if (!origin) return [];
+  const footprint = control?.footprint;
+  if (!Array.isArray(footprint) || footprint.length === 0) return [origin];
+  const orientation = control?.input?.orientation ?? "north";
+  return footprint.map(point => {
+    const [dx, dz] = rotatePlacementPoint(point, orientation);
+    return [origin[0] + dx, origin[1], origin[2] + dz];
+  });
 }
 
 /**

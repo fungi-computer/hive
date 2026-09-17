@@ -23,6 +23,7 @@ function bindingPresentation(bindings) {
     ...(binding.selection === undefined ? {} : { selection: binding.selection }),
     ...(binding.target === undefined ? {} : { target: binding.target }),
     ...(binding.designation === undefined ? {} : { designation: [...binding.designation] }),
+    ...(binding.footprint === undefined ? {} : { footprint: binding.footprint.map(cell => [...cell]) }),
     ...(binding.placement === undefined ? {} : { placement: binding.placement }),
     ...(binding.preset === undefined ? {} : { preset: structuredClone(binding.preset) }),
   })) } };

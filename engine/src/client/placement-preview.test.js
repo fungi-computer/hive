@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clearPlacementGhosts, createPlacementAdvisory, disposePlacementGhosts, placementCells, placementVisualSpec, syncPlacementGhosts } from "./placement-preview.js";
+import { clearPlacementGhosts, createPlacementAdvisory, disposePlacementGhosts, placementCells, placementFootprintCells, placementVisualSpec, syncPlacementGhosts } from "./placement-preview.js";
 
 function fakeSprite() {
   return {
@@ -40,6 +40,12 @@ test("ghost strokes reject oversized selections but expose programming errors", 
 test("one point target produces one object origin regardless of its physical footprint", () => {
   assert.deepEqual(placementCells({ target: [3, 8, -2] }), [[3, 8, -2]]);
   assert.deepEqual(placementCells({ target: null }), []);
+});
+
+test("definition-derived footprint rotates around one preview origin", () => {
+  const base = { footprint: [[0, 0], [0, 1]], input: { orientation: "north" } };
+  assert.deepEqual(placementFootprintCells(base, [4, 8, 4]), [[4, 8, 4], [4, 8, 5]]);
+  assert.deepEqual(placementFootprintCells({ ...base, input: { orientation: "east" } }, [4, 8, 4]), [[4, 8, 4], [3, 8, 4]]);
 });
 
 test("cell placement never reconstructs physical edges from visual names", () => {
