@@ -1,5 +1,11 @@
 # Clearing repair implementation packet
 
+**September 17 sorter correction:** Read [Simple depth rendering handoff](14-simple-depth-rendering-handoff.md)
+first for rendering work. It supersedes the plane/dependency-graph algorithm in
+section 13 with a staged Ingnomia-inspired scalar-depth qualification and cutover.
+The first real-art fixture is an acceptance gate; unresolved ordering must not be
+patched with exceptions by the implementer. Cut visibility and original art remain.
+
 **September 16 rendering correction:** [Cut-level rendering and Ingnomia study](13-cut-level-rendering.md)
 records selected-level cuts, visible lower terrain, whole supported actors,
 underground cross-sections, safe batching, and source-grounded lessons from

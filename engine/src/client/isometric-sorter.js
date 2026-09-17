@@ -183,10 +183,10 @@ function uprightRelation(boundary, occupant, camera) {
   return side * cameraSide > 0 ? [boundary, occupant] : [occupant, boundary];
 }
 
-function supportRelation(surface, occupant) {
+function supportRelation(surface, occupant, requireContainment = true) {
   const footprint = convexHull(surface.footprint.map(p => ({ x: p.x, y: p.z })));
   const at = occupant.footprint[0];
-  if (!at || footprint.length < 3 || !projectedContains(footprint, { x: at.x, y: at.z })) return null;
+  if (!at || footprint.length < 3 || (requireContainment && !projectedContains(footprint, { x: at.x, y: at.z }))) return null;
   const a = surface.footprint[0];
   for (let i = 1; i < surface.footprint.length - 1; i++) {
     const b = surface.footprint[i], c = surface.footprint[i + 1];
@@ -202,6 +202,35 @@ function supportRelation(surface, occupant) {
 
 function compareStable(a, b) {
   return stableKey(a).localeCompare(stableKey(b));
+}
+
+function heapPush(heap, value) {
+  heap.push(value);
+  let index = heap.length - 1;
+  for (; index > 0;) {
+    const parent = (index - 1) >> 1;
+    if (compareStable(heap[parent], value) <= 0) break;
+    heap[index] = heap[parent];
+    index = parent;
+  }
+  heap[index] = value;
+}
+
+function heapPop(heap) {
+  const first = heap[0], last = heap.pop();
+  if (heap.length && last) {
+    let index = 0;
+    while (true) {
+      let child = index * 2 + 1;
+      if (child >= heap.length) break;
+      if (child + 1 < heap.length && compareStable(heap[child + 1], heap[child]) < 0) child++;
+      if (compareStable(last, heap[child]) <= 0) break;
+      heap[index] = heap[child];
+      index = child;
+    }
+    heap[index] = last;
+  }
+  return first;
 }
 
 function geometrySignature(node) {
@@ -400,12 +429,30 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 }, projectio
     relationTests++;
     let result;
     if (projection) {
+      const cover = left.relationPolicy === "surface-cover" ? left : right.relationPolicy === "surface-cover" ? right : null;
+      const terrain = cover === left && right.role === "terrain" ? right : cover === right && left.role === "terrain" ? left : null;
+      if (cover && terrain) {
+        // A cover patch depends on its four explicit supporting tops. Remote
+        // terrain merely sharing transparent sprite bounds is not a relation;
+        // cliff sides and compact world objects retain their own geometry.
+        result = cover.supportIds?.includes(stableKey(terrain)) ? [terrain, cover] : null;
+      } else {
+      const support = left.partRole === "supporting-surface" ? left : right.partRole === "supporting-surface" ? right : null;
+      const occupant = support === left ? right : support === right ? left : null;
+      if (support && occupant && occupant.partRole !== "supporting-surface" && !occupant.planarCorners) {
+        // Horizontal support only intersects a compact object at its physical
+        // contact point. A tall billboard overlapping some remote ground tile
+        // is not a second world plane and must not manufacture an interleave.
+        result = supportRelation(support, occupant, false) ?? [support, occupant];
+      } else {
       const comparison = compareOrderingPlanes(left, right, projection);
       if (comparison.kind === "interleaving")
         throw new Error(`interleaving ordering planes: ${stableKey(left)} / ${stableKey(right)}`);
       result = comparison.kind === "ordered" ? comparison.edge : null;
       if (comparison.kind === "tie" && ROLE_ORDER[left.role] !== ROLE_ORDER[right.role])
         result = (ROLE_ORDER[left.role] ?? 0) < (ROLE_ORDER[right.role] ?? 0) ? [left, right] : [right, left];
+      }
+      }
     } else result = edgeFor(left, right, normalized);
     if (!moving) staticRelations.set(key, { signature, result });
     return result;
@@ -475,25 +522,26 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 }, projectio
       for (const candidate of indexedCandidates(movingIndex, moving))
         if (compareStable(moving, candidate) < 0) addRelation(relation(moving, candidate));
     }
-    const ready = nodes
-      .filter((node) => indegree.get(stableKey(node)) === 0)
-      .sort(compareStable);
-    const result = [];
+    const ready = [];
+    for (const node of nodes) if (indegree.get(stableKey(node)) === 0) heapPush(ready, node);
+    const result = [], completed = new Set();
     while (ready.length) {
-      const node = ready.shift();
+      const node = heapPop(ready);
       result.push(node);
+      completed.add(stableKey(node));
       for (const target of [...outgoing.get(stableKey(node))].sort()) {
         indegree.set(target, indegree.get(target) - 1);
-        if (indegree.get(target) === 0) ready.push(byKey.get(target));
+        if (indegree.get(target) === 0) heapPush(ready, byKey.get(target));
       }
-      ready.sort(compareStable);
     }
     // Cycles are possible for whole sprites. Remove one deterministic incoming
-    // edge from the stalled node, then resume Kahn's algorithm.
+    // edge from the stable-first stalled node, then resume Kahn's algorithm.
+    // Exact interleaving planes were rejected while relations were built; a
+    // remaining graph cycle is a whole-sprite occlusion loop and has no perfect
+    // draw order. Stable cycle resolution is therefore part of the contract.
     while (result.length < nodes.length) {
-      if (projection) throw new Error(`cyclic ordering planes: ${nodes.filter(node => !result.includes(node)).map(stableKey).join(" / ")}`);
       const remaining = nodes
-        .filter((node) => !result.includes(node))
+        .filter((node) => !completed.has(stableKey(node)))
         .sort(compareStable);
       const target = stableKey(remaining[0]);
       const predecessor = remaining
@@ -506,16 +554,16 @@ export function createIsometricSorter({ camera = { x: 1, y: 0, z: 1 }, projectio
       } else {
         indegree.set(target, 0);
       }
-      if (indegree.get(target) === 0) ready.push(byKey.get(target));
+      if (indegree.get(target) === 0) heapPush(ready, byKey.get(target));
       while (ready.length) {
-        const node = ready.shift();
-        if (result.includes(node)) continue;
+        const node = heapPop(ready);
+        if (completed.has(stableKey(node))) continue;
         result.push(node);
+        completed.add(stableKey(node));
         for (const next of [...outgoing.get(stableKey(node))].sort()) {
           indegree.set(next, indegree.get(next) - 1);
-          if (indegree.get(next) === 0) ready.push(byKey.get(next));
+          if (indegree.get(next) === 0) heapPush(ready, byKey.get(next));
         }
-        ready.sort(compareStable);
       }
     }
     return result;

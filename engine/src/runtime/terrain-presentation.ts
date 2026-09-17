@@ -53,6 +53,13 @@ function columnKey(x: number, z: number): string {
   return `${x},${z}`;
 }
 
+function visualVariantSeed(value: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++)
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  return hash >>> 0;
+}
+
 function parseFacts(value: unknown): {
   readonly terrainRevision: number;
   readonly placementRevision: number;
@@ -141,9 +148,12 @@ export class TerrainPresentationOwner {
   }
 
   baseline(): TerrainBaseline {
+    const artBySlot = new Map(this.presentation?.materials.map(material => [material.slot, material.art]));
     return terrainBaselineSchema.parse({ protocolVersion: 2, bounds: this.definition.world.bounds,
       verticalMetres: this.definition.world.verticalMetres,
-      materials: this.definition.materials.map(({ slot, solid }) => ({ slot, solid })) });
+      variantSeed: visualVariantSeed(`${this.definition.world.identity}\u0000${this.definition.world.seed}`),
+      materials: this.definition.materials.map(({ slot, solid }) => ({ slot, solid,
+        ...(artBySlot.has(slot) ? { art: artBySlot.get(slot) } : {}) })) });
   }
 
   readChunks(raw: TerrainChunkRequest, currentEpoch: number): TerrainChunkReply {

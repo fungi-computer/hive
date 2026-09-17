@@ -69,26 +69,27 @@ export function grassCover({mask=15,variant=0,height='full',condition='green'}={
   return out.finish();
 }
 
-export function terrainBody({kind='earth',variant=0}={}) {
-  if(!['earth','stone'].includes(kind)||!Number.isInteger(variant)||variant<0||variant>2) throw new Error('Invalid terrain body');
+export function terrainBody({kind='earth',variant=0,part='body'}={}) {
+  if(!['earth','stone'].includes(kind)||!Number.isInteger(variant)||variant<0||variant>2||!['body','top','north','east','south','west'].includes(part)) throw new Error('Invalid terrain body');
   const out=polygons(),rng=random(193+variant*71), stone=kind==='stone';
   const top=stone?'#626e69':'#75553c', sideColor=stone?'#414f4c':'#493325';
-  out.add(top,[[-.5,0,-.5],[-.5,0,.5],[.5,0,.5],[.5,0,-.5]]);
+  if(part==='body'||part==='top') out.add(top,[[-.5,0,-.5],[-.5,0,.5],[.5,0,.5],[.5,0,-.5]]);
   const corners=[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]];
+  const sides=['north','east','south','west'];
   for(let edge=0;edge<4;edge++) {
     const [ax,az]=corners[edge],[bx,bz]=corners[(edge+1)%4];
-    out.add(sideColor,[[ax,0,az],[bx,0,bz],[bx,-.54,bz],[ax,-.54,az]]);
+    if(part==='body'||part===sides[edge]) out.add(sideColor,[[ax,0,az],[bx,0,bz],[bx,-.54,bz],[ax,-.54,az]]);
     for(let i=0;i<24;i++) {
       const u=rng()*.94,v=.05+rng()*.45,w=.03+rng()*.12,h=.025+rng()*.05;
       const at=(t,y)=>[ax+(bx-ax)*t+(az-bz)*.001,y,az+(bz-az)*t+(bx-ax)*.001];
-      out.add(stone?(i%3?'#53605a':'#687269'):(i%3?'#61432d':'#795539'),[at(u,-v),at(Math.min(1,u+w),-v),at(Math.min(1,u+w),-v-h),at(u,-v-h)]);
+      if(part==='body'||part===sides[edge]) out.add(stone?(i%3?'#53605a':'#687269'):(i%3?'#61432d':'#795539'),[at(u,-v),at(Math.min(1,u+w),-v),at(Math.min(1,u+w),-v-h),at(u,-v-h)]);
     }
   }
   for(let i=0;i<(stone?18:35);i++) {
     const x=(rng()-.5)*.9,z=(rng()-.5)*.9,w=.025+rng()*(stone?.17:.04);
-    out.add(stone?(i%2?'#788079':'#4c5b55'):(i%2?'#826346':'#644731'),[[x-w,.003,z-w/2],[x-w,.003,z+w/2],[x+w,.003,z+w/2],[x+w,.003,z-w/2]]);
+    if(part==='body'||part==='top') out.add(stone?(i%2?'#788079':'#4c5b55'):(i%2?'#826346':'#644731'),[[x-w,.003,z-w/2],[x-w,.003,z+w/2],[x+w,.003,z+w/2],[x+w,.003,z-w/2]]);
   }
-  if(stone) for(let ix=0;ix<2;ix++)for(let iz=0;iz<2;iz++) {
+  if(stone&&(part==='body'||part==='top')) for(let ix=0;ix<2;ix++)for(let iz=0;iz<2;iz++) {
     const x=-.48+ix*.5,z=-.48+iz*.5,w=.45,d=.45,y=.045+rng()*.035,b=.045;
     const rim=[[x+b,0,z],[x+w-b,0,z],[x+w,0,z+b],[x+w,0,z+d-b],[x+w-b,0,z+d],[x+b,0,z+d],[x,0,z+d-b],[x,0,z+b]];
     const cap=rim.map(([a,,c])=>[a+(x+w/2-a)*.10,y,c+(z+d/2-c)*.10]);
@@ -96,4 +97,10 @@ export function terrainBody({kind='earth',variant=0}={}) {
     for(let i=0;i<rim.length;i++){const j=(i+1)%rim.length;out.add('#56665d',[rim[i],cap[i],cap[j],rim[j]]);}
   }
   return out.finish();
+}
+
+/** Face-addressable production bake derived from the accepted body source. */
+export function terrainBodyPart({kind='earth',variant=0,part='top'}={}) {
+  if(part==='body') throw new Error('Terrain body part must name one face');
+  return terrainBody({kind,variant,part});
 }

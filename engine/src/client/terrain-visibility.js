@@ -13,7 +13,7 @@ const overlaps = (a, b) => a.left <= b.right && b.left <= a.right && a.top <= b.
  * Each snapshot is one epoch/revision. Transport owns validation and lifetime;
  * this index is disposable presentation data and grants no physical support.
  */
-export function materialCoverage({ chunks, palette, bounds, verticalMetres, epoch, terrainRevision }) {
+export function materialCoverage({ chunks, palette, bounds, verticalMetres, variantSeed = 0, epoch, terrainRevision }) {
   if (!(verticalMetres > 0) || chunks.length > 512) throw new Error("invalid terrain coverage budget/scale");
   const materials = new Map(palette.map(material => [material.slot, material]));
   const indexed = new Map();
@@ -37,9 +37,9 @@ export function materialCoverage({ chunks, palette, bounds, verticalMetres, epoc
     if (!run) throw new Error("incomplete terrain coverage column");
     const material = materials.get(run.material);
     if (!material || typeof material.solid !== "boolean") throw new Error("unknown terrain material slot");
-    return { kind: "known", material: material.slot, solid: material.solid };
+    return { kind: "known", material: material.slot, solid: material.solid, art: material.art };
   }
-  return Object.freeze({ chunks, bounds, verticalMetres, epoch, terrainRevision, sample });
+  return Object.freeze({ chunks, bounds, verticalMetres, variantSeed, epoch, terrainRevision, sample });
 }
 
 function corners([x, y, z], face, h) {
@@ -77,20 +77,65 @@ export function terrainFaceRecords(coverage, { level, projection, viewport, appe
         const projected = planarCorners.map(p => projection.project(p));
         const screenBounds = projectedBounds(projected);
         if (viewport && !overlaps(screenBounds, viewport)) continue;
+        const visual = appearance?.body({ cell, face, material: material.material, art: material.art, cap,
+          generatedTop: generatedTops.get(`${cell[0]},${cell[2]}`), seed: coverage.variantSeed,
+          projection, verticalMetres: coverage.verticalMetres });
         const record = {
           id: `terrain:${key(cell)}:${face}`, part: "face", role: "terrain", cell, face,
+          ...(face === "top" ? { partRole: "supporting-surface" } : {}),
           material: material.material, cap, planarCorners, footprint: planarCorners,
           screenBounds, storeyBand: y, pickable: false, visible: true,
           // Appearance receives material and cap, so grass cannot be inferred
           // from the highest column. Original art selection stays its owner.
-          ...(appearance ? { terrainBatch: appearance({ cell, face, material: material.material, cap,
-            generatedTop: generatedTops.get(`${cell[0]},${cell[2]}`) }), projected } : {}),
+          projected, ...(visual ?? {}),
         };
         const proxy = prepareOrderingProxy(record, projection);
         if (!proxy) continue;
         record.contains = point => polygonContains(proxy.polygon, point);
         records.push(record);
       }
+    }
+  }
+  return records;
+}
+
+const coverIdentity = cover => `${cover.kind}\u0000${cover.condition}\u0000${cover.height}`;
+
+/** Dual-grid cover patches are ordinary sortable records derived from four
+ * explicit same-level surface facts. They never infer grass from geology.
+ */
+export function terrainCoverRecords(surfaces, { level, projection, viewport, appearance, verticalMetres, variantSeed = 0 }) {
+  if (!appearance?.cover || !Number.isFinite(verticalMetres) || verticalMetres <= 0) return [];
+  const covered = new Map(surfaces.filter(surface => surface.cover && surface.cell[1] <= level)
+    .map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface]));
+  const roots = new Map();
+  for (const surface of covered.values()) for (const [dx, dz] of [[0,0],[-1,0],[-1,-1],[0,-1]])
+    roots.set(`${surface.cell[0]+dx},${surface.cell[2]+dz}`, [surface.cell[0]+dx, surface.cell[2]+dz]);
+  const records = [];
+  for (const root of roots.values()) {
+    const samples = [[0,0],[1,0],[1,1],[0,1]].map(([dx,dz]) => covered.get(`${root[0]+dx},${root[1]+dz}`));
+    const identities = new Set(samples.filter(Boolean).map(surface => `${surface.cell[1]}\u0000${coverIdentity(surface.cover)}`));
+    for (const identity of identities) {
+      const [yText, kind, condition, height] = identity.split("\u0000"), y = Number(yText);
+      let mask = 0;
+      samples.forEach((surface, index) => {
+        if (surface && surface.cell[1] === y && coverIdentity(surface.cover) === `${kind}\u0000${condition}\u0000${height}`) mask |= 1 << index;
+      });
+      if (!mask) continue;
+      const surfaceY = (y + 0.5) * verticalMetres;
+      const visual = appearance.cover({ cover: { kind, condition, height }, mask, root, seed: variantSeed, projection, surfaceY });
+      const footprint = [{ x: root[0] + 0.5, y: surfaceY, z: root[1] + 0.5 }];
+      const supportIds = samples.flatMap((surface, index) => surface && (mask & (1 << index))
+        ? [`terrain:${surface.cell.join(",")}:top\u0000face`] : []);
+      const screenBounds = projectedBounds(visual.projected);
+      if (viewport && !overlaps(screenBounds, viewport)) continue;
+      const record = { id: `cover:${root[0]}:${y}:${root[1]}:${kind}:${condition}:${height}`, part: "cover", role: "terrain-cover",
+        relationPolicy: "surface-cover", orderingKind: "compact", mask, footprint, screenBounds, storeyBand: y,
+        supportIds, pickable: false, visible: true, ...visual };
+      const proxy = prepareOrderingProxy(record, projection);
+      if (!proxy) continue;
+      record.contains = point => polygonContains(proxy.polygon, point);
+      records.push(record);
     }
   }
   return records;

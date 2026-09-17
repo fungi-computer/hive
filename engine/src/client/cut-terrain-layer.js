@@ -2,7 +2,7 @@ import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { createTerrainChunkCache } from "./terrain-chunk-cache.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { createTerrainBatchMeshes } from "./terrain-face-batches.js";
-import { materialCoverage, terrainFaceRecords, visibleTerrainChunks } from "./terrain-visibility.js";
+import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks } from "./terrain-visibility.js";
 import { reconcileWaterSprites, waterCellKey } from "./water-sprite-reconciler.js";
 import { project } from "./geometry.js";
 
@@ -28,11 +28,18 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
   container.eventMode = "none";
   container.sortableChildren = true;
   const cache = createTerrainChunkCache({ runtime });
-  const palette = createTerrainFaceAppearance();
+  let appearance, terrainArt;
   const batches = createTerrainBatchMeshes({ parent: container });
   const waterTexture = createWaterTile();
   let waterEntries = new Map(), frame, epoch, level, records = [], disposed = false;
   let demandIdentity, coverageIdentity, observedService, serviceTurn = 0, servedTurn = -1;
+
+  function installArt(pack) {
+    if (disposed || terrainArt) throw new Error("terrain art can only be installed once");
+    terrainArt = pack;
+    appearance = createTerrainFaceAppearance({ pack });
+    coverageIdentity = undefined;
+  }
 
   function update(frameValue, nextEpoch) {
     if (disposed) throw new Error("cut terrain layer is disposed");
@@ -76,15 +83,19 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       }
     }
     if (!snapshot.viewComplete || snapshot.chunks.length === 0) return;
+    if (!appearance) throw new Error("cut terrain art is not installed");
     const identity = `${snapshot.epoch}:${snapshot.terrainRevision}:${level}:${nextDemand}`;
     if (identity === coverageIdentity) return;
     coverageIdentity = identity;
     const generatedTops = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface.generatedTop]));
     const coverage = materialCoverage({ chunks: snapshot.chunks, palette: snapshot.baseline.materials,
       bounds: snapshot.baseline.bounds, verticalMetres: snapshot.baseline.verticalMetres,
+      variantSeed: snapshot.baseline.variantSeed,
       epoch: snapshot.epoch, terrainRevision: snapshot.terrainRevision });
-    records = terrainFaceRecords(coverage, { level, projection, viewport: undefined,
-      appearance: palette.appearance, generatedTops });
+    records = terrainFaceRecords(coverage, { level, projection, viewport,
+      appearance, generatedTops });
+    records.push(...terrainCoverRecords(frame.surfaces, { level, projection, viewport, appearance,
+      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed }));
   }
 
   function waterRecords() {
@@ -110,6 +121,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
 
   return Object.freeze({
     container,
+    installArt,
     update,
     position,
     get sortableItems() { return [...records, ...waterRecords()]; },
@@ -117,7 +129,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
     get coverage() { return cache.snapshot(); },
     dispose() {
       if (disposed) return;
-      disposed = true; cache.dispose(); batches.dispose(); palette.dispose();
+      disposed = true; cache.dispose(); batches.dispose(); terrainArt?.dispose();
       for (const entry of waterEntries.values()) entry.sprite.destroy();
       waterEntries.clear(); waterTexture.destroy(true); records = [];
     },

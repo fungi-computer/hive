@@ -4,7 +4,7 @@ import { scene } from './geometry.js';
 import { camera } from './prop-camera.js';
 import { renderBakeCanvas } from './bake.js';
 import { figure } from './figures.js';
-import { grassCover, terrainBody } from './living-terrain.js';
+import { grassCover, terrainBody, terrainBodyPart } from './living-terrain.js';
 
 const FRAME=64;
 function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
@@ -15,6 +15,8 @@ export async function authorLivingTerrain(){
   const tiles=[];
   const entries=[];
   const atlas=canvas(16*FRAME,13*FRAME),ctx=atlas.getContext('2d');
+  const runtimeEntries=[];
+  const runtimeAtlas=canvas(16*FRAME,14*FRAME),runtimeContext=runtimeAtlas.getContext('2d');
   try{
     for(const kind of ['earth','stone'])for(let variant=0;variant<3;variant++)tiles.push({id:`${kind}/${variant}`,kind,variant,build:()=>terrainBody({kind,variant})});
     for(const condition of ['green','dead'])for(const height of ['short','full'])for(let variant=0;variant<3;variant++)for(let mask=0;mask<16;mask++)tiles.push({id:`grass/${condition}/${height}/${variant}/${mask}`,kind:'grass',condition,height,variant,mask,build:()=>grassCover({height,variant,mask,condition})});
@@ -33,6 +35,23 @@ export async function authorLivingTerrain(){
       entries.push({...definition,x,y,width:FRAME,height:FRAME,anchor:[32,32],visiblePixels:count,
         placement:{kind:'footprint',bakedFootprint:[[0,0]],rotationPivot:[0,0]},
         geometry:{footprint:[[-.5,0,-.5],[-.5,0,.5],[.5,0,.5],[.5,0,-.5]],minY:tile.kind==='grass'?0:-.54,maxY:tile.kind==='grass'?(tile.height==='short'?.13:.28):(tile.kind==='stone'?.08:.003)}});
+    }
+    const runtimeTiles=[];
+    // The shared camera exposes top, east and south faces. North/west are
+    // rejected before art selection and do not get empty back-face frames.
+    for(const kind of ['earth','stone'])for(let variant=0;variant<3;variant++)for(const part of ['top','east','south'])runtimeTiles.push({id:`body/${kind}/${variant}/${part}`,kind:'body',material:kind,variant,part,build:()=>terrainBodyPart({kind,variant,part})});
+    for(const condition of ['green','dead'])for(const height of ['short','full'])for(let variant=0;variant<3;variant++)for(let mask=0;mask<16;mask++)runtimeTiles.push({id:`cover/grass/${condition}/${height}/${variant}/${mask}`,kind:'cover',cover:'grass',condition,height,variant,mask,build:()=>grassCover({height,variant,mask,condition})});
+    for(const [index,tile] of runtimeTiles.entries()){
+      const s=scene();s.add(tile.build());
+      const {canvas:tileCanvas,context}=renderBakeCanvas(renderer,s,camera(FRAME,FRAME,0),FRAME,FRAME,{ink:false});
+      const data=context.getImageData(0,0,FRAME,FRAME).data;
+      let count=0;
+      for(let y=0;y<FRAME;y++)for(let x=0;x<FRAME;x++)if(data[(y*FRAME+x)*4+3]){count++;if(x===0||y===0||x===FRAME-1||y===FRAME-1)throw new Error(`Clipped runtime tile: ${tile.id}`);}
+      if((tile.kind==='body'||tile.mask!==0)&&!count)throw new Error(`Empty runtime tile: ${tile.id}`);
+      const x=index%16*FRAME,y=Math.floor(index/16)*FRAME;
+      runtimeContext.drawImage(tileCanvas,x,y);
+      const {build,...definition}=tile;
+      runtimeEntries.push({...definition,x,y,width:FRAME,height:FRAME,anchor:[32,32],visiblePixels:count});
     }
     const sheet=canvas(16*64,14*90),sc=sheet.getContext('2d');sc.fillStyle='#28382e';sc.fillRect(0,0,sheet.width,sheet.height);sc.font='12px monospace';
     for(const [conditionRow,condition] of ['green','dead'].entries())for(const [row,height] of ['short','full'].entries())for(let variant=0;variant<3;variant++)for(let mask=0;mask<16;mask++){
@@ -67,8 +86,8 @@ export async function authorLivingTerrain(){
     const root=new Container();const texture=Texture.from(native);texture.source.scaleMode='nearest';
     const sprite=new Sprite(texture);sprite.scale.set(2);root.addChild(sprite);app.stage.addChild(root);app.renderer.render(app.stage);
     const preview=await app.renderer.extract.canvas(app.stage);
-    const files={'living-terrain-atlas.png':atlas.toDataURL(),'living-terrain-masks.png':sheet.toDataURL(),'living-terrain-scene-native.png':native.toDataURL(),'living-terrain-scene-3x.png':enlarged(native,3).toDataURL(),'living-terrain-pixi-2x.png':preview.toDataURL()};
+    const files={'living-terrain-atlas.png':atlas.toDataURL(),'living-terrain-runtime-atlas.png':runtimeAtlas.toDataURL(),'living-terrain-masks.png':sheet.toDataURL(),'living-terrain-scene-native.png':native.toDataURL(),'living-terrain-scene-3x.png':enlarged(native,3).toDataURL(),'living-terrain-pixi-2x.png':preview.toDataURL()};
     app.destroy(true,{children:true,texture:true,textureSource:true});
-    return {files,manifest:{schema:'hive.living-terrain-art-study/1',atlas:'living-terrain-atlas.png',width:atlas.width,height:atlas.height,entries,corners:['NW','NE','SE','SW'],cellMetres:1,verticalMetres:.54,dualGridOffset:[.5,.5],pipeline:'Original Three geometry → shared bake/camera → nearest Pixi texture',scope:'Art study only. No new simulation or runtime sorting.',camera:'src/art/prop-camera.js',bake:'src/art/bake.js'}};
+    return {files,manifest:{schema:'hive.living-terrain-art-study/1',atlas:'living-terrain-atlas.png',width:atlas.width,height:atlas.height,entries,runtime:{schema:'hive.living-terrain-runtime/1',atlas:'living-terrain-runtime-atlas.png',width:runtimeAtlas.width,height:runtimeAtlas.height,entries:runtimeEntries},corners:['NW','NE','SE','SW'],cellMetres:1,verticalMetres:.54,dualGridOffset:[.5,.5],pipeline:'Original Three geometry → shared bake/camera → nearest Pixi texture',scope:'Art study plus face-addressable runtime derivatives. No simulation ownership.',camera:'src/art/prop-camera.js',bake:'src/art/bake.js'}};
   }finally{renderer.dispose();renderer.forceContextLoss();}
 }

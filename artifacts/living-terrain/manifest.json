@@ -10883,6 +10883,3566 @@
       }
     }
   ],
+  "runtime": {
+    "schema": "hive.living-terrain-runtime/1",
+    "atlas": "living-terrain-runtime-atlas.png",
+    "width": 1024,
+    "height": 896,
+    "entries": [
+      {
+        "id": "body/earth/0/top",
+        "kind": "body",
+        "material": "earth",
+        "variant": 0,
+        "part": "top",
+        "x": 0,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 256
+      },
+      {
+        "id": "body/earth/0/east",
+        "kind": "body",
+        "material": "earth",
+        "variant": 0,
+        "part": "east",
+        "x": 64,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 169
+      },
+      {
+        "id": "body/earth/0/south",
+        "kind": "body",
+        "material": "earth",
+        "variant": 0,
+        "part": "south",
+        "x": 128,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/earth/1/top",
+        "kind": "body",
+        "material": "earth",
+        "variant": 1,
+        "part": "top",
+        "x": 192,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 256
+      },
+      {
+        "id": "body/earth/1/east",
+        "kind": "body",
+        "material": "earth",
+        "variant": 1,
+        "part": "east",
+        "x": 256,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/earth/1/south",
+        "kind": "body",
+        "material": "earth",
+        "variant": 1,
+        "part": "south",
+        "x": 320,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/earth/2/top",
+        "kind": "body",
+        "material": "earth",
+        "variant": 2,
+        "part": "top",
+        "x": 384,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 256
+      },
+      {
+        "id": "body/earth/2/east",
+        "kind": "body",
+        "material": "earth",
+        "variant": 2,
+        "part": "east",
+        "x": 448,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 169
+      },
+      {
+        "id": "body/earth/2/south",
+        "kind": "body",
+        "material": "earth",
+        "variant": 2,
+        "part": "south",
+        "x": 512,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/stone/0/top",
+        "kind": "body",
+        "material": "stone",
+        "variant": 0,
+        "part": "top",
+        "x": 576,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 275
+      },
+      {
+        "id": "body/stone/0/east",
+        "kind": "body",
+        "material": "stone",
+        "variant": 0,
+        "part": "east",
+        "x": 640,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 169
+      },
+      {
+        "id": "body/stone/0/south",
+        "kind": "body",
+        "material": "stone",
+        "variant": 0,
+        "part": "south",
+        "x": 704,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/stone/1/top",
+        "kind": "body",
+        "material": "stone",
+        "variant": 1,
+        "part": "top",
+        "x": 768,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 273
+      },
+      {
+        "id": "body/stone/1/east",
+        "kind": "body",
+        "material": "stone",
+        "variant": 1,
+        "part": "east",
+        "x": 832,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/stone/1/south",
+        "kind": "body",
+        "material": "stone",
+        "variant": 1,
+        "part": "south",
+        "x": 896,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "body/stone/2/top",
+        "kind": "body",
+        "material": "stone",
+        "variant": 2,
+        "part": "top",
+        "x": 960,
+        "y": 0,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 275
+      },
+      {
+        "id": "body/stone/2/east",
+        "kind": "body",
+        "material": "stone",
+        "variant": 2,
+        "part": "east",
+        "x": 0,
+        "y": 64,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 169
+      },
+      {
+        "id": "body/stone/2/south",
+        "kind": "body",
+        "material": "stone",
+        "variant": 2,
+        "part": "south",
+        "x": 64,
+        "y": 64,
+        "width": 64,
+        "height": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 168
+      },
+      {
+        "id": "cover/grass/green/short/0/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 0,
+        "x": 128,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/green/short/0/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 1,
+        "x": 192,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/green/short/0/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 2,
+        "x": 256,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 60
+      },
+      {
+        "id": "cover/grass/green/short/0/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 3,
+        "x": 320,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 147
+      },
+      {
+        "id": "cover/grass/green/short/0/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 4,
+        "x": 384,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/green/short/0/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 5,
+        "x": 448,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 129
+      },
+      {
+        "id": "cover/grass/green/short/0/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 6,
+        "x": 512,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 143
+      },
+      {
+        "id": "cover/grass/green/short/0/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 7,
+        "x": 576,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 221
+      },
+      {
+        "id": "cover/grass/green/short/0/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 8,
+        "x": 640,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 61
+      },
+      {
+        "id": "cover/grass/green/short/0/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 9,
+        "x": 704,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 149
+      },
+      {
+        "id": "cover/grass/green/short/0/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 10,
+        "x": 768,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 116
+      },
+      {
+        "id": "cover/grass/green/short/0/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 11,
+        "x": 832,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 222
+      },
+      {
+        "id": "cover/grass/green/short/0/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 12,
+        "x": 896,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 141
+      },
+      {
+        "id": "cover/grass/green/short/0/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 13,
+        "x": 960,
+        "y": 64,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 216
+      },
+      {
+        "id": "cover/grass/green/short/0/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 14,
+        "x": 0,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 226
+      },
+      {
+        "id": "cover/grass/green/short/0/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 15,
+        "x": 64,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 278
+      },
+      {
+        "id": "cover/grass/green/short/1/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 0,
+        "x": 128,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/green/short/1/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 1,
+        "x": 192,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/green/short/1/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 2,
+        "x": 256,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/green/short/1/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 3,
+        "x": 320,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 140
+      },
+      {
+        "id": "cover/grass/green/short/1/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 4,
+        "x": 384,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/green/short/1/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 5,
+        "x": 448,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 127
+      },
+      {
+        "id": "cover/grass/green/short/1/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 6,
+        "x": 512,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 144
+      },
+      {
+        "id": "cover/grass/green/short/1/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 7,
+        "x": 576,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 219
+      },
+      {
+        "id": "cover/grass/green/short/1/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 8,
+        "x": 640,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 61
+      },
+      {
+        "id": "cover/grass/green/short/1/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 9,
+        "x": 704,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 141
+      },
+      {
+        "id": "cover/grass/green/short/1/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 10,
+        "x": 768,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 119
+      },
+      {
+        "id": "cover/grass/green/short/1/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 11,
+        "x": 832,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 218
+      },
+      {
+        "id": "cover/grass/green/short/1/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 12,
+        "x": 896,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 143
+      },
+      {
+        "id": "cover/grass/green/short/1/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 13,
+        "x": 960,
+        "y": 128,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 220
+      },
+      {
+        "id": "cover/grass/green/short/1/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 14,
+        "x": 0,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 218
+      },
+      {
+        "id": "cover/grass/green/short/1/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 15,
+        "x": 64,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 270
+      },
+      {
+        "id": "cover/grass/green/short/2/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 0,
+        "x": 128,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/green/short/2/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 1,
+        "x": 192,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 57
+      },
+      {
+        "id": "cover/grass/green/short/2/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 2,
+        "x": 256,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 64
+      },
+      {
+        "id": "cover/grass/green/short/2/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 3,
+        "x": 320,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 138
+      },
+      {
+        "id": "cover/grass/green/short/2/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 4,
+        "x": 384,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 61
+      },
+      {
+        "id": "cover/grass/green/short/2/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 5,
+        "x": 448,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 117
+      },
+      {
+        "id": "cover/grass/green/short/2/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 6,
+        "x": 512,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 145
+      },
+      {
+        "id": "cover/grass/green/short/2/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 7,
+        "x": 576,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 213
+      },
+      {
+        "id": "cover/grass/green/short/2/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 8,
+        "x": 640,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/green/short/2/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 9,
+        "x": 704,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 138
+      },
+      {
+        "id": "cover/grass/green/short/2/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 10,
+        "x": 768,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 124
+      },
+      {
+        "id": "cover/grass/green/short/2/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 11,
+        "x": 832,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 224
+      },
+      {
+        "id": "cover/grass/green/short/2/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 12,
+        "x": 896,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 135
+      },
+      {
+        "id": "cover/grass/green/short/2/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 13,
+        "x": 960,
+        "y": 192,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 217
+      },
+      {
+        "id": "cover/grass/green/short/2/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 14,
+        "x": 0,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 227
+      },
+      {
+        "id": "cover/grass/green/short/2/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 15,
+        "x": 64,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 284
+      },
+      {
+        "id": "cover/grass/green/full/0/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 0,
+        "x": 128,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/green/full/0/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 1,
+        "x": 192,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 81
+      },
+      {
+        "id": "cover/grass/green/full/0/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 2,
+        "x": 256,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 78
+      },
+      {
+        "id": "cover/grass/green/full/0/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 3,
+        "x": 320,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 177
+      },
+      {
+        "id": "cover/grass/green/full/0/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 4,
+        "x": 384,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 82
+      },
+      {
+        "id": "cover/grass/green/full/0/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 5,
+        "x": 448,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 157
+      },
+      {
+        "id": "cover/grass/green/full/0/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 6,
+        "x": 512,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 167
+      },
+      {
+        "id": "cover/grass/green/full/0/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 7,
+        "x": 576,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 254
+      },
+      {
+        "id": "cover/grass/green/full/0/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 8,
+        "x": 640,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 70
+      },
+      {
+        "id": "cover/grass/green/full/0/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 9,
+        "x": 704,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 180
+      },
+      {
+        "id": "cover/grass/green/full/0/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 10,
+        "x": 768,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 137
+      },
+      {
+        "id": "cover/grass/green/full/0/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 11,
+        "x": 832,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 263
+      },
+      {
+        "id": "cover/grass/green/full/0/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 12,
+        "x": 896,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 165
+      },
+      {
+        "id": "cover/grass/green/full/0/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 13,
+        "x": 960,
+        "y": 256,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 248
+      },
+      {
+        "id": "cover/grass/green/full/0/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 14,
+        "x": 0,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 264
+      },
+      {
+        "id": "cover/grass/green/full/0/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 0,
+        "mask": 15,
+        "x": 64,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 321
+      },
+      {
+        "id": "cover/grass/green/full/1/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 0,
+        "x": 128,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/green/full/1/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 1,
+        "x": 192,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 78
+      },
+      {
+        "id": "cover/grass/green/full/1/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 2,
+        "x": 256,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 75
+      },
+      {
+        "id": "cover/grass/green/full/1/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 3,
+        "x": 320,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 165
+      },
+      {
+        "id": "cover/grass/green/full/1/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 4,
+        "x": 384,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 74
+      },
+      {
+        "id": "cover/grass/green/full/1/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 5,
+        "x": 448,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 151
+      },
+      {
+        "id": "cover/grass/green/full/1/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 6,
+        "x": 512,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 166
+      },
+      {
+        "id": "cover/grass/green/full/1/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 7,
+        "x": 576,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 247
+      },
+      {
+        "id": "cover/grass/green/full/1/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 8,
+        "x": 640,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 73
+      },
+      {
+        "id": "cover/grass/green/full/1/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 9,
+        "x": 704,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 163
+      },
+      {
+        "id": "cover/grass/green/full/1/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 10,
+        "x": 768,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 134
+      },
+      {
+        "id": "cover/grass/green/full/1/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 11,
+        "x": 832,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 249
+      },
+      {
+        "id": "cover/grass/green/full/1/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 12,
+        "x": 896,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 162
+      },
+      {
+        "id": "cover/grass/green/full/1/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 13,
+        "x": 960,
+        "y": 320,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 252
+      },
+      {
+        "id": "cover/grass/green/full/1/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 14,
+        "x": 0,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 245
+      },
+      {
+        "id": "cover/grass/green/full/1/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 1,
+        "mask": 15,
+        "x": 64,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 301
+      },
+      {
+        "id": "cover/grass/green/full/2/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 0,
+        "x": 128,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/green/full/2/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 1,
+        "x": 192,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 72
+      },
+      {
+        "id": "cover/grass/green/full/2/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 2,
+        "x": 256,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 85
+      },
+      {
+        "id": "cover/grass/green/full/2/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 3,
+        "x": 320,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 158
+      },
+      {
+        "id": "cover/grass/green/full/2/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 4,
+        "x": 384,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 80
+      },
+      {
+        "id": "cover/grass/green/full/2/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 5,
+        "x": 448,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 145
+      },
+      {
+        "id": "cover/grass/green/full/2/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 6,
+        "x": 512,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 170
+      },
+      {
+        "id": "cover/grass/green/full/2/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 7,
+        "x": 576,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 234
+      },
+      {
+        "id": "cover/grass/green/full/2/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 8,
+        "x": 640,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 71
+      },
+      {
+        "id": "cover/grass/green/full/2/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 9,
+        "x": 704,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 156
+      },
+      {
+        "id": "cover/grass/green/full/2/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 10,
+        "x": 768,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 149
+      },
+      {
+        "id": "cover/grass/green/full/2/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 11,
+        "x": 832,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 262
+      },
+      {
+        "id": "cover/grass/green/full/2/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 12,
+        "x": 896,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 150
+      },
+      {
+        "id": "cover/grass/green/full/2/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 13,
+        "x": 960,
+        "y": 384,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 241
+      },
+      {
+        "id": "cover/grass/green/full/2/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 14,
+        "x": 0,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 268
+      },
+      {
+        "id": "cover/grass/green/full/2/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "green",
+        "height": 64,
+        "variant": 2,
+        "mask": 15,
+        "x": 64,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 330
+      },
+      {
+        "id": "cover/grass/dead/short/0/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 0,
+        "x": 128,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/dead/short/0/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 1,
+        "x": 192,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/dead/short/0/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 2,
+        "x": 256,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 60
+      },
+      {
+        "id": "cover/grass/dead/short/0/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 3,
+        "x": 320,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 147
+      },
+      {
+        "id": "cover/grass/dead/short/0/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 4,
+        "x": 384,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/dead/short/0/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 5,
+        "x": 448,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 129
+      },
+      {
+        "id": "cover/grass/dead/short/0/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 6,
+        "x": 512,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 143
+      },
+      {
+        "id": "cover/grass/dead/short/0/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 7,
+        "x": 576,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 221
+      },
+      {
+        "id": "cover/grass/dead/short/0/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 8,
+        "x": 640,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 61
+      },
+      {
+        "id": "cover/grass/dead/short/0/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 9,
+        "x": 704,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 149
+      },
+      {
+        "id": "cover/grass/dead/short/0/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 10,
+        "x": 768,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 116
+      },
+      {
+        "id": "cover/grass/dead/short/0/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 11,
+        "x": 832,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 222
+      },
+      {
+        "id": "cover/grass/dead/short/0/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 12,
+        "x": 896,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 141
+      },
+      {
+        "id": "cover/grass/dead/short/0/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 13,
+        "x": 960,
+        "y": 448,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 216
+      },
+      {
+        "id": "cover/grass/dead/short/0/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 14,
+        "x": 0,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 226
+      },
+      {
+        "id": "cover/grass/dead/short/0/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 15,
+        "x": 64,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 278
+      },
+      {
+        "id": "cover/grass/dead/short/1/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 0,
+        "x": 128,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/dead/short/1/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 1,
+        "x": 192,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/dead/short/1/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 2,
+        "x": 256,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/dead/short/1/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 3,
+        "x": 320,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 140
+      },
+      {
+        "id": "cover/grass/dead/short/1/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 4,
+        "x": 384,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/dead/short/1/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 5,
+        "x": 448,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 127
+      },
+      {
+        "id": "cover/grass/dead/short/1/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 6,
+        "x": 512,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 144
+      },
+      {
+        "id": "cover/grass/dead/short/1/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 7,
+        "x": 576,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 219
+      },
+      {
+        "id": "cover/grass/dead/short/1/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 8,
+        "x": 640,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 61
+      },
+      {
+        "id": "cover/grass/dead/short/1/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 9,
+        "x": 704,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 141
+      },
+      {
+        "id": "cover/grass/dead/short/1/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 10,
+        "x": 768,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 119
+      },
+      {
+        "id": "cover/grass/dead/short/1/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 11,
+        "x": 832,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 218
+      },
+      {
+        "id": "cover/grass/dead/short/1/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 12,
+        "x": 896,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 143
+      },
+      {
+        "id": "cover/grass/dead/short/1/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 13,
+        "x": 960,
+        "y": 512,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 220
+      },
+      {
+        "id": "cover/grass/dead/short/1/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 14,
+        "x": 0,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 218
+      },
+      {
+        "id": "cover/grass/dead/short/1/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 15,
+        "x": 64,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 270
+      },
+      {
+        "id": "cover/grass/dead/short/2/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 0,
+        "x": 128,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/dead/short/2/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 1,
+        "x": 192,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 57
+      },
+      {
+        "id": "cover/grass/dead/short/2/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 2,
+        "x": 256,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 64
+      },
+      {
+        "id": "cover/grass/dead/short/2/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 3,
+        "x": 320,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 138
+      },
+      {
+        "id": "cover/grass/dead/short/2/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 4,
+        "x": 384,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 61
+      },
+      {
+        "id": "cover/grass/dead/short/2/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 5,
+        "x": 448,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 117
+      },
+      {
+        "id": "cover/grass/dead/short/2/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 6,
+        "x": 512,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 145
+      },
+      {
+        "id": "cover/grass/dead/short/2/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 7,
+        "x": 576,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 213
+      },
+      {
+        "id": "cover/grass/dead/short/2/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 8,
+        "x": 640,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 62
+      },
+      {
+        "id": "cover/grass/dead/short/2/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 9,
+        "x": 704,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 138
+      },
+      {
+        "id": "cover/grass/dead/short/2/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 10,
+        "x": 768,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 124
+      },
+      {
+        "id": "cover/grass/dead/short/2/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 11,
+        "x": 832,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 224
+      },
+      {
+        "id": "cover/grass/dead/short/2/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 12,
+        "x": 896,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 135
+      },
+      {
+        "id": "cover/grass/dead/short/2/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 13,
+        "x": 960,
+        "y": 576,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 217
+      },
+      {
+        "id": "cover/grass/dead/short/2/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 14,
+        "x": 0,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 227
+      },
+      {
+        "id": "cover/grass/dead/short/2/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 15,
+        "x": 64,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 284
+      },
+      {
+        "id": "cover/grass/dead/full/0/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 0,
+        "x": 128,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/dead/full/0/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 1,
+        "x": 192,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 81
+      },
+      {
+        "id": "cover/grass/dead/full/0/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 2,
+        "x": 256,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 78
+      },
+      {
+        "id": "cover/grass/dead/full/0/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 3,
+        "x": 320,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 177
+      },
+      {
+        "id": "cover/grass/dead/full/0/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 4,
+        "x": 384,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 82
+      },
+      {
+        "id": "cover/grass/dead/full/0/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 5,
+        "x": 448,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 157
+      },
+      {
+        "id": "cover/grass/dead/full/0/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 6,
+        "x": 512,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 167
+      },
+      {
+        "id": "cover/grass/dead/full/0/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 7,
+        "x": 576,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 254
+      },
+      {
+        "id": "cover/grass/dead/full/0/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 8,
+        "x": 640,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 70
+      },
+      {
+        "id": "cover/grass/dead/full/0/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 9,
+        "x": 704,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 180
+      },
+      {
+        "id": "cover/grass/dead/full/0/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 10,
+        "x": 768,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 137
+      },
+      {
+        "id": "cover/grass/dead/full/0/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 11,
+        "x": 832,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 263
+      },
+      {
+        "id": "cover/grass/dead/full/0/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 12,
+        "x": 896,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 165
+      },
+      {
+        "id": "cover/grass/dead/full/0/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 13,
+        "x": 960,
+        "y": 640,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 248
+      },
+      {
+        "id": "cover/grass/dead/full/0/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 14,
+        "x": 0,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 264
+      },
+      {
+        "id": "cover/grass/dead/full/0/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 0,
+        "mask": 15,
+        "x": 64,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 321
+      },
+      {
+        "id": "cover/grass/dead/full/1/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 0,
+        "x": 128,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/dead/full/1/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 1,
+        "x": 192,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 78
+      },
+      {
+        "id": "cover/grass/dead/full/1/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 2,
+        "x": 256,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 75
+      },
+      {
+        "id": "cover/grass/dead/full/1/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 3,
+        "x": 320,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 165
+      },
+      {
+        "id": "cover/grass/dead/full/1/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 4,
+        "x": 384,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 74
+      },
+      {
+        "id": "cover/grass/dead/full/1/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 5,
+        "x": 448,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 151
+      },
+      {
+        "id": "cover/grass/dead/full/1/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 6,
+        "x": 512,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 166
+      },
+      {
+        "id": "cover/grass/dead/full/1/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 7,
+        "x": 576,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 247
+      },
+      {
+        "id": "cover/grass/dead/full/1/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 8,
+        "x": 640,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 73
+      },
+      {
+        "id": "cover/grass/dead/full/1/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 9,
+        "x": 704,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 163
+      },
+      {
+        "id": "cover/grass/dead/full/1/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 10,
+        "x": 768,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 134
+      },
+      {
+        "id": "cover/grass/dead/full/1/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 11,
+        "x": 832,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 249
+      },
+      {
+        "id": "cover/grass/dead/full/1/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 12,
+        "x": 896,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 162
+      },
+      {
+        "id": "cover/grass/dead/full/1/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 13,
+        "x": 960,
+        "y": 704,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 252
+      },
+      {
+        "id": "cover/grass/dead/full/1/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 14,
+        "x": 0,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 245
+      },
+      {
+        "id": "cover/grass/dead/full/1/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 1,
+        "mask": 15,
+        "x": 64,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 301
+      },
+      {
+        "id": "cover/grass/dead/full/2/0",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 0,
+        "x": 128,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 0
+      },
+      {
+        "id": "cover/grass/dead/full/2/1",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 1,
+        "x": 192,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 72
+      },
+      {
+        "id": "cover/grass/dead/full/2/2",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 2,
+        "x": 256,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 85
+      },
+      {
+        "id": "cover/grass/dead/full/2/3",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 3,
+        "x": 320,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 158
+      },
+      {
+        "id": "cover/grass/dead/full/2/4",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 4,
+        "x": 384,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 80
+      },
+      {
+        "id": "cover/grass/dead/full/2/5",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 5,
+        "x": 448,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 145
+      },
+      {
+        "id": "cover/grass/dead/full/2/6",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 6,
+        "x": 512,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 170
+      },
+      {
+        "id": "cover/grass/dead/full/2/7",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 7,
+        "x": 576,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 234
+      },
+      {
+        "id": "cover/grass/dead/full/2/8",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 8,
+        "x": 640,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 71
+      },
+      {
+        "id": "cover/grass/dead/full/2/9",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 9,
+        "x": 704,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 156
+      },
+      {
+        "id": "cover/grass/dead/full/2/10",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 10,
+        "x": 768,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 149
+      },
+      {
+        "id": "cover/grass/dead/full/2/11",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 11,
+        "x": 832,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 262
+      },
+      {
+        "id": "cover/grass/dead/full/2/12",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 12,
+        "x": 896,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 150
+      },
+      {
+        "id": "cover/grass/dead/full/2/13",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 13,
+        "x": 960,
+        "y": 768,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 241
+      },
+      {
+        "id": "cover/grass/dead/full/2/14",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 14,
+        "x": 0,
+        "y": 832,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 268
+      },
+      {
+        "id": "cover/grass/dead/full/2/15",
+        "kind": "cover",
+        "cover": "grass",
+        "condition": "dead",
+        "height": 64,
+        "variant": 2,
+        "mask": 15,
+        "x": 64,
+        "y": 832,
+        "width": 64,
+        "anchor": [
+          32,
+          32
+        ],
+        "visiblePixels": 330
+      }
+    ]
+  },
   "corners": [
     "NW",
     "NE",
@@ -10896,11 +14456,12 @@
     0.5
   ],
   "pipeline": "Original Three geometry → shared bake/camera → nearest Pixi texture",
-  "scope": "Art study only. No new simulation or runtime sorting.",
+  "scope": "Art study plus face-addressable runtime derivatives. No simulation ownership.",
   "camera": "src/art/prop-camera.js",
   "bake": "src/art/bake.js",
   "hashes": {
     "living-terrain-atlas.png": "f974a6e7019dafcb6d9d6c8b9ae4ad87a148821f37032cd632e5e2f040dc8f35",
+    "living-terrain-runtime-atlas.png": "5c320bd15e5a3aeb6c5d479581dba28b1bd12ecd84e468ae06455176b202c16f",
     "living-terrain-masks.png": "d60bd2a60bc868ed5d1788aa0ddba4f92c97f9ad7b5bc0f21e0c889f28c88837",
     "living-terrain-scene-native.png": "ce8dbd18ed4b4a276b2b640cd80078595055389e08ac91241a4e969b720ca380",
     "living-terrain-scene-3x.png": "814125d3be0779c8d060e2442d137d8c1a72ca9e74629cb4f5e8a33c3432f485",
@@ -10908,14 +14469,14 @@
   },
   "sources": {
     "src/art/terrain-patches.js": "427ab78c390dc2a7d6d7fb540c34be26237c7e2731dbe6c84a3ad425f18e409a",
-    "src/art/living-terrain-authoring.js": "be87e8684177e82c26c4954a1f35656bfea9212af6b8f8ca02dddcb5b39bfb62",
-    "src/art/living-terrain.js": "949152fe30f22a9d5dac8e69488a6ec933bc6cf5c4fc3532c7c7aa32833d66e3",
+    "src/art/living-terrain-authoring.js": "44d71139aa1310b33d11ccc52a952a5ddd37f2dc9992a63052425f499c135489",
+    "src/art/living-terrain.js": "443a9af846b27eec486a2cb0f1ae38720615921915d065b5e1a688f3e8c81ed8",
     "src/art/figures.js": "142ab90102a21e2e65023bdc583fd96fedeee688afdcf97bf4adf46b4c2e58b5",
     "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
     "src/art/bake.js": "9797625fa8afc0a932e0fa979e39ee5aac1eb401c0cc21d7f858d1d257d1e5f6",
     "src/art/prop-camera.js": "a4a1c7b23176531e4978d48ed9e3ae5e17c10d291a7dc382d68d8ff3359345cc",
     "src/art/static-manifest.js": "980bf417f60d1a901333f9d8d6ceb9c338604fd922e0028d20f2e6586e577235",
     "scripts/export-living-terrain-art.mjs": "4deb85f14c54598f58c59d10458481a44801f7a5f20e2721d1a3dfceb4d2613f",
-    "living-terrain-art.html": "1fc17bb5572788170b2b06866ff7b690a7b9e0fd9f64cd2aff19a90695c25832"
+    "living-terrain-art.html": "5fe7e2646b681dfd9982d3efcc5844bc44bf717c0cd13496eda9debda462cc50"
   }
 }

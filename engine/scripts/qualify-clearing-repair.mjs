@@ -84,6 +84,7 @@ const groups = Object.freeze({
     "engine/src/runtime/whistle.test.ts",
   ]),
   terrain: Object.freeze([
+    "src/art/living-terrain-pack.test.js",
     "engine/src/client/cut-terrain-layer.test.js",
     "engine/src/client/cut-terrain.test.js",
     "engine/src/client/terrain-chunk-cache.test.js",

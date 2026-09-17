@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Texture } from "pixi.js";
 import { createCutTerrainLayer } from "./cut-terrain-layer.js";
 import { createOrderingProjection } from "./ordering-projection.js";
 
@@ -20,9 +21,10 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
       terrainRevision: request.terrainRevision, chunks: request.chunks.map(chunk) };
   } };
   const layer = createCutTerrainLayer({ runtime, projection: createOrderingProjection() });
+  layer.installArt({ body: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }), cover: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }), dispose() {} });
   const terrain = { revision: 1, placementRevision: 1, verticalMetres: 0.54,
     baseline: { protocolVersion: 2, bounds: { minX: 0, maxX: 8, minY: 0, maxY: 8, minZ: 0, maxZ: 8 },
-      verticalMetres: 0.54, materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }] },
+      verticalMetres: 0.54, materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] },
     surfaces: [{ cell: [4, 0, 4], material: 1, generatedTop: 0 }], structureSurfaces: [], water: [] };
   layer.update(terrain, 2);
   const camera = { x: 13, y: 17, zoom: 2 }, view = { cutaway: true, level: 0, range: { min: 0, max: 7 } };

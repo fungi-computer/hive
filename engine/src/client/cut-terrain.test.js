@@ -4,14 +4,14 @@ import { Texture } from "pixi.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { createOrderingProjection } from "./ordering-projection.js";
 import { createIsometricSorter, pickFromOrdered, stableKey } from "./isometric-sorter.js";
-import { materialCoverage, terrainFaceRecords, visibleTerrainChunks, projectedBounds } from "./terrain-visibility.js";
+import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks, projectedBounds } from "./terrain-visibility.js";
 import { terrainBatchPlan, createTerrainBatchMeshes } from "./terrain-face-batches.js";
 
 const h = 0.54;
 const bounds = { minX: -3, maxX: 4, minY: -8, maxY: 5, minZ: -3, maxZ: 4 };
 const palette = [{slot:7,solid:false}, {slot:12,solid:true}, {slot:0,solid:true}];
 const projection = createOrderingProjection();
-const appearance = () => ({texture:Texture.WHITE,uvs:[0,0,0,1,1,1,1,0],blendMode:"normal"});
+const appearance = { body: () => ({ terrainBatch: {texture:Texture.WHITE,uvs:[0,0,0,1,1,1,1,0],blendMode:"normal"} }) };
 function fixture(sample, selectedBounds = bounds) {
   const chunks = new Map();
   for(let x=selectedBounds.minX;x<selectedBounds.maxX;x++) for(let z=selectedBounds.minZ;z<selectedBounds.maxZ;z++) for(let y=selectedBounds.minY;y<selectedBounds.maxY;y++) {
@@ -124,6 +124,19 @@ test("consecutive batches preserve IDs across actors, rails, state/texture chang
   assert.equal(owner.size,2,"over-budget update preserves accepted meshes");
   owner.dispose();owner.dispose();assert.equal(owner.size,0);
   assert.throws(()=>owner.update([]),/disposed/);
+});
+
+test("dual-grid covers derive stable masks from explicit same-level surface facts",()=>{
+  const surfaces = [[0,0],[1,0],[1,1],[0,1]].map(([x,z]) => ({ cell:[x,0,z], material:12, generatedTop:0,
+    cover:{kind:"grass",condition:"green",height:"full"} }));
+  const coverAppearance = { cover: input => { const p=projection.project({x:input.root[0]+.5,y:.27,z:input.root[1]+.5});
+    return { terrainBatch:{texture:Texture.WHITE,uvs:[0,0,0,1,1,1,1,0]}, projected:[{x:p.x-32,y:p.y-32},{x:p.x-32,y:p.y+32},{x:p.x+32,y:p.y+32},{x:p.x+32,y:p.y-32}] }; } };
+  const first=terrainCoverRecords(surfaces,{level:0,projection,appearance:coverAppearance,verticalMetres:h,variantSeed:9});
+  const shuffled=terrainCoverRecords([...surfaces].reverse(),{level:0,projection,appearance:coverAppearance,verticalMetres:h,variantSeed:9});
+  const center=first.find(record=>record.id.startsWith("cover:0:0:0:"));
+  assert.equal(center.mask,15);
+  assert.deepEqual(first.map(record=>[record.id,record.mask]).sort(),shuffled.map(record=>[record.id,record.mask]).sort());
+  assert(first.every(record=>record.role==="terrain-cover"&&record.footprint.length===1));
 });
 
 test("chunk demand includes deep visible levels and halo, with explicit view-budget rejection",()=>{

@@ -1,5 +1,11 @@
 # Cut-level rendering and Ingnomia study
 
+**September 17 supersession:** [Section 14](14-simple-depth-rendering-handoff.md)
+now owns sorter implementation. The plane-comparison/dependency-graph proposal
+below is historical and must not drive new work. This page still owns cut
+visibility and terrain observation contracts. The replacement scalar convention
+requires its real-art qualification checkpoint before production cutover.
+
 September 16. Accepted direction; source research, not implemented or benchmarked.
 [Index](README.md) · [Drawing](04-drawing.md) · [Art/geometry](06-edge-buildings-and-art-parts.md).
 

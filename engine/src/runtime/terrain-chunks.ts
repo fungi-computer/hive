@@ -27,7 +27,7 @@ const bounds = z
     "terrain bounds must be nonempty",
   );
 const material = z
-  .object({ slot: z.number().int().min(0).max(65535), solid: z.boolean() })
+  .object({ slot: z.number().int().min(0).max(65535), solid: z.boolean(), art: z.string().min(1).max(64).optional() })
   .strict();
 
 export const terrainBaselineSchema = z
@@ -35,6 +35,7 @@ export const terrainBaselineSchema = z
     protocolVersion: z.literal(2),
     bounds,
     verticalMetres: z.number().finite().positive(),
+    variantSeed: z.number().int().min(0).max(0xffffffff).optional(),
     materials: z.array(material).min(1).max(256),
   })
   .strict()
