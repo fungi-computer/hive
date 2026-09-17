@@ -256,10 +256,19 @@ a lower foreground actor draws after farther raised terrain; it rejected the
 earlier layer-first prototype. A pure picking owner now consumes the same compiled
 records in reverse, stops at the first authored silhouette including non-pickable
 occluders, and returns the established logical target identity. Production still
-uses the old sorter. The factual fixture does not yet retain resolved real textures
-or displays for every record, so rendered-image proof remains open rather than
-being replaced with colored placeholders. Original-art rendering, continuous
-movement and live cutover remain required before Stage 1B/1C acceptance.
+uses the old sorter.
+
+The original-art review boundary is now implemented at `a22bcdda`. Its browser
+route loads the checked static and living-terrain packs, resolves authored alpha
+silhouettes, and sends 162 real terrain, grass, water, bed, stair, goblin and guide
+records through the compiler into the existing Pixi Sprite, Graphics and retained
+terrain Mesh owners. Focused proof passes 31/31; the production build and browser
+proof pass with all six record roles and no browser errors. Reviewed screenshots
+cover the joined scene, bed and opposite stair facings. The shipped art bank and
+playable client use one fixed north camera; four-camera compiler cases exercise
+the general traversal math without falsely claiming a rotatable game camera.
+This is still a harness beside production. Continuous movement and live cutover
+remain required before Stage 1B/1C acceptance.
 
 Create one maintained mixed fixture from actual original art: raised platform,
 2x1 bed, rug, both stair railings, animated goblin, short/full grass, cliff, pit,
