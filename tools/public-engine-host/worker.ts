@@ -704,7 +704,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     if (route.operation === "connect" && request.method === "GET") return jsonResponse({ handle: this.state.id.toString() }, 200, this.hostEnv.PUBLIC_ORIGIN);
     if (route.operation === "observe" && request.method === "GET") {
       await this.renewLease(now);
-      return this.observationResponse();
+      return withCors(await this.observationResponse(), this.hostEnv.PUBLIC_ORIGIN);
     }
     if (route.operation === "placement" && request.method === "POST") {
       const query = await readPlacementDecision(request);

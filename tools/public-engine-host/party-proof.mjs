@@ -110,7 +110,7 @@ async function jsonResponse(response) {
   try { value = JSON.parse(text); } catch { value = undefined; }
   return { response, text, value };
 }
-function auth(credential) { return { Authorization: `Bearer ${credential}` }; }
+function auth(credential) { return { Authorization: `Bearer ${credential}`, Origin: endpoint }; }
 function route(operation) { return `${endpoint}/v2/colony/worlds/${world}/${operation}`; }
 async function join(credential) {
   return jsonResponse(await fetch(route("join"), {
@@ -125,6 +125,8 @@ async function observe(credential) {
     headers: auth(credential), signal: AbortSignal.timeout(10_000),
   }));
   assert.equal(result.response.status, 200, redact(result.text));
+  assert.equal(result.response.headers.get("access-control-allow-origin"), endpoint,
+    "party observation omitted its owning browser origin");
   assert(Number.isSafeInteger(result.value?.revision), "party observation revision missing");
   assert(result.value.observation && Array.isArray(result.value.observation.facts), "party observation facts missing");
   return result.value;

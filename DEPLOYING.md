@@ -4,7 +4,7 @@ The maintained release command is:
 
 ```sh
 /home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh \
-  bash engine/scripts/release-clearing-preview.sh all
+  npm run release:preview
 ```
 
 Run it from the accepted, pushed Hive worktree. It builds the root site first and
@@ -14,17 +14,15 @@ the static client to the same alias, and compares every served byte with `dist/`
 through both the immutable version URL and the public alias. Source-named aliases
 avoid Cloudflare returning retained bytes from a previously reused alias.
 
-For a client-only release whose backend contract and implementation are unchanged:
-
-```sh
-/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh \
-  bash engine/scripts/release-clearing-preview.sh client
-```
-
 The script refuses to start from dirty tracked source or a commit absent from all
 remote-tracking branches. It records the prior frontend/backend state, source SHA,
 artifact hashes, Wrangler output and full HTTP readback under
 `.botanical/clearing-releases/`.
+
+There is deliberately no client-only mode. A preview release always publishes a
+source-named frontend, binds the Durable Object backend to that exact origin, and
+proves a real Colony join and authoritative observation. This prevents a static
+placeholder from being mistaken for a connected game.
 
 An upload is **not a release** until both immutable and alias readbacks match all
 files. Wrangler exit zero, a printed preview URL, or `No targets deployed` is not
