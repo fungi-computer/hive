@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Hive · Mixed voxel draw review</title>
+    <link rel="stylesheet" href="./src/client/mixed-render-review.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div><strong>Mixed voxel draw review</strong><span id="status">Loading checked art…</span></div>
+        <label>Camera <select id="camera"></select></label>
+        <label>Object <select id="object"></select></label>
+        <label>Focus <select id="focus"><option value="scene">scene</option><option value="stair">stair</option><option value="bed">bed</option><option value="terrain">terrain</option><option value="all">all facts</option></select></label>
+        <label><input id="guide" type="checkbox" /> build guide</label>
+      </header>
+      <section id="canvas"></section>
+    </main>
+    <script type="module" src="./src/client/mixed-render-review-page.js"></script>
+  </body>
+</html>

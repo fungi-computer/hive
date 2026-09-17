@@ -46,7 +46,13 @@ const signature = records => JSON.stringify(records.map(record => [stableKey(rec
 export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
   if (!Number.isInteger(maxMeshes) || maxMeshes < 1 || maxMeshes > 4096) throw new Error("invalid terrain mesh budget");
   let active = [], spare = [], disposed = false;
-  function destroy(entry) { entry.mesh.removeFromParent(); entry.mesh.destroy(); entry.geometry.destroy(true); }
+  function destroy(entry) {
+    entry.mesh.removeFromParent();
+    // Atlas textures remain owned by the checked art pack and are shared by
+    // replacement batches and review orientations.
+    entry.mesh.destroy({ texture: false, textureSource: false });
+    entry.geometry.destroy(true);
+  }
   return {
     update(ordered) {
       if (disposed) throw new Error("terrain mesh owner is disposed");

@@ -29,6 +29,7 @@ export default defineConfig({
         engineFormations: "engine/formations.html",
         enginePirates: "engine/pirates.html",
         engineSurvival: "engine/survival.html",
+        engineMixedRenderReview: "engine/mixed-render-review.html",
       },
     },
   },

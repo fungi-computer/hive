@@ -8,7 +8,7 @@ import { project } from "./geometry.js";
 
 const WATER_WIDTH = 32, WATER_HEIGHT = 16;
 
-function createWaterTile() {
+export function createWaterSurfaceTexture() {
   const pixels = new Uint8Array(WATER_WIDTH * WATER_HEIGHT * 4);
   for (let y = 0; y < WATER_HEIGHT; y++) for (let x = 0; x < WATER_WIDTH; x++) {
     const dx = x + 0.5 - WATER_WIDTH / 2, dy = y + 0.5 - WATER_HEIGHT / 2;
@@ -55,7 +55,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
   const cache = createTerrainChunkCache({ runtime });
   let appearance, terrainArt;
   const batches = createTerrainBatchMeshes({ parent: container });
-  const waterTexture = createWaterTile();
+  const waterTexture = createWaterSurfaceTexture();
   let waterEntries = new Map(), frame, epoch, level, records = [], disposed = false;
   let demandIdentity, coverageIdentity, observedService, serviceTurn = 0, servedTurn = -1;
   let retainedViewport;
