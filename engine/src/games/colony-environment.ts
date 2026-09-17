@@ -4,6 +4,7 @@ import {
 } from "../sdk/environment";
 import { compileBuildableEnvironment } from "../sdk/construction";
 import { colonyActors } from "./colony-actors";
+import { COLONY_VERTICAL_METRES } from "./colony-world";
 
 const colonyWorldBounds = Object.freeze({
   minX: -32,
@@ -25,7 +26,7 @@ const colonyEnvironmentBase: EnvironmentDefinition = {
     bounds: colonyWorldBounds,
     slots: { air: 0, soil: 1, stone: 2 },
     seaLevel: 12,
-    verticalMetres: 0.54,
+    verticalMetres: COLONY_VERTICAL_METRES,
   },
   // Smoke samples use the same full world bounds as terrain. Outside
   // this domain is unmodeled, never reported as smoke-free air.
