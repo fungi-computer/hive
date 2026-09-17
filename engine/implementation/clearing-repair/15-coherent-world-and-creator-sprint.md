@@ -253,9 +253,13 @@ after opaque. Focused integration proof passes 23/23 across the 4×4 camera/obje
 orientation matrix, reversed input, empty/occupied stairs, complete bed contacts,
 cover supports, water and build guides. A real projected cross-layer case proves
 a lower foreground actor draws after farther raised terrain; it rejected the
-earlier layer-first prototype. Production still uses the old sorter. Rendered
-image, shared reverse-stream picking, continuous movement and live cutover remain
-required before Stage 1B/1C acceptance.
+earlier layer-first prototype. A pure picking owner now consumes the same compiled
+records in reverse, stops at the first authored silhouette including non-pickable
+occluders, and returns the established logical target identity. Production still
+uses the old sorter. The factual fixture does not yet retain resolved real textures
+or displays for every record, so rendered-image proof remains open rather than
+being replaced with colored placeholders. Original-art rendering, continuous
+movement and live cutover remain required before Stage 1B/1C acceptance.
 
 Create one maintained mixed fixture from actual original art: raised platform,
 2x1 bed, rug, both stair railings, animated goblin, short/full grass, cliff, pit,
