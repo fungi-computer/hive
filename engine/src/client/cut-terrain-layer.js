@@ -127,8 +127,9 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       epoch: snapshot.epoch, terrainRevision: snapshot.terrainRevision });
     records = terrainFaceRecords(coverage, { level, projection, viewport: retainedViewport,
       appearance, generatedTops });
+    const availableSupports = new Set(records.map(record => `${record.id}\u0000${record.part ?? ""}`));
     records.push(...terrainCoverRecords(frame.surfaces, { level, projection, viewport: retainedViewport, appearance,
-      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed }));
+      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed, availableSupports }));
   }
 
   function waterRecords() {

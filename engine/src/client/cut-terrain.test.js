@@ -140,6 +140,11 @@ test("dual-grid covers derive stable masks from explicit same-level surface fact
   assert.deepEqual(first.map(record=>[record.id,record.mask]).sort(),shuffled.map(record=>[record.id,record.mask]).sort());
   assert(first.every(record=>record.role==="terrain-cover"&&record.footprint.length===1));
   assert(first.every(record=>record.attachment.kind==="surface-root"&&record.renderPass==="opaque"));
+  const retainedSupport = center.supportIds[0];
+  const culled = terrainCoverRecords(surfaces,{level:0,projection,appearance:coverAppearance,verticalMetres:h,variantSeed:9,
+    availableSupports:new Set([retainedSupport])}).find(record=>record.id===center.id);
+  assert.equal(culled.attachment.supports[0], retainedSupport);
+  assert(culled.attachment.supports.slice(1).every(Array.isArray), "culled draw dependencies retain canonical support cells");
 });
 
 test("chunk demand includes deep visible levels and halo, with explicit view-budget rejection",()=>{

@@ -1,7 +1,9 @@
 import { createCutTerrainLayer } from "./cut-terrain-layer.js";
 import { createDirectControl } from "./direct-control.js";
 import { project, groundPoint, surfacePoint, terrainPlaneCell, createTerrainPicker } from "./geometry.js";
-import { createIsometricSorter, pickFromOrdered, surfaceSubjectFromOrdered } from "./isometric-sorter.js";
+import { surfaceSubjectFromOrdered } from "./isometric-sorter.js";
+import { compileVoxelDrawStream } from "./voxel-draw-stream.js";
+import { pickVoxelDrawRecord } from "./voxel-draw-picking.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -218,7 +220,6 @@ export function createHiveClient({
     const next = setWorldViewLevel(state.view, level);
     if (next.level === state.view.level) return;
     state.view = next;
-    spriteSorter.invalidate();
     gesture.send({ type: "CANCEL" });
     exitAim();
     state.dragging = null;
@@ -233,7 +234,6 @@ export function createHiveClient({
     edgeGesture.send({ type: "CANCEL" });
     clearPlacement();
     state.view = toggleWorldCutaway(state.view, value);
-    spriteSorter.invalidate();
     gesture.send({ type: "CANCEL" });
     exitAim();
     state.dragging = null;
@@ -282,7 +282,6 @@ export function createHiveClient({
   let groundSprite = null;
   const orderingProjection = createOrderingProjection();
   const terrainLayer = createCutTerrainLayer({ runtime, projection: orderingProjection, onCoverage: () => draw() });
-  const spriteSorter = createIsometricSorter({ projection: orderingProjection });
   let orderedSprites = [];
   let terrainFrame;
   let markSurfaceSource;
@@ -344,7 +343,6 @@ export function createHiveClient({
     state.invitationUrl = null;
     state.invitationCopied = false;
     state.subjects = [];
-    spriteSorter.invalidate();
     latestFacts = [];
     state.presentationFacts = [];
     localWhistle.update([]);
@@ -922,7 +920,6 @@ export function createHiveClient({
       });
       entry.multipart?.dispose();
       actorCache.delete(id);
-      spriteSorter.invalidate([id]);
     }
     const sortableSprites = [];
     const orderedSubjects = [...state.subjects].sort((a, b) => a.id.localeCompare(b.id));
@@ -956,7 +953,6 @@ export function createHiveClient({
         entry.container.addChild(entry.sprite, entry.marker, entry.label, entry.progress);
         terrainLayer.container.addChild(entry.container);
         actorCache.set(subject.id, entry);
-        if (isStatic) spriteSorter.invalidate([subject.id]);
       }
       const animation = animationById.get(subject.id);
       entry.marker.visible = state.selectedIds.includes(subject.id);
@@ -1044,7 +1040,16 @@ export function createHiveClient({
       entry.progress.visible = Number.isFinite(progress);
       entry.container.position.set(subject.screen.x, subject.screen.y);
     }
-    orderedSprites = spriteSorter.order([...terrainLayer.sortableItems, ...sortableSprites]);
+    const drawRecords = [...terrainLayer.sortableItems, ...sortableSprites];
+    if (drawRecords.length) {
+      const verticalMetres = displayedTerrain?.verticalMetres;
+      if (!Number.isFinite(verticalMetres) || verticalMetres <= 0)
+        throw new Error("voxel draw requires displayed terrain scale");
+      orderedSprites = compileVoxelDrawStream(drawRecords, {
+        direction: orderingProjection.direction,
+        verticalMetres,
+      }).records;
+    } else orderedSprites = [];
     terrainLayer.applyOrder(orderedSprites);
     // The entity adornment is one shared overlay owner. It follows the
     // foremost sorted part without becoming another physical/sort record.
@@ -1351,8 +1356,7 @@ export function createHiveClient({
       box.top = box.bottom = end.y;
     }
     const localEnd = { x: (end.x - camera.x) / camera.zoom, y: (end.y - camera.y) / camera.zoom };
-    const candidates = click ? orderedSprites.filter((candidate) => candidate.contains?.(localEnd) === true) : [];
-    const picked = pickFromOrdered(orderedSprites, candidates);
+    const picked = click ? pickVoxelDrawRecord(orderedSprites, localEnd) : null;
     const directHit = picked?.target ? [picked.target] : [];
     let hit = click
       ? directHit.length
@@ -1366,7 +1370,7 @@ export function createHiveClient({
         left: (box.left - camera.x) / camera.zoom, right: (box.right - camera.x) / camera.zoom,
         top: (box.top - camera.y) / camera.zoom, bottom: (box.bottom - camera.y) / camera.zoom,
       }, drag.additive, state.selectedIds);
-    if (click && !picked) {
+    if (click && !picked?.record) {
       const local = {
         x: (end.x - camera.x) / camera.zoom,
         y: (end.y - camera.y) / camera.zoom,
@@ -1519,7 +1523,6 @@ export function createHiveClient({
     }
     art = pack.art;
     terrainLayer.installArt(terrainPack);
-    spriteSorter.invalidate();
     state.disposeArt = pack.dispose;
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
@@ -1687,7 +1690,6 @@ export function createHiveClient({
           terrainFrame = event.terrain;
           const terrainChanged = terrainFrame && (newEpoch || !previousTerrain || previousTerrain.revision !== terrainFrame.revision);
           if (terrainChanged) {
-            spriteSorter.invalidate();
             const publishedById = new Map(event.facts.map((fact) => [fact.id, fact]));
             const actor = state.selectedIds.map((id) => publishedById.get(id)).find((fact) => fact?.pose?.position)
               ?? activeSelectionShortcuts.map(({ id }) => publishedById.get(id)).find((fact) => fact?.pose?.position);
