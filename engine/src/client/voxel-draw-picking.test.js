@@ -89,6 +89,18 @@ test("a visible non-pickable silhouette occludes selectable records behind it", 
   assert.deepEqual(result, { record: wall, target: null, occluded: true });
 });
 
+test("a production terrain face is an authored non-pickable occluder", () => {
+  const fixture = createMixedRenderFixture("north", "north");
+  const terrain = fixture.terrain.find(record => record.face === "top");
+  const point = Object.freeze({
+    x: terrain.projected.reduce((sum, value) => sum + value.x, 0) / terrain.projected.length,
+    y: terrain.projected.reduce((sum, value) => sum + value.y, 0) / terrain.projected.length,
+  });
+  assert.equal(terrain.contains(point), true, "production face owns its visible polygon");
+  assert.deepEqual(pickVoxelDrawRecord([terrain], point),
+    { record: terrain, target: null, occluded: true });
+});
+
 test("picking returns the established logical target identity", () => {
   const part = Object.freeze({ id: "stair:part", target: "stair:owner", part: "rail", visible: true,
     pickable: true, contains: () => true });

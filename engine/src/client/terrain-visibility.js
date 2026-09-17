@@ -105,7 +105,8 @@ const coverIdentity = cover => `${cover.kind}\u0000${cover.condition}\u0000${cov
 /** Dual-grid cover patches are ordinary sortable records derived from four
  * explicit same-level surface facts. They never infer grass from geology.
  */
-export function terrainCoverRecords(surfaces, { level, projection, viewport, appearance, verticalMetres, variantSeed = 0 }) {
+export function terrainCoverRecords(surfaces, { level, projection, viewport, appearance, verticalMetres, variantSeed = 0,
+  availableSupports } = {}) {
   if (!appearance?.cover || !Number.isFinite(verticalMetres) || verticalMetres <= 0) return [];
   const covered = new Map(surfaces.filter(surface => surface.cover && surface.cell[1] <= level)
     .map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface]));
@@ -126,13 +127,19 @@ export function terrainCoverRecords(surfaces, { level, projection, viewport, app
       const surfaceY = (y + 0.5) * verticalMetres;
       const visual = appearance.cover({ cover: { kind, condition, height }, mask, root, seed: variantSeed, projection, surfaceY });
       const footprint = [{ x: root[0] + 0.5, y: surfaceY, z: root[1] + 0.5 }];
-      const supportIds = samples.flatMap((surface, index) => surface && (mask & (1 << index))
-        ? [`terrain:${surface.cell.join(",")}:top\u0000face`] : []);
+      const supportFacts = samples.flatMap((surface, index) => surface && (mask & (1 << index))
+        ? [{ id: `terrain:${surface.cell.join(",")}:top\u0000face`, cell: Object.freeze([...surface.cell]) }] : []);
+      const supportIds = supportFacts.map(support => support.id);
+      // View culling may retain a patch whose edge support face lies just
+      // outside the retained rectangle. Keep that support as its canonical
+      // cell fact instead of inventing a dangling draw-record dependency.
+      const supports = supportFacts.map(support => availableSupports instanceof Set && !availableSupports.has(support.id)
+        ? support.cell : support.id);
       const screenBounds = projectedBounds(visual.projected);
       if (viewport && !overlaps(screenBounds, viewport)) continue;
       const record = { id: `cover:${root[0]}:${y}:${root[1]}:${kind}:${condition}:${height}`, part: "cover", role: "terrain-cover",
         relationPolicy: "surface-cover", orderingKind: "compact", mask, footprint, screenBounds, storeyBand: y,
-        renderPass: "opaque", attachment: Object.freeze({ kind: "surface-root", supports: Object.freeze([...supportIds]), point: footprint[0] }),
+        renderPass: "opaque", attachment: Object.freeze({ kind: "surface-root", supports: Object.freeze(supports), point: footprint[0] }),
         supportIds, pickable: false, visible: true, ...visual };
       const proxy = prepareOrderingProxy(record, projection);
       if (!proxy) continue;
