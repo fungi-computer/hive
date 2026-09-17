@@ -6,10 +6,9 @@ renderer stages are reference only where the current sprint explicitly retains t
 
 ## Current sprint: a buildable upstairs room through the supported API
 
-The user asked for API progress wherever this sprint touches engine behavior.
-In context this continues the Edmund/creator API direction. Authorized admin
-consumers should reuse those operations; this does not add an admin dashboard,
-unrestricted world editing, permission bypass or a separate admin simulation.
+The user asked for Edmund API progress wherever this sprint touches engine
+behavior. This means the friendly creator API discussed throughout section 10,
+not an administrative product or a privileged mutation surface.
 
 **Rule for every touched seam:** identify its existing mutation/query owner,
 expose the necessary supported SDK operation or observation, move the real caller,
@@ -26,10 +25,78 @@ as cosmetic cleanup. Do not expand unrelated inventory, guild or behavior APIs.
 | Why is this waiting? | Scoped construction status and rejection/dependency reasons | Observations of native state; no inferred UI job state machine |
 | Display structure parts | Definition-linked art metadata and observed instance transform | Renderer derives disposable visuals; no physical mutation API |
 
-Permissions remain scoped per operation. An admin caller may have a different
-explicit grant but uses the same validation, command identity, transaction and
-result path. Preview is never authorization. Camera/layer/ghost changes stay
-local UI operations and do not need durable world commands.
+Permissions remain scoped per operation. Preview is never authorization.
+Camera/layer/ghost changes stay local UI operations and do not need durable
+world commands.
+
+### Edmund creator API rule
+
+Whenever this sprint touches an authoring seam, improve the supported creator
+API in the same slice. The Clearing UI is one consumer of that API; it must not
+remain the only place where placement, rotation, area expansion or construction
+intent can be expressed. For each touched concern, deliver all three parts:
+
+1. a checked definition, query or typed operation in the public SDK;
+2. one native transactional owner that revalidates and commits world changes;
+3. a real Clearing consumer proving that the friendly surface reaches the
+   existing engine behavior without Goblin-name branches or repeated geometry.
+
+The current construction seam already has much of the engine machinery:
+`placementDecisions`, `planConstructions`, `constructionReadiness`,
+`deconstructionAccess`, `plan-deconstruction` and `replace-floor`. The sprint
+must compose these into the Edmund-facing construction vocabulary rather than
+adding a second planner or exposing raw kernel calls. Exact public names should
+follow the installed SDK conventions after inspecting their callers; this packet
+does not decree a new generic framework.
+
+The creator story should read approximately as follows; the example shows
+responsibilities, not permission to add these exact exports without grounding
+them in the current SDK:
+
+```ts
+const bed = actor("goblin.bone-bed")
+  .with(Buildable, {
+    shape: footprint([[0, 0], [0, 1]]),
+    materials: { wood: 4 },
+    work: { kind: "carpentry", seconds: 8 },
+  })
+  .with(Visual, boneBedArt);
+
+const proposal = construction.propose(bed, {
+  at: cell(12, selectedLevel, 9),
+  facing: "east",
+});
+
+const decisions = await world.inspect(construction.placement(proposal));
+await player.do(construction.plan(proposal));
+await player.do(construction.cancel(site));
+```
+
+Definitions compose capabilities with `.with(...)`. Behaviors collect prepared
+queries through `.where(...).do(...)`. Direct player gestures submit typed
+operations through the same collector; a click is not modeled as a behavior that
+runs every tick. The renderer consumes observations and may never turn a red
+ghost green by itself.
+
+Keep local editing tools honest without making them durable engine concepts:
+selected floor, blue grid, hover, rotation and ghost lifetime remain UI state.
+The durable operation begins with the normalized proposal. Art review and camera
+tools need asset/workbench APIs, not physical world mutation APIs.
+
+### Sprint ledger: visible result and Edmund API move together
+
+| Slice | What Levi can see | Edmund-facing boundary left behind | Duplicate removed |
+| --- | --- | --- | --- |
+| 1. Honest bed | One rotated bed ghost on the selected upstairs floor; missing head or foot support is red | Canonical authored footprint, normalized proposal and batched placement decision | Upper-placement candidates, repeated client footprint and client support guesses |
+| 2. Whole room | Floors, walls and one custom furniture definition build through the same gesture grammar | Point/area/edge construction vocabulary compiles to the existing native catalog and work owner | Raw `colony-building.ts` target expansion and catalog-name branching as callers migrate |
+| 3. Change room | Rotate furniture; replace/remove a floor; rejected destructive edits explain why | Replacement, deconstruction and cancellation as friendly typed operations with reason queries | Direct map/component edits and inferred UI job state |
+| 4. Walk and cut | Actors use stairs; rails, beds, walls and cut terrain order correctly on selected levels | Definition-linked visual parts consume canonical transforms and observed instance identity | Parallel client world state and object-name sorting exceptions |
+| 5. Release proof | Save/reload and two players retain one lawful room at acceptable frame cost | Versioned definitions and replay-safe creator operations proven by a custom furniture consumer | Unversioned artifacts and proof-only entrypoints |
+
+Do not finish a slice whose newly touched authoring concept exists only inside a
+Clearing-specific handler. If the native operation already exists, expose and
+compose it through the creator surface and move the real caller; do not rewrite
+the native owner.
 
 ### Delivery slices, in order
 
@@ -78,7 +145,11 @@ Repeat with support only under the foot. Distinguish ghost, admitted plan and
 finished furniture. No speculative guard may stand in for finding the break.
 
 Verified source: `colony-environment.ts` declares the bed footprint as two cells,
-`[[0,0],[0,1]]`. `structure_support.rs` checks every rotated fixture cell.
+`[[0,0],[0,1]]`. The September 17 runtime regression found that
+`structure_support.rs` checked every rotated cell against generic load contacts,
+so a wall top could satisfy a missing furniture floor. Fixtures must instead
+require a completed horizontal floor surface or terrain beneath every cell;
+walls and stair landings remain valid load contacts for structural members.
 `construction_work.rs` already has `placement_decisions` and
 `plan_constructions` calling pending validation. Section 02's historical claim
 that admission omits combined validation is not a current-source diagnosis.

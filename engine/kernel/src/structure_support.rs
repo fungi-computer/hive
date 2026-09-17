@@ -339,7 +339,10 @@ pub fn candidate_supported(
     if let StaticInstance::Fixture { origin, orientation, footprint, .. } = instance {
         for cell in fixture_cells(*origin, *orientation, footprint)? {
             let below = Cell { y: cell.y.checked_sub(1).ok_or("structure support coordinate overflow")?, ..cell };
-            if !base.load_contacts.contains(&below) && !terrain_support(below)? {
+            // A wall or stair landing can carry another structural member, but
+            // it is not a horizontal furniture surface. Fixtures require a
+            // completed floor (or terrain) beneath every occupied cell.
+            if !base.floor_surfaces.contains(&below) && !terrain_support(below)? {
                 return Ok(false);
             }
         }
@@ -643,21 +646,31 @@ mod tests {
                 id: format!("bed-{orientation:?}"), origin, orientation, footprint: footprint.clone(),
             };
 
-            let mut no_terrain = terrain(&[]);
+            let first_support = match &floors[0] {
+                StaticInstance::Floor { support, .. } => *support,
+                _ => unreachable!(),
+            };
+            let full_roots = [first_support];
+            let mut rooted_terrain = terrain(&full_roots);
             let fully_supported = resolve(
                 &StaticGeometry::new(bounds(), floors.clone()).unwrap(),
                 policy(2),
-                &mut no_terrain,
+                &mut rooted_terrain,
             ).unwrap();
             let mut no_terrain = terrain(&[]);
             assert!(candidate_supported(&fully_supported, &bed, 2, &mut no_terrain).unwrap());
 
             for retained in 0..2 {
-                let mut no_terrain = terrain(&[]);
+                let retained_support = match &floors[retained] {
+                    StaticInstance::Floor { support, .. } => *support,
+                    _ => unreachable!(),
+                };
+                let partial_roots = [retained_support];
+                let mut rooted_terrain = terrain(&partial_roots);
                 let partial = resolve(
                     &StaticGeometry::new(bounds(), vec![floors[retained].clone()]).unwrap(),
                     policy(2),
-                    &mut no_terrain,
+                    &mut rooted_terrain,
                 ).unwrap();
                 let mut no_terrain = terrain(&[]);
                 assert!(
