@@ -49,6 +49,34 @@ export function placementFootprintCells(control, origin) {
   });
 }
 
+/** Canonical selected-plane guide tiles. Drawing may change; their world cells do not. */
+export function placementGuideTiles({ hoveredCell, planeY, footprintCells = [], radius = 3, verticalMetres, project }) {
+  if (!Array.isArray(hoveredCell) || hoveredCell.length !== 3 || !hoveredCell.every(Number.isFinite)) return [];
+  if (!Number.isSafeInteger(planeY) || !Number.isSafeInteger(radius) || radius < 0 || !(verticalMetres > 0) || typeof project !== "function")
+    throw new Error("invalid placement guide");
+  const footprint = new Set(footprintCells.map(cell => cell.join(",")));
+  const result = [];
+  for (let dz = -radius; dz <= radius; dz++) for (let dx = -radius; dx <= radius; dx++) {
+    const cell = [hoveredCell[0] + dx, planeY, hoveredCell[2] + dz];
+    const height = (planeY + 0.5) * verticalMetres;
+    const worldCorners = [
+      { x: cell[0] - 0.5, y: height, z: cell[2] - 0.5 },
+      { x: cell[0] + 0.5, y: height, z: cell[2] - 0.5 },
+      { x: cell[0] + 0.5, y: height, z: cell[2] + 0.5 },
+      { x: cell[0] - 0.5, y: height, z: cell[2] + 0.5 },
+    ];
+    result.push(Object.freeze({
+      id: `placement-guide:${cell.join(":")}`,
+      cell: Object.freeze(cell),
+      worldCorners: Object.freeze(worldCorners),
+      projected: Object.freeze(worldCorners.map(point => Object.freeze(project(point.x, point.y, point.z)))),
+      hovered: hoveredCell.every((value, index) => value === cell[index]),
+      footprint: footprint.has(cell.join(",")),
+    }));
+  }
+  return Object.freeze(result);
+}
+
 /**
  * Resolve ordinary cell-placement art. Edge placement owns a different
  * acquisition shape and never reconstructs physical edges from visual names.

@@ -46,7 +46,7 @@ import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromOrderedSprites } from "./build-placement.js";
-import { createPlacementAdvisory, placementCells, placementFootprintCells, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
+import { createPlacementAdvisory, placementCells, placementFootprintCells, placementGuideTiles, placementVisualSpec, syncPlacementGhosts, clearPlacementGhosts, disposePlacementGhosts } from "./placement-preview.js";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
@@ -1172,21 +1172,15 @@ export function createHiveClient({
       const planeY = targetSnapshot.context.planeY;
       const hoveredCell = targetSnapshot.context.hover;
       if (Number.isInteger(planeY) && hoveredCell) {
-        const footprintKeys = new Set(placementFootprintCells(buildControl, hoveredCell).map(cell => cell.join(",")));
-        const radius = 3;
-        for (let dz = -radius; dz <= radius; dz++) for (let dx = -radius; dx <= radius; dx++) {
-          const cell = [hoveredCell[0] + dx, planeY, hoveredCell[2] + dz];
-          const height = (cell[1] + 0.5) * displayed.verticalMetres;
-          const points = [[cell[0] - 0.5, cell[2] - 0.5], [cell[0] + 0.5, cell[2] - 0.5], [cell[0] + 0.5, cell[2] + 0.5], [cell[0] - 0.5, cell[2] + 0.5]].flatMap(([x, z]) => {
-            const projected = project(x, height, z);
-            return [projected.x * camera.zoom + camera.x, projected.y * camera.zoom + camera.y];
-          });
-          const hovered = hoveredCell.every((value, index) => value === cell[index]);
-          const footprint = footprintKeys.has(cell.join(","));
-          const rejected = footprint && state.placementDecision?.status === "rejected";
-          const color = rejected ? 0xe47c72 : footprint || hovered ? 0xe8c779 : 0x9fd8ff;
-          placementGraphic.poly(points).fill({ color, alpha: footprint || hovered ? 0.3 : 0.12 })
-            .stroke({ color, width: footprint ? 2 : 1, alpha: 0.9 });
+        const footprintCells = placementFootprintCells(buildControl, hoveredCell);
+        const guide = placementGuideTiles({ hoveredCell, planeY, footprintCells,
+          verticalMetres: displayed.verticalMetres, project });
+        for (const tile of guide) {
+          const points = tile.projected.flatMap(point => [point.x * camera.zoom + camera.x, point.y * camera.zoom + camera.y]);
+          const rejected = tile.footprint && state.placementDecision?.status === "rejected";
+          const color = rejected ? 0xe47c72 : tile.footprint || tile.hovered ? 0xe8c779 : 0x9fd8ff;
+          placementGraphic.poly(points).fill({ color, alpha: tile.footprint || tile.hovered ? 0.3 : 0.12 })
+            .stroke({ color, width: tile.footprint ? 2 : 1, alpha: 0.9 });
         }
         placementGraphic.visible = true;
       }

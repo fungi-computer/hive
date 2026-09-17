@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { clearPlacementGhosts, createPlacementAdvisory, disposePlacementGhosts, placementCells, placementFootprintCells, placementVisualSpec, syncPlacementGhosts } from "./placement-preview.js";
+import { clearPlacementGhosts, createPlacementAdvisory, disposePlacementGhosts, placementCells, placementFootprintCells, placementGuideTiles, placementVisualSpec, syncPlacementGhosts } from "./placement-preview.js";
 
 function fakeSprite() {
   return {
@@ -28,6 +28,22 @@ test("placement ghost pool reuses, shrinks, clears and disposes owned sprites", 
   disposePlacementGhosts(pool);
   assert.equal(pool.entries.length, 0);
   assert.equal(first.destroyed, true);
+});
+
+test("selected-plane guide owns stable world cells and projected corners", () => {
+  const project = (x, y, z) => ({ x: x * 10 - z * 10, y: x * 5 + z * 5 - y * 2 });
+  const tiles = placementGuideTiles({ hoveredCell: [4, 2, 7], planeY: 2, radius: 1,
+    footprintCells: [[4, 2, 7], [5, 2, 7]], verticalMetres: 0.54, project });
+  assert.equal(tiles.length, 9);
+  assert.deepEqual(tiles.map(tile => tile.cell), [
+    [3,2,6],[4,2,6],[5,2,6],
+    [3,2,7],[4,2,7],[5,2,7],
+    [3,2,8],[4,2,8],[5,2,8],
+  ]);
+  assert.equal(tiles.find(tile => tile.hovered)?.id, "placement-guide:4:2:7");
+  assert.deepEqual(tiles.filter(tile => tile.footprint).map(tile => tile.cell), [[4,2,7],[5,2,7]]);
+  assert.equal(tiles[0].worldCorners.every(point => point.y === 1.35), true);
+  assert.deepEqual(tiles[0].projected, tiles[0].worldCorners.map(point => project(point.x, point.y, point.z)));
 });
 
 
