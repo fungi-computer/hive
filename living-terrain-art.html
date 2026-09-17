@@ -1,5 +1,45 @@
-<!doctype html><meta charset="utf-8"><title>Original living terrain art study</title>
-<body style="margin:0;background:#202a27;color:#eadfc5;font:16px sans-serif"><script type="module">
-import { authorLivingTerrain } from '/src/art/living-terrain-authoring.js';
-window.exportLivingTerrain=authorLivingTerrain;
-</script></body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Original living terrain art study</title>
+    <style>
+      :root { color-scheme: dark; font-family: ui-monospace, monospace; }
+      body { margin: 0; background: #17201d; color: #eadfc5; }
+      main { width: min(1100px, calc(100% - 32px)); margin: 32px auto 64px; }
+      h1 { margin-bottom: 8px; font-size: clamp(24px, 4vw, 42px); }
+      p { max-width: 760px; line-height: 1.55; color: #c9c1a9; }
+      figure { margin: 28px 0; padding: 16px; background: #202a27; border: 1px solid #526154; }
+      img { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+      figcaption { margin-top: 12px; color: #dad0b6; }
+      .native { width: min(100%, 768px); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Living terrain art study</h1>
+      <p>Original earth, stone, short grass, full grass, and dead-grass variants made with Clearing's Three.js → low-resolution bake → Pixi pipeline. Green and dead grass reuse identical geometry with different materials.</p>
+      <figure>
+        <img src="/artifacts/living-terrain/living-terrain-scene-3x.png" alt="Terrain review court with meadow, worn path, stone patch, raised ledge, shallow pit, and goblins" />
+        <figcaption>Review court at 3× nearest-neighbor scale.</figcaption>
+      </figure>
+      <figure>
+        <img class="native" src="/artifacts/living-terrain/living-terrain-scene-native.png" alt="Terrain review court at native game resolution" />
+        <figcaption>Native 512×320 bake.</figcaption>
+      </figure>
+      <figure>
+        <img src="/artifacts/living-terrain/living-terrain-masks.png" alt="Dual-grid grass masks in green and dead palettes, short and full heights" />
+        <figcaption>Every dual-grid mask: green/dead, short/full, and three deterministic variants.</figcaption>
+      </figure>
+      <figure>
+        <img src="/artifacts/living-terrain/living-terrain-atlas.png" alt="Living terrain sprite atlas" />
+        <figcaption>Exported sprite atlas.</figcaption>
+      </figure>
+    </main>
+    <script type="module">
+      import { authorLivingTerrain } from "/src/art/living-terrain-authoring.js";
+      window.exportLivingTerrain = authorLivingTerrain;
+    </script>
+  </body>
+</html>
