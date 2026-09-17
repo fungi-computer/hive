@@ -2,7 +2,7 @@ import { component, query } from "../sdk/authoring.js";
 import { action, actor, behavior, predicate } from "../sdk/behavior.js";
 import { Body, Destination, Position, Traversal, move } from "../sdk/common.js";
 import type { EntityId, ReadContext } from "../contracts.js";
-import { colonyEnvironment } from "./colony-environment.js";
+import { COLONY_VERTICAL_METRES } from "./colony-world.js";
 
 /** Authored cat intent. Movement and reachability remain native-owned. */
 export const Cat = component<{
@@ -152,7 +152,7 @@ const chooseWander = action("colony.cat.choose-wander", {
     }
     const target = {
       x,
-      y: (surface.cell[1] + 0.5) * colonyEnvironment.world.verticalMetres,
+      y: (surface.cell[1] + 0.5) * COLONY_VERTICAL_METRES,
       z,
       frame: null,
     };
