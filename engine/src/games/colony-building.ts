@@ -1,30 +1,10 @@
 import { command, entity, query } from "../sdk/authoring";
 import { OwnedBy, Party } from "../sdk/party";
 import { colonyPartyForPlayer } from "./colony-player-party";
-import { ConstructionSite, FloorReplacement, planConstructions, replaceFloor } from "../sdk/construction";
-import { placementOrientation, structureOriginCell } from "../sdk/placement";
+import { ConstructionSite, FloorReplacement, constructionCandidates, constructionProposalInput, planConstructions, replaceFloor } from "../sdk/construction";
 import { colonyPlacement } from "./colony-placement";
 import { colonyEnvironment } from "./colony-environment";
-import { z } from "zod";
 import type { PlacementCandidate } from "../contracts";
-
-const cell = z.tuple([
-  z.number().int().min(-1_000_000).max(1_000_000),
-  z.number().int().min(-1_000_000).max(1_000_000),
-  z.number().int().min(-1_000_000).max(1_000_000),
-]);
-const area = z.object({ start: cell, end: cell }).strict();
-const edge = z.object({ cell, axis: z.enum(["x", "z"]) }).strict();
-const target = z.union([
-  z.object({ cell }).strict(),
-  z.object({ area }).strict(),
-  z.object({ edges: z.array(edge).min(1).max(256) }).strict(),
-]);
-const buildInput = z.object({
-  catalog: z.string().min(1).max(128),
-  orientation: z.enum(["north", "east", "south", "west"]).optional(),
-  target,
-}).strict();
 
 /** Build copy is composed once beside the authoritative Goblin definition. */
 export function colonyBuildBindingDetail(catalog: string, orientation?: string, environment = colonyEnvironment, placement = colonyPlacement): string {
@@ -59,57 +39,12 @@ function colonyBuildBinding(catalog: string, orientation?: CardinalOrientation) 
   };
 }
 
-function areaCells(area: { start: [number, number, number]; end: [number, number, number] }): [number, number, number][] {
-  const start = area.start, end = area.end;
-  if (start[1] !== end[1])
-    throw new Error("Choose a same-level build area");
-  const width = Math.abs(end[0] - start[0]) + 1;
-  const depth = Math.abs(end[2] - start[2]) + 1;
-  if (width * depth > 256) throw new Error("Build area exceeds 256 cells");
-  const cells: [number, number, number][] = [];
-  for (let z = Math.min(start[2], end[2]); z <= Math.max(start[2], end[2]); z++)
-    for (let x = Math.min(start[0], end[0]); x <= Math.max(start[0], end[0]); x++) cells.push([x, start[1], z]);
-  return cells;
-}
-
 /** One Goblin target projection shared by the preview and committing command. */
 export function colonyPlacementCandidates(value: unknown): readonly PlacementCandidate[] {
-  const input = buildInput.parse(value);
+  const input = constructionProposalInput.parse(value);
   const definition = colonyEnvironment.structures.catalog.find(item => item.id === input.catalog);
   if (!definition) throw new Error("Unknown building");
-  if ("edges" in input.target) {
-    if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture")
-      throw new Error("Only boundary structures accept edge placement");
-    return [...new Map(input.target.edges.map(edge => [
-      `${edge.cell[0]}:${edge.cell[1]}:${edge.cell[2]}:${edge.axis}`,
-      edge,
-    ])).values()].sort((left, right) =>
-      left.cell[0] - right.cell[0]
-      || left.cell[1] - right.cell[1]
-      || left.cell[2] - right.cell[2]
-      || left.axis.localeCompare(right.axis)).map(({ cell: [x, y, z], axis }) => {
-        const targetY = y + 1;
-        if (!Number.isSafeInteger(targetY)) throw new Error("Wall edge height exceeds bounds");
-        return {
-          site: entity(`colony.build.${definition.id}.edge.${x}.${targetY}.${z}.${axis}`),
-          catalog: definition.id,
-          target: { kind: "edge" as const, edge: { cell: { x, y: targetY, z }, axis } },
-        };
-      });
-  }
-  if (definition.shape.kind === "wall" || definition.shape.kind === "aperture")
-    throw new Error("Boundary structures require edge placement");
-  const area = "area" in input.target ? input.target.area : undefined;
-  const cells = area ? areaCells(area) : [input.target.cell];
-  return cells.map(cell => {
-    const orientation = placementOrientation(colonyPlacement[input.catalog]?.alignment ?? "fixed", area, input.orientation);
-    const [x, y, z] = structureOriginCell(definition.shape, cell);
-    return {
-      site: entity(`colony.build.${definition.id}.${x}.${y}.${z}.${orientation}`),
-      catalog: definition.id,
-      target: { kind: "cell" as const, cell: { x, y, z }, orientation },
-    };
-  });
+  return constructionCandidates(definition, colonyPlacement[input.catalog]?.alignment ?? "fixed", input, "colony.build");
 }
 
 /** Player placement chooses content; native admission owns cost and geometry. */
@@ -119,7 +54,7 @@ export const colonyBuildCommand = command({
     ...["timber-floor", "timber-wall", "timber-door", "timber-roof", "timber-bed", "timber-shelf", "brew-station"].map(catalog => colonyBuildBinding(catalog)),
     ...(["north", "east", "south", "west"] as const).map(orientation => colonyBuildBinding("timber-stair", orientation)),
   ] },
-  input: buildInput,
+  input: constructionProposalInput,
   reads: [ConstructionSite, FloorReplacement, Party, OwnedBy], writes: [],
   run(context, input) {
     if (context.scope.kind !== "player")

@@ -1,5 +1,93 @@
-import { component } from "./authoring";
+import { z } from "zod";
+import { component, entity } from "./authoring";
 import type { ActionRequest, CardinalOrientation, ConstructionTarget, EntityId, PlacementCandidate, Vec3 } from "../contracts";
+import type { EnvironmentStructureDefinition } from "./environment";
+import { placementOrientation, structureOriginCell, type PlacementAlignment, type PlacementArea } from "./placement";
+
+const placementCellSchema = z.tuple([
+  z.number().int().min(-1_000_000).max(1_000_000),
+  z.number().int().min(-1_000_000).max(1_000_000),
+  z.number().int().min(-1_000_000).max(1_000_000),
+]);
+const placementAreaSchema = z.object({ start: placementCellSchema, end: placementCellSchema }).strict();
+const placementEdgeSchema = z.object({ cell: placementCellSchema, axis: z.enum(["x", "z"]) }).strict();
+
+/** Friendly gesture input. Physical admission remains native and transactional. */
+export const constructionProposalInput = z.object({
+  catalog: z.string().min(1).max(128),
+  orientation: z.enum(["north", "east", "south", "west"]).optional(),
+  target: z.union([
+    z.object({ cell: placementCellSchema }).strict(),
+    z.object({ area: placementAreaSchema }).strict(),
+    z.object({ edges: z.array(placementEdgeSchema).min(1).max(256) }).strict(),
+  ]),
+}).strict();
+
+export type ConstructionProposalInput = z.infer<typeof constructionProposalInput>;
+
+function areaCells(area: PlacementArea): readonly (readonly [number, number, number])[] {
+  if (area.start[1] !== area.end[1]) throw new Error("Choose a same-level build area");
+  const width = Math.abs(area.end[0] - area.start[0]) + 1;
+  const depth = Math.abs(area.end[2] - area.start[2]) + 1;
+  if (width * depth > 256) throw new Error("Build area exceeds 256 cells");
+  const cells: [number, number, number][] = [];
+  for (let z = Math.min(area.start[2], area.end[2]); z <= Math.max(area.start[2], area.end[2]); z++)
+    for (let x = Math.min(area.start[0], area.end[0]); x <= Math.max(area.start[0], area.end[0]); x++)
+      cells.push([x, area.start[1], z]);
+  return cells;
+}
+
+function constructionSite(namespace: string, definition: EnvironmentStructureDefinition, target: ConstructionTarget): EntityId {
+  if (!namespace || !/^[A-Za-z0-9._:-]+$/.test(namespace)) throw new Error("Invalid construction namespace");
+  if (target.kind === "edge") {
+    const { x, y, z } = target.edge.cell;
+    return entity(`${namespace}.${definition.id}.edge.${x}.${y}.${z}.${target.edge.axis}`);
+  }
+  const { x, y, z } = target.cell;
+  return entity(`${namespace}.${definition.id}.${x}.${y}.${z}.${target.orientation}`);
+}
+
+/**
+ * Compile a creator gesture into canonical physical proposals. The definition
+ * owns shape; this layer owns normalization; native placement owns permission.
+ */
+export function constructionCandidates(
+  definition: EnvironmentStructureDefinition,
+  alignment: PlacementAlignment,
+  raw: ConstructionProposalInput,
+  namespace: string,
+): readonly PlacementCandidate[] {
+  const input = constructionProposalInput.parse(raw);
+  if (input.catalog !== definition.id) throw new Error("Construction proposal does not match its definition");
+  if ("edges" in input.target) {
+    if (definition.shape.kind !== "wall" && definition.shape.kind !== "aperture")
+      throw new Error("Only boundary structures accept edge placement");
+    const edges = [...new Map(input.target.edges.map(value => [
+      `${value.cell[0]}:${value.cell[1]}:${value.cell[2]}:${value.axis}`,
+      value,
+    ])).values()].sort((left, right) =>
+      left.cell[0] - right.cell[0]
+      || left.cell[1] - right.cell[1]
+      || left.cell[2] - right.cell[2]
+      || left.axis.localeCompare(right.axis));
+    return edges.map(({ cell: [x, y, z], axis }) => {
+      const targetY = y + 1;
+      if (!Number.isSafeInteger(targetY)) throw new Error("Wall edge height exceeds bounds");
+      const target: ConstructionTarget = { kind: "edge", edge: { cell: { x, y: targetY, z }, axis } };
+      return { site: constructionSite(namespace, definition, target), catalog: definition.id, target };
+    });
+  }
+  if (definition.shape.kind === "wall" || definition.shape.kind === "aperture")
+    throw new Error("Boundary structures require edge placement");
+  const area = "area" in input.target ? input.target.area : undefined;
+  const cells = area ? areaCells(area) : [input.target.cell];
+  return cells.map(support => {
+    const orientation = placementOrientation(alignment, area, input.orientation);
+    const [x, y, z] = structureOriginCell(definition.shape, support);
+    const target: ConstructionTarget = { kind: "cell", cell: { x, y, z }, orientation };
+    return { site: constructionSite(namespace, definition, target), catalog: definition.id, target };
+  });
+}
 
 /** Native custody is observable; authored writes cannot lock or unlock goods. */
 export const SealedContainer = component<Record<string, never>>("hive.sealed-container", {

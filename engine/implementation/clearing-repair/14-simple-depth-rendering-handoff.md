@@ -223,6 +223,14 @@ replacement, deduplicates sites and returns raw action arrays. Extract reusable
 placement normalization to the SDK owner and keep replacement/admission native.
 Goblin retains content choices, costs, labels and access policy.
 
+September 17 checkpoint: `sdk/construction.ts` now owns the checked point/area/
+edge proposal schema, deterministic expansion, support-to-origin conversion and
+site proposal identity. The real Colony command consumes it, and a non-Colony
+three-cell bone bed proves the helper has no Goblin catalog branches. This is the
+stable layer beneath the future actor/buildable compilation join; do not move
+the geometry back into the game command. Floor replacement orchestration and the
+structure-definition-to-actor join still remain in this stage.
+
 Use the installed actor `.with(...)` composition and prepared query
 `.where(...).do(...)` collection contract from section 10. Construction action
 builders describe requests consumed by that pipeline; they do not mutate state.

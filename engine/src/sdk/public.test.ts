@@ -14,6 +14,8 @@ test("public SDK loads headlessly and exposes all authored examples", () => {
   assert.equal(typeof sdk.system, "function");
   assert.equal(typeof sdk.actor, "function");
   assert.equal(typeof sdk.behavior, "function");
+  assert.equal(typeof sdk.constructionCandidates, "function");
+  assert.equal(typeof sdk.constructionProposalInput.parse, "function");
   for (const pack of [sdk.colonyPack, sdk.survivalPack, sdk.formationsPack, sdk.piratesPack]) {
     for (const [name, definition] of Object.entries(pack.commands ?? {})) {
       assert.doesNotThrow(() => z.toJSONSchema(definition.input, { io: "input" }), `${pack.id}.${name}`);
