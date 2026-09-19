@@ -38,6 +38,7 @@ function buffers(records) {
 }
 
 const signature = records => JSON.stringify(records.map(record => [stableKey(record), record.projected, record.terrainBatch.uvs]));
+const sameRecords = (left, right) => left?.length === right.length && left.every((record, index) => record === right[index]);
 
 /** Retained ordinary meshes. Textures remain owned by the original art bank.
  * Unchanged runs retain buffers. At most maxMeshes mesh/buffer pairs survive;
@@ -67,7 +68,6 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
       for (const batch of plan) {
         if (batch.kind === "display") { displays.push({ ...batch, zIndex: displays.length }); continue; }
         const key = batch.records.map(stableKey).join("\u0001");
-        const stamp = signature(batch.records);
         let entry = available.get(key);
         if (entry) available.delete(key);
         else entry = reusable.pop();
@@ -75,15 +75,21 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
           const geometry = new MeshGeometry(buffers(batch.records));
           const mesh = new Mesh({ geometry, texture: batch.style.texture });
           mesh.eventMode = "none";
-          entry = { key, mesh, geometry, stamp, defaultState: mesh.state };
+          entry = { key, mesh, geometry, stamp: signature(batch.records), records: [...batch.records], defaultState: mesh.state };
         }
         entry.key = key;
-        if (entry.stamp !== stamp) {
-          const values = buffers(batch.records);
-          entry.geometry.uvs = values.uvs;
-          entry.geometry.positions = values.positions;
-          entry.geometry.indices = values.indices;
-          entry.stamp = stamp;
+        // Prepared geometry records are immutable for their lifetime. A camera
+        // transform or an insertion elsewhere cannot change this run's bytes.
+        if (!sameRecords(entry.records, batch.records)) {
+          const stamp = signature(batch.records);
+          if (entry.stamp !== stamp) {
+            const values = buffers(batch.records);
+            entry.geometry.uvs = values.uvs;
+            entry.geometry.positions = values.positions;
+            entry.geometry.indices = values.indices;
+            entry.stamp = stamp;
+          }
+          entry.records = [...batch.records];
         }
         entry.mesh.texture = batch.style.texture;
         entry.mesh.blendMode = batch.style.blendMode ?? "normal";

@@ -41,6 +41,9 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   assert.equal(layer.retainedRecords.revision, retained.revision);
   assert.equal(layer.retainedRecords.records.find(record => record.id === "water:4:0:4"), water,
     "unchanged water retains its record identity");
+  layer.update({ ...terrain, water: [{ ...terrain.water[0], liquidVolumeM3: 0.8 }] }, 2);
+  assert.strictEqual(layer.retainedRecords.records.find(record => record.id === "water:4:0:4"), water,
+    "volume-only changes do not invalidate a visually unchanged water surface");
   layer.applyOrder(layer.sortableItems);
   assert.equal(layer.container.x, 13);
   assert.equal(layer.container.y, 17);
@@ -52,9 +55,46 @@ test("live cut terrain layer requests bounded coverage and shares one camera tra
   layer.position({ ...camera, x: -250 }, view, { width: 640, height: 400 });
   const afterPan = layer.sortableItems;
   assert.equal(reads, 1, "panning inside resident chunk demand does not fetch terrain again");
-  const previousIds = new Set(beforePan.map(record => record.id));
-  assert(afterPan.some(record => !previousIds.has(record.id)), "same-demand pan reveals previously culled terrain");
+  assert.strictEqual(afterPan, beforePan, "same-demand pan keeps prepared chunk faces without repacking");
   layer.dispose(); layer.dispose();
+});
+
+test("cut terrain services all camera batches without synchronous coverage reentry", async () => {
+  const requests = [];
+  const runtime = { terrainChunks: async request => {
+    requests.push(request);
+    return { kind: "ready", requestId: request.requestId, epoch: request.epoch,
+      terrainRevision: request.terrainRevision, chunks: request.chunks.map(chunk) };
+  } };
+  const projection = createOrderingProjection();
+  const camera = { x: 320, y: 180, zoom: 1 };
+  const view = { cutaway: true, level: 8, range: { min: 0, max: 15 } };
+  const screen = { width: 640, height: 400 };
+  let layer, depth = 0, maximumDepth = 0;
+  let done, fail;
+  const complete = new Promise((resolve, reject) => { done = resolve; fail = reject; });
+  layer = createCutTerrainLayer({ runtime, projection, onCoverage: event => {
+    depth++; maximumDepth = Math.max(maximumDepth, depth);
+    try {
+      if (event.kind === "error") throw event.error;
+      layer.position(camera, view, screen);
+      if (layer.coverage.demandComplete) done();
+    } catch (error) { fail(error); }
+    finally { depth--; }
+  } });
+  layer.installArt({ body: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }),
+    cover: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }), dispose() {} });
+  layer.update({ revision: 1, placementRevision: 1, verticalMetres: 0.54,
+    baseline: { protocolVersion: 2, bounds: { minX: -16, maxX: 16, minY: 0, maxY: 16, minZ: -16, maxZ: 16 },
+      verticalMetres: 0.54, materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] },
+    surfaces: [], structureSurfaces: [], water: [] }, 1);
+  layer.position(camera, view, screen);
+  await Promise.race([complete, new Promise((_, reject) => setTimeout(() => reject(new Error("coverage stalled")), 1000))]);
+  assert(requests.length > 1, "fixture exercises successive bounded request batches");
+  assert(requests.every(request => request.chunks.length <= 8));
+  assert.equal(maximumDepth, 1);
+  assert.equal(layer.coverage.coverage.every(item => item.status === "ready"), true);
+  layer.dispose();
 });
 
 test("water draw records preserve the physical surface independently of Pixi sprites", () => {
@@ -65,7 +105,9 @@ test("water draw records preserve the physical surface independently of Pixi spr
   assert.equal(record.id, "water:4:-2:7");
   assert.equal(record.role, "water");
   assert.equal(record.renderPass, "transparent");
-  assert.equal(record.attachment.kind, "surface-root");
+  assert.equal(record.attachment.kind, "liquid-surface");
+  assert.deepEqual(record.attachment.point, record.footprint[0]);
+  assert.equal("supports" in record.attachment, false, "water ordering uses its level, not a solid-cell support");
   assert.equal(record.pickable, false);
   assert.equal(record.footprint[0].x, 4);
   assert.equal(record.footprint[0].z, 7);
