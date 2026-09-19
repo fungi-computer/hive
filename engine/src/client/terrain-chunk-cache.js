@@ -108,8 +108,14 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
       seen.add(id);
       return { id, key };
     });
+    viewBudget = demand.length > capacity;
+    // The old view is useful while its replacement loads, but it cannot pin
+    // enough chunks to make a valid new camera view impossible to request.
     const retained = new Set([...completeView, ...demand.map(item => item.id)]);
-    viewBudget = demand.length > capacity || retained.size > capacity;
+    if (retained.size > capacity) {
+      completeView = [];
+      for (const id of cache.keys()) if (!seen.has(id)) cache.delete(id);
+    }
     for (const item of demand) {
       const entry = cache.get(item.id);
       if (entry) { cache.delete(item.id); cache.set(item.id, entry); }
@@ -126,6 +132,7 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
       coverage: Object.freeze(demand.map(item => Object.freeze({ key: item.key,
         status: cache.has(item.id) ? "ready" : loading.has(item.id) ? "loading" : "unknown" }))),
       viewComplete: completeView.length > 0 && completeView.every(id => cache.has(id)),
+      demandComplete: !viewBudget && demand.every(item => cache.has(item.id)),
       chunks: Object.freeze(completeView.map(id => cache.get(id)?.chunk).filter(Boolean)),
       cachedChunks: cache.size,
       pending: inFlight !== undefined,

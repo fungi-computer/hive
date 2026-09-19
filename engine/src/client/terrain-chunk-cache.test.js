@@ -51,6 +51,8 @@ test("terrain chunk cache loads priority batches and retains the last complete v
   owner.updateDemand(keys.slice(0, 2).map(([x, y, z]) => [x, y, z + 1]));
   assert.equal(owner.snapshot().chunks.length, 10, "old complete coverage stays drawable while demand loads");
   assert.deepEqual(owner.snapshot().coverage.map(item => item.status), ["unknown", "unknown"]);
+  assert.equal(owner.snapshot().viewComplete, true);
+  assert.equal(owner.snapshot().demandComplete, false, "drawable old coverage cannot stop new camera demand");
 });
 
 test("terrain changes invalidate vertical coverage and all dual-grid neighbor chunks", async () => {
@@ -77,15 +79,20 @@ test("epoch, full reset, stale replies and pinned-view capacity reset explicitly
   runtime.requests[0].resolve({ kind: "ready", requestId: 1, epoch: 1, terrainRevision: 1, chunks: [chunk([0, 0, 0])] });
   await initial;
   owner.updateDemand([[1, 0, 0], [2, 0, 0]]);
-  assert.equal(owner.snapshot().viewBudget, true);
-  await owner.service();
-  assert.equal(runtime.requests.length, 1, "budget refusal retains the pinned complete view without request churn");
+  assert.equal(owner.snapshot().viewBudget, false, "an old view cannot exhaust the new view's valid budget");
+  assert.equal(owner.snapshot().viewComplete, false);
+  const replacement = owner.service();
+  assert.deepEqual(runtime.requests[1].request.chunks, [[1, 0, 0], [2, 0, 0]]);
+  runtime.requests[1].resolve({ kind: "ready", requestId: 2, epoch: 1, terrainRevision: 1,
+    chunks: [chunk([1, 0, 0]), chunk([2, 0, 0])] });
+  await replacement;
+  assert.equal(owner.snapshot().demandComplete, true);
 
   owner.updateFrame(frame(2, 3));
   assert.equal(owner.snapshot().cachedChunks, 0);
   owner.updateDemand([[0, 0, 0]]);
   const stale = owner.service();
-  runtime.requests[1].resolve({ kind: "stale", requestId: 2, epoch: 2, terrainRevision: 4 });
+  runtime.requests[2].resolve({ kind: "stale", requestId: 3, epoch: 2, terrainRevision: 4 });
   await stale;
   assert.equal(owner.snapshot().terrainRevision, 4);
   assert.equal(owner.snapshot().coverage[0].status, "unknown");

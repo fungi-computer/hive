@@ -117,6 +117,14 @@ test("consecutive batches preserve IDs across actors, rails, state/texture chang
   assert(geometry.indexBuffer.data instanceof Uint16Array);
   assert.equal(owner.update(small)[0].display,mesh);
   assert.equal(owner.update(small)[0].display.geometry.positions,geometry.positions);
+  const newGeometry = [{ ...small[0], projected: small[0].projected.map((point, index) =>
+    index === 0 ? { ...point, x: point.x + 1 } : point) }, small[1]];
+  assert.equal(owner.update(newGeometry)[0].display, mesh);
+  const changedPositions = geometry.positions;
+  assert(Math.abs(changedPositions[0] - small[0].projected[0].x - 1) < 0.001);
+  owner.update(small);
+  assert.notStrictEqual(geometry.positions, changedPositions,
+    "changing a run's prepared geometry uploads replacement vertices");
   const many=Array.from({length:16001},(_,i)=>f(`face-${i}`));
   const split=owner.update(many);
   assert.deepEqual(split.map(batch=>batch.records.length),[16000,1]);
