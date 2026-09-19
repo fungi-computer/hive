@@ -463,9 +463,22 @@ try {
       art: { path: entry.path, pixel, offset: resolved.offset, base, shifted },
     };
   };
+  async function armBuild(label) {
+    const selected = page.getByRole("button", { name: label, exact: true });
+    if (await selected.count() && await selected.getAttribute("aria-pressed") === "true") return;
+    if (!await selected.isVisible()) {
+      const build = await waitForVisible(page, "Build");
+      const box = await build.boundingBox();
+      assert(box, "Build control has no screen position");
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    }
+    const item = await waitForVisible(page, label);
+    const box = await item.boundingBox();
+    assert(box, `${label} has no screen position`);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  }
   async function buildPoint(label, targetCell, expectedName = "build") {
-    await (await waitForVisible(page, "Build")).click();
-    await (await waitForVisible(page, label)).click();
+    await armBuild(label);
     const frame = latestObservation.observation.terrain;
     const point = projectedCell(targetCell, frame.verticalMetres, await canvasBox(page));
     const before = commandCount();
@@ -488,8 +501,7 @@ try {
     };
   };
   async function buildLine(label, startCell, endCell, axis) {
-    await (await waitForVisible(page, "Build")).click();
-    await (await waitForVisible(page, label)).click();
+    await armBuild(label);
     const frame = latestObservation.observation.terrain;
     const box = await canvasBox(page);
     const start = projectedEdge({ cell: startCell, axis }, frame.verticalMetres, box);
@@ -571,8 +583,7 @@ try {
   const bedSurface = await structurePoint("colony.bed", rectangle.bed);
   const brewerSurface = await structurePoint("colony.brew-station", rectangle.brewer);
   const replacementBefore = commandCount();
-  await (await waitForVisible(page, "Build")).click();
-  await (await waitForVisible(page, "Build floor")).click();
+  await armBuild("Build floor");
   await page.mouse.click(bedSurface.point.x, bedSurface.point.y);
   const replacement = await waitCommandAccepted(replacementBefore, "bed floor replacement");
   assert.equal(replacement.name, "build");
@@ -580,8 +591,7 @@ try {
     "bed floor replacement did not preserve its support cell");
   await waitForObservation(observation => observation.observation.facts?.some(fact => fact.id === originalFloorId), "floor identity after bed replacement");
   const brewerReplacementBefore = commandCount();
-  await (await waitForVisible(page, "Build")).click();
-  await (await waitForVisible(page, "Build floor")).click();
+  await armBuild("Build floor");
   await page.mouse.click(brewerSurface.point.x, brewerSurface.point.y);
   const brewerReplacement = await waitCommandAccepted(brewerReplacementBefore, "brewer floor replacement");
   assert.equal(brewerReplacement.name, "build");
@@ -596,7 +606,7 @@ try {
     brewerArtHit: brewerSurface.art,
     limit: "The bounded browser proof observes command admission and identity; native completion remains covered by the joined construction laws.",
   });
-  await buildPoint("Stair north", freeSurface().cell);
+  await buildPoint("stair north", freeSurface().cell);
   await waitForVisible(page, "Higher voxel layer");
   await (await waitForVisible(page, "Higher voxel layer")).click();
   await page.getByText(/Voxel layer 1/).waitFor({ state: "visible", timeout: 10_000 });
