@@ -12,11 +12,13 @@ historical evidence; they do **not** qualify camera movement, real clicking, or
 geometric ordering. The full compiler and retained owner can share the same error.
 Do not treat their parity as an independent visual oracle.
 
-Continue from [the self-contained audit and new-chat handoff](15-renderer-audit-handoff-20260919.md).
+Read [the completed audit and implementation handoff](15-renderer-audit-handoff-20260919.md).
 It records confirmed source findings, reproducible counterexamples, unaccepted
 picking changes, the last recorded deployment, remaining measurements and the
-bounded repair sequence. This is an **unfinished audit**, not a new accepted
-sorter design or authorization to deploy. Keep the delivery order below.
+bounded repair sequence. The resumed audit now includes real local/hosted clicks,
+camera/cut/edit measurements and original-art pixels. This completes the requested
+audit/planning pass, not implementation acceptance or authorization to deploy.
+The existing compiler is rejected as the correctness oracle. Keep the delivery order below.
 
 First resolve supporting-cell insertion, multipart/footprint constraints and
 support facts independent of viewport culling; then qualify retention and input
@@ -24,6 +26,52 @@ against actual rendered overlap. Retain Three authoring, baked Pixi gameplay and
 native world authority. No new graphics architecture has been approved. Bounded
 native observation selection must precede adding persistent grass identities at
 scale; native whole-footprint support and shared work planning already exist.
+
+## September 19 ownership clarification — export facts, prepare once, paint
+
+Levi's clarification during the resumed audit: we start with 3D models, so retain
+the useful geometry beside their baked pictures; the engine prepares an ordered
+world drawing list and the renderer consumes it. CTO owns making that boundary
+work. Do not make the user resolve comparator details or choose a new renderer.
+
+The existing path already carries much of this information: `src/art/parts.js`
+declares named groups and local geometry; `src/art.js:bakeMultipartStartup`
+exports their color fragments; `src/art/static-authoring.js` writes placement,
+part geometry, anchors and alpha silhouettes; `src/art/static-pack.js` reads it.
+Complete this path rather than inventing another format or reconstructing geometry
+from runtime pictures. Visual geometry comes from the authoring model and checked
+declarations. Physical support, obstruction and inventory remain checked game/native
+definitions; a mesh alone cannot grant those capabilities.
+
+One engine presentation owner combines that pack metadata with observed native
+poses, full placement/support facts and the selected view. It returns ordered draw
+records with stable logical pick identities. Pixi consumes order, textures and
+transforms; it owns GPU resources but no spatial-policy decisions. Picking walks
+the same list backward using the supplied silhouettes. This owner may execute
+locally beside Pixi: "engine-owned" does not require per-camera DO sorting or a
+new network list every frame. Separate responsibility inside current modules before
+moving packages. Native ticks remain independent of cameras.
+
+Keep prepared static order, update affected moving/edited portions, and make
+pan/zoom primarily visibility/transform operations. Loading another visible chunk
+must not change the relative order of surviving objects. The first correctness
+shape precedes incremental optimization. Consolidate compiler/retained comparator
+and admission rules, producer support resolution, water placement and physical
+build-guide placement into this owner; do not hide the current duplication behind
+a forwarding API.
+
+An exported footprint is necessary but not sufficient for every picture overlap.
+For an object requiring interleaving, export meaningful pieces from its original
+model through the existing part baker. Qualify actual bed ends, stair rails and
+neighboring terrain. Do not assume emitting an unsplit object at its last contact
+solves it. A failed real-art example is work for the implementation owner to resolve
+through this boundary, not a reason to offload graphics design to Levi.
+
+Two architectural corrections follow the independent audit: blending does not
+move water above physically nearer opaque objects, and world build guides must
+join the world list instead of the HUD overlay. No live Three, per-pixel runtime
+depth reconstruction, universal scene framework or native scheduler rewrite is
+required by these corrections. Keep ordinary HUD/adornments explicitly separate.
 
 ## Authoritative delivery order — finish Clearing through reusable Vishnu owners
 
@@ -176,12 +224,11 @@ grass into a different non-actor concept.
 * `structure_support.rs` owns derived support. Structural Floor supplies standing
   support. Structural Cover seals/spans without standing support; it means roof
   geometry, not carpet. Fixture currently includes obstruction semantics.
-* `client.js` still invokes `isometric-sorter.js` each draw. It rebuilds proxies,
-  signatures and graphs, and deletes constraints to escape cycles. Grass/support
-  exceptions can introduce wrong relations. Static-cache tests count only new
-  comparisons, not all work. `terrain-face-batches.js` retains buffers but hashes
-  complete runs repeatedly. `cut-terrain-layer.js` omits viewport from an identity
-  whose generated records are viewport-culled.
+* The historical graph sorter was replaced by the compiler/retained stream.
+  Current defects are recorded in the September 19 handoff. Full/retained parity
+  is not an independent geometric oracle. `terrain-face-batches.js` still hashes
+  complete runs; camera demand and viewport-margin changes still regenerate the
+  visible record set. Support facts depend on which support draw records survive.
 * `src/art/bake.js` intentionally reduces editable Three scenes to color frames.
   `parts.js` already exports meaningful visual pieces. Preserve that reduction:
   export placement/footprint/pivot/part declarations where required, rather than
@@ -379,7 +426,8 @@ boundaries from transformed geometry and camera traversal; emit the supporting
 surface and actors whose canonical `support` names that stair between them. Order
 those actors by position along the support. This is a reusable multipart-support
 law, not a stair-name branch. A bed has no legal occupants inside its obstructed
-footprint and enters only after traversal crosses its complete oriented footprint.
+footprint, but that alone does not justify insertion at the last footprint contact.
+Qualify outside passersby at both ends and sides using exported geometry/parts.
 
 Terrain top, cliff side, cut cap and structural face records already carry world
 geometry. Emit only faces admitted by the selected-level cut and insert actors
@@ -393,11 +441,12 @@ It may overlap a goblin's feet because it is in front at that cell; it needs no
 front/back blade layers or grass-only comparator. Dual-grid patches are visual
 records derived from neighboring canonical cover cells, not new physical actors.
 
-Water and other genuinely blended art use a declared transparent pass after the
-entire opaque/cutout stream, ordered back-to-front from their physical surfaces.
-This is a pass boundary, not merely a late slot used only when two traversal keys
-tie. Keep this limited to supported effects; arbitrary intersecting transparent volumes are
-outside the slice. HUD remains last. Visible-object picking walks the same final
+Water blending is independent of spatial order. Interleave the current physical
+water surfaces with opaque/cutout records in the prepared world list; farther water
+must not paint over a nearer bank or person. The previous unconditional final
+transparent pass is withdrawn: the September 19 same-ray bank/water counterexample
+contradicts it. Arbitrary intersecting transparent volumes remain outside the slice.
+HUD remains last. Visible-object picking walks the same final
 records front-to-back and applies the existing alpha silhouette. Construction
 targeting continues to use the canonical selected plane, not whichever picture
 happens to be visible.
@@ -617,8 +666,9 @@ and bounded primitive documents as Three Object JSON. The full editor exports
 project/Three/GLB; its compiled scene is not yet a raster game asset.
 
 The missing seam is concrete: `static-authoring.js` / `export-static-art.mjs`
-use `bakeArt()`'s fixed built-in catalog. Introduce a checked versioned authored
-visual document plus bake specification into that same export owner; keep the
+use `bakeArt()`'s fixed built-in catalog. Join the existing checked version-1
+`src/asset-pipeline/scene-document.ts` document plus a bake specification to that
+same export owner; keep the
 existing atlas/manifest loader and game Visual reference. The existing brewhouse
 study's duplicate bake/outline should converge on the shared bake owner when
 this consumer moves. Do not create another asset pipeline or editor.
@@ -626,7 +676,10 @@ this consumer moves. Do not create another asset pipeline or editor.
 First consumer: expose existing bed geometry to MCP, author a visual variant,
 compile the required facings with the shared camera/color/placement owner, and bind
 it to the existing native bed definition. Prove MCP call -> retained document ->
-checked pack -> ordinary bed construction/use/picking/reload. Physical footprint
+checked pack -> ordinary bed construction/picking/reload. These are the existing
+bed interactions; no inspected Colony command implements sleeping/resting yet.
+Adding that behavior requires an explicit later work outcome, not an implied
+claim in this creator witness. Physical footprint
 and work rules remain explicit game definitions, never inferred from mesh bounds.
 A bench is not already a functioning furniture consumer, and an MCP kettle does
 not satisfy a brew station's multiple state-derived visual profiles.

@@ -1,6 +1,235 @@
 # Renderer audit and new-chat handoff — September 19, 2026
 
-## Start here
+## Resumed audit — source and ownership checkpoint
+
+Resumed at `8f6e37443a22e184bc2c7f60dbb8cc2b7a8a3093`. The two unfinished
+picking files still match the SHA-256 values below. Production source, original
+art and studies remain unchanged by this audit. Only this packet, packet 15 and
+diagnostic evidence are being written; no deployment or native rebuild occurred.
+
+Levi clarified the desired responsibility: retain useful metadata from the 3D
+models, have the engine prepare an ordered world drawing list, and let Pixi paint
+it. Packet 15 now explicitly owns that boundary. This is largely an existing
+capability to finish: `parts.js`, `bakeMultipartStartup`, `static-authoring.js`
+and `static-pack.js` already preserve placement, named part geometry, anchors and
+alpha silhouettes. One engine presentation owner must consume them consistently.
+It can run locally without giving the DO camera-specific work or putting Three in
+gameplay. Physical capabilities still come from checked native/game definitions.
+
+Additional independently reviewed findings:
+
+- Water's unconditional final pass is contradicted by a same-camera-ray witness:
+  water `(-.1,.27,.1)` and the nearer bank top `(.5613622305514584,.81,.7613622305514581)`
+  project to the same pixel. The compiler emits bank then water. Blend mode must
+  not override physical order. Packet 15 withdraws that pass requirement.
+- Full compiler support admission is itself incomplete: shifting a stair occupant
+  about 61.24 metres in each opposing horizontal axis preserves its traversal
+  depth and is admitted. That is about 86.6 metres of lateral displacement, not
+  an actual native simulation pose. Shared full/retained validation must check
+  the actual support geometry, not only an interval in sorting keys.
+- The current three-part stair is a bounded supported compound, not proof of a
+  general multipart renderer. A bed's obstruction footprint likewise does not
+  prove that last-contact insertion handles people outside both ends and sides.
+- Real build guides and ghosts are in `transientLayer`, above the world;
+  the synthetic stream guide fixture does not establish production integration.
+- `prepareNewWorld()` destroys actor containers without calling multipart
+  disposal. Parts are direct world-container children and survive the cache clear.
+  Ordinary actor disappearance does dispose them. Audit this reset boundary in
+  the renderer repair; do not claim a measured GPU leak from source alone.
+- The checked version-1 creator document already exists. Join it to the existing
+  bake/export owner. The native bed has construction/picking/reload consumers;
+  no inspected Colony caller supplies sleeping/resting. Packet 15 now says what
+  the first creator witness actually does.
+- The existing `colony-performance.test.ts` already exercises productive tree
+  work at 32/100/200 workers and measures step/save/observation. Extend its real
+  scenarios for connected rendering and separated costs; do not recreate the
+  native scheduler or claim every worker was simultaneously productive.
+
+The water/support probe is preserved in
+[20260919-water-and-support-probe.mjs](evidence/20260919-water-and-support-probe.mjs).
+Original independent scopes were `run-u2311` and corrected `run-u2312`; the
+consolidated receipt was reproduced under `run-u2329` with exit 0.
+
+The own-support order error now has real pixels: the isolated two-record scene
+uses the checked original art and production fixture/projection/batch owners.
+Feet at `(.6,.27,.6)` emit before top `[1,0,1]`. Rendering the same records with
+the independently required top-before-standing-actor relation changes 13 pixels
+in the 80×98 image. Scope `run-u2334`, exit 0, no browser errors. Code:
+[rendered-order probe](evidence/20260919-rendered-order-probe.mjs); original images
+are retained under `.botanical/renderer-audit-20260919/own-top-{actual,expected}.png`.
+This is a focused geometric/art witness, not acceptance of all furniture cases.
+
+Direct surrounding-source comparison reaffirmed existing owners: the Rust work
+planner jointly assigns current obligations; native whole-footprint support and
+checked removal/replacement are installed. XYZ activity repair must include
+`contracts.ts`, `work-activity.ts`, Colony producers and animation consumers.
+Region/public-host transactions already commit and accept/discard resident work.
+Botanical Watchdog has owner-transaction projections; Mycelium/Hub provide guarded
+sandbox execution, cancellation and timeout. No new scheduler, event-sourcing
+layer or sandbox follows from this renderer repair. Regional physical transfers
+remain a later explicit contract, distinct from view coverage.
+
+## Completed browser audit and recommendation
+
+The requested audit/planning pass is complete. The implementation is not repaired
+or accepted. Keep the historical checkpoint below as provenance; its pending-browser
+section is superseded by this section. No broad implementation or deployment was
+performed. The final recommendation is to proceed with packet 15's renderer-first
+repair under one owner, keeping the existing Three bake → engine draw preparation
+→ Pixi pipeline and the installed native support/work/durability owners.
+
+### What the browser actually proved
+
+[Compact receipt, sample counts and artifact hashes](evidence/20260919-browser-summary.json)
+preserve the exact result boundaries. The executable browser probes beside it use
+Playwright route instrumentation only; they do not edit application source or
+replace hit predicates. The `head` mode serves the committed cover producer from
+Git in that browser, leaving the unfinished working file untouched.
+
+| Check | Observed result |
+|---|---|
+| Local original picking | Actual alpha hit on Sedge at local point `(352,80.32955)` returns no selection before pan, after 12 left-arrow inputs, and after four wheel zooms. Ten nonpickable cover rectangles precede the actor at this point. |
+| Local unfinished patch | The same ordinary mouse inputs select `party:1.person.1` in all three cases. This establishes its benefit, not acceptance of making all grass click-through. |
+| Existing hosted frontend + DO | HTTP 200, join/connect/terrain responses 200, no browser errors. Sedge's current observed ID and camera transform determine the click, not hardcoded assumed coordinates. Selection remains empty in all three camera cases. [Rendered original hosted scene](evidence/20260919-hosted-selection.png). |
+| Camera demand | Local pan leaves 19 demanded chunks unknown while `viewComplete` stays true; crossing the other way leaves 22 unknown. The browser reproduces the source cache-service defect. |
+| Floor gesture | Palette says rectangle; hover locks `[7,13,1]` while displayed level is 14. Drag to another cell emits `build.target.cell`, no area, and leaves the area gesture idle. |
+| Bed plane | Hover locks level 13 while displayed level is 14. Lowering the display to 13 leaves the bed armed but clears its plane/hover. |
+| Real terrain edit | Ordinary Dig area input `[5,13,1]`, then Resume: terrain revision 0→1; that column's surface changes from `[5,13,1]` to `[5,12,1]`. No direct kernel edit or fabricated frame. |
+| Original-art ordering | Own-support counterexample changes 13 pixels of an 80×98 bake. [Actual order](evidence/20260919-own-top-actual.png), [required support-before-actor order](evidence/20260919-own-top-expected.png). |
+
+The hosted diagnostic adds references to existing client state/camera/app to the
+served bundle in that isolated browser; its ordering, hit tests and commands are
+unchanged. Pixi extraction captures rendered art without depending on the host's
+slow compositor screenshot path. It produces a world-container image, not a full
+HUD screenshot. The earlier [local full viewport](evidence/20260919-dirty-initial.png)
+is retained separately. Initial diagnostic attempts with incomplete timing hooks,
+wrong accessible button labels or cyclic XState serialization are not passing
+receipts. One earlier Vite process terminated with exit 143; it was confirmed
+stopped before restart. Those environment/diagnostic failures are not game crashes.
+
+### Measured costs and practical limits
+
+Context: shared Linux host, two logical AMD EPYC-Milan CPUs, about 7.6 GiB RAM;
+Chromium 153.0.8010.12, ANGLE SwiftShader, 1440×1000 CSS viewport, scale 1. Local
+development modules have timing wrappers. The scene begins with 5,774 records;
+ordinary culling changes counts during camera movement. Keep these as attribution
+measurements, not hardware capacity, a 60 FPS claim, or head-versus-patch speedup.
+Nested intervals must not be summed. Sparse frame samples do not merit p95 claims.
+
+| Real interaction | Preparation / compiler / batch evidence |
+|---|---|
+| 12 left-arrow pan inputs, dirty producer | Four whole-view regenerations. Face generation 1,066 ms median / 1,361 ms max; cover generation 139 / 201 ms; batch update 81 / 91 ms. Worst draw preparation 1,943 ms. |
+| Same pan, original producer | Four whole-view regenerations. Face generation 663 / 697 ms; cover 108 / 115 ms; batch update 58 / 62 ms. Worst draw preparation 1,029 ms. Different host load precludes treating this difference as a patch regression. |
+| Four zoom inputs, dirty producer | Four regenerations; face generation 867 / 1,058 ms; cover 173 / 212 ms; batch update 75 / 79 ms. Worst draw preparation 1,479 ms. |
+| 24 opposite-arrow inputs | Eleven regenerations; face generation 781 / 1,208 ms; batch update 63 / 110 ms. Worst draw preparation 2,037 ms. |
+| Cutaway + lower level | One regeneration: faces 648 ms, cover 232 ms, batch update 56 ms; worst draw preparation 1,139 ms. |
+| Moving cat in ordinary running world | Native observations show Mallow move from `(0,7.29,2)` to `(-2,7.29,2)`. Two batch updates reach 55 ms; draw preparation reaches 65 ms. This is actor movement, not productive-worker capacity. |
+| Completed one-cell dig | Faces regenerate in 555 ms, cover in 106 ms; worst draw preparation 809 ms. One chunk request/reply takes 200 ms including transport/scheduling/worker work. |
+| Focused six-arrow upload attribution | One regeneration: faces 643 ms, cover 132 ms, compile max 129 ms, batch plan 9.2 ms, total batch update 67.5 ms. Five buffer-array builds total 5.3 ms; seven `bufferData` and fourteen `bufferSubData` CPU calls total about 0.6 ms. GPU completion is not measured. |
+
+Static stationary draw preparation is small in these short windows (1.3 ms median
+in the original-producer run), yet software-browser frame intervals remain hundreds
+of milliseconds. The full receipt records each frame interval and its sample count;
+CPU submission is not GPU execution or compositor cost. The measured camera stalls
+also contain large synchronous preparation work independent of that distinction.
+The priorities are exposed-face generation/retention, cache servicing, joined
+ordering correctness, and run-signature/batch invalidation—not further optimizing
+an already sub-millisecond four-actor insertion in isolation.
+
+The moving-world run records 100 existing Worker `session.step` metrics: 0.6 ms
+median, 1.9 ms p95, 4.5 ms max. These exclude subsequent snapshot capture/export;
+the existing water/gas counters are null. This audit does not establish separate
+solver costs or 32/100 productive-worker throughput. Those remain the explicitly
+ordered stage-3 qualification, using the installed performance scenarios. No Rust
+scheduler or native support checks were restarted. Browser phase/transport/native
+samples now establish where this renderer repair should start.
+
+### Repair contract and next playable milestone
+
+Complete the existing model-to-pack metadata path and make one engine presentation
+owner prepare the ordered list. Remove competing full/retained comparison and
+admission rules; resolve support from physical facts regardless of visible support
+records; make blending independent of depth order; join actual physical guides;
+use exact alpha hits; dispose multipart children on world replacement. Pixi paints
+the prepared list and owns its resources. Picking traverses that same list backward.
+Keep static geometry/order and rebuild only affected chunks/parts as physical or
+cut facts change; pan/zoom do not invalidate unchanged physical relationships.
+
+For each exported unsplit drawable, prove that supported overlaps permit one
+consistent insertion. Where existing bed/stair geometry needs interleaving, use
+small meaningful parts from the original model through the existing exporter.
+Footprint endpoints and a support-local scalar interval are not that proof. Keep
+the three-part stair bounded until all required occupants and outside passersby
+are qualified. There is no evidence requiring a new renderer or arbitrary live
+3D/depth reconstruction.
+
+Next independently playable milestone: pan, zoom, change cuts, click a person,
+and walk around terrain, both bed ends and stair rails without missing coverage,
+false grass hits or objects painting through their supports. Include bank/water
+and production build-guide overlaps, plus clean world replacement. Building-plane
+controls follow immediately; work/performance, continuity/regions and the existing
+creator join retain their recorded order. Grass actor scale and new creator tools
+do not block this first milestone.
+
+Still unqualified as implementation acceptance: the complete furniture/orientation
+matrix, actual pan-induced image popping distinct from the proved demand failure,
+water GPU pixels beyond the independent same-ray counterexample, reset rendering,
+hardware-GPU smoothness and productive-worker capacity. These are explicit repair
+acceptance gates, not claims that the audit repaired or proved the whole renderer.
+No current Fallow report for these renderer paths was found in the inspected
+retained evidence; the available clearing-state report concerns an older owner.
+Source review identifies the large client coordinator, duplicated compiler rules,
+whole-view face scanning and run hashing as remaining responsibility/cost hotspots.
+
+Browser reproduction on this host uses the cached headless shell and isolated
+unpacked libraries; no host or repository dependencies were installed or changed:
+
+```sh
+/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh env LD_LIBRARY_PATH=/tmp/hive-renderer-audit-browser/root/usr/lib/x86_64-linux-gnu:/tmp/hive-proof-libs/root/usr/lib/x86_64-linux-gnu node engine/implementation/clearing-repair/evidence/20260919-browser-audit.mjs .botanical/renderer-audit-20260919 head
+```
+
+Other bounded modes are `controls`, `building`, `edit` and `uploads`; default
+`dirty` includes the full local sequence. Local scripts expect the ordinary Vite
+server on port 5187. The hosted selection and rendered-order probes are separate
+files beside this script. Raw per-phase samples remain under the recorded
+`.botanical/renderer-audit-20260919` root; the compact receipt preserves their
+hashes, sample counts and summary. The maintained native scheduler/support suites
+are not part of these diagnostics.
+
+### Pasteable implementation goal
+
+```text
+/goal Deliver packet 15's first playable rendering/interaction milestone in
+/home/levi/src/hive-worktrees/living-terrain-integration. Read packet 15 and the
+completed 15-renderer-audit-handoff-20260919.md before editing. Preserve the two
+unaccepted picking files, original art, studies and all audit evidence.
+
+Take ownership of the existing Three model -> baked art plus geometry metadata ->
+engine-prepared ordered drawing list -> dumb Pixi pipeline. Complete the existing
+exporter/pack contract and one engine presentation owner, rather than patching
+several sorters or introducing a new renderer. Fix own-support/footprint/part order,
+water order, actual guide integration, alpha picking, current camera-demand service,
+retained terrain/batch invalidation and multipart reset cleanup together. Keep native
+world/support/work/durability authority. No live Three or runtime per-pixel depth.
+
+Use the recorded original-art and same-ray counterexamples as independent expected
+results before retained/full parity. Prove normal mouse clicks after pan/zoom,
+support-tile quadrants, both ends/sides of the bed, stair entrance/middle/landing
+and outside rails, pits/cuts, water/banks, actual guides, chunk crossings, terrain
+edits and clean world replacement. Measure preparation, ordering, batching/uploads,
+render/frame intervals and native/transport costs separately. Do not claim productive
+population capacity from idle actors or software-browser numbers.
+
+Use isolated writing lanes with one owner for the coupled exporter/draw stack,
+review its first working shape, then finish and qualify the playable milestone.
+Publish only its coherent accepted interim to the existing feature preview under
+the established release rules; no main merge or production/backend deployment.
+Preserve packet 15's subsequent order: building/support callers, productive work
+and performance, continuity/regions, then the existing creator-tool join. Give
+short plain-language updates and tell Levi exactly what is playable.
+```
+
+## Original handoff — historical starting state
 
 This is an unfinished source audit and handoff, not implementation acceptance.
 The user requested an audit/planning pass and intends to resume in a new chat.
@@ -214,7 +443,7 @@ zoomed, cut, clicked and walked around without coverage starvation or objects
 drawing through their supporting terrain. Include long furniture and stairs.
 Grass selection/growth, creator work and regional expansion must not delay it.
 
-## Remaining audit work before an implementation handoff
+## Original remaining audit work — superseded by completed audit above
 
 1. Resolve browser dependencies using an existing supported proof environment.
    The cached Chromium 1243 binary currently fails `ldd` for `libnspr4.so`, NSS,
@@ -248,12 +477,12 @@ cd /home/levi/src/hive-worktrees/living-terrain-integration
 ```
 
 No broad tests, source acceptance, implementation or new deployment occurred in
-this audit checkpoint. The cache probe completed in owned scope `run-u2308`;
+the original checkpoint. The cache probe completed in owned scope `run-u2308`;
 the independent renderer reviewer ran a read-only probe in `run-u2306`. Neither
-is a rendered interaction or performance proof. Keep the audit goal unfinished
-until the remaining requirements are met.
+is a rendered interaction or performance proof. The audit was unfinished at that
+checkpoint; the resumed browser and geometric evidence above completes the audit.
 
-## Paste into the new chat
+## Original resume prompt — superseded by implementation goal above
 
 ```text
 /goal Resume the renderer-first Vishnu audit from

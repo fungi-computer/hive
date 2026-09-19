@@ -1,0 +1,1894 @@
+{
+  "source": "8f6e37443a22e184bc2c7f60dbb8cc2b7a8a3093",
+  "context": {
+    "viewport": [
+      1440,
+      1000
+    ],
+    "deviceScaleFactor": 1,
+    "browser": "Chromium 153.0.8010.12, cached headless shell 1243",
+    "graphics": "ANGLE SwiftShader (launch flags); CPU submission measured, GPU execution not timed",
+    "host": "shared Linux x86_64, AMD EPYC-Milan, 2 logical CPUs, 7.57 GiB RAM",
+    "limitations": [
+      "Short bounded diagnostic windows; sparse frame samples. p95 omitted below 20 observations.",
+      "Stage durations are nested and must not be summed.",
+      "Development-server instrumentation changes timing; shared host/software graphics prevent capacity or head-vs-dirty speedup claims.",
+      "Native metric is session.step only, excluding subsequent accepted snapshot/export; water/gas counters are null."
+    ]
+  },
+  "runs": {
+    "dirty": {
+      "errors": [],
+      "phases": [
+        {
+          "name": "stationary-paused",
+          "recordsBefore": 5774,
+          "recordsAfter": 5774,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 2,
+            "staticRebuild": 0,
+            "dynamicInsert": 8,
+            "applyOrder": 0
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 2,
+              "p50Ms": 6,
+              "p95Ms": null,
+              "maxMs": 6
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 2,
+              "p50Ms": 6.099999904632568,
+              "p95Ms": null,
+              "maxMs": 6.099999904632568
+            },
+            "compileVoxelDrawStream": {
+              "samples": 2,
+              "p50Ms": 0.10000014305114746,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746
+            },
+            "drawCPU": {
+              "samples": 2,
+              "p50Ms": 6.599999904632568,
+              "p95Ms": null,
+              "maxMs": 6.599999904632568
+            },
+            "pixiRenderCPU": {
+              "samples": 2,
+              "p50Ms": 6.5,
+              "p95Ms": null,
+              "maxMs": 6.5
+            }
+          },
+          "frameInterval": {
+            "samples": 2,
+            "p50Ms": 1433.300000000003,
+            "p95Ms": null,
+            "maxMs": 1433.300000000003
+          },
+          "workerSessionStep": null
+        },
+        {
+          "name": "pan",
+          "recordsBefore": 5774,
+          "recordsAfter": 5837,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -481.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 19,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 19,
+            "staticRebuild": 4,
+            "dynamicInsert": 60,
+            "applyOrder": 4
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 15,
+              "p50Ms": 1.7000000476837158,
+              "p95Ms": null,
+              "maxMs": 13.5
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 15,
+              "p50Ms": 1.7999999523162842,
+              "p95Ms": null,
+              "maxMs": 1608.4000000953674
+            },
+            "compileVoxelDrawStream": {
+              "samples": 19,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": null,
+              "maxMs": 179.20000004768372
+            },
+            "drawCPU": {
+              "samples": 15,
+              "p50Ms": 7.200000047683716,
+              "p95Ms": null,
+              "maxMs": 1943.0999999046326
+            },
+            "materialCoverage": {
+              "samples": 4,
+              "p50Ms": 12.200000047683716,
+              "p95Ms": null,
+              "maxMs": 24.200000047683716
+            },
+            "terrainFaceRecords": {
+              "samples": 4,
+              "p50Ms": 1066.3999998569489,
+              "p95Ms": null,
+              "maxMs": 1361.1000001430511
+            },
+            "terrainCoverRecords": {
+              "samples": 4,
+              "p50Ms": 139.20000004768372,
+              "p95Ms": null,
+              "maxMs": 200.79999995231628
+            },
+            "terrainBatchPlan": {
+              "samples": 4,
+              "p50Ms": 5.200000047683716,
+              "p95Ms": null,
+              "maxMs": 7.799999952316284
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 4,
+              "p50Ms": 81,
+              "p95Ms": null,
+              "maxMs": 91.10000014305115
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 4,
+              "p50Ms": 81,
+              "p95Ms": null,
+              "maxMs": 91.10000014305115
+            },
+            "pixiRenderCPU": {
+              "samples": 3,
+              "p50Ms": 7.299999952316284,
+              "p95Ms": null,
+              "maxMs": 20.899999856948853
+            }
+          },
+          "frameInterval": {
+            "samples": 3,
+            "p50Ms": 2366.5999999999985,
+            "p95Ms": null,
+            "maxMs": 3666.4000000000015
+          },
+          "workerSessionStep": null
+        },
+        {
+          "name": "zoom",
+          "recordsBefore": 5837,
+          "recordsAfter": 4669,
+          "cameraBefore": {
+            "x": -481.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -621.8000000000006,
+            "y": 265.6345324579487,
+            "zoom": 2.4000000000000004
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 20,
+            "staticRebuild": 4,
+            "dynamicInsert": 64,
+            "applyOrder": 4
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 16,
+              "p50Ms": 1.7999999523162842,
+              "p95Ms": null,
+              "maxMs": 12.799999952316284
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 16,
+              "p50Ms": 2.5999999046325684,
+              "p95Ms": null,
+              "maxMs": 1212.0999999046326
+            },
+            "compileVoxelDrawStream": {
+              "samples": 20,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": 194.10000014305115,
+              "maxMs": 194.10000014305115
+            },
+            "drawCPU": {
+              "samples": 16,
+              "p50Ms": 4.5,
+              "p95Ms": null,
+              "maxMs": 1478.5999999046326
+            },
+            "pixiRenderCPU": {
+              "samples": 12,
+              "p50Ms": 2.5,
+              "p95Ms": null,
+              "maxMs": 15.100000143051147
+            },
+            "materialCoverage": {
+              "samples": 4,
+              "p50Ms": 16.699999809265137,
+              "p95Ms": null,
+              "maxMs": 18.200000047683716
+            },
+            "terrainFaceRecords": {
+              "samples": 4,
+              "p50Ms": 866.7000000476837,
+              "p95Ms": null,
+              "maxMs": 1058.0999999046326
+            },
+            "terrainCoverRecords": {
+              "samples": 4,
+              "p50Ms": 173,
+              "p95Ms": null,
+              "maxMs": 211.5
+            },
+            "terrainBatchPlan": {
+              "samples": 4,
+              "p50Ms": 5.200000047683716,
+              "p95Ms": null,
+              "maxMs": 10.200000047683716
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 4,
+              "p50Ms": 74.59999990463257,
+              "p95Ms": null,
+              "maxMs": 79.20000004768372
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 4,
+              "p50Ms": 74.59999990463257,
+              "p95Ms": null,
+              "maxMs": 79.20000004768372
+            }
+          },
+          "frameInterval": {
+            "samples": 12,
+            "p50Ms": 1583.2000000000044,
+            "p95Ms": null,
+            "maxMs": 2283.2000000000044
+          },
+          "workerSessionStep": null
+        },
+        {
+          "name": "chunk-crossing",
+          "recordsBefore": 4669,
+          "recordsAfter": 4540,
+          "cameraBefore": {
+            "x": -621.8000000000006,
+            "y": 265.6345324579487,
+            "zoom": 2.4000000000000004
+          },
+          "cameraAfter": {
+            "x": -45.80000000000064,
+            "y": 265.6345324579487,
+            "zoom": 2.4000000000000004
+          },
+          "unknownDemandAfter": 22,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 56,
+            "staticRebuild": 11,
+            "dynamicInsert": 180,
+            "applyOrder": 11
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 45,
+              "p50Ms": 3,
+              "p95Ms": 13.900000095367432,
+              "maxMs": 17
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 45,
+              "p50Ms": 6.699999809265137,
+              "p95Ms": 1007.9000000953674,
+              "maxMs": 1640.2999999523163
+            },
+            "compileVoxelDrawStream": {
+              "samples": 56,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": 161.79999995231628,
+              "maxMs": 215
+            },
+            "drawCPU": {
+              "samples": 45,
+              "p50Ms": 7.799999952316284,
+              "p95Ms": 1276.7999999523163,
+              "maxMs": 2036.8000001907349
+            },
+            "pixiRenderCPU": {
+              "samples": 21,
+              "p50Ms": 3.0999999046325684,
+              "p95Ms": 10.700000047683716,
+              "maxMs": 14.900000095367432
+            },
+            "materialCoverage": {
+              "samples": 11,
+              "p50Ms": 8.200000047683716,
+              "p95Ms": null,
+              "maxMs": 22.200000047683716
+            },
+            "terrainFaceRecords": {
+              "samples": 11,
+              "p50Ms": 780.5,
+              "p95Ms": null,
+              "maxMs": 1208
+            },
+            "terrainCoverRecords": {
+              "samples": 11,
+              "p50Ms": 114.70000004768372,
+              "p95Ms": null,
+              "maxMs": 378.7999999523163
+            },
+            "terrainBatchPlan": {
+              "samples": 11,
+              "p50Ms": 2.4000000953674316,
+              "p95Ms": null,
+              "maxMs": 7.5
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 11,
+              "p50Ms": 62.59999990463257,
+              "p95Ms": null,
+              "maxMs": 110.39999985694885
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 11,
+              "p50Ms": 62.59999990463257,
+              "p95Ms": null,
+              "maxMs": 110.39999985694885
+            }
+          },
+          "frameInterval": {
+            "samples": 21,
+            "p50Ms": 49.90000000000873,
+            "p95Ms": 2199.899999999994,
+            "maxMs": 2200
+          },
+          "workerSessionStep": null
+        }
+      ],
+      "clicks": [
+        {
+          "label": "initial",
+          "id": "party:1.person.1",
+          "point": {
+            "x": 352.0000000000002,
+            "y": 80.3295536814184
+          },
+          "screen": {
+            "x": 528,
+            "y": 475.3545510777942
+          },
+          "actorContains": true,
+          "selected": [
+            "party:1.person.1"
+          ],
+          "frontHit": {
+            "id": "party:1.person.1",
+            "part": "body",
+            "pickable": true,
+            "role": "actor"
+          }
+        },
+        {
+          "label": "after-pan",
+          "id": "party:1.person.1",
+          "point": {
+            "x": 352.0000000000002,
+            "y": 80.3295536814184
+          },
+          "screen": {
+            "x": 240,
+            "y": 475.3545510777942
+          },
+          "actorContains": true,
+          "selected": [
+            "party:1.person.1"
+          ],
+          "frontHit": {
+            "id": "party:1.person.1",
+            "part": "body",
+            "pickable": true,
+            "role": "actor"
+          }
+        },
+        {
+          "label": "after-zoom",
+          "id": "party:1.person.1",
+          "point": {
+            "x": 352.0000000000002,
+            "y": 80.3295536814184
+          },
+          "screen": {
+            "x": 240,
+            "y": 475.4254612933529
+          },
+          "actorContains": true,
+          "selected": [
+            "party:1.person.1"
+          ],
+          "frontHit": {
+            "id": "party:1.person.1",
+            "part": "body",
+            "pickable": true,
+            "role": "actor"
+          }
+        }
+      ]
+    },
+    "head": {
+      "errors": [],
+      "phases": [
+        {
+          "name": "stationary-paused",
+          "recordsBefore": 5774,
+          "recordsAfter": 5774,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 3,
+            "staticRebuild": 0,
+            "dynamicInsert": 12,
+            "applyOrder": 0
+          },
+          "timings": {
+            "createCutTerrainLayer.update": {
+              "samples": 1,
+              "p50Ms": 0.20000004768371582,
+              "p95Ms": null,
+              "maxMs": 0.20000004768371582
+            },
+            "visibleTerrainChunks": {
+              "samples": 3,
+              "p50Ms": 0.9000000953674316,
+              "p95Ms": null,
+              "maxMs": 3
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 3,
+              "p50Ms": 1,
+              "p95Ms": null,
+              "maxMs": 3
+            },
+            "compileVoxelDrawStream": {
+              "samples": 3,
+              "p50Ms": 0,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746
+            },
+            "drawCPU": {
+              "samples": 3,
+              "p50Ms": 1.2999999523162842,
+              "p95Ms": null,
+              "maxMs": 3.5
+            },
+            "pixiRenderCPU": {
+              "samples": 3,
+              "p50Ms": 1.3999998569488525,
+              "p95Ms": null,
+              "maxMs": 1.5999999046325684
+            }
+          },
+          "frameInterval": {
+            "samples": 3,
+            "p50Ms": 666.6000000000004,
+            "p95Ms": null,
+            "maxMs": 716.5
+          },
+          "workerSessionStep": null
+        },
+        {
+          "name": "pan",
+          "recordsBefore": 5774,
+          "recordsAfter": 5837,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -481.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 19,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 20,
+            "staticRebuild": 4,
+            "dynamicInsert": 64,
+            "applyOrder": 4
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 16,
+              "p50Ms": 1.0999999046325684,
+              "p95Ms": null,
+              "maxMs": 8.099999904632568
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 16,
+              "p50Ms": 2.200000047683716,
+              "p95Ms": null,
+              "maxMs": 823
+            },
+            "compileVoxelDrawStream": {
+              "samples": 20,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": 127.5,
+              "maxMs": 127.5
+            },
+            "drawCPU": {
+              "samples": 16,
+              "p50Ms": 2.5999999046325684,
+              "p95Ms": null,
+              "maxMs": 1029.3999998569489
+            },
+            "materialCoverage": {
+              "samples": 4,
+              "p50Ms": 8,
+              "p95Ms": null,
+              "maxMs": 8.599999904632568
+            },
+            "terrainFaceRecords": {
+              "samples": 4,
+              "p50Ms": 663.3999998569489,
+              "p95Ms": null,
+              "maxMs": 697
+            },
+            "terrainCoverRecords": {
+              "samples": 4,
+              "p50Ms": 107.79999995231628,
+              "p95Ms": null,
+              "maxMs": 114.79999995231628
+            },
+            "terrainBatchPlan": {
+              "samples": 4,
+              "p50Ms": 5.599999904632568,
+              "p95Ms": null,
+              "maxMs": 17.5
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 4,
+              "p50Ms": 58.200000047683716,
+              "p95Ms": null,
+              "maxMs": 61.89999985694885
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 4,
+              "p50Ms": 58.200000047683716,
+              "p95Ms": null,
+              "maxMs": 61.89999985694885
+            },
+            "pixiRenderCPU": {
+              "samples": 4,
+              "p50Ms": 1,
+              "p95Ms": null,
+              "maxMs": 1.1000001430511475
+            }
+          },
+          "frameInterval": {
+            "samples": 4,
+            "p50Ms": 1050,
+            "p95Ms": null,
+            "maxMs": 1149.9000000000015
+          },
+          "workerSessionStep": null
+        },
+        {
+          "name": "zoom",
+          "recordsBefore": 5837,
+          "recordsAfter": 4669,
+          "cameraBefore": {
+            "x": -481.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -621.8000000000006,
+            "y": 265.6345324579487,
+            "zoom": 2.4000000000000004
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 20,
+            "staticRebuild": 4,
+            "dynamicInsert": 64,
+            "applyOrder": 4
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 16,
+              "p50Ms": 1.7000000476837158,
+              "p95Ms": null,
+              "maxMs": 16.299999952316284
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 16,
+              "p50Ms": 2,
+              "p95Ms": null,
+              "maxMs": 1014.0999999046326
+            },
+            "compileVoxelDrawStream": {
+              "samples": 20,
+              "p50Ms": 0.10000014305114746,
+              "p95Ms": 132,
+              "maxMs": 132
+            },
+            "drawCPU": {
+              "samples": 16,
+              "p50Ms": 3.6000001430511475,
+              "p95Ms": null,
+              "maxMs": 1216
+            },
+            "pixiRenderCPU": {
+              "samples": 12,
+              "p50Ms": 0.5,
+              "p95Ms": null,
+              "maxMs": 3.9000000953674316
+            },
+            "materialCoverage": {
+              "samples": 4,
+              "p50Ms": 10.200000047683716,
+              "p95Ms": null,
+              "maxMs": 12.5
+            },
+            "terrainFaceRecords": {
+              "samples": 4,
+              "p50Ms": 684.6000001430511,
+              "p95Ms": null,
+              "maxMs": 858.5
+            },
+            "terrainCoverRecords": {
+              "samples": 4,
+              "p50Ms": 110,
+              "p95Ms": null,
+              "maxMs": 125.5
+            },
+            "terrainBatchPlan": {
+              "samples": 4,
+              "p50Ms": 4.599999904632568,
+              "p95Ms": null,
+              "maxMs": 7.200000047683716
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 4,
+              "p50Ms": 74.30000019073486,
+              "p95Ms": null,
+              "maxMs": 74.60000014305115
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 4,
+              "p50Ms": 74.30000019073486,
+              "p95Ms": null,
+              "maxMs": 74.60000014305115
+            }
+          },
+          "frameInterval": {
+            "samples": 12,
+            "p50Ms": 1283.2999999999993,
+            "p95Ms": null,
+            "maxMs": 2166.600000000002
+          },
+          "workerSessionStep": null
+        }
+      ],
+      "clicks": [
+        {
+          "label": "initial",
+          "id": "party:1.person.1",
+          "point": {
+            "x": 352.0000000000002,
+            "y": 80.3295536814184
+          },
+          "screen": {
+            "x": 528,
+            "y": 475.3545510777942
+          },
+          "actorContains": true,
+          "selected": [],
+          "frontHit": {
+            "id": "cover:2:13:1:grass:green:full",
+            "part": "cover",
+            "pickable": false,
+            "role": "terrain-cover"
+          }
+        },
+        {
+          "label": "after-pan",
+          "id": "party:1.person.1",
+          "point": {
+            "x": 352.0000000000002,
+            "y": 80.3295536814184
+          },
+          "screen": {
+            "x": 240,
+            "y": 475.3545510777942
+          },
+          "actorContains": true,
+          "selected": [],
+          "frontHit": {
+            "id": "cover:2:13:1:grass:green:full",
+            "part": "cover",
+            "pickable": false,
+            "role": "terrain-cover"
+          }
+        },
+        {
+          "label": "after-zoom",
+          "id": "party:1.person.1",
+          "point": {
+            "x": 352.0000000000002,
+            "y": 80.3295536814184
+          },
+          "screen": {
+            "x": 240,
+            "y": 475.4254612933529
+          },
+          "actorContains": true,
+          "selected": [],
+          "frontHit": {
+            "id": "cover:2:13:1:grass:green:full",
+            "part": "cover",
+            "pickable": false,
+            "role": "terrain-cover"
+          }
+        }
+      ]
+    },
+    "controls": {
+      "errors": [],
+      "phases": [
+        {
+          "name": "cut",
+          "recordsBefore": 5774,
+          "recordsAfter": 5773,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 8,
+            "staticRebuild": 1,
+            "dynamicInsert": 28,
+            "applyOrder": 1
+          },
+          "timings": {
+            "createCutTerrainLayer.update": {
+              "samples": 3,
+              "p50Ms": 0.10000014305114746,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746
+            },
+            "visibleTerrainChunks": {
+              "samples": 7,
+              "p50Ms": 0.8000001907348633,
+              "p95Ms": null,
+              "maxMs": 2.4000000953674316
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 7,
+              "p50Ms": 1,
+              "p95Ms": null,
+              "maxMs": 899.5
+            },
+            "compileVoxelDrawStream": {
+              "samples": 8,
+              "p50Ms": 0,
+              "p95Ms": null,
+              "maxMs": 155.70000004768372
+            },
+            "drawCPU": {
+              "samples": 7,
+              "p50Ms": 1.7999999523162842,
+              "p95Ms": null,
+              "maxMs": 1139.0999999046326
+            },
+            "pixiRenderCPU": {
+              "samples": 5,
+              "p50Ms": 0.40000009536743164,
+              "p95Ms": null,
+              "maxMs": 3.1000001430511475
+            },
+            "materialCoverage": {
+              "samples": 1,
+              "p50Ms": 6.599999904632568,
+              "p95Ms": null,
+              "maxMs": 6.599999904632568
+            },
+            "terrainFaceRecords": {
+              "samples": 1,
+              "p50Ms": 648.4000000953674,
+              "p95Ms": null,
+              "maxMs": 648.4000000953674
+            },
+            "terrainCoverRecords": {
+              "samples": 1,
+              "p50Ms": 231.70000004768372,
+              "p95Ms": null,
+              "maxMs": 231.70000004768372
+            },
+            "terrainBatchPlan": {
+              "samples": 1,
+              "p50Ms": 9.299999952316284,
+              "p95Ms": null,
+              "maxMs": 9.299999952316284
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 1,
+              "p50Ms": 56,
+              "p95Ms": null,
+              "maxMs": 56
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 1,
+              "p50Ms": 56,
+              "p95Ms": null,
+              "maxMs": 56
+            }
+          },
+          "frameInterval": {
+            "samples": 5,
+            "p50Ms": 683.2999999999993,
+            "p95Ms": null,
+            "maxMs": 1266.7000000000007
+          },
+          "workerSessionStep": {
+            "samples": 1,
+            "p50Ms": 0.7000000476837158,
+            "p95Ms": null,
+            "maxMs": 0.7000000476837158
+          }
+        },
+        {
+          "name": "floor-rectangle-input",
+          "recordsBefore": 5774,
+          "recordsAfter": 5774,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 9,
+            "staticRebuild": 0,
+            "dynamicInsert": 36,
+            "applyOrder": 0
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 10,
+              "p50Ms": 0.8999998569488525,
+              "p95Ms": null,
+              "maxMs": 5.1000001430511475
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 10,
+              "p50Ms": 1,
+              "p95Ms": null,
+              "maxMs": 5.200000047683716
+            },
+            "compileVoxelDrawStream": {
+              "samples": 10,
+              "p50Ms": 0,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746
+            },
+            "drawCPU": {
+              "samples": 10,
+              "p50Ms": 4.299999952316284,
+              "p95Ms": null,
+              "maxMs": 7
+            },
+            "pixiRenderCPU": {
+              "samples": 6,
+              "p50Ms": 4.800000190734863,
+              "p95Ms": null,
+              "maxMs": 5.8999998569488525
+            }
+          },
+          "frameInterval": {
+            "samples": 6,
+            "p50Ms": 666.5999999999985,
+            "p95Ms": null,
+            "maxMs": 1733.2999999999993
+          },
+          "workerSessionStep": null
+        }
+      ],
+      "clicks": []
+    },
+    "building": {
+      "errors": [],
+      "phases": [
+        {
+          "name": "moving-actors",
+          "recordsBefore": 5774,
+          "recordsAfter": 5774,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 3,
+            "staticRebuild": 0,
+            "dynamicInsert": 12,
+            "applyOrder": 2
+          },
+          "timings": {
+            "createCutTerrainLayer.update": {
+              "samples": 100,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": 0.20000004768371582,
+              "maxMs": 1.2999999523162842
+            },
+            "visibleTerrainChunks": {
+              "samples": 3,
+              "p50Ms": 0.8000001907348633,
+              "p95Ms": null,
+              "maxMs": 0.9000000953674316
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 3,
+              "p50Ms": 0.9000000953674316,
+              "p95Ms": null,
+              "maxMs": 1
+            },
+            "compileVoxelDrawStream": {
+              "samples": 3,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": null,
+              "maxMs": 2.0999999046325684
+            },
+            "drawCPU": {
+              "samples": 3,
+              "p50Ms": 44.799999952316284,
+              "p95Ms": null,
+              "maxMs": 65.40000009536743
+            },
+            "pixiRenderCPU": {
+              "samples": 3,
+              "p50Ms": 1.7000000476837158,
+              "p95Ms": null,
+              "maxMs": 2.4000000953674316
+            },
+            "terrainBatchPlan": {
+              "samples": 2,
+              "p50Ms": 6.800000190734863,
+              "p95Ms": null,
+              "maxMs": 6.800000190734863
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 2,
+              "p50Ms": 54.80000019073486,
+              "p95Ms": null,
+              "maxMs": 54.80000019073486
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 2,
+              "p50Ms": 54.80000019073486,
+              "p95Ms": null,
+              "maxMs": 54.80000019073486
+            }
+          },
+          "frameInterval": {
+            "samples": 3,
+            "p50Ms": 866.7000000000007,
+            "p95Ms": null,
+            "maxMs": 1066.5999999999985
+          },
+          "workerSessionStep": {
+            "samples": 100,
+            "p50Ms": 0.6000001430511475,
+            "p95Ms": 1.9000000953674316,
+            "maxMs": 4.5
+          }
+        },
+        {
+          "name": "floor-rectangle-input",
+          "recordsBefore": 5774,
+          "recordsAfter": 5774,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 8,
+            "staticRebuild": 0,
+            "dynamicInsert": 32,
+            "applyOrder": 0
+          },
+          "timings": {
+            "visibleTerrainChunks": {
+              "samples": 9,
+              "p50Ms": 0.7999999523162842,
+              "p95Ms": null,
+              "maxMs": 7.699999809265137
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 9,
+              "p50Ms": 0.9000000953674316,
+              "p95Ms": null,
+              "maxMs": 7.799999952316284
+            },
+            "compileVoxelDrawStream": {
+              "samples": 9,
+              "p50Ms": 0,
+              "p95Ms": null,
+              "maxMs": 2.1999998092651367
+            },
+            "drawCPU": {
+              "samples": 9,
+              "p50Ms": 5,
+              "p95Ms": null,
+              "maxMs": 8.699999809265137
+            },
+            "pixiRenderCPU": {
+              "samples": 5,
+              "p50Ms": 2.6999998092651367,
+              "p95Ms": null,
+              "maxMs": 6
+            }
+          },
+          "frameInterval": {
+            "samples": 5,
+            "p50Ms": 616.7000000000007,
+            "p95Ms": null,
+            "maxMs": 683.2999999999993
+          },
+          "workerSessionStep": null
+        }
+      ],
+      "clicks": []
+    },
+    "edit": {
+      "errors": [],
+      "phases": [
+        {
+          "name": "terrain-edit",
+          "recordsBefore": 5774,
+          "recordsAfter": 5777,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 0,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 8,
+            "staticRebuild": 2,
+            "dynamicInsert": 24,
+            "applyOrder": 5
+          },
+          "timings": {
+            "createCutTerrainLayer.update": {
+              "samples": 140,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": 0.20000004768371582,
+              "maxMs": 1.0999999046325684,
+              "totalMs": 12.600000381469727
+            },
+            "visibleTerrainChunks": {
+              "samples": 6,
+              "p50Ms": 0.8000001907348633,
+              "p95Ms": null,
+              "maxMs": 3,
+              "totalMs": 7.900000095367432
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 6,
+              "p50Ms": 1.8000001907348633,
+              "p95Ms": null,
+              "maxMs": 690.6000001430511,
+              "totalMs": 698.3000004291534
+            },
+            "compileVoxelDrawStream": {
+              "samples": 8,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": null,
+              "maxMs": 92.29999995231628,
+              "totalMs": 173.49999976158142
+            },
+            "drawCPU": {
+              "samples": 6,
+              "p50Ms": 77.09999990463257,
+              "p95Ms": null,
+              "maxMs": 808.7000000476837,
+              "totalMs": 1177.9000000953674
+            },
+            "pixiRenderCPU": {
+              "samples": 5,
+              "p50Ms": 3.6999998092651367,
+              "p95Ms": null,
+              "maxMs": 5.5,
+              "totalMs": 16.99999976158142
+            },
+            "terrainBatchPlan": {
+              "samples": 5,
+              "p50Ms": 2.200000047683716,
+              "p95Ms": null,
+              "maxMs": 13.5,
+              "totalMs": 22.90000033378601
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 5,
+              "p50Ms": 47.5,
+              "p95Ms": null,
+              "maxMs": 69.89999985694885,
+              "totalMs": 219.20000004768372
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 5,
+              "p50Ms": 47.5,
+              "p95Ms": null,
+              "maxMs": 69.89999985694885,
+              "totalMs": 219.20000004768372
+            },
+            "chunkRoundTrip": {
+              "samples": 1,
+              "p50Ms": 199.60000014305115,
+              "p95Ms": null,
+              "maxMs": 199.60000014305115,
+              "totalMs": 199.60000014305115
+            },
+            "materialCoverage": {
+              "samples": 1,
+              "p50Ms": 22.899999856948853,
+              "p95Ms": null,
+              "maxMs": 22.899999856948853,
+              "totalMs": 22.899999856948853
+            },
+            "terrainFaceRecords": {
+              "samples": 1,
+              "p50Ms": 555,
+              "p95Ms": null,
+              "maxMs": 555,
+              "totalMs": 555
+            },
+            "terrainCoverRecords": {
+              "samples": 1,
+              "p50Ms": 106.19999980926514,
+              "p95Ms": null,
+              "maxMs": 106.19999980926514,
+              "totalMs": 106.19999980926514
+            }
+          },
+          "frameInterval": {
+            "samples": 5,
+            "p50Ms": 850,
+            "p95Ms": null,
+            "maxMs": 1616.6000000000022,
+            "totalMs": 4933.200000000001
+          },
+          "workerSessionStep": {
+            "samples": 140,
+            "p50Ms": 0.7000000476837158,
+            "p95Ms": 3.3999998569488525,
+            "maxMs": 21.799999952316284,
+            "totalMs": 167.4000051021576
+          }
+        }
+      ],
+      "clicks": []
+    },
+    "uploads": {
+      "errors": [],
+      "phases": [
+        {
+          "name": "pan-upload",
+          "recordsBefore": 5774,
+          "recordsAfter": 5937,
+          "cameraBefore": {
+            "x": -193.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "cameraAfter": {
+            "x": -337.00000000000045,
+            "y": 297.6954437149574,
+            "zoom": 2
+          },
+          "unknownDemandAfter": 1,
+          "viewCompleteAfter": true,
+          "countsDelta": {
+            "compile": 10,
+            "staticRebuild": 1,
+            "dynamicInsert": 36,
+            "applyOrder": 1
+          },
+          "timings": {
+            "createCutTerrainLayer.update": {
+              "samples": 1,
+              "p50Ms": 0.10000014305114746,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746,
+              "totalMs": 0.10000014305114746
+            },
+            "visibleTerrainChunks": {
+              "samples": 9,
+              "p50Ms": 1,
+              "p95Ms": null,
+              "maxMs": 3.3999998569488525,
+              "totalMs": 12.799999952316284
+            },
+            "createCutTerrainLayer.position": {
+              "samples": 9,
+              "p50Ms": 1.2999999523162842,
+              "p95Ms": null,
+              "maxMs": 793.1999998092651,
+              "totalMs": 808.0
+            },
+            "compileVoxelDrawStream": {
+              "samples": 10,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": null,
+              "maxMs": 128.79999995231628,
+              "totalMs": 130.79999995231628
+            },
+            "drawCPU": {
+              "samples": 9,
+              "p50Ms": 1.7000000476837158,
+              "p95Ms": null,
+              "maxMs": 1035.7999999523163,
+              "totalMs": 1053.5000004768372
+            },
+            "materialCoverage": {
+              "samples": 1,
+              "p50Ms": 7.700000047683716,
+              "p95Ms": null,
+              "maxMs": 7.700000047683716,
+              "totalMs": 7.700000047683716
+            },
+            "terrainFaceRecords": {
+              "samples": 1,
+              "p50Ms": 643.2000000476837,
+              "p95Ms": null,
+              "maxMs": 643.2000000476837,
+              "totalMs": 643.2000000476837
+            },
+            "terrainCoverRecords": {
+              "samples": 1,
+              "p50Ms": 132.29999995231628,
+              "p95Ms": null,
+              "maxMs": 132.29999995231628,
+              "totalMs": 132.29999995231628
+            },
+            "terrainBatchPlan": {
+              "samples": 1,
+              "p50Ms": 9.200000047683716,
+              "p95Ms": null,
+              "maxMs": 9.200000047683716,
+              "totalMs": 9.200000047683716
+            },
+            "batchBufferArrays": {
+              "samples": 5,
+              "p50Ms": 0.09999990463256836,
+              "p95Ms": null,
+              "maxMs": 4.299999952316284,
+              "totalMs": 5.299999713897705
+            },
+            "createTerrainBatchMeshes.update": {
+              "samples": 1,
+              "p50Ms": 67.5,
+              "p95Ms": null,
+              "maxMs": 67.5,
+              "totalMs": 67.5
+            },
+            "createCutTerrainLayer.applyOrder": {
+              "samples": 1,
+              "p50Ms": 67.5,
+              "p95Ms": null,
+              "maxMs": 67.5,
+              "totalMs": 67.5
+            },
+            "webgl.bufferData": {
+              "samples": 7,
+              "p50Ms": 0,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746,
+              "totalMs": 0.3000001907348633
+            },
+            "webgl.bufferSubData": {
+              "samples": 14,
+              "p50Ms": 0,
+              "p95Ms": null,
+              "maxMs": 0.10000014305114746,
+              "totalMs": 0.2999999523162842
+            },
+            "pixiRenderCPU": {
+              "samples": 3,
+              "p50Ms": 2.700000047683716,
+              "p95Ms": null,
+              "maxMs": 14.400000095367432,
+              "totalMs": 19.700000047683716
+            }
+          },
+          "frameInterval": {
+            "samples": 3,
+            "p50Ms": 883.2999999999993,
+            "p95Ms": null,
+            "maxMs": 966.7000000000007,
+            "totalMs": 2516.6000000000004
+          },
+          "workerSessionStep": {
+            "samples": 1,
+            "p50Ms": 0.7000000476837158,
+            "p95Ms": null,
+            "maxMs": 0.7000000476837158,
+            "totalMs": 0.7000000476837158
+          }
+        }
+      ],
+      "clicks": []
+    }
+  },
+  "artifacts": {
+    ".botanical/renderer-audit-20260919/building-failure.json": {
+      "sha256": "e8badf3b2d372ff5142bfc040660dff8c09ce470f6d205ff44b517f8f0fd7654",
+      "bytes": 299
+    },
+    ".botanical/renderer-audit-20260919/building-initial.json": {
+      "sha256": "ef38deadbc049d7e91922db30b42a9db45f2f7d2175a9ee69d73d44c08cc0419",
+      "bytes": 63527
+    },
+    ".botanical/renderer-audit-20260919/building-receipt.json": {
+      "sha256": "ba4494fde067893604b37cc45d76cfcdb2d6284cc42a29adbf7d24c7e8796a5e",
+      "bytes": 351339
+    },
+    ".botanical/renderer-audit-20260919/controls-building.json": {
+      "sha256": "f9bed9212a2295b997e5a9b334c4e193abd2ca619519917f84d2ad3dbc5d6032",
+      "bytes": 5076
+    },
+    ".botanical/renderer-audit-20260919/controls-initial.json": {
+      "sha256": "8c706b817ed00a837e574d7370c685ec996d6d59b6074b39a51ec1d8406b150f",
+      "bytes": 63551
+    },
+    ".botanical/renderer-audit-20260919/controls-receipt.json": {
+      "sha256": "a368d41f5c845a0e9776a5590ea1032623d27b6d63647583e05681607a881f07",
+      "bytes": 326112
+    },
+    ".botanical/renderer-audit-20260919/dirty-failure.json": {
+      "sha256": "baf9f215de23573536b77b19e8ce586ac877321bc82c565782af3280696365e3",
+      "bytes": 181
+    },
+    ".botanical/renderer-audit-20260919/dirty-initial.json": {
+      "sha256": "f8d74c487f57665989875cd0bf4dd23358f9b24a19d0c30b9267ed9627eb2c19",
+      "bytes": 63656
+    },
+    ".botanical/renderer-audit-20260919/dirty-initial.png": {
+      "sha256": "80c68c48f8eeb4f2d7b5810c61984ab0603990d899d6803b63a65ddfe2d6b18a",
+      "bytes": 644213
+    },
+    ".botanical/renderer-audit-20260919/dirty-receipt.json": {
+      "sha256": "7bf21212ff32446f061bc7bb1b3f59ad6fed3e87b12bdd155ab58520a238996b",
+      "bytes": 630230
+    },
+    ".botanical/renderer-audit-20260919/edit-initial.json": {
+      "sha256": "963e4cb4abc7c678e9318c68eb111edef60518a8f110a24a62eb0cd2cd630223",
+      "bytes": 63552
+    },
+    ".botanical/renderer-audit-20260919/edit-receipt.json": {
+      "sha256": "71cf9b910a1279879271555f71070072279d657c29fcb0ef35a58c985f1f1bec",
+      "bytes": 201546
+    },
+    ".botanical/renderer-audit-20260919/edit-terrain.json": {
+      "sha256": "15c7705f11314c6179ee063acdc8d83ed2c2148a51f8bbd182e5fa6afca9df61",
+      "bytes": 2076875
+    },
+    ".botanical/renderer-audit-20260919/head-initial.json": {
+      "sha256": "bc4904cdfe53618ecc35947ae9ba63fa4bb0d2f56f6ad9d981b029e5a3fb0f7e",
+      "bytes": 63430
+    },
+    ".botanical/renderer-audit-20260919/head-receipt.json": {
+      "sha256": "6190c60ee9038b233d46425b1d9f73a435f344647901d724fbf7c97b3023a18d",
+      "bytes": 490273
+    },
+    ".botanical/renderer-audit-20260919/head-selection.png": {
+      "sha256": "a81f69685242f6a1f3f218ba8a7adab9036296e67b35b5fb029745b2dad15370",
+      "bytes": 1088477
+    },
+    ".botanical/renderer-audit-20260919/hosted-selection.json": {
+      "sha256": "7319c9c1557aea36287a2470a686f0aa7a0c9a57218885f8ebd114646481e9f2",
+      "bytes": 23297
+    },
+    ".botanical/renderer-audit-20260919/hosted-selection.png": {
+      "sha256": "ad1e06a1a1855df819bf93263bd19e5aed8b049f658f2cabc998c3d3bd580c7f",
+      "bytes": 1088513
+    },
+    ".botanical/renderer-audit-20260919/own-top-actual.png": {
+      "sha256": "02a00162a8bc9af2b862707711b42a832aef71ee3f06c464e19d4250f352811b",
+      "bytes": 1688
+    },
+    ".botanical/renderer-audit-20260919/own-top-expected.png": {
+      "sha256": "f204eeaba8b9266039685b88861c6fb2e0d7b6e6e52570ae913afde26cecb25b",
+      "bytes": 1688
+    },
+    ".botanical/renderer-audit-20260919/own-top.json": {
+      "sha256": "2005f4ec29a4d70f28981bf9e1088b41ce8f98cd561acb35c6ef3c2471aa084d",
+      "bytes": 500
+    },
+    ".botanical/renderer-audit-20260919/uploads-initial.json": {
+      "sha256": "99e24f9e477e302d24d8b309160964a5c56084e46ab19d67d11d9d5d912403d9",
+      "bytes": 63735
+    },
+    ".botanical/renderer-audit-20260919/uploads-receipt.json": {
+      "sha256": "fcf4d1d93c525b2890d48a539e16f936869834c10cdae7d6564a73d3d7bc6801",
+      "bytes": 164236
+    }
+  },
+  "hosted": {
+    "url": "https://clearing-80e39fd9-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony&diagnostics=draw",
+    "status": 200,
+    "errors": [],
+    "error": null,
+    "instrumentation": {
+      "client": true,
+      "camera": true,
+      "app": true
+    },
+    "browser": "153.0.8010.12",
+    "phases": [
+      {
+        "name": "initial",
+        "target": {
+          "id": "party:1.person.1",
+          "x": 523.4285714285714,
+          "y": 475.548058374622,
+          "camera": {
+            "x": -197.571428571429,
+            "y": 297.88895101178514,
+            "zoom": 2
+          }
+        },
+        "selected": []
+      },
+      {
+        "name": "pan",
+        "target": {
+          "id": "party:1.person.1",
+          "x": 235.42857142857144,
+          "y": 475.548058374622,
+          "camera": {
+            "x": -485.571428571429,
+            "y": 297.88895101178514,
+            "zoom": 2
+          }
+        },
+        "selected": []
+      },
+      {
+        "name": "zoom",
+        "target": {
+          "id": "party:1.person.1",
+          "x": 235.51428571428573,
+          "y": 475.65767004954637,
+          "camera": {
+            "x": -626.2857142857149,
+            "y": 265.86674121414217,
+            "zoom": 2.4000000000000004
+          }
+        },
+        "selected": []
+      }
+    ],
+    "responseStatuses": [
+      200
+    ]
+  },
+  "building": {
+    "hover": {
+      "placement": {
+        "value": "armed",
+        "context": {
+          "control": {
+            "id": "timber-floor",
+            "label": "Build floor",
+            "detail": "2 wood \u00b7 floor \u00b7 drag rectangle \u00b7 north",
+            "target": "world-surface",
+            "designation": [
+              "point",
+              "rectangle"
+            ],
+            "preset": {
+              "catalog": "timber-floor",
+              "orientation": "north"
+            },
+            "commandId": "colony:build",
+            "category": "Construction",
+            "command": "build",
+            "availability": {
+              "status": "available"
+            },
+            "input": {
+              "catalog": "timber-floor",
+              "orientation": "north"
+            }
+          },
+          "planeY": 13,
+          "hover": [
+            7,
+            13,
+            1
+          ]
+        }
+      },
+      "area": {
+        "value": "idle",
+        "context": {
+          "mode": "rectangle",
+          "start": null,
+          "current": null,
+          "committed": [],
+          "rejection": null,
+          "maxArea": 256
+        }
+      },
+      "view": {
+        "range": {
+          "min": 12,
+          "max": 14
+        },
+        "level": 14,
+        "cutaway": false,
+        "presentedSurfaces": {}
+      }
+    },
+    "floor": {
+      "commands": [
+        {
+          "type": "start",
+          "game": "colony"
+        },
+        {
+          "type": "pause"
+        },
+        {
+          "type": "command",
+          "name": "build",
+          "input": {
+            "catalog": "timber-floor",
+            "orientation": "north",
+            "target": {
+              "cell": [
+                7,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      ],
+      "placement": {
+        "value": "armed",
+        "context": {
+          "control": {
+            "id": "timber-floor",
+            "label": "Build floor",
+            "detail": "2 wood \u00b7 floor \u00b7 drag rectangle \u00b7 north",
+            "target": "world-surface",
+            "designation": [
+              "point",
+              "rectangle"
+            ],
+            "preset": {
+              "catalog": "timber-floor",
+              "orientation": "north"
+            },
+            "commandId": "colony:build",
+            "category": "Construction",
+            "command": "build",
+            "availability": {
+              "status": "available"
+            },
+            "input": {
+              "catalog": "timber-floor",
+              "orientation": "north"
+            }
+          },
+          "planeY": 13,
+          "hover": [
+            9,
+            13,
+            1
+          ]
+        }
+      },
+      "area": {
+        "value": "idle",
+        "context": {
+          "mode": "rectangle",
+          "start": null,
+          "current": null,
+          "committed": [],
+          "rejection": null,
+          "maxArea": 256
+        }
+      },
+      "message": "Order queued"
+    },
+    "bedHover": {
+      "placement": {
+        "value": "armed",
+        "context": {
+          "control": {
+            "id": "timber-bed",
+            "label": "Build bed",
+            "detail": "2 wood \u00b7 1\u00d72 \u00b7 click point \u00b7 north",
+            "target": "world-surface",
+            "designation": [
+              "point"
+            ],
+            "footprint": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ],
+            "preset": {
+              "catalog": "timber-bed",
+              "orientation": "north"
+            },
+            "commandId": "colony:build",
+            "category": "Construction",
+            "command": "build",
+            "availability": {
+              "status": "available"
+            },
+            "input": {
+              "catalog": "timber-bed",
+              "orientation": "north"
+            }
+          },
+          "planeY": 13,
+          "hover": [
+            5,
+            13,
+            0
+          ]
+        }
+      },
+      "decision": null,
+      "view": {
+        "range": {
+          "min": 12,
+          "max": 14
+        },
+        "level": 14,
+        "cutaway": false,
+        "presentedSurfaces": {}
+      }
+    },
+    "bedLower": {
+      "placement": {
+        "value": "armed",
+        "context": {
+          "control": {
+            "id": "timber-bed",
+            "label": "Build bed",
+            "detail": "2 wood \u00b7 1\u00d72 \u00b7 click point \u00b7 north",
+            "target": "world-surface",
+            "designation": [
+              "point"
+            ],
+            "footprint": [
+              [
+                0,
+                0
+              ],
+              [
+                0,
+                1
+              ]
+            ],
+            "preset": {
+              "catalog": "timber-bed",
+              "orientation": "north"
+            },
+            "commandId": "colony:build",
+            "category": "Construction",
+            "command": "build",
+            "availability": {
+              "status": "available"
+            },
+            "input": {
+              "catalog": "timber-bed",
+              "orientation": "north"
+            }
+          },
+          "planeY": null,
+          "hover": null
+        }
+      },
+      "view": {
+        "range": {
+          "min": 12,
+          "max": 14
+        },
+        "level": 13,
+        "cutaway": false,
+        "presentedSurfaces": {}
+      }
+    }
+  },
+  "terrainEdit": {
+    "beforeRevision": 0,
+    "afterRevision": 1,
+    "commands": [
+      {
+        "type": "start",
+        "game": "colony"
+      },
+      {
+        "type": "pause"
+      },
+      {
+        "type": "command",
+        "name": "dig",
+        "input": {
+          "area": {
+            "start": [
+              5,
+              13,
+              1
+            ],
+            "end": [
+              5,
+              13,
+              1
+            ]
+          }
+        }
+      },
+      {
+        "type": "resume"
+      }
+    ],
+    "changedSurfaces": [
+      {
+        "before": {
+          "cell": [
+            5,
+            13,
+            1
+          ],
+          "material": 1,
+          "generatedTop": 13
+        },
+        "after": {
+          "cell": [
+            5,
+            12,
+            1
+          ],
+          "material": 1,
+          "generatedTop": 13
+        }
+      }
+    ]
+  },
+  "ownTop": {
+    "order": [
+      {
+        "id": "fixture:goblin",
+        "attachment": {
+          "kind": "supported",
+          "support": null,
+          "feet": {
+            "x": 0.6,
+            "y": 0.27,
+            "z": 0.6
+          }
+        }
+      },
+      {
+        "id": "terrain:1,0,1:top",
+        "attachment": {
+          "kind": "cell-face",
+          "cell": [
+            1,
+            0,
+            1
+          ],
+          "face": "top"
+        }
+      }
+    ],
+    "differentPixels": 13,
+    "width": 80,
+    "height": 98,
+    "errors": []
+  },
+  "scopeReceipts": {
+    "dirtyCamera": "run-u2327 (partial: later selector failed; recorded camera phases complete)",
+    "headCamera": "run-u2330 exit 0",
+    "movingActors": "run-u2343 (timing completed; later diagnostic serialization failed)",
+    "controls": "run-u2346 exit 0",
+    "hosted": "run-u2348 exit 0",
+    "terrainEdit": "run-u2350 exit 0",
+    "bufferUpload": "run-u2352 exit 0",
+    "originalArtOrder": "run-u2334 exit 0",
+    "waterAndSupport": "run-u2329 exit 0"
+  }
+}
