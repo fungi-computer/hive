@@ -1,0 +1,25 @@
+{
+  "source": "950bea93",
+  "retainedChunks": [
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "demanded": [
+    {
+      "key": [
+        1,
+        0,
+        0
+      ],
+      "status": "unknown"
+    }
+  ],
+  "viewComplete": true,
+  "clientWouldService": false,
+  "requestsMade": 1,
+  "conclusion": "Last drawable view is complete while new demand is unknown; the client service gate is false.",
+  "limit": "Cache reproduction plus source gate; no hosted pan or frame-time measurement."
+}

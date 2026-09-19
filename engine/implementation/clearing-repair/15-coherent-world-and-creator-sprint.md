@@ -4,6 +4,27 @@ September 17, 2026. Design and implementation handoff, not delivered capability.
 Source originally inspected at `46641200`; renderer and packet corrections were
 rechecked in `engine/living-terrain-integration-20260917` through `4da4587e`.
 
+## September 19 audit checkpoint — read before continuing
+
+The renderer audit at `950bea93` found correctness defects in the current compiler
+and gaps in its performance evidence. The September 17 receipts below remain
+historical evidence; they do **not** qualify camera movement, real clicking, or
+geometric ordering. The full compiler and retained owner can share the same error.
+Do not treat their parity as an independent visual oracle.
+
+Continue from [the self-contained audit and new-chat handoff](15-renderer-audit-handoff-20260919.md).
+It records confirmed source findings, reproducible counterexamples, unaccepted
+picking changes, the last recorded deployment, remaining measurements and the
+bounded repair sequence. This is an **unfinished audit**, not a new accepted
+sorter design or authorization to deploy. Keep the delivery order below.
+
+First resolve supporting-cell insertion, multipart/footprint constraints and
+support facts independent of viewport culling; then qualify retention and input
+against actual rendered overlap. Retain Three authoring, baked Pixi gameplay and
+native world authority. No new graphics architecture has been approved. Bounded
+native observation selection must precede adding persistent grass identities at
+scale; native whole-footprint support and shared work planning already exist.
+
 ## Authoritative delivery order — finish Clearing through reusable Vishnu owners
 
 Planning only. This replaces the withdrawn creator/shoe delivery queue. Character
@@ -408,9 +429,11 @@ ordinary frames compile and binary-place only the four moving supported actors.
 Unchanged placement refreshes their current picking records without rescanning
 the 5,766 static records or calling the terrain batch owner. Geometry changes are
 explicit revisions, and unsupported dynamic record kinds fail rather than enter
-a second ordering path. The pure full compiler remains the oracle: the retained
-owner matches it across the 4x4 camera/object fixture, reversed enumeration,
-continuous movement, and stair entrance/midpoint/landing positions.
+a second ordering path. Historical tests used the full compiler as their oracle
+and matched it across the 4x4 camera/object fixture, reversed enumeration,
+continuous movement, and stair entrance/midpoint/landing positions. The September
+19 audit demonstrates shared assumptions and different multipart admission in
+these paths; that parity is insufficient correctness evidence.
 
 The same 5,774-record browser-local Clearing measured 0.10 ms p50 / 1.5 ms p95
 for retained dynamic insertion over 70 stable samples in software Chromium at
@@ -426,9 +449,10 @@ client/backend pair at
 <https://clearing-80e39fd9-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony>.
 Both the immutable deployment and public alias matched all 224 built client
 files, and the paired Durable Object join/observe proof returned revision 2 with
-the expected two-person party. This is the first playable retained-stream proof;
-it does not claim the remaining Stage 1C chunk invalidation or later placement,
-work, world-continuity and creator stages.
+the expected two-person party. This proves asset publication and live join/observe,
+not responsive play: the proof did not exercise camera movement or selection,
+both subsequently reported broken. Stage 1 remains open, along with later
+placement, work, world-continuity and creator stages.
 
 Cut over the production world pass and remove the pair graph, support/grass sort
 exceptions and signature-driven run rebuilding together. Retain visible exposed
