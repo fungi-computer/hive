@@ -1,41 +1,5 @@
-import { compileVoxelDrawStream, voxelDrawRecordKey } from "./voxel-draw-stream.js";
-
-const PASS_ORDER = Object.freeze({ opaque: 0, transparent: 1 });
-const SLOT_ORDER = Object.freeze({
-  "far-boundary": 0,
-  "supporting-surface": 10,
-  "surface-mark": 20,
-  "rooted-object": 25,
-  "supported-actor": 30,
-  "surface-root": 40,
-  "near-boundary": 50,
-});
-const EPSILON = 1e-7;
-
-function compareKeys(a, b) {
-  for (let index = 0; index < Math.max(a.length, b.length); index++) {
-    const difference = (a[index] ?? 0) - (b[index] ?? 0);
-    if (Math.abs(difference) > EPSILON) return difference;
-  }
-  return 0;
-}
-
-function descriptors(compiled) {
-  const trace = new Map(compiled.trace.map(entry => [entry.record, entry]));
-  return compiled.records.map(record => {
-    const key = voxelDrawRecordKey(record), insertion = trace.get(key);
-    if (!insertion) throw new Error(`retained voxel stream is missing trace for ${key}`);
-    return Object.freeze({ record, key, pass: insertion.pass, insertion: insertion.insertion,
-      slot: insertion.slot });
-  });
-}
-
-function compareDescriptors(a, b) {
-  return PASS_ORDER[a.pass] - PASS_ORDER[b.pass]
-    || compareKeys(a.insertion, b.insertion)
-    || SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]
-    || a.key.localeCompare(b.key);
-}
+import { compileVoxelDrawStream, compareVoxelDrawDescriptors, voxelDrawDescriptors, voxelDrawRecordKey } from "./voxel-draw-stream.js";
+import { pickVoxelDrawRecord } from "./voxel-draw-picking.js";
 
 function sameValues(a, b) {
   return a.length === b.length && a.every((value, index) => value === b[index]);
@@ -45,7 +9,7 @@ function mergeDescriptors(statics, dynamics) {
   const output = [];
   let left = 0, right = 0;
   while (left < statics.length && right < dynamics.length) {
-    if (compareDescriptors(dynamics[right], statics[left]) < 0) output.push(dynamics[right++]);
+    if (compareVoxelDrawDescriptors(dynamics[right], statics[left]) < 0) output.push(dynamics[right++]);
     else output.push(statics[left++]);
   }
   return output.concat(statics.slice(left), dynamics.slice(right));
@@ -55,7 +19,7 @@ function staticInsertionIndex(statics, dynamic) {
   let low = 0, high = statics.length;
   while (low < high) {
     const middle = (low + high) >> 1;
-    if (compareDescriptors(dynamic, statics[middle]) < 0) high = middle;
+    if (compareVoxelDrawDescriptors(dynamic, statics[middle]) < 0) high = middle;
     else low = middle + 1;
   }
   return low;
@@ -63,8 +27,8 @@ function staticInsertionIndex(statics, dynamic) {
 
 function assertDynamicRecords(records) {
   for (const record of records) {
-    if (record?.moving !== true || record?.attachment?.kind !== "supported")
-      throw new Error(`retained voxel stream dynamic record ${voxelDrawRecordKey(record)} must be a moving supported actor`);
+    if (record?.moving !== true || !["supported", "surface-mark"].includes(record?.attachment?.kind))
+      throw new Error(`retained voxel stream dynamic record ${voxelDrawRecordKey(record)} must be a moving actor or world guide`);
   }
 }
 
@@ -108,7 +72,7 @@ export function createVoxelDrawStreamOwner({ direction, verticalMetres, clock = 
       const suppliedStaticRecords = staticRecords();
       if (!Array.isArray(suppliedStaticRecords)) throw new Error("retained voxel draw stream static supplier must return records");
       retainedStaticRecords = [...suppliedStaticRecords];
-      staticDescriptors = descriptors(compile(retainedStaticRecords));
+      staticDescriptors = voxelDrawDescriptors(compile(retainedStaticRecords));
       staticDescriptorIndexes = new Map(staticDescriptors.map((value, index) => [value.key, index]));
       retainedStaticIndexes = new Map(retainedStaticRecords.map((record, index) => [voxelDrawRecordKey(record), index]));
       staticRevision = revision;
@@ -135,7 +99,12 @@ export function createVoxelDrawStreamOwner({ direction, verticalMetres, clock = 
         previousRecords[outputIndex] = record;
       }
     }
-    const dynamicDescriptors = dynamicRecords.length ? descriptors(compile(dynamicRecords)) : [];
+    const supportOwners = new Set(dynamicRecords.map(record => record.attachment.support).filter(value => value != null).map(String));
+    const supportParts = supportOwners.size ? retainedStaticRecords.filter(record =>
+      record.attachment?.kind === "part" && supportOwners.has(String(record.attachment.owner))) : [];
+    const dynamicDescriptors = dynamicRecords.length
+      ? voxelDrawDescriptors(compile([...supportParts, ...dynamicRecords])).filter(value => value.record.moving === true)
+      : [];
     counts.dynamicInsert += dynamicRecords.length;
     const placements = dynamicDescriptors.map((value, rank) =>
       `${value.key}\u0000${staticInsertionIndex(staticDescriptors, value)}\u0000${rank}`);
@@ -194,6 +163,7 @@ export function createVoxelDrawStreamOwner({ direction, verticalMetres, clock = 
 
   return Object.freeze({
     update,
+    pick(point) { return pickVoxelDrawRecord(previousRecords, point); },
     measureApplyOrder,
     metrics: () => Object.freeze({ counts: Object.freeze({ ...counts }), times: Object.freeze({ ...times }),
       samples: Object.freeze(Object.fromEntries(Object.entries(samples).map(([name, values]) => [name, Object.freeze([...values])]))),

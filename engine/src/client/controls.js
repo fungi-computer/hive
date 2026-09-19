@@ -66,10 +66,10 @@ export const terrainTargetMachine = createMachine({
     } },
   },
 }, { actions: {
-      arm: assign(({ event }) => ({ control: event.control, planeY: null, hover: null })),
+      arm: assign(({ event }) => ({ control: event.control, planeY: event.y ?? null, hover: null })),
       rotate: assign(({ event }) => ({ control: event.control })),
       clear: assign({ control: null, planeY: null, hover: null }),
-      clearPlacement: assign({ planeY: null, hover: null }),
+      clearPlacement: assign(({ event }) => ({ planeY: event.y ?? null, hover: null })),
       setBuildPlane: assign(({ event }) => ({ planeY: event.y, hover: null })),
       hover: assign(({ event }) => ({ hover: event.cell ?? null })),
 } });

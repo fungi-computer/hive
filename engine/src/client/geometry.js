@@ -114,7 +114,7 @@ function addTriangleBuckets(buckets, triangle, bounds) {
     }
 }
 
-function triangleRecord(face, vertices, indices, order) {
+function triangleRecord(face, vertices, indices, order, cameraView) {
   const values = new Float64Array(9);
   let left = Infinity,
     top = Infinity,
@@ -125,7 +125,7 @@ function triangleRecord(face, vertices, indices, order) {
     values[index * 3] = x;
     values[index * 3 + 1] = y;
     values[index * 3 + 2] = z;
-    const point = new Vector3(x, y, z).project(view);
+    const point = new Vector3(x, y, z).project(cameraView);
     const projected = {
       x: ((point.x + 1) * WIDTH) / 2,
       y: ((1 - point.y) * HEIGHT) / 2,
@@ -138,7 +138,7 @@ function triangleRecord(face, vertices, indices, order) {
   return { face, values, order, bounds: { left, top, right, bottom } };
 }
 
-function makePickerState(terrain) {
+function makePickerState(terrain, cameraView) {
   const buckets = new Map();
   let order = 0;
   for (const face of pickingFaces(terrain)) {
@@ -146,22 +146,22 @@ function makePickerState(terrain) {
       [0, 1, 2],
       [0, 2, 3],
     ]) {
-      const triangle = triangleRecord(face, face.vertices, indices, order++);
+      const triangle = triangleRecord(face, face.vertices, indices, order++, cameraView);
       addTriangleBuckets(buckets, triangle, triangle.bounds);
     }
   }
   return { buckets };
 }
 
-function rayFor(x, y, origin, far, ray) {
+function rayFor(x, y, origin, far, ray, cameraView) {
   const ndc = new Vector3((x / WIDTH) * 2 - 1, 1 - (y / HEIGHT) * 2, -1);
-  origin.copy(ndc).unproject(view);
-  far.copy(ndc).setZ(1).unproject(view);
+  origin.copy(ndc).unproject(cameraView);
+  far.copy(ndc).setZ(1).unproject(cameraView);
   ray.origin.copy(origin);
   ray.direction.copy(far).sub(origin).normalize();
 }
 
-function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c) {
+function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, cameraView) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   const candidates = new Set();
   const bucketX = Math.floor(x / PICK_BUCKET_SIZE),
@@ -175,7 +175,7 @@ function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c) {
   const ordered = [...candidates].sort(
     (left, right) => left.order - right.order,
   );
-  rayFor(x, y, origin, far, ray);
+  rayFor(x, y, origin, far, ray, cameraView);
   let picked = null,
     nearest = Infinity;
   for (const triangle of ordered) {
@@ -208,7 +208,9 @@ function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c) {
 }
 
 /** Retained per-client terrain picker; never shared across worlds or clients. */
-export function createTerrainPicker() {
+export function createTerrainPicker(cameraView = view) {
+  if (!cameraView?.isOrthographicCamera) throw new Error("terrain picker requires an orthographic camera");
+  cameraView.updateMatrixWorld();
   let surfaces, structureSurfaces, verticalMetres, epoch, state;
   const origin = new Vector3(),
     far = new Vector3(),
@@ -237,7 +239,7 @@ export function createTerrainPicker() {
     )
       return true;
     reset();
-    const nextState = makePickerState(terrain);
+    const nextState = makePickerState(terrain, cameraView);
     surfaces = terrain.surfaces;
     structureSurfaces = terrain.structureSurfaces;
     verticalMetres = terrain.verticalMetres;
@@ -247,7 +249,7 @@ export function createTerrainPicker() {
   }
   function hitTerrain(x, y, terrain, nextEpoch) {
     if (!ensure(terrain, nextEpoch)) return null;
-    return hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c);
+    return hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, cameraView);
   }
   return {
     hit: hitTerrain,

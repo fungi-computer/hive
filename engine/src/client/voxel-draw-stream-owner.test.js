@@ -146,8 +146,8 @@ test("unchanged static geometry keeps current picking and presentation records",
   assert.deepEqual(keys(result.records), keys(oracle.records));
 });
 
-test("non-actor dynamic records fail instead of creating a second production path", () => {
+test("unowned dynamic footprints fail instead of creating a second production path", () => {
   const fixture = createMixedRenderFixture(), retained = owner(fixture);
   assert.throws(() => retained.update({ revision: 1, staticRecords: () => [],
-    dynamicRecords: [{ ...fixture.bed, moving: true }] }), /must be a moving supported actor/);
+    dynamicRecords: [{ ...fixture.bed, moving: true }] }), /must be a moving actor or world guide/);
 });

@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { createMixedRenderFixture, MIXED_FIXTURE_ORIENTATIONS } from "./mixed-render-fixture.js";
 import { compileVoxelDrawStream, voxelDrawRecordKey } from "./voxel-draw-stream.js";
 import { frontToBackVoxelDrawRecords, pickVoxelDrawRecord } from "./voxel-draw-picking.js";
+import { parseLivingTerrainRuntimeManifest } from "../../../src/art/living-terrain-pack.js";
+import { createVisibleHitArea } from "../../../src/visual-hit-geometry.js";
 
 const compile = fixture => compileVoxelDrawStream(fixture.input, {
   direction: fixture.projection.direction,
@@ -87,6 +90,36 @@ test("a visible non-pickable silhouette occludes selectable records behind it", 
     contains: () => true });
   const result = pickVoxelDrawRecord([behind, wall], { x: 4, y: 7 });
   assert.deepEqual(result, { record: wall, target: null, occluded: true });
+});
+
+test("original cover alpha occludes on grass pixels and leaves its empty atlas padding clickable", () => {
+  const fixture = createMixedRenderFixture("north", "north");
+  const cover = fixture.grass[0];
+  const manifest = parseLivingTerrainRuntimeManifest(JSON.parse(readFileSync("artifacts/living-terrain/manifest.json", "utf8")));
+  const authored = manifest.entries.get(`cover/grass/green/full/0/${cover.mask}`);
+  assert(authored, "the original art bank has this cover mask");
+  const hitArea = createVisibleHitArea(authored.silhouette, { x: 0.5, y: 0.5 });
+  const center = { x: (cover.projected[0].x + cover.projected[2].x) / 2,
+    y: (cover.projected[0].y + cover.projected[2].y) / 2 };
+  const actualCover = Object.freeze({ ...cover,
+    contains: point => hitArea.contains(point.x - center.x, point.y - center.y) });
+  const actor = Object.freeze({
+    id: "actor-on-cover", part: "body", role: "actor", renderPass: "opaque",
+    attachment: Object.freeze({ kind: "supported", support: null, feet: cover.attachment.point }),
+    moving: true, pickable: true, visible: true, contains: () => true,
+  });
+  const { records } = compileVoxelDrawStream([actor, actualCover], {
+    direction: fixture.projection.direction,
+    verticalMetres: fixture.verticalMetres,
+  });
+  const empty = { x: center.x - 31.5, y: center.y - 31.5 };
+  assert.equal(hitArea.contains(empty.x - center.x, empty.y - center.y), false);
+  assert.equal(pickVoxelDrawRecord(records, empty).target, actor.id);
+  const row = authored.silhouette.rows.findIndex((value, index, values) => index < 64 && value < values[index + 1]);
+  const x = authored.silhouette.spans[authored.silhouette.rows[row] * 2];
+  const solid = { x: center.x + x - 31.5, y: center.y + row - 31.5 };
+  assert.equal(actualCover.contains(solid), true);
+  assert.equal(pickVoxelDrawRecord(records, solid).occluded, true);
 });
 
 test("a production terrain face is an authored non-pickable occluder", () => {

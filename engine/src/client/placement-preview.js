@@ -112,38 +112,3 @@ export function placementVisualSpec(control, cells, placementVisuals, area) {
   const facing = definition?.facing[orientation] ?? 0;
   return { visual: definition?.visual, facing, cells };
 }
-
-/** Reuse bounded sprites and destroy only the sprites owned by this pool. */
-export function syncPlacementGhosts(pool, specs, { art, bindings, resolve, project, zoom, verticalMetres, status }) {
-  const { visual, facing = 0, cells = [], items = cells.map((cell, index) => ({
-    visual: Array.isArray(visual) ? visual[index] : visual,
-    facing,
-    point: [cell[0], (cell[1] + 0.5) * verticalMetres, cell[2]],
-  })) } = specs;
-  for (const entry of pool.entries) entry.sprite.visible = false;
-  if (!items.length) return;
-  while (pool.entries.length < items.length) pool.entries.push({ sprite: pool.factory(), owned: true });
-  items.forEach((item, index) => {
-    const entry = pool.entries[index];
-    const binding = item.visual ? bindings[item.visual] : undefined;
-    const resolved = binding && art ? resolve(art, binding, item.facing ?? facing) : undefined;
-    if (!resolved?.texture) return;
-    const point = project(...item.point);
-    entry.sprite.texture = resolved.texture;
-    entry.sprite.anchor.set(resolved.anchor?.x ?? 0.5, resolved.anchor?.y ?? 1);
-    entry.sprite.position.set(point.x * zoom.x + zoom.offsetX, point.y * zoom.y + zoom.offsetY);
-    entry.sprite.scale.set(zoom.scale);
-    entry.sprite.tint = status === "rejected" ? 0xe47c72 : status === "ready" ? 0xbde6a3 : 0xffffff;
-    entry.sprite.alpha = status === "rejected" ? 0.62 : 0.45;
-    entry.sprite.visible = true;
-  });
-}
-
-export function disposePlacementGhosts(pool) {
-  for (const entry of pool.entries) if (entry.owned) entry.sprite.destroy({ children: true, texture: false, textureSource: false });
-  pool.entries.length = 0;
-}
-
-export function clearPlacementGhosts(pool) {
-  for (const entry of pool.entries) entry.sprite.visible = false;
-}

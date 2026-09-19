@@ -1,8 +1,9 @@
 import { Texture } from "pixi.js";
+import { checkedVisibleSilhouette, createVisibleHitArea } from "../visual-hit-geometry.js";
 
 const MANIFEST_URL = new URL("../../artifacts/living-terrain/manifest.json", import.meta.url);
 const ATLAS_URL = new URL("../../artifacts/living-terrain/living-terrain-runtime-atlas.png", import.meta.url);
-const MAX_MANIFEST_BYTES = 512 * 1024;
+const MAX_MANIFEST_BYTES = 1024 * 1024;
 const MAX_ATLAS_BYTES = 2 * 1024 * 1024;
 
 const bytes = async (fetchImpl, url, limit, label) => {
@@ -18,7 +19,9 @@ const integer = (value, minimum, maximum) => Number.isInteger(value) && value >=
 
 export function parseLivingTerrainRuntimeManifest(value) {
   const runtime = value?.runtime;
-  if (value?.schema !== "hive.living-terrain-art-study/1" || runtime?.schema !== "hive.living-terrain-runtime/1" ||
+  if (runtime?.schema !== "hive.living-terrain-runtime/2")
+    throw new Error(`Unsupported living terrain runtime schema: ${String(runtime?.schema)}`);
+  if (value?.schema !== "hive.living-terrain-art-study/1" ||
     runtime.atlas !== "living-terrain-runtime-atlas.png" || !integer(runtime.width, 1, 4096) ||
     !integer(runtime.height, 1, 4096) || !Array.isArray(runtime.entries) || runtime.entries.length !== 210)
     throw new Error("Invalid living terrain runtime manifest");
@@ -26,9 +29,20 @@ export function parseLivingTerrainRuntimeManifest(value) {
   for (const entry of runtime.entries) {
     if (typeof entry?.id !== "string" || entries.has(entry.id) || !integer(entry.x, 0, runtime.width - 1) ||
       !integer(entry.y, 0, runtime.height - 1) || entry.width !== 64 || entry.height !== 64 ||
-      entry.x + 64 > runtime.width || entry.y + 64 > runtime.height)
+      entry.x + 64 > runtime.width || entry.y + 64 > runtime.height ||
+      !Array.isArray(entry.anchor) || entry.anchor.length !== 2 || entry.anchor[0] !== 32 || entry.anchor[1] !== 32)
       throw new Error("Invalid living terrain runtime frame");
-    entries.set(entry.id, Object.freeze({ ...entry }));
+    const silhouette = checkedVisibleSilhouette({ width: 64, height: 64, ...entry.silhouette });
+    const count = [...silhouette.spans].reduce((sum, value, index, values) =>
+      index % 2 ? sum + value - values[index - 1] + 1 : sum, 0);
+    if (count !== entry.visiblePixels) throw new Error("Invalid living terrain runtime silhouette count");
+    if (entry.kind === "cover" && (!entry.geometry || !Array.isArray(entry.geometry.footprint) ||
+      entry.geometry.footprint.length !== 4 || !entry.geometry.footprint.every(point =>
+        Array.isArray(point) && point.length === 3 && point.every(Number.isFinite)) ||
+      !Number.isFinite(entry.geometry.minY) || !Number.isFinite(entry.geometry.maxY) ||
+      entry.geometry.maxY < entry.geometry.minY))
+      throw new Error("Invalid living terrain cover geometry");
+    entries.set(entry.id, Object.freeze({ ...entry, silhouette }));
   }
   for (const material of ["earth", "stone"]) for (let variant = 0; variant < 3; variant++)
     for (const face of ["top", "east", "south"])
@@ -65,13 +79,20 @@ export async function loadLivingTerrainPack({
   const texture = Texture.from(bitmap, true);
   texture.source.scaleMode = "nearest";
   let disposed = false;
+  const frames = new Map();
   function frame(id) {
     if (disposed) throw new Error("Living terrain pack is disposed");
+    const cached = frames.get(id);
+    if (cached) return cached;
     const entry = manifest.entries.get(id);
     if (!entry) throw new Error(`Unknown living terrain frame: ${id}`);
     const left = entry.x / manifest.width, right = (entry.x + entry.width) / manifest.width;
     const top = entry.y / manifest.height, bottom = (entry.y + entry.height) / manifest.height;
-    return { texture, uvs: [left, top, left, bottom, right, bottom, right, top], blendMode: "normal" };
+    const result = Object.freeze({ texture, uvs: [left, top, left, bottom, right, bottom, right, top],
+      blendMode: "normal", hitArea: createVisibleHitArea(entry.silhouette, { x: 0.5, y: 0.5 }),
+      geometry: entry.geometry });
+    frames.set(id, result);
+    return result;
   }
   return Object.freeze({
     body({ art, face, cell, seed = 0 }) {
@@ -83,6 +104,7 @@ export async function loadLivingTerrainPack({
     dispose() {
       if (disposed) return;
       disposed = true;
+      frames.clear();
       texture.destroy(true);
       bitmap.close?.();
     },

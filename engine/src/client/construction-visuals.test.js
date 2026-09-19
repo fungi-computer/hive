@@ -95,8 +95,9 @@ test('brew-station construction stages use the retained clearing artwork', () =>
   const paths=new Set(bank.entries.map(e=>JSON.stringify(e.path)));
   for(const stage of ['stakes','frame','finished']){
     const binding=DEFAULT_VISUAL_BINDINGS[`colony.brew-station.${stage}`];
-    assert.equal(binding.facing,false);
-    assert(paths.has(JSON.stringify(binding.path)),`missing retained brew-station ${stage} art`);
+    assert.equal(binding.facing,true);
+    for(const turn of [0,1,2,3])
+      assert(paths.has(JSON.stringify([...binding.path,turn])),`missing retained brew-station ${stage} view ${turn}`);
   }
   assert.equal(DEFAULT_VISUAL_BINDINGS['colony.brew-station'],undefined);
 });
@@ -107,6 +108,8 @@ test('brew-station process profiles bind every retained frame bank through one s
   for(const profile of ['empty','stock-w0-b0-k0','stock-w1-b1-k1','prepare','prepare-attended','ferment','ferment-burning','keg','settled']){
     const binding=DEFAULT_VISUAL_BINDINGS[`colony.brew-station.profile.${profile}`];
     assert.equal(binding.frames,true);
-    assert(paths.has(JSON.stringify([...binding.path,0])),`missing retained brew-station ${profile} frame`);
+    assert.equal(binding.facing,true);
+    for(const turn of [0,1,2,3])
+      assert(paths.has(JSON.stringify([...binding.path,turn,0])),`missing retained brew-station ${profile} view ${turn}`);
   }
 });

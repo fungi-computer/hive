@@ -544,7 +544,7 @@ export async function bakeArt(
           ? ["stakes", "frame", "finished", "filled"]
           : ["stakes", "frame", "finished"];
       for (const stage of stages) {
-        art.buildings[type][stage] = (type === "stair" ? [0, 1, 2, 3] : [0, 1]).map((direction) => {
+        art.buildings[type][stage] = (["stair", "bed", "roof", "shelf", "brew-station"].includes(type) ? [0, 1, 2, 3] : [0, 1]).map((direction) => {
           const source = building(type, stage, direction);
           if (type !== "stair") return bakeStartup(renderer, source, prop, STATIC_ART_RENDER.prop.width, STATIC_ART_RENDER.prop.height);
           const ownerPath = ["buildings", type, stage, direction];
@@ -559,7 +559,7 @@ export async function bakeArt(
         art.buildings[type].profiles = Object.fromEntries(
           STATION_VISUAL_PROFILES.map((profile) => [
             profile,
-            [0, 1].map((direction) => {
+            [0, 1, 2, 3].map((direction) => {
               const options = stationProfileOptions(profile);
               const frames =
                 options.stirring || options.fire || options.steam ? 8 : 1;

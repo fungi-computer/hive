@@ -17,10 +17,10 @@ function checkedPoint(point) {
 }
 
 /** Convert a canvas point into the shared signed ground plane. */
-export function aimGroundPoint(screen, camera, zoom = camera?.zoom ?? 1) {
+export function aimGroundPoint(screen, camera, zoom = camera?.zoom ?? 1, pickGround = groundPoint) {
   if (!screen || !camera || !Number.isFinite(zoom) || zoom <= 0)
     throw new Error("aimGroundPoint requires a camera and positive zoom");
-  return groundPoint((screen.x - camera.x) / zoom, (screen.y - camera.y) / zoom);
+  return pickGround((screen.x - camera.x) / zoom, (screen.y - camera.y) / zoom);
 }
 
 /** Calculate the horizontal heading and preserve a bounded elevation setting. */

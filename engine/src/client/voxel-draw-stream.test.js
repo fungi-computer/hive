@@ -134,37 +134,42 @@ test("an unoccupied multipart support remains one compound", () => {
   }
 });
 
-test("complete footprints, terrain faces, cover supports, guides, and water obey shared slots and passes", () => {
+test("terrain faces, physical cover supports, guides, and water share one depth order", () => {
   for (const cameraOrientation of MIXED_FIXTURE_ORIENTATIONS) {
     for (const objectOrientation of MIXED_FIXTURE_ORIENTATIONS) {
       const label = `${cameraOrientation}/${objectOrientation}`;
       const fixture = createMixedRenderFixture(cameraOrientation, objectOrientation);
       const result = compile(fixture), { records, trace } = result;
-      assert.deepEqual(records, [...result.opaque, ...result.transparent], `${label}: explicit pass partitions form final stream`);
+      assert.equal(result.opaque.length + result.transparent.length, records.length, `${label}: both materials are present`);
       const bedTrace = trace.find(entry => entry.record === voxelDrawRecordKey(fixture.bed));
       assert.deepEqual(new Set(bedTrace.sourcePoints), new Set(fixture.bed.attachment.points),
         `${label}: bed insertion retains both contact cells`);
       assert.deepEqual(new Set(bedTrace.crossedContacts), new Set(fixture.bed.attachment.points),
         `${label}: traversal crosses both bed contacts before emission`);
-      const bedCompletion = bedTrace.crossedContacts
-        .map(point => -(fixture.projection.direction.x * point.x + fixture.projection.direction.y * point.y + fixture.projection.direction.z * point.z));
-      assert(Math.abs(bedTrace.insertion[0] - Math.max(...bedCompletion)) < 1e-7,
-        `${label}: bed emits at footprint completion`);
-
+      const depth = point => -(fixture.projection.direction.x * point.x + fixture.projection.direction.y * point.y + fixture.projection.direction.z * point.z);
+      const [bedFar, bedNear] = fixture.bed.attachment.points.map(depth).sort((a, b) => a - b);
+      for (const actor of fixture.actors.filter(value => value.id.includes("bed-end-"))) {
+        const position = depth(actor.attachment.feet);
+        if (position < bedFar - 1e-7) assert(indexOf(records, actor) < indexOf(records, fixture.bed), `${label}: far bed-end actor paints first`);
+        if (position > bedNear + 1e-7) assert(indexOf(records, actor) > indexOf(records, fixture.bed), `${label}: near bed-end actor paints last`);
+      }
       for (const cover of fixture.grass) {
         const coverIndex = indexOf(records, cover);
         for (const support of cover.attachment.supports) {
-          const supportRecord = fixture.input.find(record => voxelDrawRecordKey(record) === support);
-          assert(supportRecord, `${label}: real cover support exists`);
-          assert(indexOf(records, supportRecord) < coverIndex, `${label}: every cover support is ready before its patch`);
+          const supportRecord = fixture.terrain.find(record => record.face === "top" && record.cell.every((value, index) => value === support[index]));
+          if (supportRecord) assert(indexOf(records, supportRecord) < coverIndex, `${label}: visible support paints before cover`);
         }
         const coverTrace = trace.find(entry => entry.record === voxelDrawRecordKey(cover));
         assert.deepEqual(coverTrace.sourcePoints, [cover.attachment.point], `${label}: cover keeps its declared root point`);
-        assert.deepEqual(coverTrace.crossedContacts, [cover.attachment.point], `${label}: supports do not replace cover insertion`);
         assert.deepEqual(coverTrace.supportRefs, cover.attachment.supports, `${label}: support ownership remains factual`);
-        const rootNear = -(fixture.projection.direction.x * cover.attachment.point.x +
-          fixture.projection.direction.y * cover.attachment.point.y + fixture.projection.direction.z * cover.attachment.point.z);
-        assert(Math.abs(coverTrace.anchor[0] - rootNear) < 1e-7, `${label}: readiness does not replace physical root anchor`);
+        const hiddenSupport = fixture.terrain.find(record => record.face === "top" &&
+          cover.attachment.supports.some(cell => record.cell.every((value, index) => value === cell[index])));
+        if (hiddenSupport) {
+          const withoutSupport = compile(fixture, fixture.input.filter(record => record !== hiddenSupport));
+          const withoutTrace = withoutSupport.trace.find(entry => entry.record === voxelDrawRecordKey(cover));
+          assert.deepEqual(withoutTrace.insertion, coverTrace.insertion,
+            `${label}: culling a support picture cannot change the cover's physical insertion`);
+        }
       }
 
       const terrainByCell = new Map();
@@ -183,12 +188,39 @@ test("complete footprints, terrain faces, cover supports, guides, and water obey
         const entry = trace.find(candidate => candidate.record === voxelDrawRecordKey(guide));
         assert.equal(entry.slot, "surface-mark", `${label}: guide uses the selected physical surface slot`);
       }
-      const firstTransparent = records.findIndex(record => record.renderPass === "transparent");
-      assert(firstTransparent >= 0, `${label}: transparent water present`);
-      assert(records.slice(0, firstTransparent).every(record => record.renderPass === "opaque"), `${label}: opaque stream first`);
-      assert(records.slice(firstTransparent).every(record => record.renderPass === "transparent"), `${label}: water pass appended`);
+      assert(records.some(record => record.renderPass === "transparent"), `${label}: transparent water present`);
     }
   }
+});
+
+test("own ground tile paints before its off-center occupant and a nearer bank paints over water", () => {
+  const fixture = createMixedRenderFixture("north", "north");
+  const top = fixture.terrain.find(record => record.face === "top" && record.cell.join(",") === "1,0,1");
+  const actor = Object.freeze({ id: "own-support-witness", part: "body", renderPass: "opaque",
+    attachment: Object.freeze({ kind: "supported", support: null, feet: Object.freeze({ x: 0.6, y: 0.27, z: 0.6 }) }) });
+  assert(top, "real top face exists in the mixed scene");
+  const own = compile(fixture, [top, actor]).records;
+  assert(indexOf(own, top) < indexOf(own, actor), "original-art own-support witness paints the tile first");
+
+  const waterPoint = { x: -0.1, y: 0.27, z: 0.1 };
+  const bankPoint = { x: 0.5613622305514584, y: 0.81, z: 0.7613622305514581 };
+  const water = Object.freeze({ id: "water-ray", part: "surface", renderPass: "transparent",
+    attachment: Object.freeze({ kind: "liquid-surface", point: waterPoint }) });
+  const bank = Object.freeze({ id: "bank-ray", part: "face", renderPass: "opaque",
+    attachment: Object.freeze({ kind: "cell-face", cell: [1, 1, 1], face: "top" }) });
+  assert(Math.abs(bankPoint.y - 0.81) < 1e-9, "source probe point lies on this bank top");
+  const stream = compile(fixture, [water, bank]).records;
+  assert(indexOf(stream, water) < indexOf(stream, bank), "nearer bank paints over farther water");
+});
+
+test("a stair occupant outside the authored rails is rejected even at the same depth", () => {
+  const fixture = createMixedRenderFixture("north", "north");
+  const original = fixture.actors.find(record => record.attachment.support === "fixture:stair");
+  const point = original.attachment.feet;
+  const shifted = Object.freeze({ ...original, attachment: Object.freeze({ ...original.attachment,
+    feet: Object.freeze({ x: point.x + 61.24, y: point.y, z: point.z - 61.24 }) }) });
+  assert.throws(() => compile(fixture, fixture.input.map(record => record === original ? shifted : record)),
+    /outside its surface/);
 });
 
 test("multipart support fails at the missing factual contract instead of guessing", () => {

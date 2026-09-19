@@ -55,13 +55,13 @@ function terrainSnapshot() {
   ], bounds: BOUNDS, verticalMetres: VERTICAL_METRES, variantSeed: 41, epoch: 1, terrainRevision: 1 };
 }
 
-function terrainAppearance(pack) {
-  if (pack) return createTerrainFaceAppearance({ pack });
+function terrainAppearance(pack, turn) {
+  if (pack) return createTerrainFaceAppearance({ pack, turn });
   const batch = texture => ({ texture, uvs: [0,0,0,1,1,1,1,0], blendMode: "normal" });
   return createTerrainFaceAppearance({ pack: {
     body: ({ art, face }) => batch(`${art}.${face}`),
     cover: ({ kind, height, mask }) => batch(`${kind}.${height}.${mask}`),
-  } });
+  }, turn });
 }
 
 function actorRecord(id, point, projection, fixturePosition, { visual = "goblin.worker", support = null, art } = {}) {
@@ -138,7 +138,7 @@ function guideFixture(orientation, projection) {
  * produce the same result when `input` is reversed.
  */
 export function createMixedRenderFixture(cameraOrientation = "north", objectOrientation = "north", { art, terrainPack } = {}) {
-  const projection = projectionFor(cameraOrientation), appearance = terrainAppearance(terrainPack);
+  const projection = projectionFor(cameraOrientation), appearance = terrainAppearance(terrainPack, ORIENTATION_TURNS[cameraOrientation]);
   const coverage = materialCoverage(terrainSnapshot());
   const terrain = terrainFaceRecords(coverage, { level: 1, projection, appearance });
   // This names the current production seam honestly. Stage 2 migrates these

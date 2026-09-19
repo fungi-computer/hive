@@ -1,22 +1,35 @@
 /** Content-owned visual choices. The renderer only consumes this checked shape. */
+const edgeAxisViews = (bank, stage, axis) => Object.freeze(Array.from({ length: 4 }, (_, turn) =>
+  Object.freeze([bank, "segment", stage, axis ^ (turn % 2)])));
+const rotatedEdgeMask = (mask, turn) => {
+  let result = 0;
+  for (let bit = 0; bit < 4; bit++) if (mask & (1 << bit)) result |= 1 << ((bit - turn + 4) % 4);
+  return result;
+};
+const edgeMaskViews = (stage, mask) => Object.freeze(Array.from({ length: 4 }, (_, turn) =>
+  Object.freeze(["edgeWalls", "junction", stage, rotatedEdgeMask(mask, turn)])));
+
 const constructionBindings = Object.fromEntries(["floor", "stair", "roof", "bed", "shelf", "brew-station"].flatMap(type =>
   ["stakes", "frame", "finished"].map(stage => [`colony.${type}.${stage}`, Object.freeze({
-    kind: "static", path: type === "stair" || type === "bed" || type === "roof" || type === "shelf" ? ["buildings", type, stage] : ["buildings", type, stage, 0],
-    facing: type === "stair" || type === "bed" || type === "roof" || type === "shelf", anchor: "propAnchor",
+    kind: "static", path: type === "floor" ? ["buildings", type, stage, 0] : ["buildings", type, stage],
+    facing: type !== "floor", anchor: "propAnchor",
     worldRole: type === "floor" ? "floor" : "structure",
   })])));
 const edgeWallBindings = Object.fromEntries(["stakes", "frame", "finished"].flatMap(stage => [
   ...[["x", 0], ["z", 1]].map(([axis, facing]) => [`colony.wall.segment.${stage}.${axis}`, Object.freeze({
-    kind: "static", path: ["edgeWalls", "segment", stage, facing], facing: false, anchor: "propAnchor", worldRole: "structure",
+    kind: "static", path: ["edgeWalls", "segment", stage, facing], viewPaths: edgeAxisViews("edgeWalls", stage, facing),
+    facing: false, anchor: "propAnchor", worldRole: "structure",
     edgeWall: Object.freeze({ kind: "segment", stage, axis }),
   })]),
   ...Array.from({ length: 15 }, (_, index) => index + 1).map(mask => [`colony.wall.junction.${stage}.${mask}`, Object.freeze({
-    kind: "static", path: ["edgeWalls", "junction", stage, mask], facing: false, anchor: "propAnchor", worldRole: "structure",
+    kind: "static", path: ["edgeWalls", "junction", stage, mask], viewPaths: edgeMaskViews(stage, mask),
+    facing: false, anchor: "propAnchor", worldRole: "structure",
   })]),
 ]));
 const edgeDoorBindings = Object.fromEntries(["stakes", "frame", "finished"].flatMap(stage =>
   [["x", 0], ["z", 1]].map(([axis, facing]) => [`colony.door.segment.${stage}.${axis}`, Object.freeze({
-    kind: "static", path: ["edgeDoors", "segment", stage, facing], facing: false, anchor: "propAnchor", worldRole: "structure",
+    kind: "static", path: ["edgeDoors", "segment", stage, facing], viewPaths: edgeAxisViews("edgeDoors", stage, facing),
+    facing: false, anchor: "propAnchor", worldRole: "structure",
     edgeWall: Object.freeze({ kind: "segment", stage, axis }),
   })])));
 const brewStationProfileBindings = Object.fromEntries([
@@ -25,8 +38,8 @@ const brewStationProfileBindings = Object.fromEntries([
   "stock-w1-b1-k1", "prepare", "prepare-attended", "ferment",
   "ferment-burning", "keg", "settled",
 ].map(profile => [`colony.brew-station.profile.${profile}`, Object.freeze({
-  kind: "static", path: ["buildings", "brew-station", "profiles", profile, 0],
-  frames: true, facing: false, anchor: "propAnchor", worldRole: "structure",
+  kind: "static", path: ["buildings", "brew-station", "profiles", profile],
+  frames: true, facing: true, anchor: "propAnchor", worldRole: "structure",
 })]));
 export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   ...constructionBindings,

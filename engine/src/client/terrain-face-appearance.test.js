@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
+import { createTerrainFaceAppearance, terrainArtFace, terrainArtMask } from "./terrain-face-appearance.js";
 
 const projection = { project: ({ x, y, z }) => ({ x: x * 32 - z * 32, y: (x + z) * 16 - y * 32 }) };
 
@@ -21,4 +21,13 @@ test("terrain appearance delegates body and cover selection to one checked art p
   assert.equal(cover.projected.length, 4);
   assert.notDeepEqual(body.projected, cover.projected);
   assert.throws(() => owner.body({ cell: [0,0,0], face: "top", projection, verticalMetres: .54 }), /no art definition/);
+});
+
+test("four camera views choose the baked visible face and rotate cover corner masks", () => {
+  assert.deepEqual(["east", "west", "west", "east"].map((face, turn) => terrainArtFace(face, turn)),
+    ["east", "south", "east", "south"]);
+  assert.deepEqual(["south", "south", "north", "north"].map((face, turn) => terrainArtFace(face, turn)),
+    ["south", "east", "south", "east"]);
+  assert.deepEqual([0,1,2,3].map(turn => terrainArtMask(1, turn)), [1,8,4,2]);
+  assert.deepEqual([0,1,2,3].map(turn => terrainArtMask(15, turn)), [15,15,15,15]);
 });

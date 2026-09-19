@@ -47,7 +47,8 @@ export function waterDrawRecord(cell, { verticalMetres, projection = project, di
 /** One disposable owner for requested terrain coverage, logical faces, water and
  * consecutive Pixi mesh runs. The simulation remains authoritative elsewhere.
  */
-export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) {
+export function createCutTerrainLayer({ runtime, projection: initialProjection, onCoverage } = {}) {
+  let projection = initialProjection, viewTurn = 0;
   if (!projection) throw new Error("cut terrain layer requires the canonical projection");
   const container = new Container();
   container.eventMode = "none";
@@ -65,7 +66,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
   function installArt(pack) {
     if (disposed || terrainArt) throw new Error("terrain art can only be installed once");
     terrainArt = pack;
-    appearance = createTerrainFaceAppearance({ pack });
+    appearance = createTerrainFaceAppearance({ pack, turn: viewTurn });
     coverageIdentity = undefined;
   }
 
@@ -161,9 +162,8 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
     }
     faceChunks.clear();
     for (const [id, entry] of nextFaceChunks) faceChunks.set(id, entry);
-    const availableSupports = new Set(nextRecords.map(record => `${record.id}\u0000${record.part ?? ""}`));
     nextRecords.push(...terrainCoverRecords(frame.surfaces, { level, projection, appearance,
-      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed, availableSupports }));
+      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed }));
     publishRecords(nextRecords, waterRecords);
   }
 
@@ -175,7 +175,7 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       create: () => { const sprite = new Sprite(waterTexture); sprite.anchor.set(0.5); sprite.eventMode = "none"; container.addChild(sprite); return sprite; },
       update: (sprite, cell) => {
         const [x, y, z] = cell.at, top = (y - 0.5) * frame.verticalMetres + (cell.level / 7) * frame.verticalMetres;
-        const at = project(x, top, z); sprite.position.set(at.x, at.y);
+        const at = projection.project({ x, y: top, z }); sprite.position.set(at.x, at.y);
       },
       dispose: sprite => sprite.destroy(),
     });
@@ -185,7 +185,8 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
       const previous = waterRecordEntries.get(key);
       const record = previous?.signature === signature && previous.record.display === display
         ? previous.record
-        : waterDrawRecord(cell, { verticalMetres: frame.verticalMetres, display });
+        : waterDrawRecord(cell, { verticalMetres: frame.verticalMetres, display,
+          projection: (x, y, z) => projection.project({ x, y, z }) });
       nextEntries.set(key, { signature, record });
       return record;
     });
@@ -198,6 +199,15 @@ export function createCutTerrainLayer({ runtime, projection, onCoverage } = {}) 
   return Object.freeze({
     container,
     installArt,
+    setProjection(nextProjection, turn) {
+      if (!nextProjection?.project || !nextProjection?.ray || !Number.isSafeInteger(turn) || turn < 0 || turn > 3)
+        throw new Error("invalid terrain view projection");
+      projection = nextProjection; viewTurn = turn;
+      appearance = terrainArt ? createTerrainFaceAppearance({ pack: terrainArt, turn }) : undefined;
+      coverageIdentity = undefined; faceChunks.clear(); waterRecordEntries.clear();
+      publishRecords([], []);
+      batches.update([]);
+    },
     update,
     position,
     get sortableItems() { refreshWaterRecords(); return retainedRecords; },

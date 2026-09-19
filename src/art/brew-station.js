@@ -145,8 +145,8 @@ export function brewStation(
 
 /** Isolated rendering adapter: a 2x2 positive-cell station rotates about (.5,0,.5). */
 export function stationScene(stage, direction = 0, options = {}) {
-  if (direction !== 0 && direction !== 1)
-    throw new Error("Expected one of the two station facings");
+  if (!Number.isSafeInteger(direction) || direction < 0 || direction > 3)
+    throw new Error("Expected one of the four station views");
   const s = scene();
   const datum = group(s, 0.5, 0, 0.5);
   datum.name = "station-datum";

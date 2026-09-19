@@ -57,6 +57,22 @@ test("stair binding resolves the four authored cardinal frames without a special
   }
 });
 
+test("content view paths rotate edge axes and cardinal junction masks without renderer branches", () => {
+  const edgeArt = { ...art, edgeWalls: { segment: { finished: [texture("x"), texture("z")] },
+    junction: { finished: Object.fromEntries(Array.from({ length: 15 }, (_, index) => [index + 1, texture(`mask-${index + 1}`)])) } },
+    edgeDoors: { segment: { finished: [texture("door-x"), texture("door-z")] } } };
+  for (let turn = 0; turn < 4; turn++) {
+    assert.equal(resolveStaticVisual(edgeArt, DEFAULT_VISUAL_BINDINGS["colony.wall.segment.finished.x"], 0, 0, turn).texture.name,
+      turn % 2 ? "z" : "x");
+    assert.equal(resolveStaticVisual(edgeArt, DEFAULT_VISUAL_BINDINGS["colony.door.segment.finished.z"], 0, 0, turn).texture.name,
+      turn % 2 ? "door-x" : "door-z");
+    assert.equal(resolveStaticVisual(edgeArt, DEFAULT_VISUAL_BINDINGS["colony.wall.junction.finished.1"], 0, 0, turn).texture.name,
+      `mask-${[1, 8, 4, 2][turn]}`);
+  }
+  assert.throws(() => resolveStaticVisual(edgeArt, { kind: "static", path: ["edgeWalls"], viewPaths: [],
+    facing: false, anchor: "propAnchor" }), /four non-facing paths/);
+});
+
 test("static resolver rejects malformed bindings and never walks inherited keys", () => {
   assert.throws(() => resolveStaticVisual(art, { kind: "container" }), /binding required/);
   assert.throws(() => resolveStaticVisual(art, {

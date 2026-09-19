@@ -5,6 +5,7 @@ import { camera } from './prop-camera.js';
 import { renderBakeCanvas } from './bake.js';
 import { figure } from './figures.js';
 import { grassCover, terrainBody, terrainBodyPart } from './living-terrain.js';
+import { createVisibleSilhouette } from '../visual-hit-geometry.js';
 
 const FRAME=64;
 function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
@@ -51,7 +52,11 @@ export async function authorLivingTerrain(){
       const x=index%16*FRAME,y=Math.floor(index/16)*FRAME;
       runtimeContext.drawImage(tileCanvas,x,y);
       const {build,...definition}=tile;
-      runtimeEntries.push({...definition,x,y,width:FRAME,height:FRAME,anchor:[32,32],visiblePixels:count});
+      const silhouette=createVisibleSilhouette(data,FRAME,FRAME);
+      runtimeEntries.push({...definition,x,y,width:FRAME,height:FRAME,anchor:[32,32],visiblePixels:count,
+        silhouette:{rows:[...silhouette.rows],spans:[...silhouette.spans]},
+        ...(tile.kind==='cover'?{geometry:{footprint:[[-.5,0,-.5],[-.5,0,.5],[.5,0,.5],[.5,0,-.5]],
+          minY:0,maxY:tile.height==='short'?.13:.28}}:{})});
     }
     const sheet=canvas(16*64,14*90),sc=sheet.getContext('2d');sc.fillStyle='#28382e';sc.fillRect(0,0,sheet.width,sheet.height);sc.font='12px monospace';
     for(const [conditionRow,condition] of ['green','dead'].entries())for(const [row,height] of ['short','full'].entries())for(let variant=0;variant<3;variant++)for(let mask=0;mask<16;mask++){
@@ -88,6 +93,6 @@ export async function authorLivingTerrain(){
     const preview=await app.renderer.extract.canvas(app.stage);
     const files={'living-terrain-atlas.png':atlas.toDataURL(),'living-terrain-runtime-atlas.png':runtimeAtlas.toDataURL(),'living-terrain-masks.png':sheet.toDataURL(),'living-terrain-scene-native.png':native.toDataURL(),'living-terrain-scene-3x.png':enlarged(native,3).toDataURL(),'living-terrain-pixi-2x.png':preview.toDataURL()};
     app.destroy(true,{children:true,texture:true,textureSource:true});
-    return {files,manifest:{schema:'hive.living-terrain-art-study/1',atlas:'living-terrain-atlas.png',width:atlas.width,height:atlas.height,entries,runtime:{schema:'hive.living-terrain-runtime/1',atlas:'living-terrain-runtime-atlas.png',width:runtimeAtlas.width,height:runtimeAtlas.height,entries:runtimeEntries},corners:['NW','NE','SE','SW'],cellMetres:1,verticalMetres:.54,dualGridOffset:[.5,.5],pipeline:'Original Three geometry → shared bake/camera → nearest Pixi texture',scope:'Art study plus face-addressable runtime derivatives. No simulation ownership.',camera:'src/art/prop-camera.js',bake:'src/art/bake.js'}};
+    return {files,manifest:{schema:'hive.living-terrain-art-study/1',atlas:'living-terrain-atlas.png',width:atlas.width,height:atlas.height,entries,runtime:{schema:'hive.living-terrain-runtime/2',atlas:'living-terrain-runtime-atlas.png',width:runtimeAtlas.width,height:runtimeAtlas.height,entries:runtimeEntries},corners:['NW','NE','SE','SW'],cellMetres:1,verticalMetres:.54,dualGridOffset:[.5,.5],pipeline:'Original Three geometry → shared bake/camera → nearest Pixi texture',scope:'Art study plus face-addressable runtime derivatives. No simulation ownership.',camera:'src/art/prop-camera.js',bake:'src/art/bake.js'}};
   }finally{renderer.dispose();renderer.forceContextLoss();}
 }

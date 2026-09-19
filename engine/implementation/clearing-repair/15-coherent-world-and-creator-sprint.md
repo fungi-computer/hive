@@ -29,6 +29,96 @@ scale; native whole-footprint support and shared work planning already exist.
 
 ## September 19 ownership clarification — export facts, prepare once, paint
 
+### Binding execution contract — client presentation, including rotation
+
+Levi's later September 19 clarification makes the execution location mandatory:
+**camera-dependent draw preparation and picking run on each client.** The server
+publishes scoped authoritative world facts. It does not retain each client's
+camera, compute a per-client draw order, or send a new draw list on camera input.
+Existing participant observation scopes remain separate from presentation state.
+This supersedes the earlier optional wording that the presentation owner “may”
+run locally. “Engine-owned” here means reusable engine code running in the client.
+
+The required ownership split is:
+
+| Owner | Owns | Supplies to its caller |
+|---|---|---|
+| Native/server world | Physical state, admitted commands, support, placements, durable effects | Scoped world observations with stable identities |
+| Existing art exporter/pack | Baked views, authored part geometry, anchors, alpha hit shapes, declared visual placement | Checked, versioned art metadata and images |
+| Client engine presentation module | Fact-to-draw preparation, local camera projection, view-relative art selection, support/part ordering, retained indexes, invalidation and picking | One ordered display description and picked logical identity |
+| Pixi resource owner | Texture/mesh/sprite lifetime and applying supplied transforms/order | Painted world; no independent spatial ordering policy |
+
+Use **deep modules** throughout this seam: narrow operations hide invariants,
+representation, invalidation and cleanup. Client code submits changed observed
+facts/art and the local view, obtains the prepared frame, and asks the owner to
+pick. The caller must not choose comparator slots, coordinate support indexes,
+merge static/dynamic orders or clear a collection of internal caches. Helpers
+inside an owner are fine; several public helpers that require that choreography
+are not the completed boundary. Preserve the separate physical and GPU owners.
+Refactor existing consumers together and remove superseded policy paths.
+
+Camera rotation is now requested. Implement four quarter-turn views as the first
+rotation control; continuous rotation is not required. Rotation changes local
+projection, view-relative art facing, visible terrain faces and prepared order.
+It leaves world positions, object orientation, selected identities and simulation
+time unchanged. The inverse projection used by clicks/building/aiming must agree
+with drawing. Preserve the world point at the viewport center when rotating.
+Use the checked interaction catalog for controls/help and avoid the existing
+building-rotation key conflict. Camera input must not submit a world command.
+
+Existing figure/static facing banks are inputs to inspect, not proof that all
+four camera views are ready. The living-terrain runtime pack currently contains
+top/east/south face images for its original camera. Qualify the world-to-view
+face mapping, cover mask rotation, anchors and part transforms; export any missing
+views through the existing bake owner. Never fake a rotated view by rotating the
+finished 2D canvas or leaving directional art unchanged. Browser checks are
+available; use the handoff's working host recipe.
+
+### Bounded implementation sequence and acceptance gates
+
+1. **Preserve and establish the baseline.** Work in the named integration checkout,
+   inspect its actual dirty diff and retained evidence, and read the current
+   handoff checkpoint. Existing experimental edits are not accepted behavior.
+   Keep independent lane commits isolated until source review and integration.
+2. **Finish the checked art contract.** Reuse `parts.js`, `art.js`,
+   `static-authoring.js` and `static-pack.js`; finish the corresponding
+   living-terrain export/load seam. Cover hits use authored alpha, never padded
+   atlas rectangles or unconditional pointer transparency. Keep physical
+   definitions authoritative. Qualify missing camera views before claiming them.
+3. **Complete one client presentation owner.** Consolidate
+   `subject-draw-records.js`, `voxel-draw-stream.js`,
+   `voxel-draw-stream-owner.js` and their actual `client.js` consumers by
+   responsibility. Full and retained preparation use the same geometry/admission
+   rules. Physical supports do not depend on visible face records. A scalar depth
+   interval does not establish membership on a stair. Transparency does not
+   force water to the end. Integrate actual world guides/ghosts and reset cleanup.
+4. **Review the first correct shape before extending retention.** Use the recorded
+   own-top pixels, bank/water ray, bed ends/sides and stair inside/outside cases as
+   independent expected results. Retained/full parity alone cannot pass this
+   gate. Do not replace a failed relation with a content-name exception, a
+   last-footprint-point rule or silently relaxed test. If an unsplit original
+   picture cannot interleave correctly, use meaningful authored parts and review
+   their real pixels. Resolve geometry failures before performance tuning.
+5. **Retain and rotate through that owner.** Integrate reviewed terrain-demand,
+   per-chunk retention and batch fixes; ordinary pan/zoom retains unchanged
+   relationships. Quarter-turn rotation invalidates view-dependent preparation
+   explicitly. Test all four views, four turns returning to the initial view,
+   movement between turns, pan/zoom/cuts, exact clicks and placement under each
+   view. Two clients may view the same world from different angles with identical
+   authoritative world state and independent local cameras.
+6. **Qualify and publish the bounded playable interim.** Run focused owner tests
+   and real browser interactions, including chunk crossings, terrain edits,
+   water/banks, real build previews and world replacement. Record preparation,
+   ordering, batching/uploads and frame costs separately. Follow existing preview
+   release rules; do not deploy a backend merely to add camera behavior. Update
+   the receipt with exactly what is playable and what remains unqualified.
+
+These are implementation tasks with explicit gates, not authorization for a
+lower-effort implementer to invent a different rendering architecture. The
+integration owner retains first-shape source/art review and resolves any geometry
+decision that the independent counterexamples still contradict. Later building,
+work, continuity and creator stages retain their order below.
+
 Levi's clarification during the resumed audit: we start with 3D models, so retain
 the useful geometry beside their baked pictures; the engine prepares an ordered
 world drawing list and the renderer consumes it. CTO owns making that boundary
@@ -47,8 +137,8 @@ One engine presentation owner combines that pack metadata with observed native
 poses, full placement/support facts and the selected view. It returns ordered draw
 records with stable logical pick identities. Pixi consumes order, textures and
 transforms; it owns GPU resources but no spatial-policy decisions. Picking walks
-the same list backward using the supplied silhouettes. This owner may execute
-locally beside Pixi: "engine-owned" does not require per-camera DO sorting or a
+the same list backward using the supplied silhouettes. This owner executes
+locally beside Pixi: "engine-owned" does not mean per-camera DO sorting or a
 new network list every frame. Separate responsibility inside current modules before
 moving packages. Native ticks remain independent of cameras.
 

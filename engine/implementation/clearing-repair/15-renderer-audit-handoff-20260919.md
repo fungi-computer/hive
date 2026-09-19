@@ -1,5 +1,73 @@
 # Renderer audit and new-chat handoff — September 19, 2026
 
+## Latest implementation checkpoint — read first
+
+Implementation has advanced on `engine/living-terrain-integration-20260917` in
+`/home/levi/src/hive-worktrees/living-terrain-integration`. Terrain retention
+was reviewed and integrated as `6a565625`. The current working tree implements
+client-local four-turn camera geometry, a retained ordered voxel draw stream
+shared by painting and picking, exact original-art terrain alpha, world-sorted
+placement guides and ghosts, and corrected floor/bed selected-plane input.
+The original living-terrain PNG bytes remain unchanged; the maintained static
+art exporter has rebuilt its atlas with four bed, roof, shelf and brewing-station
+views, including process animation banks. Source acceptance and preview status
+are recorded in the integration commit and release receipt; historical paragraphs
+below describe earlier checkpoints.
+
+Focused source tests pass (`run-u2368`, `u2372`, `u2376`, `u2379`, `u2384`,
+`u2395`, `u2401`); the production Vite build passed `run-u2396`. Connected
+browser proofs passed selection/pan/zoom/cut/chunk demand (`run-u2374`), floor
+rectangle and bed plane (`run-u2380`), camera turns 0→1→2→3→0 with selection
+and no unknown chunks (`run-u2387`, rendered capture `run-u2392`), and the
+world-sorted placement preview regression (`run-u2398`), actor-owner rotation
+and loaded four-view furniture art (`run-u2402`, `run-u2407`), and active floor
+placement through rotation (`run-u2411`). Browser proof uses the
+existing host library bundle through `LD_LIBRARY_PATH`; do not repeat the
+historical claim that browser checks are unavailable. The broad client test
+run `run-u2400` passed 224/228; three failures are extensionless TypeScript
+imports in direct Node execution, and its fourth stale cover-support assertion
+was corrected and re-proved in `run-u2401`.
+
+The actor Pixi lifecycle now lives in `actor-presentation-owner.js`, and the
+static pack contains 1958 checked textures. The bed/end/side and stair-rail
+overlap limits remain a recorded advisory for focused rendered proof beyond the
+first playable slice. The existing release
+script deploys the backend, so it cannot be run under the current
+no-backend-deploy boundary; inspect an appropriate client-only preview path
+against the unchanged compatible backend after acceptance.
+
+### Historical checkpoint below
+
+Levi has clarified that draw preparation must be a **deep client-side engine
+module**, and has requested camera rotation. Packet 15's new “Binding execution
+contract” and “Bounded implementation sequence” are authoritative: server world
+facts + checked art pack + local camera produce one client-owned ordered list and
+shared picking. No per-camera server draw list or server camera state. First
+rotation delivery is four quarter-turn views with matching art/projection/input.
+
+The implementation checkout is still
+`/home/levi/src/hive-worktrees/living-terrain-integration`, currently based on
+`b5245e18`. Local compiler/retained-owner/cover edits made after the audit are
+**unfinished experiments**, not accepted repairs. Inspect the exact working diff
+before continuing. An initial direct test run passed 12 of 14 compiler/owner tests;
+the failures included signed-zero trace instability and obsolete pass-order
+expectations. A subsequent signed-zero correction has not yet been re-proved.
+Cover support changes also need updated independent acceptance evidence. Neither
+geometry correctness nor the requested deep client boundary is complete.
+
+The isolated terrain lane has committed `09d5ed631ee8b79e97575897e0c2d6b4f82787d6`
+on `engine/terrain-retention-20260919` in
+`/home/levi/src/hive-worktrees/terrain-retention-20260919`. It reports 14 focused
+tests passing under `run-u2366`, covering bounded demand service, chunk retention,
+batch reuse and water metadata. It is **not yet reviewed or integrated**. Its water
+records require the new `liquid-surface` compiler contract; review/integrate that
+coupled contract together. Preserve both worktrees and all existing audit evidence.
+
+The browser recipe below works on this host. Historical statements that browser
+checks are unavailable do not apply. No new source acceptance or preview release
+is claimed by this checkpoint. The historical pasteable goal below must be read
+with the current client/deep-module/rotation contract in packet 15.
+
 ## Resumed audit — source and ownership checkpoint
 
 Resumed at `8f6e37443a22e184bc2c7f60dbb8cc2b7a8a3093`. The two unfinished
@@ -13,7 +81,7 @@ it. Packet 15 now explicitly owns that boundary. This is largely an existing
 capability to finish: `parts.js`, `bakeMultipartStartup`, `static-authoring.js`
 and `static-pack.js` already preserve placement, named part geometry, anchors and
 alpha silhouettes. One engine presentation owner must consume them consistently.
-It can run locally without giving the DO camera-specific work or putting Three in
+It must run locally without giving the DO camera-specific work or putting Three in
 gameplay. Physical capabilities still come from checked native/game definitions.
 
 Additional independently reviewed findings:

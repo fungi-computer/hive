@@ -17,7 +17,7 @@ function checkedPath(path) {
 }
 
 /** Resolve one checked static art binding without per-kind renderer branches. */
-export function resolveStaticVisual(art, binding, facing = 0, frame = 0) {
+export function resolveStaticVisual(art, binding, facing = 0, frame = 0, viewTurn = 0) {
   if (!binding || binding.kind !== "static")
     throw new Error("static visual binding required");
   const path = checkedPath(binding.path);
@@ -25,7 +25,12 @@ export function resolveStaticVisual(art, binding, facing = 0, frame = 0) {
     throw new Error("static visual binding has invalid facing or anchor");
   if (!Number.isSafeInteger(facing) || facing < 0 || facing > 3)
     throw new Error("static visual facing must be 0 through 3");
-  const resolvedPath = binding.facing ? [...path, facing] : path;
+  if (!Number.isSafeInteger(viewTurn) || viewTurn < 0 || viewTurn > 3)
+    throw new Error("static visual view turn must be 0 through 3");
+  if (binding.viewPaths !== undefined && (!Array.isArray(binding.viewPaths) || binding.viewPaths.length !== 4 || binding.facing))
+    throw new Error("static visual view paths require four non-facing paths");
+  const viewPath = binding.viewPaths ? checkedPath(binding.viewPaths[viewTurn]) : path;
+  const resolvedPath = binding.facing ? [...viewPath, facing] : viewPath;
   let value = art;
   for (const segment of resolvedPath) {
     if (value === null || value === undefined || !Object.prototype.hasOwnProperty.call(value, segment))
@@ -44,8 +49,8 @@ export function resolveStaticVisual(art, binding, facing = 0, frame = 0) {
 }
 
 /** Resolve one owner into sibling render fragments while preserving its ID. */
-export function resolveStaticVisualParts(art, binding, facing = 0, frame = 0) {
-  const resolved = resolveStaticVisual(art, binding, facing, frame);
+export function resolveStaticVisualParts(art, binding, facing = 0, frame = 0, viewTurn = 0) {
+  const resolved = resolveStaticVisual(art, binding, facing, frame, viewTurn);
   if (!resolved) return undefined;
   // Ordinary art retains the established single Sprite/container lifecycle;
   // only an owner with authored part declarations becomes siblings.

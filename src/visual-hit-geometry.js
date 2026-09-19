@@ -81,13 +81,15 @@ function validateSilhouetteRelations({
 }
 
 /** Register checked, detached CPU picking data loaded beside a static texture. */
-export function registerVisibleSilhouette(texture, input) {
+export function checkedVisibleSilhouette(input) {
   const checked = checkedSilhouetteInput(input);
   validateSilhouetteRelations(checked);
   const { width, height, sourceRows, sourceSpans } = checked;
-  const rows = Uint32Array.from(sourceRows),
-    spans = Uint16Array.from(sourceSpans);
-  const silhouette = { width, height, rows, spans };
+  return { width, height, rows: Uint32Array.from(sourceRows), spans: Uint16Array.from(sourceSpans) };
+}
+
+export function registerVisibleSilhouette(texture, input) {
+  const silhouette = checkedVisibleSilhouette(input);
   textureSilhouettes.set(texture, silhouette);
   return silhouette;
 }
