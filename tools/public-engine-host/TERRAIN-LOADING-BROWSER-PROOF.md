@@ -10,6 +10,14 @@ Run through the shared-host guard (with the existing Chromium path/library envir
 
 Use a new artifact directory for each run. The driver preserves its exact bytes and SHA-256 beside its incremental `REPORT.json`. `--scenario stationary` and `--scenario pan` isolate one case. `--mode after` enables streamed transport, readiness, visible coverage and residency acceptance gates. Do not run it against the frozen baseline.
 
+Rendered proofs now select full Chromium (`channel: "chromium"`) with ANGLE
+SwiftShader and compositing enabled. If setting `CHROMIUM_PATH` on this host,
+use `/home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome`.
+The report records the actual browser command line, version, graphics device and
+feature status; disabled compositing fails explicitly. This remains software
+rendering, not a hardware-GPU benchmark. Earlier legacy-headless-shell timings
+must not be used for direct speedup ratios against this corrected setup.
+
 ## Frozen v5 baseline, September 20
 
 Frontend implementation: `30ec8144`; accepted integration base: `fb67f836`. Backend version: `d25d8e12-16d5-4934-8f64-3d6e7fc7eda8`, program hash `5dddf225bb6287de132f33fd2604e3a2ae37e54ea57f652f0beb638d1b540ff2`.
@@ -154,3 +162,23 @@ server had exited (143); the tunnel remained alive and returned 502. Their
 artifacts are retained, and the first driver's overly broad `success` field is
 explicitly disqualified by its separate `INVALID.json`. The same frozen v5
 preview was restarted; the successful restored trace above then ran against it.
+
+The matched compositor diagnostic
+`.botanical/full-game-timeline-v5-full-chrome-v2/COMPARISON.json` recorded **zero**
+canvas readbacks in full Chrome, versus 140 in the legacy headless shell. Its
+total compositor commit time was 31.7 ms. Both used software SwiftShader; the
+legacy shell had `gpu_compositing=disabled_software`, whereas full Chrome had it
+enabled. The remaining JavaScript profile
+`.botanical/full-game-full-chrome-cpu-v5/SELF-AGGREGATED.json` measured 2.175 s
+in geometry signature serialization, 563 ms in topological ordering and 523 ms
+in terrain update serialization.
+
+The unchanged rendered acceptance workload then ran against frozen v5 using
+the corrected compositor, `.botanical/terrain-loading-v5-composited`, guard
+`run-u2908.scope`, invocation `dd375c941cd147b0be83e10a4d41807a`, terminal exit 1.
+Both actual cold pans and final coverage passed without timeout, HTTP terrain
+requests or runtime errors. Stationary useful ground appeared at 5.627 s from
+navigation, visible ground at 11.068 s and padded completion at 15.160 s; exact
+visible completion still failed the unchanged three-second post-readiness gate.
+Thus the browser configuration explains the pathological compositor cost and
+the reproduced timeout, but does not finish the loading-performance task.

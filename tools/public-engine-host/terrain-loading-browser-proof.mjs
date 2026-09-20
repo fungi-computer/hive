@@ -18,7 +18,11 @@ async function runCase(name){
  let browser,page;const pending=[];let navigationAt;
  const elapsed=()=>Date.now()-navigationAt;
  try{
-  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader"]});
+  browser=await chromium.launch({channel:"chromium",executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader","--enable-gpu","--use-gl=angle","--use-angle=swiftshader"]});
+  const browserCDP=await browser.newBrowserCDPSession(), system=await browserCDP.send("SystemInfo.getInfo");
+  result.browserRendering={version:browser.version(),commandLine:system.commandLine,devices:system.gpu.devices,featureStatus:system.gpu.featureStatus};
+  await browserCDP.detach();
+  assert.equal(system.gpu.featureStatus.gpu_compositing,"enabled","rendered proof requires compositing; software canvas readback distorts loading");
   const context=await browser.newContext({viewport:report.viewport,deviceScaleFactor:1});page=await context.newPage();page.setDefaultTimeout(120000);
   page.on("worker",worker=>result.browserWorkers.push(worker.url()));page.on("pageerror",error=>result.errors.push(error.message));page.on("crash",()=>result.errors.push("renderer crashed"));
   page.on("requestfailed",request=>result.networkFailures.push({atMs:elapsed(),path:new URL(request.url()).pathname,error:request.failure()?.errorText}));

@@ -14,7 +14,11 @@ const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
 const checkpoint=async(stage)=>{report.stage=stage;await writeFile(resolve(output,"PROGRESS.json"),JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify({stage,output}));};
 let browser,page;
 try{
- browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader"]});
+ browser=await chromium.launch({channel:"chromium",executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader","--enable-gpu","--use-gl=angle","--use-angle=swiftshader"]});
+ const browserCDP=await browser.newBrowserCDPSession(), system=await browserCDP.send("SystemInfo.getInfo");
+ report.browserRendering={version:browser.version(),commandLine:system.commandLine,devices:system.gpu.devices,featureStatus:system.gpu.featureStatus};
+ await browserCDP.detach();
+ assert.equal(system.gpu.featureStatus.gpu_compositing,"enabled","rendered proof requires compositing; software canvas readback distorts loading");
  page=await browser.newPage({viewport:{width:1280,height:900},deviceScaleFactor:1});page.setDefaultTimeout(120000);
  page.on("pageerror",error=>report.errors.push(error.message));
  page.on("crash",()=>report.errors.push("browser renderer crashed"));
