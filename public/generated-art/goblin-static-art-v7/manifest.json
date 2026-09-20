@@ -48754,7 +48754,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -49233,7 +49233,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -49712,7 +49712,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -50231,7 +50231,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -50746,7 +50746,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -51139,7 +51139,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -51532,7 +51532,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -52021,7 +52021,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -52510,7 +52510,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -52811,7 +52811,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -53112,7 +53112,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -53413,7 +53413,7 @@
         "landing": [
           0,
           2.16,
-          -2
+          2
         ],
         "rotationPivot": [
           0,
@@ -423459,7 +423459,7 @@
       },
       {
         "path": "src/art/home.js",
-        "sha256": "4e7177bd4382ce6b4b4a27335cb49e7829aa7f3facd6ec8a1e17be1720cf64c9"
+        "sha256": "08fc0bc62f12dbe3e83f7c284c893a42464b13241c60a07e053b267357cdf6a3"
       },
       {
         "path": "src/art/living-terrain-authoring.js",
