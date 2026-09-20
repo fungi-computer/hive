@@ -1,3 +1,4 @@
+import { fixtureTerrainFaces } from "./terrain-fixture-coverage.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { captureVisualVolume, translateVisualVolume } from "../../../src/art/ordering-geometry.js";
 import { figure } from "../../../src/art/figures.js";
@@ -10,7 +11,7 @@ import { transformBakedPartPoint, transformedPartGeometry } from "./multipart-vi
 import { multipartSubjectDrawRecords, ordinarySubjectDrawRecord, subjectDrawGeometry } from "./subject-draw-records.js";
 import { placementFootprintCells, placementGuideTiles } from "./placement-preview.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
-import { materialCoverage, projectedBounds, terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
+import { projectedBounds, terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisualParts } from "./visual-resolver.js";
 import { createVisibleHitArea, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
@@ -278,8 +279,8 @@ function guideFixture(orientation, projection) {
 export function createMixedRenderFixture(cameraOrientation = "north", objectOrientation = "north", { art, terrainPack } = {}) {
   const projection = projectionFor(cameraOrientation),
     appearance = terrainAppearance(terrainPack, ORIENTATION_TURNS[cameraOrientation]);
-  const coverage = materialCoverage(terrainSnapshot());
-  const terrain = terrainFaceRecords(coverage, { level: 1, projection, appearance }).map((record) => ({
+  const coverage = fixtureTerrainFaces(terrainSnapshot(), 1);
+  const terrain = terrainFaceRecords(coverage, { projection, appearance }).map((record) => ({
     ...record,
     orderGeometry: { kind: "face", points: record.planarCorners },
   }));

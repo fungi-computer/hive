@@ -32,7 +32,7 @@ export function createCameraCoverageOwner({ padding = 128 } = {}) {
     snapshot() {
       return { plans, retained, padding: margin, prepared: prepared && { ...prepared },
         refresh: refresh && { ...refresh }, viewport: viewport && { ...viewport },
-        chunks: plan?.chunks?.length ?? 0, withinPrepared: Boolean(prepared && viewport && contains(prepared, viewport)) };
+        regions: plan?.regions?.length ?? 0, withinPrepared: Boolean(prepared && viewport && contains(prepared, viewport)) };
     },
   });
 }

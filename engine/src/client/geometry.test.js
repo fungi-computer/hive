@@ -184,17 +184,18 @@ test('unpublished faces never invent terrain, and replacing exact faces invalida
 });
 
 test('actual layered cave faces permit repeated columns without phantom walls', async () => {
-  const {materialCoverage,terrainFaceRecords} = await import('./terrain-visibility.js');
+  const {terrainFaceRecords} = await import('./terrain-visibility.js');
+  const {fixtureTerrainFaces} = await import('./terrain-fixture-coverage.js');
   const {createOrderingProjection} = await import('./ordering-projection.js');
   const columns = [];
   for(let x=0;x<3;x++) for(let z=0;z<3;z++) columns.push({x,z,runs:x===1 && z===1 ? [
     {minY:0,maxY:1,material:1},{minY:1,maxY:3,material:0},
     {minY:3,maxY:4,material:1},{minY:4,maxY:8,material:0},
   ] : [{minY:0,maxY:8,material:0}]});
-  const coverage = materialCoverage({chunks:[{key:[0,0,0],columns}],
+  const coverage = fixtureTerrainFaces({chunks:[{key:[0,0,0],columns}],
     palette:[{slot:0,solid:false},{slot:1,solid:true}],
-    bounds:{minX:0,maxX:3,minY:0,maxY:8,minZ:0,maxZ:3},verticalMetres:.54});
-  const exposedFaces = terrainFaceRecords(coverage,{level:7,projection:createOrderingProjection()});
+    bounds:{minX:0,maxX:3,minY:0,maxY:8,minZ:0,maxZ:3},verticalMetres:.54},7);
+  const exposedFaces = terrainFaceRecords(coverage,{projection:createOrderingProjection()});
   assert.deepEqual(exposedFaces.filter(face=>face.face==='top').map(face=>face.cell),[[1,0,1],[1,3,1]]);
   const terrain = {verticalMetres:.54,exposedFaces,structureSurfaces:[]};
   const owner = createTerrainPicker();
