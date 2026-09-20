@@ -16,18 +16,22 @@ await mkdir(output,{recursive:true});
 const report={proof:"hosted-paused-camera",mode,url:url.href,startedAt:new Date().toISOString(),viewport:{width:1280,height:900},phases:[],errors:[],success:false};
 const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
 report.driverSha256=hash(await readFile(new URL(import.meta.url)));
-let browser, page;
+let browser, page, closing=false;
+report.lifecycle=[];const lifecycle=event=>report.lifecycle.push({event,at:new Date().toISOString(),expectedCleanup:closing});
 const percentile=(values,p)=>values.length?[...values].sort((a,b)=>a-b)[Math.min(values.length-1,Math.floor(values.length*p))]:null;
 try {
  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader"]});
+ browser.on("disconnected",()=>lifecycle("browser.disconnected"));
  const context=await browser.newContext({viewport:report.viewport,deviceScaleFactor:1});
+ context.on("close",()=>lifecycle("context.close"));
  page=await context.newPage(); page.setDefaultTimeout(30000);
+ page.on("close",()=>lifecycle("page.close"));
  const browserWorkers=[],socketOrigins=[],bundleReads=[];
  page.on("response",response=>{if(new URL(response.url()).origin===url.origin && new URL(response.url()).pathname.endsWith(".js"))bundleReads.push(response.body().then(bytes=>({url:response.url(),sha256:hash(bytes)})));});
  page.on("worker",worker=>browserWorkers.push(worker.url()));
  page.on("websocket",socket=>socketOrigins.push(new URL(socket.url()).origin));
  page.on("pageerror",error=>report.errors.push(error.message));
- page.on("crash",()=>report.errors.push("browser renderer process crashed"));
+ page.on("crash",()=>{lifecycle("page.crash");report.errors.push("browser renderer process crashed");});
  await page.goto(url.href,{waitUntil:"domcontentloaded"});
  await page.getByText("Online · server saved",{exact:true}).first().waitFor();
  await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS?.().frames>=20,null,{timeout:180000});
@@ -82,6 +86,6 @@ try {
  assert.equal(report.errors.length,0,report.errors.join("; "));
  report.success=true;
 } catch(error){report.errors.push(error.stack??String(error));report.failureState=await page?.evaluate(()=>({body:document.body.innerText,draw:window.__HIVE_DRAW_DIAGNOSTICS?.()})).catch(()=>null);}
-finally{await browser?.close();report.finishedAt=new Date().toISOString();await writeFile(resolve(output,"REPORT.json"),JSON.stringify(report,null,2)+"\n");}
+finally{closing=true;await browser?.close();report.finishedAt=new Date().toISOString();await writeFile(resolve(output,"REPORT.json"),JSON.stringify(report,null,2)+"\n");}
 console.log(JSON.stringify({success:report.success,output,phases:report.phases.map(({name,counts,frameIntervals})=>({name,staticRebuild:counts.staticRebuild,frameIntervals})),errors:report.errors}));
 if(!report.success)process.exitCode=1;
