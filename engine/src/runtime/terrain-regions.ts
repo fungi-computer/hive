@@ -59,7 +59,7 @@ export const terrainChangeSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("changed-columns"),
       revision,
-      columns: z.array(z.tuple([i32, i32])).max(4096),
+      columns: z.array(z.tuple([integer, integer])).max(4096),
     })
     .strict(),
   z
