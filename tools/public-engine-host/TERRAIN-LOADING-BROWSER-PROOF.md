@@ -47,3 +47,11 @@ After mode requires zero HTTP terrain requests, received WebSocket `terrain-regi
 A read-only 25 ms observer records the first independent `assetsReady && runtimeReady`, first nonempty visible demand completion, and first padded completion using the browser performance clock. This continues during awaited screenshots and avoids assigning screenshot delay to owner completion. Useful ground still requires actual sampled picks. The stationary case gates useful ground within 1,000 ms of readiness and exact visible completion within 3,000 ms; the pan case deliberately changes demand and records rather than gates those start-relative latencies. This instrumentation can perturb software rendering and is explicitly part of the measured workload.
 
 Incoming terrain event summaries include request ID, revision, level, region key, face/support counts and bytes; outgoing area requests are recorded too. Full incoming frame byte totals still include observations: filter by the `terrain` field for terrain stream totals. No hosted after run has been claimed by preparing the driver.
+
+## Actual socket contract proof
+
+`terrain-stream-proof.mjs --endpoint BACKEND --origin FRONTEND --output NEW_DIR` runs through the same guard. It creates an isolated random bearer world for `colony-performance-256-8`, pauses it, authenticates a real socket, and checks incremental patch identities/completion while an HTTP pause command interleaves. It cancels a large area, replaces it, disconnects another partial area, reauthenticates the same world and requests only missing keys. Paused simulation time must remain unchanged. It never issues an HTTP terrain request.
+
+This is an actual DO transport contract check. The proof itself retains keys and computes the missing set; it does not claim to exercise the browser client's automatic reconnect controller. That controller has separate source/unit evidence and browser integration coverage.
+
+Local Wrangler proof at port 8801 passed on September 20, artifact `.botanical/terrain-stream-local-proof-v2`: guard `run-u2830.scope`, invocation `2db938188710495c9d8d8957f562920c`, terminal exit 0. The first setup run's incorrect proof assumption about the nested baseline version remains preserved in `.botanical/terrain-stream-local-proof`. Hosted parity remains pending deployment.
