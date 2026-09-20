@@ -45,3 +45,12 @@ test("performance page is included in the Vite engine entry set", () => {
   const vite = readFileSync(new URL("../../../vite.config.js", import.meta.url), "utf8");
   assert.match(vite, /enginePerformance: "engine\/colony-performance\.html"/);
 });
+
+test("performance page reports actual streamed region progress instead of terrain HTTP timings", () => {
+  const source = readFileSync(new URL("./performance-page.js", import.meta.url), "utf8");
+  assert.match(source, /observer\.snapshot\(render\.coverage\)/);
+  assert.match(source, /firstPatchMs/);
+  assert.match(source, /readyVisibleRegions/);
+  assert.match(source, /retainedBytes/);
+  assert.doesNotMatch(source, /terrainRoundTrip|cachedChunks|requestedChunks|readyChunks|Terrain round trip/);
+});

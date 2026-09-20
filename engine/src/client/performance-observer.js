@@ -11,7 +11,7 @@ const summary = values => {
 export function createPerformanceObserver({ clock = () => performance.now() } = {}) {
   let previous, paused = false, positions = new Map(), movingWorkers = 0, wood = 0, stumps = 0;
   let receivedBytes = 0, requests = 0, failedRequests = 0, frames = 0;
-  const intervals = [], progression = [], roundTrips = [], terrainTrips = [];
+  const intervals = [], progression = [], roundTrips = [];
   return Object.freeze({
     transport(sample) {
       receivedBytes += sample.receivedBytes;
@@ -19,7 +19,6 @@ export function createPerformanceObserver({ clock = () => performance.now() } = 
         requests++;
         if (sample.status === null || sample.status >= 400) failedRequests++;
         push(roundTrips, sample.durationMs);
-        if (sample.operation === 'terrain') push(terrainTrips, sample.durationMs);
       }
     },
     event(event) {
@@ -53,14 +52,22 @@ export function createPerformanceObserver({ clock = () => performance.now() } = 
       }
       positions = next;
     },
-    snapshot() {
+    snapshot(coverage) {
       const elapsed = progression.reduce((sum,s) => sum+s.elapsed,0);
       return { source:'durable-object', frames, sequence:previous?.sequence ?? null,
         simulationTime:previous?.time ?? null, paused,
         simulationRate:elapsed ? progression.reduce((sum,s) => sum+s.simulated,0)/elapsed : null,
-        observationGap:summary(intervals), httpRoundTrip:summary(roundTrips), terrainRoundTrip:summary(terrainTrips),
+        observationGap:summary(intervals), httpRoundTrip:summary(roundTrips),
+        // The region owner measures patch progress. Do not infer a stream's
+        // latency from unrelated command/admission HTTP requests.
+        terrainStream: coverage?.loading ? { ...coverage.loading, pending:coverage.pending,
+          visibleComplete:coverage.visibleComplete, demandComplete:coverage.demandComplete,
+          visibleRegions:coverage.visibleRegions, readyVisibleRegions:coverage.readyVisibleRegions,
+          requestedRegions:coverage.requestedRegions, readyRegions:coverage.readyRegions,
+          cachedRegions:coverage.cachedRegions, capacity:coverage.capacity,
+          retainedBytes:coverage.retainedBytes, maxBytes:coverage.maxBytes, error:coverage.error??null } : null,
         receivedBytes, requests, failedRequests, observedWorkers:positions.size, movingWorkers, wood, stumps,
-        retainedSamples:{ observations:intervals.length, progression:progression.length, http:roundTrips.length, terrain:terrainTrips.length } };
+        retainedSamples:{ observations:intervals.length, progression:progression.length, http:roundTrips.length } };
     },
   });
 }

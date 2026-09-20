@@ -40,7 +40,7 @@ function panel(hud) {
       <dt>Observed server revision</dt><dd id="perf-sequence">Waiting for data</dd>
       <dt>Observation interval</dt><dd id="perf-observation">Waiting for data</dd>
       <dt>HTTP round trip</dt><dd id="perf-http">Waiting for data</dd>
-      <dt>Terrain round trip</dt><dd id="perf-terrain">Waiting for data</dd>
+      <dt>Terrain stream</dt><dd id="perf-terrain">Waiting for data</dd>
       <dt>Received payload</dt><dd id="perf-wire">0 B</dd>
       <dt>Workers observed / moving</dt><dd id="perf-workers">Waiting for data</dd>
       <dt>Felled trees observed</dt><dd id="perf-stumps">0</dd>
@@ -62,20 +62,21 @@ function panel(hud) {
   return wrap;
 }
 function update(wrap, client) {
-  const data = observer.snapshot(), render = client.diagnostics().spatialDraw;
+  const render = client.diagnostics().spatialDraw, data = observer.snapshot(render.coverage);
   wrap.dataset.runtime = "durable-object";
   wrap.querySelector("#perf-rate").textContent = format(data.simulationRate, " simulated seconds / real second");
   wrap.querySelector("#perf-rate").dataset.value = data.simulationRate ?? "";
   wrap.querySelector("#perf-sequence").textContent = data.sequence ?? "Waiting for data";
   wrap.querySelector("#perf-observation").textContent = timing(data.observationGap);
   wrap.querySelector("#perf-http").textContent = timing(data.httpRoundTrip);
-  wrap.querySelector("#perf-terrain").textContent = timing(data.terrainRoundTrip);
+  const terrain = data.terrainStream;
+  wrap.querySelector("#perf-terrain").textContent = `${format(terrain.firstPatchMs, " ms to first patch")} · ${terrain.receivedPatches} patches · ${terrain.receivedBytes.toLocaleString()} B patch payload · ${terrain.requests} streams${terrain.pending ? " · loading" : ""}${terrain.error ? ` · ${terrain.error}` : ""}`;
   wrap.querySelector("#perf-wire").textContent = `${data.receivedBytes.toLocaleString()} B · ${data.requests} HTTP requests · ${data.failedRequests} failed`;
   wrap.querySelector("#perf-workers").textContent = `${data.observedWorkers} / ${data.movingWorkers}`;
   wrap.querySelector("#perf-jobs").textContent = String(data.wood);
   wrap.querySelector("#perf-stumps").textContent = String(data.stumps);
   wrap.querySelector("#perf-render").textContent = `${render.counts.staticRebuild} static scene rebuilds · ${format(render.times.compileMs, " ms total ordering")} · ${format(render.times.applyOrderMs, " ms total application")}`;
-  wrap.querySelector("#perf-retained").textContent = `${render.retained.currentRecords} records · ${render.retained.staticRelations} relations · ${render.coverage.cachedChunks}/${render.coverage.capacity} cached chunks · ${render.coverage.readyChunks}/${render.coverage.requestedChunks} prepared`;
+  wrap.querySelector("#perf-retained").textContent = `${render.retained.currentRecords} records · ${render.retained.staticRelations} relations · ${terrain.cachedRegions}/${terrain.capacity} cached regions · ${terrain.readyVisibleRegions}/${terrain.visibleRegions} visible · ${terrain.readyRegions}/${terrain.requestedRegions} with padding · ${terrain.retainedBytes.toLocaleString()}/${terrain.maxBytes.toLocaleString()} B retained payload`;
 }
 function mount() {
   const gameId = colonyPerformanceGameId(size, workers);
@@ -99,7 +100,7 @@ function mount() {
   update(wrap, client);
   if (params.get("diagnostics") === "draw") {
     window.__HIVE_DRAW_DIAGNOSTICS = query => client.diagnostics(query);
-    window.__HIVE_PERFORMANCE_DIAGNOSTICS = () => observer.snapshot();
+    window.__HIVE_PERFORMANCE_DIAGNOSTICS = () => observer.snapshot(client.diagnostics().spatialDraw.coverage);
   }
   window.addEventListener("pagehide", () => { clearInterval(timer); unsubscribe(); client.dispose(); }, { once:true });
 }
