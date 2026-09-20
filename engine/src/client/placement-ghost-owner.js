@@ -1,4 +1,6 @@
 import { Sprite } from "pixi.js";
+import { resolveWorldArtPlacement } from "./art-placement.js";
+import { worldVisualVolume } from "./asset-draw-geometry.js";
 
 /** Owns placement preview sprites and their world draw records. Previews never
  * enter simulation state or intercept picking. */
@@ -11,7 +13,7 @@ export function createPlacementGhostOwner({ parent, project, bindings, resolve, 
   function update(specs, { art, verticalMetres, status, cameraTurn = 0 } = {}) {
     if (disposed) throw new Error("placement ghost owner is disposed");
     if (!Number.isFinite(verticalMetres) || verticalMetres <= 0) throw new Error("placement ghost owner requires terrain scale");
-    const { visual, facing = 0, cells = [], items = cells.map((cell, index) => ({
+    const { visual, facing = 0, placement, cells = [], items = cells.map((cell, index) => ({
       visual: Array.isArray(visual) ? visual[index] : visual,
       facing,
       point: [cell[0], (cell[1] + 0.5) * verticalMetres, cell[2]],
@@ -33,7 +35,12 @@ export function createPlacementGhostOwner({ parent, project, bindings, resolve, 
       }
       const feet = { x: item.point[0], y: item.point[1], z: item.point[2] };
       if (!Object.values(feet).every(Number.isFinite)) throw new Error("placement ghost requires a finite world point");
-      const projected = project(feet.x, feet.y, feet.z);
+      const datum = item.placement ?? placement;
+      const offset = datum ? resolveWorldArtPlacement({ subjectPlacement: datum,
+        artPlacement: art.placementByTexture?.get(resolved.texture), orientation: datum.orientation,
+        physicalFacing: item.facing ?? facing, cameraTurn }).offset : [0,0];
+      const visualOrigin = { x: feet.x + offset[0], y: feet.y, z: feet.z + offset[1] };
+      const projected = project(visualOrigin.x, visualOrigin.y, visualOrigin.z);
       entry.sprite.texture = resolved.texture;
       entry.sprite.anchor.set(resolved.anchor?.x ?? 0.5, resolved.anchor?.y ?? 1);
       entry.sprite.position.set(projected.x, projected.y);
@@ -46,6 +53,8 @@ export function createPlacementGhostOwner({ parent, project, bindings, resolve, 
         attachment: Object.freeze({ kind: "supported", feet }),
         moving: true, visible: true, pickable: false, contains: () => false,
         display: entry.sprite,
+        orderGeometry: worldVisualVolume(art.orderingByTexture?.get(resolved.texture), visualOrigin, cameraTurn),
+        supportY: feet.y,
       }));
     }
     return Object.freeze(records);
