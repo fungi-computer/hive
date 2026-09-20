@@ -107,7 +107,12 @@ try {
   }, null, { timeout: 180_000 });
   const measurements = await page.evaluate(() => window.__HIVE_PERFORMANCE_DIAGNOSTICS());
   assert(measurements.simulationRate > 0, "authoritative simulation did not advance");
-  assert(measurements.terrainStream?.receivedPatches > 0 && Number.isFinite(measurements.terrainStream.firstPatchMs), "no remote terrain was requested");
+  assert(measurements.terrainStream?.receivedPatches > 0, "no remote terrain region patch was received");
+  assert(Number.isFinite(measurements.terrainStream.firstPatchMs) && measurements.terrainStream.firstPatchMs >= 0,
+    "terrain first-patch latency was not measured");
+  assert(measurements.terrainStream.receivedBytes > 0, "terrain patch payload bytes were not measured");
+  assert(measurements.terrainStream.cachedRegions <= measurements.terrainStream.capacity, "terrain region count exceeded capacity");
+  assert(measurements.terrainStream.retainedBytes <= measurements.terrainStream.maxBytes, "terrain region payload exceeded byte budget");
   assert.equal(browserWorkers.length,0,"performance page started a browser Worker");
   assert(sockets.length > 0,"no remote world socket");
   report.measurements = measurements;
