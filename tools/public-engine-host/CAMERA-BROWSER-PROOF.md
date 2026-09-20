@@ -17,7 +17,7 @@ node tools/public-engine-host/camera-browser-proof.mjs \
 
 Change only output and mode to `after` when the new frontend is hosted. The
 script uses a fresh browser identity for 256×256/eight workers, waits for remote
-observations, pauses authoritatively, and waits five seconds before measuring.
+observations, pauses authoritatively, and waits five seconds and complete initial terrain coverage before measuring.
 It asserts no browser Worker and a socket to the separate DO test backend.
 
 Workload: two seconds idle; three 24-pixel key pans and their inverse; 96 key
@@ -62,3 +62,21 @@ The exploratory run preceded the driver's additional layer-cycle, explicit key
 movement assertions and served-bundle hashes. The final source-bound baseline
 uses `.botanical/camera-browser-before-final`; its receipt follows when complete.
 No after result is claimed yet.
+
+
+Final baseline completed under guarded invocation
+`a5a7f224eaa141068ea539e9786289fc` (`run-u2742.scope`),
+`.botanical/camera-browser-before-final/REPORT.json`. All real-input and paused
+simulation assertions passed; 18 served JavaScript hashes were recorded. The
+preserved `driver.mjs` matches the report's driver hash. Small pan began with
+complete 376/376 coverage and caused three static rebuilds (305.7 ms), with
+38.4 ms cumulative visual building. Idle RAF p95 was 416.7 ms and small-pan p95
+1166.6 ms on this software-rendered host; these are not hardware FPS claims.
+
+The final baseline's initial image was captured before terrain finished arriving
+(312/376 chunks); by the start of the small-pan phase all chunks were ready. Its
+initial/returned screenshots therefore cannot establish return-image equality.
+This finding tightened the driver to await complete initial coverage in both
+modes. The earlier complete-coverage exploratory run supplies the exact returned
+image comparison; the small-pan final baseline remains a valid complete-coverage
+cost sample. Final return coverage was complete, bounded to 512 cached chunks.
