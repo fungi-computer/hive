@@ -135,7 +135,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     // Requests may finish before the checked atlas is installed. Keep those
     // patches resident and publish them once appearance is ready.
     if (!appearance) return;
-    if (coverageIdentity?.publication === snapshot.publication && coverageIdentity.surfaces === surfaceIdentity) return;
+    if (coverageIdentity?.publication === snapshot.publication && coverageIdentity.surfaces === surfaceIdentity && coverageIdentity.plan === planned) return;
+    // Cull to the retained plan, not the moving camera. A new plan must recull
+    // even when it requests exactly the same already-resident regions.
+    const prepared = cameraCoverage.snapshot().prepared;
     const overrides = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`,surface]));
     const paletteSignature = JSON.stringify(snapshot.baseline.materials);
     const nextEntries = new Map(), nextRecords = [], generatedTops = new Map();
@@ -145,19 +148,22 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       for (const [column,top] of tops) generatedTops.set(column,top);
       const sameBody = previous?.patch === patch && previous.paletteSignature === paletteSignature &&
         previous.verticalMetres === snapshot.baseline.verticalMetres && previous.variantSeed === snapshot.baseline.variantSeed;
-      const body = sameBody ? previous.body : terrainFaceRecords({ faces:patch.faces, palette:snapshot.baseline.materials,
-        verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }, { projection, appearance, generatedTops:tops });
+      const samePrepared = previous?.plan === planned;
+      const previousBody = sameBody && !samePrepared ? new Map(previous.body.map(record => [record.id,record])) : undefined;
+      const body = sameBody && samePrepared ? previous.body : terrainFaceRecords({ faces:patch.faces, palette:snapshot.baseline.materials,
+        verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }, { projection, appearance, generatedTops:tops, viewport:prepared })
+        .map(record => previousBody?.get(record.id) ?? record);
       // Only returned support columns are eligible. Observations replace current
       // cover facts on those columns; they never invent support in unknown space.
       const surfaces = patch.surfaces.map(surface => overrides.get(`${surface.cell[0]},${surface.cell[2]}`) ?? surface);
       const coverSignature = JSON.stringify(surfaces);
-      let cover = sameBody && previous.coverSignature === coverSignature ? previous.cover : undefined;
+      let cover = sameBody && samePrepared && previous.coverSignature === coverSignature ? previous.cover : undefined;
       if (!cover) {
         const bounds = patch.bounds, world = snapshot.baseline.bounds;
         const minX = bounds.minX - Number(bounds.minX === world.minX);
         const minZ = bounds.minZ - Number(bounds.minZ === world.minZ);
         const previousCover = new Map((previous?.cover ?? []).map(record => [record.id,record]));
-        cover = terrainCoverRecords(surfaces, { level, projection, appearance,
+        cover = terrainCoverRecords(surfaces, { level, projection, appearance, viewport:prepared,
           verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }).filter(record => {
           const root = record.attachment.point;
           return root.x-.5 >= minX && root.x-.5 < bounds.maxX && root.z-.5 >= minZ && root.z-.5 < bounds.maxZ;
@@ -166,7 +172,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
           return old?.mask === record.mask && old.terrainBatch === record.terrainBatch ? old : record;
         });
       }
-      nextEntries.set(id,{patch,body,cover,coverSignature,paletteSignature,
+      nextEntries.set(id,{patch,body,cover,coverSignature,paletteSignature,plan:planned,
         verticalMetres:snapshot.baseline.verticalMetres,variantSeed:snapshot.baseline.variantSeed});
       nextRecords.push(...body,...cover);
     }
@@ -177,7 +183,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     presentedSurfaces = exposedFaces.filter(record=>record.face==="top").map(record=>({cell:record.cell,material:record.material,
       generatedTop:generatedTops.get(`${record.cell[0]},${record.cell[2]}`)}));
     presentedFrame = undefined;
-    coverageIdentity = { publication:snapshot.publication, surfaces:surfaceIdentity };
+    coverageIdentity = { publication:snapshot.publication, surfaces:surfaceIdentity, plan:planned };
     publishRecords(nextRecords, waterRecords);
   }
 
