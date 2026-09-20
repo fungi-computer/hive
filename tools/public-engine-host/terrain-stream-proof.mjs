@@ -20,11 +20,11 @@ async function http(path,body){
 async function command(kind){const id=`terrain-proof-${randomBytes(12).toString('hex')}`,receipt=await http('command',{id,command:{kind}});assert.equal(receipt.commandId,id);assert.equal(receipt.status,'applied');return receipt;}
 async function connect(){
  const {handle}=await http('connect');assert.equal(typeof handle,'string');const url=new URL(`${route}/socket/${encodeURIComponent(handle)}`);url.protocol=url.protocol==='https:'?'wss:':'ws:';
- const socket=new WebSocket(url,{origin}),number=++socketNumber,events=[];sockets.push(socket);
- socket.on('message',raw=>{const event=JSON.parse(raw.toString());events.push(event);report.events.push({socket:number,atMs:Date.now()-started,bytes:raw.length,type:event.type,...(event.type==='terrain-regions'?{event}:{} )});});
+ const socket=new WebSocket(url,{origin}),number=++socketNumber,events=[],received=new Map();sockets.push(socket);
+ socket.on('message',raw=>{const event=JSON.parse(raw.toString());events.push(event);report.events.push({socket:number,atMs:Date.now()-started,bytes:raw.length,type:event.type,...(event.type==='terrain-regions'?{event}:{} )});if(event.type==='terrain-regions'&&event.event.kind==='patch'){const requestId=event.event.requestId,count=(received.get(requestId)??0)+1;received.set(requestId,count);if(count%4===0){const credit={type:'terrain-credit',requestId,received:count};report.requests.push({socket:number,atMs:Date.now()-started,...credit});socket.send(JSON.stringify(credit));}}});
  const wait=async(predicate,timeout=30000)=>{const deadline=Date.now()+timeout;while(Date.now()<deadline){const error=events.find(e=>e.type==='error');assert(!error,JSON.stringify(error));const found=events.find(predicate);if(found)return found;assert(socket.readyState!==WebSocket.CLOSED,'socket unexpectedly closed');await new Promise(r=>setTimeout(r,10));}throw new Error('socket event deadline exceeded');};
  await new Promise((resolve,reject)=>{socket.once('open',resolve);socket.once('error',reject);});socket.send(JSON.stringify({type:'authenticate',token}));await wait(e=>e.type==='ready');const observation=await wait(e=>e.type==='observation');
- return{socket,events,wait,observation,send(value){report.requests.push({socket:number,atMs:Date.now()-started,...value});socket.send(JSON.stringify(value));}};
+ return{socket,events,wait,observation,send(value){if(value.type==='terrain-regions')received.set(value.requestId,0);report.requests.push({socket:number,atMs:Date.now()-started,...value});socket.send(JSON.stringify(value));}};
 }
 function checked(event,request){
  assert.equal(event.requestId,request.requestId);for(const key of ['epoch','terrainRevision','level'])assert.equal(event[key],request[key],`${key} mismatch`);
