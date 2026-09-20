@@ -13,6 +13,66 @@ const key = z.tuple([integer, integer]);
 const cell = z.tuple([integer, integer, integer]);
 const identity = { requestId: revision, epoch: revision, terrainRevision: revision, level: integer };
 
+const bounds = z
+  .object({
+    minX: integer,
+    maxX: integer,
+    minY: integer,
+    maxY: integer,
+    minZ: integer,
+    maxZ: integer,
+  })
+  .strict()
+  .refine(
+    (value) =>
+      value.minX < value.maxX &&
+      value.minY < value.maxY &&
+      value.minZ < value.maxZ,
+    "terrain bounds must be nonempty",
+  );
+const material = z
+  .object({ slot: z.number().int().min(0).max(65535), solid: z.boolean(), art: z.string().min(1).max(64).optional() })
+  .strict();
+
+export const terrainBaselineSchema = z
+  .object({
+    protocolVersion: z.literal(4),
+    bounds,
+    verticalMetres: z.number().finite().positive(),
+    variantSeed: z.number().int().min(0).max(0xffffffff).optional(),
+    materials: z.array(material).min(1).max(256),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      new Set(value.materials.map((entry) => entry.slot)).size !==
+      value.materials.length
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "duplicate terrain material slot",
+      });
+  });
+
+export const terrainChangeSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("changed-columns"),
+      revision,
+      columns: z.array(z.tuple([i32, i32])).max(4096),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("full-reset"),
+      revision,
+      reason: z.enum(["history", "restored", "stale"]),
+    })
+    .strict(),
+]);
+
+export type TerrainBaseline = z.infer<typeof terrainBaselineSchema>;
+
 export const terrainRegionRequestSchema = z.object({
   ...identity,
   // Ordered by the client: useful visible regions first, padding last.
