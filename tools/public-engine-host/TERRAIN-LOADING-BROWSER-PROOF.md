@@ -8,7 +8,7 @@ Run through the shared-host guard (with the existing Chromium path/library envir
 /home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh node tools/public-engine-host/terrain-loading-browser-proof.mjs --base-url https://professor-findlaw-looks-atlas.trycloudflare.com --output /absolute/new/artifact-directory --mode before --scenario both
 ```
 
-Use a new artifact directory for each run. The driver preserves its exact bytes and SHA-256 beside its incremental `REPORT.json`. `--scenario stationary` and `--scenario pan` isolate one case. `--mode` currently labels evidence; final streamed-loading timing gates require the new client readiness/completeness diagnostics.
+Use a new artifact directory for each run. The driver preserves its exact bytes and SHA-256 beside its incremental `REPORT.json`. `--scenario stationary` and `--scenario pan` isolate one case. `--mode after` enables streamed transport, readiness, visible coverage and residency acceptance gates. Do not run it against the frozen baseline.
 
 ## Frozen v5 baseline, September 20
 
@@ -39,3 +39,11 @@ Evidence lives under the integration worktree `.botanical/terrain-loading-before
 - HTTP byte counts are decoded captured response-body sizes, not compressed wire bytes. One pan response was canceled (`net::ERR_ABORTED`) and its body unavailable; that request counts, its unknown body size does not. Network failures and body-capture errors remain distinct from runtime errors.
 - WebSocket byte totals currently include all incoming frame kinds, including observations. Final transport evidence must identify terrain stream batches separately; do not compare total WebSocket traffic directly with HTTP terrain bytes.
 - The final streamed version should expose assets/runtime readiness independently of first ground, visible demand completeness separately from padded demand completeness, and batch identity/counts. Report navigation latency as well as latency after readiness. Acceptance should demonstrate useful ground around one second after readiness and visible completion around three seconds, with real cold panning and no HTTP terrain fan-out.
+
+## Streamed acceptance driver
+
+After mode requires zero HTTP terrain requests, received WebSocket `terrain-regions` patch faces and completion events, no runtime errors, no browser simulation Worker, and the same real DO origin. Every sampled region cache must respect both its region-count capacity and retained-byte budget. Final coverage requires exact owner `visibleComplete` plus all 35 sampled visible ground points; padded completion remains separate.
+
+A read-only 25 ms observer records the first independent `assetsReady && runtimeReady`, first nonempty visible demand completion, and first padded completion using the browser performance clock. This continues during awaited screenshots and avoids assigning screenshot delay to owner completion. Useful ground still requires actual sampled picks. The stationary case gates useful ground within 1,000 ms of readiness and exact visible completion within 3,000 ms; the pan case deliberately changes demand and records rather than gates those start-relative latencies. This instrumentation can perturb software rendering and is explicitly part of the measured workload.
+
+Incoming terrain event summaries include request ID, revision, level, region key, face/support counts and bytes; outgoing area requests are recorded too. Full incoming frame byte totals still include observations: filter by the `terrain` field for terrain stream totals. No hosted after run has been claimed by preparing the driver.
