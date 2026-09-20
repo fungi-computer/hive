@@ -107,7 +107,7 @@ try {
   }, null, { timeout: 180_000 });
   const measurements = await page.evaluate(() => window.__HIVE_PERFORMANCE_DIAGNOSTICS());
   assert(measurements.simulationRate > 0, "authoritative simulation did not advance");
-  assert(measurements.terrainRoundTrip?.samples > 0, "no remote terrain was requested");
+  assert(measurements.terrainStream?.receivedPatches > 0 && Number.isFinite(measurements.terrainStream.firstPatchMs), "no remote terrain was requested");
   assert.equal(browserWorkers.length,0,"performance page started a browser Worker");
   assert(sockets.length > 0,"no remote world socket");
   report.measurements = measurements;
