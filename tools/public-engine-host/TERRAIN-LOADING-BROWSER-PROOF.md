@@ -217,3 +217,10 @@ bounded, and the paused return image is byte-identical. Its software frame times
 remain slow and are reported in the artifact; this is correctness/retention
 evidence, not a claim of smooth hardware rendering. The original-art completed
 cold-load screenshot was personally inspected and retained.
+
+The separate far-terrain proof `.botanical/camera-terrain-v6-far` also passed
+(`run-u2928.scope`, invocation `b4fb733d7af842aa962143e2993f908f`): native ground
+and grass beyond the original 64×64 clearing, exact top-face picks, a real cut
+cap, minimum zoom, bounded residency and matching pre/post-zoom image hashes.
+Its far/cut screenshots are retained; the cut-cap image was personally inspected.
+No additional backend deployment was needed for v6.
