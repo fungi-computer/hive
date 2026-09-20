@@ -2,10 +2,18 @@ import { hull } from "./plane-order.js";
 import { snapshotVisibleSilhouette } from "../../../src/visual-hit-geometry.js";
 
 const silhouettes = new WeakMap();
+const imageShapes = new WeakMap();
 
 function textureHull(texture) {
   if (silhouettes.has(texture)) return silhouettes.get(texture);
-  const { width, height, rows, spans } = snapshotVisibleSilhouette(texture);
+  const value = silhouetteShape(snapshotVisibleSilhouette(texture));
+  silhouettes.set(texture, value);
+  return value;
+}
+
+function silhouetteShape(silhouette) {
+  if (imageShapes.has(silhouette)) return imageShapes.get(silhouette);
+  const { width, height, rows, spans } = silhouette;
   const points = [], rectangles = [];
   let previous = new Map();
   for (let y = 0; y < height; y++) {
@@ -22,7 +30,7 @@ function textureHull(texture) {
     points.push({ x: left, y }, { x: right, y }, { x: left, y: y + 1 }, { x: right, y: y + 1 });
   }
   const value = { width, height, points: hull(points), rectangles: Object.freeze(rectangles.map(Object.freeze)) };
-  silhouettes.set(texture, value);
+  imageShapes.set(silhouette, value);
   return value;
 }
 
@@ -41,7 +49,16 @@ export function worldVisualVolume(metadata, origin, cameraTurn) {
 /** Upright 2.5D card through feet. Checked alpha includes the baked outline,
  * and is cached by immutable texture rather than reconstructed from meshes. */
 export function uprightTextureGeometry(texture, anchor, screen, feet, projection) {
-  const shape = textureHull(texture), normal = { x: projection.direction.x, z: projection.direction.z };
+  return uprightShapeGeometry(textureHull(texture), anchor, screen, feet, projection);
+}
+
+/** Atlas frames share a source texture; their checked silhouette owns the ink. */
+export function uprightImageGeometry(hitArea, screen, feet, projection) {
+  return uprightShapeGeometry(silhouetteShape(hitArea.silhouette), hitArea.anchor, screen, feet, projection);
+}
+
+function uprightShapeGeometry(shape, anchor, screen, feet, projection) {
+  const normal = { x: projection.direction.x, z: projection.direction.z };
   const constant = normal.x * feet.x + normal.z * feet.z;
   const points = shape.points.map(pixel => {
     const { origin, direction } = projection.ray({ x: screen.x + pixel.x - anchor.x * shape.width,

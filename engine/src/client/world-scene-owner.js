@@ -24,7 +24,8 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
   const guides = createPlacementGuideOwner({ parent: previewLayer, project });
   const ghosts = createPlacementGhostOwner({ parent: previewLayer, project, bindings, resolve: resolveStaticVisual });
   let ordering = createSpatialSceneOwner({ projection }), records = [];
-  let buildMs = 0, frames = 0;
+  let buildMs = 0, frames = 0, unchangedFrames = 0;
+  let previousProduced, previousTerrainRevision;
 
   function render({ subjects, selectedIds, art, paused, frameSequence, guide, ghost, placementStatus }) {
     if (disposed) throw new Error("world scene is disposed");
@@ -34,6 +35,11 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
     if (ghost && frame) ghosts.update(ghost, { art, verticalMetres: frame.verticalMetres, status: placementStatus, cameraTurn });
     else ghosts.clear();
     const retained = terrain.retainedRecords;
+    if (retained.revision === previousTerrainRevision && previousProduced?.length === produced.length &&
+        produced.every((record, index) => record === previousProduced[index])) {
+      buildMs += performance.now() - start; frames++; unchangedFrames++;
+      return records;
+    }
     const statics = produced.filter(record => record.moving !== true);
     const contacts = new Map();
     for (const record of statics) if (record.contactSurface) {
@@ -52,6 +58,7 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
     records = compiled.records;
     if (compiled.applyOrderRequired) ordering.measureApplyOrder(() => terrain.applyOrder(records));
     actors.syncOverlays();
+    previousProduced = produced; previousTerrainRevision = retained.revision;
     return records;
   }
 
@@ -60,20 +67,23 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
     render,
     updateTerrain(next, epoch) { frame = next; terrain.update(next, epoch); },
     position: terrain.position,
+    presentedTerrain: () => terrain.presentedTerrain,
     installTerrainArt: terrain.installArt,
     setProjection(next, turn) {
       projection = next; cameraTurn = turn;
       terrain.setProjection(next, turn); guides.clear(); ghosts.clear();
       ordering.reset(); ordering = createSpatialSceneOwner({ projection }); records = [];
+      previousProduced = undefined; previousTerrainRevision = undefined;
     },
-    clear() { frame = undefined; terrain.update(undefined, undefined); actors.clear(); guides.clear(); ghosts.clear(); ordering.reset(); records = []; },
+    clear() { frame = undefined; terrain.update(undefined, undefined); actors.clear(); guides.clear(); ghosts.clear(); ordering.reset(); records = []; previousProduced = undefined; previousTerrainRevision = undefined; },
     resetTimeline: actors.resetTimeline,
     react: actors.react,
     pick: point => ordering.pick(point),
     metrics() {
       const coverage = terrain.coverage;
-      return { ...ordering.metrics(), visualBuild: { frames, totalMs: buildMs },
-        coverage: { epoch: coverage.epoch, terrainRevision: coverage.terrainRevision,
+      return { ...ordering.metrics(), visualBuild: { frames, unchangedFrames, totalMs: buildMs },
+        cameraCoverage: terrain.cameraCoverage,
+        coverage: { capacity: coverage.capacity, epoch: coverage.epoch, terrainRevision: coverage.terrainRevision,
           demandComplete: coverage.demandComplete, viewBudget: coverage.viewBudget,
           requestedChunks: coverage.coverage.length, readyChunks: coverage.coverage.filter(item => item.status === "ready").length,
           retainedChunks: coverage.chunks.length, cachedChunks: coverage.cachedChunks, pending: coverage.pending }, primitives: records.length };

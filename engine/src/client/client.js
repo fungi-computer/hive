@@ -283,7 +283,8 @@ export function createHiveClient({
   let pendingCues = [];
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
   const worldScene = createWorldSceneOwner({ runtime, projection: orderingProjection, project, bindings, root, effectClock, onCoverage: () => draw() });
-  function displayedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
+  function observedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
+  function displayedTerrainFrame() { return worldScene.presentedTerrain() ?? observedTerrainFrame(); }
   function displayedTerrainHit(x, y, displayed) { return terrainPicker.hit(x, y, displayed, frameEpoch); }
   function displayedTerrainPoint(x, y, displayed) { return terrainPicker.point(x, y, displayed, frameEpoch); }
   function clearPlacement() {
@@ -319,7 +320,7 @@ export function createHiveClient({
   }
   function closeActionBar() { actionBarState.set(null); }
   function updateTerrainDisplay() {
-    worldScene.updateTerrain(displayedTerrainFrame(), frameEpoch);
+    worldScene.updateTerrain(observedTerrainFrame(), frameEpoch);
   }
 
   function prepareNewWorld(remote) {
@@ -1543,7 +1544,7 @@ export function createHiveClient({
           }
           if (terrainFrame && (newEpoch || !previousTerrain)) {
             const visibleFacts = event.facts.filter((fact) => projectWorldFact(fact, state.view).visible);
-            camera.focus(terrainCameraFocus(visibleFacts, displayedTerrainFrame()));
+            camera.focus(terrainCameraFocus(visibleFacts, observedTerrainFrame()));
           }
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             worldScene.resetTimeline();

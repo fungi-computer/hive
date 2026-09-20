@@ -3,7 +3,7 @@ import test from "node:test";
 import { createTerrainChunkCache } from "./terrain-chunk-cache.js";
 
 const baseline = Object.freeze({
-  protocolVersion: 2,
+  protocolVersion: 3,
   bounds: { minX: -32, maxX: 32, minY: -32, maxY: 32, minZ: -32, maxZ: 32 },
   verticalMetres: 0.54,
   materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }],

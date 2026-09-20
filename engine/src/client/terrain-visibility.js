@@ -14,7 +14,7 @@ const overlaps = (a, b) => a.left <= b.right && b.left <= a.right && a.top <= b.
  * this index is disposable presentation data and grants no physical support.
  */
 export function materialCoverage({ chunks, palette, bounds, verticalMetres, variantSeed = 0, epoch, terrainRevision }) {
-  if (!(verticalMetres > 0) || chunks.length > 512) throw new Error("invalid terrain coverage budget/scale");
+  if (!(verticalMetres > 0) || chunks.length > 2048) throw new Error("invalid terrain coverage budget/scale");
   const materials = new Map(palette.map(material => [material.slot, material]));
   const indexed = new Map();
   for (const chunk of chunks) {

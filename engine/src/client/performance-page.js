@@ -49,7 +49,7 @@ function panel(hud) {
       <dt>Client retained scene</dt><dd id="perf-retained">Waiting for data</dd>
       <dt>DO CPU time</dt><dd>Not available from the page; requires Cloudflare platform telemetry.</dd>
     </dl>
-    <p class="perf-boundary">The finite workload has 50 trees in the central 64×64 area. World bounds may be larger; surface/grass observations still cover that central area. This measures the real DO workload, not full-world exploration or sustained capacity at the selected worker count.</p>`;
+    <p class="perf-boundary">The finite workload has 50 trees in the central 64×64 area. Terrain and grass load around your camera across the selected world bounds. This tests the real DO workload and exploration; it does not establish sustained capacity at the selected worker count.</p>`;
   hud.prepend(wrap);
   wrap.querySelector("#perf-size").addEventListener("change", event => setPreset(Number(event.target.value), workers));
   const output = wrap.querySelector("output");
@@ -75,7 +75,7 @@ function update(wrap, client) {
   wrap.querySelector("#perf-jobs").textContent = String(data.wood);
   wrap.querySelector("#perf-stumps").textContent = String(data.stumps);
   wrap.querySelector("#perf-render").textContent = `${render.counts.staticRebuild} static scene rebuilds · ${format(render.times.compileMs, " ms total ordering")} · ${format(render.times.applyOrderMs, " ms total application")}`;
-  wrap.querySelector("#perf-retained").textContent = `${render.retained.currentRecords} records · ${render.retained.staticRelations} relations · ${render.coverage.cachedChunks} chunks`;
+  wrap.querySelector("#perf-retained").textContent = `${render.retained.currentRecords} records · ${render.retained.staticRelations} relations · ${render.coverage.cachedChunks}/${render.coverage.capacity} cached chunks · ${render.coverage.readyChunks}/${render.coverage.requestedChunks} prepared`;
 }
 function mount() {
   const gameId = colonyPerformanceGameId(size, workers);

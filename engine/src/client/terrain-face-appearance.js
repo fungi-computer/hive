@@ -1,3 +1,4 @@
+import { uprightImageGeometry } from "./asset-draw-geometry.js";
 const spriteQuad = ({ x, y }, width = 64, height = 64) => [
   { x: x - width / 2, y: y - height / 2 },
   { x: x - width / 2, y: y + height / 2 },
@@ -48,7 +49,9 @@ export function createTerrainFaceAppearance({ pack, turn = 0 } = {}) {
   function cover({ cover, mask, root, seed, projection, surfaceY }) {
     const at = projection.project({ x: root[0] + 0.5, y: surfaceY, z: root[1] + 0.5 });
     const terrainBatch = pack.cover({ ...cover, mask: terrainArtMask(mask, turn), root, seed });
+    const point = { x: root[0] + 0.5, y: surfaceY, z: root[1] + 0.5 };
     return { terrainBatch, projected: spriteQuad(at),
+      ...(terrainBatch.hitArea ? { orderGeometry: uprightImageGeometry(terrainBatch.hitArea, at, point, projection), supportY: surfaceY } : {}),
       ...(terrainBatch.hitArea ? { contains: point => terrainBatch.hitArea.contains(point.x - at.x, point.y - at.y) } : {}) };
   }
   return Object.freeze({ body, cover });

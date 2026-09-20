@@ -1,5 +1,5 @@
 const CHUNK_EDGE = 8;
-const DEFAULT_CAPACITY = 512;
+const DEFAULT_CAPACITY = 2048;
 const REQUEST_LIMIT = 8;
 const MIN_I32 = -2147483648;
 const MAX_I32 = 2147483647;
@@ -23,7 +23,7 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
   if (!runtime || typeof runtime.terrainChunks !== "function")
     throw new Error("terrain chunk cache requires a runtime terrain reader");
   if (!Number.isSafeInteger(capacity) || capacity < 1 || capacity > DEFAULT_CAPACITY)
-    throw new Error("terrain chunk cache capacity must be between 1 and 512");
+    throw new Error("terrain chunk cache capacity must be between 1 and 2048");
 
   const cache = new Map();
   let epoch;
@@ -35,8 +35,10 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
   let requestSequence = 0;
   let disposed = false;
   let viewBudget = false;
+  let cachedSnapshot;
 
   function reset(nextEpoch, nextRevision, nextBaseline) {
+    cachedSnapshot = undefined;
     cache.clear();
     completeView = [];
     epoch = nextEpoch;
@@ -81,13 +83,14 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
   }
 
   function updateFrame(frame) {
+    cachedSnapshot = undefined;
     if (disposed) throw new Error("terrain chunk cache is disposed");
     if (!frame || !Number.isSafeInteger(frame.epoch) || frame.epoch < 0)
       throw new Error("invalid terrain frame epoch");
     const terrain = frame.terrain;
     if (!terrain) { reset(frame.epoch, undefined, undefined); return snapshot(); }
     if (!Number.isSafeInteger(terrain.revision) || terrain.revision < 0 ||
-      !terrain.baseline || terrain.baseline.protocolVersion !== 2)
+      !terrain.baseline || terrain.baseline.protocolVersion !== 3)
       throw new Error("invalid terrain frame baseline");
     if (epoch !== frame.epoch) reset(frame.epoch, terrain.revision, terrain.baseline);
     else if (revision !== terrain.revision) {
@@ -99,6 +102,7 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
   }
 
   function updateDemand(rawKeys) {
+    cachedSnapshot = undefined;
     if (disposed) throw new Error("terrain chunk cache is disposed");
     if (!Array.isArray(rawKeys)) throw new Error("terrain chunk demand must be an array");
     const seen = new Set();
@@ -125,10 +129,11 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
   }
 
   function snapshot() {
+    if (cachedSnapshot) return cachedSnapshot;
     const loading = inFlight && inFlight.epoch === epoch && inFlight.terrainRevision === revision
       ? new Set(inFlight.ids) : new Set();
-    return Object.freeze({
-      epoch, terrainRevision: revision, baseline, viewBudget,
+    return cachedSnapshot = Object.freeze({
+      epoch, terrainRevision: revision, baseline, viewBudget, capacity,
       coverage: Object.freeze(demand.map(item => Object.freeze({ key: item.key,
         status: cache.has(item.id) ? "ready" : loading.has(item.id) ? "loading" : "unknown" }))),
       viewComplete: completeView.length > 0 && completeView.every(id => cache.has(id)),
@@ -146,6 +151,7 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
     const missing = demand.filter(item => !cache.has(item.id)).slice(0, REQUEST_LIMIT);
     if (missing.length === 0) {
       completeView = demand.map(item => item.id);
+      cachedSnapshot = undefined;
       evict();
       return Promise.resolve(snapshot());
     }
@@ -155,6 +161,7 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
     pending.promise = Promise.resolve(runtime.terrainChunks(identity)).then(reply => {
       if (disposed || inFlight !== pending) return snapshot();
       inFlight = undefined;
+      cachedSnapshot = undefined;
       if (reply.kind === "stale") {
         reset(reply.epoch, reply.terrainRevision, reply.epoch === identity.epoch ? baseline : undefined);
         return snapshot();
@@ -169,18 +176,21 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
         cache.set(id, { key: chunk.key, revision, chunk });
       }
       if (demand.every(item => cache.has(item.id))) completeView = demand.map(item => item.id);
+      cachedSnapshot = undefined;
       evict();
       return snapshot();
     }, error => {
-      if (inFlight === pending) inFlight = undefined;
+      if (inFlight === pending) { inFlight = undefined; cachedSnapshot = undefined; }
       throw error;
     });
     inFlight = pending;
+    cachedSnapshot = undefined;
     return pending.promise;
   }
 
   function dispose() {
     disposed = true;
+    cachedSnapshot = undefined;
     cache.clear(); demand = []; completeView = []; inFlight = undefined; baseline = undefined;
   }
 

@@ -1,11 +1,12 @@
 import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
-import { createTerrainChunkCache } from "./terrain-chunk-cache.js";
+import { createCameraCoverageOwner } from "./camera-coverage-owner.js";
+import { createTerrainChunkCache, TERRAIN_CHUNK_CACHE_CAPACITY } from "./terrain-chunk-cache.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { createTerrainBatchMeshes } from "./terrain-face-batches.js";
 import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks } from "./terrain-visibility.js";
 import { reconcileWaterSprites, waterCellKey } from "./water-sprite-reconciler.js";
 import { project } from "./geometry.js";
-import { projectSupportedSurfaceArt } from "./surface-art-projection.js";
+
 
 const WATER_WIDTH = 32, WATER_HEIGHT = 16;
 
@@ -58,15 +59,18 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
   container.eventMode = "none";
   container.sortableChildren = true;
   const cache = createTerrainChunkCache({ runtime });
+  const cameraCoverage = createCameraCoverageOwner();
   let appearance, terrainArt;
   const batches = createTerrainBatchMeshes({ parent: container });
   const waterTexture = createWaterSurfaceTexture();
   let waterEntries = new Map(), waterRecordEntries = new Map(), waterRecords = [];
   let frame, epoch, level, records = [], disposed = false, recordRevision = 0;
   let retainedRecords = Object.freeze([]);
-  let demandIdentity, coverageIdentity, terrainContext, observedService, reportedBudget;
+  let lastPlan, demandIdentity, coverageIdentity, terrainContext, observedService, reportedBudget;
   let surfaceIdentity;
+  let presentedSurfaces = [], presentedFrame, presentedSource;
   const faceChunks = new Map();
+  let coverEntries = new Map();
 
   function installArt(pack) {
     if (disposed || terrainArt) throw new Error("terrain art can only be installed once");
@@ -88,8 +92,8 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     epoch = nextEpoch;
     surfaceIdentity = frameValue ? JSON.stringify(frameValue.surfaces) : undefined;
     if (!frameValue) {
-      faceChunks.clear(); coverageIdentity = undefined; terrainContext = undefined; demandIdentity = undefined;
-      waterRecordEntries.clear();
+      cameraCoverage.reset(); faceChunks.clear(); coverEntries.clear(); coverageIdentity = undefined; terrainContext = undefined; demandIdentity = undefined; lastPlan = undefined;
+      waterRecordEntries.clear(); presentedSurfaces = []; presentedFrame = undefined;
       publishRecords([], []);
       batches.update([]); container.visible = false; return;
     }
@@ -101,20 +105,22 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     container.visible = true;
     container.position.set(camera.x, camera.y);
     container.scale.set(camera.zoom);
-    level = view.cutaway ? view.level : view.range.max;
+    level = view.cutaway ? view.level : frame.baseline.bounds.maxY - 1;
     const nextTerrainContext = `${epoch}:${frame.revision}:${level}`;
     if (terrainContext !== undefined && terrainContext !== nextTerrainContext) {
       // A previous cut or terrain revision cannot stand in for an incomplete
       // replacement view: its caps and cover may now be inside solid ground.
       terrainContext = undefined;
+      presentedSurfaces = []; presentedFrame = undefined;
       coverageIdentity = undefined;
       publishRecords([], []);
       batches.update([]);
     }
     const viewport = { left: -camera.x / camera.zoom, right: (screen.width - camera.x) / camera.zoom,
       top: -camera.y / camera.zoom, bottom: (screen.height - camera.y) / camera.zoom };
-    const planned = visibleTerrainChunks({ bounds: frame.baseline.bounds, level,
-      verticalMetres: frame.baseline.verticalMetres, projection, viewport });
+    const planned = cameraCoverage.update(viewport, `${epoch}:${level}:${viewTurn}`, prepared =>
+      visibleTerrainChunks({ bounds: frame.baseline.bounds, level,
+        verticalMetres: frame.baseline.verticalMetres, projection, viewport: prepared, limit: TERRAIN_CHUNK_CACHE_CAPACITY }));
     if (planned.kind === "view-budget") {
       const budgetId = `${epoch}:${level}:${viewport.left}:${viewport.right}:${viewport.top}:${viewport.bottom}`;
       if (reportedBudget !== budgetId) {
@@ -123,16 +129,20 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         // A return to the same resident demand must republish those faces.
         coverageIdentity = undefined;
         terrainContext = undefined;
+        presentedSurfaces = []; presentedFrame = undefined;
         publishRecords([], []);
         queueMicrotask(() => { if (!disposed) onCoverage?.({ kind: "view-budget", limit: planned.limit }); });
       }
       return;
     }
     reportedBudget = undefined;
-    const nextDemand = planned.chunks.map(key => key.join(",")).join(";");
-    if (nextDemand !== demandIdentity) {
-      demandIdentity = nextDemand;
-      cache.updateDemand(planned.chunks);
+    if (lastPlan !== planned) {
+      lastPlan = planned;
+      const nextDemand = planned.chunks.map(key => key.join(",")).join(";");
+      if (nextDemand !== demandIdentity) {
+        demandIdentity = nextDemand;
+        cache.updateDemand(planned.chunks);
+      }
     }
     const snapshot = cache.snapshot();
     if (!snapshot.demandComplete && !snapshot.viewBudget) {
@@ -148,12 +158,25 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         }, error => { if (!disposed) onCoverage?.({ kind: "error", error }); });
       }
     }
-    if (!snapshot.demandComplete || snapshot.chunks.length === 0) return;
+    if (!snapshot.demandComplete) return;
+    if (snapshot.chunks.length === 0) {
+      if (records.length || presentedSurfaces.length) {
+        coverageIdentity = undefined;
+        presentedSurfaces = []; presentedFrame = undefined;
+        publishRecords([], waterRecords);
+      }
+      return;
+    }
     if (!appearance) throw new Error("cut terrain art is not installed");
-    const identity = `${snapshot.epoch}:${snapshot.terrainRevision}:${level}:${nextDemand}:${surfaceIdentity}`;
-    if (identity === coverageIdentity) return;
-    coverageIdentity = identity;
-    const generatedTops = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface.generatedTop]));
+    if (coverageIdentity?.epoch === snapshot.epoch && coverageIdentity.revision === snapshot.terrainRevision &&
+        coverageIdentity.level === level && coverageIdentity.demand === demandIdentity && coverageIdentity.surfaces === surfaceIdentity) return;
+    const surfacesByColumn = new Map(snapshot.chunks.flatMap(chunk => chunk.surfaces).map(surface =>
+      [`${surface.cell[0]},${surface.cell[2]}`, surface]));
+    // Current observed facts can change appearance without a voxel edit (mowing).
+    // They override the corresponding streamed column, never synthesize cover.
+    for (const surface of frame.surfaces) surfacesByColumn.set(`${surface.cell[0]},${surface.cell[2]}`, surface);
+    const surfaces = [...surfacesByColumn.values()];
+    const generatedTops = new Map(surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface.generatedTop]));
     const coverage = materialCoverage({ chunks: snapshot.chunks, palette: snapshot.baseline.materials,
       bounds: snapshot.baseline.bounds, verticalMetres: snapshot.baseline.verticalMetres,
       variantSeed: snapshot.baseline.variantSeed,
@@ -181,14 +204,27 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     }
     faceChunks.clear();
     for (const [id, entry] of nextFaceChunks) faceChunks.set(id, entry);
-    const supportedCover = frame.surfaces.filter(surface => {
+    const supportedCover = surfaces.filter(surface => {
       const ground = coverage.sample(surface.cell);
       const air = coverage.sample([surface.cell[0], surface.cell[1] + 1, surface.cell[2]]);
       return ground.kind === "known" && ground.solid && air.kind === "known" && !air.solid;
     });
-    nextRecords.push(...terrainCoverRecords(supportedCover, { level, projection, appearance,
-      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed })
-      .flatMap(record => projectSupportedSurfaceArt(record, projection)));
+    const nextCoverEntries = new Map();
+    for (const record of terrainCoverRecords(supportedCover, { level, projection, appearance,
+      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed })) {
+      const previous = coverEntries.get(record.id);
+      const retained = previous && previous.mask === record.mask && previous.terrainBatch === record.terrainBatch
+        ? previous : record;
+      nextCoverEntries.set(record.id, retained); nextRecords.push(retained);
+    }
+    coverEntries = nextCoverEntries;
+    // Picking follows the exact accepted top faces, including cut caps. Cover
+    // still requires real solid/air support above; a cap never grows grass.
+    presentedSurfaces = nextRecords.filter(record => record.role === "terrain" && record.face === "top")
+      .map(record => ({ cell: record.cell, material: record.material,
+        generatedTop: generatedTops.get(`${record.cell[0]},${record.cell[2]}`) }));
+    presentedFrame = undefined;
+    coverageIdentity = { epoch: snapshot.epoch, revision: snapshot.terrainRevision, level, demand: demandIdentity, surfaces: surfaceIdentity };
     terrainContext = nextTerrainContext;
     publishRecords(nextRecords, waterRecords);
   }
@@ -230,7 +266,8 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         throw new Error("invalid terrain view projection");
       projection = nextProjection; viewTurn = turn;
       appearance = terrainArt ? createTerrainFaceAppearance({ pack: terrainArt, turn }) : undefined;
-      coverageIdentity = undefined; terrainContext = undefined; faceChunks.clear(); waterRecordEntries.clear();
+      cameraCoverage.reset(); presentedSurfaces = []; presentedFrame = undefined;
+      coverageIdentity = undefined; terrainContext = undefined; faceChunks.clear(); coverEntries.clear(); waterRecordEntries.clear();
       publishRecords([], []);
       batches.update([]);
     },
@@ -243,11 +280,20 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     },
     applyOrder: ordered => batches.update(ordered),
     get coverage() { return cache.snapshot(); },
+    get cameraCoverage() { return cameraCoverage.snapshot(); },
+    get presentedTerrain() {
+      if (!frame) return undefined;
+      if (!presentedFrame || presentedSource !== frame) {
+        presentedSource = frame;
+        presentedFrame = { ...frame, surfaces: presentedSurfaces };
+      }
+      return presentedFrame;
+    },
     dispose() {
       if (disposed) return;
-      disposed = true; cache.dispose(); batches.dispose(); terrainArt?.dispose();
+      disposed = true; cameraCoverage.reset(); cache.dispose(); batches.dispose(); terrainArt?.dispose();
       for (const entry of waterEntries.values()) entry.sprite.destroy();
-      waterEntries.clear(); waterRecordEntries.clear(); faceChunks.clear(); waterTexture.destroy(true); records = []; waterRecords = [];
+      waterEntries.clear(); waterRecordEntries.clear(); faceChunks.clear(); coverEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = [];
     },
   });
 }
