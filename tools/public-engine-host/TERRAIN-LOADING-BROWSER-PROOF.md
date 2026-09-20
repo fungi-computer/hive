@@ -182,3 +182,38 @@ navigation, visible ground at 11.068 s and padded completion at 15.160 s; exact
 visible completion still failed the unchanged three-second post-readiness gate.
 Thus the browser configuration explains the pathological compositor cost and
 the reproduced timeout, but does not finish the loading-performance task.
+
+## Live v6 interim: retained ordering and surface facts
+
+Frontend `dd6d6e29`, frozen `.botanical/terrain-stream-v6-dist`, is now served
+through the same tunnel. The separate backend remains v5 above. The served
+`schemas-DJtrsrJx.js` hash matches the frozen build:
+`194d7f6ccc9d7c75f0f7b338be651e65f8483d63eb2fb34a61057808e4e6db55`.
+The receipt is `.botanical/terrain-stream-v6-dist/PREVIEW-RECEIPT.json`.
+
+Terrain producers now freeze their completed ordering geometry. The ordering
+owner caches signatures only for recursively proven immutable plain data,
+checks captured root references on reuse, and retains the original finite and
+mutation checks for mutable inputs. This removes repeated serialization without
+changing geometry, ordering or art. Separately, water/actor observations reuse
+the unchanged surface-array identity already owned by the transport/projection;
+new cover facts still invalidate presentation normally.
+
+The integrated build and 59 focused laws passed (`run-u2918.scope`, invocation
+`7305609c66054689ac2cae9a8ce8c325`; `run-u2919.scope`, invocation
+`0ce8d20cada54de5b0d101253f543cc9`). Hosted cold proof
+`.botanical/terrain-loading-v6-composited`, `run-u2920.scope`, invocation
+`f8415ac51b3f44ab8b9517bdd459171e`, still exited **1**: both real cold pans and
+final ground coverage passed with no timeout or HTTP terrain requests, but
+stationary useful ground was sampled at 5.092 s after navigation (1.097 s after
+readiness), exact visible completion at 8.576 s (4.581 s after readiness), and
+padded completion at 11.272 s. The 1,000/3,000 ms gates remain unmet. These are
+individual software-rendered runs, not a stable latency guarantee.
+
+Camera regression `.botanical/camera-terrain-v6`, `run-u2925.scope`, invocation
+`6ed11bd347e2482ab2ecdc8c2ed41ff2`, passed: four travel legs settle, small pans
+perform zero static rebuilds, zoom/layer/cutaway return correctly, residency stays
+bounded, and the paused return image is byte-identical. Its software frame times
+remain slow and are reported in the artifact; this is correctness/retention
+evidence, not a claim of smooth hardware rendering. The original-art completed
+cold-load screenshot was personally inspected and retained.
