@@ -97,6 +97,35 @@ test("cut terrain services all camera batches without synchronous coverage reent
   layer.dispose();
 });
 
+test("a cut change drops old caps and cover while replacement coverage loads", async () => {
+  const pending = [];
+  const runtime = { terrainChunks: request => new Promise(resolve => pending.push({ request, resolve })) };
+  const layer = createCutTerrainLayer({ runtime, projection: createOrderingProjection() });
+  layer.installArt({ body: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }),
+    cover: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }), dispose() {} });
+  layer.update({ revision: 1, placementRevision: 1, verticalMetres: 0.54,
+    baseline: { protocolVersion: 2, bounds: { minX: 0, maxX: 8, minY: 0, maxY: 24, minZ: 0, maxZ: 8 },
+      verticalMetres: 0.54, materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] },
+    surfaces: [{ cell: [4, 0, 4], material: 1, generatedTop: 0,
+      cover: { kind: "grass", condition: "green", height: "full" } }],
+    structureSurfaces: [], water: [] }, 1);
+  const camera = { x: 320, y: 180, zoom: 1 }, screen = { width: 640, height: 400 };
+  const view = level => ({ cutaway: true, level, range: { min: 0, max: 23 } });
+  layer.position(camera, view(0), screen);
+  const first = pending.shift();
+  first.resolve({ kind: "ready", requestId: first.request.requestId, epoch: first.request.epoch,
+    terrainRevision: first.request.terrainRevision, chunks: first.request.chunks.map(chunk) });
+  await Promise.resolve(); await Promise.resolve();
+  layer.position(camera, view(0), screen);
+  assert(layer.retainedRecords.records.some(record => record.role === "terrain-cover"));
+  layer.applyOrder(layer.sortableItems);
+  layer.position(camera, view(16), screen);
+  assert.equal(layer.coverage.demandComplete, false);
+  assert.equal(layer.retainedRecords.records.some(record => record.role === "terrain-cover"), false);
+  assert.equal(layer.retainedRecords.records.some(record => record.id.startsWith("terrain:")), false);
+  layer.dispose();
+});
+
 test("water draw records preserve the physical surface independently of Pixi sprites", () => {
   const record = waterDrawRecord({ at: [4, -2, 7], level: 5, liquidVolumeM3: 1 }, {
     verticalMetres: 0.56,
