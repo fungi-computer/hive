@@ -44,6 +44,8 @@ export type SessionResidentOptions = {
   readonly ownerPrincipal: string;
   readonly hostPrincipal: string;
   readonly seed: number;
+  /** Explicit pause/resume permission; does not grant physical host authority. */
+  readonly clockControllerPrincipals?: readonly string[];
   /** Authenticated host resolver; returning null rejects an unbound principal. */
   readonly scopeForPrincipal: (principal: string) => CommandScope | null;
 };
@@ -292,7 +294,9 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
     authorize(principal, command) {
       const scope = options.scopeForPrincipal(principal);
       if (!scope) return false;
-      if (command.kind === "step" || command.kind === "pause" || command.kind === "resume" || command.kind === "action" || command.kind === "join-party")
+      if (command.kind === "pause" || command.kind === "resume")
+        return scope.kind === "host" || options.clockControllerPrincipals?.includes(principal) === true;
+      if (command.kind === "step" || command.kind === "action" || command.kind === "join-party")
         return scope.kind === "host";
       return scope.kind === "host" || scope.kind === "player";
     },
@@ -315,7 +319,9 @@ export function createSessionRegionRuntime(options: SessionResidentOptions) {
     initialActions: options.pack.initialActions ? structuredClone(options.pack.initialActions) : undefined,
     partyJoin: options.pack.partyJoin ? Object.freeze({ footprint: Object.freeze(options.pack.partyJoin.footprint.map(cell => Object.freeze([...cell] as [number, number]))), prepare: options.pack.partyJoin.prepare }) : undefined,
   });
-  const frozenOptions = Object.freeze({ ...options, pack });
+  const frozenOptions = Object.freeze({ ...options, pack,
+    clockControllerPrincipals: Object.freeze([...(options.clockControllerPrincipals ?? [])]),
+  });
   const resident = createSessionResident(frozenOptions);
   const program = createSessionRegionProgram({ ...frozenOptions, resident });
   return Object.freeze({ resident, program });

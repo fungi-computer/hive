@@ -10,6 +10,8 @@ import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
 import { colonyServerPack } from "../../engine/src/games/colony";
+import { createColonyPerformancePack } from "../../engine/src/games/colony-performance";
+import { parseColonyPerformanceGameId } from "../../engine/src/games/colony-performance-config";
 import { formationsPack } from "../../engine/src/games/formations";
 import { piratesPack } from "../../engine/src/games/pirates";
 import { survivalPack } from "../../engine/src/games/survival";
@@ -96,6 +98,8 @@ const MAX_OBSERVATION_BYTES = 1024 * 1024;
 const RECORD_PAGE_SIZE = 40;
 
 function packFor(pack: PublicPack) {
+  const preset = parseColonyPerformanceGameId(pack);
+  if (preset) return createColonyPerformancePack(preset.size, preset.workers);
   switch (pack) {
     case "survival":
       return survivalPack;
@@ -105,6 +109,8 @@ function packFor(pack: PublicPack) {
       return colonyServerPack;
     case "formations":
       return formationsPack;
+    default:
+      throw new Error("public-host-format");
   }
 }
 
@@ -289,6 +295,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       implementationHash: this.hostEnv.IMPLEMENTATION_HASH,
       ownerPrincipal: playerPrincipal,
       hostPrincipal,
+      clockControllerPrincipals: parseColonyPerformanceGameId(pack) ? [playerPrincipal] : [],
       seed: 17,
       scopeForPrincipal: (principal) => {
         if (principal === hostPrincipal) return { kind: "host" };
@@ -568,7 +575,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       let failed = false;
       for (const socket of this.state.getWebSockets()) {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-        if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== this.worldHandle) continue;
+        if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== (this.worldHandle ?? this.tokenHash)) continue;
         if (!this.sendObservation(socket, payload, attachment)) failed = true;
       }
       if (failed) throw new Error("observation publication failed");
@@ -579,7 +586,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     console.error("public observation publication failed", error);
     for (const socket of this.state.getWebSockets()) {
       const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== this.worldHandle) continue;
+      if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== (this.worldHandle ?? this.tokenHash)) continue;
       try { socket.send(JSON.stringify({ type: "error", error: "observation-publication-failed" })); } catch {}
     }
   }
@@ -976,6 +983,25 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       ) {
         await this.renewLease(now);
         return withCors(await this.observationResponse(), origin);
+      }
+      const operation = new URL(request.url).pathname.split("/").at(-1);
+      if (parseColonyPerformanceGameId(pack) && request.method === "POST" &&
+          (operation === "terrain" || operation === "placement")) {
+        const query = operation === "terrain" ? await readTerrainChunks(request) : await readPlacementDecision(request);
+        // This private preset owns one pre-authored player/party. A URL or query
+        // may select content, but cannot grant authority over a different party.
+        if ("party" in query && query.party !== "party:1") throw new Error("public-unauthorized");
+        const result = await this.serial(() => {
+          const committed = this.region.readCommitted();
+          return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session => {
+            if (!("party" in query)) return session.terrainChunks(query, 0);
+            const native = session.placementDecisions(query.party, query.candidates);
+            return { observationRevision: committed.revision, nativeRevision: native.revision,
+              placementRevision: native.placementRevision, decisions: native.decisions };
+          });
+        });
+        await this.renewLease(now);
+        return jsonResponse(result, 200, origin);
       }
       if (
         new URL(request.url).pathname.endsWith("/command") &&

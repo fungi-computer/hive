@@ -1,9 +1,10 @@
 import { z } from "zod";
+import { parseColonyPerformanceGameId, type ColonyPerformanceSize, type ColonyPerformanceWorkerCount } from "../../engine/src/games/colony-performance-config";
 import { placementDecisionQuerySchema } from "../../engine/src/runtime/placement-decision";
 import { terrainChunkRequestSchema } from "../../engine/src/runtime/terrain-chunks";
 
 export const PACKS = ["survival", "pirates", "colony", "formations"] as const;
-export type PublicPack = (typeof PACKS)[number];
+export type PublicPack = (typeof PACKS)[number] | `colony-performance-${ColonyPerformanceSize}-${ColonyPerformanceWorkerCount}`;
 export const BODY_BYTES = 8192;
 export const LEASE_MS = 15_000;
 export const STEP_MS = 100;
@@ -48,10 +49,13 @@ export function colonyWorldRoute(pathname: string): ColonyWorldRoute | null {
 }
 
 export function packFromPath(pathname: string): PublicPack | null {
-  const match = /^\/v1\/([^/]+)\/(observe|command|connect|socket(?:\/[A-Za-z0-9._:-]{1,256})?)$/.exec(pathname);
+  const match = /^\/v1\/([^/]+)\/(observe|command|connect|terrain|placement|socket(?:\/[A-Za-z0-9._:-]{1,256})?)$/.exec(pathname);
   // Colony moved to the world-scoped v2 contract.  Do not silently route a
   // Colony request through the old bearer-token singleton.
-  if (!match || match[1] === "colony" || !PACKS.includes(match[1] as PublicPack)) return null;
+  if (!match || match[1] === "colony") return null;
+  const performance = parseColonyPerformanceGameId(match[1]);
+  if (!performance && !PACKS.some(pack => pack === match[1])) return null;
+  if ((match[2] === "terrain" || match[2] === "placement") && !performance) return null;
   return match[1] as PublicPack;
 }
 
