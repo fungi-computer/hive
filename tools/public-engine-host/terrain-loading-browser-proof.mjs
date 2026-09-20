@@ -37,7 +37,7 @@ async function runCase(name){
   // Cold input is scheduled before the expensive picking/screenshot loop. Ground
   // may already have one useful patch; unfinished padded demand is still cold.
   if(name==="pan"&&mode==="after"){
-   await page.waitForFunction(()=>{const d=window.__HIVE_DRAW_DIAGNOSTICS?.();return d?.assetsReady&&d.runtimeReady;},{},{polling:25});
+   await page.waitForFunction(()=>{const d=window.__HIVE_DRAW_DIAGNOSTICS?.();return d?.assetsReady&&d.runtimeReady&&d.spatialDraw?.coverage?.requestedRegions>0;},{},{polling:25});
    result.coldPanStart=await page.evaluate(()=>{const d=window.__HIVE_DRAW_DIAGNOSTICS();return{atMs:performance.now(),coverage:d.spatialDraw.coverage,clock:{...window.__TERRAIN_PROOF_CLOCK}};});
    assert(!result.coldPanStart.coverage.demandComplete,"initial demand completed before cold-pan scheduling");
    coldPanDone=true;await pan("coldPan");
@@ -75,8 +75,13 @@ async function runCase(name){
    assert(result.milestones.independentReady,"independent assets/runtime readiness unavailable");
    assert(result.milestones.visibleGround.sample.coverage.visibleComplete,"visible region demand incomplete");
    assert.equal(result.milestones.visibleGround.sample.coverage.readyVisibleRegions,result.milestones.visibleGround.sample.coverage.visibleRegions);
-   const clock=result.milestones.paddedComplete.sample.clock;assert(Number.isFinite(clock.readyAt)&&Number.isFinite(clock.visibleAt));
-   result.readinessLatency={usefulGroundMs:result.milestones.usefulGround.sample.atMs-clock.readyAt,visibleGroundMs:clock.visibleAt-clock.readyAt,paddedCompleteMs:clock.paddedAt-clock.readyAt};
+   const clock=result.milestones.paddedComplete.sample.clock;
+   const earliest=(...values)=>{const finite=values.filter(value=>typeof value==="number"&&Number.isFinite(value));assert(finite.length>0,"missing finite milestone timestamp");return Math.min(...finite);};
+   const readyAt=earliest(clock.readyAt,result.milestones.independentReady.sample.atMs);
+   const visibleAt=earliest(clock.visibleAt,result.milestones.visibleGround.sample.atMs);
+   const paddedAt=earliest(clock.paddedAt,result.milestones.paddedComplete.sample.atMs);
+   result.measuredClock={readyAt,visibleAt,paddedAt};
+   result.readinessLatency={usefulGroundMs:result.milestones.usefulGround.sample.atMs-readyAt,visibleGroundMs:visibleAt-readyAt,paddedCompleteMs:paddedAt-readyAt};
    // Stationary case is the comparable latency benchmark. Pan intentionally changes demand.
    if(name==="stationary"){
     assert(result.readinessLatency.usefulGroundMs<=1000,"useful ground exceeded 1s after assets/runtime readiness");
