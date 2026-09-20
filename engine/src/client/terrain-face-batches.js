@@ -2,6 +2,7 @@ import { Mesh, MeshGeometry } from "pixi.js";
 import { stableKey } from "./draw-record-facts.js";
 
 const MAX_QUADS = 16000;
+const MAX_SPARE_MESHES = 16;
 const compatible = (a, b) => a.texture.source === b.texture.source && a.blendMode === b.blendMode && a.state === b.state;
 
 /** Input is already ordered. This function is deliberately unaware of space. */
@@ -38,11 +39,15 @@ function buffers(records) {
 }
 
 const signature = records => JSON.stringify(records.map(record => [stableKey(record), record.projected, record.terrainBatch.uvs]));
+const quadCount = entry => entry.geometry.positions.length / 8;
+const bufferBytes = entry => entry.geometry.attributes.aPosition.buffer.descriptor.size + entry.geometry.attributes.aUV.buffer.descriptor.size + entry.geometry.indexBuffer.descriptor.size;
+const sum = (entries, measure) => entries.reduce((total, entry) => total + measure(entry), 0);
 const sameRecords = (left, right) => left?.length === right.length && left.every((record, index) => record === right[index]);
 
 /** Retained ordinary meshes. Textures remain owned by the original art bank.
  * Unchanged runs retain buffers. At most maxMeshes mesh/buffer pairs survive;
- * callers may set one common parent transform for pan/zoom without repacking.
+ * idle retention is further bounded to 16 meshes and 16000 total quads, with
+ * no retired world records. Callers may set one common parent transform for pan/zoom without repacking.
  */
 export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
   if (!Number.isInteger(maxMeshes) || maxMeshes < 1 || maxMeshes > 4096) throw new Error("invalid terrain mesh budget");
@@ -72,7 +77,7 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
         if (entry) available.delete(key);
         else entry = reusable.pop();
         if (!entry) {
-          const geometry = new MeshGeometry(buffers(batch.records));
+          const geometry = new MeshGeometry({ ...buffers(batch.records), shrinkBuffersToFit: true });
           const mesh = new Mesh({ geometry, texture: batch.style.texture });
           mesh.eventMode = "none";
           entry = { key, mesh, geometry, stamp: signature(batch.records), records: [...batch.records], defaultState: mesh.state };
@@ -98,10 +103,18 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
         next.push(entry);
         displays.push({ ...batch, display: entry.mesh, zIndex: displays.length });
       }
+      let spareQuads = 0;
       for (const entry of [...available.values(), ...reusable]) {
         entry.mesh.removeFromParent();
-        if (next.length + spare.length < maxMeshes) spare.push(entry);
-        else destroy(entry);
+        entry.records = [];
+        entry.key = undefined;
+        entry.stamp = undefined;
+        entry.mesh.state = entry.defaultState;
+        const quads = quadCount(entry);
+        if (next.length + spare.length < maxMeshes && spare.length < MAX_SPARE_MESHES && spareQuads + quads <= MAX_QUADS) {
+          spare.push(entry);
+          spareQuads += quads;
+        } else destroy(entry);
       }
       active = next;
       for (const batch of displays) if (batch.display) {
@@ -111,6 +124,16 @@ export function createTerrainBatchMeshes({ maxMeshes = 512, parent } = {}) {
       return displays;
     },
     get size() { return active.length; },
+    /** Retained buffer allocation requests, excluding driver-specific overhead. */
+    metrics() {
+      const activeRecords = sum(active, entry => entry.records.length);
+      const spareRecords = sum(spare, entry => entry.records.length);
+      return Object.freeze({ limits: Object.freeze({ meshes: maxMeshes, spareMeshes: Math.min(MAX_SPARE_MESHES, maxMeshes), spareQuads: MAX_QUADS }),
+        activeMeshes: active.length, spareMeshes: spare.length,
+        activeQuads: sum(active, quadCount), spareQuads: sum(spare, quadCount),
+        activeBufferBytes: sum(active, bufferBytes), spareBufferBytes: sum(spare, bufferBytes),
+        activeRecords, spareRecords, retainedRecords: activeRecords + spareRecords });
+    },
     dispose() { if (disposed) return; for (const entry of [...active, ...spare]) destroy(entry); active = []; spare = []; disposed = true; },
   };
 }
