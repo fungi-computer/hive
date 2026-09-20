@@ -19,6 +19,14 @@ Draw at low native resolution with sharp enlargement. Do not implement a painter
 sorter, sprite depth atlas, fragment linked list, generalized rendering framework,
 new world generator, or second simulation. Preserve existing game preview and art.
 
+**No Three → Hive → Three round trip.** Hive's eventual input to this client
+owner is only authoritative world facts: stable IDs, terrain/cover definitions,
+positions, orientations and activity. The client owner turns those facts into
+retained original Three models, and Three renders those models directly. Hive
+does not ingest a Three scene, store meshes, issue a renderer-neutral draw list,
+or reconstruct geometry after the models are built. This study's local fixture
+stands in for that facts input; it is not a second Hive simulation.
+
 The user must be able to pan, zoom, rotate, change layer, inspect a moving actor
 behind furniture and terrain, reset, and repeat the troublesome leave/cut/return
 sequence. A pretty still image or successful command receipt is not acceptance.
@@ -196,7 +204,7 @@ spend the experiment building a new outline system to conceal an appearance gap.
 
 Use an 8×8 X/Z chunk owner over the bounded fixture. Horizontal cell size is one
 metre; vertical voxel scale is 0.54 metres (do not scale X/Z by 0.54).
-cell `(x,y,z)` has top `(y+0.5)*0.54`. The original terrain body has top local
+Cell `(x,y,z)` has top `(y+0.5)*0.54`. The original terrain body has top local
 Y=0 and bottom=-0.54. Position it accordingly. Generate only exposed top and
 four side faces from solid occupancy; include neighbors across chunk seams.
 Do not use the two camera-facing baked side types as a geometry visibility rule.
