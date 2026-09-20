@@ -166,7 +166,7 @@ function remoteConnection({ mode, host, storage, cryptoSource, fetchImpl, connec
       return current.placementDecisions(query);
     },
     terrainRegions(request, receive) {
-      if (disposed) return Promise.reject(new Error("connection choice disposed"));
+      if (disposed) throw new Error("connection choice disposed");
       return current.terrainRegions(request, receive);
     },
     subscribe(listener) {

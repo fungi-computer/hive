@@ -29,7 +29,7 @@ export type WorkerPlacementCommand = PlacementDecisionQuery & {
   readonly type: "placement-decisions";
   readonly requestId: number;
 };
-export type WorkerTerrainRegionsCommand = (TerrainRegionRequest & { readonly type: "terrain-regions" }) | { readonly type: "terrain-cancel"; readonly requestId: number };
+export type WorkerTerrainRegionsCommand = (TerrainRegionRequest & { readonly type: "terrain-regions" }) | { readonly type: "terrain-cancel"; readonly requestId: number } | { readonly type: "terrain-credit"; readonly requestId: number; readonly received: number };
 
 type WorkerEventBase =
   | { readonly type: "ready"; readonly game: string }

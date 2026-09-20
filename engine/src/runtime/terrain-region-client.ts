@@ -6,7 +6,7 @@ import type { WorkerTerrainRegionsCommand } from "./protocol";
 export function createTerrainRegionClient(send: (command: WorkerTerrainRegionsCommand) => void,
   { connected: initiallyConnected = true, idleMs = 15_000 } = {}) {
   type Pending = { request: TerrainRegionRequest; receive: (event: TerrainRegionEvent) => void;
-    seen: Map<string, TerrainRegionPatch>; timer?: ReturnType<typeof setTimeout> };
+    seen: Map<string, TerrainRegionPatch>; received: number; timer?: ReturnType<typeof setTimeout> };
   let pending: Pending | undefined, connected = initiallyConnected, disposed = false;
   const identity = (request: TerrainRegionRequest) => ({ requestId: request.requestId,
     epoch: request.epoch, terrainRevision: request.terrainRevision, level: request.level });
@@ -32,7 +32,7 @@ export function createTerrainRegionClient(send: (command: WorkerTerrainRegionsCo
       current.receive({ kind: "complete", ...identity(current.request) });
       return;
     }
-    try { send({ type: "terrain-regions", ...current.request, regions }); arm(current); }
+    try { current.received = 0; send({ type: "terrain-regions", ...current.request, regions }); arm(current); }
     catch (error) { fail(current, error instanceof Error ? error.message : String(error)); }
   }
   return Object.freeze({
@@ -40,7 +40,7 @@ export function createTerrainRegionClient(send: (command: WorkerTerrainRegionsCo
       if (disposed) throw new Error("terrain connection disposed");
       const request = terrainRegionRequestSchema.parse(raw);
       if (pending) cancel(pending);
-      const current: Pending = { request, receive, seen: new Map() };
+      const current: Pending = { request, receive, seen: new Map(), received: 0 };
       pending = current;
       if (connected) dispatch(current); else arm(current);
       return () => cancel(current);
@@ -64,8 +64,15 @@ export function createTerrainRegionClient(send: (command: WorkerTerrainRegionsCo
         }
         arm(current);
         current.seen.set(id, event.patch);
+        current.received++;
       } else { pending = undefined; clearTimeout(current.timer); }
       current.receive(event);
+      // Keep a bounded pipeline, acknowledging accepted patches in groups rather
+      // than making each region wait for a round trip. Reconnect starts a new count.
+      if (event.kind === "patch" && pending === current && connected && current.received % 4 === 0) {
+        try { send({ type: "terrain-credit", requestId: current.request.requestId, received: current.received }); }
+        catch (error) { fail(current, error instanceof Error ? error.message : String(error)); }
+      }
     },
     setConnected(next: boolean) {
       if (disposed || connected === next) return;

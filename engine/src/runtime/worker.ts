@@ -128,6 +128,8 @@ export class WorkerRuntime {
           event => this.emit({ type: "terrain-regions", event }));
         this.terrainStream = stream;
         void stream.done.finally(() => { if (this.terrainStream === stream) this.terrainStream = undefined; });
+      } else if (command.type === "terrain-credit") {
+        if (this.terrainStream?.requestId === command.requestId) this.terrainStream.acknowledge(command.received);
       } else if (command.type === "terrain-cancel") {
         if (this.terrainStream?.requestId === command.requestId) { this.terrainStream.cancel(); this.terrainStream = undefined; }
       } else if (command.type === "placement-decisions") {

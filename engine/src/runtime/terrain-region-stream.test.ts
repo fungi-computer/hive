@@ -14,7 +14,7 @@ test("one region request delivers all patches without acknowledgements, yielding
   const stream = startTerrainRegionStream(request, key => patch(key), event => events.push(event), async () => { yields++; });
   await stream.done;
   assert.deepEqual(events.map(event => event.kind), ["patch","patch","complete"]);
-  assert.equal(yields, 2);
+  assert.equal(yields, 1);
 });
 test("cancellation during a read discards its late result and stops further region work", async () => {
   const events: TerrainRegionEvent[] = []; let finish!: (event: ReturnType<typeof patch>) => void, reads = 0;
@@ -93,4 +93,37 @@ test("conflicting replay fails and duplicate-only traffic does not extend incomp
     try { await new Promise(resolve=>setTimeout(resolve,45)); } finally { clearInterval(replay); }
     assert.deepEqual(events.map(event=>event.kind),["patch","unavailable"]);
   } finally { client.dispose(); }
+});
+
+test("receiver returns cumulative window credit only for accepted new patches and resets on reconnect", () => {
+  const commands: any[] = [];
+  const client=createTerrainRegionClient(command=>commands.push(command));
+  const large={...request,regions:Array.from({length:12},(_,x)=>[x,0] as [number,number])};
+  try {
+    client.request(large,()=>{});
+    for(let x=0;x<4;x++)client.accept(patch([x,0]));
+    assert.deepEqual(commands.at(-1),{type:"terrain-credit",requestId:1,received:4});
+    const count=commands.length;client.accept(patch([3,0]));assert.equal(commands.length,count);
+    client.setConnected(false);client.setConnected(true);
+    assert.equal(commands.at(-1).regions.length,8);
+    for(let x=4;x<8;x++)client.accept(patch([x,0]));
+    assert.deepEqual(commands.at(-1),{type:"terrain-credit",requestId:1,received:4});
+  } finally {client.dispose();}
+});
+
+test("shared receiver and bounded producer continuously deliver a whole area", async () => {
+  const large={...request,regions:Array.from({length:20},(_,x)=>[x,0] as [number,number])};
+  const events: TerrainRegionEvent[]=[];
+  let stream: ReturnType<typeof startTerrainRegionStream> | undefined;
+  const client=createTerrainRegionClient(command=>{
+    if(command.type==="terrain-regions") { const {type:_,...raw}=command; stream=startTerrainRegionStream(raw,key=>patch(key),event=>client.accept(event),async()=>{}); }
+    else if(command.type==="terrain-credit") stream?.acknowledge(command.received);
+    else stream?.cancel();
+  });
+  try {
+    client.request(large,event=>events.push(event));
+    await stream!.done;
+    assert.equal(events.filter(event=>event.kind==="patch").length,20);
+    assert.equal(events.at(-1)?.kind,"complete");
+  } finally {client.dispose();}
 });

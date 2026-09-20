@@ -857,6 +857,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     if (attachment?.authenticated) {
       try {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
+        if (parsed?.type === "terrain-credit" && Object.keys(parsed).length === 3 && Number.isSafeInteger(parsed.requestId)) {
+          const active = this.terrainStreams.get(socket);
+          if (active?.requestId === parsed.requestId) active.acknowledge(parsed.received as number);
+          return;
+        }
         if (parsed?.type === "terrain-cancel" && Object.keys(parsed).length === 2 && Number.isSafeInteger(parsed.requestId)) {
           const active = this.terrainStreams.get(socket);
           if (active?.requestId === parsed.requestId) { active.cancel(); this.terrainStreams.delete(socket); }
@@ -885,7 +890,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           this.sendObservation(socket, payload, attachment);
           return;
         }
-      } catch { /* malformed heartbeat is rejected below */ }
+      } catch { /* Malformed stream controls and heartbeats are rejected below. */ }
       try { socket.send(JSON.stringify({ type: "error", error: "public-socket-message-unsupported" })); } catch {}
       return;
     }
