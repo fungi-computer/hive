@@ -81,5 +81,33 @@ not reported as passing.
 Prepared release: `.botanical/do-performance-release/wrangler.json`, separate
 Worker `hive-performance-engine-preview`; frontend built for its workers.dev
 endpoint in `.botanical/do-performance-hosted-dist`. The existing public game
-backend is not the deployment target. Cloudflare deployment requires the user's
-exception to AGENTS.md's explicit no-backend-deploy boundary; approval requested.
+backend is not the deployment target. Levi explicitly approved deployment of this separate test backend on September 20.
+
+
+## Hosted acceptance
+
+Deployed only `hive-performance-engine-preview`, Cloudflare version
+`115f5b72-8972-448c-9f95-578999d1be0c`, implementation hash
+`6598e3a8ac031ff7d22c4c135e0f5cdcbf4825c1cce6cb8b07d469c8724272a6`.
+Backend: https://hive-performance-engine-preview.levi-fe0.workers.dev
+Frontend: https://professor-findlaw-looks-atlas.trycloudflare.com/engine/colony-performance.html?size=256&workers=8
+
+Guarded hosted browser receipt `u2727` / `1d7c76072b6b4b078ab7898eb8267a46`
+passed: actual Cloudflare WSS connection, no simulation Worker, eight observed
+workers, six moving at the sample, a completed tree, remote terrain, and
+acknowledged pause/resume. No page/request errors. Screenshot personally reviewed.
+Evidence: `.botanical/do-performance-browser-hosted/REPORT.json` and accompanying
+image/source hashes. This verifies the 256/eight-worker preset, not every preset
+or full-map streaming. The 50-job finite workload is not a capacity benchmark.
+
+The initial 119 live intervals reported 1.03 simulated seconds per real second,
+82.5 ms median / 195.4 ms p95 observation spacing. Terrain HTTP response times
+were 236.8 ms median / 399.4 ms p95 across 47 reads; completed application
+payload was 6,655,249 bytes. These are this browser's short initial-load sample,
+including buffering and client work, not CPU timing or an SLA. Brief rates over
+1× can reflect buffered delivery and catch-up; the server retains its normal
+0.1-second durable occurrence policy. Platform CPU evidence is separate.
+
+The earlier local pause/resume timeout remains preserved, but both the local
+instrumented rerun and the actual hosted pause/resume check passed. Existing
+public game backend and worlds were not deployed, reset or migrated.
