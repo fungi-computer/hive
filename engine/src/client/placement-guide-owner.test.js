@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPlacementGuideOwner } from "./placement-guide-owner.js";
-import { compileVoxelDrawStream } from "./voxel-draw-stream.js";
+import { compileSpatialDrawOrder } from "./spatial-draw-order.js";
+import { createOrderingProjection } from "./ordering-projection.js";
 
 test("world build guide shares the draw order and owns its display lifetime", () => {
   const made = [], parent = { addChild(display) { display.parent = this; } };
@@ -25,8 +26,11 @@ test("world build guide shares the draw order and owns its display lifetime", ()
     attachment: { kind: "cell-face", cell: [0, 0, 0], face: "top" } };
   const actor = { id: "standing", part: "body", renderPass: "opaque",
     attachment: { kind: "supported", support: null, feet: { x: 0, y: 0.27, z: 0 } } };
-  const ordered = compileVoxelDrawStream([actor, center, ground],
-    { direction: { x: 1, y: 1, z: 1 }, verticalMetres: 0.54 }).records;
+  ground.orderGeometry = center.orderGeometry;
+  actor.orderGeometry = {kind:"volume",min:{x:-.2,y:.27,z:-.2},max:{x:.2,y:1.27,z:.2}};
+  actor.supportY = .27;
+  const ordered = compileSpatialDrawOrder([actor, center, ground],
+    { projection: createOrderingProjection() }).records;
   assert(ordered.indexOf(ground) < ordered.indexOf(center));
   assert(ordered.indexOf(center) < ordered.indexOf(actor));
   owner.clear();
