@@ -136,11 +136,11 @@ First hosted after run (`96a97ca5`, backend version
 `d25d8e12-16d5-4934-8f64-3d6e7fc7eda8`) ran under `run-u2764.scope`, invocation
 `49429e38bd4048f49aa55961e74fa2a2`. Artifacts `.botanical/camera-browser-after`
 are preserved as failed v1 evidence. Initial coverage completed 759/759 chunks,
-within prepared padding128 and capacity2048. Upright grass was visually reviewed.
+within prepared padding 128 and capacity 2048. Upright grass was visually reviewed.
 Small pan performed **zero** static rebuild/order/topology/apply work; visual
-building totaled24.1ms. SwiftShader RAFp95 worsened to1849.8ms (idle1883.3ms), so
+building totaled 24.1 ms. SwiftShader RAF p95 worsened to 1849.8 ms (idle 1883.3 ms), so
 this run does not establish improved frame performance. During the first long
-pan the browser/page closed unexpectedly; the driver exited1 before the ten
+pan the browser/page closed unexpectedly; the driver exited 1 before the ten
 minute guard. The cause was not established. No long-travel/return assertion is
 claimed from this run.
 
@@ -156,25 +156,25 @@ Hosted v2 (`0fd37272`, same separate DO backend) completed all browser assertion
 under invocation `aaa4c5d4dde4475d83c8f7dada0e2aee` (`run-u2775.scope`).
 `.botanical/camera-browser-after-v2/REPORT.json` records success with no errors;
 all page/context/browser closure events were expected cleanup. The process debug
-log records Chromium's normal exit0 and the driver's final success JSON. The
-outer execution session nevertheless reported143; its cause is unknown and this
+log records Chromium's normal exit 0 and the driver's final success JSON. The
+outer execution session nevertheless reported 143; its cause is unknown and this
 is not described as a clean wrapper exit. No manual interrupt was sent by this
 proof owner.
 
-Small pan performed zero static/order/topology/apply work and21ms cumulative
-visual building, versus baseline three rebuilds/305.7ms preparation and38.4ms
+Small pan performed zero static/order/topology/apply work and 21ms cumulative
+visual building, versus baseline three rebuilds / 305.7 ms preparation and 38.4 ms
 visual building. On the same software-rendered host, small-pan RAF median/p95
-were133.5/266.6ms versus400/1166.6ms baseline. Idle p95 was283.4ms versus416.7ms.
+were 133.5 / 266.6 ms versus 400 / 1166.6 ms baseline. Idle p95 was 283.4 ms versus 416.7 ms.
 These measurements include the restored upright grass and alpha-bounds trimming;
 they do not isolate camera retention as the sole source of frame improvement.
 
 All four long-travel legs finished with complete coverage and viewport retained.
-The cache rose759→1377→2048 and stayed within its2048 limit. Distant screenshot
+The cache rose 759 → 1377 → 2048 and stayed within its 2048 limit. Distant screenshot
 shows terrain and upright grass, replacing the incomplete blank view. Initial
 and returned canvas files were byte-identical, SHA256
 `9b7426cf7e0752633c9766fc2c8fcdf72c4006bc075cae2a3417281ba67ef995`.
 
-CDP used heap(MiB) across idle/small/east/return/north/return/zoom/layer/cutaway was
+CDP used heap (MiB) across idle/small/east/return/north/return/zoom/layer/cutaway was
 112.6/108.6/303.4/294.8/352.0/227.7/235.3/129.2/429.9. GC was not forced during
 this timing workload. These samples show allocations and collection, not a low
 constant retained heap. Subsequent v3 verification checks explicit spare-mesh and
