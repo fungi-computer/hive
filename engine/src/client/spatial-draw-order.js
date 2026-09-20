@@ -357,16 +357,38 @@ function orderGraph(entries, relations, counters, clock, projection) {
 
 // A retained revision covers every value used by geometry or contact ordering.
 // Snapshot bytes also detect mutation of an existing geometry object on refresh.
+const immutableSignatures = new WeakMap(), immutableOrderingData = new WeakSet();
+function frozenOrderingData(value) {
+  if (value === null || typeof value !== "object") return typeof value !== "function";
+  if (immutableOrderingData.has(value)) return true;
+  const prototype = Object.getPrototypeOf(value);
+  if (!Object.isFrozen(value) || (prototype !== Object.prototype && prototype !== Array.prototype && prototype !== null)
+    || "toJSON" in value) return false;
+  // Frozen accessors can still return changing data. Only owned data properties
+  // qualify; mutable or unusual inputs retain the original checked serializer.
+  for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+    if (!("value" in descriptor) || !frozenOrderingData(descriptor.value)) return false;
+  }
+  immutableOrderingData.add(value);
+  return true;
+}
 function geometrySignature(record) {
-  const data = JSON.stringify([record.orderGeometry, record.surfaceOrder ?? 0, record.supportY ?? null,
-    record.compositePartition ?? null, record.support ?? null, record.contactSurface ?? null], (_key, value) => {
+  const inputs = [record.orderGeometry, record.surfaceOrder ?? 0, record.supportY ?? null,
+    record.compositePartition ?? null, record.support ?? null, record.contactSurface ?? null];
+  const cached = immutableSignatures.get(record);
+  if (cached && inputs.every((value,index) => value === cached.inputs[index])) return cached.signature;
+  const data = JSON.stringify(inputs, (_key, value) => {
       if (typeof value === "number" && !Number.isFinite(value))
         throw new Error("spatial ordering data must be finite");
       return value;
     });
   // Composite membership uses strict token identity in the comparator. Preserve
   // it separately so equal-looking replacement objects cannot reuse old edges.
-  return { data, partition: record.compositePartition ?? null };
+  const signature = { data, partition: record.compositePartition ?? null };
+  // Run finite validation before admitting immutable data. Root fields stay
+  // replaceable, so every hit checks their captured references and scalars.
+  if (inputs.every(frozenOrderingData)) immutableSignatures.set(record, { inputs, signature });
+  return signature;
 }
 const sameGeometrySignature = (a, b) => a?.data === b?.data && a?.partition === b?.partition;
 

@@ -243,3 +243,48 @@ test("coplanar ties preserve transparent holes, touching edges and composite ind
   const siblings=[{...a,compositePartition:"piece"},{...b,compositePartition:"piece"}];
   assert.equal(compileSpatialDrawOrder(siblings,{projection:directProjection}).relations.length,0);
 });
+
+function freezeOrdering(value) {
+  if(value && typeof value === "object") {Object.values(value).forEach(freezeOrdering);Object.freeze(value);}
+  return value;
+}
+test("immutable signatures skip serialization but recheck roots, tokens and finite values",()=>{
+  const record=top("immutable",0,0,0);freezeOrdering(record.orderGeometry);
+  const stringify=JSON.stringify;let calls=0;
+  JSON.stringify=(...args)=>{calls++;return stringify(...args);};
+  try {
+    const scene=prepareSpatialDrawScene([record],{projection:projection()});
+    const initial=calls;
+    scene.compile([],[record]);scene.withStaticRecords([record]);
+    assert.equal(calls,initial,"deeply immutable ordering fields serialize once");
+    record.orderGeometry=freezeOrdering(top("replacement",0,.1,0).orderGeometry);
+    assert.throws(()=>scene.compile([],[record]),/changed without a revision/);
+    assert(calls>initial);
+    const next=scene.withStaticRecords([record]);assert.equal(next.metrics.preparedNew,1);
+    record.compositePartition=Object.freeze({token:1});
+    const partitioned=next.withStaticRecords([record]);
+    record.compositePartition=Object.freeze({token:1});
+    assert.equal(partitioned.withStaticRecords([record]).metrics.preparedNew,1,"equal token bytes cannot replace token identity");
+    const validOrder=next.compile().records.slice();
+    record.supportY=Infinity;
+    assert.throws(()=>next.withStaticRecords([record]),/finite/);
+    assert.deepEqual(next.compile().records,validOrder,"failed replacement leaves retained presentation intact");
+    record.supportY=0;
+    record.orderGeometry=freezeOrdering({...record.orderGeometry,extra:NaN});
+    assert.throws(()=>next.withStaticRecords([record]),/finite/);
+  } finally {JSON.stringify=stringify;}
+});
+
+test("shallow frozen, accessor and toJSON geometry retains mutation detection",()=>{
+  for(const mode of ["shallow","accessor","toJSON"]) {
+    const record=top(mode,0,0,0),geometry=record.orderGeometry;let points=geometry.points;
+    if(mode==="shallow")Object.freeze(geometry);
+    if(mode==="accessor")record.orderGeometry=Object.freeze({kind:"face",get points(){return points;}});
+    if(mode==="toJSON")record.orderGeometry=Object.freeze({kind:"face",get points(){return points;},toJSON(){return {kind:"face",points};}});
+    const scene=prepareSpatialDrawScene([record],{projection:projection()});
+    if(mode==="shallow")points.forEach(point=>point.y=.1);
+    else points=points.map(point=>({...point,y:.1}));
+    assert.throws(()=>scene.compile([],[record]),/changed without a revision/);
+    assert.equal(scene.withStaticRecords([record]).metrics.preparedNew,1);
+  }
+});
