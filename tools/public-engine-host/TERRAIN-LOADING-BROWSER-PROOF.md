@@ -100,3 +100,57 @@ The strengthened paused hosted proof passed against the September 20 v4 backend:
 Windowed stream support: the direct socket proof returns cumulative `terrain-credit` receipts every four newly received patches. Counts are local to each socket and reset on every area request, including reconnect with the same request ID. Cancellation still requires fewer than all 128 patches and no completion. This prepares the proof for an initial eight-patch server window; no hosted windowed result is claimed until deployment. The browser driver records outgoing credits separately from area requests, with total count/bytes and at most 2,048 detailed credit records.
 
 Heartbeat isolation flags: `--heartbeat-ms 5000 --duration-ms 25000 --running true` sends actual heartbeat messages on every authenticated socket while repeatedly completing bounded 32-region credited queries, followed by strict cancellation/replacement/reconnect. The interval is disposed when its socket closes. The report includes each negotiated `socket.extensions` value, sent heartbeat timestamps, credits and received observations. This removes browser rendering from the experiment; passing it alone would not establish browser parity.
+
+## September 20: v5 remains unaccepted
+
+The separate performance backend is deployed at version
+`0ace92e7-7a18-4d99-bd15-d0899bbca0b0`, implementation hash
+`7995af0dd1e018edff2ac34c0d4b4161b19afb684f36645adcedcff44997c0f8`.
+The frozen frontend `.botanical/terrain-stream-v5-dist` was built from
+`4bad1bee`. This is an interim, not a completed cold-loading result.
+
+`.botanical/terrain-loading-after-v5` failed the unchanged browser gates:
+stationary useful ground arrived 839 ms after independent readiness, but exact
+visible coverage took 6,633 ms and padded completion 23,696 ms. Cold pan eventually
+reported `terrain stream timed out`. The eight-patch credit window bounds pending
+output; it has **not** established prompt full-game loading or fixed cold pan.
+
+Further isolation evidence, all against that same backend:
+
+- `.botanical/browser-socket-only-v5-heartbeat`: native Chromium WebSocket,
+  exact 102-region demand, actual heartbeat, no game renderer. First patch 69 ms,
+  full initial stream 2.51 s; four replacements canceled at 8/102 patches without
+  completion; latest replacement completed in 644 ms. This harness performs an
+  HTTP observation/resume before socket connection, unlike the game's cold auth
+  path, so its initial duration is not a like-for-like navigation measurement.
+- `.botanical/terrain-credit-delay12-v5`: withheld all credits for 12 seconds
+  after eight patches while 127 observations arrived. Acknowledging eight
+  resumed the same stream in 108 ms and all 32 patches completed. This did not
+  reproduce loss of the in-memory stream during an active world's delayed credit.
+- `.botanical/full-game-transport-diagnostic-v5`: actual game, one cold pan,
+  native socket timestamps, no picking loop or screenshots. All 102 demanded
+  regions eventually completed without retry, but the latest 82-region request
+  took about 29 seconds. Credits were sent within 0.5–2.9 ms of their fourth
+  native message callback. The page recorded 156 long tasks totaling 34.35 s
+  during roughly 40 s; the CPU profile attributes much of that to opaque
+  `(program)` work. This does **not** identify GPU work or a server fault.
+
+These diagnostics narrow the remaining investigation to the full-page execution
+and delivery path. They are not substitutes for the original two-pan workload,
+rendered ground/picking checks, or camera regressions. Earlier failed reports are
+preserved unchanged.
+
+The subsequent successful Chromium timeline at
+`.botanical/full-game-timeline-v5-restored` provides the missing native-work
+attribution: all 140 `GLES2::ReadPixels` calls occur under browser compositor
+`Commit`, outside JavaScript `FunctionCall`. Canvas readback consumed 10.388 s
+of 16.454 s renderer-main task time (about 63%). The mapped BGRA image is the
+846×866 canvas. No screenshots or picking ran. This establishes a substantial
+software-compositor cost in this proof setup, not a hardware-GPU performance
+claim or permission to drop the original acceptance workload.
+
+Two preceding trace attempts did not initialize the game because the preview
+server had exited (143); the tunnel remained alive and returned 502. Their
+artifacts are retained, and the first driver's overly broad `success` field is
+explicitly disqualified by its separate `INVALID.json`. The same frozen v5
+preview was restarted; the successful restored trace above then ran against it.
