@@ -6,7 +6,7 @@ import { captureVisualVolume, translateVisualVolume } from "../../../src/art/ord
 import { createOrderingProjection } from "./ordering-projection.js";
 import { materialCoverage, terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
-import { projectSurfaceArt } from "./surface-art-projection.js";
+import { createVisibleHitArea } from "../../../src/visual-hit-geometry.js";
 import { uprightDrawGeometry } from "./upright-draw-geometry.js";
 
 export const SPATIAL_SCENE_SIZE = Object.freeze({width:384,height:256});
@@ -33,22 +33,6 @@ function snapshot() {
     bounds:{minX:0,maxX:8,minY:0,maxY:8,minZ:0,maxZ:8},verticalMetres:h,variantSeed:1,epoch:1,terrainRevision:1});
 }
 
-/** The four-cell mask still selects the original image. Each visible support
- * contributes its actual quarter of the surface, not a depth anchor. This is
- * fixture wiring of surface appearance; the ordering core sees only geometry.
- */
-function coverSurfaces(record) {
-  const root=record.attachment.point, surfaces=[];
-  for(const cell of record.attachment.supports) {
-    const left=Math.max(root.x-.5,cell[0]-.5), right=Math.min(root.x+.5,cell[0]+.5);
-    const near=Math.max(root.z-.5,cell[2]-.5), far=Math.min(root.z+.5,cell[2]+.5);
-    if(right<=left||far<=near)continue;
-    surfaces.push({id:cell.join(","),points:[{x:left,y:root.y,z:near},{x:left,y:root.y,z:far},
-      {x:right,y:root.y,z:far},{x:right,y:root.y,z:near}]});
-  }
-  return surfaces;
-}
-
 /** Small source-backed scene for the replacement core. No simulation effects,
  * generated art at runtime, renderer ownership or content-name sort policies.
  */
@@ -58,8 +42,12 @@ export function createSpatialRenderFixture({art,terrainPack,turn=0,walk=0,mown=f
   view.position.x=view.position.x*sx+3.5; view.position.z=view.position.z*sz+3.5;
   view.lookAt(3.5,1.03,3.5);
   const projection=createOrderingProjection(view,width,height);
+  // Synthetic ink belongs only to this no-art fixture pack.
+  const hitArea = terrainPack ? undefined : createVisibleHitArea({ width: 64, height: 64,
+    rows: Array.from({ length: 65 }, (_, y) => y),
+    spans: Array.from({ length: 64 }, () => [24, 39]).flat() }, { x: .5, y: .5 });
   const appearance=createTerrainFaceAppearance({pack:terrainPack??{
-    body:()=>({texture:null,uvs:[0,0,0,1,1,1,1,0]}),cover:()=>({texture:null,uvs:[0,0,0,1,1,1,1,0]})},turn});
+    body:()=>({texture:null,uvs:[0,0,0,1,1,1,1,0]}),cover:()=>({texture:null,uvs:[0,0,0,1,1,1,1,0],hitArea})},turn});
   const terrain=terrainFaceRecords(snapshot(),{level:1,projection,appearance})
     .map(record=>({...record,orderGeometry:{kind:"face",points:record.planarCorners}}));
   const surfaces=[];
@@ -68,7 +56,7 @@ export function createSpatialRenderFixture({art,terrainPack,turn=0,walk=0,mown=f
     surfaces.push({cell:[x,0,z],cover:{kind:"grass",condition:"green",height:mown&&x>=4?"short":"full"}});
   }
   const patches=terrainCoverRecords(surfaces,{level:1,projection,appearance,verticalMetres:h,variantSeed:1});
-  const cover=patches.flatMap(record=>projectSurfaceArt(record,coverSurfaces(record),projection));
+  const cover=patches;
   const point={x:2,y:h/2,z:2};
   const bed={id:"bed",part:"body",role:"structure",supportY:point.y,texture:art?.buildings.bed.finished[turn],anchor:art?.propAnchor,
     displayPoint:projection.project(point),orderGeometry:visualVolume("bed",()=>building("bed","finished"),point)};
