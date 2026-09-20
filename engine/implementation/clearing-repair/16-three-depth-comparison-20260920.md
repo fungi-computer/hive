@@ -1,6 +1,6 @@
 # Three.js depth comparison — executable implementation packet
 
-Date: 2026-09-20. Owner: Game CTO. Status: **planned, not implemented or hosted**.
+Date: 2026-09-20. Owner: Game CTO. Status: **implemented locally; hosted preview pending integration custody**.
 
 Levi authorized a bounded test of direct Three.js world rendering, implemented
 from this packet and published at a different preview URL. This is not approval
