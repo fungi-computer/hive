@@ -486,3 +486,36 @@ test("initial resident program preserves start failure when native disposal thro
     db.close();
   }
 });
+
+test("explicit clock controllers can pause/resume without gaining physical host authority", () => {
+  const controllers = ["player", "unbound"];
+  const options = {
+    pack: colonyPack,
+    createKernel: () => wasmKernelPort(new WasmKernel()),
+    implementationHash: "8".repeat(64), ownerPrincipal: "player", hostPrincipal: "clock", seed: 17,
+    scopeForPrincipal: (principal: string) => principal === "clock" ? { kind: "host" as const }
+      : ["player", "other"].includes(principal) ? { kind: "player" as const, player: principal } : null,
+  };
+  const configured = createSessionRegionRuntime({ ...options, clockControllerPrincipals: controllers });
+  const ordinary = createSessionRegionRuntime(options);
+  controllers.push("other");
+  try {
+    for (const kind of ["pause", "resume"] as const) {
+      const command = configured.program.parseCommand({ kind });
+      assert.equal(configured.program.authorize("player", command), true);
+      assert.equal(configured.program.authorize("clock", command), true);
+      assert.equal(configured.program.authorize("other", command), false, "permission list is copied at composition");
+      assert.equal(configured.program.authorize("unbound", command), false, "permission cannot authenticate a principal");
+      assert.equal(ordinary.program.authorize("player", command), false, "ordinary worlds retain existing policy");
+    }
+    for (const input of [
+      { kind: "step", delta: 0.1 },
+      { kind: "join-party", credentialBindingId: "new-party" },
+      { kind: "action", action: { kind: "cancel-job", id: "job" } },
+    ]) {
+      const command = configured.program.parseCommand(input);
+      assert.equal(configured.program.authorize("player", command), false);
+      assert.equal(configured.program.authorize("clock", command), true);
+    }
+  } finally { configured.resident.dispose(); ordinary.resident.dispose(); }
+});

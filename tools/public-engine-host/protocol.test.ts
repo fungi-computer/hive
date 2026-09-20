@@ -4,7 +4,7 @@ import { colonyWorldPath, colonyWorldRoute, packFromPath, readColonyJoin, readCo
 
 const token = "a".repeat(64);
 
-test("public routing accepts only the four known packs and two bounded routes", () => {
+test("public routing preserves private packs and rejects shared Colony v1", () => {
   assert.equal(packFromPath("/v1/survival/observe"), "survival");
   assert.equal(packFromPath("/v1/formations/command"), "formations");
   assert.equal(packFromPath("/v1/unknown/observe"), null);
@@ -105,4 +105,26 @@ test("public command body is strict and bounded before Region admission", async 
     }),
   });
   await assert.rejects(readCommand(large), /public-body-too-large/);
+});
+
+
+test("performance routes admit only finite presets and existing authenticated operations", () => {
+  const identities = new Set();
+  for (const size of [64, 128, 256, 512]) for (const workers of [4, 8, 16, 32, 50, 100, 200]) {
+    const pack = `colony-performance-${size}-${workers}`;
+    identities.add(packFromPath(`/v1/${pack}/observe`));
+    for (const operation of ["observe", "command", "connect", "socket/abc-123", "terrain", "placement"])
+      assert.equal(packFromPath(`/v1/${pack}/${operation}`), pack);
+  }
+  assert.equal(identities.size, 28, "presets retain distinct durable pack identities");
+  for (const pack of ["colony-performance-63-4", "colony-performance-64-3", "colony-performance-064-4", "colony-performance-64-04", "colony-performance-512-201", "colony-performance-64-4-extra"])
+    assert.equal(packFromPath(`/v1/${pack}/observe`), null);
+  for (const operation of ["step", "join", "debug", "terrain/extra", "socket/", "socket/a/b"])
+    assert.equal(packFromPath(`/v1/colony-performance-64-4/${operation}`), null);
+  for (const pack of ["survival", "pirates", "formations", "colony"])
+    for (const operation of ["terrain", "placement"])
+      assert.equal(packFromPath(`/v1/${pack}/${operation}`), null);
+  const request = (authorization: string) => new Request("https://demo.invalid/v1/colony-performance-64-4/terrain", { headers: { Authorization: authorization } });
+  assert.throws(() => tokenFromRequest(request("")), /public-unauthorized/);
+  assert.equal(tokenFromRequest(request(`Bearer ${token}`)), token);
 });
