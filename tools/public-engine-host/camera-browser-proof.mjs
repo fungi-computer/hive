@@ -17,6 +17,7 @@ const report={proof:"hosted-paused-camera",mode,url:url.href,startedAt:new Date(
 const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
 report.driverSha256=hash(await readFile(new URL(import.meta.url)));
 let browser, page, closing=false;
+report.terrainStream={patches:0,receivedBytes:0,firstPatchFromNavigationMs:null};
 report.lifecycle=[];const lifecycle=event=>report.lifecycle.push({event,at:new Date().toISOString(),expectedCleanup:closing});
 const percentile=(values,p)=>values.length?[...values].sort((a,b)=>a-b)[Math.min(values.length-1,Math.floor(values.length*p))]:null;
 try {
@@ -29,7 +30,18 @@ try {
  const browserWorkers=[],socketOrigins=[],bundleReads=[];
  page.on("response",response=>{if(new URL(response.url()).origin===url.origin && new URL(response.url()).pathname.endsWith(".js"))bundleReads.push(response.body().then(bytes=>({url:response.url(),sha256:hash(bytes)})));});
  page.on("worker",worker=>browserWorkers.push(worker.url()));
- page.on("websocket",socket=>socketOrigins.push(new URL(socket.url()).origin));
+ const networkStarted=performance.now();
+ page.on("websocket",socket=>{
+   socketOrigins.push(new URL(socket.url()).origin);
+   socket.on("framereceived",({payload})=>{
+     try {
+       const raw=typeof payload==="string"?payload:payload.toString("utf8"),message=JSON.parse(raw);
+       if(message.type!=="terrain-regions"||message.event?.kind!=="patch")return;
+       report.terrainStream.patches++;report.terrainStream.receivedBytes+=Buffer.byteLength(raw);
+       report.terrainStream.firstPatchFromNavigationMs??=performance.now()-networkStarted;
+     }catch(error){report.errors.push(`terrain WebSocket capture: ${error.message}`);}
+   });
+ });
  page.on("pageerror",error=>report.errors.push(error.message));
  page.on("crash",()=>{lifecycle("page.crash");report.errors.push("browser renderer process crashed");});
  await page.goto(url.href,{waitUntil:"domcontentloaded"});
@@ -55,7 +67,10 @@ try {
    const elapsedMs=performance.now()-started;
    const intervals=await page.evaluate(()=>{window.__cameraProofRunning=false;return window.__cameraProofFrames;});
    const after=await snapshot();
-   if(mode==="after"){assert(after.draw.spatialDraw.coverage.cachedChunks<=after.draw.spatialDraw.coverage.capacity,"terrain cache exceeded capacity");assert(after.draw.spatialDraw.cameraCoverage.withinPrepared,"visible viewport escaped prepared area");}
+   if(mode==="after"){const coverage=after.draw.spatialDraw.coverage;
+     assert(coverage.cachedRegions<=coverage.capacity,"terrain region count exceeded capacity");
+     assert(coverage.retainedBytes<=coverage.maxBytes,"terrain region payload exceeded byte budget");
+     assert(coverage.readyVisibleRegions<=coverage.visibleRegions);assert(coverage.readyRegions<=coverage.requestedRegions);assert(after.draw.spatialDraw.cameraCoverage.withinPrepared,"visible viewport escaped prepared area");}
    const counts=Object.fromEntries(Object.entries(after.draw.spatialDraw.counts).map(([key,value])=>[key,value-before.draw.spatialDraw.counts[key]]));
    const times=Object.fromEntries(Object.entries(after.draw.spatialDraw.times).map(([key,value])=>[key,value-before.draw.spatialDraw.times[key]]));
    const result={name,before,after,elapsedMs,frameIntervals:{samples:intervals.length,median:percentile(intervals,.5),p95:percentile(intervals,.95),max:Math.max(0,...intervals)},counts,times};report.phases.push(result);console.log(JSON.stringify({phase:name,staticRebuild:counts.staticRebuild,elapsedMs}));await writeFile(resolve(output,"PROGRESS.json"),JSON.stringify(report,null,2)+"\n");
@@ -83,6 +98,7 @@ try {
  report.servedJavaScript=await Promise.all(bundleReads);
  for(const key of ["x","y","zoom"])assert(Math.abs(report.final.draw.camera[key]-report.initial.draw.camera[key])<.001,`camera ${key} failed return`);
  assert.deepEqual(report.final.draw.view,report.initial.draw.view);
+ assert(report.terrainStream.patches>0,"no terrain region WebSocket patch was observed");
  assert.equal(report.errors.length,0,report.errors.join("; "));
  report.success=true;
 } catch(error){report.errors.push(error.stack??String(error));report.failureState=await page?.evaluate(()=>({body:document.body.innerText,draw:window.__HIVE_DRAW_DIAGNOSTICS?.()})).catch(()=>null);}

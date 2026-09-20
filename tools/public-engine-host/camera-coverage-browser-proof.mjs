@@ -9,7 +9,7 @@ const args=new Map();for(let i=2;i<process.argv.length;i+=2)args.set(process.arg
 const output=resolve(args.get("--output")??".botanical/camera-coverage-browser");
 const url=new URL("/engine/colony-performance.html",args.get("--base-url"));url.search="size=256&workers=8&diagnostics=draw";
 await mkdir(output,{recursive:true});
-const report={url:url.href,startedAt:new Date().toISOString(),errors:[],captureErrors:[],networkFailures:[],terrainReplies:[],success:false};
+const report={url:url.href,startedAt:new Date().toISOString(),errors:[],captureErrors:[],networkFailures:[],terrainPatches:[],terrainStream:{patches:0,receivedBytes:0,outside32Count:0,firstPatchFromNavigationMs:null},success:false};
 const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
 const checkpoint=async(stage)=>{report.stage=stage;await writeFile(resolve(output,"PROGRESS.json"),JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify({stage,output}));};
 let browser,page;
@@ -19,17 +19,30 @@ try{
  page.on("pageerror",error=>report.errors.push(error.message));
  page.on("crash",()=>report.errors.push("browser renderer crashed"));
  page.on("requestfailed",request=>report.networkFailures.push({url:new URL(request.url()).pathname,reason:request.failure()?.errorText}));
- const reads=[];page.on("response",response=>{if(new URL(response.url()).pathname.endsWith("/terrain"))reads.push(response.json().then(reply=>{
-   const summaries=(reply.chunks??[]).flatMap(chunk=>(chunk.surfaces??[]).filter(surface=>Math.abs(surface.cell[0])>32).map(surface=>({cell:surface.cell,cover:surface.cover})));
-   report.terrainReplies.push({status:response.status(),protocol:reply.protocol??reply.version,chunkCount:reply.chunks?.length,outside32Count:summaries.length,outside32Examples:summaries.slice(0,4)});
- }).catch(error=>report.captureErrors.push({path:new URL(response.url()).pathname,status:response.status(),failure:response.request().failure(),message:error.message})));});
+ const networkStarted=performance.now();
+ page.on("websocket",socket=>socket.on("framereceived",({payload})=>{
+   try {
+     const raw=typeof payload==="string"?payload:payload.toString("utf8"),message=JSON.parse(raw);
+     if(message.type!=="terrain-regions"||message.event?.kind!=="patch")return;
+     const {patch}=message.event;
+     const outside=patch.surfaces.filter(surface=>Math.abs(surface.cell[0])>32);
+     report.terrainStream.patches++;report.terrainStream.receivedBytes+=Buffer.byteLength(raw);
+     report.terrainStream.outside32Count+=outside.length;
+     report.terrainStream.firstPatchFromNavigationMs??=performance.now()-networkStarted;
+     report.terrainPatches.push({key:patch.key,requestId:message.event.requestId,terrainRevision:message.event.terrainRevision,
+       faceCount:patch.faces.length,outside32Count:outside.length,outside32Examples:outside.slice(0,4).map(({cell,cover})=>({cell,cover}))});
+     if(report.terrainPatches.length>120)report.terrainPatches.shift();
+   }catch(error){report.captureErrors.push({kind:"terrain-websocket",message:error.message});}
+ }));
  await page.goto(url.href,{waitUntil:"domcontentloaded"});await page.getByText("Online · server saved",{exact:true}).first().waitFor();
  await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS?.().frames>=20);
  await page.getByRole("button",{name:"Pause",exact:true}).click();await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS().paused);
  const settle=()=>page.waitForFunction(()=>{const c=window.__HIVE_DRAW_DIAGNOSTICS().spatialDraw.coverage;return c.demandComplete&&!c.pending;});
  await settle();const canvas=page.locator("canvas").first();await canvas.focus();const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
  const cdp=await page.context().newCDPSession(page);
- const budget=metrics=>{const m=metrics.meshes;assert(m,"mesh residency diagnostics missing");assert.equal(m.spareRecords,0);assert(m.spareMeshes<=m.limits.spareMeshes);assert(m.spareQuads<=m.limits.spareQuads);assert(metrics.coverage.cachedChunks<=metrics.coverage.capacity);};
+ const budget=metrics=>{const m=metrics.meshes;assert(m,"mesh residency diagnostics missing");assert.equal(m.spareRecords,0);assert(m.spareMeshes<=m.limits.spareMeshes);assert(m.spareQuads<=m.limits.spareQuads);const c=metrics.coverage;assert(c.cachedRegions<=c.capacity,"terrain region count exceeded capacity");
+   assert(c.retainedBytes<=c.maxBytes,"terrain region payload exceeded byte budget");
+   assert(c.readyVisibleRegions<=c.visibleRegions);assert(c.readyRegions<=c.requestedRegions);};
  const state=async()=>{const result={draw:await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS()),performance:await page.evaluate(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS()),heap:await cdp.send("Runtime.getHeapUsage")};budget(result.draw.spatialDraw);return result;};
  const pan=async(key,count)=>{await canvas.focus();for(let i=0;i<count;i++){await page.keyboard.press(key);await page.waitForTimeout(20);}};
  const capture=async(name)=>{await pan("ArrowRight",1);await pan("ArrowLeft",1);await settle();const scene=await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS({scene:true}));await writeFile(resolve(output,`${name}.scene.json`),JSON.stringify(scene));await canvas.screenshot({path:resolve(output,`${name}.png`)});};
@@ -82,11 +95,11 @@ try{
  for(const axis of ["x","y","zoom"])assert(Math.abs(report.returned.draw.camera[axis]-report.initial.draw.camera[axis])<.001);
  assert.deepEqual(report.returned.draw.view,report.initial.draw.view);
  await cdp.send("HeapProfiler.collectGarbage");report.afterGarbageCollection=await state();
- await Promise.all(reads);
  assert.equal(report.imageHashes.preZoom,report.imageHashes.initial,"return image differs before zoom after far cutaway restore");
  assert.equal(report.imageHashes.returned,report.imageHashes.initial,"return image differs after minimum zoom restore");
- assert(report.terrainReplies.some(reply=>reply.outside32Count>0),"no authoritative chunk reply contained far surface metadata");
- }else{await Promise.all(reads);report.smokeOnly=true;}
+ assert(report.terrainStream.outside32Count>0,"no authoritative region patch contained far surface metadata");
+ }else{report.smokeOnly=true;}
+ assert(report.terrainStream.patches>0,"no terrain region WebSocket patch was observed");
  assert.equal(report.errors.length,0,report.errors.join("; "));report.success=true;
 }catch(error){report.errors.push(error.stack??String(error));report.failureState=await page?.evaluate(()=>({body:document.body.innerText,draw:window.__HIVE_DRAW_DIAGNOSTICS?.()})).catch(()=>null);}
 finally{await browser?.close();report.finishedAt=new Date().toISOString();await writeFile(resolve(output,"REPORT.json"),JSON.stringify(report,null,2)+"\n");}
