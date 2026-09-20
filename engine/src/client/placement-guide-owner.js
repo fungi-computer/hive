@@ -1,10 +1,12 @@
 import { Graphics } from "pixi.js";
 import { drawPlacementGuideTile, placementGuideTiles } from "./placement-preview.js";
 
-/** Own the world-guide drawables, their invalidation, and their Pixi lifetime. */
+/** Own selected-plane UI guides and their Pixi lifetime. A selected plane may
+ * cross occupied space, so these displays belong to the preview overlay and
+ * never advertise physical ordering geometry or participate in picking. */
 export function createPlacementGuideOwner({ parent, project, createGraphic = () => new Graphics() } = {}) {
   if (!parent?.addChild || typeof project !== "function")
-    throw new Error("placement guide owner requires a world parent and projection");
+    throw new Error("placement guide owner requires an overlay parent and projection");
   let entries = new Map(), records = Object.freeze([]), identity, disposed = false;
 
   function clear() {
@@ -30,7 +32,10 @@ export function createPlacementGuideOwner({ parent, project, createGraphic = () 
       entry.display.clear();
       drawPlacementGuideTile(entry.display, tile, { status });
       nextEntries.set(tile.id, entry);
-      return Object.freeze({ ...tile, renderPass: "transparent", moving: true, display: entry.display });
+      entry.display.visible = true;
+      return Object.freeze({ id: tile.id, part: tile.part, role: "build-guide", presentation: "overlay",
+        cell: tile.cell, hovered: tile.hovered, isFootprint: tile.isFootprint,
+        visible: true, pickable: false, contains: () => false, display: entry.display });
     }));
     for (const [id, entry] of entries) if (!nextEntries.has(id))
       entry.display.destroy({ children: true, texture: false, textureSource: false });
