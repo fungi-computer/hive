@@ -33,7 +33,7 @@ try {
  await page.getByRole("button",{name:"Pause",exact:true}).click();
  await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS().paused);
  await page.waitForTimeout(5000);
- if(mode==="after")await page.waitForFunction(()=>{const coverage=window.__HIVE_DRAW_DIAGNOSTICS().spatialDraw.coverage;return coverage.demandComplete && !coverage.pending;},null,{timeout:120000});
+ await page.waitForFunction(()=>{const coverage=window.__HIVE_DRAW_DIAGNOSTICS().spatialDraw.coverage;return coverage.demandComplete && !coverage.pending;},null,{timeout:120000});
  const canvas=page.locator("canvas").first();
  const focus=async()=>{await canvas.focus();const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);};
  await focus();
