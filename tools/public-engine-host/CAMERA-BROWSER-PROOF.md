@@ -131,3 +131,23 @@ migration or silent world replacement was added. Frontend build is
 `.botanical/camera-engine-dist`, served on the existing Cloudflare tunnel.
 Hosted after-checks are pending; source and unit success alone do not qualify
 camera smoothness or returned art.
+
+First hosted after run (`96a97ca5`, backend version
+`d25d8e12-16d5-4934-8f64-3d6e7fc7eda8`) ran under `run-u2764.scope`, invocation
+`49429e38bd4048f49aa55961e74fa2a2`. Artifacts `.botanical/camera-browser-after`
+are preserved as failed v1 evidence. Initial coverage completed 759/759 chunks,
+within prepared padding128 and capacity2048. Upright grass was visually reviewed.
+Small pan performed **zero** static rebuild/order/topology/apply work; visual
+building totaled24.1ms. SwiftShader RAFp95 worsened to1849.8ms (idle1883.3ms), so
+this run does not establish improved frame performance. During the first long
+pan the browser/page closed unexpectedly; the driver exited1 before the ten
+minute guard. The cause was not established. No long-travel/return assertion is
+claimed from this run.
+
+Later driver snapshots additionally record CDP `Runtime.getHeapUsage` because
+`performance.memory` is coarse and can remain constant across phases. Browser
+renderer crashes are explicitly recorded. The focused
+`camera-coverage-browser-proof.mjs` supplements timing with actual chunk reply
+surface metadata, visible grass outside X±32, and exact top-face picking through
+read-only diagnostics after real pan inputs. It uses the same CLI base/output
+arguments and guarded browser environment, without a mode argument.
