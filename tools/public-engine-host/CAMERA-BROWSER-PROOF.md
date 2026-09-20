@@ -1,5 +1,12 @@
 # Hosted camera proof
 
+Accepted rendering source: `30ec8144`, frozen frontend
+`.botanical/camera-engine-v5-dist`, using the separate hosted DO performance
+backend. Both final hosted proofs passed with clean exit 0.
+[Live 256×256 preview](https://professor-findlaw-looks-atlas.trycloudflare.com/engine/colony-performance.html?size=256&workers=8).
+The current implementation and final receipts are recorded below; failed earlier
+runs remain as evidence of the defects corrected during acceptance.
+
 `camera-browser-proof.mjs` drives the real Colony performance page with keyboard,
 mouse-wheel and HUD controls. It does not install instrumentation in the engine,
 change camera state through diagnostics, start a simulation Worker or deploy a
@@ -60,8 +67,7 @@ image.
 
 The exploratory run preceded the driver's additional layer-cycle, explicit key
 movement assertions and served-bundle hashes. The final source-bound baseline
-uses `.botanical/camera-browser-before-final`; its receipt follows when complete.
-No after result is claimed yet.
+uses `.botanical/camera-browser-before-final`; its receipt follows below.
 
 
 Final baseline completed under guarded invocation
@@ -127,10 +133,10 @@ The separate test backend was updated to Cloudflare version
 `5dddf225bb6287de132f33fd2604e3a2ae37e54ea57f652f0beb638d1b540ff2`.
 The existing game backend was not deployed or reset. Test worlds from an older
 implementation may require the existing **New world** control; no old-format
-migration or silent world replacement was added. Frontend build is
-`.botanical/camera-engine-dist`, served on the existing Cloudflare tunnel.
-Hosted after-checks are pending; source and unit success alone do not qualify
-camera smoothness or returned art.
+migration or silent world replacement was added. The initial frontend build was
+`.botanical/camera-engine-dist`; subsequent frozen builds and hosted receipts are
+recorded below. Source and unit success alone do not qualify camera smoothness
+or returned art.
 
 First hosted after run (`96a97ca5`, backend version
 `d25d8e12-16d5-4934-8f64-3d6e7fc7eda8`) ran under `run-u2764.scope`, invocation
@@ -179,3 +185,143 @@ CDP used heap (MiB) across idle/small/east/return/north/return/zoom/layer/cutawa
 this timing workload. These samples show allocations and collection, not a low
 constant retained heap. Subsequent v3 verification checks explicit spare-mesh and
 buffer budgets, cleared spare record references, and heap after collection.
+
+
+V3 (`7ec6f92b`) added bounded idle mesh retention: at most 16 spare meshes
+and 16,000 spare quads (1,216,000 bytes of vertex/index buffer allocation
+requests), additionally constrained by the existing total mesh limit. Idle
+meshes release retired record references and reused geometry explicitly allows
+buffers to shrink. Integrated focused laws passed 29/29 (`run-u2780.scope`,
+`37a25b41b6574ff3955d3f93ef86d849`). Independent source review additionally found
+a fulfilled request Promise retaining its chunk snapshot after disposal;
+`d674ecaa` clears it. All eight cut-layer laws passed after that cleanup.
+
+The focused v3 hosted receipt (`run-u2782.scope`,
+`60a49d11094a4138b8cc635ab364b0fe`, `.botanical/camera-browser-v3-final`)
+exited 1 and is preserved as failed evidence. Small pan, far grass and picking,
+actual ground cut and minimum zoom passed: 366 visible distant top faces,
+458 distant cover records, and three exact picks outside X±32. The selected
+cell changed from [-33,19,24] to its cut cap [-33,18,24], with no cover above
+the cut. Minimum zoom loaded 1380 chunks; the cache held 1914, below 2048.
+
+The final screenshot hash differed after zoom return despite camera agreement
+within floating-point tolerance. Pixel analysis found 4124 differing pixels,
+740 excluding the outer one-pixel border. This does not establish a renderer
+cause: the proof did not yet separate pan/cut return from zoom return or
+normalize keyboard focus. Seven CDP response-body capture failures also occurred;
+these are recorded separately from the application's two failed HTTP requests.
+Subsequent proof captures normalized initial, pre-zoom and post-zoom images and
+scene records before making an acceptance claim.
+
+
+V4 (`d674ecaa`, guard `run-u2790.scope`,
+`45704c3f8b1c428ab54ed4bc76ac2c98`) used identical keyboard focus for each
+screenshot and captured ordered records before and after zoom. Artifacts are
+`.botanical/camera-browser-v4-diagnostic`; the strict post-zoom image gate
+exited 1. The image after distant travel/cut/return was byte-identical to the
+initial image. Minimum zoom and return left 738 interior pixels different,
+without any border difference. A captured grass/tree pair had byte-identical
+geometry but reversed paint order. Both upright pictures lie in the same plane;
+new offscreen dependencies can reverse a pair that has no explicit tie relation.
+This is a real ordering issue, not permission to relax the screenshot assertion.
+
+At v4 return, retained terrain used 60 active meshes, 29,541 quads and
+2,245,116 buffer-allocation bytes, with no spare meshes or retired records.
+The chunk cache held 1914/2048. JS heap after explicit collection was about
+195.5 MiB; this excludes GPU allocations and does not claim constant total
+browser memory. Canceled request/body-capture receipts are retained separately
+from page errors and successful authoritative terrain replies.
+
+
+The coplanar correction in `30ec8144` gives overlapping checked picture ink a
+stable pairwise tie. Uncovered coplanar terrain, disjoint opaque spans, touching
+edges and disjoint composite siblings preserve their previous independence.
+Both exact-plane shortcuts and tolerance-level plane ties share this rule;
+cycle recovery is unchanged. Thirty-eight focused ordering/scene/fixture laws
+passed in the isolated lane (`run-u2795.scope`,
+`f067e7d5b58b46ac89825c26304df83b`), including membership extension/removal
+and static/dynamic partition parity. A separate replay of the captured real
+tree/grass geometry confirmed the stable relation without approximation
+(`run-u2794.scope`, `8c947dfc1fd1466e954514217790b806`).
+
+Scope limits: crossing a coverage boundary, zooming out and changing cut layers
+still incur requests and scene preparation. A replacement demand is published
+once complete, while overlapping chunk data and face records are reused. The
+transform-only guarantee applies to ordinary panning inside the retained margin;
+it does not promise instant cold loading or constant cost for terrain edits.
+Unchanged actor records are retained individually, and chunk edits invalidate
+the affected columns and support neighbors. No hardware-FPS or worker-population
+capacity claim follows from these paused camera checks.
+
+
+## Final hosted acceptance
+
+The focused v5 run on `30ec8144` passed with clean terminal exit 0 under
+`run-u2797.scope` / `8e50c321a48d4140abb871426b48ed4b`. Complete receipt,
+exact driver, provenance, scene snapshots and screenshots are preserved in
+`.botanical/camera-browser-v5-final`. There were no page errors. Small pan
+performed zero static rebuilds. Actual DO replies supplied far surface/cover
+metadata; the browser displayed 366 distant top faces and 458 grass records,
+and three exact terrain picks matched. The actual cut cap at [-33,18,24]
+replaced the original ground cell with no grass above the cut.
+
+Initial, far-travel/cutaway return, and minimum-zoom return images are all
+byte-identical, SHA256
+`0dfdcfa88f89c5f8ed19e8011831e20f8157432e0b405745b71c343becde325e`.
+The source owner reviewed the final rendered art and the distant/cut screenshots.
+No original atlas pixels were regenerated. Six canceled-response capture
+failures are preserved separately; 238 successful chunk replies support the
+metadata checks, and each required view reached complete coverage.
+
+Cache residency was 759 initially, 1377 at the distant view and 1914 after
+minimum zoom, below capacity 2048. At the distant view, 16 spare meshes held
+7802 quads / 592952 buffer-allocation bytes and zero world-record references.
+At zoom return there were 59 active meshes, 29,541 quads, 2,245,116 active
+buffer-allocation bytes and zero spares. Explicitly collected JS heap was
+221.8 MiB. These measurements distinguish heap from buffer allocation requests;
+they do not measure driver-specific GPU overhead or promise a smaller constant
+heap regardless of visible coverage.
+
+
+The final same-workload timing run also passed with clean exit 0: nine phases,
+no errors, `run-u2799.scope` / `62ecdfa1445d412ea468e3ff73723a61`, artifacts
+`.botanical/camera-browser-after-v5`. Its `COMPARISON.json` records the baseline
+and final measurements; `source-provenance.json` and exact `driver.mjs` pin the
+served source and test. Both browser runs used the real hosted DO, paused
+authoritative simulation, the same 256×256/eight-worker preset, viewport and
+software-rendered Chromium environment.
+
+| Small-pan measurement | Baseline | Final v5 |
+| --- | ---: | ---: |
+| Static rebuilds | 3 | 0 |
+| Static preparation | 305.7 ms | 0 ms |
+| Cumulative visual building | 38.4 ms | 40.4 ms |
+| RAF median | 400 ms | 233.4 ms |
+| RAF p95 | 1166.6 ms | 316.6 ms |
+| Input phase duration | 24.27 s | 11.09 s |
+
+Final small pan also performed zero ordering/topology/application work. The
+separate cumulative visual-building cost did not improve; frame distributions
+include software rasterization and shared-host scheduling and are not hardware
+FPS claims. The renderer also preserves upright grass and trims only transparent
+quad padding, so this is an end-to-end implementation comparison rather than an
+isolated attribution to camera retention.
+
+All four long-travel legs settled with complete coverage. The cache reached
+2048/2048 and stayed bounded. Final meshes returned to 55 active / 17,303 quads /
+1,315,028 buffer-allocation bytes, with zero spares. Initial and final canvas
+images were byte-identical, SHA256
+`cf754bdf439e1884f641db8d93ba54a2c605302641930fa9d0abb8bedb5ef061`.
+Boundary preparation and cutaway remain measurable work; for example the
+cutaway-return phase performed two rebuilds and had a 2183.2 ms RAF p95 on this
+software renderer. That cost is not part of the transform-only pan guarantee.
+
+Completion evidence covers camera retention and incremental chunk reuse,
+individual actor-record reuse, camera-driven authoritative far terrain/cover,
+full/short cover changes, exact face picking and cut caps, all four projection
+turns in focused laws, minimum zoom and pixel-identical returns, bounded cache/
+mesh/buffer ownership, disposal, and before/after hosted measurements. No new
+rotation controls, native mowing operation, renderer replacement, main merge or
+existing-game backend deployment was introduced. The human-facing Vite preview
+and Cloudflare tunnel remain running; old test identities can use **New world**
+if they predate the separate backend's current implementation.

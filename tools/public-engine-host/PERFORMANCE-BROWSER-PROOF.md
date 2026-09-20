@@ -22,10 +22,13 @@ not server CPU time. Workers clocks do not advance during synchronous CPU work;
 CPU requires Cloudflare platform telemetry and is explicitly unavailable here.
 
 The current workload has 50 finite tree jobs (six wood per tree), concentrated
-in the central 57×57 columns. Surface/grass observations remain bounded to the
-central 64×64, even when generated world bounds are larger. Neither 512-square
-bounds nor a 200-worker selection proves full-world exploration or 200 workers
-simultaneously doing useful work. Those are separate workload/streaming outcomes.
+in the central 57×57 columns. Ordinary observations remain central; bounded
+camera-driven chunk requests now supply authoritative terrain and grass across
+the selected generated bounds. The [retained camera proof](CAMERA-BROWSER-PROOF.md)
+records hosted exploration beyond the old 64×64 window, cutaway/picking,
+pan/zoom return, residency limits and before/after rendering measurements.
+A 200-worker selection still does not prove 200 workers simultaneously doing
+useful work; the finite central workload is unchanged.
 
 ## Browser proof
 
