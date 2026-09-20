@@ -8,7 +8,7 @@ const shifted = x => ({ ...view, left: view.left + x, right: view.right + x });
 test("camera hysteresis retains demand across small pans and zoom-in, then replaces at the margin", () => {
   const owner = createCameraCoverageOwner();
   let calls = 0;
-  const plan = rect => ({ kind: "ready", chunks: [[++calls, 0, 0]], rect });
+  const plan = rect => ({ kind: "ready", regions: [[++calls, 0, 0]], rect });
   const first = owner.update(view, "epoch1/turn0/level2", plan);
   assert.deepEqual(first.rect, { left: -128, right: 528, top: -128, bottom: 428 });
   assert.strictEqual(owner.update(shifted(72), "epoch1/turn0/level2", plan), first);
@@ -27,7 +27,7 @@ test("camera hysteresis retains demand across small pans and zoom-in, then repla
 
 test("zoom-out padding adapts to the fixed budget and rejects an oversized visible view", () => {
   const owner = createCameraCoverageOwner();
-  const plan = rect => rect.right - rect.left > 470 ? { kind: "view-budget", limit: 12 } : { kind: "ready", chunks: [] };
+  const plan = rect => rect.right - rect.left > 470 ? { kind: "view-budget", limit: 12 } : { kind: "ready", regions: [] };
   assert.equal(owner.update(view, "1", plan).kind, "ready");
   assert.equal(owner.snapshot().padding, 32);
   assert.equal(owner.update({ ...view, right: 800 }, "1", plan).kind, "view-budget");

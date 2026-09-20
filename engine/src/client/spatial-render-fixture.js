@@ -1,10 +1,11 @@
+import { fixtureTerrainFaces } from "./terrain-fixture-coverage.js";
 import { camera } from "../../../src/art/prop-camera.js";
 import { building } from "../../../src/art/home.js";
 import { figure } from "../../../src/art/figures.js";
 import { edgeWallSegment } from "../../../src/art/edge-wall.js";
 import { captureVisualVolume, translateVisualVolume } from "../../../src/art/ordering-geometry.js";
 import { createOrderingProjection } from "./ordering-projection.js";
-import { materialCoverage, terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
+import { terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { createVisibleHitArea } from "../../../src/visual-hit-geometry.js";
 import { uprightDrawGeometry } from "./upright-draw-geometry.js";
@@ -28,9 +29,9 @@ function snapshot() {
     const height=x===5&&z===2?2:1;
     columns.push({x,z,runs:[{minY:0,maxY:height,material:1},{minY:height,maxY:8,material:0}]});
   }
-  return materialCoverage({chunks:[{key:[0,0,0],min:[0,0,0],max:[8,8,8],columns}],
+  return {chunks:[{key:[0,0,0],min:[0,0,0],max:[8,8,8],columns}],
     palette:[{slot:0,solid:false},{slot:1,solid:true,art:"earth"}],
-    bounds:{minX:0,maxX:8,minY:0,maxY:8,minZ:0,maxZ:8},verticalMetres:h,variantSeed:1,epoch:1,terrainRevision:1});
+    bounds:{minX:0,maxX:8,minY:0,maxY:8,minZ:0,maxZ:8},verticalMetres:h,variantSeed:1,epoch:1,terrainRevision:1};
 }
 
 /** Small source-backed scene for the replacement core. No simulation effects,
@@ -48,7 +49,7 @@ export function createSpatialRenderFixture({art,terrainPack,turn=0,walk=0,mown=f
     spans: Array.from({ length: 64 }, () => [24, 39]).flat() }, { x: .5, y: .5 });
   const appearance=createTerrainFaceAppearance({pack:terrainPack??{
     body:()=>({texture:null,uvs:[0,0,0,1,1,1,1,0]}),cover:()=>({texture:null,uvs:[0,0,0,1,1,1,1,0],hitArea})},turn});
-  const terrain=terrainFaceRecords(snapshot(),{level:1,projection,appearance})
+  const terrain=terrainFaceRecords(fixtureTerrainFaces(snapshot(),1),{projection,appearance})
     .map(record=>({...record,orderGeometry:{kind:"face",points:record.planarCorners}}));
   const surfaces=[];
   for(let x=0;x<8;x++)for(let z=0;z<8;z++) {

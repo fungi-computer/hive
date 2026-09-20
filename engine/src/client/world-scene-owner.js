@@ -83,10 +83,13 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
       const coverage = terrain.coverage;
       return { ...ordering.metrics(), meshes: terrain.meshMetrics, visualBuild: { frames, unchangedFrames, totalMs: buildMs },
         cameraCoverage: terrain.cameraCoverage,
-        coverage: { capacity: coverage.capacity, epoch: coverage.epoch, terrainRevision: coverage.terrainRevision,
-          demandComplete: coverage.demandComplete, viewBudget: coverage.viewBudget,
-          requestedChunks: coverage.coverage.length, readyChunks: coverage.coverage.filter(item => item.status === "ready").length,
-          retainedChunks: coverage.chunks.length, cachedChunks: coverage.cachedChunks, pending: coverage.pending }, primitives: records.length };
+        coverage: { capacity:coverage.capacity, maxBytes:coverage.maxBytes, retainedBytes:coverage.retainedBytes,
+          epoch:coverage.epoch, terrainRevision:coverage.terrainRevision, level:coverage.level,
+          visibleComplete:coverage.visibleComplete, demandComplete:coverage.demandComplete, viewBudget:coverage.viewBudget, error:coverage.error,
+          visibleRegions:coverage.coverage.filter(item=>item.visible).length,
+          readyVisibleRegions:coverage.coverage.filter(item=>item.visible && item.status==="ready").length,
+          requestedRegions:coverage.coverage.length, readyRegions:coverage.patches.length,
+          cachedRegions:coverage.cachedRegions, pending:coverage.pending, loading:coverage.loading }, primitives: records.length };
     },
     snapshot: () => records.map(({ id, part, screenBounds, orderGeometry, support, cell, pickable, role }) =>
       ({ id, part, screenBounds, orderGeometry, support, cell, pickable, role })),

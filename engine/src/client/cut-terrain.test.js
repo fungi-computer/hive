@@ -1,3 +1,4 @@
+import { materialCoverage, fixtureTerrainFaces } from "./terrain-fixture-coverage.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Texture } from "pixi.js";
@@ -6,7 +7,7 @@ import { createOrderingProjection } from "./ordering-projection.js";
 import { compileSpatialDrawOrder } from "./spatial-draw-order.js";
 import { pickVoxelDrawRecord } from "./voxel-draw-picking.js";
 import { stableKey } from "./draw-record-facts.js";
-import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks, projectedBounds } from "./terrain-visibility.js";
+import { terrainCoverRecords, terrainFaceRecords, visibleTerrainRegions, projectedBounds } from "./terrain-visibility.js";
 import { terrainBatchPlan, createTerrainBatchMeshes } from "./terrain-face-batches.js";
 
 const h = 0.54;
@@ -27,7 +28,7 @@ function fixture(sample, selectedBounds = bounds) {
   }
   return {chunks:[...chunks.values()],palette,bounds:selectedBounds,verticalMetres:h,epoch:1,terrainRevision:2};
 }
-const faces = (data, level, view=projection) => terrainFaceRecords(materialCoverage(data),{level,projection:view,appearance})
+const faces = (data, level, view=projection) => terrainFaceRecords(fixtureTerrainFaces(data,level),{projection:view,appearance})
   .map(record=>({...record,orderGeometry:{kind:"face",points:record.planarCorners}}));
 const has = (records,cell,face) => records.find(record=>record.cell.join(",")===cell.join(",")&&record.face===face);
 function actor(id,x,y,z,height=32) {
@@ -158,11 +159,11 @@ test("dual-grid covers derive stable masks from explicit same-level surface fact
     "cover order retains canonical support cells independent of face culling");
 });
 
-test("chunk demand includes deep visible levels and halo, with explicit view-budget rejection",()=>{
+test("region demand covers deep world prisms without vertical keys and rejects oversized views",()=>{
   const request={bounds:{minX:-32,maxX:32,minY:-72,maxY:8,minZ:-32,maxZ:32},level:0,verticalMetres:h,projection,viewport:{left:200,right:440,top:100,bottom:300},padding:16};
-  const result=visibleTerrainChunks(request);
+  const result=visibleTerrainRegions(request);
   assert.equal(result.kind,"ready");
-  assert(result.chunks.some(key=>key[1]<=-6),"no fixed lower depth window");
-  assert(result.chunks.some(key=>key[1]===0),"cut halo remains present");
-  assert.deepEqual(visibleTerrainChunks({...request,limit:1}),{kind:"view-budget",limit:1});
+  assert(result.regions.length>0);
+  assert(result.regions.every(key=>key.length===2),"no vertical request keys");
+  assert.deepEqual(visibleTerrainRegions({...request,limit:1}),{kind:"view-budget",limit:1});
 });

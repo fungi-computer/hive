@@ -1,9 +1,9 @@
 import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { createCameraCoverageOwner } from "./camera-coverage-owner.js";
-import { createTerrainChunkCache, TERRAIN_CHUNK_CACHE_CAPACITY } from "./terrain-chunk-cache.js";
+import { createTerrainRegionCache, TERRAIN_REGION_CACHE_CAPACITY } from "./terrain-region-cache.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { createTerrainBatchMeshes } from "./terrain-face-batches.js";
-import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks } from "./terrain-visibility.js";
+import { terrainCoverRecords, terrainFaceRecords, visibleTerrainRegions, prioritizeTerrainRegions } from "./terrain-visibility.js";
 import { reconcileWaterSprites, waterCellKey } from "./water-sprite-reconciler.js";
 import { project } from "./geometry.js";
 
@@ -58,7 +58,14 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
   const container = new Container();
   container.eventMode = "none";
   container.sortableChildren = true;
-  const cache = createTerrainChunkCache({ runtime });
+  let coverageQueued = false, coverageAnimation;
+  const cache = createTerrainRegionCache({ runtime, onChange() {
+    if (coverageQueued) return;
+    coverageQueued = true;
+    const publish = () => { coverageQueued = false; coverageAnimation = undefined; if (!disposed) onCoverage?.({ kind:"ready" }); };
+    if (globalThis.requestAnimationFrame) coverageAnimation = globalThis.requestAnimationFrame(publish);
+    else queueMicrotask(publish);
+  } });
   const cameraCoverage = createCameraCoverageOwner();
   let appearance, terrainArt;
   const batches = createTerrainBatchMeshes({ parent: container });
@@ -66,11 +73,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
   let waterEntries = new Map(), waterRecordEntries = new Map(), waterRecords = [];
   let frame, epoch, level, records = [], disposed = false, recordRevision = 0;
   let retainedRecords = Object.freeze([]);
-  let lastPlan, demandIdentity, coverageIdentity, terrainContext, observedService, reportedBudget;
+  let coverageIdentity, reportedBudget;
   let surfaceIdentity;
   let presentedSurfaces = [], exposedFaces = [], presentedFrame, presentedSource;
-  const faceChunks = new Map();
-  let coverEntries = new Map();
+  const regionEntries = new Map();
 
   function installArt(pack) {
     if (disposed || terrainArt) throw new Error("terrain art can only be installed once");
@@ -92,9 +98,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     epoch = nextEpoch;
     surfaceIdentity = frameValue ? JSON.stringify(frameValue.surfaces) : undefined;
     if (!frameValue) {
-      cameraCoverage.reset(); faceChunks.clear(); coverEntries.clear(); coverageIdentity = undefined; terrainContext = undefined; demandIdentity = undefined; lastPlan = undefined;
-      waterRecordEntries.clear(); presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
-      publishRecords([], []);
+      cameraCoverage.reset(); cache.clear(); regionEntries.clear(); coverageIdentity = undefined; reportedBudget = undefined;
+      waterRecordEntries.clear(); presentedSurfaces = []; exposedFaces = []; presentedFrame = presentedSource = undefined;
+      for (const entry of waterEntries.values()) entry.sprite.destroy();
+      waterEntries.clear(); publishRecords([], []);
       batches.update([]); container.visible = false; return;
     }
     cache.updateFrame({ epoch: nextEpoch, terrain: frameValue });
@@ -106,129 +113,71 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     container.position.set(camera.x, camera.y);
     container.scale.set(camera.zoom);
     level = view.cutaway ? view.level : frame.baseline.bounds.maxY - 1;
-    const nextTerrainContext = `${epoch}:${frame.revision}:${level}`;
-    if (terrainContext !== undefined && terrainContext !== nextTerrainContext) {
-      // A previous cut or terrain revision cannot stand in for an incomplete
-      // replacement view: its caps and cover may now be inside solid ground.
-      terrainContext = undefined;
-      presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
-      coverageIdentity = undefined;
-      publishRecords([], []);
-      batches.update([]);
-    }
-    const viewport = { left: -camera.x / camera.zoom, right: (screen.width - camera.x) / camera.zoom,
-      top: -camera.y / camera.zoom, bottom: (screen.height - camera.y) / camera.zoom };
+    const viewport = { left:-camera.x/camera.zoom, right:(screen.width-camera.x)/camera.zoom,
+      top:-camera.y/camera.zoom, bottom:(screen.height-camera.y)/camera.zoom };
     const planned = cameraCoverage.update(viewport, `${epoch}:${level}:${viewTurn}`, prepared =>
-      visibleTerrainChunks({ bounds: frame.baseline.bounds, level,
-        verticalMetres: frame.baseline.verticalMetres, projection, viewport: prepared, limit: TERRAIN_CHUNK_CACHE_CAPACITY }));
+      visibleTerrainRegions({ bounds:frame.baseline.bounds, level, verticalMetres:frame.baseline.verticalMetres,
+        projection, viewport:prepared, limit:TERRAIN_REGION_CACHE_CAPACITY }));
     if (planned.kind === "view-budget") {
       const budgetId = `${epoch}:${level}:${viewport.left}:${viewport.right}:${viewport.top}:${viewport.bottom}`;
       if (reportedBudget !== budgetId) {
         reportedBudget = budgetId;
-        // Discarding the presented scene also invalidates its publication key.
-        // A return to the same resident demand must republish those faces.
-        coverageIdentity = undefined;
-        terrainContext = undefined;
-        presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
-        publishRecords([], []);
-        queueMicrotask(() => { if (!disposed) onCoverage?.({ kind: "view-budget", limit: planned.limit }); });
+        cache.updateDemand({ regions:[], level });
+        coverageIdentity = undefined; presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
+        publishRecords([], []); batches.update([]);
+        queueMicrotask(() => { if (!disposed) onCoverage?.({ kind:"view-budget", limit:planned.limit }); });
       }
       return;
     }
     reportedBudget = undefined;
-    if (lastPlan !== planned) {
-      lastPlan = planned;
-      const nextDemand = planned.chunks.map(key => key.join(",")).join(";");
-      if (nextDemand !== demandIdentity) {
-        demandIdentity = nextDemand;
-        cache.updateDemand(planned.chunks);
-      }
-    }
+    cache.updateDemand({ ...prioritizeTerrainRegions(planned, viewport), level });
     const snapshot = cache.snapshot();
-    if (!snapshot.demandComplete && !snapshot.viewBudget) {
-      const beforeReady = snapshot.coverage.filter(item => item.status === "ready").length;
-      const requestedDemand = demandIdentity;
-      const service = cache.service();
-      if (service !== observedService) {
-        observedService = service;
-        void service.then(next => {
-          if (!disposed && (requestedDemand !== demandIdentity ||
-            next.coverage.filter(item => item.status === "ready").length > beforeReady))
-            onCoverage?.({ kind: "ready" });
-        }, error => { if (!disposed) onCoverage?.({ kind: "error", error }); });
-      }
-    }
-    if (!snapshot.demandComplete) return;
-    if (snapshot.chunks.length === 0) {
-      if (records.length || presentedSurfaces.length) {
-        coverageIdentity = undefined;
-        presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
-        publishRecords([], waterRecords);
-      }
-      return;
-    }
-    if (!appearance) throw new Error("cut terrain art is not installed");
-    if (coverageIdentity?.epoch === snapshot.epoch && coverageIdentity.revision === snapshot.terrainRevision &&
-        coverageIdentity.level === level && coverageIdentity.demand === demandIdentity && coverageIdentity.surfaces === surfaceIdentity) return;
-    const surfacesByColumn = new Map(snapshot.chunks.flatMap(chunk => chunk.surfaces).map(surface =>
-      [`${surface.cell[0]},${surface.cell[2]}`, surface]));
-    // Current observed facts can change appearance without a voxel edit (mowing).
-    // They override the corresponding streamed column, never synthesize cover.
-    for (const surface of frame.surfaces) surfacesByColumn.set(`${surface.cell[0]},${surface.cell[2]}`, surface);
-    const surfaces = [...surfacesByColumn.values()];
-    const generatedTops = new Map(surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface.generatedTop]));
-    const coverage = materialCoverage({ chunks: snapshot.chunks, palette: snapshot.baseline.materials,
-      bounds: snapshot.baseline.bounds, verticalMetres: snapshot.baseline.verticalMetres,
-      variantSeed: snapshot.baseline.variantSeed,
-      epoch: snapshot.epoch, terrainRevision: snapshot.terrainRevision });
+    // Requests may finish before the checked atlas is installed. Keep those
+    // patches resident and publish them once appearance is ready.
+    if (!appearance) return;
+    if (coverageIdentity?.publication === snapshot.publication && coverageIdentity.surfaces === surfaceIdentity) return;
+    const overrides = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`,surface]));
     const paletteSignature = JSON.stringify(snapshot.baseline.materials);
-    const chunksById = new Map(snapshot.chunks.map(chunk => [chunk.key.join(","), chunk]));
-    const nextFaceChunks = new Map();
-    const nextRecords = [];
-    for (const chunk of snapshot.chunks) {
-      const id = chunk.key.join(",");
-      const neighbors = [[0,0,0],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]
-        .map(([x,y,z]) => chunksById.get([chunk.key[0]+x,chunk.key[1]+y,chunk.key[2]+z].join(",")));
-      const tops = chunk.columns.map(column => generatedTops.get(`${column.x},${column.z}`));
-      const previous = faceChunks.get(id);
-      const same = previous && previous.level === level && previous.variantSeed === coverage.variantSeed
-        && previous.verticalMetres === coverage.verticalMetres && previous.paletteSignature === paletteSignature
-        && neighbors.every((neighbor, index) => previous.neighbors[index] === neighbor)
-        && tops.every((top, index) => previous.tops[index] === top);
-      const faces = same ? previous.faces : terrainFaceRecords({ ...coverage, chunks: [chunk] },
-        { level, projection, appearance, generatedTops });
-      nextFaceChunks.set(id, { level, variantSeed: coverage.variantSeed,
-        verticalMetres: coverage.verticalMetres, paletteSignature,
-        neighbors, tops, faces });
-      nextRecords.push(...faces);
+    const nextEntries = new Map(), nextRecords = [], generatedTops = new Map();
+    for (const patch of snapshot.patches) {
+      const id = patch.key.join(","), previous = regionEntries.get(id);
+      const tops = new Map(patch.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`,surface.generatedTop]));
+      for (const [column,top] of tops) generatedTops.set(column,top);
+      const sameBody = previous?.patch === patch && previous.paletteSignature === paletteSignature &&
+        previous.verticalMetres === snapshot.baseline.verticalMetres && previous.variantSeed === snapshot.baseline.variantSeed;
+      const body = sameBody ? previous.body : terrainFaceRecords({ faces:patch.faces, palette:snapshot.baseline.materials,
+        verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }, { projection, appearance, generatedTops:tops });
+      // Only returned support columns are eligible. Observations replace current
+      // cover facts on those columns; they never invent support in unknown space.
+      const surfaces = patch.surfaces.map(surface => overrides.get(`${surface.cell[0]},${surface.cell[2]}`) ?? surface);
+      const coverSignature = JSON.stringify(surfaces);
+      let cover = sameBody && previous.coverSignature === coverSignature ? previous.cover : undefined;
+      if (!cover) {
+        const bounds = patch.bounds, world = snapshot.baseline.bounds;
+        const minX = bounds.minX - Number(bounds.minX === world.minX);
+        const minZ = bounds.minZ - Number(bounds.minZ === world.minZ);
+        const previousCover = new Map((previous?.cover ?? []).map(record => [record.id,record]));
+        cover = terrainCoverRecords(surfaces, { level, projection, appearance,
+          verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }).filter(record => {
+          const root = record.attachment.point;
+          return root.x-.5 >= minX && root.x-.5 < bounds.maxX && root.z-.5 >= minZ && root.z-.5 < bounds.maxZ;
+        }).map(record => {
+          const old = previousCover.get(record.id);
+          return old?.mask === record.mask && old.terrainBatch === record.terrainBatch ? old : record;
+        });
+      }
+      nextEntries.set(id,{patch,body,cover,coverSignature,paletteSignature,
+        verticalMetres:snapshot.baseline.verticalMetres,variantSeed:snapshot.baseline.variantSeed});
+      nextRecords.push(...body,...cover);
     }
-    faceChunks.clear();
-    for (const [id, entry] of nextFaceChunks) faceChunks.set(id, entry);
-    const supportedCover = surfaces.filter(surface => {
-      const ground = coverage.sample(surface.cell);
-      const air = coverage.sample([surface.cell[0], surface.cell[1] + 1, surface.cell[2]]);
-      return ground.kind === "known" && ground.solid && air.kind === "known" && !air.solid;
-    });
-    const nextCoverEntries = new Map();
-    for (const record of terrainCoverRecords(supportedCover, { level, projection, appearance,
-      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed })) {
-      const previous = coverEntries.get(record.id);
-      const retained = previous && previous.mask === record.mask && previous.terrainBatch === record.terrainBatch
-        ? previous : record;
-      nextCoverEntries.set(record.id, retained); nextRecords.push(retained);
-    }
-    coverEntries = nextCoverEntries;
-    // Picking follows the exact accepted top faces, including cut caps. Cover
-    // still requires real solid/air support above; a cap never grows grass.
-    const nextExposedFaces = nextRecords.filter(record => record.role === "terrain");
-    if (nextExposedFaces.length !== exposedFaces.length || nextExposedFaces.some((record, index) => record !== exposedFaces[index]))
-      exposedFaces = nextExposedFaces;
-    presentedSurfaces = exposedFaces.filter(record => record.face === "top")
-      .map(record => ({ cell: record.cell, material: record.material,
-        generatedTop: generatedTops.get(`${record.cell[0]},${record.cell[2]}`) }));
+    regionEntries.clear();
+    for (const [id,entry] of nextEntries) regionEntries.set(id,entry);
+    const nextExposed = nextRecords.filter(record => record.role === "terrain");
+    if (nextExposed.length !== exposedFaces.length || nextExposed.some((record,index)=>record!==exposedFaces[index])) exposedFaces = nextExposed;
+    presentedSurfaces = exposedFaces.filter(record=>record.face==="top").map(record=>({cell:record.cell,material:record.material,
+      generatedTop:generatedTops.get(`${record.cell[0]},${record.cell[2]}`)}));
     presentedFrame = undefined;
-    coverageIdentity = { epoch: snapshot.epoch, revision: snapshot.terrainRevision, level, demand: demandIdentity, surfaces: surfaceIdentity };
-    terrainContext = nextTerrainContext;
+    coverageIdentity = { publication:snapshot.publication, surfaces:surfaceIdentity };
     publishRecords(nextRecords, waterRecords);
   }
 
@@ -270,7 +219,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       projection = nextProjection; viewTurn = turn;
       appearance = terrainArt ? createTerrainFaceAppearance({ pack: terrainArt, turn }) : undefined;
       cameraCoverage.reset(); presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
-      coverageIdentity = undefined; terrainContext = undefined; faceChunks.clear(); coverEntries.clear(); waterRecordEntries.clear();
+      coverageIdentity = undefined; regionEntries.clear(); waterRecordEntries.clear();
       publishRecords([], []);
       batches.update([]);
     },
@@ -282,7 +231,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       return Object.freeze({ revision: recordRevision, records: retainedRecords });
     },
     applyOrder: ordered => batches.update(ordered),
-    get coverage() { return cache.snapshot(); },
+    get coverage() {
+      const snapshot = cache.snapshot();
+      return reportedBudget === undefined ? snapshot : Object.freeze({ ...snapshot, viewBudget:true, visibleComplete:false, demandComplete:false });
+    },
     get meshMetrics() { return batches.metrics(); },
     get cameraCoverage() { return cameraCoverage.snapshot(); },
     get presentedTerrain() {
@@ -295,13 +247,14 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     },
     dispose() {
       if (disposed) return;
-      disposed = true; cameraCoverage.reset(); cache.dispose(); batches.dispose(); terrainArt?.dispose();
+      disposed = true; if (coverageAnimation !== undefined) globalThis.cancelAnimationFrame?.(coverageAnimation);
+      coverageAnimation = undefined; coverageQueued = false; cameraCoverage.reset(); cache.dispose(); batches.dispose(); terrainArt?.dispose();
       for (const entry of waterEntries.values()) entry.sprite.destroy();
-      waterEntries.clear(); waterRecordEntries.clear(); faceChunks.clear(); coverEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = []; retainedRecords = Object.freeze([]);
+      waterEntries.clear(); waterRecordEntries.clear(); regionEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = []; retainedRecords = Object.freeze([]);
       frame = undefined; terrainArt = undefined; appearance = undefined;
       presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined; presentedSource = undefined;
       // A fulfilled service promise retains its chunk snapshot until released.
-      observedService = lastPlan = demandIdentity = coverageIdentity = terrainContext = surfaceIdentity = reportedBudget = undefined;
+      coverageIdentity = surfaceIdentity = reportedBudget = undefined;
       epoch = level = undefined;
     },
   });
