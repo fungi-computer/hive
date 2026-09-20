@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createTerrainProjectionCache, createWorldView, displayedTerrain, projectWorldFact, setTerrainLevelRange, setWorldViewLevel, terrainLevelRange, toggleWorldCutaway } from "./world-view.js";
 import { eligibleSelectedIds, selectionFromSubjects } from "./controls.js";
-import { surfaceSubjectFromOrdered } from "./isometric-sorter.js";
+import { surfaceSubjectFromOrdered } from "./draw-record-facts.js";
 
 test("world view honors its supplied signed range", () => {
   const view = createWorldView({ range: { min: -2, max: 3 }, level: 0 });

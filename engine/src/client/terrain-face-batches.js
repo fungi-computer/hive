@@ -1,5 +1,5 @@
 import { Mesh, MeshGeometry } from "pixi.js";
-import { stableKey } from "./isometric-sorter.js";
+import { stableKey } from "./draw-record-facts.js";
 
 const MAX_QUADS = 16000;
 const compatible = (a, b) => a.texture.source === b.texture.source && a.blendMode === b.blendMode && a.state === b.state;

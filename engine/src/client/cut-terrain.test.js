@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { Texture } from "pixi.js";
 import { camera as artCamera } from "../../../src/art/prop-camera.js";
 import { createOrderingProjection } from "./ordering-projection.js";
-import { createIsometricSorter, pickFromOrdered, stableKey } from "./isometric-sorter.js";
+import { compileSpatialDrawOrder } from "./spatial-draw-order.js";
+import { pickVoxelDrawRecord } from "./voxel-draw-picking.js";
+import { stableKey } from "./draw-record-facts.js";
 import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks, projectedBounds } from "./terrain-visibility.js";
 import { terrainBatchPlan, createTerrainBatchMeshes } from "./terrain-face-batches.js";
 
@@ -25,11 +27,12 @@ function fixture(sample, selectedBounds = bounds) {
   }
   return {chunks:[...chunks.values()],palette,bounds:selectedBounds,verticalMetres:h,epoch:1,terrainRevision:2};
 }
-const faces = (data, level, view=projection) => terrainFaceRecords(materialCoverage(data),{level,projection:view,appearance});
+const faces = (data, level, view=projection) => terrainFaceRecords(materialCoverage(data),{level,projection:view,appearance})
+  .map(record=>({...record,orderGeometry:{kind:"face",points:record.planarCorners}}));
 const has = (records,cell,face) => records.find(record=>record.cell.join(",")===cell.join(",")&&record.face===face);
 function actor(id,x,y,z,height=32) {
   const p=projection.project({x,y,z});
-  return {id,role:"actor",orderingKind:"compact",footprint:[{x,y,z}],screenBounds:{left:p.x-5,right:p.x+5,top:p.y-height,bottom:p.y},moving:true,pickable:true,contains:point=>point.x>=p.x-5&&point.x<=p.x+5&&point.y>=p.y-height&&point.y<=p.y};
+  return {id,orderGeometry:{kind:"volume",min:{x:x-.15,y,z:z-.15},max:{x:x+.15,y:y+height/32,z:z+.15}},supportY:y,role:"actor",orderingKind:"compact",footprint:[{x,y,z}],screenBounds:{left:p.x-5,right:p.x+5,top:p.y-height,bottom:p.y},moving:true,pickable:true,contains:point=>point.x>=p.x-5&&point.x<=p.x+5&&point.y>=p.y-height&&point.y<=p.y};
 }
 
 test("flat, deep pit, cave cap, lake bed, material palette and unknown halo share cell faces",()=>{
@@ -74,31 +77,29 @@ test("ray ordering ignores terrain role/storey precedence and shares logical fac
   const data=fixture((x,y,z)=>y<=-1?12:7);
   const ground=has(faces(data,0),[0,-1,0],"top");
   const tall=actor("tall",0,-0.5*h,0,48),short=actor("short",2,-0.5*h,2,24);
-  const sorter=createIsometricSorter({projection});
-  const ordered=sorter.order([tall,ground,short]);
+  const order=records=>compileSpatialDrawOrder(records,{projection}).records;
+  const ordered=order([tall,ground,short]);
   assert(ordered.indexOf(ordered.find(r=>r.id===ground.id))<ordered.indexOf(ordered.find(r=>r.id==="tall")));
   const behind=actor("buried",-1,-2,-1,4);
   // A nearer face occludes an actor even when that actor advertises a high band.
   const plane=has(faces(fixture((x,y,z)=>y<=0?12:7),1),[0,0,0],"top");
   const center=projection.project({x:0,y:0.5*h,z:0});
   const buried={...behind,storeyBand:100,screenBounds:{left:center.x-2,right:center.x+2,top:center.y-2,bottom:center.y+2}};
-  const occlusion=sorter.order([plane,buried]);
+  const occlusion=order([plane,buried]);
   assert.equal(occlusion.at(-1).id,plane.id);
-  assert.equal(pickFromOrdered(occlusion,occlusion.filter(r=>r.contains?.(center)||r.id==="buried")).occluded,true);
-  const first=sorter.order([ground,tall]).map(stableKey);
-  assert.deepEqual(sorter.order([tall,ground]).map(stableKey),first);
+  assert.equal(pickVoxelDrawRecord(occlusion,center,record=>record.contains?.(center)||record.id==="buried").occluded,true);
+  const first=order([ground,tall]).map(stableKey);
+  assert.deepEqual(order([tall,ground]).map(stableKey),first);
 });
 
-test("separate stair rail curtains order a body between them; conflicting planes fail explicitly",()=>{
-  const center=projection.project({x:0,y:0,z:0});
-  const rail=(id,z)=>({id,partRole:"upright-boundary",role:"structure",footprint:[{x:-2,y:0,z},{x:2,y:1,z}],screenBounds:{left:center.x-12,right:center.x+12,top:center.y-30,bottom:center.y}});
-  const sorter=createIsometricSorter({projection});
-  assert.deepEqual(sorter.order([rail("front",1),actor("body",0,0,0),rail("back",-1)]).map(r=>r.id),["back","body","front"]);
-  const a={id:"cross-a",role:"structure",orderingKind:"line",footprint:[{x:-2,y:0,z:-2},{x:2,y:0,z:2}],screenBounds:{left:center.x-12,right:center.x+12,top:center.y-30,bottom:center.y}};
-  const b={...a,id:"cross-b",footprint:[{x:-2,y:0,z:1},{x:2,y:0,z:-1}]};
-  // First curtain is edge-on to this camera, so use a nondegenerate slope.
-  a.footprint=[{x:-2,y:0,z:-1},{x:2,y:0,z:1}];
-  assert.throws(()=>sorter.order([a,b]),/interleaving ordering planes: cross/);
+test("separate rail curtains order a body between them; conflicting planes fail explicitly",()=>{
+  const order=records=>compileSpatialDrawOrder(records,{projection}).records;
+  const curtain=(id,start,end)=>({id,orderGeometry:{kind:"face",points:[
+    {x:start[0],y:0,z:start[1]},{x:end[0],y:0,z:end[1]},
+    {x:end[0],y:2,z:end[1]},{x:start[0],y:2,z:start[1]}]}});
+  const back=curtain("back",[-2,-1],[2,-1]), front=curtain("front",[-2,1],[2,1]);
+  assert.deepEqual(order([front,actor("body",0,0,0),back]).map(record=>record.id),["back","body","front"]);
+  assert.throws(()=>order([curtain("cross-a",[-2,-1],[2,1]),curtain("cross-b",[-2,1],[2,-1])]), /interleave/);
 });
 
 test("consecutive batches preserve IDs across actors, rails, state/texture changes and 16-bit splits",()=>{
