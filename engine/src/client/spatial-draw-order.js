@@ -108,6 +108,21 @@ function prepare(record, projection) {
   return { record, key, faces, coverage, bounds: boundsOf(faces.flatMap(face => face.orderingProxy.polygon)) };
 }
 
+// Equal-depth pictures still paint different pixels in opposite orders. Give
+// their actual opaque overlap a pairwise tie, rather than relying on whichever
+// node becomes topologically ready first as offscreen membership changes.
+function coplanarPictureRelation(a, b, projection, counters) {
+  if (!a.coverage && !b.coverage) return "independent";
+  for (const left of preciseFaces(a)) for (const right of preciseFaces(b)) {
+    if (!overlap(left.bounds, right.bounds)) continue;
+    counters.faceComparisons++;
+    counters.coverageFaceComparisons++;
+    if (compareOrderingPlanes(left, right, projection).kind !== "disjoint")
+      return a.key < b.key ? "before" : "after";
+  }
+  return "independent";
+}
+
 /** Resolve a relationship over its projected overlap, not at a pivot. Each
  * convex volume's visible faces partition its projected silhouette. Opposite
  * signs therefore mean its representation cannot be emitted as one image.
@@ -121,7 +136,10 @@ function faceRelation(a, b, projection, counters, precise = false) {
     const ln = left.normal, rn = right.normal;
     const samePlane = (left.constant === right.constant && ln.x === rn.x && ln.y === rn.y && ln.z === rn.z) ||
       (left.constant === -right.constant && ln.x === -rn.x && ln.y === -rn.y && ln.z === -rn.z);
-    if (samePlane) { counters.coplanarSkips++; return "independent"; }
+    if (samePlane) {
+      if (!a.coverage && !b.coverage) counters.coplanarSkips++;
+      return coplanarPictureRelation(a, b, projection, counters);
+    }
   }
   let before = false, after = false, coplanar = false;
   const leftFaces = precise ? preciseFaces(a) : a.faces, rightFaces = precise ? preciseFaces(b) : b.faces;
@@ -142,6 +160,7 @@ function faceRelation(a, b, projection, counters, precise = false) {
   if (coplanar) {
     const difference = (a.record.surfaceOrder ?? 0) - (b.record.surfaceOrder ?? 0);
     if (difference) return difference < 0 ? "before" : "after";
+    return coplanarPictureRelation(a, b, projection, counters);
   }
   return "independent";
 }
