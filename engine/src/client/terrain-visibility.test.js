@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { visibleTerrainRegions, prioritizeTerrainRegions, terrainFaceRecords } from "./terrain-visibility.js";
+import { visibleTerrainRegions, prioritizeTerrainRegions, terrainFaceRecords, terrainCoverRecords } from "./terrain-visibility.js";
 import { createOrderingProjection } from "./ordering-projection.js";
 
 test("visible center regions precede padding and priority does not mutate the retained plan",()=>{
@@ -26,4 +26,25 @@ test("checked world faces project directly with no material neighbor queries",()
     palette:[{slot:1,solid:true,art:"earth"}],verticalMetres:.54};
   const records=terrainFaceRecords(data,{projection});assert.equal(records.length,1);assert.equal(records[0].cap,true);
   assert.equal(records[0].cell,data.faces[0].cell);assert(records[0].contains(projection.project({x:0,y:.27,z:0})));
+});
+
+test("terrain owns deeply frozen ordering geometry without freezing presentation",()=>{
+  const texture={},visual={terrainBatch:{texture},projected:[]};
+  const [record]=terrainFaceRecords({faces:[{cell:[0,0,0],face:"top",material:1,cap:false}],
+    palette:[{slot:1,solid:true}],verticalMetres:.54},{projection:createOrderingProjection(),appearance:{body:()=>visual}});
+  assert(Object.isFrozen(record.orderGeometry));assert(Object.isFrozen(record.orderGeometry.points));
+  assert(record.orderGeometry.points.every(Object.isFrozen));
+  assert(!Object.isFrozen(record));assert(!Object.isFrozen(texture));assert(!Object.isFrozen(record.terrainBatch));
+});
+
+
+test("cover freezes its coverage geometry while atlas texture remains owned separately",()=>{
+  const texture={},terrainBatch={texture};
+  const geometry={kind:"face",points:[{x:0,y:.27,z:0},{x:1,y:.27,z:0},{x:1,y:.27,z:1},{x:0,y:.27,z:1}],
+    coverage:{offset:{x:0,y:0},rectangles:[{left:0,top:0,right:1,bottom:1}]}};
+  const records=terrainCoverRecords([{cell:[0,0,0],cover:{kind:"grass",condition:"green",height:"full"}}],
+    {level:0,verticalMetres:.54,projection:createOrderingProjection(),appearance:{cover:()=>({orderGeometry:geometry,terrainBatch,projected:[{x:0,y:0},{x:1,y:1}]})}});
+  assert(records.length>0);
+  for(const value of [geometry,geometry.points,...geometry.points,geometry.coverage,geometry.coverage.offset,geometry.coverage.rectangles,...geometry.coverage.rectangles])assert(Object.isFrozen(value));
+  assert(!Object.isFrozen(terrainBatch));assert(!Object.isFrozen(texture));
 });

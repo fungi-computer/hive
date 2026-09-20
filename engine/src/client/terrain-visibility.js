@@ -18,6 +18,18 @@ function corners([x, y, z], face, h) {
   return values[face].map(([x,y,z]) => ({x,y,z}));
 }
 
+// Terrain owns these completed ordering subtrees. Presentation objects (atlas,
+// textures, hit callbacks and mesh state) remain under their existing owners.
+const frozenGeometry = new WeakSet();
+function freezeOrderingGeometry(value) {
+  if (value && typeof value === "object" && !frozenGeometry.has(value)) {
+    for (const child of Object.values(value)) freezeOrderingGeometry(child);
+    Object.freeze(value);
+    frozenGeometry.add(value);
+  }
+  return value;
+}
+
 export function projectedBounds(points) {
   return { left: Math.min(...points.map(p => p.x)), right: Math.max(...points.map(p => p.x)), top: Math.min(...points.map(p => p.y)), bottom: Math.max(...points.map(p => p.y)) };
 }
@@ -46,6 +58,7 @@ export function terrainFaceRecords({ faces, palette, verticalMetres, variantSeed
     const proxy = prepareOrderingProxy(record, projection);
     if (!proxy) continue;
     record.contains = point => polygonContains(proxy.polygon, point);
+    freezeOrderingGeometry(record.orderGeometry);
     records.push(record);
   }
   return records;
@@ -92,6 +105,7 @@ export function terrainCoverRecords(surfaces, { level, projection, viewport, app
       if (!proxy) continue;
       // Appearance owns the alpha silhouette used by the shared draw picker.
       // The full batching quad is never substituted for that silhouette.
+      freezeOrderingGeometry(record.orderGeometry);
       records.push(record);
     }
   }
