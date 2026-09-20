@@ -300,6 +300,9 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       waterEntries.clear(); waterRecordEntries.clear(); faceChunks.clear(); coverEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = []; retainedRecords = Object.freeze([]);
       frame = undefined; terrainArt = undefined; appearance = undefined;
       presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined; presentedSource = undefined;
+      // A fulfilled service promise retains its chunk snapshot until released.
+      observedService = lastPlan = demandIdentity = coverageIdentity = terrainContext = surfaceIdentity = reportedBudget = undefined;
+      epoch = level = undefined;
     },
   });
 }
