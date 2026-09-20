@@ -8,7 +8,7 @@ function cell(x, z, y, kind = "earth", grass = true, condition = "green", height
   return { x, z, y, kind, variant: Math.abs(x * 17 + z * 31) % 3, grass, condition, height };
 }
 
-function makeCells(size, dense = false) {
+function makeCells(size) {
   const half = size / 2;
   const cells = [];
   for (let x = -half; x < half; x++) for (let z = -half; z < half; z++) {
@@ -16,10 +16,10 @@ function makeCells(size, dense = false) {
     const straight = Math.abs(x + 3) <= 0 && z > -half + 1;
     const pit = x >= -4 && x <= -3 && z >= 3 && z <= 4;
     const bank = x >= 3 && z >= 3;
-    const stone = (x > 4 && z < -3) || (dense && (x + z) % 19 === 0);
+    const stone = x > 4 && z < -3;
     const y = pit ? -1 : bank ? 1 : 0;
     cells.push(cell(x, z, y, stone ? "stone" : "earth", !winding && !straight && !pit, x < -4 && z < -2 ? "dead" : "green", z < -1 ? "full" : "short"));
-    if (bank && dense && (x + z) % 3 === 0) cells.push(cell(x, z, 0, stone ? "stone" : "earth", false));
+    if (bank) cells.push(cell(x, z, 0, stone ? "stone" : "earth", false));
   }
   return cells;
 }
@@ -46,7 +46,7 @@ function actors(dense = false) {
 }
 
 function build(size, dense) {
-  const cells = makeCells(size, dense);
+  const cells = makeCells(size);
   const scene = {
     version: VERSION, revision: dense ? "three-depth-dense-1" : "three-depth-court-1",
     preset: dense ? "dense" : "court", voxelScale: SCALE, chunkSize: CHUNK,

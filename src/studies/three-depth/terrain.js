@@ -59,7 +59,6 @@ function surfaceRoots(scene, cutLevel, findCell) {
 export function createTerrainOwner(sceneData) {
   let currentScene = sceneData, currentCut = null;
   let cellIndex = new Map();
-  for (const item of currentScene.cells) { const key = `${item.x},${item.z}`; if (!cellIndex.has(key) || item.y > cellIndex.get(key).y) cellIndex.set(key, item); }
   const findCell = (x, z) => cellIndex.get(`${x},${z}`) ?? null;
   const root = new THREE.Group();
   const chunks = new Map();
@@ -78,18 +77,20 @@ export function createTerrainOwner(sceneData) {
       const neighbors = [[1, 0, "east"], [-1, 0, "west"], [0, 1, "south"], [0, -1, "north"]];
       for (const [dx, dz, part] of neighbors) {
         const neighbor = findCell(cell.x + dx, cell.z + dz);
-        if (neighbor && neighbor.y <= cut && neighbor.y >= cell.y) continue;
+        if (neighbor && neighbor.y >= cell.y) continue;
         const side = terrainBody({ kind: cell.kind, variant: cell.variant, part });
         side.position.set(cell.x, (cell.y + 0.5) * SCALE, cell.z);
         side.userData.batchKind = "body";
         addPickMetadata(side, { kind: "terrain", cell: [cell.x, cell.y, cell.z], face: part });
         group.add(side);
       }
-      const top = terrainBody({ kind: cell.kind, variant: cell.variant, part: "top" });
-      top.position.set(cell.x, (cell.y + 0.5) * SCALE, cell.z);
-      top.userData.batchKind = "body";
-      addPickMetadata(top, { kind: "terrain", cell: [cell.x, cell.y, cell.z], cap: cell.y === cut });
-      group.add(top);
+      if (findCell(cell.x, cell.z) === cell) {
+        const top = terrainBody({ kind: cell.kind, variant: cell.variant, part: "top" });
+        top.position.set(cell.x, (cell.y + 0.5) * SCALE, cell.z);
+        top.userData.batchKind = "body";
+        addPickMetadata(top, { kind: "terrain", cell: [cell.x, cell.y, cell.z], cap: cell.y === cut });
+        group.add(top);
+      }
     }
     for (const patch of surfaceRoots(currentScene, cut, findCell)) {
       if (Math.floor(patch.x / CHUNK) !== cx || Math.floor(patch.z / CHUNK) !== cz) continue;
@@ -109,14 +110,21 @@ export function createTerrainOwner(sceneData) {
   function rebuild() {
     for (const group of chunks.values()) disposeGroup(group);
     chunks.clear(); stats.triangles = 0;
+    cellIndex = new Map();
+    const cut = currentCut ?? currentScene.bounds.maxY;
+    for (const item of currentScene.cells) {
+      if (item.y > cut) continue;
+      const key = `${item.x},${item.z}`;
+      if (!cellIndex.has(key) || item.y > cellIndex.get(key).y) cellIndex.set(key, item);
+    }
     const keys = new Set(currentScene.cells.map(cell => chunkKey(cell.x, cell.z)));
-    for (const patch of surfaceRoots(currentScene, currentCut ?? currentScene.bounds.maxY, findCell)) keys.add(chunkKey(patch.x, patch.z));
+    for (const patch of surfaceRoots(currentScene, cut, findCell)) keys.add(chunkKey(patch.x, patch.z));
     for (const key of keys) { const [cx, cz] = key.split(",").map(Number); buildChunk(cx, cz); }
   }
   rebuild();
   return {
     root,
-    setScene(value) { currentScene = value; cellIndex = new Map(); for (const item of currentScene.cells) { const key = `${item.x},${item.z}`; if (!cellIndex.has(key) || item.y > cellIndex.get(key).y) cellIndex.set(key, item); } rebuild(); },
+    setScene(value) { currentScene = value; rebuild(); },
     setCut(level) { if (currentCut === level) return; currentCut = level; rebuild(); },
     evictAll() { for (const group of chunks.values()) { disposeGroup(group); stats.evictions++; } chunks.clear(); },
     rebuild,
