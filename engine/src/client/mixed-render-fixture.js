@@ -3,7 +3,6 @@ import { captureVisualVolume, translateVisualVolume } from "../../../src/art/ord
 import { figure } from "../../../src/art/figures.js";
 import { uprightDrawGeometry } from "./upright-draw-geometry.js";
 import { worldVisualVolume, uprightTextureGeometry } from "./asset-draw-geometry.js";
-import { projectSupportedSurfaceArt } from "./surface-art-projection.js";
 import { building } from "../../../src/art/home.js";
 import { waterDrawRecord } from "./cut-terrain-layer.js";
 import { createOrderingProjection } from "./ordering-projection.js";
@@ -14,7 +13,7 @@ import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { materialCoverage, projectedBounds, terrainCoverRecords, terrainFaceRecords } from "./terrain-visibility.js";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { resolveStaticVisualParts } from "./visual-resolver.js";
-import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
+import { createVisibleHitArea, visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
 
 export const MIXED_FIXTURE_ORIENTATIONS = Object.freeze(["north", "east", "south", "west"]);
 const ORIENTATION_TURNS = Object.freeze({ north: 0, east: 1, south: 2, west: 3 });
@@ -92,9 +91,13 @@ function terrainSnapshot() {
 
 function terrainAppearance(pack, turn) {
   if (pack) return createTerrainFaceAppearance({ pack, turn });
+  // Synthetic ink belongs only to this no-art fixture pack.
+  const hitArea = createVisibleHitArea({ width: 64, height: 64,
+    rows: Array.from({ length: 65 }, (_, y) => y),
+    spans: Array.from({ length: 64 }, () => [24, 39]).flat() }, { x: .5, y: .5 });
   const batch = (texture) => ({ texture, uvs: [0, 0, 0, 1, 1, 1, 1, 0], blendMode: "normal" });
   return createTerrainFaceAppearance({
-    pack: { body: ({ art, face }) => batch(`${art}.${face}`), cover: ({ kind, height, mask }) => batch(`${kind}.${height}.${mask}`) },
+    pack: { body: ({ art, face }) => batch(`${art}.${face}`), cover: ({ kind, height, mask }) => ({ ...batch(`${kind}.${height}.${mask}`), hitArea }) },
     turn,
   });
 }
@@ -294,7 +297,7 @@ export function createMixedRenderFixture(cameraOrientation = "north", objectOrie
     verticalMetres: VERTICAL_METRES,
     variantSeed: 41,
   });
-  const grass = patches.flatMap((record) => projectSupportedSurfaceArt(record, projection));
+  const grass = patches;
   const turn = ORIENTATION_TURNS[cameraOrientation];
   const stairs = stairRecords(objectOrientation, projection, art, turn),
     bed = bedRecord(objectOrientation, projection, art, turn);

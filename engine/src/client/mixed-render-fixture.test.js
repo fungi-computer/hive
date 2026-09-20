@@ -129,3 +129,36 @@ test("spatial core orders every mixed record once, independent of input, for six
         );
     }
 });
+
+import { createVisibleHitArea } from "../../../src/visual-hit-geometry.js";
+test("study cover retains original image and atlas UVs for full and short four-cell masks", () => {
+  const hitArea = createVisibleHitArea({ width: 64, height: 64,
+    rows: Array.from({ length: 65 }, (_, y) => y),
+    spans: Array.from({ length: 64 }, () => [24, 39]).flat() }, { x: .5, y: .5 });
+  for (const orientation of MIXED_FIXTURE_ORIENTATIONS) {
+    const styles = [], calls = [];
+    const pack = { body: () => ({ texture: null, uvs: [0,0,0,1,1,1,1,0] }),
+      cover: input => {
+        calls.push(input);
+        const style = { texture: { label: input.height }, uvs: [.1,.2,.1,.4,.3,.4,.3,.2], hitArea };
+        styles.push(style);
+        return style;
+      } };
+    const scene = createMixedRenderFixture(orientation, "north", { terrainPack: pack });
+    const records = scene.grass;
+    assert.equal(records.length, styles.length, "one original image per dual-grid patch");
+    assert(calls.some(call => call.height === "full"));
+    assert(calls.some(call => call.height === "short"));
+    assert(records.some(record => record.mask === 15 && record.attachment.supports.length === 4));
+    records.forEach((record, index) => {
+      assert.strictEqual(record.terrainBatch, styles[index]);
+      assert.deepEqual(record.terrainBatch.uvs, [.1,.2,.1,.4,.3,.4,.3,.2]);
+      assert(Math.abs(record.projected[2].x - record.projected[0].x - 64) < 1e-10);
+      assert(Math.abs(record.projected[2].y - record.projected[0].y - 64) < 1e-10);
+      assert.equal(record.supportY, record.attachment.point.y);
+      assert(record.orderGeometry.points.some(point => point.y > record.supportY));
+      const center = scene.projection.project(record.attachment.point);
+      assert(record.contains({ x: center.x, y: center.y - 30 }), "ink above ground support survives");
+    });
+  }
+});
