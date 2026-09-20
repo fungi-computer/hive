@@ -149,7 +149,7 @@ export class TerrainPresentationOwner {
 
   baseline(): TerrainBaseline {
     const artBySlot = new Map(this.presentation?.materials.map(material => [material.slot, material.art]));
-    return terrainBaselineSchema.parse({ protocolVersion: 2, bounds: this.definition.world.bounds,
+    return terrainBaselineSchema.parse({ protocolVersion: 3, bounds: this.definition.world.bounds,
       verticalMetres: this.definition.world.verticalMetres,
       variantSeed: visualVariantSeed(`${this.definition.world.identity}\u0000${this.definition.world.seed}`),
       materials: this.definition.materials.map(({ slot, solid }) => ({ slot, solid,
@@ -186,8 +186,19 @@ export class TerrainPresentationOwner {
       if (result.length !== batch.length) throw new Error("terrain material query returned the wrong count");
       sampled.push(...result);
     }
+    // Several requested vertical chunks may share the same horizontal columns.
+    // Query each column once through the same authoritative surface projection
+    // as observations, without expanding the central observation window.
+    const uniqueColumns = new Map<string, [number, number]>();
+    for (const chunk of prepared) for (const column of chunk.columns)
+      uniqueColumns.set(columnKey(column.x, column.z), [column.x, column.z]);
+    const surfaces = this.sampleSurfaceColumns([...uniqueColumns.values()]);
     let cursor = 0;
-    const chunks: Extract<TerrainChunkReply, { kind: "ready" }>["chunks"][number][] = prepared.map(chunk => ({ key: chunk.key, min: chunk.min, max: chunk.max,
+    const chunks: Extract<TerrainChunkReply, { kind: "ready" }>["chunks"][number][] = prepared.map(chunk => ({ key: chunk.key, min: [...chunk.min], max: [...chunk.max],
+      surfaces: chunk.columns.flatMap(column => {
+        const surface = surfaces.get(columnKey(column.x, column.z));
+        return surface ? [surface] : [];
+      }),
       columns: chunk.columns.map(column => {
         const materials = sampled.slice(cursor, cursor += column.length);
         const runs: { minY: number; maxY: number; material: number }[] = [];
@@ -271,6 +282,32 @@ export class TerrainPresentationOwner {
     return column[0] >= minX && column[0] < maxX && column[1] >= minZ && column[1] < maxZ;
   }
 
+  /** One authority-side cover projection shared by push observations and
+   * camera-demanded chunk reads. Native current cover, when present, overrides
+   * fresh-world decoration. Cover-only mutations must publish authoritative
+   * invalidation; querying or rendering does not create that mutation owner. */
+  private sampleSurfaceColumns(columns: readonly [number, number][]): ReadonlyMap<string, TerrainSurface | null> {
+    const byColumn = new Map<string, TerrainSurface | null>();
+    for (let offset = 0; offset < columns.length; offset += SURFACE_BATCH) {
+      const batch = columns.slice(offset, offset + SURFACE_BATCH);
+      const result = this.port.terrainSurfaces(batch);
+      if (result.length !== batch.length) throw new Error("terrain surface query returned the wrong count");
+      for (let index = 0; index < batch.length; index++) {
+        const column = batch[index], surface = result[index];
+        if (surface === null) { byColumn.set(columnKey(column[0], column[1]), null); continue; }
+        const parsed = terrainSurfaceSchema.parse(surface), cell = parsed.cell;
+        if (cell[0] !== column[0] || cell[2] !== column[1]) throw new Error("invalid terrain surface projection");
+        const cover = parsed.cover ?? (cell[1] === parsed.generatedTop
+          ? this.presentation?.generatedCover?.({ cell, material: parsed.material, generatedTop: parsed.generatedTop,
+              worldSeed: this.definition.world.seed, worldIdentity: this.definition.world.identity }) ?? undefined
+          : undefined);
+        byColumn.set(columnKey(column[0], column[1]), terrainSurfaceSchema.parse({ ...parsed,
+          ...(cover === undefined ? {} : { cover }) }));
+      }
+    }
+    return byColumn;
+  }
+
   private sampleColumns(columns: readonly [number, number][]): {
     readonly byColumn: ReadonlyMap<string, TerrainSurface | null>;
     readonly structuresByColumn: ReadonlyMap<string, readonly StructureSurface[]>;
@@ -279,35 +316,12 @@ export class TerrainPresentationOwner {
     const structuresByColumn = new Map<string, readonly StructureSurface[]>();
     for (let offset = 0; offset < columns.length; offset += SURFACE_BATCH) {
       const batch = columns.slice(offset, offset + SURFACE_BATCH);
-      const result = this.port.terrainSurfaces(batch);
+      const result = this.sampleSurfaceColumns(batch);
       const structures = this.port.structureSurfaces(batch);
-      if (result.length !== batch.length) throw new Error("terrain surface query returned the wrong count");
       if (structures.length !== batch.length) throw new Error("structure surface query returned the wrong count");
       for (let index = 0; index < batch.length; index++) {
         const column = batch[index];
-        const surface = result[index];
-        if (surface !== null) {
-          const cell = surface.cell;
-          if (cell[0] !== column[0] || cell[2] !== column[1] || !signedInteger(cell[1]) ||
-            !Number.isInteger(surface.material) || surface.material < 0 || surface.material > 65535)
-            throw new Error("invalid terrain surface projection");
-          const cover = surface.cell[1] === surface.generatedTop
-            ? this.presentation?.generatedCover?.({
-                cell: [cell[0], cell[1], cell[2]],
-                material: surface.material,
-                generatedTop: surface.generatedTop,
-                worldSeed: this.definition.world.seed,
-                worldIdentity: this.definition.world.identity,
-              }) ?? undefined
-            : undefined;
-          const projected = terrainSurfaceSchema.parse({
-            cell: Object.freeze([cell[0], cell[1], cell[2]]) as TerrainSurface["cell"],
-            material: surface.material,
-            generatedTop: surface.generatedTop,
-            ...(cover === undefined ? {} : { cover }),
-          });
-          byColumn.set(columnKey(column[0], column[1]), Object.freeze(projected));
-        } else byColumn.set(columnKey(column[0], column[1]), null);
+        byColumn.set(columnKey(column[0], column[1]), result.get(columnKey(column[0], column[1])) ?? null);
         const parsed: StructureSurface[] = [];
         const seenHeights = new Set<number>();
         if (!Array.isArray(structures[index])) throw new Error("invalid structure surface projection");

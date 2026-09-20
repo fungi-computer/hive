@@ -308,3 +308,51 @@ function fakePort(
     worldPoses: () => [],
   };
 }
+
+test("camera chunks carry surface/cover metadata beyond the central observation window with bounded deduplicated queries", () => {
+  const wide = { ...definition, world:{...definition.world,bounds:{minX:-128,maxX:128,minY:-8,maxY:16,minZ:-128,maxZ:128}} };
+  const queries: (readonly [number,number][])[] = [];
+  let structureCalls=0;
+  const owner = new TerrainPresentationOwner(fakePort(
+    ()=>({terrainRevision:7,placementRevision:0,cells:[]}),
+    columns=>{queries.push(columns);return columns.map(([x,z])=>({cell:[x,9,z] as const,material:1,generatedTop:9}));},
+    columns=>{structureCalls++;return columns.map(()=>[]);},
+    ()=>({kind:"full-reset",revision:7,reason:"history"}),
+    cells=>cells.map(([,y])=>y<=9?1:0),
+  ),wide,{minX:-32,maxX:32,minZ:-32,maxZ:32},{materials:[{slot:1,art:"earth"}],
+    generatedCover:()=>({kind:"grass",condition:"green",height:"full"})});
+  const request={requestId:1,epoch:0,terrainRevision:7,chunks:[[8,0,0],[8,1,0],[9,0,0]] as [number, number, number][]};
+  const reply=owner.readChunks(request,0);
+  assert.equal(reply.kind,"ready");if(reply.kind!=="ready")return;
+  assert.equal(queries.length,2);
+  assert(queries.every(batch=>batch.length<=64));
+  assert.equal(new Set(queries.flat().map(column=>column.join(","))).size,128);
+  assert.equal(structureCalls,0,"camera ground queries do not expand structure observation");
+  assert.deepEqual(reply.chunks[0].surfaces,reply.chunks[1].surfaces);
+  assert(reply.chunks[0].surfaces.every(surface=>surface.cell[0]>=64 && surface.cell[1]===9 && surface.cover?.height==="full"));
+  assert.equal(reply.chunks[0].max[1],8,"column top metadata is retained below the top's chunk");
+  assert.equal(owner.baseline().protocolVersion,3);
+});
+
+test("chunk and observation projections share current cover overrides and revision invalidation",()=>{
+  let revision=1, height="full", surfaceY=0;
+  const owner=new TerrainPresentationOwner(fakePort(
+    ()=>({terrainRevision:revision,placementRevision:0,cells:[]}),
+    columns=>columns.map(([x,z])=>({cell:[x,surfaceY,z] as const,material:1,generatedTop:0,
+      ...(x===0?{cover:{kind:"grass",condition:"green",height}}:{})})),
+    undefined,()=>({kind:"changed-columns",revision,columns:[[0,0],[1,0]]}),
+    cells=>cells.map(([,y])=>y<=surfaceY?1:0),
+  ),definition,undefined,{materials:[{slot:1,art:"earth"}],generatedCover:()=>({kind:"grass",condition:"green",height:"full"})});
+  const request={requestId:1,epoch:0,terrainRevision:1,chunks:[[0,0,0]] as [number, number, number][]};
+  const first=owner.readChunks(request,0);assert.equal(first.kind,"ready");
+  if(first.kind!=="ready")return;
+  assert.deepEqual(first.chunks[0].surfaces,owner.read().surfaces);
+  revision=2;height="short";surfaceY=-1;
+  assert.equal(owner.readChunks(request,0).kind,"stale");
+  const changed=owner.readChunks({...request,terrainRevision:2},0);assert.equal(changed.kind,"ready");
+  if(changed.kind!=="ready")return;
+  assert.deepEqual(changed.chunks[0].surfaces,owner.read().surfaces);
+  assert.equal(changed.chunks[0].surfaces[0].cover?.height,"short","current authority-provided cover wins over generated decoration");
+  assert.equal(changed.chunks[0].surfaces[1].cover,undefined,"dug ground cannot regrow generated cover");
+  assert.equal(changed.chunks[0].surfaces[0].generatedTop,0);
+});
