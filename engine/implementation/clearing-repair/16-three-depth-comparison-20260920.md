@@ -1,6 +1,8 @@
 # Three.js depth comparison — executable implementation packet
 
-Date: 2026-09-20. Owner: Game CTO. Status: **implemented locally; hosted preview pending integration custody**.
+Date: 2026-09-20. Owner: Game CTO. Status: **implemented and hosted as an
+isolated study; the production renderer decision remains open**. Final evidence:
+[`20260920-three-depth-RESULT.md`](../../../evidence/20260920-three-depth-RESULT.md).
 
 Levi authorized a bounded test of direct Three.js world rendering, implemented
 from this packet and published at a different preview URL. This is not approval

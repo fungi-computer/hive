@@ -11,9 +11,11 @@ The next bounded comparison is specified in
 [packet 16](16-three-depth-comparison-20260920.md): direct original Three geometry,
 orthographic low-resolution rendering and GPU depth, on a separate study URL.
 Its isolated root is `/home/levi/src/hive-worktrees/three-depth-study-20260920`.
-This is a planned experiment, not an implemented or approved production switch.
-The existing Pixi preview stays available; the experiment must not deploy the
-backend or repoint its alias. Packet 16 owns the new test and release boundaries.
+The isolated study is now implemented and hosted at the separate preview in
+[its result record](../../../evidence/20260920-three-depth-RESULT.md). It is not
+an approved production switch. The existing Pixi preview remains available;
+the experiment did not deploy the backend or repoint its alias. Packet 16 owns
+the test and release boundaries.
 
 ## Latest implementation checkpoint — read first
 
