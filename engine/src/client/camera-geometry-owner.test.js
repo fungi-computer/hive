@@ -21,3 +21,22 @@ test("a client's four camera turns share drawing and inverse placement geometry"
   assert(Math.abs(final.x - original.x) < 1e-7 && Math.abs(final.y - original.y) < 1e-7);
   camera.dispose();
 });
+
+test("all camera turns pick the exact published face beyond the observed clearing", () => {
+  const camera = createCameraGeometryOwner();
+  const cell = [84,3,-72], y = 3.5*.54;
+  const terrain = { verticalMetres:.54, structureSurfaces:[], exposedFaces:[{
+    cell, material:1, face:'top', planarCorners:[
+      {x:83.5,y,z:-72.5},{x:83.5,y,z:-71.5},
+      {x:84.5,y,z:-71.5},{x:84.5,y,z:-72.5},
+    ],
+  }] };
+  for(let turn=0;turn<4;turn++) {
+    const screen = camera.project(84,y,-72);
+    assert.deepEqual(camera.point(screen.x,screen.y,terrain,1),{
+      cell,point:{x:84,y,z:-72,frame:null},
+    });
+    camera.rotate(1);
+  }
+  camera.dispose();
+});
