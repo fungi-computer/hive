@@ -3,7 +3,7 @@
 Status: locally rendered and browser proved in the isolated study. The frontend
 preview URL is supplied by the integration owner after source review and upload.
 
-Source SHA: `8a8438fb`
+Source SHA: `c2879318`
 
 The study uses the existing original Three builders for living terrain, grass,
 tree, finished bed, finished stair, finished door and goblin walk poses. One
