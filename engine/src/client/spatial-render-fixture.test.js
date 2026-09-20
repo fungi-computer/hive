@@ -44,9 +44,9 @@ test("short grass preserves ground facts and four-cell dual-grid support",()=>{
       assert.equal(piece.supportY, piece.attachment.point.y);
       assert(piece.orderGeometry.points.some(p=>p.y>piece.supportY));
       assert(piece.orderGeometry.points.some(p=>p.y<piece.supportY));
-      assert(Math.abs(piece.projected[2].x - piece.projected[0].x - 64) < 1e-10);
+      assert(Math.abs(piece.projected[2].x - piece.projected[0].x - 16) < 1e-10);
       assert(Math.abs(piece.projected[2].y - piece.projected[0].y - 64) < 1e-10);
-      assert.deepEqual(piece.terrainBatch.uvs,[0,0,0,1,1,1,1,0]);
+      assert.deepEqual(piece.terrainBatch.uvs,[.375,0,.375,1,.625,1,.625,0]);
     }
   }
 });
@@ -72,9 +72,10 @@ test("study cover retains original image and atlas UVs for full and short four-c
     assert(calls.some(call => call.height === "short"));
     assert(records.some(record => record.mask === 15 && record.attachment.supports.length === 4));
     records.forEach((record, index) => {
-      assert.strictEqual(record.terrainBatch, styles[index]);
-      assert.deepEqual(record.terrainBatch.uvs, [.1,.2,.1,.4,.3,.4,.3,.2]);
-      assert(Math.abs(record.projected[2].x - record.projected[0].x - 64) < 1e-10);
+      assert.strictEqual(record.terrainBatch.texture, styles[index].texture);
+      assert.strictEqual(record.terrainBatch.hitArea, styles[index].hitArea);
+      record.terrainBatch.uvs.forEach((value,index) => assert(Math.abs(value - [.175,.2,.175,.4,.225,.4,.225,.2][index]) < 1e-12));
+      assert(Math.abs(record.projected[2].x - record.projected[0].x - 16) < 1e-10);
       assert(Math.abs(record.projected[2].y - record.projected[0].y - 64) < 1e-10);
       assert.equal(record.supportY, record.attachment.point.y);
       assert(record.orderGeometry.points.some(point => point.y > record.supportY));
