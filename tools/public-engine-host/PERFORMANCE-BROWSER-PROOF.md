@@ -72,8 +72,9 @@ Source owner: `hive-worktrees/living-terrain-integration`. Backend commit
 
 Prior browser failures remain preserved: the first used an ambiguous status
 locator; the second timed out waiting during pause/resume. The instrumented
-rerun passed, but the earlier timeout is not explained and hosted confirmation
-is still required. No hosted latency/CPU claim follows from these local results.
+rerun passed, but the earlier timeout is not explained. The subsequent hosted
+confirmation is recorded below. No hosted latency/CPU claim follows from these
+local results.
 The wider resident suite has a pre-existing test using the removed native
 scope.party field; global typechecking lacks installed Node typings. These are
 not reported as passing.
@@ -111,3 +112,11 @@ including buffering and client work, not CPU timing or an SLA. Brief rates over
 The earlier local pause/resume timeout remains preserved, but both the local
 instrumented rerun and the actual hosted pause/resume check passed. Existing
 public game backend and worlds were not deployed, reset or migrated.
+
+Platform telemetry read after browser closure (09:36:59 UTC, window
+09:32:00–09:36:58 UTC) returned HTTP 200 with no GraphQL errors but no
+invocation or periodic rows for the new namespace. CPU/wall measurements are
+unavailable, not zero; the API gave no cause. Evidence:
+`.botanical/do-performance-platform/REPORT.json`, `after-browser.json`, and
+`bounded.graphql`; guarded receipt `u2735` /
+`7d3f2f04672d43739bace7417d865f05`. No platform CPU claim is made.
