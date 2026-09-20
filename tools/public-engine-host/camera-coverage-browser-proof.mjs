@@ -68,7 +68,11 @@ try{
  await canvas.screenshot({path:resolve(output,"far-cut-cap.png")});
  for(let i=0;i<steps;i++)await page.keyboard.press("PageUp");
  await page.getByRole("button",{name:"Toggle cutaway",exact:true}).click();await settle();
- await pan("ArrowLeft",96);await settle();report.returned=await state();
+ await pan("ArrowLeft",96);await settle();
+ await canvas.focus();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
+ for(let i=0;i<10;i++){await page.mouse.wheel(0,100);await page.waitForTimeout(60);}await settle();report.zoomOut=await state();
+ assert.equal(report.zoomOut.draw.camera.zoom,1,"zoom did not reach the supported minimum");
+ for(let i=0;i<10;i++){await page.mouse.wheel(0,-100);await page.waitForTimeout(60);}await settle();report.returned=await state();
  await canvas.screenshot({path:resolve(output,"returned.png")});
  report.imageHashes={initial:hash(await readFile(resolve(output,"initial.png"))),returned:hash(await readFile(resolve(output,"returned.png")))};
  assert.equal(report.imageHashes.returned,report.imageHashes.initial,"return image differs after far cutaway restore");
