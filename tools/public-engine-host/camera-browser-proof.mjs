@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+/** Real-input camera proof against an existing hosted DO performance page. */
+import assert from "node:assert/strict";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { resolve } from "node:path";
+import { chromium } from "playwright";
+const args = new Map();
+for (let i=2;i<process.argv.length;i+=2) args.set(process.argv[i],process.argv[i+1]);
+const base=args.get("--base-url"), output=resolve(args.get("--output") ?? ".botanical/camera-browser-proof");
+const mode=args.get("--mode") ?? "before";
+assert(base && ["before","after"].includes(mode),"--base-url URL --output DIR --mode before|after");
+const url=new URL("/engine/colony-performance.html",base);
+url.search=new URLSearchParams({size:"256",workers:"8",diagnostics:"draw"});
+await mkdir(output,{recursive:true});
+const report={proof:"hosted-paused-camera",mode,url:url.href,startedAt:new Date().toISOString(),viewport:{width:1280,height:900},phases:[],errors:[],success:false};
+const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
+report.driverSha256=hash(await readFile(new URL(import.meta.url)));
+let browser, page;
+const percentile=(values,p)=>values.length?[...values].sort((a,b)=>a-b)[Math.min(values.length-1,Math.floor(values.length*p))]:null;
+try {
+ browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader"]});
+ const context=await browser.newContext({viewport:report.viewport,deviceScaleFactor:1});
+ page=await context.newPage(); page.setDefaultTimeout(30000);
+ const browserWorkers=[],socketOrigins=[],bundleReads=[];
+ page.on("response",response=>{if(new URL(response.url()).origin===url.origin && new URL(response.url()).pathname.endsWith(".js"))bundleReads.push(response.body().then(bytes=>({url:response.url(),sha256:hash(bytes)})));});
+ page.on("worker",worker=>browserWorkers.push(worker.url()));
+ page.on("websocket",socket=>socketOrigins.push(new URL(socket.url()).origin));
+ page.on("pageerror",error=>report.errors.push(error.message));
+ await page.goto(url.href,{waitUntil:"domcontentloaded"});
+ await page.getByText("Online · server saved",{exact:true}).first().waitFor();
+ await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS?.().frames>=20,null,{timeout:180000});
+ await page.getByRole("button",{name:"Pause",exact:true}).click();
+ await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS().paused);
+ await page.waitForTimeout(5000);
+ if(mode==="after")await page.waitForFunction(()=>{const coverage=window.__HIVE_DRAW_DIAGNOSTICS().spatialDraw.coverage;return coverage.demandComplete && !coverage.pending;},null,{timeout:120000});
+ const canvas=page.locator("canvas").first();
+ const focus=async()=>{await canvas.focus();const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);};
+ await focus();
+ const snapshot=async()=>page.evaluate(()=>{
+   const draw=window.__HIVE_DRAW_DIAGNOSTICS();
+   return {draw,performance:window.__HIVE_PERFORMANCE_DIAGNOSTICS(),heap:performance.memory?{used:performance.memory.usedJSHeapSize,total:performance.memory.totalJSHeapSize}:null};
+ });
+ const phase=async(name,action)=>{
+   const before=await snapshot();
+   await page.evaluate(()=>{window.__cameraProofFrames=[];let previous=performance.now();window.__cameraProofRunning=true;function frame(now){if(!window.__cameraProofRunning)return;window.__cameraProofFrames.push(now-previous);previous=now;requestAnimationFrame(frame);}requestAnimationFrame(frame);});
+   const started=performance.now();await action();await page.waitForTimeout(500);
+   if(mode==="after")await page.waitForFunction(()=>{const coverage=window.__HIVE_DRAW_DIAGNOSTICS().spatialDraw.coverage;return coverage.demandComplete && !coverage.pending;},null,{timeout:120000});
+   const elapsedMs=performance.now()-started;
+   const intervals=await page.evaluate(()=>{window.__cameraProofRunning=false;return window.__cameraProofFrames;});
+   const after=await snapshot();
+   if(mode==="after"){assert(after.draw.spatialDraw.coverage.cachedChunks<=after.draw.spatialDraw.coverage.capacity,"terrain cache exceeded capacity");assert(after.draw.spatialDraw.cameraCoverage.withinPrepared,"visible viewport escaped prepared area");}
+   const counts=Object.fromEntries(Object.entries(after.draw.spatialDraw.counts).map(([key,value])=>[key,value-before.draw.spatialDraw.counts[key]]));
+   const times=Object.fromEntries(Object.entries(after.draw.spatialDraw.times).map(([key,value])=>[key,value-before.draw.spatialDraw.times[key]]));
+   const result={name,before,after,elapsedMs,frameIntervals:{samples:intervals.length,median:percentile(intervals,.5),p95:percentile(intervals,.95),max:Math.max(0,...intervals)},counts,times};report.phases.push(result);console.log(JSON.stringify({phase:name,staticRebuild:counts.staticRebuild,elapsedMs}));await writeFile(resolve(output,"PROGRESS.json"),JSON.stringify(report,null,2)+"\n");
+   assert.equal(after.performance.simulationTime,report.initial.performance.simulationTime,"simulation advanced during paused camera proof");
+   return result;
+ };
+ const pan=async(key,n)=>{await focus();const before=(await snapshot()).draw.camera;for(let i=0;i<n;i++){await page.keyboard.press(key);await page.waitForTimeout(20);}const after=(await snapshot()).draw.camera;const axis=key==="ArrowLeft"||key==="ArrowRight"?"x":"y",sign=key==="ArrowLeft"||key==="ArrowUp"?-1:1;assert.equal(after[axis]-before[axis],sign*24*n,`actual ${key} camera movement`);};
+ report.initial=await snapshot();
+ report.transport={browserWorkers,socketOrigins};assert.equal(browserWorkers.length,0);assert(socketOrigins.some(origin=>origin.includes("hive-performance-engine-preview")));
+ await canvas.screenshot({path:resolve(output,"initial.png")});
+ await phase("idle",()=>page.waitForTimeout(2000));
+ const small=await phase("small-pan",async()=>{await pan("ArrowRight",3);await pan("ArrowLeft",3);});
+ if(mode==="after")assert.equal(small.counts.staticRebuild,0,"small in-margin pan rebuilt static scene");
+ await phase("travel-east",()=>pan("ArrowRight",96));
+ await canvas.screenshot({path:resolve(output,"distant.png")});
+ await phase("return-west",()=>pan("ArrowLeft",96));
+ await phase("travel-north",()=>pan("ArrowUp",96));
+ await phase("return-south",()=>pan("ArrowDown",96));
+ await phase("zoom-out-in",async()=>{await focus();for(let i=0;i<5;i++){await page.mouse.wheel(0,100);await page.waitForTimeout(100);}for(let i=0;i<5;i++){await page.mouse.wheel(0,-100);await page.waitForTimeout(100);}});
+ await phase("layer-return",async()=>{await focus();await page.keyboard.press("PageDown");await page.waitForTimeout(700);await page.keyboard.press("PageUp");});
+ await phase("cutaway-return",async()=>{await page.getByRole("button",{name:"Toggle cutaway",exact:true}).click();await page.waitForTimeout(600);await page.getByRole("button",{name:"Toggle cutaway",exact:true}).click();});
+ await focus();await page.waitForTimeout(1500);
+ await canvas.screenshot({path:resolve(output,"returned.png")});
+ report.final=await snapshot();
+ report.servedJavaScript=await Promise.all(bundleReads);
+ for(const key of ["x","y","zoom"])assert(Math.abs(report.final.draw.camera[key]-report.initial.draw.camera[key])<.001,`camera ${key} failed return`);
+ assert.deepEqual(report.final.draw.view,report.initial.draw.view);
+ assert.equal(report.errors.length,0,report.errors.join("; "));
+ report.success=true;
+} catch(error){report.errors.push(error.stack??String(error));report.failureState=await page?.evaluate(()=>({body:document.body.innerText,draw:window.__HIVE_DRAW_DIAGNOSTICS?.()})).catch(()=>null);}
+finally{await browser?.close();report.finishedAt=new Date().toISOString();await writeFile(resolve(output,"REPORT.json"),JSON.stringify(report,null,2)+"\n");}
+console.log(JSON.stringify({success:report.success,output,phases:report.phases.map(({name,counts,frameIntervals})=>({name,staticRebuild:counts.staticRebuild,frameIntervals})),errors:report.errors}));
+if(!report.success)process.exitCode=1;
