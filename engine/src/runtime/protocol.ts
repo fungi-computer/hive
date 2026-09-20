@@ -5,7 +5,7 @@ import type { EnvironmentVisual, PresentationFact, TerrainMark } from "../presen
 import type { WhistleAgentProjection } from "@fungi.computer/whistle";
 import type { WhistleContextualTarget } from "./whistle";
 import type { TerrainWireFrame, TerrainWireObservation } from "./terrain-wire";
-import type { TerrainChunkReply, TerrainChunkRequest } from "./terrain-chunks";
+import type { TerrainRegionEvent, TerrainRegionRequest } from "./terrain-regions";
 
 export type WorkerCommand =
   | { readonly type: "command"; readonly name: string; readonly input?: unknown }
@@ -29,7 +29,7 @@ export type WorkerPlacementCommand = PlacementDecisionQuery & {
   readonly type: "placement-decisions";
   readonly requestId: number;
 };
-export type WorkerTerrainChunksCommand = TerrainChunkRequest & { readonly type: "terrain-chunks" };
+export type WorkerTerrainRegionsCommand = (TerrainRegionRequest & { readonly type: "terrain-regions" }) | { readonly type: "terrain-cancel"; readonly requestId: number };
 
 type WorkerEventBase =
   | { readonly type: "ready"; readonly game: string }
@@ -57,7 +57,7 @@ type WorkerEventBase =
   | { readonly type: "results"; readonly results: readonly unknown[]; readonly metrics?: RuntimeMetrics }
   | ({ readonly type: "placement-decisions"; readonly requestId: number } & PlacementDecisionResult)
   | { readonly type: "placement-decision-error"; readonly requestId: number; readonly message: string }
-  | { readonly type: "terrain-chunks"; readonly reply: TerrainChunkReply }
+  | { readonly type: "terrain-regions"; readonly event: TerrainRegionEvent }
   | { readonly type: "error"; readonly message: string };
 
 export type WorkerEvent = WorkerEventBase;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { colonyWorldPath, colonyWorldRoute, packFromPath, readColonyJoin, readColonySocketMessage, readCommand, readPlacementDecision, readSocketMessage, readTerrainChunks, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
+import { colonyWorldPath, colonyWorldRoute, packFromPath, readColonyJoin, readColonySocketMessage, readCommand, readPlacementDecision, readSocketMessage, socketHandleFromPath, tokenFromRequest } from "./protocol.ts";
 
 const token = "a".repeat(64);
 
@@ -35,7 +35,7 @@ test("shared Colony routes separate world routing from participant authority", (
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/join`), { world, operation: "join" });
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/observe`), { world, operation: "observe" });
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/placement`), { world, operation: "placement" });
-  assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/terrain`), { world, operation: "terrain" });
+  assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/terrain`), null);
   assert.deepEqual(colonyWorldRoute(`/v2/colony/worlds/${world}/socket/client.1`), { world, operation: "socket", socketHandle: "client.1" });
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${"B".repeat(64)}/join`), null);
   assert.equal(colonyWorldRoute(`/v2/colony/worlds/${world}/socket`), null);
@@ -44,12 +44,6 @@ test("shared Colony routes separate world routing from participant authority", (
   assert.equal(colonyWorldPath(world, "socket", "client.1"), `/v2/colony/worlds/${world}/socket/client.1`);
   assert.throws(() => colonyWorldPath(world, "socket"), /invalid/);
   assert.throws(() => colonyWorldPath("bad", "observe"), /invalid/);
-});
-
-test("terrain read bodies enforce distinct bounded chunk keys", async () => {
-  const body = { requestId: 1, epoch: 2, terrainRevision: 3, chunks: [[-1, 0, 1]] };
-  assert.deepEqual(await readTerrainChunks(new Request("https://demo.invalid", { method: "POST", body: JSON.stringify(body) })), body);
-  await assert.rejects(readTerrainChunks(new Request("https://demo.invalid", { method: "POST", body: JSON.stringify({ ...body, chunks: [[0,0,0],[0,0,0]] }) })));
 });
 
 test("placement decision bodies are strict bounded batches", async () => {
@@ -113,18 +107,18 @@ test("performance routes admit only finite presets and existing authenticated op
   for (const size of [64, 128, 256, 512]) for (const workers of [4, 8, 16, 32, 50, 100, 200]) {
     const pack = `colony-performance-${size}-${workers}`;
     identities.add(packFromPath(`/v1/${pack}/observe`));
-    for (const operation of ["observe", "command", "connect", "socket/abc-123", "terrain", "placement"])
+    for (const operation of ["observe", "command", "connect", "socket/abc-123", "placement"])
       assert.equal(packFromPath(`/v1/${pack}/${operation}`), pack);
   }
   assert.equal(identities.size, 28, "presets retain distinct durable pack identities");
   for (const pack of ["colony-performance-63-4", "colony-performance-64-3", "colony-performance-064-4", "colony-performance-64-04", "colony-performance-512-201", "colony-performance-64-4-extra"])
     assert.equal(packFromPath(`/v1/${pack}/observe`), null);
-  for (const operation of ["step", "join", "debug", "terrain/extra", "socket/", "socket/a/b"])
+  for (const operation of ["step", "join", "debug", "terrain", "terrain/extra", "socket/", "socket/a/b"])
     assert.equal(packFromPath(`/v1/colony-performance-64-4/${operation}`), null);
   for (const pack of ["survival", "pirates", "formations", "colony"])
     for (const operation of ["terrain", "placement"])
       assert.equal(packFromPath(`/v1/${pack}/${operation}`), null);
-  const request = (authorization: string) => new Request("https://demo.invalid/v1/colony-performance-64-4/terrain", { headers: { Authorization: authorization } });
+  const request = (authorization: string) => new Request("https://demo.invalid/v1/colony-performance-64-4/placement", { headers: { Authorization: authorization } });
   assert.throws(() => tokenFromRequest(request("")), /public-unauthorized/);
   assert.equal(tokenFromRequest(request(`Bearer ${token}`)), token);
 });

@@ -1,8 +1,9 @@
 import type { GamePack, KernelPort } from "../contracts";
 import { GameSession } from "./session";
 import { buildObservation } from "./observation";
-import type { WorkerCommand, WorkerPlacementCommand, WorkerTerrainChunksCommand, WorkerTransportEvent } from "./protocol";
-import { terrainChunkRequestSchema } from "./terrain-chunks";
+import type { WorkerCommand, WorkerPlacementCommand, WorkerTerrainRegionsCommand, WorkerTransportEvent } from "./protocol";
+import { terrainRegionRequestSchema } from "./terrain-regions";
+import { startTerrainRegionStream } from "./terrain-region-stream";
 import { terrainWireForRevision } from "./terrain-wire";
 
 /** Worker-side host. The port must be backed by the Rust/WASM kernel. */
@@ -11,6 +12,7 @@ export class WorkerRuntime {
   private port?: KernelPort;
   private accepted?: import("./session").SessionSnapshot;
   private seed = 1;
+  private terrainStream?: ReturnType<typeof startTerrainRegionStream>;
   constructor(
     private readonly createKernel: () => KernelPort,
     private readonly packs: Readonly<Record<string, GamePack>>,
@@ -18,6 +20,7 @@ export class WorkerRuntime {
     private readonly options: Readonly<{ metrics?: boolean }> = {},
   ) {}
   private replaceSession(pack: GamePack, seed?: number, snapshot?: import("./session").SessionSnapshot): GameSession {
+    this.terrainStream?.cancel(); this.terrainStream = undefined;
     const oldPort = this.port;
     this.port = undefined;
     this.session = undefined;
@@ -50,6 +53,7 @@ export class WorkerRuntime {
     this.replaceSession(pack, this.seed, this.accepted);
   }
   dispose(): void {
+    this.terrainStream?.cancel(); this.terrainStream = undefined;
     this.port?.dispose();
     this.port = undefined;
     this.session = undefined;
@@ -99,7 +103,7 @@ export class WorkerRuntime {
       this.emit({ type: "whistle", agent: observation.whistleAgent, targets: observation.whistleTargets });
     }
   }
-  command(command: WorkerCommand | WorkerPlacementCommand | WorkerTerrainChunksCommand): void {
+  command(command: WorkerCommand | WorkerPlacementCommand | WorkerTerrainRegionsCommand): void {
     try {
       if (command.type === "start") {
         const pack = this.packs[command.game];
@@ -115,10 +119,17 @@ export class WorkerRuntime {
       }
       const session = this.session;
       if (!session) throw new Error("runtime has not started");
-      if (command.type === "terrain-chunks") {
+      if (command.type === "terrain-regions") {
         const { type: _type, ...raw } = command;
-        const request = terrainChunkRequestSchema.parse(raw);
-        this.emit({ type: "terrain-chunks", reply: session.terrainChunks(request, this.frameEpoch) });
+        const request = terrainRegionRequestSchema.parse(raw);
+        this.terrainStream?.cancel();
+        const stream = startTerrainRegionStream(request,
+          key => session.terrainRegion(request, key, this.frameEpoch),
+          event => this.emit({ type: "terrain-regions", event }));
+        this.terrainStream = stream;
+        void stream.done.finally(() => { if (this.terrainStream === stream) this.terrainStream = undefined; });
+      } else if (command.type === "terrain-cancel") {
+        if (this.terrainStream?.requestId === command.requestId) { this.terrainStream.cancel(); this.terrainStream = undefined; }
       } else if (command.type === "placement-decisions") {
         try {
           const result = session.placementDecisions(command.party as import("../contracts").EntityId, command.candidates);

@@ -1280,14 +1280,14 @@ export class GameSession {
     }
     return this.terrainPresentation.read();
   }
-  terrainChunks(request: import("./terrain-chunks").TerrainChunkRequest, epoch: number) {
+  terrainRegion(request: import("./terrain-regions").TerrainRegionRequest, key: [number, number], epoch: number) {
     this.ensureLive();
-    if (!this.pack.environmentDefinition) return { kind: "unavailable", requestId: request.requestId, reason: "terrain observation is unavailable" } as const;
+    if (!this.pack.environmentDefinition) return { kind: "unavailable", requestId: request.requestId, epoch: request.epoch, terrainRevision: request.terrainRevision, level: request.level, reason: "terrain observation is unavailable" } as const;
     if (!this.terrainPresentation) {
       const definition = JSON.parse(new TextDecoder().decode(this.pack.environmentDefinition)) as EnvironmentDefinition;
       this.terrainPresentation = new TerrainPresentationOwner(this.port, definition, this.pack.presentationWindow, this.pack.terrainPresentation);
     }
-    return this.terrainPresentation.readChunks(request, epoch);
+    return this.terrainPresentation.readRegion(request, key, epoch);
   }
   terrainChanges(sinceRevision: number) { this.ensureLive(); return this.port.terrainChanges(sinceRevision); }
   presentationCues() {
