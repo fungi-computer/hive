@@ -1,11 +1,15 @@
-import { compareOrderingPlanes, prepareOrderingProxy, polygonContains } from "./plane-order.js";
+import { compareOrderingPlanes, prepareOrderingProxy, polygonContains, hull } from "./plane-order.js";
 
 const EPSILON = 1e-7;
 const keyOf = record => `${record.id}\u0000${record.part ?? ""}`;
-const boundsOf = points => ({
-  left: Math.min(...points.map(p => p.x)), right: Math.max(...points.map(p => p.x)),
-  top: Math.min(...points.map(p => p.y)), bottom: Math.max(...points.map(p => p.y)),
-});
+const boundsOf = points => {
+  const bounds = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity };
+  for (const point of points) {
+    bounds.left = Math.min(bounds.left, point.x); bounds.right = Math.max(bounds.right, point.x);
+    bounds.top = Math.min(bounds.top, point.y); bounds.bottom = Math.max(bounds.bottom, point.y);
+  }
+  return bounds;
+};
 const overlap = (a, b) => a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom;
 const finite = p => p && [p.x, p.y, p.z].every(Number.isFinite);
 
@@ -51,6 +55,38 @@ function geometryFaces(geometry, direction) {
   return faces;
 }
 
+function rectanglePolygon(bounds) {
+  return [{ x: bounds.left, y: bounds.top }, { x: bounds.right, y: bounds.top },
+    { x: bounds.right, y: bounds.bottom }, { x: bounds.left, y: bounds.bottom }];
+}
+
+function checkedCoverage(geometry) {
+  const coverage = geometry.coverage;
+  if (coverage == null) return null;
+  if (geometry.kind !== "face" || !coverage.offset ||
+      ![coverage.offset.x, coverage.offset.y].every(Number.isFinite) ||
+      !Array.isArray(coverage.rectangles) || !coverage.rectangles.length)
+    throw new Error("spatial draw coverage requires a face, finite offset and opaque rectangles");
+  return coverage.rectangles.map(rectangle => {
+    if (!rectangle || ![rectangle.left, rectangle.top, rectangle.right, rectangle.bottom].every(Number.isFinite) ||
+        rectangle.left >= rectangle.right || rectangle.top >= rectangle.bottom)
+      throw new Error("spatial draw coverage rectangles must be finite and positive");
+    const bounds = { left: rectangle.left + coverage.offset.x, right: rectangle.right + coverage.offset.x,
+      top: rectangle.top + coverage.offset.y, bottom: rectangle.bottom + coverage.offset.y };
+    if (!Object.values(bounds).every(Number.isFinite) || bounds.left >= bounds.right || bounds.top >= bounds.bottom)
+      throw new Error("spatial draw coverage coordinates must be finite and positive");
+    return bounds;
+  });
+}
+
+// Rectangles use exactly the coarse face's plane. Refinement excludes empty
+// image area; it never samples pixel centers or changes the depth equation.
+function preciseFaces(entry) {
+  if (!entry.coverage) return entry.faces;
+  return entry.preciseFaces ??= entry.coverage.map(bounds => ({ bounds,
+    orderingProxy: { ...entry.faces[0].orderingProxy, polygon: rectanglePolygon(bounds) } }));
+}
+
 function prepare(record, projection) {
   const key = keyOf(record);
   if (record.id == null) throw new Error("spatial draw record identity required");
@@ -61,18 +97,38 @@ function prepare(record, projection) {
     return { bounds:screenBounds, orderingProxy: prepareOrderingProxy({ id: key, planarCorners: points, footprint: points, screenBounds }, projection) };
   }).filter(face => face.orderingProxy);
   if (!faces.length) throw new Error(`spatial draw geometry is edge-on: ${key}`);
-  return { record, key, faces, bounds: boundsOf(faces.flatMap(face => face.orderingProxy.polygon)) };
+  const coverage = checkedCoverage(record.orderGeometry);
+  if (coverage) {
+    // Coverage includes outline texels that can extend beyond model geometry.
+    // Keep coarse candidate discovery conservative over all authored ink.
+    const face = faces[0];
+    face.orderingProxy.polygon = hull([...face.orderingProxy.polygon, ...coverage.flatMap(rectanglePolygon)]);
+    face.bounds = boundsOf(face.orderingProxy.polygon);
+  }
+  return { record, key, faces, coverage, bounds: boundsOf(faces.flatMap(face => face.orderingProxy.polygon)) };
 }
 
 /** Resolve a relationship over its projected overlap, not at a pivot. Each
  * convex volume's visible faces partition its projected silhouette. Opposite
  * signs therefore mean its representation cannot be emitted as one image.
  */
-function faceRelation(a, b, projection, counters) {
+function faceRelation(a, b, projection, counters, precise = false) {
+  if (a.faces.length === 1 && b.faces.length === 1 &&
+      (a.record.surfaceOrder ?? 0) === (b.record.surfaceOrder ?? 0)) {
+    const left = a.faces[0].orderingProxy, right = b.faces[0].orderingProxy;
+    // Exact plane equality only: no epsilon that could erase a real depth
+    // difference. Opposite polygon winding describes the same plane too.
+    const ln = left.normal, rn = right.normal;
+    const samePlane = (left.constant === right.constant && ln.x === rn.x && ln.y === rn.y && ln.z === rn.z) ||
+      (left.constant === -right.constant && ln.x === -rn.x && ln.y === -rn.y && ln.z === -rn.z);
+    if (samePlane) { counters.coplanarSkips++; return "independent"; }
+  }
   let before = false, after = false, coplanar = false;
-  for (const left of a.faces) for (const right of b.faces) {
+  const leftFaces = precise ? preciseFaces(a) : a.faces, rightFaces = precise ? preciseFaces(b) : b.faces;
+  for (const left of leftFaces) for (const right of rightFaces) {
     if(!overlap(left.bounds,right.bounds))continue;
     counters.faceComparisons++;
+    if (precise) counters.coverageFaceComparisons++;
     const compared = compareOrderingPlanes(left, right, projection);
     if (compared.kind === "interleaving") return "interleaving";
     if (compared.kind === "tie") coplanar = true;
@@ -104,7 +160,10 @@ function relation(a,b,projection,counters) {
     surface.record.orderGeometry.points.every(point=>Math.abs(point.y-object.record.supportY)<=EPSILON);
   if(supportedBy(a,b))return "before";
   if(supportedBy(b,a))return "after";
-  return faceRelation(a,b,projection,counters);
+  const coarse = faceRelation(a,b,projection,counters);
+  if (coarse !== "interleaving" || (!a.coverage && !b.coverage)) return coarse;
+  counters.coverageRefinements++;
+  return faceRelation(a,b,projection,counters,true);
 }
 
 /** Small spatial bins bound candidate discovery. Coordinates are projected
@@ -166,7 +225,8 @@ function heapPop(heap) {
 }
 
 const compareEntries = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
-const countersFor = records => ({ records, candidateVisits: 0, faceComparisons: 0, bins: 0, edges: 0 });
+const countersFor = records => ({ records, candidateVisits: 0, faceComparisons: 0, bins: 0, edges: 0,
+  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, approximateOverlaps: 0, preparedNew: 0, preparedReused: 0, relationsReused: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
 
 function prepareEntries(records, projection) {
   if (!Array.isArray(records)) throw new Error("spatial draw records must be an array");
@@ -213,14 +273,27 @@ function addRelation(a, b, projection, counters, edges) {
   if (a.key > b.key) [a, b] = [b, a];
   const result = relation(a, b, projection, counters);
   if (result === "interleaving") {
-    const error = new Error(`spatial draw pieces interleave: ${a.key} / ${b.key}`);
-    error.pieces = [a.record, b.record]; throw error;
+    // Whole pictures can overlap in ways no exact whole-picture order can
+    // express. Keep the ordinary geometric relations, and choose one stable
+    // camera-depth order for this ambiguous pair rather than stop rendering.
+    const centerDepth = entry => {
+      const geometry = entry.record.orderGeometry;
+      const points = geometry.kind === "volume" ? [geometry.min, geometry.max] : geometry.points;
+      const center = axis => (Math.min(...points.map(point => point[axis])) + Math.max(...points.map(point => point[axis]))) / 2;
+      return center("x") * projection.direction.x + center("y") * projection.direction.y + center("z") * projection.direction.z;
+    };
+    counters.approximateOverlaps++;
+    const difference = centerDepth(a) - centerDepth(b);
+    edges.push(difference >= -EPSILON ? [a.key, b.key] : [b.key, a.key]);
+    return;
   }
   if (result === "independent") return;
   edges.push(result === "before" ? [a.key, b.key] : [b.key, a.key]);
 }
 
-function orderGraph(entries, relations, counters) {
+function orderGraph(entries, relations, counters, clock) {
+  const started = clock();
+  counters.topologyBuilds++;
   const indices = new Map(entries.map((entry, index) => [entry.key, index]));
   const edges = entries.map(() => new Set()), incoming = new Uint32Array(entries.length), unique = [];
   for (const [fromKey, toKey] of relations) {
@@ -239,63 +312,146 @@ function orderGraph(entries, relations, counters) {
     throw new Error(`spatial draw cycle requires refined art pieces: ${remaining.join(" / ")}`);
   }
   counters.edges = unique.length;
+  counters.topologyMs = Math.max(0, clock() - started);
   return Object.freeze({ records: Object.freeze(output), relations: Object.freeze(unique), metrics: Object.freeze(counters) });
 }
 
 // A retained revision covers every value used by geometry or contact ordering.
 // Snapshot bytes also detect mutation of an existing geometry object on refresh.
 function geometrySignature(record) {
-  return JSON.stringify([record.orderGeometry, record.surfaceOrder ?? 0, record.supportY ?? null,
+  const data = JSON.stringify([record.orderGeometry, record.surfaceOrder ?? 0, record.supportY ?? null,
     record.compositePartition ?? null, record.support ?? null, record.contactSurface ?? null], (_key, value) => {
       if (typeof value === "number" && !Number.isFinite(value))
         throw new Error("spatial ordering data must be finite");
       return value;
     });
+  // Composite membership uses strict token identity in the comparator. Preserve
+  // it separately so equal-looking replacement objects cannot reuse old edges.
+  return { data, partition: record.compositePartition ?? null };
 }
+const sameGeometrySignature = (a, b) => a?.data === b?.data && a?.partition === b?.partition;
 
 /** Retains checked static geometry, its spatial index and all static relations.
  * A static support must itself be static. Dynamic records may reference either
  * class. Geometry/contact changes require a new prepared scene; refreshes only
  * replace display, picking and other presentation references. The projection
- * and supplied geometry are immutable for this scene's lifetime.
+ * and supplied geometry are immutable for this scene's lifetime. A staged
+ * withStaticRecords successor retains only unchanged current members/edges;
+ * its creation and validation never replace this scene's presentation state.
+ * Returned
+ * records are a borrowed read-only view: a successful geometry-identical
+ * compile refreshes its record references in place, without traversing terrain.
  */
-export function prepareSpatialDrawScene(staticRecords, { projection, binSize = 64 } = {}) {
+export function prepareSpatialDrawScene(staticRecords, { projection, binSize = 64, clock = () => performance.now() } = {}) {
+  return buildSpatialDrawScene(staticRecords, { projection, binSize, clock });
+}
+
+function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, previous) {
   if (!projection?.project || !projection?.ray || !finite(projection.direction) ||
       !Number.isFinite(binSize) || !(binSize > 0))
     throw new Error("spatial draw records and orthographic projection required");
-  const statics = prepareEntries(staticRecords, projection);
+  const preparationStarted = clock();
+  if (!Array.isArray(staticRecords)) throw new Error("spatial draw records must be an array");
+  const signatures = new Map(), reused = new Set();
+  const statics = staticRecords.map(record => {
+    if (record?.id == null) throw new Error("spatial draw record identity required");
+    const key = keyOf(record), signature = geometrySignature(record);
+    if (signatures.has(key)) throw new Error("duplicate spatial draw identity");
+    signatures.set(key, signature);
+    if (previous?.byKey.has(key) && sameGeometrySignature(previous.signatures.get(key), signature)) {
+      reused.add(key);
+      // Detach mutable presentation references from the previous revision.
+      // Geometry/proxies are immutable; only their lazy refinement is shared.
+      return { ...previous.byKey.get(key), record };
+    }
+    return prepare(record, projection);
+  }).sort(compareEntries);
   const byKey = new Map(statics.map(entry => [entry.key, entry]));
-  const signatures = new Map(statics.map(entry => [entry.key, geometrySignature(entry.record)]));
+  // Even unchanged occupants must be checked against their current support:
+  // a contact surface may have changed or left membership this revision.
   resolveSupports(statics, byKey, projection);
   const staticCounters = countersFor(statics.length), staticIndex = createSpatialIndex(binSize), staticEdges = [];
+  staticCounters.preparedReused = reused.size;
+  staticCounters.preparedNew = statics.length - reused.size;
+  for (const edge of previous?.relations ?? []) if (reused.has(edge[0]) && reused.has(edge[1])) {
+    staticEdges.push(edge); staticCounters.relationsReused++;
+  }
+  const candidatesStarted = clock();
+  staticCounters.preparationMs = Math.max(0, candidatesStarted - preparationStarted);
   for (const entry of statics) {
+    if (reused.has(entry.key)) staticIndex.add(entry);
     if (entry.supportKey) staticEdges.push([entry.supportKey, entry.key]);
+  }
+  for (const entry of statics) {
+    if (reused.has(entry.key)) continue;
+    // The index contains all unchanged members and only preceding new ones.
+    // Thus each affected pair is visited once; unchanged pairs need no query.
     for (const other of staticIndex.candidates(entry, staticCounters))
       addRelation(other, entry, projection, staticCounters, staticEdges);
     staticIndex.add(entry);
   }
   staticCounters.bins = staticIndex.size;
+  staticCounters.candidateMs = Math.max(0, clock() - candidatesStarted);
   // Validate the static graph once, including cycles with no spatial overlap.
-  const staticResult = orderGraph(statics, staticEdges, staticCounters);
+  const staticResult = orderGraph(statics, staticEdges, staticCounters, clock);
+  // Do not retain a chain of old scenes. The successor keeps only this
+  // membership's proxies, signatures, spatial bins and surviving edges.
+  previous = undefined;
+  let current = staticResult, orderedRecords = [...staticResult.records];
+  let orderedIndexes = new Map(orderedRecords.map((record, index) => [keyOf(record), index]));
+  let dynamicSignatures = new Map();
   return Object.freeze({
     metrics: staticResult.metrics,
+    withStaticRecords(records) {
+      return buildSpatialDrawScene(records, { projection, binSize, clock },
+        { byKey, signatures, relations: staticResult.relations });
+    },
+    retained: () => Object.freeze({ staticRecords: byKey.size, staticRelations: staticResult.relations.length,
+      staticBins: staticIndex.size, dynamicRecords: dynamicSignatures.size, currentRecords: orderedRecords.length }),
     compile(dynamicRecords = [], currentStaticRecords = []) {
+      const preparationStarted = clock();
       if (!Array.isArray(currentStaticRecords)) throw new Error("spatial static refresh requires an array");
       const refreshed = new Set();
       for (const record of currentStaticRecords) {
         const key = keyOf(record);
         if (refreshed.has(key)) throw new Error("duplicate spatial static refresh identity");
         refreshed.add(key);
-        if (!byKey.has(key) || signatures.get(key) !== geometrySignature(record))
+        if (!byKey.has(key) || !sameGeometrySignature(signatures.get(key), geometrySignature(record)))
           throw new Error(`spatial static geometry changed without a revision: ${key}`);
       }
-      const dynamics = prepareEntries(dynamicRecords, projection);
-      for (const entry of dynamics) if (byKey.has(entry.key)) throw new Error("duplicate spatial draw identity");
-      // Only commit refreshes after validating and ordering the entire update.
+      if (!Array.isArray(dynamicRecords)) throw new Error("spatial draw records must be an array");
+      const nextSignatures = new Map();
+      for (const record of dynamicRecords) {
+        if (record?.id == null) throw new Error("spatial draw record identity required");
+        const key = keyOf(record);
+        if (byKey.has(key) || nextSignatures.has(key)) throw new Error("duplicate spatial draw identity");
+        nextSignatures.set(key, geometrySignature(record));
+      }
+      const unchanged = nextSignatures.size === dynamicSignatures.size &&
+        [...nextSignatures].every(([key, signature]) => sameGeometrySignature(dynamicSignatures.get(key), signature));
       const refreshedRecords = new Map(currentStaticRecords.map(record => [keyOf(record), record]));
+      if (unchanged) {
+        const recordChanges = [];
+        for (const record of [...currentStaticRecords, ...dynamicRecords]) {
+          const index = orderedIndexes.get(keyOf(record)), previous = orderedRecords[index];
+          if (previous !== record) {
+            recordChanges.push({ previous, current: record });
+            orderedRecords[index] = record;
+          }
+        }
+        for (const [key, record] of refreshedRecords) byKey.get(key).record = record;
+        return Object.freeze({ records: orderedRecords, relations: current.relations,
+          recordChanges: Object.freeze(recordChanges),
+          metrics: Object.freeze({ ...countersFor(orderedRecords.length), bins: current.metrics.bins,
+            edges: current.metrics.edges, topologyReuses: 1 }) });
+      }
+      const dynamics = prepareEntries(dynamicRecords, projection);
+      // Only commit refreshes after validating and ordering the entire update.
       const entries = mergeEntries(statics, dynamics, refreshedRecords);
       resolveSupports(dynamics, new Map(entries.map(entry => [entry.key, entry])), projection);
       const counters = countersFor(entries.length), dynamicIndex = createSpatialIndex(binSize), relations = [...staticResult.relations];
+      const candidatesStarted = clock();
+      counters.preparationMs = Math.max(0, candidatesStarted - preparationStarted);
       for (const entry of dynamics) {
         if (entry.supportKey) relations.push([entry.supportKey, entry.key]);
         for (const other of staticIndex.candidates(entry, counters)) addRelation(other, entry, projection, counters, relations);
@@ -303,9 +459,14 @@ export function prepareSpatialDrawScene(staticRecords, { projection, binSize = 6
         dynamicIndex.add(entry);
       }
       counters.bins = staticIndex.size + dynamicIndex.size;
-      const result = orderGraph(entries, relations, counters);
+      counters.candidateMs = Math.max(0, clock() - candidatesStarted);
+      const result = orderGraph(entries, relations, counters, clock);
       for (const [key, record] of refreshedRecords) byKey.get(key).record = record;
-      return result;
+      current = result;
+      orderedRecords = [...result.records];
+      orderedIndexes = new Map(orderedRecords.map((record, index) => [keyOf(record), index]));
+      dynamicSignatures = nextSignatures;
+      return Object.freeze({ ...result, records: orderedRecords });
     },
   });
 }
@@ -316,5 +477,5 @@ export function prepareSpatialDrawScene(staticRecords, { projection, binSize = 6
 export function compileSpatialDrawOrder(records, options = {}) {
   const scene = prepareSpatialDrawScene(records, options);
   const result = scene.compile();
-  return Object.freeze({ ...result, metrics: scene.metrics });
+  return Object.freeze({ ...result, records: Object.freeze([...result.records]), metrics: scene.metrics });
 }
