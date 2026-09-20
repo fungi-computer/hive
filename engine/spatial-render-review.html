@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hive · Spatial rendering</title>
+<style>
+body{margin:0;background:#25372d;color:#eee3c5;font:16px system-ui}main{max-width:1200px;margin:24px auto;padding:0 16px}
+header{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:16px}button,input{accent-color:#c8b47b}
+canvas{display:block;width:100%;image-rendering:pixelated;background:#7b896d}#status{display:block;min-height:24px;margin:12px 0}label{display:flex;align-items:center;gap:8px}
+</style></head><body><main>
+<header><strong>Original-art spatial scene</strong><button id="turn">Rotate camera</button>
+<label><input type="checkbox" id="moving">Walk around bed</label>
+<label><input type="checkbox" id="mown">Show mown patch</label>
+<label>Position <input type="range" id="walk" min="0" max="9.95" step="0.05" value="0"></label></header>
+<div id="canvas"></div><output id="status">Loading original art…</output>
+</main><script type="module" src="./src/client/spatial-render-review-page.js"></script></body></html>

@@ -9,7 +9,7 @@ export function polygonArea(polygon) {
   return polygon.reduce((sum, a, i) => { const b = polygon[(i + 1) % polygon.length]; return sum + a.x * b.y - a.y * b.x; }, 0) / 2;
 }
 
-function hull(points) {
+export function hull(points) {
   const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
   const half = values => {
     const out = [];

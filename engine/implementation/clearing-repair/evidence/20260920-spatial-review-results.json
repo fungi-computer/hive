@@ -1,0 +1,778 @@
+{
+  "built": true,
+  "cases": [
+    {
+      "turn": 0,
+      "walk": 3,
+      "actorNear": true,
+      "overlap": 23,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "walk": 3.5,
+      "actorNear": true,
+      "overlap": 141,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "walk": 4,
+      "actorNear": true,
+      "overlap": 242,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "walk": 8,
+      "actorNear": false,
+      "overlap": 0,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "walk": 8.5,
+      "actorNear": false,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "walk": 9,
+      "actorNear": false,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "walk": 3,
+      "actorNear": false,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "walk": 3.5,
+      "actorNear": false,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "walk": 4,
+      "actorNear": false,
+      "overlap": 0,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "walk": 8,
+      "actorNear": true,
+      "overlap": 242,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "walk": 8.5,
+      "actorNear": true,
+      "overlap": 141,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "walk": 9,
+      "actorNear": true,
+      "overlap": 25,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "walk": 3,
+      "actorNear": false,
+      "overlap": 0,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "walk": 3.5,
+      "actorNear": false,
+      "overlap": 4,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "walk": 4,
+      "actorNear": false,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "walk": 8,
+      "actorNear": true,
+      "overlap": 21,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "walk": 8.5,
+      "actorNear": true,
+      "overlap": 136,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "walk": 9,
+      "actorNear": true,
+      "overlap": 239,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "walk": 3,
+      "actorNear": true,
+      "overlap": 243,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "walk": 3.5,
+      "actorNear": true,
+      "overlap": 141,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "walk": 4,
+      "actorNear": true,
+      "overlap": 28,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "walk": 8,
+      "actorNear": false,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "walk": 8.5,
+      "actorNear": false,
+      "overlap": 4,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "walk": 9,
+      "actorNear": false,
+      "overlap": 0,
+      "wrong": 0
+    }
+  ],
+  "bankCases": [
+    {
+      "turn": 0,
+      "bankIds": [
+        "terrain:5,1,2:top",
+        "terrain:5,1,2:east",
+        "terrain:5,1,2:south"
+      ],
+      "coverPieces": 228,
+      "overlap": 352,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "bankIds": [
+        "terrain:5,1,2:top",
+        "terrain:5,1,2:west",
+        "terrain:5,1,2:south"
+      ],
+      "coverPieces": 228,
+      "overlap": 352,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "bankIds": [
+        "terrain:5,1,2:top",
+        "terrain:5,1,2:west",
+        "terrain:5,1,2:north"
+      ],
+      "coverPieces": 228,
+      "overlap": 352,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "bankIds": [
+        "terrain:5,1,2:top",
+        "terrain:5,1,2:east",
+        "terrain:5,1,2:north"
+      ],
+      "coverPieces": 228,
+      "overlap": 352,
+      "wrong": 0
+    }
+  ],
+  "wallCases": [
+    {
+      "turn": 0,
+      "x": 4.5,
+      "actorNear": false,
+      "overlap": 6,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "x": 6.5,
+      "actorNear": true,
+      "overlap": 9,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "x": 4.5,
+      "actorNear": true,
+      "overlap": 9,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "x": 6.5,
+      "actorNear": false,
+      "overlap": 6,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "x": 4.5,
+      "actorNear": true,
+      "overlap": 9,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "x": 6.5,
+      "actorNear": false,
+      "overlap": 6,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "x": 4.5,
+      "actorNear": false,
+      "overlap": 6,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "x": 6.5,
+      "actorNear": true,
+      "overlap": 10,
+      "wrong": 0
+    }
+  ],
+  "stairCases": [
+    {
+      "turn": 0,
+      "t": 0,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 37,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 1,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 103,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.25,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 3,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.25,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 28,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.25,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 131,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.5,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 5,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.5,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 44,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.5,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 110,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.75,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 5,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.75,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 48,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 0.75,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 107,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 1,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 25,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 1,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 37,
+      "wrong": 0
+    },
+    {
+      "turn": 0,
+      "t": 1,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 32,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 38,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 103,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 2,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.25,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 6,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.25,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 123,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.25,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 30,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.5,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 5,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.5,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 109,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.5,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 48,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.75,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 4,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.75,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 106,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 0.75,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 55,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 1,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 25,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 1,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 34,
+      "wrong": 0
+    },
+    {
+      "turn": 1,
+      "t": 1,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 37,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 187,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 0,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 124,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.25,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 163,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.25,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 20,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.25,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 131,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.5,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 165,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.5,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 25,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.5,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 115,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.75,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 147,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.75,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 21,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 0.75,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 130,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 1,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 50,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 1,
+      "part": "rail.left",
+      "actorNear": false,
+      "overlap": 21,
+      "wrong": 0
+    },
+    {
+      "turn": 2,
+      "t": 1,
+      "part": "rail.right",
+      "actorNear": true,
+      "overlap": 51,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 188,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 128,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 0,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.25,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 163,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.25,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 135,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.25,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 21,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.5,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 168,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.5,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 122,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.5,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 23,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.75,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 147,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.75,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 131,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 0.75,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 22,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 1,
+      "part": "surface",
+      "actorNear": true,
+      "overlap": 49,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 1,
+      "part": "rail.left",
+      "actorNear": true,
+      "overlap": 55,
+      "wrong": 0
+    },
+    {
+      "turn": 3,
+      "t": 1,
+      "part": "rail.right",
+      "actorNear": false,
+      "overlap": 23,
+      "wrong": 0
+    }
+  ],
+  "mowing": [
+    {
+      "turn": 0,
+      "changed": 5653
+    },
+    {
+      "turn": 1,
+      "changed": 5207
+    },
+    {
+      "turn": 2,
+      "changed": 5199
+    },
+    {
+      "turn": 3,
+      "changed": 5332
+    }
+  ],
+  "errors": []
+}
