@@ -94,9 +94,12 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
 
   function update(frameValue, nextEpoch) {
     if (disposed) throw new Error("cut terrain layer is disposed");
+    // Observation references and the terrain projection retain unchanged
+    // surface arrays. Water/actor ticks must not reserialize their cover facts.
+    if (frame?.surfaces !== frameValue?.surfaces)
+      surfaceIdentity = frameValue ? JSON.stringify(frameValue.surfaces) : undefined;
     frame = frameValue;
     epoch = nextEpoch;
-    surfaceIdentity = frameValue ? JSON.stringify(frameValue.surfaces) : undefined;
     if (!frameValue) {
       cameraCoverage.reset(); cache.clear(); regionEntries.clear(); coverageIdentity = undefined; reportedBudget = undefined;
       waterRecordEntries.clear(); presentedSurfaces = []; exposedFaces = []; presentedFrame = presentedSource = undefined;

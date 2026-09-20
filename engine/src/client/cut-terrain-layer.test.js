@@ -92,6 +92,26 @@ test("observed full/short cover overrides halo facts without reading terrain or 
   assert(after.some(record=>cover.includes(record)),"unaffected region cover keeps record identity");assert.equal(requests.length,1);layer.dispose();
 });
 
+test("surface references survive water updates while replacement cover still publishes",async()=>{
+  const {layer,install,requests}=setup({cover:grass});install();
+  const terrain=frame(bounds,[{cell:[7,0,3],material:1,generatedTop:0,cover:grass}]);
+  try {
+    layer.update(terrain,1);await ready(layer);
+    const ground=layer.retainedRecords.records;
+    const wet={...terrain,water:[{at:[4,0,3],level:3,liquidVolumeM3:.1}]};
+    layer.update(wet,1);layer.position(camera,view,screen);
+    const firstWater=layer.retainedRecords.records.find(record=>record.role==="water");
+    assert(firstWater);assert(ground.every(record=>layer.retainedRecords.records.includes(record)));
+    layer.update({...wet,water:[{...wet.water[0],level:5}]},1);layer.position(camera,view,screen);
+    assert.notStrictEqual(layer.retainedRecords.records.find(record=>record.role==="water"),firstWater);
+    assert(ground.every(record=>layer.retainedRecords.records.includes(record)));
+    layer.update({...wet,surfaces:[{...terrain.surfaces[0],cover:{...grass,height:"short"}}]},1);
+    layer.position(camera,view,screen);
+    assert(layer.retainedRecords.records.some(record=>record.role==="terrain-cover"&&record.id.endsWith(":short")));
+    assert.equal(requests.length,1);
+  } finally {layer.dispose();}
+});
+
 test("patches can arrive before art; empty and oversized demands never preserve stale paint",async()=>{
   const world={...bounds,minX:-512,maxX:512,minZ:-512,maxZ:512};
   const {layer,install}=setup({world});layer.update(frame(world),1);await ready(layer);assert.equal(layer.retainedRecords.records.length,0);
