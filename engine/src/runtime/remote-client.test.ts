@@ -1,3 +1,4 @@
+import type { TerrainRegionEvent } from "./terrain-regions";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { entity } from "../sdk/authoring";
@@ -81,7 +82,6 @@ test("Colony v2 persists the participant credential before join and keeps it out
       if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
       const body = JSON.parse(String(init?.body));
       if (String(input).endsWith("/placement")) return Response.json({ observationRevision: 2, nativeRevision: 3, placementRevision: 2, decisions: body.candidates.map(({ site }: { site: string }) => ({ site, status: "ready" })) });
-      if (String(input).endsWith("/terrain")) return Response.json({ kind: "ready", requestId: body.requestId, epoch: body.epoch, terrainRevision: body.terrainRevision, chunks: [{ key: body.chunks[0], min: [0,0,0], max: [1,1,1], surfaces: [], columns: [{ x: 0, z: 0, runs: [{ minY: 0, maxY: 1, material: 0 }] }] }] });
       return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
     },
     createSocket: (url) => { calls.push({ url }); queueMicrotask(() => socket.emit("open", {})); return socket; },
@@ -114,9 +114,16 @@ test("Colony v2 persists the participant credential before join and keeps it out
   assert.equal(placement.decisions[0]?.status, "ready");
   const placementCall = calls.find((call) => call.url.endsWith("/placement"));
   assert.equal(new Headers(placementCall?.init?.headers).get("Authorization"), `Bearer ${credential}`);
-  const terrain = await runtime.terrainChunks({ requestId: 5, epoch: 0, terrainRevision: 0, chunks: [[0,0,0]] });
-  assert.equal(terrain.kind, "ready");
-  assert.equal(new Headers(calls.find(call => call.url.endsWith("/terrain"))?.init?.headers).get("Authorization"), `Bearer ${credential}`);
+  const terrain: TerrainRegionEvent[] = [];
+  const regionRequest = { requestId: 5, epoch: 0, terrainRevision: 0, level: 3, regions: [[0,0] as [number,number]] };
+  runtime.terrainRegions(regionRequest, event => terrain.push(event));
+  assert.deepEqual(JSON.parse(socket.sent.at(-1)!), { type: "terrain-regions", ...regionRequest });
+  socket.emit("message", { data: JSON.stringify({ type: "terrain-regions", event: {
+    kind: "patch", requestId: 5, epoch: 0, terrainRevision: 0, level: 3,
+    patch: { key: [0,0], bounds: { minX: 0, maxX: 8, minZ: 0, maxZ: 8 }, faces: [], surfaces: [] },
+  } }) });
+  assert.equal(terrain[0]?.kind, "patch");
+  assert.equal(calls.some(call => call.url.endsWith("/terrain")), false);
   runtime.send({ type: "pause" });
   await wait(10);
   const command = calls.find((call) => call.url.endsWith("/command"));
@@ -531,27 +538,32 @@ test("definite command refusals release later orders without reconnecting", asyn
   } finally { runtime.dispose(); }
 });
 
-test("private performance worlds use authenticated terrain routes and report received bytes", async () => {
-  const calls: {url:string;init?:RequestInit}[]=[];
-  const samples: import('./remote-client').RemoteTransportSample[]=[];
-  const socket=new FakeSocket();
-  const runtime=connectRemoteRuntime({endpoint:'https://hive.test/v1/colony-performance-256-8',game:'colony-performance-256-8',token,
-    onTransport: sample=>samples.push(sample),
-    fetch:async(input,init)=>{
-      calls.push({url:String(input),init});
-      if(String(input).endsWith('/connect'))return Response.json({handle:'opaque'});
-      assert.equal(new Headers(init?.headers).get('Authorization'),null,'v1 authentication belongs to the authorized fetch supplied by the connection owner');
-      const body=JSON.parse(String(init?.body));
-      return Response.json({kind:'ready',requestId:body.requestId,epoch:body.epoch,terrainRevision:body.terrainRevision,chunks:[{key:[0,0,0],min:[0,0,0],max:[1,1,1],surfaces:[],columns:[{x:0,z:0,runs:[{minY:0,maxY:1,material:0}]}]}]});
-    },createSocket:()=>{queueMicrotask(()=>socket.emit('open',{}));return socket;},
+test("private performance worlds stream terrain through the authenticated socket and report bytes", async () => {
+  const calls: string[] = [];
+  const samples: import('./remote-client').RemoteTransportSample[] = [];
+  const socket = new FakeSocket();
+  const runtime = connectRemoteRuntime({ endpoint: 'https://hive.test/v1/colony-performance-256-8', game: 'colony-performance-256-8', token,
+    onTransport: sample => samples.push(sample),
+    fetch: async input => { calls.push(String(input)); assert(String(input).endsWith('/connect')); return Response.json({handle:'opaque'}); },
+    createSocket: () => {queueMicrotask(() => socket.emit('open',{})); return socket;},
   });
   try {
+    const received: TerrainRegionEvent[] = [];
+    const request = {requestId:1,epoch:0,terrainRevision:0,level:3,regions:[[0,0] as [number,number]]};
+    runtime.terrainRegions(request, event => received.push(event));
+    assert.equal(socket.sent.length, 0, 'terrain waits for authentication');
     runtime.send({type:'start',game:'colony-performance-256-8'});
-    await waitFor(()=>samples.some(s=>s.kind==='socket'));
-    const reply=await runtime.terrainChunks({requestId:1,epoch:0,terrainRevision:0,chunks:[[0,0,0]]});
-    assert.equal(reply.kind,'ready');
-    assert(calls.some(c=>c.url==='https://hive.test/v1/colony-performance-256-8/terrain'));
-    assert(samples.some(s=>s.kind==='http'&&s.operation==='terrain'&&s.receivedBytes>0&&s.durationMs>=0));
+    await waitFor(() => socket.sent.some(value => JSON.parse(value).type === 'terrain-regions'));
+    assert.deepEqual(JSON.parse(socket.sent[0]), {type:'authenticate',token});
+    assert.deepEqual(JSON.parse(socket.sent.at(-1)!), {type:'terrain-regions',...request});
+    const before = samples.filter(s => s.kind === 'socket').length;
+    const identity = {requestId:1,epoch:0,terrainRevision:0,level:3};
+    for (const event of [{kind:'patch',...identity,patch:{key:[0,0],bounds:{minX:0,maxX:8,minZ:0,maxZ:8},faces:[],surfaces:[]}}, {kind:'complete',...identity}])
+      socket.emit('message',{data:JSON.stringify({type:'terrain-regions',event})});
+    assert.deepEqual(received.map(event => event.kind), ['patch','complete']);
+    assert.equal(samples.filter(s => s.kind === 'socket').length, before + 2);
+    assert(samples.filter(s => s.kind === 'socket').every(s => s.receivedBytes > 0));
+    assert.equal(calls.some(url => url.endsWith('/terrain')), false);
   } finally {runtime.dispose();}
 });
 
@@ -561,8 +573,8 @@ test("transport telemetry includes rejected network attempts without changing th
     onTransport:sample=>samples.push(sample),fetch:async()=>{throw new Error('network unavailable');},
   });
   try {
-    await assert.rejects(runtime.terrainChunks({requestId:1,epoch:0,terrainRevision:0,chunks:[[0,0,0]]}),/network unavailable/);
+    await assert.rejects(runtime.placementDecisions({ party: "party:1", candidates: [{ site: "site:1" as never, catalog: "floor" as never, target: { kind: "cell", cell: { x: 0, y: 0, z: 0 }, orientation: "north" } }] }),/network unavailable/);
     assert.equal(samples.length,1);assert.equal(samples[0].kind,'http');
-    if(samples[0].kind==='http'){assert.equal(samples[0].status,null);assert.equal(samples[0].operation,'terrain');}
+    if(samples[0].kind==='http'){assert.equal(samples[0].status,null);assert.equal(samples[0].operation,'placement');}
   } finally {runtime.dispose();}
 });

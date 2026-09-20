@@ -1693,6 +1693,7 @@ export function createHiveClient({
       return Object.freeze({ ...(picked ? { picked: { id: picked.record?.id, part: picked.record?.part, target: picked.target, occluded: picked.occluded } } : {}),
         ...(query.project ? { projected: project(query.project.x, query.project.y, query.project.z) } : {}),
         ...(query.terrainAt ? { terrainAt: displayedTerrainPoint(query.terrainAt.x, query.terrainAt.y, displayedTerrainFrame()) } : {}),
+        assetsReady: Boolean(art), runtimeReady: state.ready,
         spatialDraw: worldScene.metrics(), visibleDrawRecords: orderedSprites.length,
         frameSequence, frameEpoch, paused: state.paused, camera: { x: camera.x, y: camera.y, zoom: camera.zoom, turn: cameraGeometry.turn },
         view: { level: state.view.level, cutaway: state.view.cutaway }, selectedIds: [...state.selectedIds],

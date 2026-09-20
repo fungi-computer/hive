@@ -1,6 +1,6 @@
 import type { StructureSurface, TerrainChangeSet, TerrainSurface } from "../contracts";
 import { terrainSurfaceSchema } from "./terrain-surface";
-import { terrainBaselineSchema, terrainChangeSchema, type TerrainBaseline } from "./terrain-chunks";
+import { terrainBaselineSchema, terrainChangeSchema, type TerrainBaseline } from "./terrain-regions";
 
 export interface TerrainWireWater {
   readonly id?: string;

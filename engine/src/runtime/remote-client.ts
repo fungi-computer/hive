@@ -14,7 +14,7 @@ import { WebSocket as PartySocket } from "partysocket";
 import { z } from "zod";
 import { validVisualPlacement } from "./visual-projection";
 import { parsePlacementDecisionResult, placementDecisionQuerySchema } from "./placement-decision";
-import { MAX_TERRAIN_CHUNK_REPLY_BYTES, parseTerrainChunkReply, terrainChunkRequestSchema, type TerrainChunkReply, type TerrainChunkRequest } from "./terrain-chunks";
+import { createTerrainRegionClient } from "./terrain-region-client";
 
 const rejectionReasonSchema = z.object({ reason: z.string().min(1) });
 const partyJoinSchema = z.object({
@@ -424,6 +424,10 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let blocked = false;
   let reconnectRequested = false;
   let socket: SocketLike | undefined;
+  const terrain = createTerrainRegionClient(command => {
+    if (!socket) throw new Error("terrain socket unavailable");
+    socket.send(JSON.stringify(command));
+  }, { connected: false });
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
   let admissionAttempts = 0;
   const shared = options.game === "colony" && options.invite !== undefined;
@@ -432,7 +436,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let sharedPrepared = false;
   const sharedBase = () => {
     if (!sharedWorld) throw new Error("remote Colony world is not prepared");
-    return (operation: "join" | "observe" | "command" | "placement" | "terrain" | "connect" | "socket", handle?: string) =>
+    return (operation: "join" | "observe" | "command" | "placement" | "connect" | "socket", handle?: string) =>
       sharedWorldPath(options.endpoint, sharedWorld!, operation, handle);
   };
   const prepareShared = async () => {
@@ -539,7 +543,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (receivedBytes > MAX_OBSERVATION_BYTES) { emit({ type: "error", message: "remote socket message too large" }); return; }
       try { value = JSON.parse(raw); } catch { emit({ type: "error", message: "invalid remote socket message" }); return; }
       if (!isRecord(value)) return;
+      if (value.type === "terrain-regions") { terrain.accept(value.event); return; }
       if (value.type === "ready") {
+        terrain.setConnected(true);
         readyEmitted = true;
         emit({ type: "ready", game: options.game });
         return;
@@ -559,11 +565,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     connectedSocket.addEventListener("error", () => { if (socket !== connectedSocket || disposed) return; emit({ type: "error", message: "remote socket failed; reconnecting" }); });
     connectedSocket.addEventListener("close", () => {
       if (socket !== connectedSocket) return;
+      terrain.setConnected(false);
       if (!disposed) emit({ type: "error", message: "remote socket disconnected; reconnecting" });
     });
     connectedSocket.addEventListener("open", () => {
       if (socket !== connectedSocket) return;
       reconnectRequested = false;
+      terrain.setConnected(false);
       // A websocket reconnect has a fresh server-side attachment, so its surface
       // reference must begin with no baseline even when the world revision matches.
       cachedTerrain = undefined;
@@ -724,21 +732,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     if (!response.response.ok) throw new Error(`placement decision failed (${response.response.status})`);
     return parsePlacementDecisionResult(response.value, query);
   };
-  let terrainReadPending = false;
-  const terrainChunks = async (raw: TerrainChunkRequest): Promise<TerrainChunkReply> => {
-    if (disposed) throw new Error("runtime connection disposed");
-    if (terrainReadPending) throw new Error("terrain chunk request already in flight");
-    const request = terrainChunkRequestSchema.parse(raw);
-    terrainReadPending = true;
-    try {
-      if (shared) await prepareShared();
-      const response = await measuredRequest(options.fetch, shared ? sharedBase()("terrain") : endpointUrl(options.endpoint, "/terrain"), {
-        method: "POST", headers: { ...(shared ? { Authorization: `Bearer ${sharedCredential}` } : {}), "Content-Type": "application/json" }, body: JSON.stringify(request),
-      }, abort.signal, MAX_TERRAIN_CHUNK_REPLY_BYTES, requestTimeoutMs);
-      if (!response.response.ok) throw new Error(`terrain chunk read failed (${response.response.status})`);
-      return parseTerrainChunkReply(response.value, request);
-    } finally { terrainReadPending = false; }
-  };
+  const terrainRegions = terrain.request;
   const subscribe = (listener: (event: WorkerEvent) => void) => {
     if (disposed) throw new Error("runtime connection disposed");
     listeners.add(listener);
@@ -746,6 +740,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   };
   const dispose = () => {
     if (disposed) return;
+    terrain.dispose();
     disposed = true;
     abort.abort();
     socket?.close();
@@ -755,5 +750,5 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     pending.length = 0;
     listeners.clear();
   };
-  return { send, placementDecisions, terrainChunks, subscribe, dispose, recovery: { retry: retryRecovery } };
+  return { send, placementDecisions, terrainRegions, subscribe, dispose, recovery: { retry: retryRecovery } };
 }

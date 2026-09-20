@@ -1,4 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
+import { terrainRegionRequestSchema } from "../../engine/src/runtime/terrain-regions";
+import { startTerrainRegionStream } from "../../engine/src/runtime/terrain-region-stream";
 import {
   openRegion,
   type RegionSqliteOwner,
@@ -24,7 +26,6 @@ import {
   readCommand,
   readColonyJoin,
   readPlacementDecision,
-  readTerrainChunks,
   colonyWorldRoute,
   readColonySocketMessage,
   tokenFromRequest,
@@ -216,6 +217,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private startupFailure: string | undefined;
   private readonly ready: Promise<void>;
   private residentQueue: Promise<void> = Promise.resolve();
+  private readonly terrainStreams = new Map<WebSocket, ReturnType<typeof startTerrainRegionStream>>();
   private readonly publicationQueue: ReturnType<typeof createPublicationQueue>;
   private observationCache: {
     readonly revision: number;
@@ -725,15 +727,6 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       await this.renewLease(now);
       return jsonResponse(result, 200, this.hostEnv.PUBLIC_ORIGIN);
     }
-    if (route.operation === "terrain" && request.method === "POST") {
-      const query = await readTerrainChunks(request);
-      const result = await this.serial(() => {
-        const committed = this.region.readCommitted();
-        return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session => session.terrainChunks(query, 0));
-      });
-      await this.renewLease(now);
-      return jsonResponse(result, 200, this.hostEnv.PUBLIC_ORIGIN);
-    }
     if (route.operation === "command" && request.method === "POST") {
       const input = await readCommand(request);
       const result = await this.serial(() => this.commandExclusive(input, now, binding.principal));
@@ -864,6 +857,28 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     if (attachment?.authenticated) {
       try {
         const parsed = typeof message === "string" ? JSON.parse(message) as Record<string, unknown> : null;
+        if (parsed?.type === "terrain-cancel" && Object.keys(parsed).length === 2 && Number.isSafeInteger(parsed.requestId)) {
+          const active = this.terrainStreams.get(socket);
+          if (active?.requestId === parsed.requestId) { active.cancel(); this.terrainStreams.delete(socket); }
+          return;
+        }
+        if (parsed?.type === "terrain-regions") {
+          const { type: _type, ...raw } = parsed;
+          const request = terrainRegionRequestSchema.parse(raw);
+          this.terrainStreams.get(socket)?.cancel();
+          const stream = startTerrainRegionStream(request,
+            key => this.serial(() => {
+              const committed = this.region.readCommitted();
+              return this.resident.observe(committed.revision, committed.state,
+                this.residentRecords(committed.revision), session => session.terrainRegion(request, key, 0));
+            }),
+            event => socket.send(JSON.stringify({ type: "terrain-regions", event })));
+          this.terrainStreams.set(socket, stream);
+          this.state.waitUntil(stream.done.finally(() => {
+            if (this.terrainStreams.get(socket) === stream) this.terrainStreams.delete(socket);
+          }));
+          return;
+        }
         if (parsed?.type === "heartbeat" && Object.keys(parsed).length === 1) {
           await this.renewLease(Date.now());
           const payload = await this.queuedObservationPayload();
@@ -900,6 +915,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   webSocketClose(socket: WebSocket): void {
+    this.terrainStreams.get(socket)?.cancel(); this.terrainStreams.delete(socket);
     try { socket.close(); } catch {}
   }
   webSocketError(socket: WebSocket): void { this.webSocketClose(socket); }
@@ -986,15 +1002,14 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       }
       const operation = new URL(request.url).pathname.split("/").at(-1);
       if (parseColonyPerformanceGameId(pack) && request.method === "POST" &&
-          (operation === "terrain" || operation === "placement")) {
-        const query = operation === "terrain" ? await readTerrainChunks(request) : await readPlacementDecision(request);
+          operation === "placement") {
+        const query = await readPlacementDecision(request);
         // This private preset owns one pre-authored player/party. A URL or query
         // may select content, but cannot grant authority over a different party.
         if ("party" in query && query.party !== "party:1") throw new Error("public-unauthorized");
         const result = await this.serial(() => {
           const committed = this.region.readCommitted();
           return this.resident.observe(committed.revision, committed.state, this.residentRecords(committed.revision), session => {
-            if (!("party" in query)) return session.terrainChunks(query, 0);
             const native = session.placementDecisions(query.party, query.candidates);
             return { observationRevision: committed.revision, nativeRevision: native.revision,
               placementRevision: native.placementRevision, decisions: native.decisions };

@@ -1,13 +1,14 @@
 import type { GameId } from "../contracts";
-import type { PlacementDecisionQuery, PlacementDecisionResult, WorkerCommand, WorkerEvent, WorkerPlacementCommand, WorkerTerrainChunksCommand, WorkerTransportEvent } from "./protocol";
-import { parseTerrainChunkReply, terrainChunkRequestSchema, type TerrainChunkReply, type TerrainChunkRequest } from "./terrain-chunks";
+import type { PlacementDecisionQuery, PlacementDecisionResult, WorkerCommand, WorkerEvent, WorkerPlacementCommand, WorkerTransportEvent } from "./protocol";
+import type { TerrainRegionEvent, TerrainRegionRequest } from "./terrain-regions";
+import { createTerrainRegionClient } from "./terrain-region-client";
 import { parseTerrainObservation, type TerrainWireFrame } from "./terrain-wire";
 import { parsePlacementDecisionResult, placementDecisionQuerySchema } from "./placement-decision";
 
 export interface RuntimeConnection {
   send(command: WorkerCommand): void;
   placementDecisions(query: PlacementDecisionQuery): Promise<PlacementDecisionResult>;
-  terrainChunks(request: TerrainChunkRequest): Promise<TerrainChunkReply>;
+  terrainRegions(request: TerrainRegionRequest, receive: (event: TerrainRegionEvent) => void): () => void;
   subscribe(listener: (event: WorkerEvent) => void): () => void;
   dispose(): void;
   /** Optional recovery control for transports that retain uncertain commands. */
@@ -34,7 +35,7 @@ export function connectBrowserRuntime(
   let cadence: ReturnType<typeof setInterval> | undefined;
   let requestSequence = 0;
   const placementRequests = new Map<number, { query: PlacementDecisionQuery; resolve(value: PlacementDecisionResult): void; reject(error: Error): void }>();
-  const terrainRequests = new Map<number, { request: TerrainChunkRequest; resolve(value: TerrainChunkReply): void; reject(error: Error): void }>();
+  const terrain = createTerrainRegionClient(command => worker.postMessage(command));
   const onMessage = (event: MessageEvent<WorkerTransportEvent>) => {
     if (disposed) return;
     if (event.data.type === "placement-decisions") {
@@ -50,12 +51,8 @@ export function connectBrowserRuntime(
       catch (error) { pending.reject(error instanceof Error ? error : new Error(String(error))); }
       return;
     }
-    if (event.data.type === "terrain-chunks") {
-      const pending = terrainRequests.get(event.data.reply.requestId);
-      if (!pending) return;
-      terrainRequests.delete(event.data.reply.requestId);
-      try { pending.resolve(parseTerrainChunkReply(event.data.reply, pending.request)); }
-      catch (error) { pending.reject(error instanceof Error ? error : new Error(String(error))); }
+    if (event.data.type === "terrain-regions") {
+      terrain.accept(event.data.event);
       return;
     }
     if (event.data.type === "placement-decision-error") {
@@ -115,15 +112,10 @@ export function connectBrowserRuntime(
     placementRequests.set(requestId, { query: checked, resolve, reject });
     worker.postMessage({ type: "placement-decisions", requestId, ...checked } satisfies WorkerPlacementCommand);
   });
-  const terrainChunks = (raw: TerrainChunkRequest) => new Promise<TerrainChunkReply>((resolve, reject) => {
-    if (disposed) { reject(new Error("runtime connection disposed")); return; }
-    const request = terrainChunkRequestSchema.parse(raw);
-    if (terrainRequests.size >= 1) { reject(new Error("terrain chunk request already in flight")); return; }
-    terrainRequests.set(request.requestId, { request, resolve, reject });
-    worker.postMessage({ type: "terrain-chunks", ...request } satisfies WorkerTerrainChunksCommand);
-  });
+  const terrainRegions = terrain.request;
   const dispose = () => {
     if (disposed) return;
+    terrain.dispose();
     disposed = true;
     cachedTerrain = undefined;
     terrainEpoch = undefined;
@@ -131,12 +123,10 @@ export function connectBrowserRuntime(
     worker.removeEventListener("message", onMessage);
     worker.terminate();
     for (const pending of placementRequests.values()) pending.reject(new Error("runtime connection disposed"));
-    for (const pending of terrainRequests.values()) pending.reject(new Error("runtime connection disposed"));
     placementRequests.clear();
-    terrainRequests.clear();
     listeners.clear();
   };
-  return { send, placementDecisions, terrainChunks, subscribe, dispose };
+  return { send, placementDecisions, terrainRegions, subscribe, dispose };
 }
 
 export type GameSelection = Extract<GameId, string>;
