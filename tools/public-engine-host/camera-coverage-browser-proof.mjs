@@ -34,6 +34,7 @@ try{
  report.initial=await state();await canvas.screenshot({path:resolve(output,"initial.png")});
  await pan("ArrowRight",3);await pan("ArrowLeft",3);report.smallPan=await state();
  assert.equal(report.smallPan.draw.spatialDraw.counts.staticRebuild,report.initial.draw.spatialDraw.counts.staticRebuild,"small pan rebuilt static scene");await checkpoint("small-pan");
+ if(args.get("--smoke")!=="true"){
  await pan("ArrowRight",96);await settle();
  report.far=await page.evaluate(()=>{
   const scene=window.__HIVE_DRAW_DIAGNOSTICS({scene:true}),{camera}=scene,canvas=document.querySelector("canvas");
@@ -82,6 +83,7 @@ try{
  await cdp.send("HeapProfiler.collectGarbage");report.afterGarbageCollection=await state();
  await Promise.all(reads);
  assert(report.terrainReplies.some(reply=>reply.outside32Count>0),"no authoritative chunk reply contained far surface metadata");
+ }else{await Promise.all(reads);report.smokeOnly=true;}
  assert.equal(report.errors.length,0,report.errors.join("; "));report.success=true;
 }catch(error){report.errors.push(error.stack??String(error));report.failureState=await page?.evaluate(()=>({body:document.body.innerText,draw:window.__HIVE_DRAW_DIAGNOSTICS?.()})).catch(()=>null);}
 finally{await browser?.close();report.finishedAt=new Date().toISOString();await writeFile(resolve(output,"REPORT.json"),JSON.stringify(report,null,2)+"\n");}
