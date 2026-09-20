@@ -1,5 +1,20 @@
 # Renderer audit and new-chat handoff — September 19, 2026
 
+## September 20: separate depth-rendering comparison authorized
+
+Levi's continued preview use found diagonal terrain artifacts, grass appearing
+inside ground after pan/cut/return, and inadequate performance. September 19's
+interaction checks did not establish rendering correctness or smoothness.
+Do not treat that release as final visual acceptance.
+
+The next bounded comparison is specified in
+[packet 16](16-three-depth-comparison-20260920.md): direct original Three geometry,
+orthographic low-resolution rendering and GPU depth, on a separate study URL.
+Its isolated root is `/home/levi/src/hive-worktrees/three-depth-study-20260920`.
+This is a planned experiment, not an implemented or approved production switch.
+The existing Pixi preview stays available; the experiment must not deploy the
+backend or repoint its alias. Packet 16 owns the new test and release boundaries.
+
 ## Latest implementation checkpoint — read first
 
 Implementation has advanced on `engine/living-terrain-integration-20260917` in
