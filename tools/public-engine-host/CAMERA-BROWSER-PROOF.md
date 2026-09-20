@@ -151,3 +151,31 @@ renderer crashes are explicitly recorded. The focused
 surface metadata, visible grass outside X±32, and exact top-face picking through
 read-only diagnostics after real pan inputs. It uses the same CLI base/output
 arguments and guarded browser environment, without a mode argument.
+
+Hosted v2 (`0fd37272`, same separate DO backend) completed all browser assertions
+under invocation `aaa4c5d4dde4475d83c8f7dada0e2aee` (`run-u2775.scope`).
+`.botanical/camera-browser-after-v2/REPORT.json` records success with no errors;
+all page/context/browser closure events were expected cleanup. The process debug
+log records Chromium's normal exit0 and the driver's final success JSON. The
+outer execution session nevertheless reported143; its cause is unknown and this
+is not described as a clean wrapper exit. No manual interrupt was sent by this
+proof owner.
+
+Small pan performed zero static/order/topology/apply work and21ms cumulative
+visual building, versus baseline three rebuilds/305.7ms preparation and38.4ms
+visual building. On the same software-rendered host, small-pan RAF median/p95
+were133.5/266.6ms versus400/1166.6ms baseline. Idle p95 was283.4ms versus416.7ms.
+These measurements include the restored upright grass and alpha-bounds trimming;
+they do not isolate camera retention as the sole source of frame improvement.
+
+All four long-travel legs finished with complete coverage and viewport retained.
+The cache rose759→1377→2048 and stayed within its2048 limit. Distant screenshot
+shows terrain and upright grass, replacing the incomplete blank view. Initial
+and returned canvas files were byte-identical, SHA256
+`9b7426cf7e0752633c9766fc2c8fcdf72c4006bc075cae2a3417281ba67ef995`.
+
+CDP used heap(MiB) across idle/small/east/return/north/return/zoom/layer/cutaway was
+112.6/108.6/303.4/294.8/352.0/227.7/235.3/129.2/429.9. GC was not forced during
+this timing workload. These samples show allocations and collection, not a low
+constant retained heap. Subsequent v3 verification checks explicit spare-mesh and
+buffer budgets, cleared spare record references, and heap after collection.
