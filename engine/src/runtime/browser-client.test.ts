@@ -18,7 +18,7 @@ const frame = (epoch: number, terrain?: unknown): WorkerTransportEvent => ({
 });
 const baseline = {
   revision: 4, placementRevision: 4, verticalMetres: 0.5,
-  baseline: { protocolVersion: 3, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
+  baseline: { protocolVersion: 4, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
     materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }] },
   surfaces: [{ cell: [0, 2, 0], material: 1, generatedTop: 2 }],
   structureSurfaces: [{ cell: [0, 4, 0] }], water: [],
@@ -45,18 +45,40 @@ test("local terrain references hydrate geometry and replace it after an epoch", 
   runtime.dispose();
 });
 
-test("local material chunk reads allow one checked correlated request", async () => {
+test("local terrain regions deliver correlated patches and completion with cancellation", () => {
   const worker = new FakeWorker(); const runtime = connectBrowserRuntime({ worker: worker as unknown as Worker });
-  const request = { requestId: 11, epoch: 2, terrainRevision: 4, chunks: [[0, 0, 0]] as const };
-  const pending = runtime.terrainChunks(request);
-  assert.deepEqual(worker.posted.at(-1), { type: "terrain-chunks", ...request });
-  await assert.rejects(runtime.terrainChunks({ ...request, requestId: 12 }), /already in flight/);
-  worker.emit({ type: "terrain-chunks", reply: { kind: "ready", requestId: 11, epoch: 2, terrainRevision: 4, chunks: [{
-    key: [0, 0, 0], min: [0, 0, 0], max: [1, 2, 1], columns: [{ x: 0, z: 0, runs: [
-      { minY: 0, maxY: 1, material: 1 }, { minY: 1, maxY: 2, material: 0 },
-    ] }], surfaces: [{ cell: [0,0,0], material: 1, generatedTop: 0 }],
-  }] } });
-  assert.equal((await pending).kind, "ready"); runtime.dispose();
+  const request = { requestId:11,epoch:2,terrainRevision:4,level:0,regions:[[0,0]] as [number,number][] };
+  const events: import("./terrain-regions").TerrainRegionEvent[] = [];
+  const cancel=runtime.terrainRegions(request,event=>events.push(event));
+  assert.deepEqual(worker.posted.at(-1),{type:"terrain-regions",...request});
+  const patch={key:[0,0] as [number,number],bounds:{minX:0,maxX:8,minZ:0,maxZ:8},
+    faces:[{cell:[0,0,0] as [number,number,number],face:"top" as const,material:1,cap:false}],
+    surfaces:[{cell:[0,0,0] as [number,number,number],material:1,generatedTop:0}]};
+  const identity={requestId:11,epoch:2,terrainRevision:4,level:0};
+  worker.emit({type:"terrain-regions",event:{kind:"patch",...identity,requestId:99,patch}});
+  assert.equal(events.length,0);
+  worker.emit({type:"terrain-regions",event:{kind:"patch",...identity,patch}});
+  assert.equal(events.length,1);assert.deepEqual(events[0],{kind:"patch",...identity,patch});
+  worker.emit({type:"terrain-regions",event:{kind:"complete",...identity}});
+  assert.deepEqual(events.map(event=>event.kind),["patch","complete"]);
+  cancel();
+  const stop=runtime.terrainRegions({...request,requestId:12},event=>events.push(event));
+  stop();assert.deepEqual(worker.posted.at(-1),{type:"terrain-cancel",requestId:12});
+  worker.emit({type:"terrain-regions",event:{kind:"patch",...identity,requestId:12,patch}});
+  assert.equal(events.length,2,"late canceled patches cannot enter presentation");
+  runtime.terrainRegions({...request,requestId:13},event=>events.push(event));
+  runtime.dispose();assert.deepEqual(worker.posted.at(-1),{type:"terrain-cancel",requestId:13});
+});
+
+test("local malformed region streams fail without accepting incomplete coverage",()=>{
+ const worker=new FakeWorker(),runtime=connectBrowserRuntime({worker:worker as unknown as Worker});
+ const events: import("./terrain-regions").TerrainRegionEvent[]=[];
+ const request={requestId:1,epoch:0,terrainRevision:1,level:2,regions:[[0,0]] as [number,number][]};
+ runtime.terrainRegions(request,event=>events.push(event));
+ worker.emit({type:"terrain-regions",event:{kind:"complete",requestId:1,epoch:0,terrainRevision:1,level:2}});
+ assert.equal(events[0]?.kind,"unavailable");
+ assert.deepEqual(worker.posted.at(-1),{type:"terrain-cancel",requestId:1});
+ runtime.dispose();
 });
 
 test("absent terrain clears local cache and malformed references become errors", () => {

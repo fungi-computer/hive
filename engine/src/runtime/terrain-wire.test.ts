@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { parseTerrainFrame, parseTerrainObservation, terrainWireForRevision } from "./terrain-wire";
 import { connectRemoteRuntime } from "./remote-client";
 import type { WorkerEvent } from "./protocol";
-const terrainMetadata = { protocolVersion: 3 as const, bounds: { minX: -16, maxX: 16, minY: -16, maxY: 16, minZ: -16, maxZ: 16 }, verticalMetres: 0.5,
+const terrainMetadata = { protocolVersion: 4 as const, bounds: { minX: -16, maxX: 16, minY: -16, maxY: 16, minZ: -16, maxZ: 16 }, verticalMetres: 0.5,
   materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }, { slot: 4, solid: true }, { slot: 9, solid: true }] };
 
 test("terrain wire parser bounds and sanitizes an optional frame", () => {
