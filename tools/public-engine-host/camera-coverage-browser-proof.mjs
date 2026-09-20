@@ -9,7 +9,7 @@ const args=new Map();for(let i=2;i<process.argv.length;i+=2)args.set(process.arg
 const output=resolve(args.get("--output")??".botanical/camera-coverage-browser");
 const url=new URL("/engine/colony-performance.html",args.get("--base-url"));url.search="size=256&workers=8&diagnostics=draw";
 await mkdir(output,{recursive:true});
-const report={url:url.href,startedAt:new Date().toISOString(),errors:[],terrainReplies:[],success:false};
+const report={url:url.href,startedAt:new Date().toISOString(),errors:[],captureErrors:[],networkFailures:[],terrainReplies:[],success:false};
 const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
 const checkpoint=async(stage)=>{report.stage=stage;await writeFile(resolve(output,"PROGRESS.json"),JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify({stage,output}));};
 let browser,page;
@@ -18,10 +18,11 @@ try{
  page=await browser.newPage({viewport:{width:1280,height:900},deviceScaleFactor:1});page.setDefaultTimeout(120000);
  page.on("pageerror",error=>report.errors.push(error.message));
  page.on("crash",()=>report.errors.push("browser renderer crashed"));
+ page.on("requestfailed",request=>report.networkFailures.push({url:new URL(request.url()).pathname,reason:request.failure()?.errorText}));
  const reads=[];page.on("response",response=>{if(new URL(response.url()).pathname.endsWith("/terrain"))reads.push(response.json().then(reply=>{
    const summaries=(reply.chunks??[]).flatMap(chunk=>(chunk.surfaces??[]).filter(surface=>Math.abs(surface.cell[0])>32).map(surface=>({cell:surface.cell,cover:surface.cover})));
    report.terrainReplies.push({status:response.status(),protocol:reply.protocol??reply.version,chunkCount:reply.chunks?.length,outside32Count:summaries.length,outside32Examples:summaries.slice(0,4)});
- }).catch(error=>report.errors.push(error.message)));});
+ }).catch(error=>report.captureErrors.push({path:new URL(response.url()).pathname,status:response.status(),failure:response.request().failure(),message:error.message})));});
  await page.goto(url.href,{waitUntil:"domcontentloaded"});await page.getByText("Online · server saved",{exact:true}).first().waitFor();
  await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS?.().frames>=20);
  await page.getByRole("button",{name:"Pause",exact:true}).click();await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS().paused);
@@ -29,9 +30,10 @@ try{
  await settle();const canvas=page.locator("canvas").first();await canvas.focus();const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
  const cdp=await page.context().newCDPSession(page);
  const budget=metrics=>{const m=metrics.meshes;assert(m,"mesh residency diagnostics missing");assert.equal(m.spareRecords,0);assert(m.spareMeshes<=m.limits.spareMeshes);assert(m.spareQuads<=m.limits.spareQuads);assert(metrics.coverage.cachedChunks<=metrics.coverage.capacity);};
- const state=async()=>{const result={draw:await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS()),heap:await cdp.send("Runtime.getHeapUsage")};budget(result.draw.spatialDraw);return result;};
+ const state=async()=>{const result={draw:await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS()),performance:await page.evaluate(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS()),heap:await cdp.send("Runtime.getHeapUsage")};budget(result.draw.spatialDraw);return result;};
  const pan=async(key,count)=>{await canvas.focus();for(let i=0;i<count;i++){await page.keyboard.press(key);await page.waitForTimeout(20);}};
- report.initial=await state();await canvas.screenshot({path:resolve(output,"initial.png")});
+ const capture=async(name)=>{await pan("ArrowRight",1);await pan("ArrowLeft",1);await settle();const scene=await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS({scene:true}));await writeFile(resolve(output,`${name}.scene.json`),JSON.stringify(scene));await canvas.screenshot({path:resolve(output,`${name}.png`)});};
+ await capture("initial");report.initial=await state();
  await pan("ArrowRight",3);await pan("ArrowLeft",3);report.smallPan=await state();
  assert.equal(report.smallPan.draw.spatialDraw.counts.staticRebuild,report.initial.draw.spatialDraw.counts.staticRebuild,"small pan rebuilt static scene");await checkpoint("small-pan");
  if(args.get("--smoke")!=="true"){
@@ -70,18 +72,19 @@ try{
  await canvas.screenshot({path:resolve(output,"far-cut-cap.png")});await checkpoint("real-cut-cap");
  for(let i=0;i<steps;i++)await page.keyboard.press("PageUp");
  await page.getByRole("button",{name:"Toggle cutaway",exact:true}).click();await settle();
- await pan("ArrowLeft",96);await settle();
+ await pan("ArrowLeft",96);await settle();await capture("pre-zoom");report.preZoom=await state();await checkpoint("pre-zoom");
  await canvas.focus();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
  for(let i=0;i<10;i++){await page.mouse.wheel(0,100);await page.waitForTimeout(60);}await settle();report.zoomOut=await state();
  assert.equal(report.zoomOut.draw.camera.zoom,1,"zoom did not reach the supported minimum");await checkpoint("minimum-zoom");
  for(let i=0;i<10;i++){await page.mouse.wheel(0,-100);await page.waitForTimeout(60);}await settle();report.returned=await state();
- await canvas.screenshot({path:resolve(output,"returned.png")});
- report.imageHashes={initial:hash(await readFile(resolve(output,"initial.png"))),returned:hash(await readFile(resolve(output,"returned.png")))};
- assert.equal(report.imageHashes.returned,report.imageHashes.initial,"return image differs after far cutaway restore");
+ await capture("returned");
+ report.imageHashes={initial:hash(await readFile(resolve(output,"initial.png"))),preZoom:hash(await readFile(resolve(output,"pre-zoom.png"))),returned:hash(await readFile(resolve(output,"returned.png")))};
  for(const axis of ["x","y","zoom"])assert(Math.abs(report.returned.draw.camera[axis]-report.initial.draw.camera[axis])<.001);
  assert.deepEqual(report.returned.draw.view,report.initial.draw.view);
  await cdp.send("HeapProfiler.collectGarbage");report.afterGarbageCollection=await state();
  await Promise.all(reads);
+ assert.equal(report.imageHashes.preZoom,report.imageHashes.initial,"return image differs before zoom after far cutaway restore");
+ assert.equal(report.imageHashes.returned,report.imageHashes.initial,"return image differs after minimum zoom restore");
  assert(report.terrainReplies.some(reply=>reply.outside32Count>0),"no authoritative chunk reply contained far surface metadata");
  }else{await Promise.all(reads);report.smokeOnly=true;}
  assert.equal(report.errors.length,0,report.errors.join("; "));report.success=true;
