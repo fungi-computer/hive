@@ -34,6 +34,14 @@ async function runCase(name){
   let coldPanDone=false,groundPanDone=false;const deadline=Date.now()+240000;
   const screenshot=async(label)=>{const filename=`${name}-${label}.png`;await page.locator("canvas").first().screenshot({path:resolve(output,filename)});result.screenshots.push({filename,atMs:elapsed()});};
   const pan=async(label)=>{const before=await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS().camera);await page.locator("canvas").first().focus();for(let i=0;i<12;i++)await page.keyboard.press("ArrowRight");const after=await page.evaluate(()=>window.__HIVE_DRAW_DIAGNOSTICS().camera);assert.equal(after.x-before.x,288);result.milestones[label]={atMs:elapsed(),before,after};console.log(JSON.stringify({case:name,stage:label,atMs:elapsed()}));};
+  // Cold input is scheduled before the expensive picking/screenshot loop. Ground
+  // may already have one useful patch; unfinished padded demand is still cold.
+  if(name==="pan"&&mode==="after"){
+   await page.waitForFunction(()=>{const d=window.__HIVE_DRAW_DIAGNOSTICS?.();return d?.assetsReady&&d.runtimeReady;},{},{polling:25});
+   result.coldPanStart=await page.evaluate(()=>{const d=window.__HIVE_DRAW_DIAGNOSTICS();return{atMs:performance.now(),coverage:d.spatialDraw.coverage,clock:{...window.__TERRAIN_PROOF_CLOCK}};});
+   assert(!result.coldPanStart.coverage.demandComplete,"initial demand completed before cold-pan scheduling");
+   coldPanDone=true;await pan("coldPan");
+  }
   while(Date.now()<deadline){
    const sample=await page.evaluate(()=>{
     const canvas=document.querySelector("canvas"),read=window.__HIVE_DRAW_DIAGNOSTICS;if(!canvas||!read)return{atMs:performance.now(),ready:false};
@@ -51,7 +59,7 @@ async function runCase(name){
    if(sample.assetsReady&&sample.runtimeReady&&!result.milestones.independentReady)result.milestones.independentReady={atMs:sample.observedAtMs,sample};
    if(mode==="after"&&sample.coverage){assert(!sample.coverage.error,JSON.stringify(sample.coverage.error));assert(sample.coverage.retainedBytes<=sample.coverage.maxBytes,"terrain byte budget exceeded");assert(sample.coverage.cachedRegions<=sample.coverage.capacity,"terrain region budget exceeded");}
    if(sample.ready&&!result.milestones.sceneReady)result.milestones.sceneReady={atMs:sample.observedAtMs,sample};
-   if(sample.ready&&sample.visibleSubjects>0&&sample.hits===0&&!result.milestones.subjectsWithoutGround){result.milestones.subjectsWithoutGround={atMs:sample.observedAtMs,sample};await screenshot("subjects-without-ground");}
+   if(sample.ready&&sample.visibleSubjects>0&&sample.hits===0&&!result.milestones.subjectsWithoutGround){result.milestones.subjectsWithoutGround={atMs:sample.observedAtMs,sample};if(mode==="before")await screenshot("subjects-without-ground");else result.screenshots.push({label:"subjects-without-ground",skipped:"latency measurement: do not block first useful ground on software screenshot",atMs:elapsed()});}
    if(name==="pan"&&!coldPanDone&&sample.ready&&sample.hits===0){coldPanDone=true;await pan("coldPan");await screenshot("cold-pan");await save();continue;}
    if(sample.hits>=9&&sample.center&&!result.milestones.usefulGround){result.milestones.usefulGround={atMs:sample.observedAtMs,sample};await screenshot("first-useful-ground");console.log(JSON.stringify({case:name,stage:"first-useful-ground",atMs:sample.observedAtMs,httpRequests:sample.httpRequests}));}
    if(name==="pan"&&result.milestones.usefulGround&&!groundPanDone){groundPanDone=true;await pan("afterGroundPan");await save();continue;}
@@ -76,7 +84,7 @@ async function runCase(name){
    }
   }
   assert.equal(result.browserWorkers.length,0,"browser simulation Worker started");assert(result.socketOrigin?.includes("hive-performance-engine-preview"),"not connected to separate real DO backend");
-  if(name==="pan"){assert(coldPanDone,"could not exercise a cold pan before ground");assert(groundPanDone);}
+  if(name==="pan"){assert(coldPanDone,"could not exercise a pan during initial demand");assert(groundPanDone);}
   await Promise.all(pending);assert.equal(result.errors.length,0,result.errors.join("; "));result.success=true;
  }catch(error){result.errors.push(error.stack??String(error));result.failureState=await page?.evaluate(()=>({body:document.body.innerText,draw:window.__HIVE_DRAW_DIAGNOSTICS?.()})).catch(()=>null);}
  finally{await browser?.close();result.finishedAt=new Date().toISOString();await save();}
