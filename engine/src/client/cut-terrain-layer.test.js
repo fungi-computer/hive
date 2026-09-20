@@ -146,3 +146,31 @@ test("region face facts survive rotation without terrain reads and unknown colum
     }
   } finally {layer.dispose();geometry.dispose();}
 });
+
+test("prepared viewport culls resident faces and grass, retains small pans, and reculls unchanged region membership",async()=>{
+  const world={...bounds,maxX:8,maxZ:8},size={width:20,height:20},startCamera={x:-220,y:-230,zoom:1};
+  const {layer,install,requests}=setup({world,cover:grass});install();layer.update(frame(world),1);
+  try {
+    await ready(layer,startCamera,view,size);
+    const before=layer.retainedRecords,prepared=layer.cameraCoverage.prepared;
+    assert.equal(layer.coverage.cachedRegions,1);
+    const body=before.records.filter(record=>record.role==="terrain");
+    const cover=before.records.filter(record=>record.role==="terrain-cover");
+    assert(body.length>0 && body.length<64,"resident patch faces outside prepared area are not materialized");
+    assert(cover.length>0 && cover.length<81,"resident patch grass outside prepared area is not materialized");
+    layer.position({...startCamera,x:-240},view,size);
+    assert.strictEqual(layer.retainedRecords.records,before.records);
+    assert.equal(layer.retainedRecords.revision,before.revision);
+    assert.deepEqual(layer.cameraCoverage.prepared,prepared);
+    layer.position({...startCamera,x:-320},view,size);
+    const after=layer.retainedRecords;
+    assert.notDeepEqual(layer.cameraCoverage.prepared,prepared);
+    assert.equal(requests.length,1,"same resident patch supplies the newly prepared area");
+    assert(after.records.some(record=>!before.records.some(old=>old.id===record.id)),"replan admits newly covered geometry despite unchanged cache publication");
+    const oldById=new Map(before.records.map(record=>[record.id,record]));
+    const survivors=after.records.filter(record=>oldById.has(record.id));
+    assert(survivors.length>0);
+    assert(survivors.every(record=>record===oldById.get(record.id)),"surviving body and cover retain exact picking and ordering identity");
+    assert.deepEqual(layer.presentedTerrain.exposedFaces,after.records.filter(record=>record.role==="terrain"));
+  } finally {layer.dispose();}
+});
