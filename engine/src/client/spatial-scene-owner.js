@@ -19,7 +19,7 @@ export function createSpatialSceneOwner({ projection, clock = () => performance.
   prepareSpatialDrawScene([], { projection, clock });
   let revision, scene, records = [], latestWork = null;
   const counts = { compile: 0, staticRebuild: 0, dynamicInsert: 0, applyOrder: 0,
-    staticFaceComparisons: 0, dynamicFaceComparisons: 0, candidateVisits: 0, topologyBuilds: 0, topologyReuses: 0 };
+    staticFaceComparisons: 0, dynamicFaceComparisons: 0, candidateVisits: 0, topologyBuilds: 0, topologyReuses: 0, staticPreparedNew: 0, staticPreparedReused: 0, staticRelationsReused: 0 };
   const times = { compileMs: 0, staticRebuildMs: 0, dynamicInsertMs: 0, topologyUpdateMs: 0, orderReuseMs: 0, applyOrderMs: 0 };
   const samples = { staticRebuildMs: [], dynamicInsertMs: [], topologyUpdateMs: [], orderReuseMs: [], applyOrderMs: [] };
   function measured(name, started, finished = clock()) {
@@ -38,7 +38,9 @@ export function createSpatialSceneOwner({ projection, clock = () => performance.
       const started = clock(), staticRebuilt = !scene || nextRevision !== revision;
       // Stage the next scene so malformed input cannot replace the last valid
       // painted/picked state or acknowledge a failed revision.
-      const nextScene = staticRebuilt ? prepareSpatialDrawScene(staticRecords(), { projection, clock }) : scene;
+      const nextScene = staticRebuilt
+        ? (scene ? scene.withStaticRecords(staticRecords()) : prepareSpatialDrawScene(staticRecords(), { projection, clock }))
+        : scene;
       const staticFinished = clock();
       const result = nextScene.compile(dynamicRecords, currentStaticRecords);
       const reused = !staticRebuilt && result.metrics.topologyReuses > 0;
@@ -50,6 +52,9 @@ export function createSpatialSceneOwner({ projection, clock = () => performance.
       counts.compile++;
       if (staticRebuilt) {
         counts.staticRebuild++;
+        counts.staticPreparedNew += scene.metrics.preparedNew;
+        counts.staticPreparedReused += scene.metrics.preparedReused;
+        counts.staticRelationsReused += scene.metrics.relationsReused;
         counts.topologyBuilds += scene.metrics.topologyBuilds;
         counts.staticFaceComparisons += scene.metrics.faceComparisons;
         counts.candidateVisits += scene.metrics.candidateVisits;
@@ -80,6 +85,7 @@ export function createSpatialSceneOwner({ projection, clock = () => performance.
     },
     metrics: () => Object.freeze({ counts: Object.freeze({ ...counts }), times: Object.freeze({ ...times }),
       latest: latestWork,
+      retained: scene?.retained() ?? Object.freeze({ staticRecords: 0, staticRelations: 0, staticBins: 0, dynamicRecords: 0, currentRecords: 0 }),
       samples: Object.freeze(Object.fromEntries(Object.entries(samples).map(([name, values]) => [name, Object.freeze([...values])]))),
     }),
     reset() { revision = undefined; scene = undefined; records = []; latestWork = null; },
