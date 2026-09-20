@@ -5,7 +5,7 @@ import { building } from "../../../src/art/home.js";
 import { figure } from "../../../src/art/figures.js";
 import { captureVisualVolume, translateVisualVolume } from "../../../src/art/ordering-geometry.js";
 import { createOrderingProjection } from "./ordering-projection.js";
-import { compileSpatialDrawOrder } from "./spatial-draw-order.js";
+import { compileSpatialDrawOrder, prepareSpatialDrawScene } from "./spatial-draw-order.js";
 
 function projection(turn = 0, transform) {
   const view = camera(320, 240, 0), [x, z] = [[1,1],[-1,1],[-1,-1],[1,-1]][turn];
@@ -113,4 +113,65 @@ test("exact coplanar equal-layer faces skip clipping, preserving other plane/lay
   const raised=compileSpatialDrawOrder([a,top("raised",0,.01,0)],{projection:view});
   assert.equal(raised.metrics.coplanarSkips,0);
   assert.equal(raised.relations.length,1);
+});
+
+const directProjection = {
+  direction:{x:0,y:0,z:1}, project:({x,y})=>({x,y}),
+  ray:({x,y})=>({origin:{x,y,z:0},direction:{x:0,y:0,z:1}}),
+};
+const crossingFace = (id, slope = true, rectangles) => ({id,orderGeometry:{kind:"face",
+  points:[[-2,-2],[2,-2],[2,2],[-2,2]].map(([x,y])=>({x,y,z:slope?x:0})),
+  ...(rectangles?{coverage:{offset:{x:0,y:0},rectangles}}:{})}});
+
+test("opaque rectangles refine transparent hull interleaving over continuous areas",()=>{
+  const other=crossingFace("ground",false);
+  assert.throws(()=>compileSpatialDrawOrder([crossingFace("art"),other],{projection:directProjection}),/interleave/);
+  const art=crossingFace("art",true,[{left:.5,top:-2,right:2,bottom:-1},{left:1,top:1,right:2,bottom:2}]);
+  const result=compileSpatialDrawOrder([art,other],{projection:directProjection});
+  assert.deepEqual(result.records,[art,other]);
+  assert.equal(result.metrics.coverageRefinements,1);
+  assert(result.metrics.coverageFaceComparisons>0);
+  const throughZero=crossingFace("art",true,[{left:-1,top:-1,right:1,bottom:1}]);
+  assert.throws(()=>compileSpatialDrawOrder([throughZero,other],{projection:directProjection}),/interleave/);
+  const islands=crossingFace("art",true,[{left:-2,top:-1,right:-1,bottom:1},{left:1,top:-1,right:2,bottom:1}]);
+  assert.throws(()=>compileSpatialDrawOrder([islands,other],{projection:directProjection}),/interleave/);
+});
+
+test("refinement honors both images' transparent holes and includes outline coverage beyond the hull",()=>{
+  const art=crossingFace("art",true,[{left:-2,top:-2,right:-1,bottom:-1},{left:1,top:1,right:2,bottom:2}]);
+  const other=crossingFace("ground",false,[{left:-.5,top:-.5,right:.5,bottom:.5}]);
+  const result=compileSpatialDrawOrder([art,other],{projection:directProjection});
+  assert.equal(result.relations.length,0);
+  const outline=crossingFace("outline",false,[{left:3,top:0,right:4,bottom:1}]);
+  const raised={id:"raised",orderGeometry:{kind:"face",points:[{x:3,y:0,z:1},{x:4,y:0,z:1},{x:4,y:1,z:1},{x:3,y:1,z:1}]}};
+  assert.equal(compileSpatialDrawOrder([outline,raised],{projection:directProjection}).relations.length,1);
+});
+
+test("invalid opaque coverage is rejected at preparation",()=>{
+  const valid={offset:{x:0,y:0},rectangles:[{left:0,top:0,right:1,bottom:1}]};
+  for(const coverage of [{...valid,offset:{x:Infinity,y:0}},{...valid,offset:{x:Number.MAX_VALUE,y:0}},
+    {...valid,rectangles:[]},
+    {...valid,rectangles:[{left:0,top:0,right:0,bottom:1}]},
+    {...valid,rectangles:[{left:0,top:NaN,right:1,bottom:1}]}]) {
+    const art=crossingFace("art");art.orderGeometry.coverage=coverage;
+    assert.throws(()=>compileSpatialDrawOrder([art],{projection:directProjection}),/coverage|finite/);
+  }
+  const body=volume("body",{x:0,y:0,z:0},{x:1,y:1,z:1});body.orderGeometry.coverage=valid;
+  assert.throws(()=>compileSpatialDrawOrder([body],{projection:directProjection}),/coverage/);
+});
+
+
+test("retained coverage refinement matches full compiler and invalidates changed coverage",()=>{
+  const art=crossingFace("art",true,[{left:.5,top:-2,right:2,bottom:2}]);
+  const scene=prepareSpatialDrawScene([art],{projection:directProjection});
+  for(const z of [-.5,0,.5]) {
+    const other=crossingFace("ground",false);
+    other.orderGeometry.points=other.orderGeometry.points.map(point=>({...point,z}));
+    const actual=scene.compile([other]), oracle=compileSpatialDrawOrder([art,other],{projection:directProjection});
+    assert.deepEqual(actual.records,oracle.records);
+    assert.equal(actual.metrics.coverageRefinements,1);
+    assert.equal(scene.compile([{...other}]).metrics.topologyReuses,1);
+  }
+  const changed=crossingFace("art",true,[{left:1,top:-2,right:2,bottom:2}]);
+  assert.throws(()=>scene.compile([], [changed]),/without a revision/);
 });

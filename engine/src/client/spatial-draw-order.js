@@ -1,11 +1,15 @@
-import { compareOrderingPlanes, prepareOrderingProxy, polygonContains } from "./plane-order.js";
+import { compareOrderingPlanes, prepareOrderingProxy, polygonContains, hull } from "./plane-order.js";
 
 const EPSILON = 1e-7;
 const keyOf = record => `${record.id}\u0000${record.part ?? ""}`;
-const boundsOf = points => ({
-  left: Math.min(...points.map(p => p.x)), right: Math.max(...points.map(p => p.x)),
-  top: Math.min(...points.map(p => p.y)), bottom: Math.max(...points.map(p => p.y)),
-});
+const boundsOf = points => {
+  const bounds = { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity };
+  for (const point of points) {
+    bounds.left = Math.min(bounds.left, point.x); bounds.right = Math.max(bounds.right, point.x);
+    bounds.top = Math.min(bounds.top, point.y); bounds.bottom = Math.max(bounds.bottom, point.y);
+  }
+  return bounds;
+};
 const overlap = (a, b) => a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom;
 const finite = p => p && [p.x, p.y, p.z].every(Number.isFinite);
 
@@ -51,6 +55,38 @@ function geometryFaces(geometry, direction) {
   return faces;
 }
 
+function rectanglePolygon(bounds) {
+  return [{ x: bounds.left, y: bounds.top }, { x: bounds.right, y: bounds.top },
+    { x: bounds.right, y: bounds.bottom }, { x: bounds.left, y: bounds.bottom }];
+}
+
+function checkedCoverage(geometry) {
+  const coverage = geometry.coverage;
+  if (coverage == null) return null;
+  if (geometry.kind !== "face" || !coverage.offset ||
+      ![coverage.offset.x, coverage.offset.y].every(Number.isFinite) ||
+      !Array.isArray(coverage.rectangles) || !coverage.rectangles.length)
+    throw new Error("spatial draw coverage requires a face, finite offset and opaque rectangles");
+  return coverage.rectangles.map(rectangle => {
+    if (!rectangle || ![rectangle.left, rectangle.top, rectangle.right, rectangle.bottom].every(Number.isFinite) ||
+        rectangle.left >= rectangle.right || rectangle.top >= rectangle.bottom)
+      throw new Error("spatial draw coverage rectangles must be finite and positive");
+    const bounds = { left: rectangle.left + coverage.offset.x, right: rectangle.right + coverage.offset.x,
+      top: rectangle.top + coverage.offset.y, bottom: rectangle.bottom + coverage.offset.y };
+    if (!Object.values(bounds).every(Number.isFinite) || bounds.left >= bounds.right || bounds.top >= bounds.bottom)
+      throw new Error("spatial draw coverage coordinates must be finite and positive");
+    return bounds;
+  });
+}
+
+// Rectangles use exactly the coarse face's plane. Refinement excludes empty
+// image area; it never samples pixel centers or changes the depth equation.
+function preciseFaces(entry) {
+  if (!entry.coverage) return entry.faces;
+  return entry.preciseFaces ??= entry.coverage.map(bounds => ({ bounds,
+    orderingProxy: { ...entry.faces[0].orderingProxy, polygon: rectanglePolygon(bounds) } }));
+}
+
 function prepare(record, projection) {
   const key = keyOf(record);
   if (record.id == null) throw new Error("spatial draw record identity required");
@@ -61,14 +97,22 @@ function prepare(record, projection) {
     return { bounds:screenBounds, orderingProxy: prepareOrderingProxy({ id: key, planarCorners: points, footprint: points, screenBounds }, projection) };
   }).filter(face => face.orderingProxy);
   if (!faces.length) throw new Error(`spatial draw geometry is edge-on: ${key}`);
-  return { record, key, faces, bounds: boundsOf(faces.flatMap(face => face.orderingProxy.polygon)) };
+  const coverage = checkedCoverage(record.orderGeometry);
+  if (coverage) {
+    // Coverage includes outline texels that can extend beyond model geometry.
+    // Keep coarse candidate discovery conservative over all authored ink.
+    const face = faces[0];
+    face.orderingProxy.polygon = hull([...face.orderingProxy.polygon, ...coverage.flatMap(rectanglePolygon)]);
+    face.bounds = boundsOf(face.orderingProxy.polygon);
+  }
+  return { record, key, faces, coverage, bounds: boundsOf(faces.flatMap(face => face.orderingProxy.polygon)) };
 }
 
 /** Resolve a relationship over its projected overlap, not at a pivot. Each
  * convex volume's visible faces partition its projected silhouette. Opposite
  * signs therefore mean its representation cannot be emitted as one image.
  */
-function faceRelation(a, b, projection, counters) {
+function faceRelation(a, b, projection, counters, precise = false) {
   if (a.faces.length === 1 && b.faces.length === 1 &&
       (a.record.surfaceOrder ?? 0) === (b.record.surfaceOrder ?? 0)) {
     const left = a.faces[0].orderingProxy, right = b.faces[0].orderingProxy;
@@ -80,9 +124,11 @@ function faceRelation(a, b, projection, counters) {
     if (samePlane) { counters.coplanarSkips++; return "independent"; }
   }
   let before = false, after = false, coplanar = false;
-  for (const left of a.faces) for (const right of b.faces) {
+  const leftFaces = precise ? preciseFaces(a) : a.faces, rightFaces = precise ? preciseFaces(b) : b.faces;
+  for (const left of leftFaces) for (const right of rightFaces) {
     if(!overlap(left.bounds,right.bounds))continue;
     counters.faceComparisons++;
+    if (precise) counters.coverageFaceComparisons++;
     const compared = compareOrderingPlanes(left, right, projection);
     if (compared.kind === "interleaving") return "interleaving";
     if (compared.kind === "tie") coplanar = true;
@@ -114,7 +160,10 @@ function relation(a,b,projection,counters) {
     surface.record.orderGeometry.points.every(point=>Math.abs(point.y-object.record.supportY)<=EPSILON);
   if(supportedBy(a,b))return "before";
   if(supportedBy(b,a))return "after";
-  return faceRelation(a,b,projection,counters);
+  const coarse = faceRelation(a,b,projection,counters);
+  if (coarse !== "interleaving" || (!a.coverage && !b.coverage)) return coarse;
+  counters.coverageRefinements++;
+  return faceRelation(a,b,projection,counters,true);
 }
 
 /** Small spatial bins bound candidate discovery. Coordinates are projected
@@ -177,7 +226,7 @@ function heapPop(heap) {
 
 const compareEntries = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 const countersFor = records => ({ records, candidateVisits: 0, faceComparisons: 0, bins: 0, edges: 0,
-  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
+  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
 
 function prepareEntries(records, projection) {
   if (!Array.isArray(records)) throw new Error("spatial draw records must be an array");
