@@ -226,7 +226,7 @@ function heapPop(heap) {
 
 const compareEntries = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 const countersFor = records => ({ records, candidateVisits: 0, faceComparisons: 0, bins: 0, edges: 0,
-  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, approximateOverlaps: 0, preparedNew: 0, preparedReused: 0, relationsReused: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
+  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, approximateOverlaps: 0, approximateCycles: 0, preparedNew: 0, preparedReused: 0, relationsReused: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
 
 function prepareEntries(records, projection) {
   if (!Array.isArray(records)) throw new Error("spatial draw records must be an array");
@@ -268,6 +268,13 @@ function resolveSupports(entries, byKey, projection) {
   }
 }
 
+function centerDepth(entry, projection) {
+  const geometry = entry.record.orderGeometry;
+  const points = geometry.kind === "volume" ? [geometry.min, geometry.max] : geometry.points;
+  const center = axis => (Math.min(...points.map(point => point[axis])) + Math.max(...points.map(point => point[axis]))) / 2;
+  return center("x") * projection.direction.x + center("y") * projection.direction.y + center("z") * projection.direction.z;
+}
+
 function addRelation(a, b, projection, counters, edges) {
   // Canonical argument order preserves the full compiler's tie semantics.
   if (a.key > b.key) [a, b] = [b, a];
@@ -276,14 +283,8 @@ function addRelation(a, b, projection, counters, edges) {
     // Whole pictures can overlap in ways no exact whole-picture order can
     // express. Keep the ordinary geometric relations, and choose one stable
     // camera-depth order for this ambiguous pair rather than stop rendering.
-    const centerDepth = entry => {
-      const geometry = entry.record.orderGeometry;
-      const points = geometry.kind === "volume" ? [geometry.min, geometry.max] : geometry.points;
-      const center = axis => (Math.min(...points.map(point => point[axis])) + Math.max(...points.map(point => point[axis]))) / 2;
-      return center("x") * projection.direction.x + center("y") * projection.direction.y + center("z") * projection.direction.z;
-    };
     counters.approximateOverlaps++;
-    const difference = centerDepth(a) - centerDepth(b);
+    const difference = centerDepth(a, projection) - centerDepth(b, projection);
     edges.push(difference >= -EPSILON ? [a.key, b.key] : [b.key, a.key]);
     return;
   }
@@ -291,7 +292,7 @@ function addRelation(a, b, projection, counters, edges) {
   edges.push(result === "before" ? [a.key, b.key] : [b.key, a.key]);
 }
 
-function orderGraph(entries, relations, counters, clock) {
+function orderGraph(entries, relations, counters, clock, projection) {
   const started = clock();
   counters.topologyBuilds++;
   const indices = new Map(entries.map((entry, index) => [entry.key, index]));
@@ -301,15 +302,34 @@ function orderGraph(entries, relations, counters, clock) {
     if (edges[from].has(to)) continue;
     edges[from].add(to); incoming[to]++; unique.push([fromKey, toKey]);
   }
-  const ready = [], output = [];
+  const ready = [], output = [], emitted = new Uint8Array(entries.length);
   incoming.forEach((count, index) => { if (!count) heapPush(ready, index); });
-  while (ready.length) {
-    const index = heapPop(ready); output.push(entries[index].record);
-    for (const next of edges[index]) if (--incoming[next] === 0) heapPush(ready, next);
-  }
-  if (output.length !== entries.length) {
-    const remaining = entries.filter((_, index) => incoming[index] > 0).map(value => value.key);
-    throw new Error(`spatial draw cycle requires refined art pieces: ${remaining.join(" / ")}`);
+  while (output.length < entries.length) {
+    if (!ready.length) {
+      // Whole-picture occlusion can cycle. Keep physical support precedence,
+      // then resume from one deterministic farthest picture. Original visual
+      // constraints remain recorded for membership reuse and diagnostics;
+      // approximate cycles can leave some of those constraints unsatisfied.
+      let selected = -1, selectedDepth = -Infinity;
+      for (let index = 0; index < entries.length; index++) {
+        const entry = entries[index];
+        if (emitted[index] || (entry.supportKey && !emitted[indices.get(entry.supportKey)])) continue;
+        const depth = centerDepth(entry, projection);
+        if (selected < 0 || depth > selectedDepth + EPSILON ||
+          (Math.abs(depth - selectedDepth) <= EPSILON && entry.key < entries[selected].key)) {
+          selected = index; selectedDepth = depth;
+        }
+      }
+      if (selected < 0) throw new Error("spatial draw explicit support cycle");
+      counters.approximateCycles++;
+      heapPush(ready, selected);
+    }
+    const index = heapPop(ready);
+    if (emitted[index]) continue;
+    emitted[index] = 1; output.push(entries[index].record);
+    for (const next of edges[index]) {
+      if (!emitted[next] && --incoming[next] === 0) heapPush(ready, next);
+    }
   }
   counters.edges = unique.length;
   counters.topologyMs = Math.max(0, clock() - started);
@@ -393,7 +413,7 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
   staticCounters.bins = staticIndex.size;
   staticCounters.candidateMs = Math.max(0, clock() - candidatesStarted);
   // Validate the static graph once, including cycles with no spatial overlap.
-  const staticResult = orderGraph(statics, staticEdges, staticCounters, clock);
+  const staticResult = orderGraph(statics, staticEdges, staticCounters, clock, projection);
   // Do not retain a chain of old scenes. The successor keeps only this
   // membership's proxies, signatures, spatial bins and surviving edges.
   previous = undefined;
@@ -460,7 +480,7 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
       }
       counters.bins = staticIndex.size + dynamicIndex.size;
       counters.candidateMs = Math.max(0, clock() - candidatesStarted);
-      const result = orderGraph(entries, relations, counters, clock);
+      const result = orderGraph(entries, relations, counters, clock, projection);
       for (const [key, record] of refreshedRecords) byKey.get(key).record = record;
       current = result;
       orderedRecords = [...result.records];
@@ -472,7 +492,9 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
 }
 
 /** One client-side ordering core: checked geometry goes to one painter/picker
- * order. Stable IDs settle only unconstrained choices; no edge is discarded.
+ * order. Whole-picture overlaps/cycles use deterministic approximation while
+ * explicit support remains mandatory. Relations retain the original visual
+ * constraints, which need not all be satisfied after approximate cycle recovery.
  */
 export function compileSpatialDrawOrder(records, options = {}) {
   const scene = prepareSpatialDrawScene(records, options);

@@ -101,7 +101,9 @@ test("support contacts are checked and contradictory support is never silently d
   a.support={id:"a",point};
   assert.throws(()=>compileSpatialDrawOrder([a],{projection:projection()}),/self-support/);
   a.support={id:"b",point};b.support={id:"a",point};
-  assert.throws(()=>compileSpatialDrawOrder([a,b],{projection:projection()}),/cycle/);
+  assert.throws(()=>compileSpatialDrawOrder([a,b],{projection:projection()}),/explicit support cycle/);
+  const retained=prepareSpatialDrawScene([],{projection:projection()});
+  assert.throws(()=>retained.compile([a,b]),/explicit support cycle/);
   delete b.support;a.support.point={x:2,y:0,z:0};
   assert.throws(()=>compileSpatialDrawOrder([a,b],{projection:projection()}),/outside/);
 });
@@ -181,4 +183,31 @@ test("retained coverage refinement matches full compiler and invalidates changed
   }
   const changed=crossingFace("art",true,[{left:1,top:-2,right:2,bottom:2}]);
   assert.throws(()=>scene.compile([], [changed]),/without a revision/);
+});
+
+
+test("whole-picture visual cycles recover deterministically in full and retained scenes",()=>{
+  const view=createOrderingProjection();
+  const records=[
+    volume("0",{x:3,y:2,z:4},{x:3.3,y:3.8,z:6.3}),
+    volume("1",{x:3.5,y:1,z:2},{x:3.8,y:2.3,z:4.8}),
+    volume("2",{x:3,y:1.5,z:3.5},{x:5.3,y:3.3,z:4.3}),
+  ];
+  const full=compileSpatialDrawOrder(records,{projection:view});
+  assert.equal(full.metrics.approximateCycles,1);
+  assert.equal(full.metrics.approximateOverlaps,2);
+  assert.equal(new Set(full.records).size,3,"no duplicate or missing pictures");
+  assert.equal(full.relations.length,3,"retain all visual constraints for successor reuse");
+  for(const permutation of [[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]]){
+    assert.deepEqual(compileSpatialDrawOrder(permutation.map(i=>records[i]),{projection:view}).records,full.records);
+  }
+  for(let moving=0;moving<records.length;moving++){
+    const statics=records.filter((_,i)=>i!==moving), scene=prepareSpatialDrawScene(statics,{projection:view});
+    const first=scene.compile([records[moving]]);
+    assert.deepEqual(first.records,full.records);
+    assert.equal(first.metrics.approximateCycles,1);
+    assert.deepEqual(scene.compile([records[moving]]).records,full.records,"stationary retained order remains stable");
+    const successor=scene.withStaticRecords(records);
+    assert.deepEqual(successor.compile().records,full.records,"membership changes retain deterministic recovery");
+  }
 });
