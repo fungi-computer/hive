@@ -80,3 +80,54 @@ This finding tightened the driver to await complete initial coverage in both
 modes. The earlier complete-coverage exploratory run supplies the exact returned
 image comparison; the small-pan final baseline remains a valid complete-coverage
 cost sample. Final return coverage was complete, bounded to 512 cached chunks.
+
+## Retained camera implementation
+
+The shared `world-scene-owner` remains the client presentation boundary. Its
+terrain owner retains a padded camera demand, chunk cache, prepared faces and
+cover records, and publishes the exact exposed planes to the picker. Ordinary
+pan/zoom inside the retained margin changes the common Pixi transform without
+replanning terrain or recompiling unchanged actor/terrain records. Actor visuals
+retain geometry per object while animation, selection and progress remain live.
+
+Coverage starts with 128 projection pixels of padding and refreshes after 65%
+of that margin is consumed. Larger zoomed-out views can reduce padding to fit;
+the visible demand still has an explicit fixed budget. Up to 2,048 chunks may
+remain cached, independent of total world size. Requests retain the server's
+8-chunk limit. Replacements reuse overlapping chunk faces and cover records;
+old scene data is discarded for a changed cut/world, and late replies cannot
+roll a newer observation backward. Panning outside world bounds clears presented
+terrain and picking. Rotation explicitly invalidates projection-dependent data.
+
+Protocol 3 chunks now carry native surface/generated-height metadata and cover
+from the same game projection as ordinary observations. The finite simulation
+workload remains central, but terrain and grass can be requested throughout the
+selected bounds. The client never generates authoritative terrain or advances
+the DO clock. Both the live game and render studies use complete baked grass
+images on upright silhouette geometry; the old ground-quarter clipping path is
+removed. Four-cell masks and full/short appearance updates remain supported.
+This change does not introduce a native mowing command or a second cover authority.
+
+Picking consumes actual exposed face planes, including cut caps and multiple
+levels in cave columns, instead of reconstructing cliffs from a heightmap.
+Commands still require authoritative runtime validation; a rendered cap is not
+permission to move or build inside solid terrain.
+
+Focused integrated client laws: 67/67 passed in `.botanical/camera-client-laws.log`.
+Runtime chunk/surface laws: 39/39 passed in the isolated terrain lane (u2749,
+`9964953152934ad8a22fd8f038d8d3de`), including actual WASM queries beyond x=32.
+The full engine typecheck still has pre-existing missing Node declarations and
+other unrelated failures; it is not reported green. Fallow is not installed in
+this environment; the available historical clearing-state findings do not
+qualify this client stack. Independent source review found the empty-demand,
+cave-picking and obsolete-reply defects; those are fixed and covered by laws.
+
+The separate test backend was updated to Cloudflare version
+`d25d8e12-16d5-4934-8f64-3d6e7fc7eda8`, implementation hash
+`5dddf225bb6287de132f33fd2604e3a2ae37e54ea57f652f0beb638d1b540ff2`.
+The existing game backend was not deployed or reset. Test worlds from an older
+implementation may require the existing **New world** control; no old-format
+migration or silent world replacement was added. Frontend build is
+`.botanical/camera-engine-dist`, served on the existing Cloudflare tunnel.
+Hosted after-checks are pending; source and unit success alone do not qualify
+camera smoothness or returned art.
