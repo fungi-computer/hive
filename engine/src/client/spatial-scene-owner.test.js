@@ -187,3 +187,90 @@ test("reuse preserves strict composite token identity rather than serialized sim
   assert.throws(()=>owner.update({...update,dynamicRecords:[a,{...b,compositePartition:{}}]}),/interleave/);
   assert.equal(owner.update(update).metrics.topologyReuses,1);
 });
+
+test("membership revisions reuse unchanged geometry and relations with full-compiler parity", () => {
+  for(let turn=0;turn<4;turn++) {
+    const view=projection(turn), owner=createSpatialSceneOwner({projection:view});
+    const tiles=Array.from({length:24},(_,i)=>face(`tile:${i}`,i-12));
+    const cover=tiles.map(tile=>({...tile,id:`cover:${tile.id}`,surfaceOrder:1}));
+    let totalVisits=0, oracleVisits=0, revision=0;
+    for(const offset of [0,1,2,3,4,5,4,3,2,1,0]) {
+      const statics=[...tiles.slice(offset,offset+16),...cover.slice(offset,offset+16)];
+      const moving=actor(offset-5);
+      const result=owner.update({revision:++revision,staticRecords:()=>statics,dynamicRecords:[moving]});
+      const oracle=compileSpatialDrawOrder([...statics,moving],{projection:view});
+      assert.deepEqual(result.records,oracle.records);
+      totalVisits+=result.metrics.staticWork.candidateVisits;
+      oracleVisits+=oracle.metrics.candidateVisits;
+      if(revision>1) {
+        assert.equal(result.metrics.staticWork.preparedReused,30);
+        assert.equal(result.metrics.staticWork.preparedNew,2);
+        assert(result.metrics.staticWork.relationsReused>0);
+      }
+    }
+    assert(totalVisits<oracleVisits/2,`${totalVisits} retained vs ${oracleVisits} oracle candidate visits`);
+  }
+});
+
+test("geometry/contact changes invalidate membership reuse and failed revisions preserve painted references", () => {
+  const view=projection(),owner=createSpatialSceneOwner({projection:view});
+  const ground=face("ground"), cover={...face("cover"),surfaceOrder:1,contains:()=>true,target:"old"};
+  const initial=owner.update({revision:1,staticRecords:()=>[ground,cover]});
+  const display={};
+  const refreshed={...cover,display,contains:()=>true,target:"new"};
+  const second=owner.update({revision:2,staticRecords:()=>[ground,refreshed]});
+  assert.equal(second.metrics.staticWork.preparedReused,2);
+  assert.equal(second.metrics.staticWork.candidateVisits,0);
+  assert.equal(second.records[1],refreshed);
+  assert.equal(initial.records[1],cover,"a staged successor must not mutate prior borrowed views");
+  assert.equal(owner.pick({x:0,y:0}).record,refreshed);
+  const replacement={...face("cover",3),contains:()=>true};
+  const changed=owner.update({revision:3,staticRecords:()=>[ground,replacement]});
+  assert.equal(changed.metrics.staticWork.preparedNew,1);
+  assert.deepEqual(changed.records,compileSpatialDrawOrder([ground,replacement],{projection:view}).records);
+  const invalid={...replacement,support:{id:"missing",point:{x:3,y:0,z:0}}};
+  assert.throws(()=>owner.update({revision:4,staticRecords:()=>[ground,invalid]}),/missing/);
+  assert.equal(owner.pick({x:0,y:0}).record,replacement);
+  const skippedRevision=owner.update({revision:3,staticRecords:()=>{throw new Error("must retain accepted revision");}});
+  assert.equal(skippedRevision.staticRebuilt,false);
+  // In-place geometry mutation across an explicit revision cannot evade the
+  // captured signature merely because the record identity stayed the same.
+  ground.orderGeometry.points=ground.orderGeometry.points.map(point=>({...point,y:.1}));
+  assert.equal(owner.update({revision:5,staticRecords:()=>[ground,replacement]}).metrics.staticWork.preparedNew,1);
+});
+
+test("unchanged occupants revalidate changed/missing support and relation semantics", () => {
+  const view=projection(),owner=createSpatialSceneOwner({projection:view});
+  const a=face("a"), b=face("b");
+  a.contactSurface=a.orderGeometry.points;b.contactSurface=b.orderGeometry.points;
+  const occupant={...face("occupant"),support:{id:"a",point:{x:0,y:0,z:0}}};
+  owner.update({revision:1,staticRecords:()=>[a,b,occupant]});
+  const movedSupport={...occupant,support:{id:"b",point:{x:0,y:0,z:0}}};
+  const next=owner.update({revision:2,staticRecords:()=>[a,b,movedSupport]});
+  assert.equal(next.metrics.staticWork.preparedNew,1);
+  assert.deepEqual(next.records,compileSpatialDrawOrder([a,b,movedSupport],{projection:view}).records);
+  assert.throws(()=>owner.update({revision:3,staticRecords:()=>[a,movedSupport]}),/missing/);
+  const invalidSurface={...b,contactSurface:b.contactSurface.map(point=>({...point,y:1}))};
+  assert.throws(()=>owner.update({revision:4,staticRecords:()=>[a,invalidSurface,movedSupport]}),/outside/);
+  assert.equal(owner.metrics().retained.staticRecords,3);
+});
+
+test("retained membership storage remains bounded to the current view and reset evicts it", () => {
+  const owner=createSpatialSceneOwner({projection:projection()});
+  for(let revision=0;revision<120;revision++) {
+    const statics=Array.from({length:6},(_,i)=> {
+      const tile=face(`tile:${revision*6+i}`,i*20);
+      return [tile,{...tile,id:`cover:${tile.id}`,surfaceOrder:1}];
+    }).flat();
+    const result=owner.update({revision,staticRecords:()=>statics,dynamicRecords:[actor(0)]});
+    const retained=owner.metrics().retained;
+    assert.equal(retained.staticRecords,12);
+    assert.equal(retained.dynamicRecords,1);
+    assert.equal(retained.currentRecords,13);
+    assert.equal(retained.staticRelations,6);
+    assert(retained.staticBins<100);
+    assert.equal(result.metrics.staticWork.preparedNew,12,"evicted members must not survive in a history cache");
+  }
+  owner.reset();
+  assert.deepEqual(owner.metrics().retained,{staticRecords:0,staticRelations:0,staticBins:0,dynamicRecords:0,currentRecords:0});
+});

@@ -226,7 +226,7 @@ function heapPop(heap) {
 
 const compareEntries = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 const countersFor = records => ({ records, candidateVisits: 0, faceComparisons: 0, bins: 0, edges: 0,
-  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
+  topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, preparedNew: 0, preparedReused: 0, relationsReused: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
 
 function prepareEntries(records, projection) {
   if (!Array.isArray(records)) throw new Error("spatial draw records must be an array");
@@ -324,24 +324,57 @@ const sameGeometrySignature = (a, b) => a?.data === b?.data && a?.partition === 
  * A static support must itself be static. Dynamic records may reference either
  * class. Geometry/contact changes require a new prepared scene; refreshes only
  * replace display, picking and other presentation references. The projection
- * and supplied geometry are immutable for this scene's lifetime. Returned
+ * and supplied geometry are immutable for this scene's lifetime. A staged
+ * withStaticRecords successor retains only unchanged current members/edges;
+ * its creation and validation never replace this scene's presentation state.
+ * Returned
  * records are a borrowed read-only view: a successful geometry-identical
  * compile refreshes its record references in place, without traversing terrain.
  */
 export function prepareSpatialDrawScene(staticRecords, { projection, binSize = 64, clock = () => performance.now() } = {}) {
+  return buildSpatialDrawScene(staticRecords, { projection, binSize, clock });
+}
+
+function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, previous) {
   if (!projection?.project || !projection?.ray || !finite(projection.direction) ||
       !Number.isFinite(binSize) || !(binSize > 0))
     throw new Error("spatial draw records and orthographic projection required");
   const preparationStarted = clock();
-  const statics = prepareEntries(staticRecords, projection);
+  if (!Array.isArray(staticRecords)) throw new Error("spatial draw records must be an array");
+  const signatures = new Map(), reused = new Set();
+  const statics = staticRecords.map(record => {
+    if (record?.id == null) throw new Error("spatial draw record identity required");
+    const key = keyOf(record), signature = geometrySignature(record);
+    if (signatures.has(key)) throw new Error("duplicate spatial draw identity");
+    signatures.set(key, signature);
+    if (previous?.byKey.has(key) && sameGeometrySignature(previous.signatures.get(key), signature)) {
+      reused.add(key);
+      // Detach mutable presentation references from the previous revision.
+      // Geometry/proxies are immutable; only their lazy refinement is shared.
+      return { ...previous.byKey.get(key), record };
+    }
+    return prepare(record, projection);
+  }).sort(compareEntries);
   const byKey = new Map(statics.map(entry => [entry.key, entry]));
-  const signatures = new Map(statics.map(entry => [entry.key, geometrySignature(entry.record)]));
+  // Even unchanged occupants must be checked against their current support:
+  // a contact surface may have changed or left membership this revision.
   resolveSupports(statics, byKey, projection);
   const staticCounters = countersFor(statics.length), staticIndex = createSpatialIndex(binSize), staticEdges = [];
+  staticCounters.preparedReused = reused.size;
+  staticCounters.preparedNew = statics.length - reused.size;
+  for (const edge of previous?.relations ?? []) if (reused.has(edge[0]) && reused.has(edge[1])) {
+    staticEdges.push(edge); staticCounters.relationsReused++;
+  }
   const candidatesStarted = clock();
   staticCounters.preparationMs = Math.max(0, candidatesStarted - preparationStarted);
   for (const entry of statics) {
+    if (reused.has(entry.key)) staticIndex.add(entry);
     if (entry.supportKey) staticEdges.push([entry.supportKey, entry.key]);
+  }
+  for (const entry of statics) {
+    if (reused.has(entry.key)) continue;
+    // The index contains all unchanged members and only preceding new ones.
+    // Thus each affected pair is visited once; unchanged pairs need no query.
     for (const other of staticIndex.candidates(entry, staticCounters))
       addRelation(other, entry, projection, staticCounters, staticEdges);
     staticIndex.add(entry);
@@ -350,11 +383,20 @@ export function prepareSpatialDrawScene(staticRecords, { projection, binSize = 6
   staticCounters.candidateMs = Math.max(0, clock() - candidatesStarted);
   // Validate the static graph once, including cycles with no spatial overlap.
   const staticResult = orderGraph(statics, staticEdges, staticCounters, clock);
+  // Do not retain a chain of old scenes. The successor keeps only this
+  // membership's proxies, signatures, spatial bins and surviving edges.
+  previous = undefined;
   let current = staticResult, orderedRecords = [...staticResult.records];
   let orderedIndexes = new Map(orderedRecords.map((record, index) => [keyOf(record), index]));
   let dynamicSignatures = new Map();
   return Object.freeze({
     metrics: staticResult.metrics,
+    withStaticRecords(records) {
+      return buildSpatialDrawScene(records, { projection, binSize, clock },
+        { byKey, signatures, relations: staticResult.relations });
+    },
+    retained: () => Object.freeze({ staticRecords: byKey.size, staticRelations: staticResult.relations.length,
+      staticBins: staticIndex.size, dynamicRecords: dynamicSignatures.size, currentRecords: orderedRecords.length }),
     compile(dynamicRecords = [], currentStaticRecords = []) {
       const preparationStarted = clock();
       if (!Array.isArray(currentStaticRecords)) throw new Error("spatial static refresh requires an array");
