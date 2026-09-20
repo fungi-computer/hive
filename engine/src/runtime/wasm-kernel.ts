@@ -438,7 +438,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
     terrainMaterials(cells) {
       if (
         cells.length === 0 ||
-        cells.length > 256 ||
+        cells.length > 768 ||
         cells.some(
           (cell) =>
             !Array.isArray(cell) ||
@@ -452,7 +452,7 @@ export function wasmKernelPort(binding: WasmKernelBinding): KernelPort {
         )
       )
         throw new Error(
-          "terrain material query must contain between 1 and 256 signed integer cells",
+          "terrain material query must contain between 1 and 768 signed integer cells",
         );
       const result = JSON.parse(
         binding.terrain_materials(JSON.stringify(cells)),

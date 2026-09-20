@@ -11,6 +11,9 @@ use std::sync::Arc;
 
 pub const TERRAIN_STATE_VERSION: u16 = 2;
 const POINT_CACHE_LIMIT: usize = 8192;
+// 768 worst-case signed-i32 triples encode to 29,185 bytes, below the
+// existing 32 KiB wire limit. This bounds work without changing sampling.
+pub const MATERIAL_QUERY_LIMIT: usize = 768;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterialProperty {
@@ -315,7 +318,7 @@ impl TerrainOwner {
     /// touching the rebuildable page cache, so a rejected request has no
     /// partial result.
     pub fn query_cells(&mut self, cells: &[Cell]) -> Result<Vec<u16>, &'static str> {
-        if cells.is_empty() || cells.len() > 256 {
+        if cells.is_empty() || cells.len() > MATERIAL_QUERY_LIMIT {
             return Err("terrain query batch exceeds bound");
         }
         if cells.iter().any(|cell| !self.generator.contains_cell(*cell)) {
@@ -854,7 +857,12 @@ mod tests {
     fn batch_query_rejects_bad_budget_and_bounds_before_sampling() {
         let mut terrain = owner();
         let valid = Cell { x: 0, y: -1, z: 0 };
-        let too_many = vec![valid; 257];
+        let before = terrain.revision();
+        let boundary = vec![valid; MATERIAL_QUERY_LIMIT];
+        let expected = terrain.query(valid).unwrap();
+        assert_eq!(terrain.query_cells(&boundary).unwrap(), vec![expected; MATERIAL_QUERY_LIMIT]);
+        assert_eq!(terrain.revision(), before, "material reads cannot mutate physical state");
+        let too_many = vec![valid; MATERIAL_QUERY_LIMIT + 1];
         assert!(terrain.query_cells(&too_many).is_err());
         assert!(terrain.query_cells(&[valid, Cell { x: i64::MAX, y: i32::MAX, z: i64::MAX }]).is_err());
     }

@@ -228,8 +228,8 @@ export class TerrainPresentationOwner {
       for(let y=bounds.minY;y<=top;y++) cells.push([x,y,z]);
     }
     const palette = new Map(this.definition.materials.map(material => [material.slot,material]));
-    for(let offset=0;offset<cells.length;offset+=256) {
-      const batch = cells.slice(offset,offset+256), sampled = this.port.terrainMaterials(batch);
+    for(let offset=0;offset<cells.length;offset+=768) {
+      const batch = cells.slice(offset,offset+768), sampled = this.port.terrainMaterials(batch);
       if(sampled.length !== batch.length) throw new Error("terrain material query returned the wrong count");
       sampled.forEach((slot,index) => {
         if(!Number.isInteger(slot) || !palette.has(slot)) throw new Error("terrain material query returned an unknown slot");

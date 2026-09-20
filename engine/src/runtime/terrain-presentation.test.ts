@@ -304,7 +304,7 @@ test("region reads guard revisions before sampling, preserve caps and cache immu
  const owner=new TerrainPresentationOwner(fakePort(
   ()=>({terrainRevision:revision,placementRevision:0,cells:[]}),
   columns=>{surfaceCalls++;return columns.map(([x,z])=>({cell:[x,3,z] as const,material:1,generatedTop:3}));},
-  undefined,undefined,cells=>{calls++;assert(cells.length<=256);return cells.map(([,y])=>y<=3?1:0);}
+  undefined,undefined,cells=>{calls++;assert(cells.length<=768);return cells.map(([,y])=>y<=3?1:0);}
  ),definition);
  const request=regionRequest(1,1);
  assert.equal(owner.readRegion({...request,epoch:9},[0,0],0).kind,'stale');
@@ -330,7 +330,7 @@ test("regions include the full exterior support halo beyond observation, with na
  ()=>({terrainRevision:1,placementRevision:0,cells:[]}),
  columns=>{queries.push(columns);return columns.map(([x,z])=>({cell:[x,9,z] as const,material:1,generatedTop:9}));},
  ()=>{throw new Error('region cannot expand structure observation');},undefined,
- cells=>{assert(cells.length<=256);materialSamples+=cells.length;return cells.map(([,y])=>y<=9?1:0);}),
+ cells=>{assert(cells.length<=768);materialSamples+=cells.length;return cells.map(([,y])=>y<=9?1:0);}),
  wide,{minX:-32,maxX:32,minZ:-32,maxZ:32},{materials:[{slot:1,art:'earth'}],generatedCover:()=>({kind:'grass',condition:'green',height:'full'})});
  const result=owner.readRegion({...regionRequest(1,5),regions:[[8,0]]},[8,0],0);
  assert.equal(result.kind,'patch');if(result.kind!=='patch')return;

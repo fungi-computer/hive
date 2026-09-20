@@ -3756,7 +3756,7 @@ impl Kernel {
         self.ensure_ready()?;
         if input.len() > 32 * 1024 { return Err("terrain query exceeds input budget".into()); }
         let coordinates: Vec<[i32; 3]> = serde_json::from_str(input).map_err(|error| error.to_string())?;
-        if coordinates.len() > 256 { return Err("terrain query exceeds cell budget".into()); }
+        if coordinates.len() > crate::terrain::MATERIAL_QUERY_LIMIT { return Err("terrain query exceeds cell budget".into()); }
         let cells: Vec<_> = coordinates.into_iter().map(|[x, y, z]| crate::generation::Cell {
             x: i64::from(x), y, z: i64::from(z),
         }).collect();
