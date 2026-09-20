@@ -128,3 +128,62 @@ test("retained original grass, bank, bed, wall and stair scene agrees with full 
     assert.equal(result.staticRebuilt,true);
   }
 });
+
+test("unchanged geometry reuses topology and only refreshes current record slots", () => {
+  const view=projection(); let projections=0;
+  const observed={...view,project(point){projections++;return view.project(point);},ray(point){projections++;return view.ray(point);}};
+  const owner=createSpatialSceneOwner({projection:observed});
+  const ground=face("ground"), display={};
+  const update={revision:1,staticRecords:()=>[ground]};
+  const first=owner.update({...update,dynamicRecords:[{...actor(0),display}]});
+  const before=owner.metrics().counts.topologyBuilds;
+  projections=0;
+  const current={...actor(0),display,contains:()=>true,target:"new animation frame"};
+  const result=owner.update({...update,dynamicRecords:[current]});
+  assert.equal(projections,0,"reuse must not prepare/project/check planes");
+  assert.equal(result.records,first.records,"borrowed ordered view is retained");
+  assert.equal(result.metrics.topologyReuses,1);
+  assert.equal(result.metrics.topologyBuilds,0);
+  assert.equal(owner.metrics().counts.topologyBuilds,before);
+  assert.equal(result.applyOrderRequired,false);
+  assert.equal(owner.pick({x:0,y:0}).record,current);
+  const newDisplay={...current,display:{}};
+  assert.equal(owner.update({...update,dynamicRecords:[newDisplay]}).applyOrderRequired,true);
+  const animated={...actor(0),display,orderGeometry:{...actor(0).orderGeometry,max:{x:.2,y:1.1,z:.2}}};
+  const changed=owner.update({...update,dynamicRecords:[animated]});
+  assert.equal(changed.metrics.topologyBuilds,1);
+  assert(projections>0);
+  assert.throws(()=>owner.update({...update,dynamicRecords:[animated],currentStaticRecords:[face("ground",3)]}),/without a revision/);
+  const empty=owner.update(update);
+  assert.equal(empty.metrics.topologyBuilds,1);
+  const emptyReuse=owner.update(update);
+  assert.equal(emptyReuse.metrics.topologyReuses,1);
+  assert.equal(empty.records,emptyReuse.records);
+  const revision=owner.update({...update,revision:2});
+  assert.equal(revision.staticRebuilt,true);
+  assert.equal(revision.metrics.staticWork.topologyBuilds,1);
+  assert(owner.metrics().times.orderReuseMs>=0);
+});
+
+test("zero-dynamic reuse refreshes static display and hit references without topology", () => {
+  const owner=createSpatialSceneOwner({projection:projection()}), ground=face("ground");
+  const update={revision:1,staticRecords:()=>[ground]};
+  const first=owner.update(update);
+  const refreshed={...ground,display:{},contains:()=>true,target:"refreshed ground"};
+  const next=owner.update({...update,currentStaticRecords:[refreshed]});
+  assert.equal(next.records,first.records);
+  assert.equal(next.metrics.topologyReuses,1);
+  assert.equal(next.applyOrderRequired,true);
+  assert.equal(owner.pick({x:0,y:0}).record,refreshed);
+  assert.equal(owner.update(update).applyOrderRequired,false);
+});
+
+test("reuse preserves strict composite token identity rather than serialized similarity", () => {
+  const owner=createSpatialSceneOwner({projection:projection()}), token={};
+  const a={id:"a",compositePartition:token,orderGeometry:{kind:"volume",min:{x:0,y:0,z:0},max:{x:2,y:1,z:1}}};
+  const b={id:"b",compositePartition:token,orderGeometry:{kind:"volume",min:{x:1,y:.2,z:-1},max:{x:1.5,y:2,z:2}}};
+  const update={revision:1,staticRecords:()=>[],dynamicRecords:[a,b]};
+  owner.update(update);
+  assert.throws(()=>owner.update({...update,dynamicRecords:[a,{...b,compositePartition:{}}]}),/interleave/);
+  assert.equal(owner.update(update).metrics.topologyReuses,1);
+});

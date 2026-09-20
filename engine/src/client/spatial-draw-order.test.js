@@ -99,3 +99,18 @@ test("support contacts are checked and contradictory support is never silently d
   delete b.support;a.support.point={x:2,y:0,z:0};
   assert.throws(()=>compileSpatialDrawOrder([a,b],{projection:projection()}),/outside/);
 });
+
+test("exact coplanar equal-layer faces skip clipping, preserving other plane/layer relations", () => {
+  const a=top("a",0,0,0), b=top("b",0,0,0), view=projection();
+  b.orderGeometry.points.reverse();
+  const equal=compileSpatialDrawOrder([a,b],{projection:view});
+  assert.equal(equal.metrics.coplanarSkips,1);
+  assert.equal(equal.metrics.faceComparisons,0);
+  assert.equal(equal.relations.length,0);
+  const layer=compileSpatialDrawOrder([a,{...b,surfaceOrder:1}],{projection:view});
+  assert.equal(layer.metrics.coplanarSkips,0);
+  assert.equal(layer.relations.length,1);
+  const raised=compileSpatialDrawOrder([a,top("raised",0,.01,0)],{projection:view});
+  assert.equal(raised.metrics.coplanarSkips,0);
+  assert.equal(raised.relations.length,1);
+});
