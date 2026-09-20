@@ -12,6 +12,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
+import { STATIC_ART_DIRECTORY } from "../../src/art/static-manifest.js";
 import { project } from "../../engine/src/client/geometry.js";
 import { edgeSegmentEndpoints } from "../../engine/src/client/edge-gesture.js";
 import { resolveWorldArtPlacement } from "../../engine/src/client/art-placement.js";
@@ -36,7 +37,7 @@ const sourceInventory = [
   "engine/src/client/edge-gesture.js",
   "engine/src/client/build-placement.js",
   "engine/src/client/art-placement.js",
-  "engine/src/client/isometric-sorter.js",
+  "engine/src/client/draw-record-facts.js",
   "engine/src/client/cut-terrain-layer.js",
   "engine/src/client/terrain-chunk-cache.js",
   "engine/src/client/terrain-face-batches.js",
@@ -47,7 +48,7 @@ const sourceInventory = [
   "engine/src/games/colony-party.ts",
   "engine/src/runtime/remote-client.ts",
   "src/art/terrain-faces.js",
-  "public/generated-art/goblin-static-art-v6/manifest.json",
+  `public/${STATIC_ART_DIRECTORY}/manifest.json`,
   "tools/public-engine-host/worker.ts",
   "tools/public-engine-host/protocol.ts",
 ].sort();
@@ -402,7 +403,7 @@ try {
   const structureFact = (fragment, supportCell) => latestObservation?.observation?.facts?.find(fact =>
     typeof fact.visual === "string" && fact.visual.includes(fragment) &&
     (!supportCell || (fact.pose?.position && Math.round(fact.pose.position.x) === supportCell[0] && Math.round(fact.pose.position.z) === supportCell[2])));
-  const artManifestResponse = await page.request.get(new URL("/engine/generated-art/goblin-static-art-v6/manifest.json", frontend).toString());
+  const artManifestResponse = await page.request.get(new URL(`/engine/${STATIC_ART_DIRECTORY}/manifest.json`, frontend).toString());
   assert.equal(artManifestResponse.status(), 200, "the public static-art manifest is unavailable");
   const artManifest = await artManifestResponse.json();
   const visualPathPrefix = (visual) => {
@@ -443,6 +444,7 @@ try {
       subjectPlacement: fact.placement,
       artPlacement: entry.placement,
       orientation: fact.placement.orientation,
+      physicalFacing: fact.pose.facing ?? 0, cameraTurn: 0,
     });
     const box = await canvasBox(page);
     const zoom = box.width >= 600 ? 2 : 1;

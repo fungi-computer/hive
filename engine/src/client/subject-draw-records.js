@@ -1,6 +1,7 @@
 import { resolveWorldArtPlacement } from "./art-placement.js";
-import { storeyBandFor, subjectSortFootprint } from "./isometric-sorter.js";
+import { storeyBandFor, subjectSortFootprint } from "./draw-record-facts.js";
 import { transformBakedPartPoint } from "./multipart-visual-owner.js";
+import { worldVisualVolume, uprightTextureGeometry } from "./asset-draw-geometry.js";
 
 function finite(value, name) {
   if (!Number.isFinite(value)) throw new Error(`invalid subject draw ${name}`);
@@ -45,6 +46,9 @@ export function subjectDrawGeometry({
   verticalMetres,
   project,
   hitArea,
+  orderingMetadata,
+  projection,
+  cameraTurn = 0,
 } = {}) {
   if (!subject || subject.id === undefined || subject.id === null)
     throw new Error("subject draw subject required");
@@ -62,6 +66,8 @@ export function subjectDrawGeometry({
       subjectPlacement: subject.placement,
       artPlacement,
       orientation: subject.placement.orientation,
+      physicalFacing: ((Math.round(subject.facing ?? 0) % 4) + 4) % 4,
+      cameraTurn,
     });
     offset = resolvedPlacement.offset;
     if (typeof project !== "function") throw new Error("subject draw projection required");
@@ -89,6 +95,12 @@ export function subjectDrawGeometry({
     storeyBand: storeyBandFor(subject, verticalMetres),
     screenBounds: textureBounds(texture, checked, screen),
     hitArea,
+    ...(projection ? {
+      orderGeometry: binding.kind === "figure" || binding.orderShape === "upright"
+        ? uprightTextureGeometry(texture, checked, screen, subject, projection)
+        : worldVisualVolume(orderingMetadata, { x: subject.x + offset[0], y: subject.y, z: subject.z + offset[1] }, cameraTurn),
+      supportY: subject.y,
+    } : {}),
   });
 }
 
@@ -119,6 +131,8 @@ export function ordinarySubjectDrawRecord({ subject, binding, geometry, display,
       point.y - display.y - sprite.y,
     ) === true,
     visible: true,
+    orderGeometry: geometry.orderGeometry,
+    supportY: geometry.supportY,
   });
 }
 

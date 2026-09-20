@@ -56,6 +56,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   // art never creates a tree, resource, or pick target by itself.
   "colony.tree": Object.freeze({
     kind: "static",
+    orderShape: "upright",
     path: ["tree", "standing"],
     facing: false,
     anchor: "propAnchor",
@@ -63,6 +64,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   }),
   "colony.tree.notched": Object.freeze({
     kind: "static",
+    orderShape: "upright",
     path: ["tree", "notched"],
     facing: false,
     anchor: "propAnchor",
@@ -70,6 +72,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   }),
   "colony.tree.felled": Object.freeze({
     kind: "static",
+    orderShape: "upright",
     path: ["tree", "felled"],
     facing: false,
     anchor: "propAnchor",
@@ -77,6 +80,7 @@ export const DEFAULT_VISUAL_BINDINGS = Object.freeze({
   }),
   "colony.tree.stump": Object.freeze({
     kind: "static",
+    orderShape: "upright",
     path: ["tree", "stump"],
     facing: false,
     anchor: "propAnchor",

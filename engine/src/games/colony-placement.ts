@@ -1,4 +1,5 @@
 import type { CardinalOrientation } from "../contracts";
+import { colonyEnvironment } from "./colony-environment";
 import type { PlacementAlignment } from "../sdk/placement";
 import { compileBuildable } from "../sdk/construction";
 import { TimberBedActor, TimberFloorActor, TimberWallActor } from "./colony-actors";
@@ -13,7 +14,7 @@ const buildablePresentation = (definition: typeof TimberBedActor) => {
 };
 
 /** Goblin's local art and placement policy, consumed by command and preview. */
-export const colonyPlacement: Readonly<Record<string, {
+const presentations: Readonly<Record<string, {
   readonly visual: string;
   readonly alignment: PlacementAlignment;
   readonly facing: Readonly<Record<CardinalOrientation, number>>;
@@ -27,3 +28,13 @@ export const colonyPlacement: Readonly<Record<string, {
   "timber-shelf": { visual: "colony.shelf.finished", alignment: "fixed", facing: axialFacing },
   "brew-station": { visual: "colony.brew-station.finished", alignment: "fixed", facing: axialFacing },
 };
+
+/** Physical placement datums are derived once from the same construction
+ * definitions for completed subjects and advisory ghosts. */
+export const colonyPlacement = Object.freeze(Object.fromEntries(Object.entries(presentations).map(([catalog, value]) => {
+  const shape = colonyEnvironment.structures.catalog.find(item => item.id === catalog)?.shape;
+  const datum = shape?.kind === "fixture" ? { kind: "footprint" as const, footprint: shape.footprint }
+    : shape?.kind === "stair" ? { kind: "stair" as const, entrance: [0,0,0] as const,
+      landing: [0,shape.rise * colonyEnvironment.world.verticalMetres,-shape.run] as const } : undefined;
+  return [catalog, { ...value, ...(datum ? { datum } : {}) }];
+})));

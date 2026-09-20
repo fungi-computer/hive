@@ -74,6 +74,8 @@ export function placementGuideTiles({ hoveredCell, planeY, footprintCells = [], 
       attachment: Object.freeze({ kind: "surface-mark", cell: Object.freeze([...cell]) }),
       cell: Object.freeze(cell),
       worldCorners: Object.freeze(worldCorners),
+      orderGeometry: { kind: "face", points: worldCorners },
+      surfaceOrder: 2,
       footprint: Object.freeze(worldCorners),
       projected: Object.freeze(projected),
       screenBounds: Object.freeze({ left: Math.min(...projected.map(point => point.x)), right: Math.max(...projected.map(point => point.x)),
@@ -110,5 +112,6 @@ export function placementVisualSpec(control, cells, placementVisuals, area) {
   const definition = catalog === undefined ? undefined : placementVisuals?.[catalog];
   const orientation = placementOrientation(definition?.alignment ?? "fixed", area, control?.input?.orientation);
   const facing = definition?.facing[orientation] ?? 0;
-  return { visual: definition?.visual, facing, cells };
+  return { visual: definition?.visual, facing, cells,
+    ...(definition?.datum ? { placement: { ...definition.datum, orientation } } : {}) };
 }

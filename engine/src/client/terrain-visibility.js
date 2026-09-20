@@ -85,6 +85,7 @@ export function terrainFaceRecords(coverage, { level, projection, viewport, appe
           renderPass: "opaque", attachment: Object.freeze({ kind: "cell-face", cell: Object.freeze([...cell]), face }),
           ...(face === "top" ? { partRole: "supporting-surface" } : {}),
           material: material.material, cap, planarCorners, footprint: planarCorners,
+          orderGeometry: { kind: "face", points: planarCorners },
           screenBounds, storeyBand: y, pickable: false, visible: true,
           // Appearance receives material and cap, so grass cannot be inferred
           // from the highest column. Original art selection stays its owner.

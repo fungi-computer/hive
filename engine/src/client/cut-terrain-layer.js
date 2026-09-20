@@ -5,6 +5,7 @@ import { createTerrainBatchMeshes } from "./terrain-face-batches.js";
 import { materialCoverage, terrainCoverRecords, terrainFaceRecords, visibleTerrainChunks } from "./terrain-visibility.js";
 import { reconcileWaterSprites, waterCellKey } from "./water-sprite-reconciler.js";
 import { project } from "./geometry.js";
+import { projectSupportedSurfaceArt } from "./surface-art-projection.js";
 
 const WATER_WIDTH = 32, WATER_HEIGHT = 16;
 
@@ -37,6 +38,9 @@ export function waterDrawRecord(cell, { verticalMetres, projection = project, di
     orderingKind: "compact",
     ...(display ? { display } : {}),
     footprint: Object.freeze([{ x, y: top, z }]),
+    orderGeometry: { kind: "face", points: [[-.5,-.5],[-.5,.5],[.5,.5],[.5,-.5]]
+      .map(([dx,dz]) => ({ x: x + dx, y: top, z: z + dz })) },
+    surfaceOrder: 1,
     screenBounds: Object.freeze({ left: at.x - 16, right: at.x + 16, top: at.y - 8, bottom: at.y + 8 }),
     storeyBand: y,
     pickable: false,
@@ -60,7 +64,8 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
   let waterEntries = new Map(), waterRecordEntries = new Map(), waterRecords = [];
   let frame, epoch, level, records = [], disposed = false, recordRevision = 0;
   let retainedRecords = Object.freeze([]);
-  let demandIdentity, coverageIdentity, observedService, reportedBudget;
+  let demandIdentity, coverageIdentity, terrainContext, observedService, reportedBudget;
+  let surfaceIdentity;
   const faceChunks = new Map();
 
   function installArt(pack) {
@@ -81,8 +86,9 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     if (disposed) throw new Error("cut terrain layer is disposed");
     frame = frameValue;
     epoch = nextEpoch;
+    surfaceIdentity = frameValue ? JSON.stringify(frameValue.surfaces) : undefined;
     if (!frameValue) {
-      faceChunks.clear(); coverageIdentity = undefined; demandIdentity = undefined;
+      faceChunks.clear(); coverageIdentity = undefined; terrainContext = undefined; demandIdentity = undefined;
       waterRecordEntries.clear();
       publishRecords([], []);
       batches.update([]); container.visible = false; return;
@@ -96,6 +102,15 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     container.position.set(camera.x, camera.y);
     container.scale.set(camera.zoom);
     level = view.cutaway ? view.level : view.range.max;
+    const nextTerrainContext = `${epoch}:${frame.revision}:${level}`;
+    if (terrainContext !== undefined && terrainContext !== nextTerrainContext) {
+      // A previous cut or terrain revision cannot stand in for an incomplete
+      // replacement view: its caps and cover may now be inside solid ground.
+      terrainContext = undefined;
+      coverageIdentity = undefined;
+      publishRecords([], []);
+      batches.update([]);
+    }
     const viewport = { left: -camera.x / camera.zoom, right: (screen.width - camera.x) / camera.zoom,
       top: -camera.y / camera.zoom, bottom: (screen.height - camera.y) / camera.zoom };
     const planned = visibleTerrainChunks({ bounds: frame.baseline.bounds, level,
@@ -104,6 +119,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       const budgetId = `${epoch}:${level}:${viewport.left}:${viewport.right}:${viewport.top}:${viewport.bottom}`;
       if (reportedBudget !== budgetId) {
         reportedBudget = budgetId;
+        // Discarding the presented scene also invalidates its publication key.
+        // A return to the same resident demand must republish those faces.
+        coverageIdentity = undefined;
+        terrainContext = undefined;
         publishRecords([], []);
         queueMicrotask(() => { if (!disposed) onCoverage?.({ kind: "view-budget", limit: planned.limit }); });
       }
@@ -131,7 +150,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     }
     if (!snapshot.demandComplete || snapshot.chunks.length === 0) return;
     if (!appearance) throw new Error("cut terrain art is not installed");
-    const identity = `${snapshot.epoch}:${snapshot.terrainRevision}:${level}:${nextDemand}`;
+    const identity = `${snapshot.epoch}:${snapshot.terrainRevision}:${level}:${nextDemand}:${surfaceIdentity}`;
     if (identity === coverageIdentity) return;
     coverageIdentity = identity;
     const generatedTops = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface.generatedTop]));
@@ -162,8 +181,15 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     }
     faceChunks.clear();
     for (const [id, entry] of nextFaceChunks) faceChunks.set(id, entry);
-    nextRecords.push(...terrainCoverRecords(frame.surfaces, { level, projection, appearance,
-      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed }));
+    const supportedCover = frame.surfaces.filter(surface => {
+      const ground = coverage.sample(surface.cell);
+      const air = coverage.sample([surface.cell[0], surface.cell[1] + 1, surface.cell[2]]);
+      return ground.kind === "known" && ground.solid && air.kind === "known" && !air.solid;
+    });
+    nextRecords.push(...terrainCoverRecords(supportedCover, { level, projection, appearance,
+      verticalMetres: snapshot.baseline.verticalMetres, variantSeed: snapshot.baseline.variantSeed })
+      .flatMap(record => projectSupportedSurfaceArt(record, projection)));
+    terrainContext = nextTerrainContext;
     publishRecords(nextRecords, waterRecords);
   }
 
@@ -204,7 +230,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         throw new Error("invalid terrain view projection");
       projection = nextProjection; viewTurn = turn;
       appearance = terrainArt ? createTerrainFaceAppearance({ pack: terrainArt, turn }) : undefined;
-      coverageIdentity = undefined; faceChunks.clear(); waterRecordEntries.clear();
+      coverageIdentity = undefined; terrainContext = undefined; faceChunks.clear(); waterRecordEntries.clear();
       publishRecords([], []);
       batches.update([]);
     },

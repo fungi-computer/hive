@@ -92,14 +92,17 @@ test("ray ordering ignores terrain role/storey precedence and shares logical fac
   assert.deepEqual(order([tall,ground]).map(stableKey),first);
 });
 
-test("separate rail curtains order a body between them; conflicting planes fail explicitly",()=>{
+test("separate rail curtains order a body between them; intersecting planes stay deterministic",()=>{
   const order=records=>compileSpatialDrawOrder(records,{projection}).records;
   const curtain=(id,start,end)=>({id,orderGeometry:{kind:"face",points:[
     {x:start[0],y:0,z:start[1]},{x:end[0],y:0,z:end[1]},
     {x:end[0],y:2,z:end[1]},{x:start[0],y:2,z:start[1]}]}});
   const back=curtain("back",[-2,-1],[2,-1]), front=curtain("front",[-2,1],[2,1]);
   assert.deepEqual(order([front,actor("body",0,0,0),back]).map(record=>record.id),["back","body","front"]);
-  assert.throws(()=>order([curtain("cross-a",[-2,-1],[2,1]),curtain("cross-b",[-2,1],[2,-1])]), /interleave/);
+  const crossing=[curtain("cross-a",[-2,-1],[2,1]),curtain("cross-b",[-2,1],[2,-1])];
+  const result=compileSpatialDrawOrder(crossing,{projection});
+  assert.equal(result.metrics.approximateOverlaps,1);
+  assert.deepEqual(order([...crossing].reverse()),result.records);
 });
 
 test("consecutive batches preserve IDs across actors, rails, state/texture changes and 16-bit splits",()=>{

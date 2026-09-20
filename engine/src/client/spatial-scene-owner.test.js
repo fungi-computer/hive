@@ -184,7 +184,10 @@ test("reuse preserves strict composite token identity rather than serialized sim
   const b={id:"b",compositePartition:token,orderGeometry:{kind:"volume",min:{x:1,y:.2,z:-1},max:{x:1.5,y:2,z:2}}};
   const update={revision:1,staticRecords:()=>[],dynamicRecords:[a,b]};
   owner.update(update);
-  assert.throws(()=>owner.update({...update,dynamicRecords:[a,{...b,compositePartition:{}}]}),/interleave/);
+  const changed = owner.update({...update,dynamicRecords:[a,{...b,compositePartition:{}}]});
+  assert.equal(changed.metrics.approximateOverlaps,1);
+  assert.equal(changed.metrics.topologyReuses,0);
+  owner.update(update);
   assert.equal(owner.update(update).metrics.topologyReuses,1);
 });
 

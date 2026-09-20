@@ -33,13 +33,14 @@ test("the real goblin binding produces one ordinary actor record", () => {
 test("the real bed binding aligns and retains its whole authored footprint", () => {
   const source = building("bed", "finished", 1);
   try {
-    const subject = { id: "bed-1", x: 4, y: 0.81, z: 3, screen: project(4, 0.81, 3),
+    const subject = { id: "bed-1", facing: 1, x: 4, y: 0.81, z: 3, screen: project(4, 0.81, 3),
       placement: { kind: "footprint", footprint: [[0, 0], [0, 1]], orientation: "east" } };
     const binding = DEFAULT_VISUAL_BINDINGS["colony.bed.finished"];
     const geometry = subjectDrawGeometry({ subject, binding, texture: texture(32, 40), anchor: { x: 0.5, y: 1 },
       artPlacement: source.userData.staticPlacement, verticalMetres: 0.54, project });
     const record = ordinarySubjectDrawRecord({ subject, binding, geometry, display, sprite });
-    assert.deepEqual(record.footprint, [{ x: 4, y: 0.81, z: 3 }, { x: 3, y: 0.81, z: 3 }]);
+    assert.deepEqual([...record.footprint].sort((a,b)=>a.x-b.x), [{ x: 3, y: 0.81, z: 3 }, { x: 4, y: 0.81, z: 3 }]);
+    assert.deepEqual(geometry.offset, [-1,0]);
     assert.equal(record.orderingKind, "line");
     assert.equal(record.role, "structure");
     assert.equal(record.moving, false);

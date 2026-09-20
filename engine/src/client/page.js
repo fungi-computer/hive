@@ -36,7 +36,7 @@ const configs = {
     placementVisuals: colonyPlacement,
     placementCandidates: colonyPlacementCandidates,
     selectionShortcuts: [{ label: "Select Rowan" }, { label: "Select Sedge" }],
-    controlHelp: "Dig area, then drag across the ground · Select a worker and right-click to take control · Resume work returns them to automatic orders · Escape cancels a drag",
+    controlHelp: "Dig area, then drag across the ground · Select a worker, choose Draft, then right-click to move · Resume work returns them to automatic orders · Escape cancels a drag",
     source: "./source/colony.ts",
   },
   survival: {
@@ -73,7 +73,7 @@ function mount(mode, config) {
     });
     const client = createHiveClient({ root, mode, runtime: connection.runtime, persistence: connection.persistence, ...config });
     if (new URLSearchParams(location.search).get("diagnostics") === "draw")
-      window.__HIVE_DRAW_DIAGNOSTICS = () => client.diagnostics();
+      window.__HIVE_DRAW_DIAGNOSTICS = query => client.diagnostics(query);
   } catch (error) {
     root.innerHTML = `<div class="hive-hub"><div class="hive-kicker">HIVE / CONNECTION</div><h1>World unavailable</h1><p>${error.message}</p><p>Use <code>?runtime=local</code> for a browser-local demo.</p></div>`;
   }

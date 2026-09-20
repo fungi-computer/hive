@@ -1,9 +1,7 @@
-import { createCutTerrainLayer } from "./cut-terrain-layer.js";
+import { createWorldSceneOwner } from "./world-scene-owner.js";
 import { createDirectControl } from "./direct-control.js";
 import { createCameraGeometryOwner } from "./camera-geometry-owner.js";
-import { surfaceSubjectFromOrdered } from "./isometric-sorter.js";
-import { voxelDrawRecordKey } from "./voxel-draw-stream.js";
-import { createVoxelDrawStreamOwner } from "./voxel-draw-stream-owner.js";
+import { surfaceSubjectFromOrdered } from "./draw-record-facts.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
 import { createMotionCueOwner } from "./motion.js";
@@ -38,16 +36,12 @@ import {
   formatCommandBindings,
 } from "@opentui/keymap/extras";
 import { DEFAULT_VISUAL_BINDINGS } from "./visual-bindings.js";
-import { resolveStaticVisual } from "./visual-resolver.js";
-import { createActorPresentationOwner } from "./actor-presentation-owner.js";
 import { terrainCameraFocus } from "./camera-focus.js";
 import { designationEndpoints, visibleTerrainDesignationPreview } from "./terrain-area-selection.js";
 import { submitCommand } from "./command-submission.js";
 import { projectContextualPresentation } from "./contextual-presentation.js";
 import { buildControls, placementHint, placementMode, nextOrientation, selectedBuildControl, structureSurfaceFromOrderedSprites } from "./build-placement.js";
 import { createPlacementAdvisory, placementCells, placementFootprintCells, placementVisualSpec } from "./placement-preview.js";
-import { createPlacementGuideOwner } from "./placement-guide-owner.js";
-import { createPlacementGhostOwner } from "./placement-ghost-owner.js";
 import { createLocalGameWhistle, localBindings } from "./whistle-runtime.js";
 import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaCommand } from "./whistle-command.js";
 import { selectedBrewStation } from "./colony-presentation.js";
@@ -272,12 +266,7 @@ export function createHiveClient({
   const cameraGeometry = createCameraGeometryOwner();
   const { project, groundPoint, surfacePoint, terrainPlaneCell } = cameraGeometry;
   let orderingProjection = cameraGeometry.projection;
-  const terrainLayer = createCutTerrainLayer({ runtime, projection: orderingProjection, onCoverage: () => draw() });
-  const placementGuides = createPlacementGuideOwner({ parent: terrainLayer.container, project });
-  const placementGhosts = createPlacementGhostOwner({ parent: terrainLayer.container, project, bindings, resolve: resolveStaticVisual });
   let orderedSprites = [];
-  let drawStreamOwner;
-  let drawStreamScale;
   let terrainFrame;
   let markSurfaceSource;
   let markSurfaces;
@@ -293,7 +282,7 @@ export function createHiveClient({
   let latestFacts = [];
   let pendingCues = [];
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
-  const actorPresentation = createActorPresentationOwner({ parent: terrainLayer.container, project, bindings, root, effectClock });
+  const worldScene = createWorldSceneOwner({ runtime, projection: orderingProjection, project, bindings, root, effectClock, onCoverage: () => draw() });
   function displayedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
   function displayedTerrainHit(x, y, displayed) { return terrainPicker.hit(x, y, displayed, frameEpoch); }
   function displayedTerrainPoint(x, y, displayed) { return terrainPicker.point(x, y, displayed, frameEpoch); }
@@ -330,7 +319,7 @@ export function createHiveClient({
   }
   function closeActionBar() { actionBarState.set(null); }
   function updateTerrainDisplay() {
-    terrainLayer.update(displayedTerrainFrame(), frameEpoch, state.view.cutaway ? `cut:${state.view.level}` : "full");
+    worldScene.updateTerrain(displayedTerrainFrame(), frameEpoch);
   }
 
   function prepareNewWorld(remote) {
@@ -352,10 +341,7 @@ export function createHiveClient({
     terrainFrame = undefined;
     terrainProjection.update(undefined, state.view, undefined);
     terrainPicker.reset();
-    terrainLayer.update(undefined, undefined);
-    placementGuides.clear();
-    placementGhosts.clear();
-    drawStreamOwner?.reset();
+    worldScene.clear();
     state.view = createWorldView(worldView);
     state.dragging = null;
     intendedDestinations.clear();
@@ -373,7 +359,6 @@ export function createHiveClient({
     pendingCues = [];
     interpolation.reset();
     motionCues.reset();
-    actorPresentation.clear();
     draw();
   }
 
@@ -825,10 +810,7 @@ export function createHiveClient({
     gesture.send({ type: "CANCEL" });
     clearPlacement();
     orderingProjection = cameraGeometry.rotate(delta);
-    terrainLayer.setProjection(orderingProjection, cameraGeometry.turn);
-    placementGuides.clear();
-    placementGhosts.clear();
-    drawStreamOwner?.reset(); drawStreamOwner = undefined; drawStreamScale = undefined;
+    worldScene.setProjection(orderingProjection, cameraGeometry.turn);
     const projected = project(focus.x, focus.y, focus.z);
     camera.x = center.x - projected.x * camera.zoom;
     camera.y = center.y - projected.y * camera.zoom;
@@ -888,7 +870,7 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, terrainLayer.container, terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer);
+      overlay.addChild(groundSprite, worldScene.container, terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
@@ -898,7 +880,7 @@ export function createHiveClient({
     );
     groundSprite.scale.set(camera.zoom);
     groundSprite.visible = !terrainFrame;
-    terrainLayer.position(camera, state.view, app.screen);
+    worldScene.position(camera, state.view, app.screen);
     terrainMarksGraphic.clear();
     const displayedTerrain = displayedTerrainFrame();
     // Emission facts remain native state and are shown in the station's
@@ -921,17 +903,14 @@ export function createHiveClient({
         terrainMarksGraphic.poly(corners).stroke({ color, width: 2, alpha: 0.85 });
       }
     }
-    const sortableSprites = [...actorPresentation.update({ subjects: state.subjects, selectedIds: state.selectedIds,
-      art, terrainFrame, paused: state.paused, frameSequence, cameraTurn: cameraGeometry.turn })];
     const targetSnapshot = terrainTarget.getSnapshot();
     const buildControl = targetSnapshot.context.control?.command === "build" ? targetSnapshot.context.control : null;
-    const guideRecords = targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayedTerrain &&
+    const guide = targetSnapshot.value === "armed" && targetSnapshot.context.control?.target === "world-surface" && displayedTerrain &&
       Number.isSafeInteger(targetSnapshot.context.planeY) && targetSnapshot.context.hover
-      ? placementGuides.update({ hoveredCell: targetSnapshot.context.hover, planeY: targetSnapshot.context.planeY,
+      ? { hoveredCell: targetSnapshot.context.hover, planeY: targetSnapshot.context.planeY,
         footprintCells: placementFootprintCells(buildControl, targetSnapshot.context.hover),
-        verticalMetres: displayedTerrain.verticalMetres, status: state.placementDecision?.status })
-      : placementGuides.update();
-    sortableSprites.push(...guideRecords);
+        verticalMetres: displayedTerrain.verticalMetres, status: state.placementDecision?.status }
+      : undefined;
     const edge = edgeGesture.getSnapshot();
     const area = terrainArea.getSnapshot();
     const displayed = displayedTerrainFrame();
@@ -956,38 +935,8 @@ export function createHiveClient({
         : terrainCellCommand(buildControl, state.selectedIds, { cell: cells[0], source: "placement" }).input;
       requestPlacementDecision(buildControl, previewInput);
     }
-    if (ghostSpec && displayed) sortableSprites.push(...placementGhosts.update(ghostSpec, {
-      art, verticalMetres: displayed.verticalMetres, status: state.placementDecision?.status, cameraTurn: cameraGeometry.turn,
-    }));
-    else placementGhosts.clear();
-    const retainedTerrain = terrainLayer.retainedRecords;
-    const staticSprites = sortableSprites.filter(record => record.moving !== true);
-    const dynamicSprites = sortableSprites.filter(record => record.moving === true);
-    if (retainedTerrain.records.length || sortableSprites.length) {
-      const verticalMetres = displayedTerrain?.verticalMetres;
-      if (!Number.isFinite(verticalMetres) || verticalMetres <= 0)
-        throw new Error("voxel draw requires displayed terrain scale");
-      if (!drawStreamOwner || drawStreamScale !== verticalMetres) {
-        drawStreamScale = verticalMetres;
-        drawStreamOwner = createVoxelDrawStreamOwner({ direction: orderingProjection.direction, verticalMetres });
-      }
-      const structureRevision = staticSprites.map(record =>
-        `${voxelDrawRecordKey(record)}:${record.renderPass}:${JSON.stringify(record.attachment)}`).join("|");
-      const stream = drawStreamOwner.update({
-        revision: `${retainedTerrain.revision}:${structureRevision}`,
-        staticRecords: () => [...retainedTerrain.records, ...staticSprites],
-        currentStaticRecords: staticSprites,
-        dynamicRecords: dynamicSprites,
-      });
-      orderedSprites = stream.records;
-      if (stream.applyOrderRequired)
-        drawStreamOwner.measureApplyOrder(() => terrainLayer.applyOrder(orderedSprites));
-    } else {
-      orderedSprites = [];
-      drawStreamOwner?.reset();
-      terrainLayer.applyOrder(orderedSprites);
-    }
-    actorPresentation.syncOverlays();
+    orderedSprites = worldScene.render({ subjects: state.subjects, selectedIds: state.selectedIds,
+      art, paused: state.paused, frameSequence, guide, ghost: ghostSpec, placementStatus: state.placementDecision?.status });
     const drag = gesture.getSnapshot().context;
     if (
       gesture.getSnapshot().value === "dragging" &&
@@ -1120,7 +1069,10 @@ export function createHiveClient({
       fireAim(); return;
     }
     const displayed = displayedTerrainFrame();
-    const terrainHit = displayed && displayedTerrainHit((at.x - camera.x) / camera.zoom, (at.y - camera.y) / camera.zoom, displayed);
+    const local = { x: (at.x - camera.x) / camera.zoom, y: (at.y - camera.y) / camera.zoom };
+    const front = worldScene.pick(local).record;
+    const groundVisible = front?.role === "terrain" || front?.role === "terrain-cover";
+    const terrainHit = groundVisible && displayed && displayedTerrainHit(local.x, local.y, displayed);
     const mark = terrainHit?.surface && state.terrainMarks.find((item) => item.kind === "stockpile" && item.cell.join(",") === terrainHit.surface.cell.join(","));
     if (mark?.subjects?.length) {
       selectEntities(event.shiftKey ? [...new Set([...state.selectedIds, ...mark.subjects])] : [...mark.subjects]);
@@ -1241,7 +1193,7 @@ export function createHiveClient({
       box.top = box.bottom = end.y;
     }
     const localEnd = { x: (end.x - camera.x) / camera.zoom, y: (end.y - camera.y) / camera.zoom };
-    const picked = click ? drawStreamOwner?.pick(localEnd) : null;
+    const picked = click ? worldScene.pick(localEnd) : null;
     const directHit = picked?.target ? [picked.target] : [];
     let hit = click
       ? directHit.length
@@ -1359,7 +1311,7 @@ export function createHiveClient({
       : ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
     const reaction = bindings[subject?.visual]?.reactions?.[cue.kind];
     const authored = reaction?.path.reduce((value, key) => value?.[key], art)?.[(direction + cameraGeometry.turn) % 4];
-    if (subject && Array.isArray(authored)) actorPresentation.react(subject.id, authored, reaction.duration);
+    if (subject && Array.isArray(authored)) worldScene.react(subject.id, authored, reaction.duration);
     const bank = cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
     const texture = frames.length ? frames[0] : undefined;
@@ -1405,7 +1357,7 @@ export function createHiveClient({
       throw error;
     }
     art = pack.art;
-    terrainLayer.installArt(terrainPack);
+    worldScene.installTerrainArt(terrainPack);
     state.disposeArt = pack.dispose;
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
@@ -1565,7 +1517,7 @@ export function createHiveClient({
           exitAim();
           interpolation.reset(event.epoch);
           pendingCues = [];
-          actorPresentation.resetTimeline();
+          worldScene.resetTimeline();
           effectOwner?.clear();
           intendedDestinations.clear();
         }
@@ -1594,7 +1546,7 @@ export function createHiveClient({
             camera.focus(terrainCameraFocus(visibleFacts, displayedTerrainFrame()));
           }
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
-            actorPresentation.resetTimeline();
+            worldScene.resetTimeline();
             awaitingEpochTransition = false;
           }
           frameEpoch = event.epoch;
@@ -1719,11 +1671,8 @@ export function createHiveClient({
       app.canvas?.removeEventListener("pointerup", pointerUp);
       app.canvas?.removeEventListener("pointercancel", pointerCancel);
       app.canvas?.removeEventListener("contextmenu", contextMenu);
-      actorPresentation.dispose();
-      terrainLayer.dispose();
-      placementGuides.dispose();
+      worldScene.dispose();
       cameraGeometry.dispose();
-      placementGhosts.dispose();
       state.disposeArt?.();
       for (const child of overlay.removeChildren())
         child.destroy?.({
@@ -1738,9 +1687,16 @@ export function createHiveClient({
       });
     },
     send: emit,
-    diagnostics() {
-      return Object.freeze({ voxelDraw: drawStreamOwner?.metrics() ?? null,
-        visibleDrawRecords: orderedSprites.length });
+    diagnostics(query = {}) {
+      const picked = query.pick ? worldScene.pick(query.pick) : undefined;
+      return Object.freeze({ ...(picked ? { picked: { id: picked.record?.id, part: picked.record?.part, target: picked.target, occluded: picked.occluded } } : {}),
+        ...(query.project ? { projected: project(query.project.x, query.project.y, query.project.z) } : {}),
+        ...(query.terrainAt ? { terrainAt: displayedTerrainPoint(query.terrainAt.x, query.terrainAt.y, displayedTerrainFrame()) } : {}),
+        spatialDraw: worldScene.metrics(), visibleDrawRecords: orderedSprites.length,
+        frameSequence, frameEpoch, paused: state.paused, camera: { x: camera.x, y: camera.y, zoom: camera.zoom, turn: cameraGeometry.turn },
+        view: { level: state.view.level, cutaway: state.view.cutaway }, selectedIds: [...state.selectedIds],
+        subjects: state.subjects.map(({id,x,y,z,support,visual,placement,pickable}) => ({id,x,y,z,support,visual,placement,pickable,screen:project(x,y,z)})),
+        ...(query.scene ? { records: worldScene.snapshot(), surfaces: displayedTerrainFrame()?.surfaces } : {}) });
     },
   };
 }

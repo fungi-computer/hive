@@ -84,6 +84,10 @@ export function createMultipartVisualOwner({ parent, createSprite, emptyTexture 
         pickable,
         hitArea: hitAreaFor(part.texture, anchor),
         visible: sprite.visible,
+        orderGeometry: part.orderGeometry,
+        supportY: part.supportY,
+        compositePartition: part.compositePartition,
+        ...(part.contactSurface ? { contactSurface: part.contactSurface } : {}),
       });
     }
     return Object.freeze(records);

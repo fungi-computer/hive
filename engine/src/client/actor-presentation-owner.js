@@ -3,6 +3,7 @@ import { createAnimationClock, figureFrame } from "./animation.js";
 import { createMultipartVisualOwner, multipartOverlayZIndex } from "./multipart-visual-owner.js";
 import { resolveStaticVisualParts } from "./visual-resolver.js";
 import { visibleHitAreaFor } from "../../../src/visual-hit-geometry.js";
+import { worldVisualVolume } from "./asset-draw-geometry.js";
 import { multipartSubjectDrawRecords, multipartSubjectPartInputs, multipartSubjectSync,
   ordinarySubjectDrawRecord, subjectDrawGeometry } from "./subject-draw-records.js";
 
@@ -16,7 +17,7 @@ export function createActorPresentationOwner({ parent, project, bindings, root, 
   const animationClock = createAnimationClock();
   let disposed = false;
 
-  function update({ subjects, selectedIds, art, terrainFrame, paused, frameSequence, cameraTurn }) {
+  function update({ subjects, selectedIds, art, terrainFrame, paused, frameSequence, cameraTurn, projection }) {
     if (disposed) throw new Error("actor presentation owner is disposed");
     if (!Array.isArray(subjects) || !Array.isArray(selectedIds) || !Number.isSafeInteger(cameraTurn))
       throw new Error("invalid actor presentation frame");
@@ -39,6 +40,7 @@ export function createActorPresentationOwner({ parent, project, bindings, root, 
         textureSource: false,
       });
       actorCache.delete(id);
+      subjectReactions.delete(id);
     }
     const records = [];
     const orderedSubjects = [...subjects].sort((a, b) => a.id.localeCompare(b.id));
@@ -111,6 +113,9 @@ export function createActorPresentationOwner({ parent, project, bindings, root, 
         verticalMetres: terrainFrame?.verticalMetres,
         project,
         hitArea: subject.hitArea,
+        orderingMetadata: art.orderingByTexture?.get(texture),
+        projection,
+        cameraTurn,
       }) : undefined;
       // Every static visual uses the same owner lifecycle; a one-part visual
       // simply produces one sibling record.
@@ -121,15 +126,24 @@ export function createActorPresentationOwner({ parent, project, bindings, root, 
       entry.sprite.visible = canSort && !multipart;
       if (multipart && canSort) {
         entry.multipart ??= createMultipartVisualOwner({ parent: parent, createSprite: () => new Sprite(), emptyTexture: Texture.EMPTY });
-        const partRecords = entry.multipart.sync({
-          ...multipartSubjectSync({
+        const sync = multipartSubjectSync({
             subject,
             geometry,
             facing: physicalFacing,
             pickable: subject.pickable,
             hitAreaFor: partTexture => visibleHitAreaFor(partTexture, anchor),
-          }),
-          parts: multipartSubjectPartInputs({ parts: multipart, geometry }),
+          });
+        const origin = { x: subject.x + geometry.offset[0], y: subject.y, z: subject.z + geometry.offset[1] };
+        const parts = multipartSubjectPartInputs({ parts: multipart, geometry }).map(part => ({
+          ...part,
+          orderGeometry: worldVisualVolume(art.orderingByTexture?.get(part.texture), origin, cameraTurn),
+          supportY: subject.y,
+          compositePartition: subject.id,
+          ...(part.role === "supporting-surface" ? { contactSurface: part.geometry.footprint.map(([x,y,z]) => sync.transform({x,y,z})) } : {}),
+        }));
+        const partRecords = entry.multipart.sync({
+          ...sync,
+          parts,
         });
         entry.multipartRecords = partRecords;
         records.push(...multipartSubjectDrawRecords(partRecords));

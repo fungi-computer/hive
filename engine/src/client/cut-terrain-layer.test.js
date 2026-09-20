@@ -97,6 +97,35 @@ test("cut terrain services all camera batches without synchronous coverage reent
   layer.dispose();
 });
 
+test("a cut change drops old caps and cover while replacement coverage loads", async () => {
+  const pending = [];
+  const runtime = { terrainChunks: request => new Promise(resolve => pending.push({ request, resolve })) };
+  const layer = createCutTerrainLayer({ runtime, projection: createOrderingProjection() });
+  layer.installArt({ body: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }),
+    cover: () => ({ texture: Texture.WHITE, uvs: [0,0,0,1,1,1,1,0] }), dispose() {} });
+  layer.update({ revision: 1, placementRevision: 1, verticalMetres: 0.54,
+    baseline: { protocolVersion: 2, bounds: { minX: 0, maxX: 8, minY: 0, maxY: 24, minZ: 0, maxZ: 8 },
+      verticalMetres: 0.54, materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] },
+    surfaces: [{ cell: [4, 0, 4], material: 1, generatedTop: 0,
+      cover: { kind: "grass", condition: "green", height: "full" } }],
+    structureSurfaces: [], water: [] }, 1);
+  const camera = { x: 320, y: 180, zoom: 1 }, screen = { width: 640, height: 400 };
+  const view = level => ({ cutaway: true, level, range: { min: 0, max: 23 } });
+  layer.position(camera, view(0), screen);
+  const first = pending.shift();
+  first.resolve({ kind: "ready", requestId: first.request.requestId, epoch: first.request.epoch,
+    terrainRevision: first.request.terrainRevision, chunks: first.request.chunks.map(chunk) });
+  await Promise.resolve(); await Promise.resolve();
+  layer.position(camera, view(0), screen);
+  assert(layer.retainedRecords.records.some(record => record.role === "terrain-cover"));
+  layer.applyOrder(layer.sortableItems);
+  layer.position(camera, view(16), screen);
+  assert.equal(layer.coverage.demandComplete, false);
+  assert.equal(layer.retainedRecords.records.some(record => record.role === "terrain-cover"), false);
+  assert.equal(layer.retainedRecords.records.some(record => record.id.startsWith("terrain:")), false);
+  layer.dispose();
+});
+
 test("water draw records preserve the physical surface independently of Pixi sprites", () => {
   const record = waterDrawRecord({ at: [4, -2, 7], level: 5, liquidVolumeM3: 1 }, {
     verticalMetres: 0.56,
@@ -113,4 +142,90 @@ test("water draw records preserve the physical surface independently of Pixi spr
   assert.equal(record.footprint[0].z, 7);
   assert(Math.abs(record.footprint[0].y - (-2.5 * 0.56 + (5 / 7) * 0.56)) < 1e-12);
   assert.equal("display" in record, false);
+});
+
+function testTerrain(bounds, surfaces = []) {
+  return { revision: 1, placementRevision: 1, verticalMetres: 0.54,
+    baseline: { protocolVersion: 2, bounds, verticalMetres: 0.54,
+      materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] },
+    surfaces, structureSurfaces: [], water: [] };
+}
+
+async function readyLayer(layer, camera, view, screen) {
+  for (let attempt = 0; attempt < 128; attempt++) {
+    layer.position(camera, view, screen);
+    if (layer.coverage.demandComplete) return;
+    await Promise.resolve(); await Promise.resolve();
+  }
+  assert.fail("fixture terrain demand did not complete");
+}
+
+function testLayer(onCoverage) {
+  let reads = 0;
+  const runtime = { terrainChunks: async request => {
+    reads++;
+    return { kind: "ready", requestId: request.requestId, epoch: request.epoch,
+      terrainRevision: request.terrainRevision, chunks: request.chunks.map(chunk) };
+  } };
+  const layer = createCutTerrainLayer({ runtime, projection: createOrderingProjection(), onCoverage });
+  const style = texture => ({ texture, uvs: [0,0,0,1,1,1,1,0] });
+  layer.installArt({ body: () => style(Texture.WHITE),
+    cover: ({ height }) => style(height === "short" ? Texture.EMPTY : Texture.WHITE), dispose() {} });
+  return { layer, reads: () => reads };
+}
+
+test("returning from an over-budget viewport restores the exact previous terrain demand", async () => {
+  const notifications = [];
+  const { layer, reads } = testLayer(event => notifications.push(event.kind));
+  try {
+    layer.update(testTerrain({ minX: -256, maxX: 256, minY: 0, maxY: 8, minZ: -256, maxZ: 256 }), 1);
+    const camera = { x: 0, y: 0, zoom: 2 }, screen = { width: 640, height: 400 };
+    const view = { cutaway: true, level: 0, range: { min: 0, max: 7 } };
+    await readyLayer(layer, camera, view, screen);
+    const before = layer.retainedRecords, beforeReads = reads();
+    assert(before.records.length > 0, "precondition: resident terrain is presented");
+    layer.position(camera, view, { width: 40000, height: 40000 });
+    await Promise.resolve();
+    assert(notifications.includes("view-budget"), "precondition: actual viewport planner rejected demand");
+    assert.equal(layer.retainedRecords.records.length, 0, "over-budget scene drops stale terrain");
+    layer.position(camera, view, screen);
+    const restored = layer.retainedRecords;
+    assert(restored.revision > before.revision);
+    assert.equal(restored.records.length, before.records.length, "same demand must restore its record count");
+    assert.deepEqual(restored.records.map(record => `${record.id}/${record.part}`),
+      before.records.map(record => `${record.id}/${record.part}`), "same demand must republish its terrain");
+    assert(restored.records.every((record, index) => record === before.records[index]), "prepared faces remain reusable");
+    assert.equal(reads(), beforeReads, "restoring resident demand needs no additional terrain reads");
+  } finally { layer.dispose(); }
+});
+
+test("full to short cover changes at the same terrain revision replace grass but retain ground faces", async () => {
+  const { layer, reads } = testLayer();
+  try {
+    const surface = { cell: [4,0,4], material: 1, generatedTop: 0,
+      cover: { kind: "grass", condition: "green", height: "full" } };
+    const terrain = testTerrain({ minX: 0, maxX: 8, minY: 0, maxY: 8, minZ: 0, maxZ: 8 }, [surface]);
+    layer.update(terrain, 1);
+    const camera = { x: 0, y: 0, zoom: 1 }, screen = { width: 640, height: 400 };
+    const view = { cutaway: true, level: 0, range: { min: 0, max: 7 } };
+    await readyLayer(layer, camera, view, screen);
+    const before = layer.retainedRecords, beforeReads = reads();
+    const beforeGrass = before.records.filter(record => record.role === "terrain-cover");
+    const beforeGround = before.records.filter(record => record.role !== "terrain-cover");
+    assert(beforeGrass.length > 0 && beforeGround.length > 0);
+    assert(beforeGrass.every(record => record.terrainBatch.texture === Texture.WHITE));
+    layer.update({ ...terrain, surfaces: [{ ...surface, cover: { ...surface.cover, height: "short" } }] }, 1);
+    layer.position(camera, view, screen);
+    const after = layer.retainedRecords;
+    const afterGrass = after.records.filter(record => record.role === "terrain-cover");
+    const afterGround = after.records.filter(record => record.role !== "terrain-cover");
+    assert(after.revision > before.revision);
+    assert.equal(afterGrass.length, beforeGrass.length);
+    assert(afterGrass.every(record => record.terrainBatch.texture === Texture.EMPTY));
+    assert(afterGrass.every(record => !beforeGrass.includes(record)), "cover input change replaces projected art records");
+    assert.deepEqual(afterGrass.map(record => record.mask), beforeGrass.map(record => record.mask), "mowing preserves dual-grid connectivity");
+    assert(afterGround.every((record, index) => record === beforeGround[index]), "unchanged ground retains exact prepared faces");
+    assert.equal(reads(), beforeReads, "mowing presentation does not reread unchanged terrain");
+    assert.equal(surface.cover.height, "full", "presentation does not mutate the authoritative input");
+  } finally { layer.dispose(); }
 });

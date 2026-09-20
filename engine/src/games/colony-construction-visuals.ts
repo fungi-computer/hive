@@ -39,11 +39,8 @@ export function colonyConstructionVisuals(context: Pick<ReadContext, "query">) {
     const facing = colonyPlacement[site.catalog].facing[orientation];
     const geometry = visualGeometry(shape, cell.y);
     const visual = colonyPlacement[site.catalog].visual.replace(".finished", `.${stage}`);
-    const placement = shape.kind === "fixture"
-      ? { kind: "footprint" as const, footprint: shape.footprint, orientation }
-      : shape.kind === "stair"
-        ? { kind: "stair" as const, entrance: [0, 0, 0] as const, landing: [0, shape.rise * colonyEnvironment.world.verticalMetres, -shape.run] as const, orientation }
-        : undefined;
+    const datum = colonyPlacement[site.catalog].datum;
+    const placement = datum ? { ...datum, orientation } : undefined;
     return { id, cutawayTop: geometry.top, visual, label: `${site.catalog} · ${site.phase}`, pickable: true, ...(placement ? { placement } : {}),
       pose: { position: { x: cell.x, y: geometry.surface * colonyEnvironment.world.verticalMetres, z: cell.z }, facing } };
   });
