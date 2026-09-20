@@ -174,3 +174,24 @@ test("prepared viewport culls resident faces and grass, retains small pans, and 
     assert.deepEqual(layer.presentedTerrain.exposedFaces,after.records.filter(record=>record.role==="terrain"));
   } finally {layer.dispose();}
 });
+
+test("empty and offscreen patch progress preserves presentation identity while visible arrivals publish",()=>{
+  for(const offscreen of [false,true]) for(const emptyFirst of [true,false]) {
+    const camera={x:-220,y:-230,zoom:1},screen={width:20,height:20};
+    const {layer,requests,install}=setup({auto:false});install();layer.update(frame(),1);layer.position(camera,view,screen);
+    try {
+      const stream=requests[0], [visibleKey,emptyKey]=stream.request.regions;
+      const empty=()=>stream.send({kind:"patch",patch:{...patch(emptyKey,0),faces:offscreen?[{cell:[15,0,0],face:"top",material:1,cap:false}]:[],surfaces:[]}});
+      const visible=()=>stream.send({kind:"patch",patch:patch(visibleKey,0)});
+      if(!emptyFirst){visible();layer.position(camera,view,screen);}
+      const before=layer.retainedRecords,presented=layer.presentedTerrain,readyBefore=layer.coverage.cachedRegions;
+      empty();layer.position(camera,view,screen);
+      assert.equal(layer.coverage.cachedRegions,readyBefore+1,"cache progress is published independently");
+      assert.equal(layer.retainedRecords.revision,before.revision);
+      assert.strictEqual(layer.retainedRecords.records,before.records);
+      assert.strictEqual(layer.presentedTerrain,presented);
+      assert.strictEqual(layer.presentedTerrain.surfaces,presented.surfaces);
+      if(emptyFirst){visible();layer.position(camera,view,screen);assert.equal(layer.retainedRecords.revision,before.revision+1);assert(layer.retainedRecords.records.length>0);}
+    } finally {layer.dispose();}
+  }
+});

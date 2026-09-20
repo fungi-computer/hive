@@ -179,12 +179,19 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     regionEntries.clear();
     for (const [id,entry] of nextEntries) regionEntries.set(id,entry);
     const nextExposed = nextRecords.filter(record => record.role === "terrain");
-    if (nextExposed.length !== exposedFaces.length || nextExposed.some((record,index)=>record!==exposedFaces[index])) exposedFaces = nextExposed;
-    presentedSurfaces = exposedFaces.filter(record=>record.face==="top").map(record=>({cell:record.cell,material:record.material,
+    const exposedChanged = nextExposed.length !== exposedFaces.length || nextExposed.some((record,index)=>record!==exposedFaces[index]);
+    if (exposedChanged) exposedFaces = nextExposed;
+    const nextSurfaces = exposedFaces.filter(record=>record.face==="top").map(record=>({cell:record.cell,material:record.material,
       generatedTop:generatedTops.get(`${record.cell[0]},${record.cell[2]}`)}));
-    presentedFrame = undefined;
+    const surfacesChanged = nextSurfaces.length !== presentedSurfaces.length || nextSurfaces.some((surface,index) => {
+      const previous = presentedSurfaces[index];
+      return surface.cell !== previous.cell || surface.material !== previous.material || surface.generatedTop !== previous.generatedTop;
+    });
+    if (surfacesChanged) presentedSurfaces = nextSurfaces;
+    if (exposedChanged || surfacesChanged) presentedFrame = undefined;
     coverageIdentity = { publication:snapshot.publication, surfaces:surfaceIdentity, plan:planned };
-    publishRecords(nextRecords, waterRecords);
+    if (nextRecords.length !== records.length || nextRecords.some((record,index)=>record!==records[index]))
+      publishRecords(nextRecords, waterRecords);
   }
 
   function refreshWaterRecords() {
