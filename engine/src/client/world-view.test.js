@@ -114,3 +114,24 @@ test("construction cutaway hides upper art without changing lower storeys", () =
   assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:21}},view).visible,false);
   assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:21}},toggleWorldCutaway(view,false)).visible,true);
 });
+
+
+test("cutaway refreshes mown cover and authored surfaces without a voxel revision", () => {
+  const cache = createTerrainProjectionCache();
+  const view = createWorldView({ range: { min: 0, max: 14 }, level: 13, cutaway: true });
+  const grass = { cell: [0, 13, 0], cover: { kind: "grass", height: "full" } };
+  const frame = { revision: 7, surfaces: [grass, { cell: [0, 14, 0] }],
+    structureSurfaces: [{ cell: [1, 13, 0] }], water: [] };
+  const first = cache.update(frame, view, 1);
+  const mown = { ...frame, surfaces: [{ ...grass, cover: { ...grass.cover, height: "short" } }, frame.surfaces[1]] };
+  const next = cache.update(mown, view, 1);
+  assert.equal(next.surfaces.length, 1, "updated cover still obeys the cut plane");
+  assert.equal(next.surfaces[0].cover.height, "short");
+  assert.strictEqual(next.structureSurfaces, first.structureSurfaces);
+  assert.equal(first.surfaces[0].cover.height, "full", "previous frames remain immutable");
+  const built = { ...mown, structureSurfaces: [...mown.structureSurfaces, { cell: [2, 13, 0] }, { cell: [2, 14, 0] }] };
+  const latest = cache.update(built, view, 1);
+  assert.strictEqual(latest.surfaces, next.surfaces);
+  assert.deepEqual(latest.structureSurfaces.map(({ cell }) => cell), [[1, 13, 0], [2, 13, 0]]);
+  assert.strictEqual(cache.update(built, view, 1), latest);
+});

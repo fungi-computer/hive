@@ -66,6 +66,12 @@ export function createTerrainProjectionCache() {
       const nextKey = `${epoch ?? "none"}:${frame.revision}:${view.cutaway ? view.level : "full"}:${view.cutaway ? 1 : 0}`;
       if (nextKey === key && result && frame === lastFrame) return result;
       if (nextKey === key && result && view.cutaway) {
+        // Terrain revision describes voxel geometry; cover and authored surfaces
+        // can change independently (for example, mowing grass).
+        if (frame.surfaces !== lastFrame.surfaces)
+          surfaces = frame.surfaces.filter(({ cell }) => cell[1] <= view.level);
+        if (frame.structureSurfaces !== lastFrame.structureSurfaces)
+          structureSurfaces = frame.structureSurfaces.filter(({ cell }) => cell[1] <= view.level);
         lastFrame = frame;
         result = { ...frame, surfaces, structureSurfaces, water: frame.water.filter(({ at }) => at[1] <= view.level) };
         return result;
