@@ -1,5 +1,5 @@
-export const STATIC_ART_SCHEMA = "goblin-static-art-v6";
-export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v6";
+export const STATIC_ART_SCHEMA = "goblin-static-art-v7";
+export const STATIC_ART_DIRECTORY = "generated-art/goblin-static-art-v7";
 export function staticArtBase(base = "/") {
   return `${base.endsWith("/") ? base : `${base}/`}${STATIC_ART_DIRECTORY}/`;
 }
@@ -324,6 +324,22 @@ function path(value, at) {
   return Object.freeze(result);
 }
 
+// Bounds are visual source world coordinates at bake time, including its
+// authored facing. They are not occupancy or canonical support geometry.
+function ordering(value, at) {
+  keys(value, ["kind", "min", "max"], at);
+  if (value.kind !== "volume") problem(`${at}.kind`, "unsupported");
+  const point = (value, label) => {
+    keys(value, ["x", "y", "z"], label);
+    return Object.freeze(Object.fromEntries(["x", "y", "z"].map(axis =>
+      [axis, finite(value[axis], `${label}.${axis}`, -64, 64)])));
+  };
+  const min = point(value.min, `${at}.min`), max = point(value.max, `${at}.max`);
+  for (const axis of ["x", "y", "z"])
+    if (max[axis] <= min[axis]) problem(at, "nonpositive-volume");
+  return Object.freeze({ kind: "volume", min, max });
+}
+
 function entry(value, index, pages) {
   const at = `entries[${index}]`;
   const rawPath = value?.path;
@@ -338,6 +354,7 @@ function entry(value, index, pages) {
       "width",
       "height",
       "silhouette",
+      "ordering",
       ...(value?.part ? ["part"] : []),
       ...(requiresPlacement ? ["placement"] : []),
     ],
@@ -365,6 +382,7 @@ function entry(value, index, pages) {
   const checkedPart = value.part ? part(value.part, `${at}.part`) : undefined;
   return Object.freeze({
     path: checkedPath,
+    ordering: ordering(value.ordering, `${at}.ordering`),
     page: pageId,
     x,
     y,

@@ -157,6 +157,7 @@ export async function loadStaticArtPack({
       vehicleAnchor: { ...manifest.anchors.vehicle },
     };
     const placementByTexture = new Map();
+    const orderingByTexture = new Map();
     const partByTexture = new Map();
     const partsByOwner = new Map();
     placementByTexture.set(ground, undefined);
@@ -174,6 +175,7 @@ export async function loadStaticArtPack({
         ...entry.silhouette,
       });
       placementByTexture.set(texture, entry.placement);
+      orderingByTexture.set(texture, entry.ordering);
       if (entry.part) {
         const descriptor = Object.freeze({
           id: entry.part.id,
@@ -196,6 +198,7 @@ export async function loadStaticArtPack({
     for (const [owner, parts] of partsByOwner)
       partsByOwner.set(owner, Object.freeze([...parts].sort((a, b) => a.id.localeCompare(b.id))));
     Object.defineProperties(art, {
+      orderingByTexture: { value: orderingByTexture, enumerable: false },
       partByTexture: { value: partByTexture, enumerable: false },
       partsByOwner: { value: partsByOwner, enumerable: false },
     });

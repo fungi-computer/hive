@@ -18,11 +18,11 @@ const HASH = "a".repeat(64);
 test("static art resolves from the host root on nested game routes", () => {
   assert.equal(
     new URL(STATIC_ART_BASE, "https://game.example/engine/colony").href,
-    "https://game.example/generated-art/goblin-static-art-v6/",
+    "https://game.example/generated-art/goblin-static-art-v7/",
   );
   assert.equal(
     staticArtBase("/engine/"),
-    "/engine/generated-art/goblin-static-art-v6/",
+    "/engine/generated-art/goblin-static-art-v7/",
   );
 });
 
@@ -58,7 +58,7 @@ function manifest() {
     entries: [
       {
         path: ["figures", "rowan"],
-        page: "atlas-0",
+        ordering: { kind: "volume", min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, page: "atlas-0",
         x: 1,
         y: 1,
         width: 2,
@@ -67,7 +67,7 @@ function manifest() {
       },
       {
         path: ["tree", "standing"],
-        page: "atlas-0",
+        ordering: { kind: "volume", min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, page: "atlas-0",
         x: 4,
         y: 1,
         width: 2,
@@ -122,7 +122,7 @@ test("opaque retained structure entries require checked datum metadata", () => {
 
 test("static art manifest rejects the superseded bank format", () => {
   const input = manifest();
-  input.schema = "goblin-static-art-v1";
+  input.schema = "goblin-static-art-v6";
   assert.throws(() => parseStaticArtManifest(input), /unsupported/);
 });
 
@@ -296,4 +296,20 @@ test("camelCase path admission retains inherited, reserved and size rejection", 
       /inherited-key|reserved-root|string-format/,
     );
   }
+});
+
+test("ordering metadata is mandatory, detached, finite and rejects inverted bounds", () => {
+  const input = manifest();
+  const parsed = parseStaticArtManifest(input);
+  input.entries[0].ordering.min.x = -5;
+  assert.equal(parsed.entries[0].ordering.min.x, 0);
+  assert(Object.isFrozen(parsed.entries[0].ordering.min));
+  const missing = manifest(); delete missing.entries[0].ordering;
+  assert.throws(() => parseStaticArtManifest(missing), /unexpected-fields/);
+  const inverted = manifest(); inverted.entries[0].ordering.max.x = -1;
+  assert.throws(() => parseStaticArtManifest(inverted), /nonpositive-volume/);
+  const flat = manifest(); flat.entries[0].ordering.max.z = 0;
+  assert.throws(() => parseStaticArtManifest(flat), /nonpositive-volume/);
+  const nonfinite = manifest(); nonfinite.entries[0].ordering.min.y = NaN;
+  assert.throws(() => parseStaticArtManifest(nonfinite), /number-range/);
 });

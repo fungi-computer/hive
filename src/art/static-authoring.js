@@ -147,6 +147,7 @@ export async function createStaticArtDraft(onProgress = () => {}) {
       owner.context.drawImage(canvas, at.x, at.y);
       entries.push({
         path: item.path,
+        ordering: art.orderingByTexture.get(item.texture),
         page: owner.id,
         x: at.x,
         y: at.y,

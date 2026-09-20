@@ -1,4 +1,5 @@
 import { bake } from "./art/bake.js";
+import { captureVisualVolume } from "./art/ordering-geometry.js";
 import { compositeWaterOccluders } from "./visual-order.js";
 import { sliceCamera } from "./art/slice-camera.js";
 import { terrainCell } from "./terrain.ts";
@@ -329,6 +330,7 @@ export async function bakeArt(
   let completedTextures = 0;
   const bakedTextures = new Set();
   const placementByTexture = new Map();
+  const orderingByTexture = new Map();
   const partByTexture = new Map();
   const allBakedTextures = new Set();
   let detail = "Preparing the drawing tools";
@@ -338,7 +340,9 @@ export async function bakeArt(
   function bakeStartup(...args) {
     try {
       const [renderer, source, camera, width, height, ink = true] = args;
+      const ordering = captureVisualVolume(source);
       const texture = bake(renderer, source, camera, width, height, ink);
+      orderingByTexture.set(texture, ordering);
       bakedTextures.add(texture);
       allBakedTextures.add(texture);
       placementByTexture.set(texture, source.userData?.staticPlacement);
@@ -356,7 +360,9 @@ export async function bakeArt(
     // Render all parts with the same scene, camera and datum.  Geometry stays
     // alive until every sibling has been captured, so shared lights/materials
     // and shadows retain the original composite appearance.
+    const ordering = captureVisualVolume(source);
     const composite = bake(renderer, source, cameraValue, width, height, true, false);
+    orderingByTexture.set(composite, ordering);
     bakedTextures.add(composite);
     allBakedTextures.add(composite);
     placementByTexture.set(composite, source.userData?.staticPlacement);
@@ -382,7 +388,9 @@ export async function bakeArt(
     try {
       for (const declaration of declarations) {
         for (const other of declarations) other.group.visible = other === declaration;
+        const ordering = captureVisualVolume(declaration.group);
         const texture = bake(renderer, source, cameraValue, width, height, false, false);
+        orderingByTexture.set(texture, ordering);
         bakedTextures.add(texture);
         allBakedTextures.add(texture);
         const descriptor = Object.freeze({
@@ -731,6 +739,7 @@ export async function bakeArt(
       enumerable: false,
     });
     Object.defineProperties(art, {
+      orderingByTexture: { value: orderingByTexture, enumerable: false },
       partByTexture: { value: partByTexture, enumerable: false },
       partsByOwner: { value: new Map(), enumerable: false },
     });
