@@ -3,7 +3,7 @@
 Status: locally rendered and browser proved in the isolated study. The frontend
 preview URL is supplied by the integration owner after source review and upload.
 
-Source SHA: `c2879318`
+Source SHA: `b07ca8fc`
 
 The study uses the existing original Three builders for living terrain, grass,
 tree, finished bed, finished stair, finished door and goblin walk poses. One
@@ -18,7 +18,9 @@ Proof artifacts:
 - `node --test src/studies/three-depth/*.test.js` through `run-proof.sh`: 4 passed.
 - `scripts/prove-three-depth-study.mjs` through `run-proof.sh`: no console/page errors,
   640×400 canvas, DPR 1, deterministic cold/warm canvas equality, controls,
-  water toggle, dense preset, eviction and rebuild exercised.
+  water toggle, dense preset, eviction and rebuild exercised; the 20-iteration
+  repeat loop returned to pixel equality, a rendered selection witness resolved,
+  and resource counts stayed stable across eviction/rebuild.
 
 The final browser run on this software Chromium measured a frame interval median
 of about 133 ms, p95 150 ms and maximum 300 ms while the authored 16×16 fixture
