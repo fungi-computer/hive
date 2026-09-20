@@ -47,3 +47,35 @@ After mode requires zero HTTP terrain requests, received WebSocket `terrain-regi
 A read-only 25 ms observer records the first independent `assetsReady && runtimeReady`, first nonempty visible demand completion, and first padded completion using the browser performance clock. This continues during awaited screenshots and avoids assigning screenshot delay to owner completion. Useful ground still requires actual sampled picks. The stationary case gates useful ground within 1,000 ms of readiness and exact visible completion within 3,000 ms; the pan case deliberately changes demand and records rather than gates those start-relative latencies. This instrumentation can perturb software rendering and is explicitly part of the measured workload.
 
 Incoming terrain event summaries include request ID, revision, level, region key, face/support counts and bytes; outgoing area requests are recorded too. Full incoming frame byte totals still include observations: filter by the `terrain` field for terrain stream totals. No hosted after run has been claimed by preparing the driver.
+
+## Integrated implementation, awaiting hosted acceptance
+
+The current protocol is terrain baseline version 4. The camera requests ordered
+8×8 horizontal regions and a cut level through its existing authenticated
+WebSocket. One shared stream owner yields between complete patches; Worker and
+DO hosts use the same request and reply meanings. The DO reads each patch from
+committed state through its existing serialized resident owner. Requests never
+advance simulation time. Cancellation, revision changes and reconnects do not
+install old terrain into a replacement view.
+
+`TerrainPresentationOwner` owns camera-independent exposure, including buried
+caves, cut caps and the one-column surface halo needed by dual-grid grass. Its
+disposable cache is limited to 128 patches / 4 MiB of serialized patch payload.
+Each patch is bounded by material sample, face and wire-byte budgets. The live
+browser no longer downloads raw vertical voxel chunks or extracts their faces.
+The old HTTP terrain routes and chunk wire contract have been removed.
+
+The client retains at most 256 patches / 32 MiB of serialized patch payload,
+requests visible regions before padding, and publishes arriving complete patches
+at animation-frame boundaries. Those byte bounds describe payload storage, not
+total JavaScript or GPU memory. Existing mesh/record diagnostics remain separate.
+Pixi, original baked appearance, camera transforms, ordering and picking remain
+their existing owners. `assetsReady` and `runtimeReady` are independent of whether
+any ground has been drawn.
+
+Source checks so far: 63 client laws, 17 migrated runtime/real-WASM Worker laws,
+36 transport/route laws, and 9 stream lifecycle laws (including the subsequently
+added pre-auth timeout and conflicting-replay checks). Frontend build and backend
+deployment dry-run pass. Full host TypeScript checking is blocked by the existing
+missing Node type definitions; no dependency installation was performed. These
+checks do not yet establish hosted cold-load latency or visual acceptance.
