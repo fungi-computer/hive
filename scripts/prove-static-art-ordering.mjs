@@ -16,7 +16,12 @@ for (const file of ['ground.png', ...current.pages.map(p=>p.file)]) {
   assert.deepEqual(newBytes, oldBytes);
   hashes[file] = createHash('sha256').update(newBytes).digest('hex');
 }
-assert.deepEqual(current.entries.map(({ordering,...entry})=>entry), prior.entries);
+// The prior stair datum falsely described -Z; actual original mesh/parts
+// land at +Z. This authored declaration correction changes no image bytes.
+const priorEntries = structuredClone(prior.entries);
+for (const entry of priorEntries)
+  if (entry.placement?.kind === 'stair') entry.placement.landing[2] = 2;
+assert.deepEqual(current.entries.map(({ordering,...entry})=>entry), priorEntries);
 const server = await createServer({root:process.cwd(),configFile:false,optimizeDeps:{noDiscovery:true,include:['pixi.js','three']},server:{host:'127.0.0.1',port:0}});
 await server.listen();
 const browser = await chromium.launch({executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox','--enable-unsafe-swiftshader']});
@@ -36,7 +41,7 @@ try {
     pack.dispose(); return result;
   });
   await mkdir('.botanical/ordering-pack',{recursive:true});
-  const result={priorRevision,allOriginalPngBytesIdentical:true,allOtherEntryDataIdentical:true,hashes,loaded};
+  const result={priorRevision,allOriginalPngBytesIdentical:true,entryDataChangesOnlyOrderingAndCorrectedStairDatum:true,hashes,loaded};
   await writeFile('.botanical/ordering-pack/result.json',JSON.stringify(result,null,2)+'\n');
   console.log(JSON.stringify(result));
 } finally {await browser.close();await server.close();}

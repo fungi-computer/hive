@@ -62,41 +62,6 @@ function samePointSet(left, right, epsilon) {
   return left.length === right.length && left.every(point => right.some(candidate => samePoint(point, candidate, epsilon)));
 }
 
-/**
- * Align one original baked facing to the native footprint. The returned
- * translation is in world x/z metres/cells and applies to the color quad.
- */
-export function resolvePlacementArtTransform({ physicalFootprint, bakedFootprint, orientation, rotationPivot = [0, 0], epsilon = 1e-9 }) {
-  const physical = cells(physicalFootprint, "physical footprint");
-  const baked = cells(bakedFootprint, "baked footprint").map(cell => rotatePlacementPoint(cell, orientation, rotationPivot));
-  if (!Number.isFinite(epsilon) || epsilon < 0) throw new Error("invalid art placement epsilon");
-  const physicalCenter = centroid(physical);
-  const bakedCenter = centroid(baked);
-  const offset = Object.freeze([physicalCenter[0] - bakedCenter[0], physicalCenter[1] - bakedCenter[1]]);
-  const aligned = translated(baked, offset);
-  if (!samePointSet(aligned, physical, epsilon))
-    throw new Error("original art footprint does not match physical footprint");
-  return Object.freeze({
-    orientation: cardinalQuarterTurns(orientation),
-    rotationPivot: Object.freeze([...point(rotationPivot, "pivot")]),
-    physicalFootprint: Object.freeze(physical),
-    bakedFootprint: Object.freeze(baked),
-    offset,
-    alignedFootprint: Object.freeze(aligned),
-    physicalCentroid: physicalCenter,
-    bakedCentroid: bakedCenter,
-  });
-}
-
-/** Validate the retained four-facing stair entrance and landing datum. */
-export function resolveStairArtEndpoints({ entrance, landing, physicalEntrance, physicalLanding, orientation, rotationPivot = [0, 0], epsilon = 1e-9 }) {
-  const actualEntrance = rotatePlacementPoint(entrance, orientation, rotationPivot);
-  const actualLanding = rotatePlacementPoint(landing, orientation, rotationPivot);
-  if (!samePoint(actualEntrance, physicalEntrance, epsilon) || !samePoint(actualLanding, physicalLanding, epsilon))
-    throw new Error("original stair endpoints do not match native geometry");
-  return Object.freeze({ entrance: actualEntrance, landing: actualLanding, orientation: cardinalQuarterTurns(orientation) });
-}
-
 function point3(value, at) {
   if (!Array.isArray(value) || value.length !== 3)
     throw new Error(`invalid art placement ${at}`);
@@ -114,61 +79,66 @@ function samePoint3(left, right, epsilon) {
   return left.every((value, index) => Math.abs(value - right[index]) <= epsilon);
 }
 
-export function resolveStairArtEndpoints3d({ entrance, landing, physicalEntrance, physicalLanding, orientation, rotationPivot = [0, 0, 0], epsilon = 1e-9 }) {
-  const actualEntrance = rotatePoint3(entrance, orientation, rotationPivot);
-  const actualLanding = rotatePoint3(landing, orientation, rotationPivot);
-  if (!samePoint3(actualEntrance, point3(physicalEntrance, "physical entrance"), epsilon) ||
-      !samePoint3(actualLanding, point3(physicalLanding, "physical landing"), epsilon))
-    throw new Error("original stair endpoints do not match native geometry");
-  return Object.freeze({ entrance: actualEntrance, landing: actualLanding, orientation: cardinalQuarterTurns(orientation) });
+/** Transform a canonical authored datum exactly as the selected bake does,
+ * then undo only its camera rotation. Three's positive-Y rotation has the
+ * opposite sign to the native cardinal placement transform above. */
+function bakedWorldPoint(value, physicalFacing, cameraTurn, pivot = [0, 0]) {
+  const facing = cardinalQuarterTurns(physicalFacing);
+  const turn = cardinalQuarterTurns(cameraTurn);
+  const baked = rotatePlacementPoint(value, (4 - (facing + turn) % 4) % 4, pivot);
+  return rotatePlacementPoint(baked, turn);
 }
 
-/** Resolve content supplied native datum against the original art frame. */
-export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orientation }) {
+/** Align actual selected art coordinates with authoritative physical cells.
+ * Callers supply physicalFacing and cameraTurn explicitly; neither is the
+ * native placement orientation. The returned offset moves both pixels and
+ * their ordering geometry, without changing occupancy or support. */
+export function resolveWorldArtPlacement({ subjectPlacement, artPlacement, orientation, physicalFacing, cameraTurn }) {
   if (!subjectPlacement)
     throw new Error("original art placement metadata is unavailable");
   if (subjectPlacement.kind === "edge") {
     const axis = subjectPlacement.edge?.axis;
     if (axis !== "x" && axis !== "z") throw new Error("invalid edge art placement axis");
     const endpoints = axis === "x" ? [[0, -0.5], [0, 0.5]] : [[-0.5, 0], [0.5, 0]];
-    return Object.freeze({
-      kind: "edge",
-      axis,
-      endpoints: Object.freeze(endpoints.map((endpoint) => Object.freeze(endpoint))),
+    return Object.freeze({ kind: "edge", axis,
+      endpoints: Object.freeze(endpoints.map(endpoint => Object.freeze(endpoint))),
       offset: Object.freeze([0, 0]),
     });
   }
   if (!artPlacement)
     throw new Error("original art placement metadata is unavailable");
   const turns = cardinalQuarterTurns(orientation);
+  cardinalQuarterTurns(physicalFacing);
+  cardinalQuarterTurns(cameraTurn);
   if (subjectPlacement.kind === "footprint" && artPlacement.kind === "footprint") {
-    const physical = subjectPlacement.footprint.map(cell => rotatePlacementPoint(cell, turns));
-    const transform = resolvePlacementArtTransform({
-      physicalFootprint: physical,
-      bakedFootprint: artPlacement.bakedFootprint,
-      orientation: turns,
-      rotationPivot: artPlacement.rotationPivot,
-    });
-    return Object.freeze({ kind: "footprint", ...transform });
+    const physical = cells(subjectPlacement.footprint, "physical footprint").map(cell => rotatePlacementPoint(cell, turns));
+    const pivot = point(artPlacement.rotationPivot, "rotation pivot");
+    const baked = cells(artPlacement.bakedFootprint, "baked footprint").map(cell => bakedWorldPoint(cell, physicalFacing, cameraTurn, pivot));
+    const physicalCenter = centroid(physical), bakedCenter = centroid(baked);
+    const offset = Object.freeze([physicalCenter[0] - bakedCenter[0], physicalCenter[1] - bakedCenter[1]]);
+    const aligned = translated(baked, offset);
+    if (!samePointSet(aligned, physical, 1e-9))
+      throw new Error("original art footprint does not match physical footprint");
+    return Object.freeze({ kind: "footprint", orientation: turns, rotationPivot: pivot,
+      physicalFootprint: Object.freeze(physical), bakedFootprint: Object.freeze(baked), offset,
+      alignedFootprint: Object.freeze(aligned), physicalCentroid: physicalCenter, bakedCentroid: bakedCenter });
   }
   if (subjectPlacement.kind === "stair" && artPlacement.kind === "stair") {
-    const endpoints = resolveStairArtEndpoints3d({
-      entrance: artPlacement.entrance,
-      landing: artPlacement.landing,
-      physicalEntrance: [
-        rotatePlacementPoint([subjectPlacement.entrance[0], subjectPlacement.entrance[2]], turns)[0],
-        subjectPlacement.entrance[1],
-        rotatePlacementPoint([subjectPlacement.entrance[0], subjectPlacement.entrance[2]], turns)[1],
-      ],
-      physicalLanding: [
-        rotatePlacementPoint([subjectPlacement.landing[0], subjectPlacement.landing[2]], turns)[0],
-        subjectPlacement.landing[1],
-        rotatePlacementPoint([subjectPlacement.landing[0], subjectPlacement.landing[2]], turns)[1],
-      ],
-      orientation: turns,
-      rotationPivot: artPlacement.rotationPivot,
-    });
-    return Object.freeze({ kind: "stair", ...endpoints, offset: Object.freeze([0, 0]) });
+    const pivot = point3(artPlacement.rotationPivot, "stair pivot");
+    const authored = value => {
+      const p = point3(value, "stair endpoint");
+      const xz = bakedWorldPoint([p[0], p[2]], physicalFacing, cameraTurn, [pivot[0], pivot[2]]);
+      return [xz[0], p[1], xz[1]];
+    };
+    const entrance = authored(artPlacement.entrance), landing = authored(artPlacement.landing);
+    const physicalEntrance = rotatePoint3(subjectPlacement.entrance, turns);
+    const physicalLanding = rotatePoint3(subjectPlacement.landing, turns);
+    const offset = Object.freeze([physicalEntrance[0] - entrance[0], physicalEntrance[2] - entrance[2]]);
+    const aligned = p => Object.freeze([p[0] + offset[0], p[1], p[2] + offset[1]]);
+    const alignedEntrance = aligned(entrance), alignedLanding = aligned(landing);
+    if (!samePoint3(alignedEntrance, physicalEntrance, 1e-9) || !samePoint3(alignedLanding, physicalLanding, 1e-9))
+      throw new Error("original stair endpoints do not match native geometry");
+    return Object.freeze({ kind: "stair", entrance: alignedEntrance, landing: alignedLanding, orientation: turns, offset });
   }
   throw new Error("original art placement metadata kinds differ");
 }
