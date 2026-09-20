@@ -89,26 +89,6 @@ test("surface sampling is cached and subterranean water remains available for co
   assert.equal(structureCalls, 3);
 });
 
-test("material chunks are bounded, complete, coalesced and revision guarded", () => {
-  let revision = 7; let calls = 0;
-  const owner = new TerrainPresentationOwner(fakePort(
-    () => ({ terrainRevision: revision, placementRevision: revision, cells: [] }),
-    columns => columns.map(([x, z]) => ({ cell: [x, 0, z], material: 1, generatedTop: 0 })), undefined,
-    () => ({ kind: "full-reset", revision, reason: "history" }),
-    cells => { calls++; return cells.map(([, y]) => y < 0 ? 2 : y === 0 ? 1 : 0); },
-  ), definition);
-  const request = { requestId: 3, epoch: 2, terrainRevision: 7, chunks: [[0, -1, 0]] as const };
-  const ready = owner.readChunks(request, 2);
-  assert.equal(ready.kind, "ready"); if (ready.kind !== "ready") return;
-  assert.equal(calls, 1); assert.deepEqual(ready.chunks[0].min, [0, -8, 0]); assert.deepEqual(ready.chunks[0].max, [2, 0, 1]);
-  assert.equal(ready.chunks[0].columns.length, 2);
-  assert.deepEqual(ready.chunks[0].columns[0], { x: 0, z: 0, runs: [{ minY: -8, maxY: 0, material: 2 }] });
-  revision = 8;
-  assert.deepEqual(owner.readChunks(request, 2), { kind: "stale", requestId: 3, epoch: 2, terrainRevision: 8 });
-  assert.throws(() => owner.readChunks({ ...request, terrainRevision: 8, chunks: [[1, 0, 0]] }, 2), /does not intersect/);
-  assert.throws(() => owner.readChunks({ ...request, terrainRevision: 8, chunks: [[0, 0, 0], [0, 0, 0]] }, 2), /duplicate terrain chunk key/);
-});
-
 test("game-authored generated cover is checked, deterministic and removed below its supporting surface", () => {
   let revision = 1;
   let surfaceY = 0;
@@ -266,6 +246,13 @@ function fakePort(
   materials: (cells: readonly [number, number, number][]) => readonly number[] = () => [],
 ): KernelPort {
   return {
+    partyJoinIdentity: () => { throw new Error("unexpected party query"); },
+    floorOperations: () => [],
+    transferContacts: () => { throw new Error("unexpected transfer query"); },
+    placementDecisions: () => { throw new Error("unexpected placement query"); },
+    waterContacts: () => [],
+    workAttempts: () => [],
+    workAttemptForWorker: () => null,
     routeCosts: () => {
       throw new Error("unexpected route query");
     },
@@ -309,50 +296,159 @@ function fakePort(
   };
 }
 
-test("camera chunks carry surface/cover metadata beyond the central observation window with bounded deduplicated queries", () => {
-  const wide = { ...definition, world:{...definition.world,bounds:{minX:-128,maxX:128,minY:-8,maxY:16,minZ:-128,maxZ:128}} };
-  const queries: (readonly [number,number][])[] = [];
-  let structureCalls=0;
-  const owner = new TerrainPresentationOwner(fakePort(
-    ()=>({terrainRevision:7,placementRevision:0,cells:[]}),
-    columns=>{queries.push(columns);return columns.map(([x,z])=>({cell:[x,9,z] as const,material:1,generatedTop:9}));},
-    columns=>{structureCalls++;return columns.map(()=>[]);},
-    ()=>({kind:"full-reset",revision:7,reason:"history"}),
-    cells=>cells.map(([,y])=>y<=9?1:0),
-  ),wide,{minX:-32,maxX:32,minZ:-32,maxZ:32},{materials:[{slot:1,art:"earth"}],
-    generatedCover:()=>({kind:"grass",condition:"green",height:"full"})});
-  const request={requestId:1,epoch:0,terrainRevision:7,chunks:[[8,0,0],[8,1,0],[9,0,0]] as [number, number, number][]};
-  const reply=owner.readChunks(request,0);
-  assert.equal(reply.kind,"ready");if(reply.kind!=="ready")return;
-  assert.equal(queries.length,2);
-  assert(queries.every(batch=>batch.length<=64));
-  assert.equal(new Set(queries.flat().map(column=>column.join(","))).size,128);
-  assert.equal(structureCalls,0,"camera ground queries do not expand structure observation");
-  assert.deepEqual(reply.chunks[0].surfaces,reply.chunks[1].surfaces);
-  assert(reply.chunks[0].surfaces.every(surface=>surface.cell[0]>=64 && surface.cell[1]===9 && surface.cover?.height==="full"));
-  assert.equal(reply.chunks[0].max[1],8,"column top metadata is retained below the top's chunk");
-  assert.equal(owner.baseline().protocolVersion,3);
+
+const regionRequest = (terrainRevision=1,level=7) => ({requestId:1,epoch:0,terrainRevision,level,regions:[[0,0]] as [number,number][]});
+
+test("region reads guard revisions before sampling, preserve caps and cache immutable complete patches",()=>{
+ let revision=1, calls=0, surfaceCalls=0;
+ const owner=new TerrainPresentationOwner(fakePort(
+  ()=>({terrainRevision:revision,placementRevision:0,cells:[]}),
+  columns=>{surfaceCalls++;return columns.map(([x,z])=>({cell:[x,3,z] as const,material:1,generatedTop:3}));},
+  undefined,undefined,cells=>{calls++;assert(cells.length<=256);return cells.map(([,y])=>y<=3?1:0);}
+ ),definition);
+ const request=regionRequest(1,1);
+ assert.equal(owner.readRegion({...request,epoch:9},[0,0],0).kind,'stale');
+ assert.equal(calls,0);assert.equal(surfaceCalls,0);
+ const first=owner.readRegion(request,[0,0],0);assert.equal(first.kind,'patch');if(first.kind!=='patch')return;
+ assert.deepEqual(first.patch.faces.map(face=>[face.cell,face.face,face.cap]),[[[0,1,0],'top',true],[[1,1,0],'top',true]]);
+ assert(first.patch.surfaces.every(s=>s.cell[1]===3&&s.generatedTop===3));
+ const count=calls,again=owner.readRegion({...request,requestId:2},[0,0],0);assert.equal(again.kind,'patch');if(again.kind!=='patch')return;
+ assert.strictEqual(first.patch,again.patch);assert.equal(calls,count);assert.equal(again.requestId,2);
+ assert.throws(()=>{first.patch.faces[0].cell[1]=99;},TypeError);
+ owner.reset();owner.readRegion(request,[0,0],0);assert(calls>count);
+ revision=2;const before=calls;
+ assert.equal(owner.readRegion(request,[0,0],0).kind,'stale');assert.equal(calls,before);
+ assert.equal(owner.readRegion({...request,terrainRevision:2},[0,0],0).kind,'patch');assert(calls>before);
+ assert.equal(owner.readRegion({...request,terrainRevision:2,regions:[[1,0]]},[1,0],0).kind,'unavailable');
+ assert.throws(()=>owner.readRegion({...request,terrainRevision:2},[1,0],0),/unrequested/);
 });
 
-test("chunk and observation projections share current cover overrides and revision invalidation",()=>{
-  let revision=1, height="full", surfaceY=0;
-  const owner=new TerrainPresentationOwner(fakePort(
-    ()=>({terrainRevision:revision,placementRevision:0,cells:[]}),
-    columns=>columns.map(([x,z])=>({cell:[x,surfaceY,z] as const,material:1,generatedTop:0,
-      ...(x===0?{cover:{kind:"grass",condition:"green",height}}:{})})),
-    undefined,()=>({kind:"changed-columns",revision,columns:[[0,0],[1,0]]}),
-    cells=>cells.map(([,y])=>y<=surfaceY?1:0),
-  ),definition,undefined,{materials:[{slot:1,art:"earth"}],generatedCover:()=>({kind:"grass",condition:"green",height:"full"})});
-  const request={requestId:1,epoch:0,terrainRevision:1,chunks:[[0,0,0]] as [number, number, number][]};
-  const first=owner.readChunks(request,0);assert.equal(first.kind,"ready");
-  if(first.kind!=="ready")return;
-  assert.deepEqual(first.chunks[0].surfaces,owner.read().surfaces);
-  revision=2;height="short";surfaceY=-1;
-  assert.equal(owner.readChunks(request,0).kind,"stale");
-  const changed=owner.readChunks({...request,terrainRevision:2},0);assert.equal(changed.kind,"ready");
-  if(changed.kind!=="ready")return;
-  assert.deepEqual(changed.chunks[0].surfaces,owner.read().surfaces);
-  assert.equal(changed.chunks[0].surfaces[0].cover?.height,"short","current authority-provided cover wins over generated decoration");
-  assert.equal(changed.chunks[0].surfaces[1].cover,undefined,"dug ground cannot regrow generated cover");
-  assert.equal(changed.chunks[0].surfaces[0].generatedTop,0);
+test("regions include the full exterior support halo beyond observation, with natural cover above a cut",()=>{
+ const wide={...definition,world:{...definition.world,bounds:{minX:-128,maxX:128,minY:-8,maxY:16,minZ:-128,maxZ:128}}};
+ const queries:(readonly [number,number][])[]=[];let materialSamples=0;
+ const owner=new TerrainPresentationOwner(fakePort(
+ ()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>{queries.push(columns);return columns.map(([x,z])=>({cell:[x,9,z] as const,material:1,generatedTop:9}));},
+ ()=>{throw new Error('region cannot expand structure observation');},undefined,
+ cells=>{assert(cells.length<=256);materialSamples+=cells.length;return cells.map(([,y])=>y<=9?1:0);}),
+ wide,{minX:-32,maxX:32,minZ:-32,maxZ:32},{materials:[{slot:1,art:'earth'}],generatedCover:()=>({kind:'grass',condition:'green',height:'full'})});
+ const result=owner.readRegion({...regionRequest(1,5),regions:[[8,0]]},[8,0],0);
+ assert.equal(result.kind,'patch');if(result.kind!=='patch')return;
+ assert.equal(result.patch.surfaces.length,100);assert.equal(queries.length,2);assert(queries.every(q=>q.length<=64));
+ assert.equal(result.patch.faces.length,64);assert(result.patch.faces.every(f=>f.face==='top'&&f.cap&&f.cell[1]===5));
+ assert(result.patch.surfaces.some(s=>s.cell[0]===63&&s.cell[2]===-1));
+ assert(result.patch.surfaces.some(s=>s.cell[0]===72&&s.cell[2]===8));
+ assert(result.patch.surfaces.every(s=>s.cell[1]===9&&s.cover?.height==='full'));
+ assert.equal(materialSamples,1500,'only minY through cut+1 is sampled for this buried cut');
+});
+
+test("region and observation cover share current overrides and removal after excavation",()=>{
+ let revision=1,surfaceY=0,height='full';
+ const owner=new TerrainPresentationOwner(fakePort(
+ ()=>({terrainRevision:revision,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>({cell:[x,surfaceY,z] as const,material:1,generatedTop:0,...(x===0?{cover:{kind:'grass',condition:'green',height}}:{})})),
+ undefined,()=>({kind:'changed-columns',revision,columns:[[0,0],[1,0]]}),cells=>cells.map(([,y])=>y<=surfaceY?1:0)),
+ definition,undefined,{materials:[{slot:1,art:'earth'}],generatedCover:()=>({kind:'grass',condition:'green',height:'full'})});
+ const first=owner.readRegion(regionRequest(),[0,0],0);assert.equal(first.kind,'patch');if(first.kind!=='patch')return;
+ assert.deepEqual(first.patch.surfaces,owner.read().surfaces);
+ revision=2;surfaceY=-1;height='short';
+ const second=owner.readRegion(regionRequest(2),[0,0],0);assert.equal(second.kind,'patch');if(second.kind!=='patch')return;
+ assert.deepEqual(second.patch.surfaces,owner.read().surfaces);
+ assert.equal(second.patch.surfaces[0].cover?.height,'short');assert.equal(second.patch.surfaces[1].cover,undefined);
+ assert(second.patch.faces.every(face=>!face.cap));
+});
+
+test("region cache evicts old horizontal patches and resets on epoch even at the same revision",()=>{
+ let calls=0;
+ const wide={...definition,world:{...definition.world,bounds:{minX:0,maxX:1040,minY:0,maxY:2,minZ:0,maxZ:1}}};
+ const owner=new TerrainPresentationOwner(fakePort(()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>({cell:[x,0,z] as const,material:1,generatedTop:0})),undefined,undefined,
+ cells=>{calls++;return cells.map(()=>1);}),wide,{minX:0,maxX:8,minZ:0,maxZ:1});
+ for(let x=0;x<129;x++) assert.equal(owner.readRegion({...regionRequest(),regions:[[x,0]]},[x,0],0).kind,'patch');
+ const before=calls;owner.readRegion(regionRequest(),[0,0],0);assert(calls>before,'oldest patch evicted at 128');
+ const next=calls;owner.readRegion({...regionRequest(),epoch:1},[0,0],1);assert(calls>next,'epoch invalidates all cached patches');
+});
+
+test("unsupported region work and encoded byte budgets fail explicitly without partial patches",()=>{
+ const make=(maxY:number,checker=false)=>{
+ const world={...definition,world:{...definition.world,bounds:{minX:0,maxX:8,minY:0,maxY,minZ:0,maxZ:8}}};
+ return new TerrainPresentationOwner(fakePort(()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>({cell:[x,checker?maxY-1-((x+z+maxY-1)%2):maxY-1,z] as const,material:1,generatedTop:maxY-1})),undefined,undefined,
+ cells=>cells.map(([x,y,z])=>checker?(x+y+z)%2===0?1:0:1)),world);};
+ const height=make(2048).readRegion(regionRequest(1,2047),[0,0],0);
+ assert.equal(height.kind,'unavailable');if(height.kind==='unavailable')assert.match(height.reason,/height budget/);
+ const bytes=make(64,true).readRegion(regionRequest(1,63),[0,0],0);
+ assert.equal(bytes.kind,'unavailable');if(bytes.kind==='unavailable')assert.match(bytes.reason,/byte budget/);
+});
+
+test("real WASM region faces match authoritative materials across natural surfaces and cuts",async()=>{
+ const {readFileSync}=await import('node:fs');
+ const {initSync,WasmKernel}=await import('../../generated/hive_kernel.js');
+ const {wasmKernelPort}=await import('./wasm-kernel');
+ const {encodeEnvironmentDefinition}=await import('../sdk/environment');
+ const {colonyEnvironment}=await import('../games/colony-environment');
+ const {colonyPack}=await import('../games/colony');
+ initSync({module:readFileSync('engine/generated/hive_kernel_bg.wasm')});
+ const port=wasmKernelPort(new WasmKernel());
+ try {
+  port.load(colonyPack.definition);
+  port.loadEnvironment(encodeEnvironmentDefinition(colonyEnvironment));
+  const owner=new TerrainPresentationOwner(port,colonyEnvironment);
+  const facts=port.environmentFacts() as {terrainRevision:number};
+  const directions={top:[0,1,0],bottom:[0,-1,0],east:[1,0,0],west:[-1,0,0],south:[0,0,1],north:[0,0,-1]};
+  const palette=new Map(colonyEnvironment.materials.map(m=>[m.slot,m.solid]));
+  for(const level of [39,5]) {
+   const result=owner.readRegion(regionRequest(facts.terrainRevision,level),[0,0],0);
+   assert.equal(result.kind,'patch');if(result.kind!=='patch')continue;
+   assert.equal(result.patch.surfaces.length,100);
+   assert(result.patch.faces.length>=64);
+   const cells:[number,number,number][]=result.patch.faces.flatMap(face=>{
+    const d=directions[face.face];return [[...face.cell] as [number,number,number],face.cell.map((v,i)=>v+d[i]) as [number,number,number]];
+   });
+   const sampled:number[]=[];
+   for(let i=0;i<cells.length;i+=256)sampled.push(...port.terrainMaterials(cells.slice(i,i+256)));
+   result.patch.faces.forEach((face,i)=>{
+    assert.equal(sampled[i*2],face.material);assert.equal(palette.get(face.material),true);
+    assert.equal(palette.get(sampled[i*2+1]),face.cap,'only artificial cut caps border solid neighbors');
+   });
+   if(level===5)assert(result.patch.faces.some(face=>face.cap));
+   else assert(result.patch.faces.every(face=>!face.cap));
+  }
+ } finally {port.dispose();}
+});
+
+test("region sampling retains caves below the exterior top and rejects excessive halo work",()=>{
+ const cave={...definition,world:{...definition.world,bounds:{minX:0,maxX:3,minY:0,maxY:8,minZ:0,maxZ:3}}};
+ const owner=new TerrainPresentationOwner(fakePort(()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>x===1&&z===1?{cell:[x,3,z] as const,material:1,generatedTop:3}:null),undefined,undefined,
+ cells=>cells.map(([x,y,z])=>x===1&&z===1&&(y===0||y===3)?1:0)),cave);
+ const result=owner.readRegion(regionRequest(),[0,0],0);assert.equal(result.kind,'patch');if(result.kind!=='patch')return;
+ assert.equal(result.patch.faces.length,11);
+ assert.deepEqual(result.patch.faces.filter(f=>f.face==='top').map(f=>f.cell[1]),[0,3]);
+ assert(result.patch.faces.some(f=>f.face==='bottom'&&f.cell[1]===3));
+ const tall={...definition,world:{...definition.world,bounds:{minX:-1,maxX:9,minY:0,maxY:900,minZ:-1,maxZ:9}}};
+ let materialCalls=0;
+ const bounded=new TerrainPresentationOwner(fakePort(()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>({cell:[x,899,z] as const,material:1,generatedTop:899})),undefined,undefined,
+ ()=>{materialCalls++;return [];}),tall);
+ const budget=bounded.readRegion(regionRequest(1,899),[0,0],0);
+ assert.equal(budget.kind,'unavailable');if(budget.kind==='unavailable')assert.match(budget.reason,/sample budget/);
+ assert.equal(materialCalls,0,'reject full workload before material batches begin');
+});
+
+test("serialized patch bytes evict cache entries before its count limit",()=>{
+ let materialCalls=0;
+ const wide={...definition,world:{...definition.world,bounds:{minX:0,maxX:256,minY:0,maxY:24,minZ:0,maxZ:8}}};
+ const owner=new TerrainPresentationOwner(fakePort(()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>({cell:[x,23-((x+z+23)%2),z] as const,material:1,generatedTop:23})),undefined,undefined,
+ cells=>{materialCalls++;return cells.map(([x,y,z])=>(x+y+z)%2===0?1:0);}),wide,{minX:0,maxX:8,minZ:0,maxZ:8});
+ let bytes=0,regions=0;
+ while(bytes<=4*1024*1024) {
+  const reply=owner.readRegion({...regionRequest(1,23),regions:[[regions,0]]},[regions,0],0);
+  assert.equal(reply.kind,'patch');if(reply.kind!=='patch')return;
+  bytes+=new TextEncoder().encode(JSON.stringify(reply.patch)).byteLength;regions++;
+ }
+ assert(regions<128);const before=materialCalls;
+ owner.readRegion(regionRequest(1,23),[0,0],0);
+ assert(materialCalls>before,'first patch evicted by retained byte budget');
 });

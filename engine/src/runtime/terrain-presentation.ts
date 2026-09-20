@@ -1,7 +1,9 @@
 import type { EnvironmentDefinition } from "../sdk/environment";
 import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainPresentationDefinition, TerrainSurface } from "../contracts";
 import { terrainSurfaceSchema } from "./terrain-surface";
-import { MAX_TERRAIN_CHUNK_REPLY_BYTES, TERRAIN_CHUNK_EDGE, terrainBaselineSchema, terrainChunkReplySchema, terrainChunkRequestSchema, type TerrainBaseline, type TerrainChunkReply, type TerrainChunkRequest } from "./terrain-chunks";
+import { terrainBaselineSchema, type TerrainBaseline } from "./terrain-regions";
+import { MAX_TERRAIN_REGION_BYTES, MAX_TERRAIN_REGION_FACES, TERRAIN_REGION_EDGE, terrainRegionPatchSchema, terrainRegionRequestSchema, type TerrainRegionRequest, type TerrainRegionRead, type TerrainRegionPatch } from "./terrain-regions";
+import { exposeTerrainFaces, MAX_TERRAIN_REGION_HEIGHT, MAX_TERRAIN_REGION_SAMPLES } from "./terrain-region-exposure.js";
 
 type Coordinate = readonly [number, number, number];
 
@@ -128,6 +130,15 @@ function validateDefinition(definition: EnvironmentDefinition, configured?: { mi
 export class TerrainPresentationOwner {
   verticalMetres(): number { return this.definition.world.verticalMetres; }
   private cached: CachedSurfaces | undefined;
+  private readonly regions = new Map<string, { patch: TerrainRegionPatch; bytes: number }>();
+  private regionBytes = 0;
+  private regionEpoch: number | undefined;
+  private regionRevision: number | undefined;
+
+  private resetRegions(): void {
+    this.regions.clear(); this.regionBytes = 0;
+    this.regionEpoch = this.regionRevision = undefined;
+  }
 
   constructor(
     private readonly port: KernelPort,
@@ -145,77 +156,108 @@ export class TerrainPresentationOwner {
 
   reset(): void {
     this.cached = undefined;
+    this.resetRegions();
   }
 
   baseline(): TerrainBaseline {
     const artBySlot = new Map(this.presentation?.materials.map(material => [material.slot, material.art]));
-    return terrainBaselineSchema.parse({ protocolVersion: 3, bounds: this.definition.world.bounds,
+    return terrainBaselineSchema.parse({ protocolVersion: 4, bounds: this.definition.world.bounds,
       verticalMetres: this.definition.world.verticalMetres,
       variantSeed: visualVariantSeed(`${this.definition.world.identity}\u0000${this.definition.world.seed}`),
       materials: this.definition.materials.map(({ slot, solid }) => ({ slot, solid,
         ...(artBySlot.has(slot) ? { art: artBySlot.get(slot) } : {}) })) });
   }
 
-  readChunks(raw: TerrainChunkRequest, currentEpoch: number): TerrainChunkReply {
-    const request = terrainChunkRequestSchema.parse(raw);
+  /** One complete horizontal region per turn; cached patches are disposable
+   * presentation only and are retired together on epoch or terrain mutation. */
+  readRegion(raw: TerrainRegionRequest, key: [number, number], currentEpoch: number): TerrainRegionRead {
+    const request = terrainRegionRequestSchema.parse(raw);
+    if (!request.regions.some(region => region[0] === key[0] && region[1] === key[1]))
+      throw new Error("unrequested terrain region key");
     const facts = parseFacts(this.port.environmentFacts());
+    const identity = { requestId: request.requestId, epoch: currentEpoch,
+      terrainRevision: facts.terrainRevision, level: request.level };
     if (request.epoch !== currentEpoch || request.terrainRevision !== facts.terrainRevision)
-      return Object.freeze({ kind: "stale", requestId: request.requestId, epoch: currentEpoch, terrainRevision: facts.terrainRevision });
+      return { kind: "stale", ...identity };
+    if (this.regionEpoch !== currentEpoch || this.regionRevision !== facts.terrainRevision) {
+      this.resetRegions(); this.regionEpoch = currentEpoch; this.regionRevision = facts.terrainRevision;
+    }
+    // Replace JSON's four-byte null with the already measured immutable patch.
+    const envelopeBytes = new TextEncoder().encode(JSON.stringify({kind:"patch",...identity,patch:null})).byteLength - 4;
+    const id = `${request.level}:${key.join(",")}`, cached = this.regions.get(id);
+    if (cached) {
+      if (cached.bytes + envelopeBytes > MAX_TERRAIN_REGION_BYTES)
+        return {kind:"unavailable",...identity,reason:"terrain region exceeds byte budget"};
+      this.regions.delete(id); this.regions.set(id, cached);
+      return { kind: "patch", ...identity, patch: cached.patch };
+    }
+    const unavailable = (reason: string): TerrainRegionRead => ({ kind: "unavailable", ...identity, reason });
     const bounds = this.definition.world.bounds;
-    const slots = new Set(this.baseline().materials.map(material => material.slot));
-    const prepared: { key: TerrainChunkRequest["chunks"][number]; min: readonly [number, number, number]; max: readonly [number, number, number]; columns: { x: number; z: number; length: number }[] }[] = [];
-    const cells: [number, number, number][] = [];
-    for (const key of request.chunks) {
-      const origin = key.map(value => value * TERRAIN_CHUNK_EDGE);
-      if (origin.some(value => !signedInteger(value))) throw new Error("terrain chunk origin is outside signed cell coordinates");
-      const min = [Math.max(origin[0], bounds.minX), Math.max(origin[1], bounds.minY), Math.max(origin[2], bounds.minZ)] as const;
-      const max = [Math.min(origin[0] + TERRAIN_CHUNK_EDGE, bounds.maxX), Math.min(origin[1] + TERRAIN_CHUNK_EDGE, bounds.maxY), Math.min(origin[2] + TERRAIN_CHUNK_EDGE, bounds.maxZ)] as const;
-      if (min.some((value, axis) => value >= max[axis])) throw new Error("terrain chunk does not intersect authoritative bounds");
-      const columns: { x: number; z: number; length: number }[] = [];
-      for (let x = min[0]; x < max[0]; x++) for (let z = min[2]; z < max[2]; z++) {
-        for (let y = min[1]; y < max[1]; y++) cells.push([x, y, z]);
-        columns.push({ x, z, length: max[1] - min[1] });
-      }
-      prepared.push({ key, min, max, columns });
+    const core = { minX: Math.max(key[0]*TERRAIN_REGION_EDGE,bounds.minX),
+      maxX: Math.min((key[0]+1)*TERRAIN_REGION_EDGE,bounds.maxX),
+      minZ: Math.max(key[1]*TERRAIN_REGION_EDGE,bounds.minZ),
+      maxZ: Math.min((key[1]+1)*TERRAIN_REGION_EDGE,bounds.maxZ) };
+    if (core.minX >= core.maxX || core.minZ >= core.maxZ)
+      return unavailable("terrain region does not intersect authoritative bounds");
+    const highest = Math.min(request.level, bounds.maxY - 1);
+    if (highest - bounds.minY + 1 > MAX_TERRAIN_REGION_HEIGHT)
+      return unavailable("terrain region exceeds height budget");
+    const columns: [number, number][] = [];
+    for(let x=Math.max(core.minX-1,bounds.minX);x<Math.min(core.maxX+1,bounds.maxX);x++)
+      for(let z=Math.max(core.minZ-1,bounds.minZ);z<Math.min(core.maxZ+1,bounds.maxZ);z++) columns.push([x,z]);
+    const surfaces = this.sampleSurfaceColumns(columns);
+    const cells: [number,number,number][] = [];
+    for(const [x,z] of columns) {
+      const surface = surfaces.get(columnKey(x,z));
+      if (!surface) continue;
+      if (surface.cell[1] < bounds.minY || surface.cell[1] >= bounds.maxY)
+        throw new Error("terrain surface outside authoritative height bounds");
+      // Need the cell above a cut as well, to distinguish natural tops/caps.
+      const top = Math.min(highest + 1, surface.cell[1]);
+      if (cells.length + Math.max(0,top-bounds.minY+1) > MAX_TERRAIN_REGION_SAMPLES)
+        return unavailable("terrain region exceeds material sample budget");
+      for(let y=bounds.minY;y<=top;y++) cells.push([x,y,z]);
     }
-    if (cells.length > 4096) throw new Error("terrain chunk request exceeds sample budget");
-    const sampled: number[] = [];
-    for (let offset = 0; offset < cells.length; offset += 256) {
-      const batch = cells.slice(offset, offset + 256);
-      const result = this.port.terrainMaterials(batch);
-      if (result.length !== batch.length) throw new Error("terrain material query returned the wrong count");
-      sampled.push(...result);
+    const palette = new Map(this.definition.materials.map(material => [material.slot,material]));
+    const materials = new Map<string, number>();
+    for(let offset=0;offset<cells.length;offset+=256) {
+      const batch = cells.slice(offset,offset+256), sampled = this.port.terrainMaterials(batch);
+      if(sampled.length !== batch.length) throw new Error("terrain material query returned the wrong count");
+      sampled.forEach((slot,index) => {
+        if(!Number.isInteger(slot) || !palette.has(slot)) throw new Error("terrain material query returned an unknown slot");
+        materials.set(batch[index].join(","),slot);
+      });
     }
-    // Several requested vertical chunks may share the same horizontal columns.
-    // Query each column once through the same authoritative surface projection
-    // as observations, without expanding the central observation window.
-    const uniqueColumns = new Map<string, [number, number]>();
-    for (const chunk of prepared) for (const column of chunk.columns)
-      uniqueColumns.set(columnKey(column.x, column.z), [column.x, column.z]);
-    const surfaces = this.sampleSurfaceColumns([...uniqueColumns.values()]);
-    let cursor = 0;
-    const chunks: Extract<TerrainChunkReply, { kind: "ready" }>["chunks"][number][] = prepared.map(chunk => ({ key: chunk.key, min: [...chunk.min], max: [...chunk.max],
-      surfaces: chunk.columns.flatMap(column => {
-        const surface = surfaces.get(columnKey(column.x, column.z));
-        return surface ? [surface] : [];
-      }),
-      columns: chunk.columns.map(column => {
-        const materials = sampled.slice(cursor, cursor += column.length);
-        const runs: { minY: number; maxY: number; material: number }[] = [];
-        for (let index = 0; index < materials.length; index++) {
-          const material = materials[index];
-          if (!Number.isInteger(material) || !slots.has(material)) throw new Error("terrain material query returned an unknown slot");
-          const y = chunk.min[1] + index;
-          const previous = runs.at(-1);
-          if (previous?.material === material) previous.maxY = y + 1;
-          else runs.push({ minY: y, maxY: y + 1, material });
-        }
-        return { x: column.x, z: column.z, runs };
-      }) }));
-    const reply = terrainChunkReplySchema.parse({ kind: "ready", requestId: request.requestId, epoch: currentEpoch, terrainRevision: facts.terrainRevision, chunks });
-    if (new TextEncoder().encode(JSON.stringify(reply)).byteLength > MAX_TERRAIN_CHUNK_REPLY_BYTES)
-      return Object.freeze({ kind: "unavailable", requestId: request.requestId, reason: "terrain chunk reply exceeds byte budget" });
-    return reply;
+    const sample = (cell: number[]) => {
+      const [x,y,z] = cell, surface = surfaces.get(columnKey(x,z));
+      if(!surface || y > surface.cell[1]) return {kind:"known" as const,solid:false,material:this.definition.world.slots.air};
+      const slot = materials.get(cell.join(","));
+      if(slot === undefined) throw new Error("incomplete terrain region material coverage");
+      return {kind:"known" as const,solid:palette.get(slot)!.solid,material:slot};
+    };
+    let exposed;
+    try {
+      exposed = exposeTerrainFaces({bounds,core,level:request.level,sample,
+        columnTop:(x: number,z: number)=>surfaces.get(columnKey(x,z))?.cell[1] ?? null,
+        maxFaces:MAX_TERRAIN_REGION_FACES});
+    } catch(error) {
+      if(error instanceof RangeError) return unavailable(error.message);
+      throw error;
+    }
+    const patch = terrainRegionPatchSchema.parse({key,bounds:core,faces:exposed,surfaces:[...surfaces.values()].filter(Boolean)});
+    const bytes = new TextEncoder().encode(JSON.stringify(patch)).byteLength;
+    if(bytes + envelopeBytes > MAX_TERRAIN_REGION_BYTES) return unavailable("terrain region exceeds byte budget");
+    // Consumers borrow these facts; mutating one cached response cannot poison
+    // a later client or request. No atlas or camera state enters this cache.
+    for(const face of patch.faces) { Object.freeze(face.cell); Object.freeze(face); }
+    for(const surface of patch.surfaces) { Object.freeze(surface.cell); if(surface.cover) Object.freeze(surface.cover); Object.freeze(surface); }
+    Object.freeze(patch.faces); Object.freeze(patch.surfaces); Object.freeze(patch.bounds); Object.freeze(patch.key); Object.freeze(patch);
+    this.regions.set(id,{patch,bytes}); this.regionBytes += bytes;
+    while(this.regions.size > 128 || this.regionBytes > 4*1024*1024) {
+      const oldest = this.regions.keys().next().value!;
+      this.regionBytes -= this.regions.get(oldest)!.bytes; this.regions.delete(oldest);
+    }
+    return {kind:"patch",...identity,patch};
   }
 
   read(): TerrainPresentationFrame {
@@ -283,7 +325,7 @@ export class TerrainPresentationOwner {
   }
 
   /** One authority-side cover projection shared by push observations and
-   * camera-demanded chunk reads. Native current cover, when present, overrides
+   * camera-demanded region reads. Native current cover, when present, overrides
    * fresh-world decoration. Cover-only mutations must publish authoritative
    * invalidation; querying or rendering does not create that mutation owner. */
   private sampleSurfaceColumns(columns: readonly [number, number][]): ReadonlyMap<string, TerrainSurface | null> {
