@@ -9,6 +9,7 @@ app.innerHTML = `<h1>Rendering experiment · local scene</h1><p>Original Three a
 const canvas = app.querySelector("canvas"), status = app.querySelector("#status");
 let current = COURT, playing = false, waterOn = false, replay = 0, last = performance.now();
 const view = createDepthStudy({ canvas, onSelection: selection => { status.dataset.selection = selection ? JSON.stringify(selection) : ""; updateStatus(); } });
+window.__depthStudy = view;
 const initial = { target: { x: 0, y: 0.4, z: 0 }, azimuth: 0, zoom: 1.3, cutLevel: null };
 view.setScene(current); view.setView(initial);
 function updateStatus() { const info = view.inspect(); status.textContent = `Selected: ${status.dataset.selection || "none"}\nChunks ${info.chunks} · triangles ${Math.round(info.triangles || 0)} · geometry ${info.geometries}\nRender ${info.renderMs.toFixed(2)}ms · view azimuth ${Math.round(info.view.azimuth * 180 / Math.PI)}° · layer ${info.view.cutLevel ?? "full"}`; }
