@@ -122,3 +122,20 @@ test("a newer frame obsoletes a reply without opening a second concurrent read",
   await currentRead;
   assert.equal(owner.snapshot().coverage[0].status, "ready");
 });
+
+test("a stale reply from an obsolete request cannot roll a newer observed world backward", async () => {
+  const runtime = controlledRuntime(), owner = createTerrainChunkCache({ runtime });
+  owner.updateFrame(frame(1, 1)); owner.updateDemand([[0,0,0]]);
+  const old = owner.service();
+  owner.updateFrame(frame(2, 10));
+  runtime.requests[0].resolve({ kind: "stale", requestId: 1, epoch: 1, terrainRevision: 2 });
+  await old;
+  assert.equal(owner.snapshot().epoch, 2);
+  assert.equal(owner.snapshot().terrainRevision, 10);
+  const current = owner.service();
+  assert.equal(runtime.requests[1].request.epoch, 2);
+  runtime.requests[1].resolve({ kind: "ready", requestId: 2, epoch: 2, terrainRevision: 10, chunks: [chunk([0,0,0])] });
+  await current;
+  assert.equal(owner.snapshot().demandComplete, true);
+  owner.dispose();
+});

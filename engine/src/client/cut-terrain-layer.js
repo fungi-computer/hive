@@ -68,7 +68,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
   let retainedRecords = Object.freeze([]);
   let lastPlan, demandIdentity, coverageIdentity, terrainContext, observedService, reportedBudget;
   let surfaceIdentity;
-  let presentedSurfaces = [], presentedFrame, presentedSource;
+  let presentedSurfaces = [], exposedFaces = [], presentedFrame, presentedSource;
   const faceChunks = new Map();
   let coverEntries = new Map();
 
@@ -93,7 +93,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     surfaceIdentity = frameValue ? JSON.stringify(frameValue.surfaces) : undefined;
     if (!frameValue) {
       cameraCoverage.reset(); faceChunks.clear(); coverEntries.clear(); coverageIdentity = undefined; terrainContext = undefined; demandIdentity = undefined; lastPlan = undefined;
-      waterRecordEntries.clear(); presentedSurfaces = []; presentedFrame = undefined;
+      waterRecordEntries.clear(); presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
       publishRecords([], []);
       batches.update([]); container.visible = false; return;
     }
@@ -111,7 +111,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       // A previous cut or terrain revision cannot stand in for an incomplete
       // replacement view: its caps and cover may now be inside solid ground.
       terrainContext = undefined;
-      presentedSurfaces = []; presentedFrame = undefined;
+      presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
       coverageIdentity = undefined;
       publishRecords([], []);
       batches.update([]);
@@ -129,7 +129,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         // A return to the same resident demand must republish those faces.
         coverageIdentity = undefined;
         terrainContext = undefined;
-        presentedSurfaces = []; presentedFrame = undefined;
+        presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
         publishRecords([], []);
         queueMicrotask(() => { if (!disposed) onCoverage?.({ kind: "view-budget", limit: planned.limit }); });
       }
@@ -162,7 +162,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     if (snapshot.chunks.length === 0) {
       if (records.length || presentedSurfaces.length) {
         coverageIdentity = undefined;
-        presentedSurfaces = []; presentedFrame = undefined;
+        presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
         publishRecords([], waterRecords);
       }
       return;
@@ -220,7 +220,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     coverEntries = nextCoverEntries;
     // Picking follows the exact accepted top faces, including cut caps. Cover
     // still requires real solid/air support above; a cap never grows grass.
-    presentedSurfaces = nextRecords.filter(record => record.role === "terrain" && record.face === "top")
+    const nextExposedFaces = nextRecords.filter(record => record.role === "terrain");
+    if (nextExposedFaces.length !== exposedFaces.length || nextExposedFaces.some((record, index) => record !== exposedFaces[index]))
+      exposedFaces = nextExposedFaces;
+    presentedSurfaces = exposedFaces.filter(record => record.face === "top")
       .map(record => ({ cell: record.cell, material: record.material,
         generatedTop: generatedTops.get(`${record.cell[0]},${record.cell[2]}`) }));
     presentedFrame = undefined;
@@ -266,7 +269,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         throw new Error("invalid terrain view projection");
       projection = nextProjection; viewTurn = turn;
       appearance = terrainArt ? createTerrainFaceAppearance({ pack: terrainArt, turn }) : undefined;
-      cameraCoverage.reset(); presentedSurfaces = []; presentedFrame = undefined;
+      cameraCoverage.reset(); presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
       coverageIdentity = undefined; terrainContext = undefined; faceChunks.clear(); coverEntries.clear(); waterRecordEntries.clear();
       publishRecords([], []);
       batches.update([]);
@@ -285,7 +288,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       if (!frame) return undefined;
       if (!presentedFrame || presentedSource !== frame) {
         presentedSource = frame;
-        presentedFrame = { ...frame, surfaces: presentedSurfaces };
+        presentedFrame = { ...frame, surfaces: presentedSurfaces, exposedFaces };
       }
       return presentedFrame;
     },

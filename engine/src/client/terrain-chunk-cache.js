@@ -162,6 +162,9 @@ export function createTerrainChunkCache({ runtime, capacity = DEFAULT_CAPACITY }
       if (disposed || inFlight !== pending) return snapshot();
       inFlight = undefined;
       cachedSnapshot = undefined;
+      // A slow reply belongs to the request's world and revision, even when it
+      // reports "stale". It cannot roll a newer accepted observation backward.
+      if (identity.epoch !== epoch || identity.terrainRevision !== revision) return snapshot();
       if (reply.kind === "stale") {
         reset(reply.epoch, reply.terrainRevision, reply.epoch === identity.epoch ? baseline : undefined);
         return snapshot();
