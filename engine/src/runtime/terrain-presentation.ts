@@ -202,10 +202,19 @@ export class TerrainPresentationOwner {
     const highest = Math.min(request.level, bounds.maxY - 1);
     if (highest - bounds.minY + 1 > MAX_TERRAIN_REGION_HEIGHT)
       return unavailable("terrain region exceeds height budget");
+    const haloMinX = Math.max(core.minX-1,bounds.minX), haloMaxX = Math.min(core.maxX+1,bounds.maxX);
+    const haloMinZ = Math.max(core.minZ-1,bounds.minZ), haloMaxZ = Math.min(core.maxZ+1,bounds.maxZ);
+    const columnDepth = haloMaxZ-haloMinZ;
+    const columnIndex = (x: number,z: number) => (x-haloMinX)*columnDepth+z-haloMinZ;
     const columns: [number, number][] = [];
-    for(let x=Math.max(core.minX-1,bounds.minX);x<Math.min(core.maxX+1,bounds.maxX);x++)
-      for(let z=Math.max(core.minZ-1,bounds.minZ);z<Math.min(core.maxZ+1,bounds.maxZ);z++) columns.push([x,z]);
+    for(let x=haloMinX;x<haloMaxX;x++) for(let z=haloMinZ;z<haloMaxZ;z++) columns.push([x,z]);
     const surfaces = this.sampleSurfaceColumns(columns);
+    const tops = columns.map(([x,z])=>surfaces.get(columnKey(x,z))?.cell[1] ?? -Infinity);
+    // One dense, bounded halo. -1 is unknown, separate from every material slot
+    // including air=0; exterior top facts alone may prove unqueried cells empty.
+    const height = Math.max(0,Math.min(highest+1,bounds.maxY-1)-bounds.minY+1);
+    const materialIndex = (x: number,y: number,z: number) => columnIndex(x,z)*height+y-bounds.minY;
+    const materials = new Int32Array(columns.length*height).fill(-1);
     const cells: [number,number,number][] = [];
     for(const [x,z] of columns) {
       const surface = surfaces.get(columnKey(x,z));
@@ -219,26 +228,28 @@ export class TerrainPresentationOwner {
       for(let y=bounds.minY;y<=top;y++) cells.push([x,y,z]);
     }
     const palette = new Map(this.definition.materials.map(material => [material.slot,material]));
-    const materials = new Map<string, number>();
     for(let offset=0;offset<cells.length;offset+=256) {
       const batch = cells.slice(offset,offset+256), sampled = this.port.terrainMaterials(batch);
       if(sampled.length !== batch.length) throw new Error("terrain material query returned the wrong count");
       sampled.forEach((slot,index) => {
         if(!Number.isInteger(slot) || !palette.has(slot)) throw new Error("terrain material query returned an unknown slot");
-        materials.set(batch[index].join(","),slot);
+        const [x,y,z] = batch[index];
+        materials[materialIndex(x,y,z)] = slot;
       });
     }
     const sample = (cell: number[]) => {
-      const [x,y,z] = cell, surface = surfaces.get(columnKey(x,z));
-      if(!surface || y > surface.cell[1]) return {kind:"known" as const,solid:false,material:this.definition.world.slots.air};
-      const slot = materials.get(cell.join(","));
-      if(slot === undefined) throw new Error("incomplete terrain region material coverage");
+      const [x,y,z] = cell;
+      if(x<haloMinX || x>=haloMaxX || z<haloMinZ || z>=haloMaxZ)
+        throw new Error("terrain sample outside region halo");
+      if(y > tops[columnIndex(x,z)]) return {kind:"known" as const,solid:false,material:this.definition.world.slots.air};
+      const slot = y>=bounds.minY && y<bounds.minY+height ? materials[materialIndex(x,y,z)] : -1;
+      if(slot === -1) throw new Error("incomplete terrain region material coverage");
       return {kind:"known" as const,solid:palette.get(slot)!.solid,material:slot};
     };
     let exposed;
     try {
       exposed = exposeTerrainFaces({bounds,core,level:request.level,sample,
-        columnTop:(x: number,z: number)=>surfaces.get(columnKey(x,z))?.cell[1] ?? null,
+        columnTop:(x: number,z: number)=>Number.isFinite(tops[columnIndex(x,z)]) ? tops[columnIndex(x,z)] : null,
         maxFaces:MAX_TERRAIN_REGION_FACES});
     } catch(error) {
       if(error instanceof RangeError) return unavailable(error.message);

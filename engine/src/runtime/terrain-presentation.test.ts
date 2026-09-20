@@ -452,3 +452,21 @@ test("serialized patch bytes evict cache entries before its count limit",()=>{
  owner.readRegion(regionRequest(1,23),[0,0],0);
  assert(materialCalls>before,'first patch evicted by retained byte budget');
 });
+
+test("dense material indexing preserves clipped signed halos, air columns and the highest material slot",async()=>{
+ const {exposeTerrainFaces}=await import('./terrain-region-exposure.js');
+ const bounds={minX:-3,maxX:0,minY:-2,maxY:4,minZ:-5,maxZ:-1};
+ const top=(x:number,z:number)=>x===-2&&z===-4?null:(x+z)%2===0?2:0;
+ const material=([x,y,z]:readonly number[])=>top(x,z)!==null&&y<=top(x,z)!&&y!==-1?65535:0;
+ const world={...definition,world:{...definition.world,bounds},materials:[...definition.materials,{slot:65535,solid:true,diggable:true,water:{kind:'closed' as const}}]};
+ const owner=new TerrainPresentationOwner(fakePort(()=>({terrainRevision:1,placementRevision:0,cells:[]}),
+ columns=>columns.map(([x,z])=>top(x,z)===null?null:{cell:[x,top(x,z)!,z] as const,material:65535,generatedTop:2}),undefined,undefined,
+ cells=>cells.map(material)),world);
+ const result=owner.readRegion({...regionRequest(1,2),regions:[[-1,-1]]},[-1,-1],0);
+ assert.equal(result.kind,'patch');if(result.kind!=='patch')return;
+ const expected=exposeTerrainFaces({bounds,core:{minX:-3,maxX:0,minZ:-5,maxZ:-1},level:2,
+ sample:cell=>({kind:'known',solid:material(cell)!==0,material:material(cell)})});
+ assert.deepEqual(result.patch.faces,expected);
+ assert(result.patch.faces.some(face=>face.face==='bottom'));
+ assert(result.patch.faces.every(face=>face.material===65535));
+});
