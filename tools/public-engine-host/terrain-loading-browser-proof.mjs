@@ -14,7 +14,7 @@ await mkdir(output,{recursive:true});const driver=await readFile(new URL(import.
 const report={proof:"cold-terrain-loading",url:url.href,mode,startedAt:new Date().toISOString(),driverSha256:createHash("sha256").update(driver).digest("hex"),viewport:{width:1280,height:900},sampling:"35 terrain ray picks plus projected side-face polygon tests across visible canvas, excluding HUD footer. Useful ground means center plus at least nine hits. Complete visible means all35 samples; exact owner completeness recorded separately when exposed.",cases:[],success:false};
 const save=()=>writeFile(resolve(output,"REPORT.json"),JSON.stringify(report,null,2)+"\n");
 async function runCase(name){
- const result={name,milestones:{},samples:[],httpTerrain:[],wsFrames:[],browserWorkers:[],errors:[],captureErrors:[],networkFailures:[],screenshots:[],success:false};report.cases.push(result);
+ const result={name,milestones:{},samples:[],httpTerrain:[],wsFrames:[],wsRequests:[],browserWorkers:[],errors:[],captureErrors:[],networkFailures:[],screenshots:[],success:false};report.cases.push(result);
  let browser,page;const pending=[];let navigationAt;
  const elapsed=()=>Date.now()-navigationAt;
  try{
@@ -24,7 +24,12 @@ async function runCase(name){
   page.on("requestfailed",request=>result.networkFailures.push({atMs:elapsed(),path:new URL(request.url()).pathname,error:request.failure()?.errorText}));
   const requests=new Map();page.on("request",request=>{if(new URL(request.url()).pathname.endsWith("/terrain")){const record={requestAtMs:elapsed(),method:request.method()};requests.set(request,record);result.httpTerrain.push(record);}});
   page.on("response",response=>{const record=requests.get(response.request());if(!record)return;record.headersAtMs=elapsed();record.status=response.status();pending.push(response.body().then(body=>{record.bodyAtMs=elapsed();record.bytes=body.byteLength;const reply=JSON.parse(body.toString());record.kind=reply.kind;record.chunks=reply.chunks?.length??0;record.surfaces=reply.chunks?.reduce((sum,chunk)=>sum+(chunk.surfaces?.length??0),0)??0;}).catch(error=>result.captureErrors.push({atMs:elapsed(),failure:response.request().failure(),message:error.message})));});
-  page.on("websocket",socket=>{result.socketOrigin=new URL(socket.url()).origin;socket.on("framereceived",frame=>{const payload=frame.payload,bytes=Buffer.byteLength(payload);let value;try{value=JSON.parse(payload.toString());}catch{}result.wsFrames.push({atMs:elapsed(),bytes,type:value?.type??value?.kind??null,keys:value&&typeof value==="object"?Object.keys(value):[],chunks:value?.chunks?.length??value?.reply?.chunks?.length??0});});});
+  page.on("websocket",socket=>{result.socketOrigin=new URL(socket.url()).origin;socket.on("framesent",frame=>{try{const value=JSON.parse(frame.payload.toString());if(value.type==="terrain-regions")result.wsRequests.push({atMs:elapsed(),bytes:Buffer.byteLength(frame.payload),request:value.request??value});}catch{}});socket.on("framereceived",frame=>{const payload=frame.payload,bytes=Buffer.byteLength(payload);let value;try{value=JSON.parse(payload.toString());}catch{}result.wsFrames.push({atMs:elapsed(),bytes,type:value?.type??value?.kind??null,keys:value&&typeof value==="object"?Object.keys(value):[],chunks:value?.chunks?.length??value?.reply?.chunks?.length??0,...(value?.type==="terrain-regions"?{terrain:{kind:value.event?.kind,requestId:value.event?.requestId,epoch:value.event?.epoch,terrainRevision:value.event?.terrainRevision,level:value.event?.level,key:value.event?.patch?.key,faces:value.event?.patch?.faces?.length??0,surfaces:value.event?.patch?.surfaces?.length??0}}:{})});});});
+  await page.addInitScript(()=>{
+   const clock={readyAt:null,visibleAt:null,paddedAt:null};
+   Object.defineProperty(window,"__TERRAIN_PROOF_CLOCK",{value:clock});
+   setInterval(()=>{const read=window.__HIVE_DRAW_DIAGNOSTICS;if(!read)return;const d=read(),c=d.spatialDraw?.coverage,now=performance.now();if(d.assetsReady&&d.runtimeReady)clock.readyAt??=now;if(c?.visibleRegions>0&&c.visibleComplete)clock.visibleAt??=now;if(c?.requestedRegions>0&&c.demandComplete&&!c.pending)clock.paddedAt??=now;},25);
+  });
   navigationAt=Date.now();result.navigationAt=new Date(navigationAt).toISOString();await page.goto(url.href,{waitUntil:"domcontentloaded"});result.domContentLoadedMs=elapsed();
   let coldPanDone=false,groundPanDone=false;const deadline=Date.now()+240000;
   const screenshot=async(label)=>{const filename=`${name}-${label}.png`;await page.locator("canvas").first().screenshot({path:resolve(output,filename)});result.screenshots.push({filename,atMs:elapsed()});};
@@ -41,18 +46,35 @@ async function runCase(name){
       points.push({row,col,screen,cell:hit?.cell??null,face:hit?.face??(hit?"top":null)});if(hit){hits++;if(row===2&&col===3)center=true;}
     }
     const subjects=draw.subjects.filter(subject=>{const x=subject.screen.x*camera.zoom+camera.x,y=subject.screen.y*camera.zoom+camera.y;return x>=0&&x<canvas.clientWidth&&y>=0&&y<canvas.clientHeight;});
-    return{atMs:performance.now(),ready:draw.visibleDrawRecords>0,camera,visibleSubjects:subjects.length,hits,center,points,coverage:draw.spatialDraw.coverage,cameraCoverage:draw.spatialDraw.cameraCoverage,meshes:draw.spatialDraw.meshes,loading:draw.spatialDraw.loading??null,performance:window.__HIVE_PERFORMANCE_DIAGNOSTICS?.()};
+    return{atMs:performance.now(),clock:{...window.__TERRAIN_PROOF_CLOCK},ready:draw.visibleDrawRecords>0,assetsReady:draw.assetsReady,runtimeReady:draw.runtimeReady,camera,visibleSubjects:subjects.length,hits,center,points,coverage:draw.spatialDraw.coverage,cameraCoverage:draw.spatialDraw.cameraCoverage,meshes:draw.spatialDraw.meshes,loading:draw.spatialDraw.loading??null,performance:window.__HIVE_PERFORMANCE_DIAGNOSTICS?.()};
    });sample.observedAtMs=elapsed();sample.httpRequests=result.httpTerrain.length;sample.httpBytes=result.httpTerrain.reduce((sum,r)=>sum+(r.bytes??0),0);sample.wsBytes=result.wsFrames.reduce((sum,r)=>sum+r.bytes,0);result.samples.push(sample);
+   if(sample.assetsReady&&sample.runtimeReady&&!result.milestones.independentReady)result.milestones.independentReady={atMs:sample.observedAtMs,sample};
+   if(mode==="after"&&sample.coverage){assert(!sample.coverage.error,JSON.stringify(sample.coverage.error));assert(sample.coverage.retainedBytes<=sample.coverage.maxBytes,"terrain byte budget exceeded");assert(sample.coverage.cachedRegions<=sample.coverage.capacity,"terrain region budget exceeded");}
    if(sample.ready&&!result.milestones.sceneReady)result.milestones.sceneReady={atMs:sample.observedAtMs,sample};
    if(sample.ready&&sample.visibleSubjects>0&&sample.hits===0&&!result.milestones.subjectsWithoutGround){result.milestones.subjectsWithoutGround={atMs:sample.observedAtMs,sample};await screenshot("subjects-without-ground");}
    if(name==="pan"&&!coldPanDone&&sample.ready&&sample.hits===0){coldPanDone=true;await pan("coldPan");await screenshot("cold-pan");await save();continue;}
    if(sample.hits>=9&&sample.center&&!result.milestones.usefulGround){result.milestones.usefulGround={atMs:sample.observedAtMs,sample};await screenshot("first-useful-ground");console.log(JSON.stringify({case:name,stage:"first-useful-ground",atMs:sample.observedAtMs,httpRequests:sample.httpRequests}));}
    if(name==="pan"&&result.milestones.usefulGround&&!groundPanDone){groundPanDone=true;await pan("afterGroundPan");await save();continue;}
-   if(sample.hits===35&&!result.milestones.visibleGround){result.milestones.visibleGround={atMs:sample.observedAtMs,sample};await screenshot("visible-ground");}
+   if(sample.hits===35&&(mode!=="after"||sample.coverage?.visibleComplete)&&!result.milestones.visibleGround){result.milestones.visibleGround={atMs:sample.observedAtMs,sample};await screenshot("visible-ground");}
    if(sample.coverage?.demandComplete&&!sample.coverage.pending&&sample.hits===35&&(name!=="pan"||groundPanDone)){result.milestones.paddedComplete={atMs:sample.observedAtMs,sample};await screenshot("padded-complete");break;}
    await save();await page.waitForTimeout(150);
   }
   assert(result.milestones.usefulGround,"no useful visible ground");assert(result.milestones.visibleGround,"visible ground sample grid never completed");assert(result.milestones.paddedComplete,"padded coverage never completed");
+  if(mode==="after"){
+   assert.equal(result.httpTerrain.length,0,"terrain still uses HTTP fan-out");
+   assert(result.wsFrames.some(frame=>frame.terrain?.kind==="patch"&&frame.terrain.faces>0),"no useful terrain patch received over WebSocket");
+   assert(result.wsFrames.some(frame=>frame.terrain?.kind==="complete"),"no terrain stream completion received");
+   assert(result.milestones.independentReady,"independent assets/runtime readiness unavailable");
+   assert(result.milestones.visibleGround.sample.coverage.visibleComplete,"visible region demand incomplete");
+   assert.equal(result.milestones.visibleGround.sample.coverage.readyVisibleRegions,result.milestones.visibleGround.sample.coverage.visibleRegions);
+   const clock=result.milestones.paddedComplete.sample.clock;assert(Number.isFinite(clock.readyAt)&&Number.isFinite(clock.visibleAt));
+   result.readinessLatency={usefulGroundMs:result.milestones.usefulGround.sample.atMs-clock.readyAt,visibleGroundMs:clock.visibleAt-clock.readyAt,paddedCompleteMs:clock.paddedAt-clock.readyAt};
+   // Stationary case is the comparable latency benchmark. Pan intentionally changes demand.
+   if(name==="stationary"){
+    assert(result.readinessLatency.usefulGroundMs<=1000,"useful ground exceeded 1s after assets/runtime readiness");
+    assert(result.readinessLatency.visibleGroundMs<=3000,"visible ground exceeded 3s after assets/runtime readiness");
+   }
+  }
   assert.equal(result.browserWorkers.length,0,"browser simulation Worker started");assert(result.socketOrigin?.includes("hive-performance-engine-preview"),"not connected to separate real DO backend");
   if(name==="pan"){assert(coldPanDone,"could not exercise a cold pan before ground");assert(groundPanDone);}
   await Promise.all(pending);assert.equal(result.errors.length,0,result.errors.join("; "));result.success=true;
