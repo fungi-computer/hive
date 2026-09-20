@@ -81,7 +81,7 @@ test("Colony v2 persists the participant credential before join and keeps it out
       if (String(input).endsWith("/connect")) return Response.json({ handle: "opaque" });
       const body = JSON.parse(String(init?.body));
       if (String(input).endsWith("/placement")) return Response.json({ observationRevision: 2, nativeRevision: 3, placementRevision: 2, decisions: body.candidates.map(({ site }: { site: string }) => ({ site, status: "ready" })) });
-      if (String(input).endsWith("/terrain")) return Response.json({ kind: "ready", requestId: body.requestId, epoch: body.epoch, terrainRevision: body.terrainRevision, chunks: [{ key: body.chunks[0], min: [0,0,0], max: [1,1,1], columns: [{ x: 0, z: 0, runs: [{ minY: 0, maxY: 1, material: 0 }] }] }] });
+      if (String(input).endsWith("/terrain")) return Response.json({ kind: "ready", requestId: body.requestId, epoch: body.epoch, terrainRevision: body.terrainRevision, chunks: [{ key: body.chunks[0], min: [0,0,0], max: [1,1,1], surfaces: [], columns: [{ x: 0, z: 0, runs: [{ minY: 0, maxY: 1, material: 0 }] }] }] });
       return Response.json({ commandId: body.id, status: "applied", revision: 1, result: { results: [] } });
     },
     createSocket: (url) => { calls.push({ url }); queueMicrotask(() => socket.emit("open", {})); return socket; },
@@ -542,7 +542,7 @@ test("private performance worlds use authenticated terrain routes and report rec
       if(String(input).endsWith('/connect'))return Response.json({handle:'opaque'});
       assert.equal(new Headers(init?.headers).get('Authorization'),null,'v1 authentication belongs to the authorized fetch supplied by the connection owner');
       const body=JSON.parse(String(init?.body));
-      return Response.json({kind:'ready',requestId:body.requestId,epoch:body.epoch,terrainRevision:body.terrainRevision,chunks:[{key:[0,0,0],min:[0,0,0],max:[1,1,1],columns:[{x:0,z:0,runs:[{minY:0,maxY:1,material:0}]}]}]});
+      return Response.json({kind:'ready',requestId:body.requestId,epoch:body.epoch,terrainRevision:body.terrainRevision,chunks:[{key:[0,0,0],min:[0,0,0],max:[1,1,1],surfaces:[],columns:[{x:0,z:0,runs:[{minY:0,maxY:1,material:0}]}]}]});
     },createSocket:()=>{queueMicrotask(()=>socket.emit('open',{}));return socket;},
   });
   try {

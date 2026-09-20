@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { terrainSurfaceSchema } from "./terrain-surface";
 
 export const TERRAIN_CHUNK_EDGE = 8;
 export const MAX_TERRAIN_CHUNKS = 8;
@@ -32,7 +33,7 @@ const material = z
 
 export const terrainBaselineSchema = z
   .object({
-    protocolVersion: z.literal(2),
+    protocolVersion: z.literal(3),
     bounds,
     verticalMetres: z.number().finite().positive(),
     variantSeed: z.number().int().min(0).max(0xffffffff).optional(),
@@ -86,8 +87,23 @@ const chunk = z
     min: cell,
     max: cell,
     columns: z.array(column).min(1).max(64),
+    // Column tops accompany every vertical chunk, including lower cut chunks.
+    // An absent column entry means there is no exterior solid surface.
+    surfaces: z.array(terrainSurfaceSchema).max(64),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    const columns = new Set(value.columns.map(column => `${column.x},${column.z}`));
+    let previous: readonly [number, number] | undefined;
+    for (const surface of value.surfaces) {
+      const [x, , z] = surface.cell;
+      if (!columns.has(`${x},${z}`) || x < value.min[0] || x >= value.max[0] || z < value.min[2] || z >= value.max[2])
+        context.addIssue({ code: "custom", message: "terrain chunk surface lies outside its columns" });
+      if (previous && (x < previous[0] || (x === previous[0] && z <= previous[1])))
+        context.addIssue({ code: "custom", message: "terrain chunk surfaces must be ordered and unique" });
+      previous = [x, z];
+    }
+  });
 export const terrainChunkReplySchema = z.discriminatedUnion("kind", [
   z
     .object({
@@ -155,7 +171,15 @@ export function parseTerrainChunkReply(
     )
       throw new Error("terrain chunk reply coverage mismatch");
     let runs = 0;
+    const columnSurfaces = new Map<string, string>();
     for (const chunk of reply.chunks) {
+      const surfaces = new Map(chunk.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface]));
+      for (const column of chunk.columns) {
+        const key = `${column.x},${column.z}`, signature = JSON.stringify(surfaces.get(key) ?? null);
+        if (columnSurfaces.has(key) && columnSurfaces.get(key) !== signature)
+          throw new Error("terrain chunk surface metadata disagrees across vertical chunks");
+        columnSurfaces.set(key, signature);
+      }
       let previous: readonly [number, number] | undefined;
       for (const column of chunk.columns) {
         if (

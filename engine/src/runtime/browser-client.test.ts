@@ -18,7 +18,7 @@ const frame = (epoch: number, terrain?: unknown): WorkerTransportEvent => ({
 });
 const baseline = {
   revision: 4, placementRevision: 4, verticalMetres: 0.5,
-  baseline: { protocolVersion: 2, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
+  baseline: { protocolVersion: 3, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
     materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }] },
   surfaces: [{ cell: [0, 2, 0], material: 1, generatedTop: 2 }],
   structureSurfaces: [{ cell: [0, 4, 0] }], water: [],
@@ -54,7 +54,7 @@ test("local material chunk reads allow one checked correlated request", async ()
   worker.emit({ type: "terrain-chunks", reply: { kind: "ready", requestId: 11, epoch: 2, terrainRevision: 4, chunks: [{
     key: [0, 0, 0], min: [0, 0, 0], max: [1, 2, 1], columns: [{ x: 0, z: 0, runs: [
       { minY: 0, maxY: 1, material: 1 }, { minY: 1, maxY: 2, material: 0 },
-    ] }],
+    ] }], surfaces: [{ cell: [0,0,0], material: 1, generatedTop: 0 }],
   }] } });
   assert.equal((await pending).kind, "ready"); runtime.dispose();
 });
