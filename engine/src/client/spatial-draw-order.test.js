@@ -211,3 +211,35 @@ test("whole-picture visual cycles recover deterministically in full and retained
     assert.deepEqual(successor.compile().records,full.records,"membership changes retain deterministic recovery");
   }
 });
+
+const picture = (id, left, right, depth = 0, ink = [{left, right, top:0, bottom:1}]) => ({
+  id, orderGeometry: { kind:"face",
+    points:[{x:left,y:0,z:depth},{x:right,y:0,z:depth},{x:right,y:1,z:depth},{x:left,y:1,z:depth}],
+    coverage:{offset:{x:0,y:0},rectangles:ink} },
+});
+test("coplanar opaque picture order survives offscreen predecessors entering and leaving membership", () => {
+  for (const depth of [0, 1e-10]) {
+    const a=picture("a",0,3), b=picture("b",0,1,depth), offscreen=picture("z",2,3,1);
+    let scene=prepareSpatialDrawScene([a,b],{projection:directProjection});
+    for (const input of [[a,b],[offscreen,b,a],[b,a],[a,b,offscreen]]) {
+      scene=scene.withStaticRecords(input);
+      const retained=scene.compile(), full=compileSpatialDrawOrder(input,{projection:directProjection});
+      assert.deepEqual(retained.records,full.records);
+      assert.deepEqual(full.records.filter(record=>record!==offscreen),[a,b]);
+      assert(full.relations.some(([from,to])=>from==="a\u0000"&&to==="b\u0000"));
+      assert.equal(full.metrics.approximateCycles,0);
+      const dynamic=prepareSpatialDrawScene(input.filter(record=>record!==b),{projection:directProjection}).compile([b]);
+      assert.deepEqual(dynamic.records,full.records,"static/dynamic partition does not change the tie");
+    }
+  }
+});
+
+test("coplanar ties preserve transparent holes, touching edges and composite independence", () => {
+  const a=picture("a",0,3,0,[{left:0,right:1,top:0,bottom:1},{left:2,right:3,top:0,bottom:1}]);
+  const hole=picture("hole",1,2);
+  assert.equal(compileSpatialDrawOrder([a,hole],{projection:directProjection}).relations.length,0);
+  const b=picture("b",.5,2.5);
+  assert.equal(compileSpatialDrawOrder([a,b],{projection:directProjection}).relations.length,1);
+  const siblings=[{...a,compositePartition:"piece"},{...b,compositePartition:"piece"}];
+  assert.equal(compileSpatialDrawOrder(siblings,{projection:directProjection}).relations.length,0);
+});
