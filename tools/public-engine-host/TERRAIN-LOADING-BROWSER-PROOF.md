@@ -79,3 +79,10 @@ added pre-auth timeout and conflicting-replay checks). Frontend build and backen
 deployment dry-run pass. Full host TypeScript checking is blocked by the existing
 missing Node type definitions; no dependency installation was performed. These
 checks do not yet establish hosted cold-load latency or visual acceptance.
+## Actual socket contract proof
+
+`terrain-stream-proof.mjs --endpoint BACKEND --origin FRONTEND --output NEW_DIR` runs through the same guard. It creates an isolated random bearer world for `colony-performance-256-8`, pauses it, authenticates a real socket, and checks incremental patch identities/completion while an HTTP pause command interleaves. It cancels a large area, replaces it, disconnects another partial area, reauthenticates the same world and requests only missing keys. Paused simulation time must remain unchanged. It never issues an HTTP terrain request.
+
+This is an actual DO transport contract check. The proof itself retains keys and computes the missing set; it does not claim to exercise the browser client's automatic reconnect controller. That controller has separate source/unit evidence and browser integration coverage.
+
+Local Wrangler proof at port 8801 passed on September 20, artifact `.botanical/terrain-stream-local-proof-v2`: guard `run-u2830.scope`, invocation `2db938188710495c9d8d8957f562920c`, terminal exit 0. The first setup run's incorrect proof assumption about the nested baseline version remains preserved in `.botanical/terrain-stream-local-proof`. Hosted parity remains pending deployment.
