@@ -11,6 +11,7 @@ const url=new URL("/engine/colony-performance.html",args.get("--base-url"));url.
 await mkdir(output,{recursive:true});
 const report={url:url.href,startedAt:new Date().toISOString(),errors:[],terrainReplies:[],success:false};
 const hash=bytes=>createHash("sha256").update(bytes).digest("hex");
+const checkpoint=async(stage)=>{report.stage=stage;await writeFile(resolve(output,"PROGRESS.json"),JSON.stringify(report,null,2)+"\n");console.log(JSON.stringify({stage,output}));};
 let browser,page;
 try{
  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:["--no-sandbox","--enable-unsafe-swiftshader"]});
@@ -32,7 +33,7 @@ try{
  const pan=async(key,count)=>{await canvas.focus();for(let i=0;i<count;i++){await page.keyboard.press(key);await page.waitForTimeout(20);}};
  report.initial=await state();await canvas.screenshot({path:resolve(output,"initial.png")});
  await pan("ArrowRight",3);await pan("ArrowLeft",3);report.smallPan=await state();
- assert.equal(report.smallPan.draw.spatialDraw.counts.staticRebuild,report.initial.draw.spatialDraw.counts.staticRebuild,"small pan rebuilt static scene");
+ assert.equal(report.smallPan.draw.spatialDraw.counts.staticRebuild,report.initial.draw.spatialDraw.counts.staticRebuild,"small pan rebuilt static scene");await checkpoint("small-pan");
  await pan("ArrowRight",96);await settle();
  report.far=await page.evaluate(()=>{
   const scene=window.__HIVE_DRAW_DIAGNOSTICS({scene:true}),{camera}=scene,canvas=document.querySelector("canvas");
@@ -49,7 +50,7 @@ try{
   return {camera,view:scene.view,metrics:scene.spatialDraw,farVisibleTopFaces:topFaces.length,farVisibleCover:cover.length,coverExamples:cover.slice(0,3),picks};
  });
  assert(report.far.farVisibleTopFaces>0,"no visible top faces outside old32 radius");assert(report.far.farVisibleCover>0,"no visible streamed grass outside old32 radius");assert(report.far.picks.length>=3,"far terrain exactface picking failed");
- await canvas.screenshot({path:resolve(output,"far-grass-and-picking.png")});report.farState=await state();
+ await canvas.screenshot({path:resolve(output,"far-grass-and-picking.png")});report.farState=await state();await checkpoint("far-grass-and-picking");
  const chosen=report.far.picks[0],targetLevel=chosen.expectedCell[1]-1,steps=report.far.view.level-targetLevel;
  assert(steps>0&&steps<=72,"cutaway target is outside supported level range");
  await page.getByRole("button",{name:"Toggle cutaway",exact:true}).click();await canvas.focus();
@@ -65,13 +66,13 @@ try{
  assert.equal(report.cut.view.level,targetLevel);assert.equal(report.cut.view.cutaway,true);
  assert.equal(report.cut.staleCover,0,"upright grass survived above the cut");
  assert.deepEqual(report.cut.picked?.cell,[chosen.expectedCell[0],targetLevel,chosen.expectedCell[2]],"cut cap picking did not follow displayed face");
- await canvas.screenshot({path:resolve(output,"far-cut-cap.png")});
+ await canvas.screenshot({path:resolve(output,"far-cut-cap.png")});await checkpoint("real-cut-cap");
  for(let i=0;i<steps;i++)await page.keyboard.press("PageUp");
  await page.getByRole("button",{name:"Toggle cutaway",exact:true}).click();await settle();
  await pan("ArrowLeft",96);await settle();
  await canvas.focus();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);
  for(let i=0;i<10;i++){await page.mouse.wheel(0,100);await page.waitForTimeout(60);}await settle();report.zoomOut=await state();
- assert.equal(report.zoomOut.draw.camera.zoom,1,"zoom did not reach the supported minimum");
+ assert.equal(report.zoomOut.draw.camera.zoom,1,"zoom did not reach the supported minimum");await checkpoint("minimum-zoom");
  for(let i=0;i<10;i++){await page.mouse.wheel(0,-100);await page.waitForTimeout(60);}await settle();report.returned=await state();
  await canvas.screenshot({path:resolve(output,"returned.png")});
  report.imageHashes={initial:hash(await readFile(resolve(output,"initial.png"))),returned:hash(await readFile(resolve(output,"returned.png")))};
