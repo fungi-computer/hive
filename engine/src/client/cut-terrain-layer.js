@@ -119,6 +119,10 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       const budgetId = `${epoch}:${level}:${viewport.left}:${viewport.right}:${viewport.top}:${viewport.bottom}`;
       if (reportedBudget !== budgetId) {
         reportedBudget = budgetId;
+        // Discarding the presented scene also invalidates its publication key.
+        // A return to the same resident demand must republish those faces.
+        coverageIdentity = undefined;
+        terrainContext = undefined;
         publishRecords([], []);
         queueMicrotask(() => { if (!disposed) onCoverage?.({ kind: "view-budget", limit: planned.limit }); });
       }
