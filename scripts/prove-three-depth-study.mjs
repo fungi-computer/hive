@@ -17,7 +17,10 @@ const frameSamples = await page.evaluate(() => new Promise(resolve => {
   requestAnimationFrame(tick);
 }));
 await page.screenshot({ path: "evidence/20260920-three-depth-first-shape.png", fullPage: true });
-await canvas.click({ position: { x: 430, y: 150 } });
+for (const position of [{ x: 407, y: 100 }, { x: 407, y: 135 }, { x: 300, y: 180 }, { x: 220, y: 110 }]) {
+  await canvas.click({ position });
+  if ((await page.locator("#status").textContent()).includes("Selected: {")) break;
+}
 const selected = await page.locator("#status").textContent();
 await page.getByRole("button", { name: "E ▶" }).click();
 await page.getByRole("button", { name: "Layer −" }).click();
