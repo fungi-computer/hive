@@ -27,6 +27,7 @@ try {
  page.on("worker",worker=>browserWorkers.push(worker.url()));
  page.on("websocket",socket=>socketOrigins.push(new URL(socket.url()).origin));
  page.on("pageerror",error=>report.errors.push(error.message));
+ page.on("crash",()=>report.errors.push("browser renderer process crashed"));
  await page.goto(url.href,{waitUntil:"domcontentloaded"});
  await page.getByText("Online · server saved",{exact:true}).first().waitFor();
  await page.waitForFunction(()=>window.__HIVE_PERFORMANCE_DIAGNOSTICS?.().frames>=20,null,{timeout:180000});
@@ -37,10 +38,11 @@ try {
  const canvas=page.locator("canvas").first();
  const focus=async()=>{await canvas.focus();const box=await canvas.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);};
  await focus();
- const snapshot=async()=>page.evaluate(()=>{
+ const cdp=await context.newCDPSession(page);
+ const snapshot=async()=>{const result=await page.evaluate(()=>{
    const draw=window.__HIVE_DRAW_DIAGNOSTICS();
    return {draw,performance:window.__HIVE_PERFORMANCE_DIAGNOSTICS(),heap:performance.memory?{used:performance.memory.usedJSHeapSize,total:performance.memory.totalJSHeapSize}:null};
- });
+ });result.cdpHeap=await cdp.send("Runtime.getHeapUsage");return result;};
  const phase=async(name,action)=>{
    const before=await snapshot();
    await page.evaluate(()=>{window.__cameraProofFrames=[];let previous=performance.now();window.__cameraProofRunning=true;function frame(now){if(!window.__cameraProofRunning)return;window.__cameraProofFrames.push(now-previous);previous=now;requestAnimationFrame(frame);}requestAnimationFrame(frame);});
