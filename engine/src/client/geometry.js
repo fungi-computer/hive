@@ -1,4 +1,3 @@
-import { terrainFaces } from "../../../src/art/terrain-faces.js";
 import { Ray, Vector3 } from "three";
 import { camera, towardCamera } from "../../../src/art/prop-camera.js";
 
@@ -75,8 +74,13 @@ export function surfacePoint(x, y, fact) {
 
 /** Authored floors are faces, never earth columns or invented side walls. */
 function* pickingFaces(terrain) {
-  for (const face of terrainFaces(terrain.surfaces, terrain.verticalMetres))
-    yield { ...face, source: "terrain" };
+  for (const face of terrain.exposedFaces ?? [])
+    yield {
+      surface: { cell: face.cell, material: face.material },
+      source: "terrain",
+      top: face.face === "top",
+      vertices: face.planarCorners.map(({ x, y, z }) => [x, y, z]),
+    };
   for (const surface of terrain.structureSurfaces) {
     const [x, y, z] = surface.cell;
     const height = (y + 0.5) * terrain.verticalMetres;
@@ -211,7 +215,7 @@ function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, ca
 export function createTerrainPicker(cameraView = view) {
   if (!cameraView?.isOrthographicCamera) throw new Error("terrain picker requires an orthographic camera");
   cameraView.updateMatrixWorld();
-  let surfaces, structureSurfaces, verticalMetres, epoch, state;
+  let exposedFaces, structureSurfaces, verticalMetres, epoch, state;
   const origin = new Vector3(),
     far = new Vector3(),
     hit = new Vector3();
@@ -220,7 +224,7 @@ export function createTerrainPicker(cameraView = view) {
     b = new Vector3(),
     c = new Vector3();
   function reset() {
-    surfaces = undefined;
+    exposedFaces = undefined;
     structureSurfaces = undefined;
     verticalMetres = undefined;
     epoch = undefined;
@@ -232,7 +236,8 @@ export function createTerrainPicker(cameraView = view) {
       return false;
     }
     if (
-      terrain.surfaces === surfaces &&
+      state !== undefined &&
+      terrain.exposedFaces === exposedFaces &&
       terrain.structureSurfaces === structureSurfaces &&
       terrain.verticalMetres === verticalMetres &&
       nextEpoch === epoch
@@ -240,7 +245,7 @@ export function createTerrainPicker(cameraView = view) {
       return true;
     reset();
     const nextState = makePickerState(terrain, cameraView);
-    surfaces = terrain.surfaces;
+    exposedFaces = terrain.exposedFaces;
     structureSurfaces = terrain.structureSurfaces;
     verticalMetres = terrain.verticalMetres;
     epoch = nextEpoch;

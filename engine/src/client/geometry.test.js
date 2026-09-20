@@ -4,9 +4,15 @@ import { project, groundPoint, surfacePoint, createTerrainPicker } from './geome
 import { terrainFaces } from '../../../src/art/terrain-faces.js';
 import { camera } from '../../../src/art/prop-camera.js';
 import { Ray, Vector3 } from 'three';
+function withFaces(terrain) {
+  return { ...terrain, exposedFaces: [...terrainFaces(terrain.surfaces, terrain.verticalMetres)].map(face => ({
+    ...face.surface, face: face.top ? 'top' : 'side',
+    planarCorners: face.vertices.map(([x,y,z]) => ({x,y,z})),
+  })) };
+}
 const picker = createTerrainPicker();
-const pickPoint = (x, y, terrain) => picker.point(x, y, terrain, 'geometry-test');
-const pickHit = (x, y, terrain) => picker.hit(x, y, terrain, 'geometry-test');
+const pickPoint = (x, y, terrain) => picker.point(x, y, withFaces(terrain), 'geometry-test');
+const pickHit = (x, y, terrain) => picker.hit(x, y, withFaces(terrain), 'geometry-test');
 test('ground picking inverts the actual retained projection across the clearing', () => {
   for (let x=-7;x<=7;x++) for(let z=-7;z<=7;z++) {
     const point=project(x,0,z);
@@ -131,7 +137,7 @@ test('cached picker matches exhaustive face ownership at triangle boundaries and
   ];
   for (const point of points) {
     const expected = exhaustiveHit(point.x, point.y, terrain);
-    const actual = picker.hit(point.x, point.y, terrain, 7);
+    const actual = picker.hit(point.x, point.y, withFaces(terrain), 7);
     assert.equal(actual?.kind, expected?.kind);
     assert.deepEqual(actual?.column, expected?.column);
     if (actual && expected) {
@@ -147,10 +153,11 @@ test('picker rebuilds when an epoch changes reused projection references and ret
   const picker = createTerrainPicker();
   const surfaces = [{ cell: [0, 0, 0], material: 1 }];
   const structures = [];
-  const terrain = { verticalMetres: 1, surfaces, structureSurfaces: structures };
+  const terrain = withFaces({ verticalMetres: 1, surfaces, structureSurfaces: structures });
   const first = project(0, .5, 0);
   assert.equal(picker.hit(first.x, first.y, terrain, 1).kind, 'terrain-top');
-  surfaces[0].cell[1] = 2;
+  terrain.exposedFaces[0].cell[1] = 2;
+  for (const face of terrain.exposedFaces) for (const point of face.planarCorners) point.y += 2;
   const raised = project(0, 2.5, 0);
   assert.equal(picker.hit(raised.x, raised.y, terrain, 2).kind, 'terrain-top');
 
@@ -160,4 +167,40 @@ test('picker rebuilds when an epoch changes reused projection references and ret
   const repaired = project(0, 4.5, 0);
   assert.equal(picker.hit(repaired.x, repaired.y, terrain, 3).kind, 'structure-top');
   picker.dispose();
+});
+
+test('unpublished faces never invent terrain, and replacing exact faces invalidates picking', () => {
+  const owner = createTerrainPicker();
+  const terrain = { verticalMetres: .54, surfaces: [{cell:[0,0,0],material:1}], structureSurfaces: [] };
+  const screen = project(0,.27,0);
+  assert.equal(owner.hit(screen.x,screen.y,terrain,1),null);
+  terrain.exposedFaces = withFaces(terrain).exposedFaces;
+  assert.equal(owner.hit(screen.x,screen.y,terrain,1)?.kind,'terrain-top');
+  terrain.exposedFaces = [];
+  assert.equal(owner.hit(screen.x,screen.y,terrain,1),null);
+  terrain.structureSurfaces = [{cell:[0,0,0]}];
+  assert.equal(owner.hit(screen.x,screen.y,terrain,1)?.kind,'structure-top');
+  owner.dispose();
+});
+
+test('actual layered cave faces permit repeated columns without phantom walls', async () => {
+  const {materialCoverage,terrainFaceRecords} = await import('./terrain-visibility.js');
+  const {createOrderingProjection} = await import('./ordering-projection.js');
+  const columns = [];
+  for(let x=0;x<3;x++) for(let z=0;z<3;z++) columns.push({x,z,runs:x===1 && z===1 ? [
+    {minY:0,maxY:1,material:1},{minY:1,maxY:3,material:0},
+    {minY:3,maxY:4,material:1},{minY:4,maxY:8,material:0},
+  ] : [{minY:0,maxY:8,material:0}]});
+  const coverage = materialCoverage({chunks:[{key:[0,0,0],columns}],
+    palette:[{slot:0,solid:false},{slot:1,solid:true}],
+    bounds:{minX:0,maxX:3,minY:0,maxY:8,minZ:0,maxZ:3},verticalMetres:.54});
+  const exposedFaces = terrainFaceRecords(coverage,{level:7,projection:createOrderingProjection()});
+  assert.deepEqual(exposedFaces.filter(face=>face.face==='top').map(face=>face.cell),[[1,0,1],[1,3,1]]);
+  const terrain = {verticalMetres:.54,exposedFaces,structureSurfaces:[]};
+  const owner = createTerrainPicker();
+  const roof = project(1,3.5*.54,1);
+  assert.deepEqual(owner.hit(roof.x,roof.y,terrain,1)?.column,[1,3,1]);
+  const opening = project(1.5,1.05,1);
+  assert.equal(owner.hit(opening.x,opening.y,terrain,1),null,'air between floor and roof is not a continuous heightmap wall');
+  owner.dispose();
 });
