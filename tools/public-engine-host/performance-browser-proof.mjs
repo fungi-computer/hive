@@ -32,7 +32,7 @@ const pageUrl = new URL(base);
 if (!pageUrl.pathname.endsWith("/engine/colony-performance.html")) {
   pageUrl.pathname = `${pageUrl.pathname.replace(/\/$/, "")}/engine/colony-performance.html`;
 }
-pageUrl.search = new URLSearchParams({ size: String(size), workers: String(workers) }).toString();
+pageUrl.search = new URLSearchParams({ size: String(size), workers: String(workers), diagnostics:"draw" }).toString();
 const output = resolve(outputArgument);
 const root = resolve(new URL("../..", import.meta.url).pathname);
 const sourcePaths = [
@@ -40,7 +40,9 @@ const sourcePaths = [
   "engine/colony-performance.html",
   "engine/src/client/performance-page.js",
   "engine/src/games/colony-performance.ts",
-  "engine/src/runtime/performance-worker-entry.ts",
+  "engine/src/runtime/remote-client.ts",
+  "engine/src/client/performance-observer.js",
+  "tools/public-engine-host/worker.ts",
 ].sort();
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const sourceHashes = [];
@@ -70,6 +72,7 @@ const report = {
 const record = (name, details = {}) => report.assertions.push({ name, ...details });
 let browser;
 let context;
+let page;
 try {
   await mkdir(output, { recursive: true });
   browser = await chromium.launch({
@@ -78,7 +81,10 @@ try {
     args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
   });
   context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1 });
-  const page = await context.newPage();
+  page = await context.newPage();
+  const browserWorkers = [], sockets = [];
+  page.on("worker", worker => browserWorkers.push(worker.url()));
+  page.on("websocket", socket => sockets.push(new URL(socket.url()).origin));
   page.setDefaultTimeout(30_000);
   page.on("pageerror", (error) => report.errors.push(`pageerror: ${error.message}`));
   page.on("console", (message) => { if (message.type() === "error") report.errors.push(`console: ${message.text()}`); });
@@ -94,36 +100,36 @@ try {
   assert(canvas.width > 0 && canvas.height > 0 && canvas.clientWidth > 0 && canvas.clientHeight > 0, "Pixi canvas has no rendered size");
   record("pixi-canvas", canvas);
 
+  await page.getByText("Online · server saved", { exact:true }).first().waitFor();
   await page.waitForFunction(() => {
-    const jobs = Number(document.querySelector("#perf-jobs")?.textContent);
-    const samples = Number(document.querySelector("#perf-step")?.dataset.samples);
-    return Number.isFinite(jobs) && jobs > 0 && samples >= 30;
-  }, null, { timeout: 60_000 });
-  const measurements = await page.evaluate(() => ({
-    woodOutput: Number(document.querySelector("#perf-jobs")?.textContent),
-    tickSamples: Number(document.querySelector("#perf-step")?.dataset.samples),
-    tickMedianMs: Number(document.querySelector("#perf-step")?.dataset.median),
-    tickP95Ms: Number(document.querySelector("#perf-step")?.dataset.p95),
-    tickMaxMs: Number(document.querySelector("#perf-step")?.dataset.max),
-    assignmentCost: document.querySelector("#perf-assignment")?.textContent,
-    routeRequests: document.querySelector("#perf-routes")?.textContent,
-  }));
-  assert(Number.isFinite(measurements.woodOutput) && measurements.woodOutput > 0, "finite tree-felling workload produced no live output");
-  assert(measurements.tickSamples >= 30, "sustained tick sample is too small");
-  assert(Number.isFinite(measurements.tickMedianMs) && Number.isFinite(measurements.tickP95Ms) && Number.isFinite(measurements.tickMaxMs), "measured tick timing is unavailable or non-finite");
+    const data = window.__HIVE_PERFORMANCE_DIAGNOSTICS?.();
+    return data?.source === "durable-object" && data.stumps > 0 && data.observationGap?.samples >= 30;
+  }, null, { timeout: 180_000 });
+  const measurements = await page.evaluate(() => window.__HIVE_PERFORMANCE_DIAGNOSTICS());
+  assert(measurements.simulationRate > 0, "authoritative simulation did not advance");
+  assert(measurements.terrainRoundTrip?.samples > 0, "no remote terrain was requested");
+  assert.equal(browserWorkers.length,0,"performance page started a browser Worker");
+  assert(sockets.length > 0,"no remote world socket");
   report.measurements = measurements;
-  record("live-finite-tree-workload", { woodOutput: measurements.woodOutput });
-  record("finite-tick-timing", {
-    samples: measurements.tickSamples,
-    medianMs: measurements.tickMedianMs,
-    p95Ms: measurements.tickP95Ms,
-    maxMs: measurements.tickMaxMs,
-  });
+  record("server-owned-finite-workload", { felledTrees:measurements.stumps, woodInventory:measurements.wood, browserWorkers, socketOrigins:sockets });
+  await page.getByRole("button", { name:"Pause", exact:true }).click();
+  record("pause-requested");
+  await page.waitForFunction(() => window.__HIVE_PERFORMANCE_DIAGNOSTICS().paused);
+  record("pause-acknowledged");
+  const paused = await page.evaluate(() => window.__HIVE_PERFORMANCE_DIAGNOSTICS().simulationTime);
+  await page.waitForTimeout(1200);
+  assert.equal(await page.evaluate(() => window.__HIVE_PERFORMANCE_DIAGNOSTICS().simulationTime),paused);
+  await page.getByRole("button", { name:"Resume", exact:true }).click();
+  record("resume-requested");
+  await page.waitForFunction(time => window.__HIVE_PERFORMANCE_DIAGNOSTICS().simulationTime > time,paused);
+  record("remote-pause-resume");
+  await page.locator(".hive-hud-rail").evaluate(element => { element.scrollTop = 0; });
   await page.screenshot({ path: resolve(output, report.screenshot), fullPage: true });
   assert.equal(report.errors.length, 0, `page/request errors: ${report.errors.join("; ")}`);
   report.success = true;
 } catch (error) {
   report.errors.push(error instanceof Error ? error.message : String(error));
+  report.failureState = await page?.evaluate(() => ({body:document.body.innerText, performance:window.__HIVE_PERFORMANCE_DIAGNOSTICS?.()})).catch(()=>null);
 } finally {
   if (context) await context.close().catch((error) => report.errors.push(`context close: ${error.message}`));
   if (browser) await browser.close().catch((error) => report.errors.push(`browser close: ${error.message}`));

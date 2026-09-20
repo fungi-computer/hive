@@ -33,7 +33,12 @@ type SocketLike = {
   close(): void;
   reconnect(): void;
 };
+export type RemoteTransportSample =
+  | { readonly kind: "http"; readonly operation: string; readonly durationMs: number; readonly receivedBytes: number; readonly status: number | null }
+  | { readonly kind: "socket"; readonly receivedBytes: number };
 export interface RemoteRuntimeOptions {
+  /** Client-observed transport costs; never server CPU measurements. */
+  readonly onTransport?: (sample: RemoteTransportSample) => void;
   readonly endpoint: string | URL;
   readonly game: string;
   /** Authentication is supplied by the caller; this function adds no secret. */
@@ -234,7 +239,7 @@ async function requestJson(
   parent: AbortSignal,
   maxBytes: number,
   timeoutMs: number,
-): Promise<{ response: Response; value: unknown }> {
+): Promise<{ response: Response; value: unknown; receivedBytes: number }> {
   const controller = new AbortController();
   let timeout: ReturnType<typeof setTimeout> | undefined;
   let rejectParent: ((error: unknown) => void) | undefined;
@@ -262,7 +267,7 @@ async function requestJson(
       const text = await Promise.race([response.text(), deadline, parentAbort]);
       if (new TextEncoder().encode(text).byteLength > maxBytes)
         throw new Error("remote response too large");
-      return { response, value: parseJsonOrUndefined(text) };
+      return { response, value: parseJsonOrUndefined(text), receivedBytes: new TextEncoder().encode(text).byteLength };
     }
     const reader = response.body.getReader();
     const chunks: Uint8Array[] = [];
@@ -291,6 +296,7 @@ async function requestJson(
     return {
       response,
       value: parseJsonOrUndefined(new TextDecoder().decode(bytesValue)),
+      receivedBytes: bytes,
     };
   } finally {
     if (timeout !== undefined) clearTimeout(timeout);
@@ -387,6 +393,20 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   if (options.requestTimeoutMs !== undefined && (!Number.isFinite(options.requestTimeoutMs) || options.requestTimeoutMs < 10 || options.requestTimeoutMs > 60_000))
     throw new Error("remote request timeout must be between 10ms and 60s");
   const requestTimeoutMs = Math.round(options.requestTimeoutMs ?? REQUEST_TIMEOUT_MS);
+  const measuredRequest = async (...args: Parameters<typeof requestJson>) => {
+    const start = performance.now();
+    const operation = new URL(String(args[1])).pathname.split("/").at(-1) ?? "unknown";
+    try {
+      const result = await requestJson(...args);
+      options.onTransport?.({ kind: "http", operation, durationMs: performance.now() - start,
+        receivedBytes: result.receivedBytes, status: result.response.status });
+      return result;
+    } catch (error) {
+      options.onTransport?.({ kind: "http", operation, durationMs: performance.now() - start,
+        receivedBytes: 0, status: null });
+      throw error;
+    }
+  };
   const listeners = new Set<(event: WorkerEvent) => void>();
   const pending: PendingIntent[] = [];
   const abort = new AbortController();
@@ -434,7 +454,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       // or a second tab must retry with the same participant identity.
       storage.setItem(key, sharedCredential);
     }
-    const joined = await requestJson(options.fetch, sharedBase()("join"), {
+    const joined = await measuredRequest(options.fetch, sharedBase()("join"), {
       method: "POST",
       headers: { Authorization: `Bearer ${sharedCredential}`, "Content-Type": "application/json" },
       body: JSON.stringify({ invite: options.invite }),
@@ -484,7 +504,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
     try {
       if (shared) await prepareShared();
       const connectPath = shared ? sharedBase()("connect") : endpointUrl(options.endpoint, "/connect");
-      const handleResponse = await requestJson(options.fetch, connectPath, { method: "GET", headers: shared ? { Authorization: `Bearer ${sharedCredential}` } : undefined }, abort.signal, 16 * 1024, requestTimeoutMs);
+      const handleResponse = await measuredRequest(options.fetch, connectPath, { method: "GET", headers: shared ? { Authorization: `Bearer ${sharedCredential}` } : undefined }, abort.signal, 16 * 1024, requestTimeoutMs);
       if (!handleResponse.response.ok) {
         const reason = isRecord(handleResponse.value) && typeof handleResponse.value.error === "string" ? handleResponse.value.error : "remote socket admission failed";
         throw new Error(reason);
@@ -514,7 +534,9 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       if (socket !== connectedSocket) return;
       let value: unknown;
       const raw = String(event.data);
-      if (new TextEncoder().encode(raw).byteLength > MAX_OBSERVATION_BYTES) { emit({ type: "error", message: "remote socket message too large" }); return; }
+      const receivedBytes = new TextEncoder().encode(raw).byteLength;
+      options.onTransport?.({ kind: "socket", receivedBytes });
+      if (receivedBytes > MAX_OBSERVATION_BYTES) { emit({ type: "error", message: "remote socket message too large" }); return; }
       try { value = JSON.parse(raw); } catch { emit({ type: "error", message: "invalid remote socket message" }); return; }
       if (!isRecord(value)) return;
       if (value.type === "ready") {
@@ -598,7 +620,7 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
       }
       while (!disposed && !blocked) {
         try {
-          const responseData = await requestJson(options.fetch, shared ? sharedBase()("command") : endpointUrl(options.endpoint, "/command"), {
+          const responseData = await measuredRequest(options.fetch, shared ? sharedBase()("command") : endpointUrl(options.endpoint, "/command"), {
             method: "POST", headers: shared ? { "Content-Type": "application/json", Authorization: `Bearer ${sharedCredential}` } : { "Content-Type": "application/json" }, body: item.body,
           }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
           const response = responseData.response;
@@ -692,12 +714,11 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   };
   const placementDecisions = async (raw: PlacementDecisionQuery): Promise<PlacementDecisionResult> => {
     if (disposed) throw new Error("runtime connection disposed");
-    if (!shared) throw new Error("placement decisions require a shared Colony world");
     const query = placementDecisionQuerySchema.parse(raw);
-    await prepareShared();
-    const response = await requestJson(options.fetch, sharedBase()("placement"), {
+    if (shared) await prepareShared();
+    const response = await measuredRequest(options.fetch, shared ? sharedBase()("placement") : endpointUrl(options.endpoint, "/placement"), {
       method: "POST",
-      headers: { Authorization: `Bearer ${sharedCredential}`, "Content-Type": "application/json" },
+      headers: { ...(shared ? { Authorization: `Bearer ${sharedCredential}` } : {}), "Content-Type": "application/json" },
       body: JSON.stringify(query),
     }, abort.signal, MAX_RECEIPT_BYTES, requestTimeoutMs);
     if (!response.response.ok) throw new Error(`placement decision failed (${response.response.status})`);
@@ -706,14 +727,13 @@ export function connectRemoteRuntime(options: RemoteRuntimeOptions): RuntimeConn
   let terrainReadPending = false;
   const terrainChunks = async (raw: TerrainChunkRequest): Promise<TerrainChunkReply> => {
     if (disposed) throw new Error("runtime connection disposed");
-    if (!shared) throw new Error("terrain chunks require a shared Colony world");
     if (terrainReadPending) throw new Error("terrain chunk request already in flight");
     const request = terrainChunkRequestSchema.parse(raw);
     terrainReadPending = true;
     try {
-      await prepareShared();
-      const response = await requestJson(options.fetch, sharedBase()("terrain"), {
-        method: "POST", headers: { Authorization: `Bearer ${sharedCredential}`, "Content-Type": "application/json" }, body: JSON.stringify(request),
+      if (shared) await prepareShared();
+      const response = await measuredRequest(options.fetch, shared ? sharedBase()("terrain") : endpointUrl(options.endpoint, "/terrain"), {
+        method: "POST", headers: { ...(shared ? { Authorization: `Bearer ${sharedCredential}` } : {}), "Content-Type": "application/json" }, body: JSON.stringify(request),
       }, abort.signal, MAX_TERRAIN_CHUNK_REPLY_BYTES, requestTimeoutMs);
       if (!response.response.ok) throw new Error(`terrain chunk read failed (${response.response.status})`);
       return parseTerrainChunkReply(response.value, request);

@@ -251,3 +251,11 @@ test("invited new-world refuses without history and preserves an absent private 
   assert.equal(values.getItem("hive-private-demo/survival"), null);
   choice.runtime.dispose();
 });
+
+test("remote-only pages connect without a local simulation factory", () => {
+  const calls=[];
+  const choice=createConnectionChoice({mode:"colony-performance-256-8",runtime:"remote",publicHost:"https://demo.example.test",storage:storage(),cryptoSource:cryptoSource(),connectRemote:runtimeFactory(calls)});
+  assert.equal(choice.persistence.online,true);
+  assert.equal(calls[0].options.endpoint.pathname,"/v1/colony-performance-256-8");
+  choice.runtime.dispose();
+});

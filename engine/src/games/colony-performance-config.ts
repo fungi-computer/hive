@@ -1,4 +1,4 @@
-/** Presets shared by the performance composition root and its Worker owner. */
+/** Presets shared by the performance page and Durable Object host. */
 export const colonyPerformanceSizes = Object.freeze([
   64, 128, 256, 512,
 ] as const);
@@ -17,28 +17,10 @@ export function colonyPerformanceGameId(
   return `colony-performance-${size}-${workers}`;
 }
 
-export function colonyPerformanceWorkerName(
-  size: ColonyPerformanceSize,
-  workers: ColonyPerformanceWorkerCount,
-): string {
-  return `colony-performance:${size}:${workers}`;
-}
-
 const sizePattern = colonyPerformanceSizes.join("|");
 const workerPattern = colonyPerformanceWorkerCounts.join("|");
-const workerNamePattern = new RegExp(
-  `^colony-performance:(${sizePattern}):(${workerPattern})$`,
-);
-
-export function parseColonyPerformanceWorkerName(
-  name: string,
-): {
-  readonly size: ColonyPerformanceSize;
-  readonly workers: ColonyPerformanceWorkerCount;
-} | null {
-  const match = workerNamePattern.exec(name);
-  if (!match) return null;
-  const size = Number(match[1]) as ColonyPerformanceSize;
-  const workers = Number(match[2]) as ColonyPerformanceWorkerCount;
-  return { size, workers };
+/** The public host admits only these exact, finite authored workloads. */
+export function parseColonyPerformanceGameId(name: string): { readonly size: ColonyPerformanceSize; readonly workers: ColonyPerformanceWorkerCount } | null {
+  const match = new RegExp(`^colony-performance-(${sizePattern})-(${workerPattern})$`).exec(name);
+  return match ? { size: Number(match[1]) as ColonyPerformanceSize, workers: Number(match[2]) as ColonyPerformanceWorkerCount } : null;
 }

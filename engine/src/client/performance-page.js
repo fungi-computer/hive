@@ -5,30 +5,24 @@ import { createHiveClient } from "./client.js";
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Slider } from "@fungi.computer/caps/components/slider";
-import { connectBrowserRuntime } from "../runtime/browser-client.js";
+import { connectRemoteRuntime } from "../runtime/remote-client.ts";
+import { createConnectionChoice } from "./connection-choice.js";
+import { createPerformanceObserver } from "./performance-observer.js";
+import { colonyPlacement } from "../games/colony-placement.ts";
+import { colonyPlacementCandidates } from "../games/colony-building.ts";
 import { COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { colonyPack } from "../games/colony.ts";
-import { colonyPerformanceGameId, colonyPerformanceSizes, colonyPerformanceWorkerCounts, colonyPerformanceWorkerName } from "../games/colony-performance-config.ts";
-import { createPerformancePersistence } from "./performance-persistence.js";
+import { colonyPerformanceGameId, colonyPerformanceSizes, colonyPerformanceWorkerCounts } from "../games/colony-performance-config.ts";
+
 
 const sizes = colonyPerformanceSizes, workerCounts = colonyPerformanceWorkerCounts;
 const params = new URLSearchParams(location.search);
 const size = sizes.includes(Number(params.get("size"))) ? Number(params.get("size")) : 64;
 const workers = workerCounts.includes(Number(params.get("workers"))) ? Number(params.get("workers")) : 8;
 const root = document.querySelector("#hive-app");
-let runtime;
-let metrics = { stepCpuMs: null, routeRequests: null, assignmentCost: null, snapshotBytes: null, activeWaterWork: null, activeGasWork: null, wireBytes: 0 };
-const stepSamples = [];
-let woodOutput = 0, lastWood = 0;
-let frameEpoch;
-
-function format(value, suffix = "") { return value === null ? "Unavailable" : `${typeof value === "number" ? value.toFixed(value < 10 ? 2 : 0) : value}${suffix}`; }
-function stepSummary() {
-  if (stepSamples.length === 0) return null;
-  const sorted = [...stepSamples].sort((left, right) => left - right);
-  const percentile = fraction => sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)];
-  return { samples: stepSamples.length, median: percentile(0.5), p95: percentile(0.95), max: sorted.at(-1) };
-}
+const observer = createPerformanceObserver();
+function format(value, suffix = "") { return value === null || value === undefined ? "Waiting for data" : `${Number(value).toFixed(1)}${suffix}`; }
+function timing(value) { return value ? `${format(value.median, " ms")} median · ${format(value.p95, " ms")} p95 (${value.samples} samples)` : "Waiting for data"; }
 function setPreset(nextSize, nextWorkers) {
   const next = new URL(location.href);
   next.searchParams.set("size", nextSize); next.searchParams.set("workers", nextWorkers);
@@ -37,12 +31,25 @@ function setPreset(nextSize, nextWorkers) {
 function panel(hud) {
   const wrap = document.createElement("section");
   wrap.className = "colony-performance-panel";
-  wrap.innerHTML = `<div class="hive-kicker">HIVE / COLONY PERFORMANCE</div><h2>Real Colony workload</h2><p>Finite tree felling and wood output through the current work and libcolony systems.</p>
+  wrap.innerHTML = `<div class="hive-kicker">HIVE / COLONY PERFORMANCE</div><h2>Durable Object workload</h2><p>Server-owned Colony simulation, durable transactions and the shared game renderer. Each preset has its own private world.</p>
     <label>World bounds <select id="perf-size">${sizes.map(value => `<option value="${value}" ${value === size ? "selected" : ""}>${value} × ${value}</option>`).join("")}</select></label>
     <label>Workers <span id="perf-workers-slider"></span><output>${workers}</output></label>
     <div class="perf-links">${sizes.map(value => `<a href="?size=${value}&workers=${workers}">${value}×${value}</a>`).join("")}</div>
-    <dl><dt>Simulation step CPU</dt><dd id="perf-step">Unavailable</dd><dt>Assignment cost</dt><dd id="perf-assignment">Unavailable</dd><dt>Route requests</dt><dd id="perf-routes">Unavailable</dd><dt>Wood output</dt><dd id="perf-jobs">0</dd><dt>Active water workload</dt><dd id="perf-water">Unavailable</dd><dt>Active gas workload</dt><dd id="perf-gas">Unavailable</dd><dt>Snapshot bytes</dt><dd id="perf-snapshot">Unavailable</dd><dt>Wire / observation bytes</dt><dd id="perf-wire">0 B</dd></dl>
-    <p class="perf-boundary">Resident projection: 64×64 columns for every preset. Larger bounds stay generated and authoritative in the kernel; the client never requests the whole surface.</p>`;
+    <dl>
+      <dt>Simulation / real time</dt><dd id="perf-rate">Waiting for data</dd>
+      <dt>Observed server revision</dt><dd id="perf-sequence">Waiting for data</dd>
+      <dt>Observation interval</dt><dd id="perf-observation">Waiting for data</dd>
+      <dt>HTTP round trip</dt><dd id="perf-http">Waiting for data</dd>
+      <dt>Terrain round trip</dt><dd id="perf-terrain">Waiting for data</dd>
+      <dt>Received payload</dt><dd id="perf-wire">0 B</dd>
+      <dt>Workers observed / moving</dt><dd id="perf-workers">Waiting for data</dd>
+      <dt>Felled trees observed</dt><dd id="perf-stumps">0</dd>
+      <dt>Observed wood inventory</dt><dd id="perf-jobs">0</dd>
+      <dt>Client draw-order work</dt><dd id="perf-render">Waiting for data</dd>
+      <dt>Client retained scene</dt><dd id="perf-retained">Waiting for data</dd>
+      <dt>DO CPU time</dt><dd>Not available from the page; requires Cloudflare platform telemetry.</dd>
+    </dl>
+    <p class="perf-boundary">The finite workload has 50 trees in the central 64×64 area. World bounds may be larger; surface/grass observations still cover that central area. This measures the real DO workload, not full-world exploration or sustained capacity at the selected worker count.</p>`;
   hud.prepend(wrap);
   wrap.querySelector("#perf-size").addEventListener("change", event => setPreset(Number(event.target.value), workers));
   const output = wrap.querySelector("output");
@@ -54,56 +61,49 @@ function panel(hud) {
   }));
   return wrap;
 }
-function update(wrap) {
-  const step = wrap.querySelector("#perf-step");
-  const summary = stepSummary();
-  step.textContent = summary ? `${format(summary.median, " ms")} median · ${format(summary.p95, " ms")} p95` : "Unavailable";
-  step.dataset.samples = String(summary?.samples ?? 0);
-  step.dataset.median = summary ? String(summary.median) : "";
-  step.dataset.p95 = summary ? String(summary.p95) : "";
-  step.dataset.max = summary ? String(summary.max) : "";
-  wrap.querySelector("#perf-assignment").textContent = format(metrics.assignmentCost);
-  wrap.querySelector("#perf-routes").textContent = format(metrics.routeRequests);
-  wrap.querySelector("#perf-jobs").textContent = String(woodOutput);
-  wrap.querySelector("#perf-water").textContent = format(metrics.activeWaterWork);
-  wrap.querySelector("#perf-gas").textContent = format(metrics.activeGasWork);
-  wrap.querySelector("#perf-snapshot").textContent = format(metrics.snapshotBytes, " B");
-  wrap.querySelector("#perf-wire").textContent = `${metrics.wireBytes.toLocaleString()} B`;
+function update(wrap, client) {
+  const data = observer.snapshot(), render = client.diagnostics().spatialDraw;
+  wrap.dataset.runtime = "durable-object";
+  wrap.querySelector("#perf-rate").textContent = format(data.simulationRate, " simulated seconds / real second");
+  wrap.querySelector("#perf-rate").dataset.value = data.simulationRate ?? "";
+  wrap.querySelector("#perf-sequence").textContent = data.sequence ?? "Waiting for data";
+  wrap.querySelector("#perf-observation").textContent = timing(data.observationGap);
+  wrap.querySelector("#perf-http").textContent = timing(data.httpRoundTrip);
+  wrap.querySelector("#perf-terrain").textContent = timing(data.terrainRoundTrip);
+  wrap.querySelector("#perf-wire").textContent = `${data.receivedBytes.toLocaleString()} B · ${data.requests} HTTP requests · ${data.failedRequests} failed`;
+  wrap.querySelector("#perf-workers").textContent = `${data.observedWorkers} / ${data.movingWorkers}`;
+  wrap.querySelector("#perf-jobs").textContent = String(data.wood);
+  wrap.querySelector("#perf-stumps").textContent = String(data.stumps);
+  wrap.querySelector("#perf-render").textContent = `${render.counts.staticRebuild} static scene rebuilds · ${format(render.times.compileMs, " ms total ordering")} · ${format(render.times.applyOrderMs, " ms total application")}`;
+  wrap.querySelector("#perf-retained").textContent = `${render.retained.currentRecords} records · ${render.retained.staticRelations} relations · ${render.coverage.cachedChunks} chunks`;
 }
 function mount() {
   const gameId = colonyPerformanceGameId(size, workers);
-  runtime = connectBrowserRuntime({ worker: new Worker(new URL("../runtime/performance-worker-entry.ts", import.meta.url), {
-    type: "module", name: colonyPerformanceWorkerName(size, workers),
-  }) });
-  const persistence = createPerformancePersistence(runtime);
-  root.className = "hive-shell";
-  createHiveClient({ root, mode: gameId, commandDefinitions: colonyPack.commands, title: `${size}×${size} Colony`, subtitle: "Workers fell many finite trees and report measured runtime work.", source: "./source/colony.ts", runtime, persistence, visualBindings: COLONY_VISUAL_BINDINGS, controlHelp: "Select workers and trees to inspect the live workload." });
-  const hud = root.querySelector(".hive-hud");
-  const rail = document.createElement("div");
-  rail.className = "hive-hud-rail";
-  hud.replaceWith(rail);
-  rail.append(hud);
-  const wrap = panel(rail);
-  runtime.subscribe(event => {
-    metrics.wireBytes += new TextEncoder().encode(JSON.stringify(event)).byteLength;
-    if (event.type === "results" && event.metrics) {
-      metrics = { ...metrics, ...event.metrics };
-      if (Number.isFinite(event.metrics.stepCpuMs)) {
-        stepSamples.push(event.metrics.stepCpuMs);
-        if (stepSamples.length > 120) stepSamples.shift();
-      }
-    }
-    if (event.type === "frame") {
-      if (frameEpoch !== event.epoch) {
-        frameEpoch = event.epoch;
-        woodOutput = 0;
-        lastWood = 0;
-      }
-      const wood = event.facts.reduce((sum, fact) => sum + (fact.inventory?.items ?? []).filter(item => item.kind === "wood").reduce((n, item) => n + item.quantity, 0), 0);
-      if (wood > lastWood) woodOutput += wood - lastWood;
-      lastWood = wood;
-    }
-    update(wrap);
+  if (params.get("runtime") === "local") throw new Error("This performance page tests Durable Objects. Remove runtime=local.");
+  const connection = createConnectionChoice({ mode: gameId, runtime: "remote",
+    publicHost: import.meta.env.VITE_HIVE_PUBLIC_HOST,
+    connectRemote: options => connectRemoteRuntime({ ...options, onTransport: sample => observer.transport(sample) }),
   });
+  root.className = "hive-shell";
+  // Subscribe before starting the shared client so initial state is measured.
+  const unsubscribe = connection.runtime.subscribe(event => observer.event(event));
+  const client = createHiveClient({ root, mode: gameId, commandDefinitions: colonyPack.commands,
+    title: `${size}×${size} Colony · DO`, subtitle: "The server runs the world. Your browser draws it.",
+    source: "./source/colony.ts", runtime:connection.runtime, persistence:connection.persistence,
+    visualBindings:COLONY_VISUAL_BINDINGS, placementVisuals:colonyPlacement, placementCandidates:colonyPlacementCandidates,
+    orderCommand:"go", controlHelp:"Select a worker, choose Draft, then right-click to move. Pause isolates camera work from simulation." });
+  const hud = root.querySelector(".hive-hud"), rail = document.createElement("div");
+  rail.className = "hive-hud-rail"; hud.replaceWith(rail); rail.append(hud);
+  const wrap = panel(rail);
+  const timer = setInterval(() => update(wrap, client), 1000);
+  update(wrap, client);
+  if (params.get("diagnostics") === "draw") {
+    window.__HIVE_DRAW_DIAGNOSTICS = query => client.diagnostics(query);
+    window.__HIVE_PERFORMANCE_DIAGNOSTICS = () => observer.snapshot();
+  }
+  window.addEventListener("pagehide", () => { clearInterval(timer); unsubscribe(); client.dispose(); }, { once:true });
 }
-mount();
+try { mount(); }
+catch (error) {
+  root.textContent = `DO performance unavailable: ${error.message}`;
+}

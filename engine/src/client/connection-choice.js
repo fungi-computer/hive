@@ -284,9 +284,11 @@ export function createConnectionChoice({
 } = {}) {
   if (typeof mode !== "string" || mode.length === 0)
     throw new Error("Connection choice requires a game mode");
-  if (typeof connectLocal !== "function" || typeof connectRemote !== "function")
-    throw new Error("Connection choice requires runtime factories");
-  if (runtime === "local") return localConnection({ mode, connectLocal, saveOwner });
+  if (runtime === "local") {
+    if (typeof connectLocal !== "function") throw new Error("Browser-local runtime is unavailable on this page");
+    return localConnection({ mode, connectLocal, saveOwner });
+  }
+  if (typeof connectRemote !== "function") throw new Error("Connection choice requires a remote runtime factory");
   return remoteConnection({ mode, host: publicHost, storage, cryptoSource, fetchImpl, connectRemote, locationSource, historySource });
 }
 
