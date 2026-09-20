@@ -1,0 +1,32 @@
+{
+  "mask": 13,
+  "source": "actual grassCover mask13 variant0 vertices; production terrainCoverRecords; actual canonical camera",
+  "order": [
+    "terrain:1,1,0:top",
+    "cover:0:0:0:grass:green:full"
+  ],
+  "insertion": [
+    {
+      "record": "terrain:1,1,0:top\u0000face",
+      "key": 1.0173724356957945
+    },
+    {
+      "record": "cover:0:0:0:grass:green:full\u0000cover",
+      "key": 1.3597448713915892
+    }
+  ],
+  "witnessCount": 26,
+  "witness": {
+    "grassPoint": {
+      "x": 0.4059161990880966,
+      "y": 0.395155970454216,
+      "z": -0.019372642040252686
+    },
+    "nearBankPoint": {
+      "x": 0.9139942967017166,
+      "y": 0.81,
+      "z": 0.4887054555733672
+    },
+    "pixelDistance": 0
+  }
+}

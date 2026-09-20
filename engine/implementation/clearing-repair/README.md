@@ -1,3 +1,10 @@
+**September 20 source reassessment:** [Engine, rendering and Edmund study](16-engine-edmund-source-study-20260920.md)
+records pinned game-source comparisons, a new original-art rendering failure,
+current native cost/recovery measurements and actual creator API gaps. Pixi and
+the original art remain the direction; Levi rejected the Three.js comparison.
+The study refines the rendering-first repair order below. It is not a shipped
+fix, population-capacity claim or replacement creator API.
+
 **Current delivery priority:** section 15's **Authoritative delivery order** owns
 the queue: rendering/interaction -> unified building/surfaces -> core work and
 measured environment performance -> world continuity/regional boundaries -> one

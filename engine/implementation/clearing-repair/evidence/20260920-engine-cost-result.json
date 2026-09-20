@@ -1,0 +1,6407 @@
+{
+  "source": "cf9c7854a401cbb245d4b98bf0a32aa2515f81ae",
+  "date": "2026-09-20T05:41:13.126Z",
+  "node": "v24.20.0",
+  "platform": "linux",
+  "cpu": "AMD EPYC-Milan Processor",
+  "cpus": 2,
+  "loadavg": [
+    0.51,
+    0.72,
+    0.82
+  ],
+  "wasmSha256": "ce6034ebe6edfeea0fa30f8ae0c1d614627194a256babbdd8a9bed73e07f6106",
+  "workload": {
+    "worldSize": 128,
+    "workers": 32,
+    "trees": 50,
+    "steps": 90,
+    "delta": 1,
+    "initialWood": 300,
+    "remainingWood": 0,
+    "productiveTrees": 50,
+    "activeWorkers": {
+      "count": 90,
+      "total": 1338,
+      "median": 14,
+      "p95": 32,
+      "max": 32
+    },
+    "woodLots": [
+      {
+        "id": "lot.100",
+        "container": "ground.lot.100",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.26",
+        "container": "ground.lot.26",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.27",
+        "container": "ground.lot.27",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.28",
+        "container": "ground.lot.28",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.29",
+        "container": "ground.lot.29",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.30",
+        "container": "ground.lot.30",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.31",
+        "container": "ground.lot.31",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.32",
+        "container": "ground.lot.32",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.33",
+        "container": "ground.lot.33",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.37",
+        "container": "ground.lot.37",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.38",
+        "container": "ground.lot.38",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.39",
+        "container": "ground.lot.39",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.40",
+        "container": "ground.lot.40",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.41",
+        "container": "ground.lot.41",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.42",
+        "container": "ground.lot.42",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.43",
+        "container": "ground.lot.43",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.44",
+        "container": "ground.lot.44",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.45",
+        "container": "ground.lot.45",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.46",
+        "container": "ground.lot.46",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.51",
+        "container": "ground.lot.51",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.53",
+        "container": "ground.lot.53",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.54",
+        "container": "ground.lot.54",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.58",
+        "container": "ground.lot.58",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.59",
+        "container": "ground.lot.59",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.60",
+        "container": "ground.lot.60",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.61",
+        "container": "ground.lot.61",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.62",
+        "container": "ground.lot.62",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.63",
+        "container": "ground.lot.63",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.69",
+        "container": "ground.lot.69",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.73",
+        "container": "ground.lot.73",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.74",
+        "container": "ground.lot.74",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.75",
+        "container": "ground.lot.75",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.80",
+        "container": "ground.lot.80",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.81",
+        "container": "ground.lot.81",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.82",
+        "container": "ground.lot.82",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.83",
+        "container": "ground.lot.83",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.85",
+        "container": "ground.lot.85",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.86",
+        "container": "ground.lot.86",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.87",
+        "container": "ground.lot.87",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.88",
+        "container": "ground.lot.88",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.89",
+        "container": "ground.lot.89",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.90",
+        "container": "ground.lot.90",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.91",
+        "container": "ground.lot.91",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.92",
+        "container": "ground.lot.92",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.93",
+        "container": "ground.lot.93",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.94",
+        "container": "ground.lot.94",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.95",
+        "container": "ground.lot.95",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.96",
+        "container": "ground.lot.96",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.97",
+        "container": "ground.lot.97",
+        "kind": "wood",
+        "quantity": 6
+      },
+      {
+        "id": "lot.98",
+        "container": "ground.lot.98",
+        "kind": "wood",
+        "quantity": 6
+      }
+    ]
+  },
+  "timings": {
+    "start": {
+      "count": 1,
+      "total": 90.646198,
+      "median": 90.646198,
+      "p95": 90.646198,
+      "max": 90.646198
+    },
+    "step": {
+      "count": 90,
+      "total": 1074.7308799999994,
+      "median": 6.982147000000168,
+      "p95": 33.178177000000005,
+      "max": 139.35908900000004
+    },
+    "save": {
+      "count": 90,
+      "total": 322.5453019999995,
+      "median": 3.3641720000000532,
+      "p95": 4.807890000000043,
+      "max": 6.449844000000041
+    },
+    "recordDiff": {
+      "count": 90,
+      "total": 3.526262999999915,
+      "median": 0.022834999999986394,
+      "p95": 0.06298500000002605,
+      "max": 0.9111740000000168
+    },
+    "observation": {
+      "count": 90,
+      "total": 793.3696690000005,
+      "median": 7.094867999999906,
+      "p95": 9.253392000000076,
+      "max": 161.08224300000006
+    }
+  },
+  "methodTimings": {
+    "start:native.load": {
+      "count": 1,
+      "total": 40.425804,
+      "median": 40.425804,
+      "p95": 40.425804,
+      "max": 40.425804
+    },
+    "start:port.load": {
+      "count": 1,
+      "total": 40.46788799999999,
+      "median": 40.46788799999999,
+      "p95": 40.46788799999999,
+      "max": 40.46788799999999
+    },
+    "start:native.load_environment": {
+      "count": 1,
+      "total": 49.55556200000001,
+      "median": 49.55556200000001,
+      "p95": 49.55556200000001,
+      "max": 49.55556200000001
+    },
+    "start:port.loadEnvironment": {
+      "count": 1,
+      "total": 49.80102099999999,
+      "median": 49.80102099999999,
+      "p95": 49.80102099999999,
+      "max": 49.80102099999999
+    },
+    "start:native.capture_records": {
+      "count": 1,
+      "total": 3.3999559999999747,
+      "median": 3.3999559999999747,
+      "p95": 3.3999559999999747,
+      "max": 3.3999559999999747
+    },
+    "start:port.snapshot": {
+      "count": 1,
+      "total": 5.9089290000000005,
+      "median": 5.9089290000000005,
+      "p95": 5.9089290000000005,
+      "max": 5.9089290000000005
+    },
+    "start:native.query": {
+      "count": 1,
+      "total": 1.3567270000000349,
+      "median": 1.3567270000000349,
+      "p95": 1.3567270000000349,
+      "max": 1.3567270000000349
+    },
+    "start:port.query": {
+      "count": 1,
+      "total": 1.5114390000000526,
+      "median": 1.5114390000000526,
+      "p95": 1.5114390000000526,
+      "max": 1.5114390000000526
+    },
+    "step:native.query": {
+      "count": 90,
+      "total": 1.3465509999990672,
+      "median": 0.013229000000137603,
+      "p95": 0.029333999999835214,
+      "max": 0.0503360000000157
+    },
+    "step:port.query": {
+      "count": 90,
+      "total": 1.71872099999905,
+      "median": 0.016844999999875654,
+      "p95": 0.03507199999990007,
+      "max": 0.06876299999998992
+    },
+    "step:native.advance": {
+      "count": 90,
+      "total": 1058.8852570000008,
+      "median": 6.896537999999964,
+      "p95": 33.01606300000003,
+      "max": 135.27723400000002
+    },
+    "step:port.advance": {
+      "count": 90,
+      "total": 1061.2757169999995,
+      "median": 6.913944999999785,
+      "p95": 33.05042400000002,
+      "max": 135.560341
+    },
+    "save:native.capture_records": {
+      "count": 90,
+      "total": 191.86449300000038,
+      "median": 1.9538470000002235,
+      "p95": 3.0070550000000367,
+      "max": 3.659187999999972
+    },
+    "save:port.snapshot": {
+      "count": 90,
+      "total": 317.9559820000009,
+      "median": 3.331854000000021,
+      "p95": 4.751755999999887,
+      "max": 5.716430000000003
+    },
+    "observation:native.query": {
+      "count": 3060,
+      "total": 268.2345649999953,
+      "median": 0.05376099999966755,
+      "p95": 0.30173500000000786,
+      "max": 1.2908959999999752
+    },
+    "observation:port.query": {
+      "count": 3060,
+      "total": 361.0210070000076,
+      "median": 0.07407199999988734,
+      "p95": 0.3927619999999479,
+      "max": 1.4843780000001061
+    },
+    "observation:native.render_facts": {
+      "count": 90,
+      "total": 45.26246700000053,
+      "median": 0.4303390000000036,
+      "p95": 0.68353100000013,
+      "max": 3.8383080000000405
+    },
+    "observation:port.renderFacts": {
+      "count": 90,
+      "total": 69.56459500000051,
+      "median": 0.70370099999991,
+      "p95": 1.08132999999998,
+      "max": 4.103968000000009
+    },
+    "observation:native.environment_facts": {
+      "count": 180,
+      "total": 43.749013999997715,
+      "median": 0.20171499999969456,
+      "p95": 0.3349749999999858,
+      "max": 1.287571000000014
+    },
+    "observation:port.environmentFacts": {
+      "count": 180,
+      "total": 62.98737599999879,
+      "median": 0.29617599999983213,
+      "p95": 0.4752369999999928,
+      "max": 1.4864810000000261
+    },
+    "observation:native.entity_membership": {
+      "count": 90,
+      "total": 3.778228999999328,
+      "median": 0.033950999999888154,
+      "p95": 0.06396600000005037,
+      "max": 0.268444000000045
+    },
+    "observation:port.entityMembership": {
+      "count": 90,
+      "total": 4.762051999999585,
+      "median": 0.043215999999574706,
+      "p95": 0.07820700000002034,
+      "max": 0.3342039999999997
+    },
+    "observation:native.terrain_surfaces": {
+      "count": 64,
+      "total": 22.52149900000012,
+      "median": 0.29063799999994444,
+      "p95": 0.7670070000000351,
+      "max": 2.3533689999999865
+    },
+    "observation:port.terrainSurfaces": {
+      "count": 64,
+      "total": 54.17989600000044,
+      "median": 0.466562999999951,
+      "p95": 2.6826450000000364,
+      "max": 6.102220999999986
+    },
+    "observation:native.structure_surfaces": {
+      "count": 64,
+      "total": 4.847096999999451,
+      "median": 0.046679999999923893,
+      "p95": 0.08863300000001573,
+      "max": 1.3419430000000148
+    },
+    "observation:port.structureSurfaces": {
+      "count": 64,
+      "total": 8.396638999999482,
+      "median": 0.06969500000002427,
+      "p95": 0.3538340000000062,
+      "max": 1.55856
+    },
+    "diagnostic:native.query": {
+      "count": 5,
+      "total": 0.56836500000054,
+      "median": 0.0932900000002519,
+      "p95": 0.2056190000002971,
+      "max": 0.2056190000002971
+    },
+    "diagnostic:port.query": {
+      "count": 5,
+      "total": 0.7232499999995525,
+      "median": 0.1206809999998768,
+      "p95": 0.26187499999969077,
+      "max": 0.26187499999969077
+    },
+    "diagnostic:native.capture_records": {
+      "count": 2,
+      "total": 5.478038999999626,
+      "median": 2.4579759999996895,
+      "p95": 3.0200629999999364,
+      "max": 3.0200629999999364
+    },
+    "diagnostic:port.snapshot": {
+      "count": 2,
+      "total": 8.36417100000017,
+      "median": 3.646868000000268,
+      "p95": 4.717302999999902,
+      "max": 4.717302999999902
+    },
+    "diagnostic:native.advance": {
+      "count": 1,
+      "total": 6.362143000000287,
+      "median": 6.362143000000287,
+      "p95": 6.362143000000287,
+      "max": 6.362143000000287
+    },
+    "diagnostic:port.advance": {
+      "count": 1,
+      "total": 6.3878819999999905,
+      "median": 6.3878819999999905,
+      "p95": 6.3878819999999905,
+      "max": 6.3878819999999905
+    }
+  },
+  "samples": [
+    {
+      "tick": 1,
+      "heldWorkers": 8,
+      "executingWorkers": 8,
+      "routeWorkers": 8,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 139.35908900000004,
+      "saveMs": 6.449844000000041,
+      "observationMs": 161.08224300000006,
+      "recordBytes": 171524,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 158264
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 158264
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 2,
+      "heldWorkers": 16,
+      "executingWorkers": 16,
+      "routeWorkers": 16,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 11.385186999999974,
+      "saveMs": 4.0909390000000485,
+      "observationMs": 8.334287000000018,
+      "recordBytes": 181271,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 168011
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 168011
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 3,
+      "heldWorkers": 24,
+      "executingWorkers": 23,
+      "routeWorkers": 23,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 28.795008999999936,
+      "saveMs": 3.507959000000028,
+      "observationMs": 5.298138999999992,
+      "recordBytes": 196792,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 183532
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 183532
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 4,
+      "heldWorkers": 26,
+      "executingWorkers": 23,
+      "routeWorkers": 23,
+      "laborWorkers": 0,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 7.159494999999993,
+      "saveMs": 2.9996529999999666,
+      "observationMs": 7.4546600000001035,
+      "recordBytes": 198344,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 185084
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 185084
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 5,
+      "heldWorkers": 26,
+      "executingWorkers": 16,
+      "routeWorkers": 16,
+      "laborWorkers": 0,
+      "pendingOutcomes": 10,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 5.4362370000000055,
+      "saveMs": 4.19208100000003,
+      "observationMs": 5.553112000000056,
+      "recordBytes": 192597,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 179337
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 179337
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 6,
+      "heldWorkers": 26,
+      "executingWorkers": 8,
+      "routeWorkers": 8,
+      "laborWorkers": 0,
+      "pendingOutcomes": 18,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 3.0232369999999946,
+      "saveMs": 4.836952999999994,
+      "observationMs": 6.232066000000032,
+      "recordBytes": 187362,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 174102
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 174102
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 7,
+      "heldWorkers": 26,
+      "executingWorkers": 8,
+      "routeWorkers": 8,
+      "laborWorkers": 0,
+      "pendingOutcomes": 18,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 2.9552459999999883,
+      "saveMs": 3.1659839999999804,
+      "observationMs": 7.554219999999987,
+      "recordBytes": 186503,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 173243
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 173243
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 8,
+      "heldWorkers": 26,
+      "executingWorkers": 8,
+      "routeWorkers": 8,
+      "laborWorkers": 0,
+      "pendingOutcomes": 18,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 2.7482339999999112,
+      "saveMs": 2.796716999999944,
+      "observationMs": 5.688076000000024,
+      "recordBytes": 185613,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 172353
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 172353
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 9,
+      "heldWorkers": 32,
+      "executingWorkers": 22,
+      "routeWorkers": 14,
+      "laborWorkers": 8,
+      "pendingOutcomes": 10,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 15.943808999999987,
+      "saveMs": 3.6685220000000527,
+      "observationMs": 6.034428999999932,
+      "recordBytes": 201545,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188285
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188285
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 10,
+      "heldWorkers": 32,
+      "executingWorkers": 29,
+      "routeWorkers": 13,
+      "laborWorkers": 16,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 13.542129000000045,
+      "saveMs": 2.917238999999995,
+      "observationMs": 4.035364999999956,
+      "recordBytes": 199698,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 186438
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 186438
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 11,
+      "heldWorkers": 32,
+      "executingWorkers": 31,
+      "routeWorkers": 12,
+      "laborWorkers": 19,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 300,
+      "outputWood": 0,
+      "stepMs": 20.443426000000045,
+      "saveMs": 4.282707000000073,
+      "observationMs": 6.713622999999984,
+      "recordBytes": 197778,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 184518
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 184518
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 12,
+      "heldWorkers": 24,
+      "executingWorkers": 21,
+      "routeWorkers": 9,
+      "laborWorkers": 12,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 252,
+      "outputWood": 0,
+      "stepMs": 36.743352999999956,
+      "saveMs": 4.591391999999928,
+      "observationMs": 6.5004809999999225,
+      "recordBytes": 193958,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 180698
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 180698
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 13,
+      "heldWorkers": 16,
+      "executingWorkers": 13,
+      "routeWorkers": 9,
+      "laborWorkers": 4,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 204,
+      "outputWood": 0,
+      "stepMs": 23.121593000000075,
+      "saveMs": 5.376145999999949,
+      "observationMs": 8.196268999999916,
+      "recordBytes": 192508,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 179248
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 179248
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 14,
+      "heldWorkers": 13,
+      "executingWorkers": 10,
+      "routeWorkers": 9,
+      "laborWorkers": 1,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 186,
+      "outputWood": 0,
+      "stepMs": 9.52878700000008,
+      "saveMs": 3.5336280000000215,
+      "observationMs": 6.556367000000023,
+      "recordBytes": 191360,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 178100
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 178100
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 15,
+      "heldWorkers": 12,
+      "executingWorkers": 9,
+      "routeWorkers": 9,
+      "laborWorkers": 0,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 180,
+      "outputWood": 0,
+      "stepMs": 5.641978000000108,
+      "saveMs": 3.487487999999985,
+      "observationMs": 5.769980000000032,
+      "recordBytes": 190347,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 177087
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 177087
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 16,
+      "heldWorkers": 12,
+      "executingWorkers": 8,
+      "routeWorkers": 8,
+      "laborWorkers": 0,
+      "pendingOutcomes": 4,
+      "remainingResourceWood": 180,
+      "outputWood": 0,
+      "stepMs": 2.8889149999999972,
+      "saveMs": 2.638698999999974,
+      "observationMs": 7.708453999999961,
+      "recordBytes": 188821,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 175561
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 175561
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 17,
+      "heldWorkers": 20,
+      "executingWorkers": 17,
+      "routeWorkers": 16,
+      "laborWorkers": 1,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 180,
+      "outputWood": 0,
+      "stepMs": 7.953381000000036,
+      "saveMs": 4.186512999999991,
+      "observationMs": 6.900475000000029,
+      "recordBytes": 194674,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 181414
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 181414
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 18,
+      "heldWorkers": 28,
+      "executingWorkers": 16,
+      "routeWorkers": 15,
+      "laborWorkers": 1,
+      "pendingOutcomes": 12,
+      "remainingResourceWood": 180,
+      "outputWood": 0,
+      "stepMs": 14.205500000000029,
+      "saveMs": 4.334496000000058,
+      "observationMs": 8.708640999999943,
+      "recordBytes": 197815,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 184555
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 184555
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 19,
+      "heldWorkers": 32,
+      "executingWorkers": 16,
+      "routeWorkers": 12,
+      "laborWorkers": 4,
+      "pendingOutcomes": 16,
+      "remainingResourceWood": 180,
+      "outputWood": 0,
+      "stepMs": 15.467981999999893,
+      "saveMs": 3.4411790000001474,
+      "observationMs": 8.027313999999933,
+      "recordBytes": 200822,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187562
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187562
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 20,
+      "heldWorkers": 32,
+      "executingWorkers": 13,
+      "routeWorkers": 9,
+      "laborWorkers": 4,
+      "pendingOutcomes": 19,
+      "remainingResourceWood": 174,
+      "outputWood": 0,
+      "stepMs": 11.856076999999914,
+      "saveMs": 4.807890000000043,
+      "observationMs": 6.449314999999842,
+      "recordBytes": 200538,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187278
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187278
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 21,
+      "heldWorkers": 32,
+      "executingWorkers": 11,
+      "routeWorkers": 7,
+      "laborWorkers": 4,
+      "pendingOutcomes": 21,
+      "remainingResourceWood": 174,
+      "outputWood": 0,
+      "stepMs": 6.29404999999997,
+      "saveMs": 3.0282069999998384,
+      "observationMs": 6.535615000000007,
+      "recordBytes": 197854,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 184594
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 184594
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 22,
+      "heldWorkers": 29,
+      "executingWorkers": 7,
+      "routeWorkers": 6,
+      "laborWorkers": 1,
+      "pendingOutcomes": 22,
+      "remainingResourceWood": 156,
+      "outputWood": 0,
+      "stepMs": 10.054540000000088,
+      "saveMs": 2.808213999999907,
+      "observationMs": 5.214823000000024,
+      "recordBytes": 195955,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 182695
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 182695
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 23,
+      "heldWorkers": 28,
+      "executingWorkers": 6,
+      "routeWorkers": 6,
+      "laborWorkers": 0,
+      "pendingOutcomes": 22,
+      "remainingResourceWood": 150,
+      "outputWood": 0,
+      "stepMs": 5.164976999999908,
+      "saveMs": 2.8166570000000775,
+      "observationMs": 6.2654670000001715,
+      "recordBytes": 195239,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 181979
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 181979
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 24,
+      "heldWorkers": 28,
+      "executingWorkers": 6,
+      "routeWorkers": 6,
+      "laborWorkers": 0,
+      "pendingOutcomes": 22,
+      "remainingResourceWood": 150,
+      "outputWood": 0,
+      "stepMs": 2.887412999999924,
+      "saveMs": 2.978962999999794,
+      "observationMs": 5.30635099999995,
+      "recordBytes": 194577,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 181317
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 181317
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 25,
+      "heldWorkers": 31,
+      "executingWorkers": 20,
+      "routeWorkers": 9,
+      "laborWorkers": 11,
+      "pendingOutcomes": 11,
+      "remainingResourceWood": 150,
+      "outputWood": 0,
+      "stepMs": 10.827224999999999,
+      "saveMs": 3.112884000000122,
+      "observationMs": 5.865034000000151,
+      "recordBytes": 201562,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188302
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188302
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 26,
+      "heldWorkers": 32,
+      "executingWorkers": 26,
+      "routeWorkers": 8,
+      "laborWorkers": 18,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 150,
+      "outputWood": 0,
+      "stepMs": 16.599009000000024,
+      "saveMs": 2.8605019999999968,
+      "observationMs": 5.068551999999954,
+      "recordBytes": 199914,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 186654
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 186654
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 27,
+      "heldWorkers": 32,
+      "executingWorkers": 31,
+      "routeWorkers": 16,
+      "laborWorkers": 15,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 150,
+      "outputWood": 48,
+      "stepMs": 40.083097999999836,
+      "saveMs": 3.6419009999999616,
+      "observationMs": 5.936520999999857,
+      "recordBytes": 213188,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 199928
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 199928
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 28,
+      "heldWorkers": 23,
+      "executingWorkers": 20,
+      "routeWorkers": 15,
+      "laborWorkers": 5,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 132,
+      "outputWood": 90,
+      "stepMs": 33.178177000000005,
+      "saveMs": 3.9821739999999863,
+      "observationMs": 8.15860100000009,
+      "recordBytes": 210155,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 196895
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 196895
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 29,
+      "heldWorkers": 20,
+      "executingWorkers": 17,
+      "routeWorkers": 15,
+      "laborWorkers": 2,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 132,
+      "outputWood": 108,
+      "stepMs": 16.091823000000204,
+      "saveMs": 3.115186999999878,
+      "observationMs": 5.5063840000000255,
+      "recordBytes": 208289,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 195029
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 195029
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 30,
+      "heldWorkers": 18,
+      "executingWorkers": 15,
+      "routeWorkers": 15,
+      "laborWorkers": 0,
+      "pendingOutcomes": 3,
+      "remainingResourceWood": 120,
+      "outputWood": 108,
+      "stepMs": 8.220715000000155,
+      "saveMs": 3.5847150000001875,
+      "observationMs": 5.349146000000019,
+      "recordBytes": 206537,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 193277
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 193277
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 31,
+      "heldWorkers": 18,
+      "executingWorkers": 13,
+      "routeWorkers": 13,
+      "laborWorkers": 0,
+      "pendingOutcomes": 5,
+      "remainingResourceWood": 120,
+      "outputWood": 108,
+      "stepMs": 3.523992999999791,
+      "saveMs": 4.022045000000162,
+      "observationMs": 6.377085000000079,
+      "recordBytes": 203997,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190737
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190737
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 32,
+      "heldWorkers": 18,
+      "executingWorkers": 10,
+      "routeWorkers": 10,
+      "laborWorkers": 0,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 120,
+      "outputWood": 108,
+      "stepMs": 3.487327999999934,
+      "saveMs": 3.4101620000001276,
+      "observationMs": 6.189711999999872,
+      "recordBytes": 201056,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187796
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187796
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 33,
+      "heldWorkers": 21,
+      "executingWorkers": 13,
+      "routeWorkers": 11,
+      "laborWorkers": 2,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 120,
+      "outputWood": 108,
+      "stepMs": 6.278647999999976,
+      "saveMs": 3.0869239999999536,
+      "observationMs": 6.146858000000066,
+      "recordBytes": 201901,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188641
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188641
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 34,
+      "heldWorkers": 28,
+      "executingWorkers": 20,
+      "routeWorkers": 16,
+      "laborWorkers": 4,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 120,
+      "outputWood": 108,
+      "stepMs": 20.35009500000001,
+      "saveMs": 3.7050869999998213,
+      "observationMs": 7.094867999999906,
+      "recordBytes": 213804,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 200544
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 200544
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 35,
+      "heldWorkers": 32,
+      "executingWorkers": 27,
+      "routeWorkers": 18,
+      "laborWorkers": 9,
+      "pendingOutcomes": 5,
+      "remainingResourceWood": 120,
+      "outputWood": 108,
+      "stepMs": 18.15677699999992,
+      "saveMs": 4.5919340000000375,
+      "observationMs": 5.339971000000105,
+      "recordBytes": 224832,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 211572
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 211572
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 36,
+      "heldWorkers": 29,
+      "executingWorkers": 25,
+      "routeWorkers": 17,
+      "laborWorkers": 8,
+      "pendingOutcomes": 4,
+      "remainingResourceWood": 108,
+      "outputWood": 114,
+      "stepMs": 21.497213999999985,
+      "saveMs": 3.7816219999999703,
+      "observationMs": 6.171354999999949,
+      "recordBytes": 221934,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 208674
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 208674
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 37,
+      "heldWorkers": 26,
+      "executingWorkers": 18,
+      "routeWorkers": 13,
+      "laborWorkers": 5,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 102,
+      "outputWood": 126,
+      "stepMs": 17.667578999999932,
+      "saveMs": 4.282938999999942,
+      "observationMs": 5.533323999999993,
+      "recordBytes": 217142,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 203882
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 203882
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 38,
+      "heldWorkers": 21,
+      "executingWorkers": 13,
+      "routeWorkers": 13,
+      "laborWorkers": 0,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 84,
+      "outputWood": 138,
+      "stepMs": 15.326710000000048,
+      "saveMs": 3.191421999999875,
+      "observationMs": 6.714824000000135,
+      "recordBytes": 215432,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 202172
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 202172
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 39,
+      "heldWorkers": 21,
+      "executingWorkers": 10,
+      "routeWorkers": 10,
+      "laborWorkers": 0,
+      "pendingOutcomes": 11,
+      "remainingResourceWood": 84,
+      "outputWood": 138,
+      "stepMs": 3.8047659999999723,
+      "saveMs": 3.2450840000001335,
+      "observationMs": 8.15995399999997,
+      "recordBytes": 212163,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 198903
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 198903
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 40,
+      "heldWorkers": 21,
+      "executingWorkers": 9,
+      "routeWorkers": 9,
+      "laborWorkers": 0,
+      "pendingOutcomes": 12,
+      "remainingResourceWood": 84,
+      "outputWood": 138,
+      "stepMs": 3.5641140000000178,
+      "saveMs": 3.6360630000001493,
+      "observationMs": 6.35062599999992,
+      "recordBytes": 209801,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 196541
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 196541
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 41,
+      "heldWorkers": 23,
+      "executingWorkers": 17,
+      "routeWorkers": 11,
+      "laborWorkers": 6,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 84,
+      "outputWood": 138,
+      "stepMs": 7.566949999999906,
+      "saveMs": 4.692645000000084,
+      "observationMs": 7.383602999999994,
+      "recordBytes": 210654,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 197394
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 197394
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 42,
+      "heldWorkers": 24,
+      "executingWorkers": 18,
+      "routeWorkers": 9,
+      "laborWorkers": 9,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 84,
+      "outputWood": 138,
+      "stepMs": 12.783805999999913,
+      "saveMs": 4.683622000000014,
+      "observationMs": 8.482449000000088,
+      "recordBytes": 209052,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 195792
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 195792
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 43,
+      "heldWorkers": 23,
+      "executingWorkers": 17,
+      "routeWorkers": 8,
+      "laborWorkers": 9,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 84,
+      "outputWood": 162,
+      "stepMs": 34.155490999999984,
+      "saveMs": 5.211506999999983,
+      "observationMs": 9.086211000000048,
+      "recordBytes": 208082,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 194822
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 194822
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 44,
+      "heldWorkers": 21,
+      "executingWorkers": 12,
+      "routeWorkers": 5,
+      "laborWorkers": 7,
+      "pendingOutcomes": 9,
+      "remainingResourceWood": 72,
+      "outputWood": 162,
+      "stepMs": 19.968137999999954,
+      "saveMs": 3.5189960000000156,
+      "observationMs": 6.1650670000001355,
+      "recordBytes": 206208,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 192948
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 192948
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 45,
+      "heldWorkers": 17,
+      "executingWorkers": 7,
+      "routeWorkers": 4,
+      "laborWorkers": 3,
+      "pendingOutcomes": 10,
+      "remainingResourceWood": 54,
+      "outputWood": 168,
+      "stepMs": 17.050167999999985,
+      "saveMs": 3.2340359999998327,
+      "observationMs": 8.554619000000002,
+      "recordBytes": 204652,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191392
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191392
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 46,
+      "heldWorkers": 14,
+      "executingWorkers": 4,
+      "routeWorkers": 4,
+      "laborWorkers": 0,
+      "pendingOutcomes": 10,
+      "remainingResourceWood": 36,
+      "outputWood": 168,
+      "stepMs": 12.339744999999994,
+      "saveMs": 4.699035999999978,
+      "observationMs": 8.099482999999964,
+      "recordBytes": 204013,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190753
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190753
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 47,
+      "heldWorkers": 14,
+      "executingWorkers": 3,
+      "routeWorkers": 3,
+      "laborWorkers": 0,
+      "pendingOutcomes": 11,
+      "remainingResourceWood": 36,
+      "outputWood": 168,
+      "stepMs": 3.597223999999869,
+      "saveMs": 3.033773999999994,
+      "observationMs": 6.076180999999906,
+      "recordBytes": 202684,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189424
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189424
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 48,
+      "heldWorkers": 14,
+      "executingWorkers": 3,
+      "routeWorkers": 3,
+      "laborWorkers": 0,
+      "pendingOutcomes": 11,
+      "remainingResourceWood": 36,
+      "outputWood": 168,
+      "stepMs": 5.761948000000075,
+      "saveMs": 4.20030399999996,
+      "observationMs": 5.934778000000051,
+      "recordBytes": 202349,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189089
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189089
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 49,
+      "heldWorkers": 16,
+      "executingWorkers": 7,
+      "routeWorkers": 5,
+      "laborWorkers": 2,
+      "pendingOutcomes": 9,
+      "remainingResourceWood": 36,
+      "outputWood": 168,
+      "stepMs": 6.573411999999962,
+      "saveMs": 3.000472999999829,
+      "observationMs": 6.363464999999906,
+      "recordBytes": 203711,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190451
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190451
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 50,
+      "heldWorkers": 19,
+      "executingWorkers": 13,
+      "routeWorkers": 6,
+      "laborWorkers": 7,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 36,
+      "outputWood": 168,
+      "stepMs": 8.928222000000005,
+      "saveMs": 3.4351389999999355,
+      "observationMs": 6.823317999999972,
+      "recordBytes": 205192,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191932
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191932
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 51,
+      "heldWorkers": 20,
+      "executingWorkers": 15,
+      "routeWorkers": 5,
+      "laborWorkers": 10,
+      "pendingOutcomes": 5,
+      "remainingResourceWood": 36,
+      "outputWood": 180,
+      "stepMs": 19.189353999999867,
+      "saveMs": 3.3641720000000532,
+      "observationMs": 6.263924999999972,
+      "recordBytes": 205124,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191864
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191864
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 52,
+      "heldWorkers": 19,
+      "executingWorkers": 11,
+      "routeWorkers": 2,
+      "laborWorkers": 9,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 36,
+      "outputWood": 186,
+      "stepMs": 20.19988699999999,
+      "saveMs": 3.8628540000001976,
+      "observationMs": 7.102399999999989,
+      "recordBytes": 203710,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190450
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190450
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 53,
+      "heldWorkers": 11,
+      "executingWorkers": 3,
+      "routeWorkers": 2,
+      "laborWorkers": 1,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 12,
+      "outputWood": 210,
+      "stepMs": 24.338848999999982,
+      "saveMs": 3.704435999999987,
+      "observationMs": 7.225083999999924,
+      "recordBytes": 202899,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189639
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189639
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 54,
+      "heldWorkers": 10,
+      "executingWorkers": 2,
+      "routeWorkers": 2,
+      "laborWorkers": 0,
+      "pendingOutcomes": 8,
+      "remainingResourceWood": 6,
+      "outputWood": 210,
+      "stepMs": 6.867974999999888,
+      "saveMs": 4.113904000000048,
+      "observationMs": 8.341807000000017,
+      "recordBytes": 202636,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189376
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 189376
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 55,
+      "heldWorkers": 10,
+      "executingWorkers": 1,
+      "routeWorkers": 1,
+      "laborWorkers": 0,
+      "pendingOutcomes": 9,
+      "remainingResourceWood": 6,
+      "outputWood": 210,
+      "stepMs": 3.9669400000000223,
+      "saveMs": 3.1584020000000237,
+      "observationMs": 8.638214000000062,
+      "recordBytes": 201186,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187926
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187926
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 56,
+      "heldWorkers": 10,
+      "executingWorkers": 1,
+      "routeWorkers": 1,
+      "laborWorkers": 0,
+      "pendingOutcomes": 9,
+      "remainingResourceWood": 6,
+      "outputWood": 210,
+      "stepMs": 4.530301999999892,
+      "saveMs": 3.2514419999999973,
+      "observationMs": 7.414289999999937,
+      "recordBytes": 201098,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187838
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187838
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 57,
+      "heldWorkers": 10,
+      "executingWorkers": 3,
+      "routeWorkers": 1,
+      "laborWorkers": 2,
+      "pendingOutcomes": 7,
+      "remainingResourceWood": 6,
+      "outputWood": 210,
+      "stepMs": 6.469344000000092,
+      "saveMs": 3.4369420000000446,
+      "observationMs": 6.228201000000126,
+      "recordBytes": 201062,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187802
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187802
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 58,
+      "heldWorkers": 14,
+      "executingWorkers": 10,
+      "routeWorkers": 5,
+      "laborWorkers": 5,
+      "pendingOutcomes": 4,
+      "remainingResourceWood": 6,
+      "outputWood": 210,
+      "stepMs": 11.073437000000013,
+      "saveMs": 3.120826000000079,
+      "observationMs": 7.557756000000154,
+      "recordBytes": 204276,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191016
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 191016
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 59,
+      "heldWorkers": 13,
+      "executingWorkers": 9,
+      "routeWorkers": 2,
+      "laborWorkers": 7,
+      "pendingOutcomes": 4,
+      "remainingResourceWood": 6,
+      "outputWood": 222,
+      "stepMs": 17.137009000000035,
+      "saveMs": 3.211504000000332,
+      "observationMs": 6.5107670000002145,
+      "recordBytes": 203529,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190269
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 190269
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 60,
+      "heldWorkers": 10,
+      "executingWorkers": 4,
+      "routeWorkers": 0,
+      "laborWorkers": 4,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 6,
+      "outputWood": 240,
+      "stepMs": 15.236613000000034,
+      "saveMs": 4.547507999999652,
+      "observationMs": 7.725749000000178,
+      "recordBytes": 201402,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188142
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188142
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 61,
+      "heldWorkers": 6,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 14.047159999999622,
+      "saveMs": 3.3252940000002127,
+      "observationMs": 8.641380000000026,
+      "recordBytes": 201113,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 62,
+      "heldWorkers": 6,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 3.786760000000413,
+      "saveMs": 3.074325999999928,
+      "observationMs": 7.2515440000001945,
+      "recordBytes": 201113,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 63,
+      "heldWorkers": 6,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 4.339463000000251,
+      "saveMs": 3.408249000000069,
+      "observationMs": 8.03240199999982,
+      "recordBytes": 201113,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 64,
+      "heldWorkers": 6,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 3.7836050000000796,
+      "saveMs": 3.44776899999988,
+      "observationMs": 6.9101190000001225,
+      "recordBytes": 201113,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 65,
+      "heldWorkers": 6,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 6,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 4.835871999999654,
+      "saveMs": 4.0982490000001235,
+      "observationMs": 9.923012000000199,
+      "recordBytes": 201113,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187853
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 66,
+      "heldWorkers": 6,
+      "executingWorkers": 4,
+      "routeWorkers": 0,
+      "laborWorkers": 4,
+      "pendingOutcomes": 2,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 6.70800300000019,
+      "saveMs": 3.0296180000000277,
+      "observationMs": 7.649695000000065,
+      "recordBytes": 201217,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187957
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187957
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 67,
+      "heldWorkers": 6,
+      "executingWorkers": 6,
+      "routeWorkers": 0,
+      "laborWorkers": 6,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 6,
+      "outputWood": 264,
+      "stepMs": 12.006053000000065,
+      "saveMs": 3.014075000000048,
+      "observationMs": 8.354616999999962,
+      "recordBytes": 201267,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188007
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188007
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 68,
+      "heldWorkers": 2,
+      "executingWorkers": 2,
+      "routeWorkers": 0,
+      "laborWorkers": 2,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 6,
+      "outputWood": 288,
+      "stepMs": 17.92152299999998,
+      "saveMs": 3.147744999999759,
+      "observationMs": 7.104071000000204,
+      "recordBytes": 200971,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187711
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187711
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 69,
+      "heldWorkers": 1,
+      "executingWorkers": 1,
+      "routeWorkers": 0,
+      "laborWorkers": 1,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 6,
+      "outputWood": 294,
+      "stepMs": 7.192725000000337,
+      "saveMs": 3.3638819999996485,
+      "observationMs": 9.253392000000076,
+      "recordBytes": 200900,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187640
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187640
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 70,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 6.2116659999996955,
+      "saveMs": 3.129798999999821,
+      "observationMs": 6.832552999999734,
+      "recordBytes": 200837,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 71,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 4.082436000000143,
+      "saveMs": 3.591335000000072,
+      "observationMs": 6.720003000000361,
+      "recordBytes": 200837,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 72,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.728791999999885,
+      "saveMs": 3.7314060000003337,
+      "observationMs": 9.31325199999992,
+      "recordBytes": 200837,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 73,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 4.545955000000049,
+      "saveMs": 4.685044999999718,
+      "observationMs": 6.698218999999881,
+      "recordBytes": 200837,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 74,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.813560999999936,
+      "saveMs": 3.0355560000002697,
+      "observationMs": 7.1199249999999665,
+      "recordBytes": 200837,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187577
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 75,
+      "heldWorkers": 1,
+      "executingWorkers": 1,
+      "routeWorkers": 1,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 9.546933999999965,
+      "saveMs": 3.1803759999997965,
+      "observationMs": 7.409211000000141,
+      "recordBytes": 201616,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188356
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188356
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 76,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.8026629999999386,
+      "saveMs": 3.3663369999999304,
+      "observationMs": 7.5991180000000895,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 77,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.8985490000000027,
+      "saveMs": 3.0981309999997393,
+      "observationMs": 7.768193999999767,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 78,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.939610000000357,
+      "saveMs": 3.3209170000000086,
+      "observationMs": 8.727190000000064,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 79,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.8892940000000635,
+      "saveMs": 3.0758770000002187,
+      "observationMs": 7.576915000000099,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 80,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 4.09891000000016,
+      "saveMs": 3.1290579999999864,
+      "observationMs": 7.968684999999823,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 81,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 3.8378569999999854,
+      "saveMs": 3.045763000000079,
+      "observationMs": 9.052509999999984,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 82,
+      "heldWorkers": 1,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 1,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 4.044918999999936,
+      "saveMs": 3.338424000000032,
+      "observationMs": 9.388676999999916,
+      "recordBytes": 201272,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188012
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 83,
+      "heldWorkers": 1,
+      "executingWorkers": 1,
+      "routeWorkers": 0,
+      "laborWorkers": 1,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 6.982147000000168,
+      "saveMs": 3.0288369999998395,
+      "observationMs": 7.21054200000026,
+      "recordBytes": 201297,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188037
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188037
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 84,
+      "heldWorkers": 1,
+      "executingWorkers": 1,
+      "routeWorkers": 0,
+      "laborWorkers": 1,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 294,
+      "stepMs": 7.795955000000049,
+      "saveMs": 3.338833999999679,
+      "observationMs": 6.769757999999911,
+      "recordBytes": 201297,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188037
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 188037
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 85,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 300,
+      "stepMs": 6.21171699999968,
+      "saveMs": 3.412594999999783,
+      "observationMs": 7.3524249999995845,
+      "recordBytes": 201229,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 86,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 300,
+      "stepMs": 4.214684999999918,
+      "saveMs": 3.0343760000000657,
+      "observationMs": 8.621658999999909,
+      "recordBytes": 201229,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 87,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 300,
+      "stepMs": 4.630591999999979,
+      "saveMs": 3.2666450000001532,
+      "observationMs": 8.358453000000281,
+      "recordBytes": 201229,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 88,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 300,
+      "stepMs": 4.1031669999997575,
+      "saveMs": 3.0903699999998935,
+      "observationMs": 7.053936999999678,
+      "recordBytes": 201229,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 89,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 300,
+      "stepMs": 3.990236999999979,
+      "saveMs": 3.06699400000025,
+      "observationMs": 8.098150999999689,
+      "recordBytes": 201229,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    },
+    {
+      "tick": 90,
+      "heldWorkers": 0,
+      "executingWorkers": 0,
+      "routeWorkers": 0,
+      "laborWorkers": 0,
+      "pendingOutcomes": 0,
+      "remainingResourceWood": 0,
+      "outputWood": 300,
+      "stepMs": 3.748340999999982,
+      "saveMs": 2.9991829999999027,
+      "observationMs": 6.550106000000142,
+      "recordBytes": 201229,
+      "changedRecords": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        }
+      ],
+      "recordSizes": [
+        {
+          "key": "kernel/atmosphere/0000",
+          "bytes": 151
+        },
+        {
+          "key": "kernel/entities/0000",
+          "bytes": 187969
+        },
+        {
+          "key": "kernel/environment/definition",
+          "bytes": 10928
+        },
+        {
+          "key": "kernel/environment/header",
+          "bytes": 531
+        },
+        {
+          "key": "kernel/environment/structures",
+          "bytes": 6
+        },
+        {
+          "key": "kernel/environment/terrain",
+          "bytes": 234
+        },
+        {
+          "key": "kernel/environment/water",
+          "bytes": 1402
+        },
+        {
+          "key": "kernel/header",
+          "bytes": 8
+        }
+      ]
+    }
+  ],
+  "midWorkReplayPassed": true,
+  "querySizes": {
+    "start:[\"hive.finite-resource\"]": {
+      "calls": 1,
+      "bytes": 5116,
+      "rows": 50
+    },
+    "step:[\"colony.cat\",\"hive.position\",\"hive.body\",\"hive.traversal\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"hive.lot\"]": {
+      "calls": 270,
+      "bytes": 1675497,
+      "rows": 16302
+    },
+    "observation:[\"hive.construction-site\"]": {
+      "calls": 360,
+      "bytes": 720,
+      "rows": 0
+    },
+    "observation:[\"hive.supply-allocation\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"colony.worker\",\"hive.party-member\"]": {
+      "calls": 90,
+      "bytes": 324900,
+      "rows": 2880
+    },
+    "observation:[\"hive.container\",\"hive.owned-by-party\"]": {
+      "calls": 90,
+      "bytes": 1497914,
+      "rows": 12814
+    },
+    "observation:[\"hive.storage-provider\",\"hive.container\",\"hive.position\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"hive.ground-stock\",\"hive.container\",\"hive.position\"]": {
+      "calls": 90,
+      "bytes": 883995,
+      "rows": 5434
+    },
+    "observation:[\"hive.stockpile-cell\",\"hive.position\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"colony.tree\"]": {
+      "calls": 180,
+      "bytes": 722880,
+      "rows": 9000
+    },
+    "observation:[\"colony.tree\",\"colony.tree-policy\"]": {
+      "calls": 90,
+      "bytes": 676440,
+      "rows": 4500
+    },
+    "observation:[\"hive.work-participation\"]": {
+      "calls": 90,
+      "bytes": 247140,
+      "rows": 2880
+    },
+    "observation:[\"hive.excavation-work\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"hive.ground-stock\"]": {
+      "calls": 90,
+      "bytes": 330871,
+      "rows": 5434
+    },
+    "observation:[\"hive.excavation-order\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"hive.staged-process\"]": {
+      "calls": 180,
+      "bytes": 360,
+      "rows": 0
+    },
+    "observation:[\"hive.stockpile-cell\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"colony.worker\",\"hive.party-member\",\"hive.work-participation\"]": {
+      "calls": 90,
+      "bytes": 454500,
+      "rows": 2880
+    },
+    "observation:[\"colony.tree\",\"hive.finite-resource\",\"colony.tree-policy\"]": {
+      "calls": 90,
+      "bytes": 910440,
+      "rows": 4500
+    },
+    "observation:[\"colony.tree\",\"hive.position\",\"hive.finite-resource\"]": {
+      "calls": 90,
+      "bytes": 907380,
+      "rows": 4500
+    },
+    "observation:[\"hive.resource-site\",\"hive.position\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"hive.body\"]": {
+      "calls": 90,
+      "bytes": 198270,
+      "rows": 2970
+    },
+    "observation:[\"hive.visual\"]": {
+      "calls": 90,
+      "bytes": 298080,
+      "rows": 2970
+    },
+    "observation:[\"hive.resource-site\"]": {
+      "calls": 90,
+      "bytes": 180,
+      "rows": 0
+    },
+    "observation:[\"hive.ground-stock\",\"hive.position\"]": {
+      "calls": 90,
+      "bytes": 710107,
+      "rows": 5434
+    },
+    "observation:[\"hive.container\"]": {
+      "calls": 90,
+      "bytes": 966116,
+      "rows": 12904
+    },
+    "observation:[\"hive.position\"]": {
+      "calls": 90,
+      "bytes": 1450323,
+      "rows": 12904
+    },
+    "observation:[\"hive.job-task-work\"]": {
+      "calls": 90,
+      "bytes": 911790,
+      "rows": 9000
+    },
+    "diagnostic:[\"colony.tree\",\"hive.finite-resource\"]": {
+      "calls": 1,
+      "bytes": 6616,
+      "rows": 50
+    },
+    "diagnostic:[\"hive.finite-resource\"]": {
+      "calls": 1,
+      "bytes": 5116,
+      "rows": 50
+    },
+    "diagnostic:[\"hive.lot\"]": {
+      "calls": 1,
+      "bytes": 10235,
+      "rows": 100
+    },
+    "diagnostic:[\"colony.worker\"]": {
+      "calls": 1,
+      "bytes": 2330,
+      "rows": 32
+    },
+    "diagnostic:[\"colony.cat\",\"hive.position\",\"hive.body\",\"hive.traversal\"]": {
+      "calls": 1,
+      "bytes": 2,
+      "rows": 0
+    }
+  },
+  "recordBytes": {
+    "count": 90,
+    "total": 18113314,
+    "median": 201229,
+    "p95": 213804,
+    "max": 224832
+  },
+  "changedBytes": {
+    "count": 90,
+    "total": 16935466,
+    "median": 188120,
+    "p95": 200703,
+    "max": 211731
+  },
+  "recoveryPassed": true,
+  "notes": [
+    "Node headless existing generated WASM, no rendering, Worker messaging, SQL/DO or network.",
+    "step/save/recordDiff/observation outer timings are sequential; port/native methods are nested within these and must not be added to them.",
+    "Query instrumentation parses returned JSON a second time to count rows; method and outer timings include that diagnostic overhead.",
+    "1-second delta follows existing productive benchmark, not production frame cadence; activeWorkers is held attempt count, not utilization.",
+    "Native source last changed 02223655, artifact pinned by hash."
+  ],
+  "windows": {
+    "definition": "Active workflow window extends through last held WorkAttempt/output-incomplete tick plus final completion tick; direct labor means executing job-transform observed at step end.",
+    "active": {
+      "count": 85,
+      "first": 1,
+      "last": 85,
+      "stepMs": {
+        "n": 85,
+        "median": 7.566949999999906,
+        "p95": 33.178177000000005,
+        "max": 139.35908900000004
+      },
+      "saveMs": {
+        "n": 85,
+        "median": 3.4101620000001276,
+        "p95": 4.807890000000043,
+        "max": 6.449844000000041
+      },
+      "observationMs": {
+        "n": 85,
+        "median": 7.094867999999906,
+        "p95": 9.253392000000076,
+        "max": 161.08224300000006
+      },
+      "held": {
+        "n": 85,
+        "median": 16,
+        "p95": 32,
+        "max": 32
+      },
+      "executing": {
+        "n": 85,
+        "median": 8,
+        "p95": 26,
+        "max": 31
+      },
+      "labor": {
+        "n": 85,
+        "median": 0,
+        "p95": 12,
+        "max": 19
+      }
+    },
+    "idle": {
+      "count": 5,
+      "first": 86,
+      "last": 90,
+      "stepMs": {
+        "n": 5,
+        "median": 4.1031669999997575,
+        "p95": 4.630591999999979,
+        "max": 4.630591999999979
+      },
+      "saveMs": {
+        "n": 5,
+        "median": 3.06699400000025,
+        "p95": 3.2666450000001532,
+        "max": 3.2666450000001532
+      },
+      "observationMs": {
+        "n": 5,
+        "median": 8.098150999999689,
+        "p95": 8.621658999999909,
+        "max": 8.621658999999909
+      },
+      "held": {
+        "n": 5,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "executing": {
+        "n": 5,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      },
+      "labor": {
+        "n": 5,
+        "median": 0,
+        "p95": 0,
+        "max": 0
+      }
+    },
+    "maxRouteWorkers": 23,
+    "maxLaborWorkers": 19,
+    "warmActive": {
+      "first": 2,
+      "last": 85,
+      "count": 84,
+      "stepMs": {
+        "n": 84,
+        "median": 7.192725000000337,
+        "p95": 28.795008999999936,
+        "max": 40.083097999999836
+      },
+      "saveMs": {
+        "n": 84,
+        "median": 3.408249000000069,
+        "p95": 4.699035999999978,
+        "max": 5.376145999999949
+      },
+      "observationMs": {
+        "n": 84,
+        "median": 6.9101190000001225,
+        "p95": 9.086211000000048,
+        "max": 9.923012000000199
+      }
+    }
+  }
+}

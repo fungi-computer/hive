@@ -1,5 +1,99 @@
 # Renderer audit and new-chat handoff — September 19, 2026
 
+## September 20 reassessment — Pixi remains the delivery direction
+
+Levi rejected the separately published Three.js comparison because it lost the
+game's charm. Preserve that study as evidence; do not promote or continue it as
+the game renderer. The original baked art and Pixi remain the intended pipeline.
+Levi requested an explanation grounded in actual game source and re-supplied
+[Scott Steffes's sorting video](https://www.youtube.com/watch?v=yRZlVrinw9I).
+The [combined engine/Edmund source study](16-engine-edmund-source-study-20260920.md)
+now records the pinned comparisons, measured runtime costs and proposed repair
+sequence. This reassessment supersedes any broad correctness implication of the checkpoint
+below. User-reported diagonal terrain artifacts, pan/cut/return corruption and
+poor performance remain unresolved. No new renderer release follows from this
+source review.
+
+The video's description links `markv12/IsoSpriteSortingDemo`, pulled and read at
+`86b907c94a42d9cd26fa44973f8bc4d0dc4981ce`. Playback was blocked by YouTube; the
+evidence is its linked implementation, not a claimed viewing of the footage.
+[Point/line comparisons](https://github.com/markv12/IsoSpriteSortingDemo/blob/86b907c94a42d9cd26fa44973f8bc4d0dc4981ce/Assets/Scripts/IsoSpriteSorting.cs#L175-L243)
+use the position relative to an extended object, rather than reducing all
+objects to one pivot. The
+[manager](https://github.com/markv12/IsoSpriteSortingDemo/blob/86b907c94a42d9cd26fa44973f8bc4d0dc4981ce/Assets/Scripts/IsoSpriteSortingManager.cs#L30-L149)
+caches static precedence relations, checks overlapping moving sprites, and emits
+a topological order. This is directly relevant to ordinary movement beside long
+objects; such movement does not inherently require splitting every sprite.
+Its two-dimensional point/line model and heuristic cycle breaking are not proof
+of arbitrary multi-level voxel correctness or Hive performance.
+
+Current production `voxel-draw-stream.js` instead visits scalar contact keys and
+emits an ordinary footprint after its final contact. It does not compare the
+overlapping extents of those records. Additional contacts therefore do not
+implement the video's relative line comparison. The retained owner's comparison
+against the same full compiler checks equivalence, not independent geometric
+correctness. Earlier geometry studies must be carried into actual production
+rules and independent rendered checks, not merely cited by another wrapper.
+
+An independent source probe (`run-u2503`, exit 0) now supplies a terrain-only
+counterexample: original mask-13 grass rooted on `[0,0,0]`, `[1,0,1]` and
+`[0,0,1]` emits after the raised bank top `[1,1,0]`. Actual grass vertex
+`(.405916199,.395155970,-.019372642)` and the nearer bank point
+`(.913994297,.81,.488705456)` project to the same point, with the latter inside
+the top face. The compiler orders the bank before the whole grass patch because
+of the patch's last support contact. This is a geometric witness against the
+current ordering rule, independent of terrain retention.
+
+A subsequent original-art browser probe (`run-u2511`, exit 0) now reproduces
+incorrect occlusion in 24 opaque interior bank pixels using production terrain
+records, ordering and batching. Independent ray geometry certifies the nearer
+bank at those pixels. [Probe](evidence/20260920-grass-bank-render-probe.mjs),
+[result](evidence/20260920-grass-bank-render.json),
+[actual image](evidence/20260920-grass-bank-actual.png). Reversing the fixture's
+records is only a diagnostic at those checked pixels, not a general repair. This
+still does not diagnose the screenshot's particular diagonals or reproduce the
+user's complete saved world. The earlier top-face-only attempt (`run-u2508`)
+failed to find a certified interior witness; the passing probe includes the
+actual bank's visible side faces.
+
+Source review also found coarse invalidation: water-record changes invalidate
+the complete static stream; an actor crossing an insertion boundary rebuilds
+the merged view and replans terrain runs; changed chunk demand regenerates all
+cover records. These are concrete cost paths to measure, not a new measured
+performance result. The current compiler sorts contact events and is not the
+historical all-pairs implementation.
+
+Fresh read-only comparisons also pulled OpenRCT2 at
+`252987e921fa07587f8192d3a72ac17719938c20`, OpenTTD at
+`c56e08d5c35a137cda2e063b05fbf7895d3cf554`, and FreeRCT at
+`eda43627b6dfcd55fa7f9e4fdc72fe9c661a18f7`. OpenRCT2's
+[preparation and arrangement](https://github.com/OpenRCT2/OpenRCT2/blob/252987e921fa07587f8192d3a72ac17719938c20/src/openrct2/paint/Paint.cpp#L338-L745)
+use spatial buckets, rotation-aware world bounds and parent/child relationships
+before a simple painter. Its
+[viewport implementation](https://github.com/OpenRCT2/OpenRCT2/blob/252987e921fa07587f8192d3a72ac17719938c20/src/openrct2/interface/Viewport.cpp#L926-L970)
+explicitly warns that narrowing sorting candidates to partial redraw blocks
+changes ordering and causes glitches. FreeRCT's
+[voxel component order](https://github.com/FreeRCT/FreeRCT/blob/eda43627b6dfcd55fa7f9e4fdc72fe9c661a18f7/src/viewport.h#L56-L80)
+shows how deliberately structured sprite pieces make a voxel traversal useful;
+it does not justify applying a voxel key to arbitrary unsplit images. OpenTTD's
+[known sorting limitations](https://github.com/OpenTTD/OpenTTD/blob/c56e08d5c35a137cda2e063b05fbf7895d3cf554/known-bugs.md#L59-L79)
+also rule out claiming that adopting an established comparator alone proves all
+occlusion correct.
+
+Next work must establish geometric precedence for the supported asset shapes,
+retain the original pixels, and keep pan/cut/cache correctness separate from
+sorting correctness. Use authored parts only for demonstrated interleaving;
+ordinary walk-around overlap is not a reason for an object-specific patch.
+The deep client presentation owner must own preparation, invalidation and shared
+picking; the server supplies world facts and Pixi paints the prepared output.
+Measure actual candidate/preparation/batching costs before making a speed claim.
+
+The two dirty `cut-terrain-layer` source/test edits remain an unaccepted experiment.
+The new test did not force incomplete replacement coverage: the initial request
+already loaded its neighboring vertical chunk. It failed at that precondition,
+so it proves neither the reported artifact nor the proposed repair. Preserve
+the edits and correct the reproduction before accepting or publishing a fix.
+
 ## Latest implementation checkpoint — read first
 
 Implementation has advanced on `engine/living-terrain-integration-20260917` in
