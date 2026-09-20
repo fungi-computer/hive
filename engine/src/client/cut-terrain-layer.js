@@ -283,6 +283,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     },
     applyOrder: ordered => batches.update(ordered),
     get coverage() { return cache.snapshot(); },
+    get meshMetrics() { return batches.metrics(); },
     get cameraCoverage() { return cameraCoverage.snapshot(); },
     get presentedTerrain() {
       if (!frame) return undefined;
@@ -296,7 +297,9 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       if (disposed) return;
       disposed = true; cameraCoverage.reset(); cache.dispose(); batches.dispose(); terrainArt?.dispose();
       for (const entry of waterEntries.values()) entry.sprite.destroy();
-      waterEntries.clear(); waterRecordEntries.clear(); faceChunks.clear(); coverEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = [];
+      waterEntries.clear(); waterRecordEntries.clear(); faceChunks.clear(); coverEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = []; retainedRecords = Object.freeze([]);
+      frame = undefined; terrainArt = undefined; appearance = undefined;
+      presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined; presentedSource = undefined;
     },
   });
 }

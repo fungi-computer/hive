@@ -249,3 +249,15 @@ test("an empty complete camera demand clears paint and picking, then restores re
     assert.equal(reads(), beforeReads, "return reuses bounded cached chunks");
   } finally { layer.dispose(); }
 });
+
+test("disposing a retained terrain owner releases its presented records and picking faces", async () => {
+  const { layer } = testLayer();
+  layer.update(testTerrain({ minX: 0, maxX: 8, minY: 0, maxY: 8, minZ: 0, maxZ: 8 }), 1);
+  await readyLayer(layer, { x: 0, y: 0, zoom: 2 },
+    { cutaway: true, level: 0, range: { min: 0, max: 7 } }, { width: 640, height: 400 });
+  assert(layer.retainedRecords.records.length > 0);
+  layer.dispose();
+  assert.equal(layer.retainedRecords.records.length, 0);
+  assert.equal(layer.presentedTerrain, undefined);
+  assert.equal(layer.coverage.cachedChunks, 0);
+});

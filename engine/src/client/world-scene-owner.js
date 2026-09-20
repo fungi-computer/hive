@@ -81,7 +81,7 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
     pick: point => ordering.pick(point),
     metrics() {
       const coverage = terrain.coverage;
-      return { ...ordering.metrics(), visualBuild: { frames, unchangedFrames, totalMs: buildMs },
+      return { ...ordering.metrics(), meshes: terrain.meshMetrics, visualBuild: { frames, unchangedFrames, totalMs: buildMs },
         cameraCoverage: terrain.cameraCoverage,
         coverage: { capacity: coverage.capacity, epoch: coverage.epoch, terrainRevision: coverage.terrainRevision,
           demandComplete: coverage.demandComplete, viewBudget: coverage.viewBudget,
@@ -92,7 +92,7 @@ export function createWorldSceneOwner({ runtime, projection: initialProjection, 
       ({ id, part, screenBounds, orderGeometry, support, cell, pickable, role })),
     dispose() {
       if (disposed) return;
-      disposed = true; actors.dispose(); guides.dispose(); ghosts.dispose(); previewLayer.destroy(); terrain.dispose(); ordering.reset(); records = [];
+      disposed = true; actors.dispose(); guides.dispose(); ghosts.dispose(); previewLayer.destroy(); terrain.dispose(); ordering.reset(); records = []; frame = undefined; previousProduced = undefined; previousTerrainRevision = undefined;
     },
   });
 }
