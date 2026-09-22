@@ -505,7 +505,7 @@ export function createCutTerrainLayer({
       input = undefined;
     }
     function cancel() {
-      if (status !== "pending" && status !== "ready") return;
+      if (!["pending", "awaiting-paint", "painting", "ready"].includes(status)) return;
       status = "cancelled";
       pictureTask?.cancel();
       meshTask?.cancel();
@@ -521,16 +521,33 @@ export function createCutTerrainLayer({
       get ready() {
         return status === "ready";
       },
+      get terrainReady() {
+        return result !== undefined;
+      },
       get result() {
         return result;
       },
-      advance({ maxOperations = 128, deadline = Infinity } = {}) {
+      advance({ maxOperations = 128, batchRecords = 512, batchMeshes = 2, deadline = Infinity } = {}) {
         if (
           !Number.isSafeInteger(maxOperations) ||
           maxOperations < 1 ||
+          !Number.isSafeInteger(batchRecords) ||
+          batchRecords < 1 ||
+          !Number.isSafeInteger(batchMeshes) ||
+          batchMeshes < 1 ||
           !(Number.isFinite(deadline) || deadline === Infinity)
         )
           throw new Error("invalid terrain preparation budget");
+        if (status === "painting") {
+          try {
+            if (clock() < deadline && meshTask.advance({ records: batchRecords, meshes: batchMeshes })) status = "ready";
+            return status;
+          } catch (error) {
+            cancel();
+            status = "failed";
+            throw error;
+          }
+        }
         if (status !== "pending") return status;
         try {
           if (pictureTask && !pictureProduct) {
@@ -545,7 +562,7 @@ export function createCutTerrainLayer({
             const next = iterator.next();
             if (next.done) {
               result = next.value;
-              status = "ready";
+              status = "awaiting-paint";
               iterator = undefined;
               break;
             }
@@ -558,21 +575,21 @@ export function createCutTerrainLayer({
           throw error;
         }
       },
-      prepareOrder(ordered) {
-        if (status !== "ready" || pending !== task)
+      stagePaint(ordered) {
+        if (status !== "awaiting-paint" || pending !== task)
           throw new Error("terrain preparation is not ready or is stale");
-        meshTask?.cancel();
+        if (ordered == null) {
+          if (result.records !== published.records)
+            throw new Error("changed terrain requires a prepared paint plan");
+          status = "ready";
+          return;
+        }
         meshTask = batches.prepare(ordered);
-        return meshTask;
+        status = meshTask.ready ? "ready" : "painting";
       },
       publish() {
         if (status !== "ready" || pending !== task)
           throw new Error("terrain preparation is not ready or is stale");
-        if (
-          (meshTask && !meshTask.ready) ||
-          (!meshTask && result.records !== published.records)
-        )
-          throw new Error("terrain order preparation is not ready");
         if (pictureTask) pictureTask.publish();
         for (const [key, entry] of published.waterEntries)
           if (waterEntries.get(key)?.sprite !== entry.sprite)

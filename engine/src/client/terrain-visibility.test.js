@@ -25,7 +25,8 @@ test("checked world faces project directly with no material neighbor queries",()
   const data={faces:[{cell:[0,0,0],face:"top",material:1,cap:true},{cell:[0,0,0],face:"bottom",material:1,cap:false}],
     palette:[{slot:1,solid:true,art:"earth"}],verticalMetres:.54};
   const records=terrainFaceRecords(data,{projection});assert.equal(records.length,1);assert.equal(records[0].cap,true);
-  assert.equal(records[0].cell,data.faces[0].cell);assert(records[0].contains(projection.project({x:0,y:.27,z:0})));
+  assert.equal(records[0].cell,data.faces[0].cell);
+  assert.equal(records[0].contains,undefined,"non-pickable terrain does not build a plane-order proxy");
 });
 
 test("terrain owns deeply frozen ordering geometry without freezing presentation",()=>{

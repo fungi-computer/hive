@@ -6,11 +6,8 @@ import { createActorPresentationOwner } from "./actor-presentation-owner.js";
 import { createPlacementGuideOwner } from "./placement-guide-owner.js";
 import { createPlacementGhostOwner } from "./placement-ghost-owner.js";
 import { resolveStaticVisual } from "./visual-resolver.js";
-import { createSpatialSceneOwner } from "./spatial-scene-owner.js";
+import { createStructuralDrawOrderOwner } from "./structural-draw-order-owner.js";
 import { edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
-
-const staticIdentity = record => JSON.stringify([record.id, record.part, record.orderGeometry,
-  record.supportY, record.compositePartition, record.contactSurface, record.surfaceOrder]);
 
 /** The client supplies facts and UI intent. This owner prepares one successor,
  * keeps the displayed picture interactive, and publishes geometry, sprites,
@@ -21,7 +18,7 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
   let geometry = createCameraGeometryOwner(), view = createWorldView(initialView), wantedTurn = 0;
   let sourceFrame, sourceEpoch, displayedEpoch, disposed = false, pending;
   let subjects = Object.freeze([]), records = [], terrainRevision, previousProduced;
-  let paintedCamera, retainedStatic, retainedStaticRevision;
+  let paintedCamera;
   const cameraState = { x: 0, y: 0, zoom: 1 };
   const project = (x, y, z) => geometry.project(x, y, z);
   const terrain = createCutTerrainLayer({ runtime, projection: geometry.projection, onCoverage });
@@ -31,8 +28,8 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
   terrain.container.addChild(previewLayer);
   const guides = createPlacementGuideOwner({ parent: previewLayer, project });
   const ghosts = createPlacementGhostOwner({ parent: previewLayer, project, bindings, resolve: resolveStaticVisual });
-  let ordering = createSpatialSceneOwner({ projection: geometry.projection, clock });
-  const retiredCounts = {}, retiredTimes = {};
+  let ordering = createStructuralDrawOrderOwner({ direction: geometry.projection.direction, clock });
+  const retiredOrdering = {};
   const work = { frames: 0, started: 0, published: 0, cancelled: 0, preparationMs: 0, publicationMs: 0, maxFrameWorkMs: 0 };
 
   function transform() {
@@ -78,16 +75,16 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
   function cancelPending() {
     const job = pending; if (!job) return;
     pending = undefined; work.cancelled++;
-    job.iterator.return(); job.mesh?.cancel(); job.order?.cancel(); job.actor?.cancel(); job.terrain?.cancel();
-    if (job.ordering !== ordering) job.ordering.reset();
+    job.iterator.return(); job.order?.cancel(); job.actor?.cancel(); job.terrain?.cancel();
+    if (job.ordering !== ordering) job.ordering.dispose();
     if (job.geometry !== geometry) job.geometry.dispose();
   }
   function start(input, nextGeometry) {
     const job = { epoch: sourceEpoch, view: createWorldView(input.view), turn: wantedTurn, geometry: nextGeometry,
-      ordering: nextGeometry === geometry ? ordering : createSpatialSceneOwner({ projection: nextGeometry.projection, clock }),
+      ordering: nextGeometry === geometry ? ordering : createStructuralDrawOrderOwner({ direction: nextGeometry.projection.direction, clock }),
       terrain: terrain.prepare(), done: false };
     function* prepare() {
-      while (!job.terrain.ready) { job.terrain.advance({ maxOperations: 1 }); yield; }
+      while (!job.terrain.terrainReady) { job.terrain.advance({ maxOperations: 128 }); yield; }
       const terrainResult = job.terrain.result;
       const preparedSubjects = [];
       for (const fact of input.facts ?? []) {
@@ -107,43 +104,17 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
       while (!job.actor.ready) { job.actor.advance({ maxActors: 1, maxParts: 1 }); yield; }
       const produced = job.actor.records;
       if (job.ordering === ordering && terrainRevision === terrainResult.revision && produced === previousProduced) {
-        job.orderUnchanged = true; return;
+        job.orderUnchanged = true;
+        job.terrain.stagePaint(null);
+        return;
       }
-      const statics = [], dynamics = [], contacts = new Map(), identities = [];
-      for (const record of produced) {
-        if (record.moving !== true) {
-          statics.push(record); identities.push(staticIdentity(record));
-          if (record.contactSurface) {
-            if (contacts.has(String(record.id))) throw new Error("world visual owner has ambiguous support surface");
-            contacts.set(String(record.id), record);
-          }
-        }
-        yield;
-      }
-      for (const record of produced) {
-        if (record.moving === true) {
-          if (record.attachment?.support == null) dynamics.push(record);
-          else {
-            const surface = contacts.get(String(record.attachment.support));
-            if (!surface) throw new Error(`world visual support is missing: ${record.attachment.support}`);
-            dynamics.push({ ...record, support: { id: surface.id, part: surface.part, point: record.attachment.feet } });
-          }
-        }
-        yield;
-      }
-      job.staticRevision = `${terrainResult.revision}:${identities.join("|")}`;
-      job.staticRecords = retainedStatic;
-      if (job.ordering !== ordering || retainedStaticRevision !== job.staticRevision) {
-        job.staticRecords = [];
-        for (const list of [terrainResult.records, statics]) for (const record of list) { job.staticRecords.push(record); yield; }
-      }
-      job.order = job.ordering.prepare({ revision: job.staticRevision,
-        staticRecords: () => job.staticRecords, currentStaticRecords: statics, dynamicRecords: dynamics });
-      while (job.order.status === "pending") { job.order.advance({ maxOperations: 1 }); yield; }
-      if (job.order.result.applyOrderRequired) {
-        job.mesh = job.terrain.prepareOrder(job.order.result.stagedRecords);
-        while (!job.mesh.ready) { job.mesh.advance({ records: 1, meshes: 1 }); yield; }
-      }
+      job.order = job.ordering.prepare({ terrainRevision: terrainResult.revision,
+        terrainRecords: terrainResult.records, subjectRecords: produced });
+      while (job.order.status === "pending") { job.order.advance({ maxOperations: 256 }); yield; }
+      if (job.order.result.paintRequired) {
+        job.terrain.stagePaint(job.order.result.stagedRecords);
+      } else job.terrain.stagePaint(null);
+      while (!job.terrain.ready) { job.terrain.advance({ batchRecords: 512, batchMeshes: 2 }); yield; }
     }
     job.iterator = prepare(); pending = job; work.started++;
   }
@@ -153,13 +124,12 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
     job.actor.publish(); job.terrain.publish();
     if (job.order) {
       records = job.ordering.publish(job.order).records;
-      retainedStatic = job.staticRecords; retainedStaticRevision = job.staticRevision;
     }
     if (job.ordering !== ordering) {
       const old = ordering.metrics();
-      for (const [key, value] of Object.entries(old.counts)) retiredCounts[key] = (retiredCounts[key] ?? 0) + value;
-      for (const [key, value] of Object.entries(old.times)) retiredTimes[key] = (retiredTimes[key] ?? 0) + value;
-      ordering.reset(); ordering = job.ordering;
+      for (const [key, value] of Object.entries(old)) if (typeof value === "number")
+        retiredOrdering[key] = key === "maxAdvanceMs" ? Math.max(retiredOrdering[key] ?? 0, value) : (retiredOrdering[key] ?? 0) + value;
+      ordering.dispose(); ordering = job.ordering;
     }
     if (job.geometry !== geometry) { geometry.dispose(); geometry = job.geometry; }
     Object.assign(cameraState, nextCamera);
@@ -219,15 +189,15 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
       wantedTurn = geometry.turn;
       terrain.clear(); actors.clear(); guides.clear(); ghosts.clear(); ordering.reset();
       geometry.reset(); records = []; subjects = Object.freeze([]); previousProduced = terrainRevision = undefined;
-      retainedStatic = undefined; retainedStaticRevision = undefined;
     },
     resetTimeline() { cancelPending(); actors.resetTimeline(); }, react: actors.react,
     pick: point => ordering.pick(point),
     metrics() {
       const coverage = terrain.coverage;
       const current = ordering.metrics();
-      const add = (values, previous) => Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value + (previous[key] ?? 0)]));
-      return { ...current, counts: add(current.counts, retiredCounts), times: add(current.times, retiredTimes),
+      const accumulated = Object.fromEntries(Object.entries(current).map(([key, value]) => [key,
+        typeof value !== "number" ? value : key === "maxAdvanceMs" ? Math.max(value, retiredOrdering[key] ?? 0) : value + (retiredOrdering[key] ?? 0)]));
+      return { ...accumulated,
         meshes: terrain.meshMetrics, preparation: { ...work, pending: Boolean(pending) },
         cameraCoverage: terrain.cameraCoverage,
         coverage: { capacity:coverage.capacity, maxBytes:coverage.maxBytes, retainedBytes:coverage.retainedBytes,
@@ -243,8 +213,7 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
       ({ id, part, screenBounds, orderGeometry, support, cell, pickable, role })),
     dispose() {
       if (disposed) return; disposed = true; cancelPending(); geometry.dispose(); actors.dispose(); guides.dispose(); ghosts.dispose();
-      previewLayer.destroy(); terrain.dispose(); ordering.reset(); records = []; subjects = Object.freeze([]); sourceFrame = undefined;
-      retainedStatic = undefined; retainedStaticRevision = undefined;
+      previewLayer.destroy(); terrain.dispose(); ordering.dispose(); records = []; subjects = Object.freeze([]); sourceFrame = undefined;
     },
   });
 }

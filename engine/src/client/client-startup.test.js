@@ -92,9 +92,10 @@ await mock.module(new URL("./cut-terrain-layer.js", import.meta.url).href, { exp
       request(input) { assert(!disposed); requested = input; if (input.frame) f.demand.push({ camera: { ...input.camera }, level: input.view.level }); },
       prepare() {
         const input = requested;
-        const task = { ready: !f.holdTerrain, cancelled: 0, published: 0,
+        const task = { ready: false, terrainReady: !f.holdTerrain, cancelled: 0, published: 0,
           result: { terrainFrame: input.frame, records: [], revision: 0 },
-          advance() { if (!f.holdTerrain) task.ready = true; },
+          advance() { if (!f.holdTerrain) task.terrainReady = true; },
+          stagePaint() { assert(task.terrainReady); task.ready = true; },
           publish() { frame = input.frame; task.published++; }, cancel() { task.cancelled++; } };
         f.terrainTasks.push(task);
         return task;
@@ -126,12 +127,12 @@ for (const [file, name] of [["placement-guide-owner", "createPlacementGuideOwner
     [name]: () => ({ update() {}, clear() {}, dispose() {} }),
   } });
 }
-await mock.module(new URL("./spatial-scene-owner.js", import.meta.url).href, { exports: {
-  createSpatialSceneOwner: ({ projection }) => {
+await mock.module(new URL("./structural-draw-order-owner.js", import.meta.url).href, { exports: {
+  createStructuralDrawOrderOwner: ({ direction }) => {
     const f = active;
-    return { prepare: () => ({ status: "ready", result: { stagedRecords: [], applyOrderRequired: false }, cancel() {} }),
+    return { prepare: () => ({ status: "ready", result: { stagedRecords: [], paintRequired: false }, cancel() {} }),
       publish: () => ({ records: [] }),
-      reset() {}, metrics: () => ({ counts: {}, times: {} }), pick() { f.picks.push(projection); return {}; } };
+      reset() {}, dispose() {}, metrics: () => ({}), pick() { f.picks.push(direction); return {}; } };
   },
 } });
 

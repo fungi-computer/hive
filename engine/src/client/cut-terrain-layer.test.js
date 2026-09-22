@@ -497,7 +497,7 @@ test("region face facts survive rotation without terrain reads and unknown colum
   }
 });
 
-test("prepared viewport culls resident faces and grass, retains small pans, and reculls unchanged region membership", async () => {
+test("resident chunk pictures survive camera replans without reconstructing body or grass", async () => {
   const world = { ...bounds, maxX: 8, maxZ: 8 },
     size = { width: 20, height: 20 },
     startCamera = { x: -220, y: -230, zoom: 1 };
@@ -513,14 +513,8 @@ test("prepared viewport culls resident faces and grass, retains small pans, and 
     const cover = before.records.filter(
       (record) => record.role === "terrain-cover",
     );
-    assert(
-      body.length > 0 && body.length < 64,
-      "resident patch faces outside prepared area are not materialized",
-    );
-    assert(
-      cover.length > 0 && cover.length < 81,
-      "resident patch grass outside prepared area is not materialized",
-    );
+    assert(body.length >= 64, "the full resident chunk derivative includes its top faces");
+    assert(cover.length >= 64, "the full resident chunk derivative includes its grass roots");
     show(layer, { ...startCamera, x: -240 }, view, size);
     assert.strictEqual(layer.retainedRecords.records, before.records);
     assert.equal(layer.retainedRecords.revision, before.revision);
@@ -533,21 +527,8 @@ test("prepared viewport culls resident faces and grass, retains small pans, and 
       1,
       "same resident patch supplies the newly prepared area",
     );
-    assert(
-      after.records.some(
-        (record) => !before.records.some((old) => old.id === record.id),
-      ),
-      "replan admits newly covered geometry despite unchanged cache publication",
-    );
-    const oldById = new Map(
-      before.records.map((record) => [record.id, record]),
-    );
-    const survivors = after.records.filter((record) => oldById.has(record.id));
-    assert(survivors.length > 0);
-    assert(
-      survivors.every((record) => record === oldById.get(record.id)),
-      "surviving body and cover retain exact picking and ordering identity",
-    );
+    assert.strictEqual(after.records, before.records, "camera coverage changes membership, not a resident chunk picture");
+    assert.equal(after.revision, before.revision);
     assert.deepEqual(
       layer.presentedTerrain.exposedFaces,
       after.records.filter((record) => record.role === "terrain"),
@@ -592,14 +573,21 @@ test("empty and offscreen patch progress preserves presentation identity while v
           readyBefore + 1,
           "cache progress is published independently",
         );
-        assert.equal(layer.retainedRecords.revision, before.revision);
-        assert.strictEqual(layer.retainedRecords.records, before.records);
-        assert.strictEqual(layer.presentedTerrain, presented);
-        assert.strictEqual(layer.presentedTerrain.surfaces, presented.surfaces);
+        if (offscreen) {
+          assert.equal(layer.retainedRecords.revision, before.revision + 1,
+            "a material-bearing resident chunk publishes its complete derivative");
+          assert.notStrictEqual(layer.retainedRecords.records, before.records);
+          assert(layer.retainedRecords.records.some(record => record.cell?.[0] === 15));
+        } else {
+          assert.equal(layer.retainedRecords.revision, before.revision);
+          assert.strictEqual(layer.retainedRecords.records, before.records);
+          assert.strictEqual(layer.presentedTerrain, presented);
+          assert.strictEqual(layer.presentedTerrain.surfaces, presented.surfaces);
+        }
         if (emptyFirst) {
           visible();
           show(layer, camera, view, screen);
-          assert.equal(layer.retainedRecords.revision, before.revision + 1);
+          assert.equal(layer.retainedRecords.revision, before.revision + 1 + Number(offscreen));
           assert(layer.retainedRecords.records.length > 0);
         }
       } finally {
@@ -650,7 +638,7 @@ test("vertical slabs share exterior grass facts but emit each blade patch only o
 
 function drain(task, maxOperations = 128) {
   let advances = 0;
-  while (!task.ready) {
+  while (!task.terrainReady) {
     assert.equal(task.status, "pending");
     assert(++advances < 10000, "terrain preparation stalled");
     task.advance({ maxOperations });
@@ -659,10 +647,8 @@ function drain(task, maxOperations = 128) {
 }
 function publish(layer, task) {
   const result = drain(task);
-  if (result.records !== layer.retainedRecords.records) {
-    const meshes = task.prepareOrder(result.records);
-    while (!meshes.advance({ records: 128, meshes: 2 })) {}
-  }
+  task.stagePaint(result.records !== layer.retainedRecords.records ? result.records : null);
+  while (!task.ready) task.advance({ batchRecords: 128, batchMeshes: 2 });
   task.publish();
   assert.strictEqual(
     task.result,
@@ -756,8 +742,8 @@ test("cut and projection requests preserve published pictures, water, meshes and
   assert.strictEqual(layer.presentedTerrain, terrainFrame);
   const task = layer.prepare();
   drain(task, 1);
-  const meshes = task.prepareOrder(task.result.records);
-  while (!meshes.advance({ records: 1, meshes: 1 })) {}
+  task.stagePaint(task.result.records);
+  while (!task.ready) task.advance({ batchRecords: 1, batchMeshes: 1 });
   assert.deepEqual(layer.container.children, children);
   assert.equal(water.destroyed, false);
   for (const [mesh, data] of positions)
@@ -963,8 +949,8 @@ test("clear cancels ready pictures and detached water once without retiring borr
     destroyed++;
     original(...args);
   };
-  const meshes = task.prepareOrder(task.result.records);
-  while (!meshes.advance({ records: 128, meshes: 2 })) {}
+  task.stagePaint(task.result.records);
+  while (!task.ready) task.advance({ batchRecords: 128, batchMeshes: 2 });
   layer.clear();
   assert.equal(task.status, "cancelled");
   assert.equal(destroyed, 1);
@@ -988,10 +974,10 @@ test("absent terrain never hides actors on the shared world parent or overrides 
   drain(task);
   assert.equal(task.result.terrainFrame, undefined);
   assert.equal(task.result.records.length, 0);
-  const mesh = task.prepareOrder([
+  task.stagePaint([
     { id: "actor", part: "body", display: actor },
   ]);
-  while (!mesh.advance({ records: 8, meshes: 1 })) {}
+  while (!task.ready) task.advance({ batchRecords: 8, batchMeshes: 1 });
   task.publish();
   assert.strictEqual(actor.parent, layer.container);
   assert.equal(layer.container.visible, true);

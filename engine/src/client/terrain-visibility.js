@@ -1,5 +1,3 @@
-import { polygonContains, prepareOrderingProxy } from "./plane-order.js";
-
 const DIRECTIONS = Object.freeze([
   { face: "top", offset: [0, 1, 0] }, { face: "bottom", offset: [0, -1, 0] },
   { face: "east", offset: [1, 0, 0] }, { face: "west", offset: [-1, 0, 0] },
@@ -54,9 +52,6 @@ export function* terrainFaceRecordSteps({ faces, palette, verticalMetres, varian
       ...(face === "top" ? {partRole:"supporting-surface"} : {}),
       material, cap, planarCorners, footprint:planarCorners, orderGeometry:{kind:"face",points:planarCorners},
       screenBounds, storeyBand:cell[1], pickable:false, visible:true, projected, ...(visual??{}) };
-    const proxy = prepareOrderingProxy(record, projection);
-    if (!proxy) { yield null; continue; }
-    record.contains = point => polygonContains(proxy.polygon, point);
     freezeOrderingGeometry(record.orderGeometry);
     yield record;
   }
@@ -103,8 +98,6 @@ export function* terrainCoverRecordSteps(surfaces, { level, projection, viewport
         relationPolicy: "surface-cover", orderingKind: "compact", mask, footprint, screenBounds, storeyBand: y,
         renderPass: "opaque", attachment: Object.freeze({ kind: "surface-root", supports: Object.freeze(supports), point: footprint[0] }),
         pickable: false, visible: true, ...visual };
-      const proxy = prepareOrderingProxy(record, projection);
-      if (!proxy) { yield null; continue; }
       // Appearance owns the alpha silhouette used by the shared draw picker.
       // The full batching quad is never substituted for that silhouette.
       freezeOrderingGeometry(record.orderGeometry);

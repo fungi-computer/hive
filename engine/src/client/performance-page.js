@@ -75,8 +75,9 @@ function update(wrap, client) {
   wrap.querySelector("#perf-workers").textContent = `${data.observedWorkers} / ${data.movingWorkers}`;
   wrap.querySelector("#perf-jobs").textContent = String(data.wood);
   wrap.querySelector("#perf-stumps").textContent = String(data.stumps);
-  wrap.querySelector("#perf-render").textContent = `${render.counts.staticRebuild} static scene rebuilds · ${format(render.times.compileMs, " ms total ordering")} · ${format(render.times.applyOrderMs, " ms total application")}`;
-  wrap.querySelector("#perf-retained").textContent = `${render.retained.currentRecords} records · ${render.retained.staticRelations} relations · ${terrain.cachedRegions}/${terrain.capacity} cached regions · ${terrain.readyVisibleRegions}/${terrain.visibleRegions} visible · ${terrain.readyRegions}/${terrain.requestedRegions} with padding · ${terrain.retainedBytes.toLocaleString()}/${terrain.maxBytes.toLocaleString()} B retained payload`;
+  const structural = render.latest ?? {};
+  wrap.querySelector("#perf-render").textContent = `${render.published} structural publications · ${format(render.preparationMs, " ms total preparation")} · ${structural.sparseCandidates ?? 0} local sparse candidates · ${structural.densePairComparisons ?? 0} dense pair checks`;
+  wrap.querySelector("#perf-retained").textContent = `${render.retained.records} records · ${render.retained.denseLayout} dense slots · ${terrain.cachedRegions}/${terrain.capacity} cached regions · ${terrain.readyVisibleRegions}/${terrain.visibleRegions} visible · ${terrain.readyRegions}/${terrain.requestedRegions} with padding · ${terrain.retainedBytes.toLocaleString()}/${terrain.maxBytes.toLocaleString()} B retained payload`;
 }
 function mount() {
   const gameId = colonyPerformanceGameId(size, workers);
