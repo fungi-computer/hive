@@ -1,10 +1,123 @@
 # Rendering review and repair — September 22, 2026
 
-Reviewed source: `337e1f03d226b9a173062cedf19c96638383988c`, owned
-`living-terrain-integration` worktree. This is the current rendering repair plan.
+Initial review: `337e1f03d226b9a173062cedf19c96638383988c`. Rendering-centered
+engine soundness follow-up: `a5cf389d865188b04b52f2d45aff33321d1a2564`, owned
+`living-terrain-integration` worktree. This is the current rendering audit/repair plan.
 It supersedes conflicting rendering instructions in packets 14–17. Packet 18's
 accepted whole-picture approximation remains binding. Historical proofs remain
 evidence at their recorded source, not claims about today's hosted preview.
+
+## Soundness verdict
+
+**Keep the physical engine, original art pipeline, WebSockets and Pixi. Do not
+accept the current rendering preparation and cut-residency implementation as the
+foundation for more gameplay.** Its main defects are structural, not unexplained
+slowness or an unavoidable price of isometric art. This audit examines rendering
+and its engine inputs; it is not fresh qualification of every simulation system.
+
+This follow-up challenges two assumptions in the initial repair plan: retaining
+the existing generic geometry is not enough, and cut-baked face patches cannot
+derive first-time cuts locally when buried occupancy/material is absent. The
+corrections below supersede those earlier implementation constraints.
+
+### Findings in priority order
+
+| Finding | Source/evidence | Judgment |
+| --- | --- | --- |
+| Ordinary pictures are represented as unnecessarily general geometry | `asset-draw-geometry.js:60` lifts a cached 2D silhouette through rays into a 3D plane; `spatial-draw-order.js:90` projects/hulls it back into 2D; `plane-order.js:80` clips polygons and samples ray depth. | Replace the common preparation representation with direct face/card/bounds primitives. Preserve the pixels and established comparison semantics. |
+| Local movement expands into scene-wide work | `spatial-draw-order.js:509` merges statics, copies relations and reconstructs topology for changed dynamics. A recorded nine-dynamic update touches a 6,786-record/45,709-edge scene. Static updates can sort twice. | Replace whole-scene update policy with retained local relations and change-driven publication. A sparse relationship owner can remain; the full rebuild cannot be the routine frame path. |
+| A new cut throws away resident terrain | `terrain-region-cache.js:140` cancels and drops all regions when level changes. `terrain-presentation.ts:188` keys products by cut; `terrain-region-exposure.js:61` synthesizes caps for that cut only. | Replace the cut-baked residency contract. Existing face payload lacks buried material/occupancy, so new caps cannot be computed locally from it. More per-cut caching only improves revisits. |
+| Input directly invokes expensive scene work | `client.js:791,804,1493` pan/zoom/key actions call `draw()`; ticker, pointer tools and terrain coverage call it too. `cut-terrain-layer.position()` mixes transforms with demand and preparation. | One scheduled presentation owner with bounded preparation. Input must not synchronously run the full scene pipeline. RAF coalescing alone does not make a long task short. |
+| Viewport bounds do not govern all visual work | `actor-presentation-owner.js:25` processes every supplied subject; `cut-terrain-layer.js:203` revisits observed water without viewport filtering. Art binding `kind:static` also classifies moving ships/cannonballs as static ordering records (`subject-draw-records.js:124`). | Separate art family, visual residency and changed geometry. Cull by conservative visual bounds/support closure without pausing offscreen simulation. |
+| Error-path scene atomicity is incomplete | `world-scene-owner.js:31` mutates/destroys actor displays before ordering validates contacts/geometry. Retaining the previous graph does not retain the previous display state. | Stage display/hit changes too. This is a source-level error-path concern, not a reproduced explanation for ordinary terrain artifacts. |
+
+Client paths are under `engine/src/client/`; presentation/exposure runtime paths
+are under `engine/src/runtime/`. Line references are at the follow-up source pin.
+
+### The common geometry is much simpler than the preparer assumes
+
+Recorded v6 scene composition:
+
+| View | Terrain faces | Grass cards | Tree/prop cards | Actor cards | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Initial | 4,062 | 2,665 | 50 | 9 | 6,786 |
+| Zoomed | 9,768 | 6,949 | 50 | 9 | 16,776 |
+
+Every record in these two snapshots is planar; neither slow view needs furniture
+volumes. Zoomed cards nevertheless carry 130,166 coverage rectangles. The 2,724
+initial upright cards lie on 102 intended root-depth planes, but reconstructing
+their normals produces 1,727 distinct floating-point triples. Exact-normal
+equality consequently misses many semantically coplanar cases. These counts come
+from saved scene records, not a new performance benchmark or proof of a visible bug.
+
+For upright cards, all planes are parallel by construction. At a common screen
+point their depth difference is constant, so general ray-depth sampling cannot
+add ordering information. Use an immutable shared ink/silhouette reference,
+screen placement and canonical root-depth coefficient directly. Terrain/water
+use axis-aligned faces; furniture/stair parts use checked visual bounds/declared
+pieces and contacts. These are geometry categories, not content-name branches.
+
+Overlap discovery and coplanar alpha ties still matter. Do not add edges between
+disjoint pictures just because their depths differ; false edges can create false
+cycles. Cards versus banks and extended furniture still need local relationships.
+Do not replace the entire scene with a feet-depth scalar or frozen static list.
+Keep a general relation only for actual unsupported-by-fast-rule geometry, not
+as a compatibility path for the retired common representation.
+
+### What is already sound and should survive
+
+- `SessionResident` reuses the committed Session/native kernel. Ordinary ticks do
+  not rebuild the whole world. Physical terrain revision is separate from actor
+  and water updates; retained surface references are real.
+- The DO owns shared physical state. Per-client stream state is delivery/cancel/
+  credit bookkeeping. Complete patches, reconnect and bounded credits are useful
+  mechanisms. Nothing here requires another transport or browser simulation.
+- Checked bake assets provide anchors, silhouettes and visual bounds separately
+  from physical occupancy. Original upright grass is compatible with the repair.
+- Pixi batching already preserves consecutive painter order and shares atlases.
+  Initial 6,727 terrain/cover quads use 38 meshes and 511,252 buffer bytes; zoomed
+  16,717 quads use 54 meshes and 1,270,492 bytes. Grass is not one object per blade.
+- Selection uses published visual order. Placement deliberately asks a different
+  support-surface question and may skip actors/trees; keep that explicit policy.
+
+These facts do not prove GPU headroom. Four 2048² static pages plus ground and
+terrain atlases total about 68.48 MiB RGBA8 equivalent if uploaded. That is not
+measured GPU residency and excludes other copies/framebuffers. Normal alpha
+blending/overdraw and upload costs still need target-hardware measurement. The
+recorded ~135 MiB whole-page post-GC heap is not exclusively rendering memory.
+
+### Required replacement boundary
+
+The existing client scene owner must own bounded resident terrain facts, prepared
+visual primitives, local ordering dependencies, staged jobs and published
+draw/pick identity behind useful operations. Its callers submit observations,
+view choices and input; they do not coordinate cache resets, geometry maps or
+completion flags. Pixi retains GPU resources and consumes the published plan.
+
+**A cut inside complete resident spatial and vertical coverage, including its
+required halo, must be derived without another server request.** Raising a cut
+can reveal additional horizontal regions, which may still need a request. Store
+bounded authoritative occupancy/material coverage, neighbor halo,
+exterior support and current cover. The wire encoding may use slabs or column
+runs, but its known coverage must be explicit. Request missing slices outside
+residency; preserve caves/overhangs and unknown-versus-air. Cancel obsolete prepared
+view jobs without discarding reusable valid facts. Exposure/cap preparation
+is client presentation over those facts, preserving the existing physical laws.
+Migrate the actual DO/Worker readers and consumers together; retire the cut-baked
+wire path rather than maintain two production truth sources.
+
+First implementation review must show direct common primitives, retained local
+changes, and responsive staged publication, followed by the reusable cut-data
+contract. Native column sampling and fixed-window observation removal support
+that contract; they must not become isolated optimizations of the retired shape.
+
+Other confirmed costs include per-pick copy/reverse of the complete draw list,
+whole-run batching signatures, repeated host Session-header validation, and full
+actor render serialization before the JavaScript limit. Their source is real;
+the current evidence does not rank them above the measured preparation costs.
+Keyboard camera currently advances in discrete 24-pixel command steps. Smooth
+frame-time movement is also an interaction behavior to implement; CPU fixes alone
+do not supply it. None of these findings authorizes an unrelated game/AI rewrite.
 
 ## Decision
 
@@ -17,7 +130,8 @@ separate simulation or draw order for each camera.
 The demonstrated problems are repeated computation and serialized startup.
 Small camera pans already reuse prepared coverage and change the parent transform.
 Preserve that path. Receiving a small patch or moving one actor still causes too
-much whole-scene work. Fix those owners before changing representation.
+much whole-scene work. Fix the common preparation representation, change
+granularity and cut-data contract at their existing owners.
 
 Levi accepts roughly correct whole pictures where images genuinely interleave.
 Do not restart universal exact splitting, baked per-pixel depth, a Three runtime,
@@ -70,7 +184,7 @@ accepting the repair. No startup-only milestone completes this interaction work.
 | World-space presentation | `runtime/terrain-presentation.ts`, `terrain-region-exposure.js` | Camera-independent exposed faces/support; buried reads preserve caves; any terrain revision clears all region cache entries. |
 | Delivery | `runtime/terrain-region-stream.ts`, `terrain-region-client.ts`, `remote-client.ts`, `tools/public-engine-host/worker.ts` | Complete socket patches with cancellation and bounded credits already work. |
 | Residency/demand | `client/terrain-region-cache.js`, `camera-coverage-owner.js`, `terrain-visibility.js` | Bounded cache and padded viewport; conservative full-height prisms over-request some regions; small-pan retention works. |
-| Art | `scripts/export-static-art.mjs`, `src/art/static-pack.js`, `living-terrain-pack.js` | Checked anchors/bounds/silhouettes/parts; terrain then static packs load serially before runtime start. |
+| Art | `scripts/export-static-art.mjs`, `src/art/static-pack.js`, `living-terrain-pack.js` | Checked anchors/bounds/silhouettes/parts. The initial serial-loading defect was fixed in `5de88220`; it does not solve preparation/cut costs. |
 | Scene | `client/world-scene-owner.js`, `cut-terrain-layer.js`, `actor-presentation-owner.js` | One lifecycle; patch publication still walks resident terrain; actor preparation covers all supplied subjects. |
 | Ordering/picking | `client/spatial-scene-owner.js`, `spatial-draw-order.js`, `voxel-draw-picking.js` | Local candidate comparisons; changed actors still merge statics, copy edges and sort the combined graph. |
 | Pixi submission | `client/terrain-face-batches.js` | Correct consecutive-only batching; planning/signatures/uploads can revisit unchanged runs. |
@@ -131,9 +245,10 @@ in `client.js` and the ordering compiler remain source-review hotspots.
 
 1. Camera, interpolation, cache misses and painting never advance simulation,
    grant support, create stock or activate work. Visual bounds are not collision.
-2. Stable subject/part identity survives redraw. Patches are complete for region,
-   epoch, revision and cut. Empty differs from unknown. Late responses cannot
-   publish into a newer view; cancellation cannot acknowledge an unfinished patch.
+2. Stable subject/part identity survives redraw. Resident terrain facts are
+   complete for declared spatial coverage, epoch and revision; a prepared view
+   additionally identifies its cut. Empty differs from unknown. Late responses
+   cannot publish into a newer view; cancellation cannot acknowledge unfinished data.
 3. Anchors, physical facing, camera quarter-turn, projection, support and picking
    share coordinates. Rotation preserves world focus, selection and physical time.
 4. Preserve established geometric comparison semantics and mandatory support
@@ -178,7 +293,9 @@ ground. This removes a dependency; it alone does not promise latency gates pass.
 ### B. Retain relations and publish terrain changes once
 
 One coupled writer owns spatial scene/compiler and its terrain record join.
-Preserve current relation semantics initially, extending the existing owner.
+Preserve current relation semantics, extending the existing owner. The follow-up
+soundness audit additionally requires direct common geometry primitives; do not
+retain the silhouette→3D hull→2D hull round trip as the normal path.
 
 First checkpoint: retain each dynamic piece and its incident relations. Recompute
 only changed pieces' local candidates; remove old incident edges and update pairs
@@ -189,7 +306,9 @@ changes need not change order. For approximate cycles, initially rerun the curre
 algorithm: moving center depths affect recovery even with identical edges.
 
 On real edge changes, a full combined topology build is an acceptable first
-checkpoint. Measure its frequency before adding local topology repair. Do not
+checkpoint only within the stated per-turn budget, or outside the input thread
+with versioned publication. A synchronous 33 ms sort is not responsive acceptance.
+Measure its frequency before adding local topology repair. Do not
 freeze static total order and merely insert actors: independent statics can sort
 `[a,b]`, while a new actor legally requires `b → actor → a`. No cycle is needed.
 Current-source proof: guard `u3078`, invocation
@@ -227,9 +346,12 @@ original-art fixtures and real bed/bank/stair traversal. Parity alone is no orac
 
 One writer owns native sampling, WASM/KernelPort binding and the current
 `TerrainPresentationOwner` consumer. Add a bounded spatial sample operation that
-reuses generation per column and overlays edits through canonical terrain. Keep
-face exposure at its present owner initially. No camera, artwork, whole-world
-generation or heightfield-only shortcut; caves and overhangs remain supported.
+reuses generation per column and overlays edits through canonical terrain. The
+follow-up soundness audit supersedes preserving cut-baked exposure as the resident
+wire representation: expose bounded reusable material/occupancy coverage and
+prepare view cuts in the client. Keep world authority/exposure laws intact. No
+camera, artwork, whole-world generation or heightfield-only shortcut enters native
+sampling; caves and overhangs remain supported.
 
 Compare region/column sampling with existing page sampling on the same 102 keys.
 Whole 16³ pages can overgenerate around 8×8 regions/halos. Require exact material/
@@ -282,7 +404,7 @@ serial. Review each first working shape before expanding it.
 | Animation texture | Display/alpha-hit refresh | Order unless declared geometry changes |
 | Terrain/cover edit | Changed columns, halo, cover/order dependencies | Unaffected regions/records |
 | Quarter-turn | Client projection/view-art/order/demand | Physical state and reusable world-space patches |
-| Cut change | Cut-keyed demand/faces/order | Physical state and facts valid across cut |
+| Cut change | Local cap/faces/order preparation; request missing vertical coverage only | Physical state and resident material/occupancy/support facts |
 | Reset/load/epoch | Cancel reads, rebuild derived state | Checked immutable art |
 | Dispose | Unsubscribe/cancel/release owned resources | No per-scene references |
 

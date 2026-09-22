@@ -1,8 +1,10 @@
 **September 22 rendering review:** [Rendering review and repair](19-rendering-review-and-repair-20260922.md)
-owns the current rendering repair sequence and acceptance laws. Keep Pixi, original
-upright art, client camera ownership and WebSocket region delivery. Repair startup
-serialization and repeated scene/native work. This supersedes conflicting older
-rendering plans; whole-picture approximation remains accepted. It is a plan, not
+owns the current rendering repair sequence and acceptance laws. Its follow-up
+[soundness verdict](19-rendering-review-and-repair-20260922.md#soundness-verdict)
+keeps the physical engine, Pixi, original upright art and WebSockets, but requires
+replacing generic common-piece preparation and cut-baked terrain residency, plus
+retained local scene updates. Startup overlap alone is insufficient. This
+supersedes conflicting older rendering plans; whole-picture approximation remains accepted. It is a plan, not
 a claim the remaining fixes or a fresh preview have shipped.
 
 **September 20 source reassessment:** [Engine, rendering and Edmund study](16-engine-edmund-source-study-20260920.md)
