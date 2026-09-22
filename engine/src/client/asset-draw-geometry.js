@@ -3,6 +3,7 @@ import { snapshotVisibleSilhouette } from "../../../src/visual-hit-geometry.js";
 
 const silhouettes = new WeakMap();
 const imageShapes = new WeakMap();
+const viewNormals = new WeakMap();
 
 function textureHull(texture) {
   if (silhouettes.has(texture)) return silhouettes.get(texture);
@@ -29,7 +30,9 @@ function silhouetteShape(silhouette) {
     const left = spans[rows[y] * 2], right = spans[rows[y + 1] * 2 - 1] + 1;
     points.push({ x: left, y }, { x: right, y }, { x: left, y: y + 1 }, { x: right, y: y + 1 });
   }
-  const value = { width, height, points: hull(points), rectangles: Object.freeze(rectangles.map(Object.freeze)) };
+  const value = Object.freeze({ width, height,
+    points: Object.freeze(hull(points).map(Object.freeze)),
+    rectangles: Object.freeze(rectangles.map(Object.freeze)) });
   imageShapes.set(silhouette, value);
   return value;
 }
@@ -58,14 +61,18 @@ export function uprightImageGeometry(hitArea, screen, feet, projection) {
 }
 
 function uprightShapeGeometry(shape, anchor, screen, feet, projection) {
-  const normal = { x: projection.direction.x, z: projection.direction.z };
-  const constant = normal.x * feet.x + normal.z * feet.z;
-  const points = shape.points.map(pixel => {
-    const { origin, direction } = projection.ray({ x: screen.x + pixel.x - anchor.x * shape.width,
-      y: screen.y + pixel.y - anchor.y * shape.height });
-    const distance = (constant - normal.x * origin.x - normal.z * origin.z) / (normal.x * direction.x + normal.z * direction.z);
-    return { x: origin.x + distance * direction.x, y: origin.y + distance * direction.y, z: origin.z + distance * direction.z };
-  });
-  return { kind: "face", points, coverage: { rectangles: shape.rectangles,
-    offset: { x: screen.x - anchor.x * shape.width, y: screen.y - anchor.y * shape.height } } };
+  const direction = projection.direction, length = Math.hypot(direction.x, direction.z);
+  if (!(length > 0) || ![length, feet.x, feet.z, screen.x, screen.y, anchor.x, anchor.y].every(Number.isFinite))
+    throw new Error("upright card requires finite placement and horizontal view direction");
+  // Every picture in this view shares exactly the same canonical plane normal.
+  // Its immutable ink stays in pixel coordinates; no per-vertex ray lifting or
+  // reprojection is needed to discover overlap or compare depth.
+  let normal = viewNormals.get(projection);
+  if (!normal) {
+    normal = Object.freeze({ x: direction.x / length, y: 0, z: direction.z / length });
+    viewNormals.set(projection, normal);
+  }
+  return Object.freeze({ kind: "card", shape,
+    offset: Object.freeze({ x: screen.x - anchor.x * shape.width, y: screen.y - anchor.y * shape.height }),
+    plane: Object.freeze({ normal, constant: normal.x * feet.x + normal.z * feet.z }) });
 }

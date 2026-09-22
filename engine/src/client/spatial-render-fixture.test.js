@@ -42,8 +42,10 @@ test("short grass preserves ground facts and four-cell dual-grid support",()=>{
       assert(records.includes(piece));
       assert(mown.patches.includes(piece), "cover records are used without splitting");
       assert.equal(piece.supportY, piece.attachment.point.y);
-      assert(piece.orderGeometry.points.some(p=>p.y>piece.supportY));
-      assert(piece.orderGeometry.points.some(p=>p.y<piece.supportY));
+      const center = mown.projection.project(piece.attachment.point);
+      assert.equal(piece.orderGeometry.kind,"card");
+      assert(piece.orderGeometry.shape.points.some(p=>p.y+piece.orderGeometry.offset.y<center.y));
+      assert(piece.orderGeometry.shape.points.some(p=>p.y+piece.orderGeometry.offset.y>center.y));
       assert(Math.abs(piece.projected[2].x - piece.projected[0].x - 16) < 1e-10);
       assert(Math.abs(piece.projected[2].y - piece.projected[0].y - 64) < 1e-10);
       assert.deepEqual(piece.terrainBatch.uvs,[.375,0,.375,1,.625,1,.625,0]);
@@ -78,8 +80,9 @@ test("study cover retains original image and atlas UVs for full and short four-c
       assert(Math.abs(record.projected[2].x - record.projected[0].x - 16) < 1e-10);
       assert(Math.abs(record.projected[2].y - record.projected[0].y - 64) < 1e-10);
       assert.equal(record.supportY, record.attachment.point.y);
-      assert(record.orderGeometry.points.some(point => point.y > record.supportY));
+      assert.equal(record.orderGeometry.kind,"card");
       const center = scene.projection.project(record.attachment.point);
+      assert(record.orderGeometry.shape.points.some(point => point.y + record.orderGeometry.offset.y < center.y));
       assert(record.contains({ x: center.x, y: center.y - 30 }), "ink above ground support survives");
     });
   }

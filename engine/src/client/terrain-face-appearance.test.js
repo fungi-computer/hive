@@ -48,9 +48,10 @@ test("upright cover preserves all baked pixels and UVs instead of clipping to it
   assert.equal(picture.projected[2].x - picture.projected[0].x, 16, "only transparent horizontal padding is removed");
   assert.equal(picture.projected[2].y - picture.projected[0].y, 64, "the complete image quad survives");
   assert.equal(picture.supportY, .27);
-  assert(picture.orderGeometry.points.some(point => point.y > .27), "blades occupy an upright ordering card");
-  assert(picture.orderGeometry.points.some(point => point.y < .27), "contact ink is preserved, not cut away");
+  assert.equal(picture.orderGeometry.kind, "card");
   const center = projection.project({ x: .5, y: .27, z: .5 });
+  assert(picture.orderGeometry.shape.points.some(point => point.y + picture.orderGeometry.offset.y < center.y), "blades extend above the support");
+  assert(picture.orderGeometry.shape.points.some(point => point.y + picture.orderGeometry.offset.y > center.y), "contact ink remains below the support");
   assert(picture.contains({ x: center.x, y: center.y - 30 }), "ink above the ground diamond survives");
 });
 
