@@ -120,6 +120,8 @@ export function createCutTerrainLayer({
   if (!initialProjection?.project || !initialProjection?.ray)
     throw new Error("cut terrain layer requires the canonical projection");
   const container = new Container();
+  // The world owns this shared parent: actors can exist without terrain.
+  // Terrain emptiness removes owned resources; it never hides sibling actors.
   container.eventMode = "none";
   container.sortableChildren = true;
   let disposed = false,
@@ -585,7 +587,6 @@ export function createCutTerrainLayer({
           waterRecords,
           structureSurfaces,
         };
-        container.visible = Boolean(input.frame);
         status = "published";
         release();
         return result;
@@ -663,7 +664,6 @@ export function createCutTerrainLayer({
     };
     desired = undefined;
     reportedBudget = undefined;
-    container.visible = false;
   }
   return Object.freeze({
     container,
