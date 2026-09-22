@@ -205,8 +205,9 @@ The integrated build and 59 focused laws passed (`run-u2918.scope`, invocation
 `.botanical/terrain-loading-v6-composited`, `run-u2920.scope`, invocation
 `f8415ac51b3f44ab8b9517bdd459171e`, still exited **1**: both real cold pans and
 final ground coverage passed with no timeout or HTTP terrain requests, but
-stationary useful ground was sampled at 5.092 s after navigation (1.097 s after
-readiness), exact visible completion at 8.576 s (4.581 s after readiness), and
+stationary useful ground was observed by the driver at 5.092 s after navigation
+(page sample 5.040 s, 1.045 s after readiness on that same page clock), exact
+visible completion at 8.576 s (4.581 s after readiness), and
 padded completion at 11.272 s. The 1,000/3,000 ms gates remain unmet. These are
 individual software-rendered runs, not a stable latency guarantee.
 

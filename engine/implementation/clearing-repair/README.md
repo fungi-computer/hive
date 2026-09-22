@@ -1,3 +1,10 @@
+**September 22 rendering review:** [Rendering review and repair](19-rendering-review-and-repair-20260922.md)
+owns the current rendering repair sequence and acceptance laws. Keep Pixi, original
+upright art, client camera ownership and WebSocket region delivery. Repair startup
+serialization and repeated scene/native work. This supersedes conflicting older
+rendering plans; whole-picture approximation remains accepted. It is a plan, not
+a claim the remaining fixes or a fresh preview have shipped.
+
 **September 20 source reassessment:** [Engine, rendering and Edmund study](16-engine-edmund-source-study-20260920.md)
 records pinned game-source comparisons, a new original-art rendering failure,
 current native cost/recovery measurements and actual creator API gaps. Pixi and
@@ -280,9 +287,9 @@ Rust physical ownership, DO durability and existing assignment performance remai
   no participant database outside that owner, no auth service or global user ID.
 - Explicit Draft/Undraft. A click to select does not change work mode. In this
   Colony slice manual Go requires Draft; normal contextual work remains an order.
-- Draw order derives from canonical point or multi-cell footprint facts, projected
-  through the shared camera. It never derives physical occupancy from opaque sprite
-  pixels. Alpha silhouettes refine selection only after deterministic ordering.
+- Authored geometry owns draw ordering through the shared camera. Checked alpha
+  coverage may narrow projected overlap and picking, never physical occupancy.
+  Follow packet 19's current whole-picture approximation and support laws.
 - No automatic old-save migration or reset. Preserve old bytes and clearly reject
   unsupported formats. Existing-world continuity and any upgrade disposition are
   explicit release checks; a successful fresh-world test cannot prove continuity.
