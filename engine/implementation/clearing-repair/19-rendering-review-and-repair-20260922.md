@@ -7,6 +7,12 @@ It supersedes conflicting rendering instructions in packets 14–17. Packet 18's
 accepted whole-picture approximation remains binding. Historical proofs remain
 evidence at their recorded source, not claims about today's hosted preview.
 
+> **Active direction:** the “System review recut” below is the implementation
+> direction. Earlier graph-retention recommendations in this report, including
+> sequence B, are preserved historical evidence and are no longer an active queue.
+> Original gameplay/hosted acceptance requirements remain binding. Component
+> tests or a small rendered study do not authorize calling this repair delivered.
+
 ## Implementation checkpoint — ownership correction (not gameplay acceptance)
 
 The isolated `world-view-repair-20260922` lane replaces `world-scene-owner` with
@@ -103,6 +109,28 @@ is not the architectural repair. Source review identifies unnecessary work itsel
 - When exact whole-picture order is impossible, the compiler eventually chooses
   an approximation anyway. The accepted product does not require general image
   fragmentation or per-pixel geometric ordering of every sprite.
+
+### Why the previous delivery loop failed
+
+Packet 15 already prescribed `visibleCellsBackToFront`, authored footprints and
+support-local parts, and explicitly prohibited restoring the pair graph. Packet 17
+then introduced candidate discovery, geometric relations and topological ordering;
+packet 18 integrated that compiler. The code matches the latter, not the former.
+The architectural change was real, not a missing wrapper around the earlier plan.
+
+The later repair concentrated on retention and bounded scheduling of that graph.
+Small-scene correctness and component laws did not establish acceptable live-world
+cost. Running the full game late allowed substantial work to accumulate around an
+unqualified representation. This is an architecture/acceptance failure, not evidence
+that Pixi, Durable Objects, WebSockets, missing user permission or unavailable
+browser tools prevent delivery. The engineering owner must reject the next change
+if it reconstructs the dense graph under a new module name.
+
+The next checkpoint must be the replacement running in the actual game with
+before/after work counts and loading/input evidence. A passing isolated fixture,
+renamed owner or another planning document is not that checkpoint. Local insertion
+must use finite grid/footprint bounds arithmetic into the fixed sequence; it must
+not call the old plane/alpha comparator or rebuild a smaller recursive graph.
 
 ### Replacement architecture
 
@@ -464,7 +492,7 @@ and after initialization cannot leak or install into a dead scene. A real DO
 browser shows a region request before art completion and records navigation-to-
 ground. This removes a dependency; it alone does not promise latency gates pass.
 
-### B. Retain relations and publish terrain changes once
+### B. Historical, superseded: retain relations and publish terrain changes once
 
 One coupled writer owns spatial scene/compiler and its terrain record join.
 Preserve current relation semantics, extending the existing owner. The follow-up
