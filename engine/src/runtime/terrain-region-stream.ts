@@ -6,13 +6,13 @@ import { terrainRegionRequestSchema, type TerrainRegionEvent, type TerrainRegion
  * The host reads each region against committed authority and owns socket auth. */
 export function startTerrainRegionStream(
   raw: TerrainRegionRequest,
-  read: (region: [number, number]) => TerrainRegionRead | Promise<TerrainRegionRead>,
+  read: (region: [number, number, number]) => TerrainRegionRead | Promise<TerrainRegionRead>,
   deliver: (event: TerrainRegionEvent) => void,
   yieldWork: () => Promise<void> = () => new Promise(resolve => setTimeout(resolve, 0)),
 ) {
   const request = terrainRegionRequestSchema.parse(raw);
   const identity = { requestId: request.requestId, epoch: request.epoch,
-    terrainRevision: request.terrainRevision, level: request.level };
+    terrainRevision: request.terrainRevision };
   let canceled = false, sent = 0, acknowledged = 0;
   let releaseCredit: (() => void) | undefined;
   function wake() {

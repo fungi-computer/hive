@@ -2,8 +2,8 @@ import type { EnvironmentDefinition } from "../sdk/environment";
 import type { KernelPort, StructureSurface, TerrainChangeSet, TerrainPresentationDefinition, TerrainSurface } from "../contracts";
 import { terrainSurfaceSchema } from "./terrain-surface";
 import { terrainBaselineSchema, type TerrainBaseline } from "./terrain-regions";
-import { MAX_TERRAIN_REGION_BYTES, MAX_TERRAIN_REGION_FACES, TERRAIN_REGION_EDGE, terrainRegionPatchSchema, terrainRegionRequestSchema, type TerrainRegionRequest, type TerrainRegionRead, type TerrainRegionPatch } from "./terrain-regions";
-import { exposeTerrainFaces, MAX_TERRAIN_REGION_HEIGHT, MAX_TERRAIN_REGION_SAMPLES } from "./terrain-region-exposure.js";
+import { MAX_TERRAIN_REGION_BYTES, terrainRegionPatchSchema, terrainRegionRequestSchema, type TerrainRegionRequest, type TerrainRegionRead, type TerrainRegionPatch, type TerrainRegionKey } from "./terrain-regions";
+import { terrainRegionLayout, validateTerrainMaterialPatch, freezeTerrainMaterialPatch } from "./terrain-region-materials.js";
 
 type Coordinate = readonly [number, number, number];
 
@@ -161,22 +161,22 @@ export class TerrainPresentationOwner {
 
   baseline(): TerrainBaseline {
     const artBySlot = new Map(this.presentation?.materials.map(material => [material.slot, material.art]));
-    return terrainBaselineSchema.parse({ protocolVersion: 4, bounds: this.definition.world.bounds,
+    return terrainBaselineSchema.parse({ protocolVersion: 5, bounds: this.definition.world.bounds,
       verticalMetres: this.definition.world.verticalMetres,
       variantSeed: visualVariantSeed(`${this.definition.world.identity}\u0000${this.definition.world.seed}`),
       materials: this.definition.materials.map(({ slot, solid }) => ({ slot, solid,
         ...(artBySlot.has(slot) ? { art: artBySlot.get(slot) } : {}) })) });
   }
 
-  /** One complete horizontal region per turn; cached patches are disposable
+  /** One complete bounded material slab per turn; cached patches are disposable
    * presentation only and are retired together on epoch or terrain mutation. */
-  readRegion(raw: TerrainRegionRequest, key: [number, number], currentEpoch: number): TerrainRegionRead {
+  readRegion(raw: TerrainRegionRequest, key: TerrainRegionKey, currentEpoch: number): TerrainRegionRead {
     const request = terrainRegionRequestSchema.parse(raw);
-    if (!request.regions.some(region => region[0] === key[0] && region[1] === key[1]))
+    if (!request.regions.some(region => region[0] === key[0] && region[1] === key[1] && region[2] === key[2]))
       throw new Error("unrequested terrain region key");
     const facts = parseFacts(this.port.environmentFacts());
     const identity = { requestId: request.requestId, epoch: currentEpoch,
-      terrainRevision: facts.terrainRevision, level: request.level };
+      terrainRevision: facts.terrainRevision };
     if (request.epoch !== currentEpoch || request.terrainRevision !== facts.terrainRevision)
       return { kind: "stale", ...identity };
     if (this.regionEpoch !== currentEpoch || this.regionRevision !== facts.terrainRevision) {
@@ -184,7 +184,7 @@ export class TerrainPresentationOwner {
     }
     // Replace JSON's four-byte null with the already measured immutable patch.
     const envelopeBytes = new TextEncoder().encode(JSON.stringify({kind:"patch",...identity,patch:null})).byteLength - 4;
-    const id = `${request.level}:${key.join(",")}`, cached = this.regions.get(id);
+    const id = key.join(","), cached = this.regions.get(id);
     if (cached) {
       if (cached.bytes + envelopeBytes > MAX_TERRAIN_REGION_BYTES)
         return {kind:"unavailable",...identity,reason:"terrain region exceeds byte budget"};
@@ -192,77 +192,46 @@ export class TerrainPresentationOwner {
       return { kind: "patch", ...identity, patch: cached.patch };
     }
     const unavailable = (reason: string): TerrainRegionRead => ({ kind: "unavailable", ...identity, reason });
-    const bounds = this.definition.world.bounds;
-    const core = { minX: Math.max(key[0]*TERRAIN_REGION_EDGE,bounds.minX),
-      maxX: Math.min((key[0]+1)*TERRAIN_REGION_EDGE,bounds.maxX),
-      minZ: Math.max(key[1]*TERRAIN_REGION_EDGE,bounds.minZ),
-      maxZ: Math.min((key[1]+1)*TERRAIN_REGION_EDGE,bounds.maxZ) };
-    if (core.minX >= core.maxX || core.minZ >= core.maxZ)
-      return unavailable("terrain region does not intersect authoritative bounds");
-    const highest = Math.min(request.level, bounds.maxY - 1);
-    if (highest - bounds.minY + 1 > MAX_TERRAIN_REGION_HEIGHT)
-      return unavailable("terrain region exceeds height budget");
-    const haloMinX = Math.max(core.minX-1,bounds.minX), haloMaxX = Math.min(core.maxX+1,bounds.maxX);
-    const haloMinZ = Math.max(core.minZ-1,bounds.minZ), haloMaxZ = Math.min(core.maxZ+1,bounds.maxZ);
-    const columnDepth = haloMaxZ-haloMinZ;
-    const columnIndex = (x: number,z: number) => (x-haloMinX)*columnDepth+z-haloMinZ;
-    const columns: [number, number][] = [];
-    for(let x=haloMinX;x<haloMaxX;x++) for(let z=haloMinZ;z<haloMaxZ;z++) columns.push([x,z]);
-    const surfaces = this.sampleSurfaceColumns(columns);
-    const tops = columns.map(([x,z])=>surfaces.get(columnKey(x,z))?.cell[1] ?? -Infinity);
-    // One dense, bounded halo. -1 is unknown, separate from every material slot
-    // including air=0; exterior top facts alone may prove unqueried cells empty.
-    const height = Math.max(0,Math.min(highest+1,bounds.maxY-1)-bounds.minY+1);
-    const materialIndex = (x: number,y: number,z: number) => columnIndex(x,z)*height+y-bounds.minY;
-    const materials = new Int32Array(columns.length*height).fill(-1);
-    const cells: [number,number,number][] = [];
-    for(const [x,z] of columns) {
-      const surface = surfaces.get(columnKey(x,z));
-      if (!surface) continue;
-      if (surface.cell[1] < bounds.minY || surface.cell[1] >= bounds.maxY)
-        throw new Error("terrain surface outside authoritative height bounds");
-      // Need the cell above a cut as well, to distinguish natural tops/caps.
-      const top = Math.min(highest + 1, surface.cell[1]);
-      if (cells.length + Math.max(0,top-bounds.minY+1) > MAX_TERRAIN_REGION_SAMPLES)
-        return unavailable("terrain region exceeds material sample budget");
-      for(let y=bounds.minY;y<=top;y++) cells.push([x,y,z]);
+    const layout = terrainRegionLayout(this.definition.world.bounds, key);
+    if (!layout) return unavailable("terrain region does not intersect authoritative bounds");
+    const {bounds, coverage} = layout;
+    const columns: TerrainRegionPatch["columns"] = [];
+    const coordinates: [number, number][] = [];
+    const cells: [number, number, number][] = [];
+    for (let x=coverage.minX;x<coverage.maxX;x++) for(let z=coverage.minZ;z<coverage.maxZ;z++) {
+      coordinates.push([x,z]);
+      for(let y=coverage.minY;y<coverage.maxY;y++) cells.push([x,y,z]);
     }
-    const palette = new Map(this.definition.materials.map(material => [material.slot,material]));
+    // At most 10*10*130 samples, including the halo. Sample exact slots even
+    // above the exterior surface: non-solid material is not necessarily air.
+    const palette = new Set(this.definition.materials.map(material => material.slot));
+    const materials: number[] = [];
     for(let offset=0;offset<cells.length;offset+=256) {
-      const batch = cells.slice(offset,offset+256), sampled = this.port.terrainMaterials(batch);
-      if(sampled.length !== batch.length) throw new Error("terrain material query returned the wrong count");
-      sampled.forEach((slot,index) => {
-        if(!Number.isInteger(slot) || !palette.has(slot)) throw new Error("terrain material query returned an unknown slot");
-        const [x,y,z] = batch[index];
-        materials[materialIndex(x,y,z)] = slot;
-      });
+      const batch=cells.slice(offset,offset+256), sampled=this.port.terrainMaterials(batch);
+      if(sampled.length!==batch.length) throw new Error("terrain material query returned the wrong count");
+      for(const slot of sampled) {
+        if(!Number.isInteger(slot)||!palette.has(slot)) throw new Error("terrain material query returned an unknown slot");
+        materials.push(slot);
+      }
     }
-    const sample = (cell: number[]) => {
-      const [x,y,z] = cell;
-      if(x<haloMinX || x>=haloMaxX || z<haloMinZ || z>=haloMaxZ)
-        throw new Error("terrain sample outside region halo");
-      if(y > tops[columnIndex(x,z)]) return {kind:"known" as const,solid:false,material:this.definition.world.slots.air};
-      const slot = y>=bounds.minY && y<bounds.minY+height ? materials[materialIndex(x,y,z)] : -1;
-      if(slot === -1) throw new Error("incomplete terrain region material coverage");
-      return {kind:"known" as const,solid:palette.get(slot)!.solid,material:slot};
-    };
-    let exposed;
-    try {
-      exposed = exposeTerrainFaces({bounds,core,level:request.level,sample,
-        columnTop:(x: number,z: number)=>Number.isFinite(tops[columnIndex(x,z)]) ? tops[columnIndex(x,z)] : null,
-        maxFaces:MAX_TERRAIN_REGION_FACES});
-    } catch(error) {
-      if(error instanceof RangeError) return unavailable(error.message);
-      throw error;
+    let index=0;
+    for(const [x,z] of coordinates) {
+      const runs: [number,number][]=[];
+      for(let y=coverage.minY;y<coverage.maxY;y++) {
+        const slot=materials[index++], previous=runs[runs.length-1];
+        if(previous?.[1]===slot) previous[0]=y+1;
+        else runs.push([y+1,slot]);
+      }
+      columns.push({x,z,runs});
     }
-    const patch = terrainRegionPatchSchema.parse({key,bounds:core,faces:exposed,surfaces:[...surfaces.values()].filter(Boolean)});
+    const surfaces=[...this.sampleSurfaceColumns(coordinates).values()].filter(Boolean);
+    const patch=terrainRegionPatchSchema.parse({key,bounds,coverage,columns,surfaces});
+    validateTerrainMaterialPatch(patch, this.baseline());
     const bytes = new TextEncoder().encode(JSON.stringify(patch)).byteLength;
     if(bytes + envelopeBytes > MAX_TERRAIN_REGION_BYTES) return unavailable("terrain region exceeds byte budget");
     // Consumers borrow these facts; mutating one cached response cannot poison
     // a later client or request. No atlas or camera state enters this cache.
-    for(const face of patch.faces) { Object.freeze(face.cell); Object.freeze(face); }
-    for(const surface of patch.surfaces) { Object.freeze(surface.cell); if(surface.cover) Object.freeze(surface.cover); Object.freeze(surface); }
-    Object.freeze(patch.faces); Object.freeze(patch.surfaces); Object.freeze(patch.bounds); Object.freeze(patch.key); Object.freeze(patch);
+    freezeTerrainMaterialPatch(patch);
     this.regions.set(id,{patch,bytes}); this.regionBytes += bytes;
     while(this.regions.size > 128 || this.regionBytes > 4*1024*1024) {
       const oldest = this.regions.keys().next().value!;

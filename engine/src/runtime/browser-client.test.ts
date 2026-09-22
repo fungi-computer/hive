@@ -1,3 +1,4 @@
+import { materialPatch } from "./terrain-region-fixture.js";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import { connectBrowserRuntime } from "./browser-client";
@@ -18,7 +19,7 @@ const frame = (epoch: number, terrain?: unknown): WorkerTransportEvent => ({
 });
 const baseline = {
   revision: 4, placementRevision: 4, verticalMetres: 0.5,
-  baseline: { protocolVersion: 4, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
+  baseline: { protocolVersion: 5, bounds: { minX: -8, maxX: 8, minY: -8, maxY: 8, minZ: -8, maxZ: 8 }, verticalMetres: 0.5,
     materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }] },
   surfaces: [{ cell: [0, 2, 0], material: 1, generatedTop: 2 }],
   structureSurfaces: [{ cell: [0, 4, 0] }], water: [],
@@ -47,14 +48,12 @@ test("local terrain references hydrate geometry and replace it after an epoch", 
 
 test("local terrain regions deliver correlated patches and completion with cancellation", () => {
   const worker = new FakeWorker(); const runtime = connectBrowserRuntime({ worker: worker as unknown as Worker });
-  const request = { requestId:11,epoch:2,terrainRevision:4,level:0,regions:[[0,0]] as [number,number][] };
+  const request = { requestId:11,epoch:2,terrainRevision:4,regions:[[0,0,0]] as [number,number,number][] };
   const events: import("./terrain-regions").TerrainRegionEvent[] = [];
   const cancel=runtime.terrainRegions(request,event=>events.push(event));
   assert.deepEqual(worker.posted.at(-1),{type:"terrain-regions",...request});
-  const patch={key:[0,0] as [number,number],bounds:{minX:0,maxX:8,minZ:0,maxZ:8},
-    faces:[{cell:[0,0,0] as [number,number,number],face:"top" as const,material:1,cap:false}],
-    surfaces:[{cell:[0,0,0] as [number,number,number],material:1,generatedTop:0}]};
-  const identity={requestId:11,epoch:2,terrainRevision:4,level:0};
+  const patch=materialPatch([0,0,0]);
+  const identity={requestId:11,epoch:2,terrainRevision:4};
   worker.emit({type:"terrain-regions",event:{kind:"patch",...identity,requestId:99,patch}});
   assert.equal(events.length,0);
   worker.emit({type:"terrain-regions",event:{kind:"patch",...identity,patch}});
@@ -73,9 +72,9 @@ test("local terrain regions deliver correlated patches and completion with cance
 test("local malformed region streams fail without accepting incomplete coverage",()=>{
  const worker=new FakeWorker(),runtime=connectBrowserRuntime({worker:worker as unknown as Worker});
  const events: import("./terrain-regions").TerrainRegionEvent[]=[];
- const request={requestId:1,epoch:0,terrainRevision:1,level:2,regions:[[0,0]] as [number,number][]};
+ const request={requestId:1,epoch:0,terrainRevision:1,regions:[[0,0,0]] as [number,number,number][]};
  runtime.terrainRegions(request,event=>events.push(event));
- worker.emit({type:"terrain-regions",event:{kind:"complete",requestId:1,epoch:0,terrainRevision:1,level:2}});
+ worker.emit({type:"terrain-regions",event:{kind:"complete",requestId:1,epoch:0,terrainRevision:1}});
  assert.equal(events[0]?.kind,"unavailable");
  assert.deepEqual(worker.posted.at(-1),{type:"terrain-cancel",requestId:1});
  runtime.dispose();

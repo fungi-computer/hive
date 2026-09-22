@@ -1,3 +1,4 @@
+import { materialPatch } from "./terrain-region-fixture.js";
 import type { TerrainRegionEvent } from "./terrain-regions";
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
@@ -115,12 +116,12 @@ test("Colony v2 persists the participant credential before join and keeps it out
   const placementCall = calls.find((call) => call.url.endsWith("/placement"));
   assert.equal(new Headers(placementCall?.init?.headers).get("Authorization"), `Bearer ${credential}`);
   const terrain: TerrainRegionEvent[] = [];
-  const regionRequest = { requestId: 5, epoch: 0, terrainRevision: 0, level: 3, regions: [[0,0] as [number,number]] };
+  const regionRequest = { requestId: 5, epoch: 0, terrainRevision: 0, regions: [[0,0,0] as [number,number,number]] };
   runtime.terrainRegions(regionRequest, event => terrain.push(event));
   assert.deepEqual(JSON.parse(socket.sent.at(-1)!), { type: "terrain-regions", ...regionRequest });
   socket.emit("message", { data: JSON.stringify({ type: "terrain-regions", event: {
-    kind: "patch", requestId: 5, epoch: 0, terrainRevision: 0, level: 3,
-    patch: { key: [0,0], bounds: { minX: 0, maxX: 8, minZ: 0, maxZ: 8 }, faces: [], surfaces: [] },
+    kind: "patch", requestId: 5, epoch: 0, terrainRevision: 0,
+    patch: materialPatch([0,0,0]),
   } }) });
   assert.equal(terrain[0]?.kind, "patch");
   assert.equal(calls.some(call => call.url.endsWith("/terrain")), false);
@@ -549,7 +550,7 @@ test("private performance worlds stream terrain through the authenticated socket
   });
   try {
     const received: TerrainRegionEvent[] = [];
-    const request = {requestId:1,epoch:0,terrainRevision:0,level:3,regions:[[0,0] as [number,number]]};
+    const request = {requestId:1,epoch:0,terrainRevision:0,regions:[[0,0,0] as [number,number,number]]};
     runtime.terrainRegions(request, event => received.push(event));
     assert.equal(socket.sent.length, 0, 'terrain waits for authentication');
     runtime.send({type:'start',game:'colony-performance-256-8'});
@@ -557,8 +558,8 @@ test("private performance worlds stream terrain through the authenticated socket
     assert.deepEqual(JSON.parse(socket.sent[0]), {type:'authenticate',token});
     assert.deepEqual(JSON.parse(socket.sent.at(-1)!), {type:'terrain-regions',...request});
     const before = samples.filter(s => s.kind === 'socket').length;
-    const identity = {requestId:1,epoch:0,terrainRevision:0,level:3};
-    for (const event of [{kind:'patch',...identity,patch:{key:[0,0],bounds:{minX:0,maxX:8,minZ:0,maxZ:8},faces:[],surfaces:[]}}, {kind:'complete',...identity}])
+    const identity = {requestId:1,epoch:0,terrainRevision:0};
+    for (const event of [{kind:'patch',...identity,patch:materialPatch([0,0,0])}, {kind:'complete',...identity}])
       socket.emit('message',{data:JSON.stringify({type:'terrain-regions',event})});
     assert.deepEqual(received.map(event => event.kind), ['patch','complete']);
     assert.equal(samples.filter(s => s.kind === 'socket').length, before + 2);

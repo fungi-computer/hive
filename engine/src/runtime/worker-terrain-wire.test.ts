@@ -47,7 +47,7 @@ test("actual Worker region stream supports progressive delivery, reset, superses
   const regionEvents=(id:number)=>events.filter((event):event is Extract<WorkerTransportEvent,{type:"terrain-regions"}>=>event.type==="terrain-regions"&&event.event.requestId===id).map(event=>event.event);
   function request(requestId:number) {
     const frame=latestFrame();assert(frame.terrain);
-    return {type:"terrain-regions" as const,requestId,epoch:frame.epoch,terrainRevision:frame.terrain.revision,level:39,regions:[[0,0],[1,0]] as [number,number][]};
+    return {type:"terrain-regions" as const,requestId,epoch:frame.epoch,terrainRevision:frame.terrain.revision,regions:[[0,0,0],[1,0,0]] as [number,number,number][]};
   }
   function untilTerminal(id:number,afterPatch?:()=>void) {
     return new Promise<import("./terrain-regions").TerrainRegionEvent>((resolve,reject)=>{
@@ -62,12 +62,12 @@ test("actual Worker region stream supports progressive delivery, reset, superses
   try {
     runtime.command({type:"start",game:"colony"});
     const first=latestFrame();assert(first.terrain&&"baseline" in first.terrain);
-    assert.equal(first.terrain.baseline.protocolVersion,4);
+    assert.equal(first.terrain.baseline.protocolVersion,5);
     const done=untilTerminal(1);runtime.command(request(1));
     assert.equal((await done).kind,"complete");
     assert.deepEqual(regionEvents(1).map(event=>event.kind),["patch","patch","complete"]);
     const patches=regionEvents(1).filter(event=>event.kind==="patch");
-    assert.deepEqual(patches.map(event=>event.patch.key),[[0,0],[1,0]]);
+    assert.deepEqual(patches.map(event=>event.patch.key),[[0,0,0],[1,0,0]]);
     assert(patches.every(event=>event.patch.surfaces.length===100));
     assert.equal(latestFrame(),first,"read stream emits no new physical frame");
 
