@@ -38,6 +38,7 @@ test("preparation yields through geometry, candidate discovery and topology whil
     assert(task.metrics().phases[phase] > 0, `actual ${phase} work must yield`);
   const oracle = compileSpatialDrawOrder(next, { projection });
   assert.deepEqual(result.records, oracle.records);
+  assert.deepEqual(result.stagedRecords, oracle.records);
   assert.equal(result.metrics.staticWork.topologyBuilds, 0);
   assert.equal(result.metrics.topologyBuilds, 1);
   assert.equal(owner.metrics().counts.compile, 1, "ready does not publish");
@@ -62,11 +63,19 @@ test("equal-edge refreshes publish every current reference atomically without re
   });
   assert.equal(task.result.metrics.topologyReuses, 1);
   assert.equal(task.result.recordChanges.length, 2);
+  const candidate = task.result.stagedRecords;
+  assert.deepEqual(candidate, [currentGround, current], "display preparation consumes candidate refs directly");
+  assert.deepEqual(first.records, [ground, old], "candidate view does not mutate the live view");
   const published = owner.publish(task);
   assert.equal(published.records, first.records);
   assert.deepEqual(first.records, [currentGround, current]);
   assert.deepEqual(owner.pick({ x: 0, y: 0 }), { record: current, target: null, occluded: true });
   assert.equal(published.applyOrderRequired, true);
+  assert.equal(published.stagedRecords, undefined, "published owner does not retain a stale candidate map");
+  const later = { ...current, target: "later" };
+  owner.update({ ...options, dynamicRecords: [later] });
+  assert.deepEqual(candidate, [currentGround, current], "held candidate remains pinned after later publications");
+  assert.equal(first.records[1], later);
 });
 
 test("cancelled, superseded, failed and reset preparations never replace the published picker", () => {

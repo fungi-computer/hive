@@ -63,7 +63,7 @@ export function createSpatialSceneOwner({ projection, clock = () => performance.
         staticWork: staticRebuilt ? nextScene.metrics : null });
       return { nextScene, result, staticMs: staticFinished - started,
         dynamicMs: preparationClock() - staticFinished,
-        view: Object.freeze({ records: result.records, recordChanges: result.recordChanges,
+        view: Object.freeze({ records: result.records, stagedRecords: result.stagedRecords, recordChanges: result.recordChanges,
           physicalOrderChanged, displayOrderChanged, applyOrderRequired: staticRebuilt || physicalOrderChanged || displayOrderChanged,
           staticRebuilt, metrics }) };
     }
@@ -126,7 +126,9 @@ export function createSpatialSceneOwner({ projection, clock = () => performance.
         measured("dynamicInsertMs", dynamicMs); measured(result.metrics.topologyReuses ? "orderReuseMs" : "topologyUpdateMs", dynamicMs);
         times.compileMs += work.preparationMs; latestWork = view.metrics;
         tasks.published++; tasks.publicationMs += Math.max(0, clock() - started);
-        status = "published"; release(); return view;
+        status = "published"; release();
+        const { stagedRecords: _stagedRecords, ...publishedView } = view;
+        return Object.freeze(publishedView);
       },
     });
     pending = task;
