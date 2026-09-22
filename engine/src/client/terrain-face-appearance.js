@@ -42,6 +42,20 @@ const NORMALS = Object.freeze({ east: [1, 0], west: [-1, 0], south: [0, 1], nort
 function viewAxes([x, z], turn) {
   return [[x, z], [z, -x], [-x, -z], [-z, x]][turn];
 }
+
+function coverStructuralBounds(geometry, point) {
+  if (!geometry) return undefined;
+  if (!Array.isArray(geometry.footprint) || geometry.footprint.length < 3 ||
+      !geometry.footprint.every(value => Array.isArray(value) && value.length === 3 && value.every(Number.isFinite)) ||
+      !Number.isFinite(geometry.minY) || !Number.isFinite(geometry.maxY) || geometry.minY > geometry.maxY)
+    throw new Error("terrain cover requires checked authored geometry");
+  const xs = geometry.footprint.map(value => point.x + value[0]);
+  const zs = geometry.footprint.map(value => point.z + value[2]);
+  return Object.freeze({
+    min: Object.freeze({ x: Math.min(...xs), y: point.y + geometry.minY, z: Math.min(...zs) }),
+    max: Object.freeze({ x: Math.max(...xs), y: point.y + geometry.maxY, z: Math.max(...zs) }),
+  });
+}
 export function terrainArtFace(face, turn) {
   if (face === "top") return face;
   const normal = NORMALS[face];
@@ -83,6 +97,7 @@ export function createTerrainFaceAppearance({ pack, turn = 0 } = {}) {
     const terrainBatch = pack.cover({ ...cover, mask: terrainArtMask(mask, turn), root, seed });
     const point = { x: root[0] + 0.5, y: surfaceY, z: root[1] + 0.5 };
     return { ...opaquePicture(terrainBatch, at),
+      ...(terrainBatch.geometry ? { structuralBounds: coverStructuralBounds(terrainBatch.geometry, point) } : {}),
       ...(terrainBatch.hitArea ? { orderGeometry: uprightImageGeometry(terrainBatch.hitArea, at, point, projection), supportY: surfaceY } : {}),
       ...(terrainBatch.hitArea ? { contains: point => terrainBatch.hitArea.contains(point.x - at.x, point.y - at.y) } : {}) };
   }

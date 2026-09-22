@@ -38,6 +38,7 @@ test("upright cover preserves all baked pixels and UVs instead of clipping to it
   const silhouette = { width: 64, height: 64, rows: Array.from({ length: 65 }, (_, y) => y),
     spans: Array.from({ length: 64 }, () => [24, 39]).flat() };
   const style = { texture: { source: {} }, uvs: [.1,.2,.1,.4,.3,.4,.3,.2],
+    geometry: { footprint: [[-.5,0,-.5],[-.5,0,.5],[.5,0,.5],[.5,0,-.5]], minY: 0, maxY: .28 },
     hitArea: createVisibleHitArea(silhouette, { x: .5, y: .5 }) };
   const owner = createTerrainFaceAppearance({ pack: { body: () => style, cover: () => style } });
   const projection = createOrderingProjection();
@@ -48,6 +49,10 @@ test("upright cover preserves all baked pixels and UVs instead of clipping to it
   assert.equal(picture.projected[2].x - picture.projected[0].x, 16, "only transparent horizontal padding is removed");
   assert.equal(picture.projected[2].y - picture.projected[0].y, 64, "the complete image quad survives");
   assert.equal(picture.supportY, .27);
+  assert.deepEqual(picture.structuralBounds, {
+    min: { x: 0, y: .27, z: 0 },
+    max: { x: 1, y: .55, z: 1 },
+  });
   assert.equal(picture.orderGeometry.kind, "card");
   const center = projection.project({ x: .5, y: .27, z: .5 });
   assert(picture.orderGeometry.shape.points.some(point => point.y + picture.orderGeometry.offset.y < center.y), "blades extend above the support");
