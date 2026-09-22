@@ -1,7 +1,7 @@
 import { materialPatch } from "../runtime/terrain-region-fixture.js";
 import test from "node:test";
 import assert from "node:assert/strict";
-import { Texture } from "pixi.js";
+import { Sprite, Texture } from "pixi.js";
 import { createCutTerrainLayer, waterDrawRecord } from "./cut-terrain-layer.js";
 import { createCameraGeometryOwner } from "./camera-geometry-owner.js";
 import { createOrderingProjection } from "./ordering-projection.js";
@@ -977,4 +977,35 @@ test("clear cancels ready pictures and detached water once without retiring borr
   layer.dispose();
   assert.equal(destroyed, 1);
   assert.equal(Texture.WHITE.destroyed, false);
+});
+
+test("absent terrain never hides actors on the shared world parent or overrides world visibility", () => {
+  const owner = setup({ auto: false }),
+    { layer } = owner,
+    actor = new Sprite(Texture.WHITE);
+  ask(owner, undefined);
+  const task = layer.prepare();
+  drain(task);
+  assert.equal(task.result.terrainFrame, undefined);
+  assert.equal(task.result.records.length, 0);
+  const mesh = task.prepareOrder([
+    { id: "actor", part: "body", display: actor },
+  ]);
+  while (!mesh.advance({ records: 8, meshes: 1 })) {}
+  task.publish();
+  assert.strictEqual(actor.parent, layer.container);
+  assert.equal(layer.container.visible, true);
+  layer.clear();
+  assert.equal(layer.container.visible, true);
+  assert.equal(actor.destroyed, false);
+  layer.container.visible = false;
+  ask(owner, undefined);
+  publish(layer, layer.prepare());
+  assert.equal(
+    layer.container.visible,
+    false,
+    "terrain publication respects visibility owned by the world",
+  );
+  layer.dispose();
+  actor.destroy();
 });
