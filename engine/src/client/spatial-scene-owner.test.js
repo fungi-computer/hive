@@ -75,10 +75,64 @@ test("moving records update hit state without reapplying unchanged display order
   owner.update({...update,dynamicRecords:[{...actor(0),display,contains:()=>true,target:"old"}]});
   const current={...actor(.01),display,contains:()=>true,target:"new",pickable:false};
   const result=owner.update({...update,dynamicRecords:[current]});
+  assert.equal(result.metrics.topologyBuilds,0);
+  assert.equal(result.metrics.topologyReuses,1);
   assert.equal(result.applyOrderRequired,false);
   assert.equal(owner.pick({x:0,y:0}).record,current);
   assert.equal(owner.pick({x:0,y:0}).occluded,true);
   assert.equal(owner.update(update).applyOrderRequired,true);
+});
+
+test("only a changed actor prepares geometry and incident candidates while unchanged edges retain order", () => {
+  const view=projection(),owner=createSpatialSceneOwner({projection:view});
+  const statics=Array.from({length:100},(_,i)=>face(`tile:${i}`,i*20));
+  const people=[actor(0),{...actor(200),id:"stationary-one"},{...actor(400),id:"stationary-two"}];
+  const update={revision:1,staticRecords:()=>statics};
+  const first=owner.update({...update,dynamicRecords:people});
+  const moved={...actor(.01),contains:()=>true,target:"moved"};
+  const next=owner.update({...update,dynamicRecords:[moved,...people.slice(1)]});
+  assert.equal(next.metrics.preparedNew,1);
+  assert.equal(next.metrics.preparedReused,2);
+  assert.equal(next.metrics.topologyBuilds,0);
+  assert.equal(next.records,first.records);
+  assert(next.metrics.candidateVisits<10,"stationary distant actors do not rediscover their neighbors");
+  assert.deepEqual(next.records,compileSpatialDrawOrder([...statics,moved,...people.slice(1)],{projection:view}).records);
+  assert.equal(owner.pick({x:0,y:0}).record,moved);
+});
+
+test("an actor may bridge independent statics and reverse their prior total order", () => {
+  const view={direction:{x:0,y:0,z:1},project:({x,y})=>({x,y}),ray:({x,y})=>({origin:{x,y,z:0},direction:{x:0,y:0,z:1}})};
+  const panel=(id,left,right,z,dy=0)=>({id,orderGeometry:{kind:"face",points:[
+    {x:left,y:-1+dy,z},{x:right,y:-1+dy,z},{x:right,y:1+dy,z},{x:left,y:1+dy,z},
+  ]}});
+  const a=panel("a",1,2,1),b=panel("b",-2,-1,3),owner=createSpatialSceneOwner({projection:view});
+  const update={revision:1,staticRecords:()=>[a,b]};
+  assert.deepEqual(owner.update(update).records.map(record=>record.id),["a","b"]);
+  const bridge=panel("actor",-2,2,2);
+  const inserted=owner.update({...update,dynamicRecords:[bridge]});
+  assert.deepEqual(inserted.records.map(record=>record.id),["b","actor","a"]);
+  assert.equal(inserted.metrics.approximateCycles,0);
+  const moved=panel("actor",-2,2,2,.01);
+  const next=owner.update({...update,dynamicRecords:[moved]});
+  assert.deepEqual(next.records,[b,moved,a]);
+  assert.equal(next.metrics.topologyBuilds,0);
+  assert.deepEqual(owner.update(update).records,[a,b],"removal removes the actor's incident edges");
+});
+
+test("equal visual edges do not reuse approximate cycle recovery after geometry changes", () => {
+  const volume=(id,min,max)=>({id,orderGeometry:{kind:"volume",min,max}}),view=createOrderingProjection();
+  const a=volume("0",{x:3,y:2,z:4},{x:3.3,y:3.8,z:6.3});
+  const b=volume("1",{x:3.5,y:1,z:2},{x:3.8,y:2.3,z:4.8});
+  const c=volume("2",{x:3,y:1.5,z:3.5},{x:5.3,y:3.3,z:4.3});
+  const owner=createSpatialSceneOwner({projection:view}),update={revision:1,staticRecords:()=>[a,b]};
+  const initial=owner.update({...update,dynamicRecords:[c]});
+  assert.equal(initial.metrics.approximateCycles,1);
+  const moved={...c,orderGeometry:{...c.orderGeometry,max:{...c.orderGeometry.max,y:3.31}}};
+  const next=owner.update({...update,dynamicRecords:[moved]});
+  const before=compileSpatialDrawOrder([a,b,c],{projection:view}),after=compileSpatialDrawOrder([a,b,moved],{projection:view});
+  assert.deepEqual(before.relations.toSorted(),after.relations.toSorted());
+  assert.equal(next.metrics.topologyBuilds,1,"cycle fallback depends on geometry even with identical edges");
+  assert.deepEqual(next.records,after.records);
 });
 
 test("ordinary frames retain static comparisons and bounded timing history", () => {
@@ -151,7 +205,8 @@ test("unchanged geometry reuses topology and only refreshes current record slots
   assert.equal(owner.update({...update,dynamicRecords:[newDisplay]}).applyOrderRequired,true);
   const animated={...actor(0),display,orderGeometry:{...actor(0).orderGeometry,max:{x:.2,y:1.1,z:.2}}};
   const changed=owner.update({...update,dynamicRecords:[animated]});
-  assert.equal(changed.metrics.topologyBuilds,1);
+  assert.equal(changed.metrics.topologyBuilds,0,"a changed picture with the same edges keeps its order");
+  assert.equal(changed.metrics.topologyReuses,1);
   assert(projections>0);
   assert.throws(()=>owner.update({...update,dynamicRecords:[animated],currentStaticRecords:[face("ground",3)]}),/without a revision/);
   const empty=owner.update(update);

@@ -157,8 +157,9 @@ test("study cover retains original image and atlas UVs for full and short four-c
       assert(Math.abs(record.projected[2].x - record.projected[0].x - 16) < 1e-10);
       assert(Math.abs(record.projected[2].y - record.projected[0].y - 64) < 1e-10);
       assert.equal(record.supportY, record.attachment.point.y);
-      assert(record.orderGeometry.points.some(point => point.y > record.supportY));
+      assert.equal(record.orderGeometry.kind,"card");
       const center = scene.projection.project(record.attachment.point);
+      assert(record.orderGeometry.shape.points.some(point => point.y + record.orderGeometry.offset.y < center.y));
       assert(record.contains({ x: center.x, y: center.y - 30 }), "ink above ground support survives");
     });
   }

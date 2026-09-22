@@ -1,4 +1,4 @@
-import { compareOrderingPlanes, prepareOrderingProxy, polygonContains, hull } from "./plane-order.js";
+import { compareOrderingPlanes, prepareOrderingProxy, polygonContains, polygonArea, hull } from "./plane-order.js";
 
 const EPSILON = 1e-7;
 const keyOf = record => `${record.id}\u0000${record.part ?? ""}`;
@@ -60,6 +60,33 @@ function rectanglePolygon(bounds) {
     { x: bounds.right, y: bounds.bottom }, { x: bounds.left, y: bounds.bottom }];
 }
 
+const checkedCardShapes = new WeakSet();
+function prepareCard(geometry, projection) {
+  const { shape, offset, plane } = geometry;
+  if (!offset || ![offset.x, offset.y].every(Number.isFinite) || !plane || !finite(plane.normal) ||
+      !Number.isFinite(plane.constant) || plane.normal.y !== 0)
+    throw new Error("spatial draw card requires finite placement and an upright plane");
+  const length = Math.hypot(projection.direction.x, projection.direction.z);
+  if (!(length > 0) || plane.normal.x !== projection.direction.x / length || plane.normal.z !== projection.direction.z / length)
+    throw new Error("spatial draw card plane must match its view");
+  if (!checkedCardShapes.has(shape)) {
+    if (!shape || ![shape.width, shape.height].every(value => Number.isFinite(value) && value > 0) ||
+        !Array.isArray(shape.points) || shape.points.length < 3 ||
+        !shape.points.every(point => point && [point.x, point.y].every(Number.isFinite)) ||
+        polygonArea(shape.points) <= EPSILON ||
+        !shape.points.every(point => polygonContains(shape.points, point)))
+      throw new Error("spatial draw card requires a convex checked silhouette");
+    const coverage = checkedCoverage({ kind: "face", coverage: { offset: { x: 0, y: 0 }, rectangles: shape.rectangles } });
+    if (!coverage || !coverage.every(rectangle => rectanglePolygon(rectangle).every(point => polygonContains(shape.points, point))))
+      throw new Error("spatial draw card coverage must be inside its silhouette");
+    if (frozenOrderingData(shape)) checkedCardShapes.add(shape);
+  }
+  const polygon = shape.points.map(point => ({ x: point.x + offset.x, y: point.y + offset.y }));
+  const bounds = boundsOf(polygon);
+  if (!Object.values(bounds).every(Number.isFinite)) throw new Error("spatial draw card placement exceeds finite coordinates");
+  return { bounds, orderingProxy: { normal: plane.normal, constant: plane.constant, polygon } };
+}
+
 function checkedCoverage(geometry) {
   const coverage = geometry.coverage;
   if (coverage == null) return null;
@@ -83,7 +110,13 @@ function checkedCoverage(geometry) {
 // image area; it never samples pixel centers or changes the depth equation.
 function preciseFaces(entry) {
   if (!entry.coverage) return entry.faces;
-  return entry.preciseFaces ??= entry.coverage.map(bounds => ({ bounds,
+  if (entry.preciseFaces) return entry.preciseFaces;
+  const geometry = entry.record.orderGeometry;
+  const coverage = geometry.kind === "card" ? geometry.shape.rectangles.map(rectangle => ({
+    left: rectangle.left + geometry.offset.x, right: rectangle.right + geometry.offset.x,
+    top: rectangle.top + geometry.offset.y, bottom: rectangle.bottom + geometry.offset.y,
+  })) : entry.coverage;
+  return entry.preciseFaces ??= coverage.map(bounds => ({ bounds,
     orderingProxy: { ...entry.faces[0].orderingProxy, polygon: rectanglePolygon(bounds) } }));
 }
 
@@ -92,6 +125,10 @@ function prepare(record, projection) {
   if (record.id == null) throw new Error("spatial draw record identity required");
   if(record.surfaceOrder!=null&&!Number.isSafeInteger(record.surfaceOrder))throw new Error("spatial draw surface order must be an integer");
   if(record.supportY!=null&&!Number.isFinite(record.supportY))throw new Error("spatial draw support height must be finite");
+  if (record.orderGeometry?.kind === "card") {
+    const face = prepareCard(record.orderGeometry, projection);
+    return { record, key, faces: [face], coverage: true, bounds: face.bounds };
+  }
   const faces = geometryFaces(record.orderGeometry, projection.direction).map(points => {
     const screenBounds = boundsOf(points.map(point => projection.project(point)));
     return { bounds:screenBounds, orderingProxy: prepareOrderingProxy({ id: key, planarCorners: points, footprint: points, screenBounds }, projection) };
@@ -204,13 +241,20 @@ function createSpatialIndex(binSize) {
   return {
     add(entry) {
       for (const key of binKeys(entry, binSize)) {
-        const bin = bins.get(key) ?? [];
-        bin.push(entry); bins.set(key, bin);
+        const bin = bins.get(key) ?? new Map();
+        bin.set(entry.key, entry); bins.set(key, bin);
+      }
+    },
+    remove(entry) {
+      for (const key of binKeys(entry, binSize)) {
+        const bin = bins.get(key);
+        bin?.delete(entry.key);
+        if (bin?.size === 0) bins.delete(key);
       }
     },
     candidates(entry, counters) {
       const seen = new Set(), candidates = [];
-      for (const key of binKeys(entry, binSize)) for (const other of bins.get(key) ?? []) {
+      for (const key of binKeys(entry, binSize)) for (const other of bins.get(key)?.values() ?? []) {
         if (seen.has(other.key)) continue;
         seen.add(other.key); counters.candidateVisits++;
         if (overlap(entry.bounds, other.bounds)) candidates.push(other);
@@ -247,14 +291,6 @@ const compareEntries = (a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 const countersFor = records => ({ records, candidateVisits: 0, faceComparisons: 0, bins: 0, edges: 0,
   topologyBuilds: 0, topologyReuses: 0, coplanarSkips: 0, coverageRefinements: 0, coverageFaceComparisons: 0, approximateOverlaps: 0, approximateCycles: 0, preparedNew: 0, preparedReused: 0, relationsReused: 0, preparationMs: 0, candidateMs: 0, topologyMs: 0 });
 
-function prepareEntries(records, projection) {
-  if (!Array.isArray(records)) throw new Error("spatial draw records must be an array");
-  const entries = records.map(record => prepare(record, projection)).sort(compareEntries);
-  if (new Set(entries.map(entry => entry.key)).size !== entries.length)
-    throw new Error("duplicate spatial draw identity");
-  return entries;
-}
-
 function mergeEntries(statics, dynamics, refreshedRecords) {
   const entries = [];
   let left = 0, right = 0;
@@ -289,6 +325,31 @@ function resolveSupports(entries, byKey, projection) {
 
 function centerDepth(entry, projection) {
   const geometry = entry.record.orderGeometry;
+  if (geometry.kind === "card") {
+    if (entry.centerDepth !== undefined) return entry.centerDepth;
+    // Only the established ambiguous-overlap/cycle policy needs a world-space
+    // center. Recover its previous world-AABB center lazily from the affine
+    // screen-to-plane map, without changing the ordinary card representation.
+    const pointOnPlane = point => {
+      const { origin, direction } = projection.ray(point), { normal, constant } = geometry.plane;
+      const t = (constant - normal.x * origin.x - normal.z * origin.z) /
+        (normal.x * direction.x + normal.z * direction.z);
+      return { x: origin.x + t * direction.x, y: origin.y + t * direction.y, z: origin.z + t * direction.z };
+    };
+    const origin = pointOnPlane(geometry.offset);
+    const x = pointOnPlane({ x: geometry.offset.x + 1, y: geometry.offset.y });
+    const y = pointOnPlane({ x: geometry.offset.x, y: geometry.offset.y + 1 });
+    let depth = 0;
+    for (const axis of ["x", "y", "z"]) {
+      let min = Infinity, max = -Infinity;
+      for (const point of geometry.shape.points) {
+        const value = origin[axis] + point.x * (x[axis] - origin[axis]) + point.y * (y[axis] - origin[axis]);
+        min = Math.min(min, value); max = Math.max(max, value);
+      }
+      depth += (min + max) / 2 * projection.direction[axis];
+    }
+    return entry.centerDepth = depth;
+  }
   const points = geometry.kind === "volume" ? [geometry.min, geometry.max] : geometry.points;
   const center = axis => (Math.min(...points.map(point => point[axis])) + Math.max(...points.map(point => point[axis]))) / 2;
   return center("x") * projection.direction.x + center("y") * projection.direction.y + center("z") * projection.direction.z;
@@ -377,20 +438,132 @@ function geometrySignature(record) {
     record.compositePartition ?? null, record.support ?? null, record.contactSurface ?? null];
   const cached = immutableSignatures.get(record);
   if (cached && inputs.every((value,index) => value === cached.inputs[index])) return cached.signature;
-  const data = JSON.stringify(inputs, (_key, value) => {
+  const geometry = record.orderGeometry;
+  const shape = geometry?.kind === "card" && frozenOrderingData(geometry.shape) ? geometry.shape : null;
+  const data = JSON.stringify(shape ? [{ kind: "card", offset: geometry.offset, plane: geometry.plane }, ...inputs.slice(1)] : inputs, (_key, value) => {
       if (typeof value === "number" && !Number.isFinite(value))
         throw new Error("spatial ordering data must be finite");
       return value;
     });
   // Composite membership uses strict token identity in the comparator. Preserve
   // it separately so equal-looking replacement objects cannot reuse old edges.
-  const signature = { data, partition: record.compositePartition ?? null };
+  const signature = { data, shape, partition: record.compositePartition ?? null };
   // Run finite validation before admitting immutable data. Root fields stay
   // replaceable, so every hit checks their captured references and scalars.
   if (inputs.every(frozenOrderingData)) immutableSignatures.set(record, { inputs, signature });
   return signature;
 }
-const sameGeometrySignature = (a, b) => a?.data === b?.data && a?.partition === b?.partition;
+const sameGeometrySignature = (a, b) => a?.data === b?.data && a?.shape === b?.shape && a?.partition === b?.partition;
+
+const pairKey = (a, b) => JSON.stringify(a < b ? [a, b] : [b, a]);
+const sameEdge = (a, b) => a?.[0] === b?.[0] && a?.[1] === b?.[1];
+
+/** Retains dynamic pieces and only their incident visual/support edges. A
+ * proposal touches no published entries, bins or relations until accepted. */
+function createDynamicRelations(staticByKey, staticIndex, projection, binSize, clock) {
+  let entries = new Map(), signatures = new Map();
+  const index = createSpatialIndex(binSize), pairs = new Map(), incidents = new Map();
+
+  function stage(records, counters) {
+    const started = clock();
+    if (!Array.isArray(records)) throw new Error("spatial draw records must be an array");
+    const next = new Map(), nextSignatures = new Map(), currentRecords = new Map(), changed = new Set();
+    for (const record of records) {
+      if (record?.id == null) throw new Error("spatial draw record identity required");
+      const key = keyOf(record), signature = geometrySignature(record);
+      if (staticByKey.has(key) || next.has(key)) throw new Error("duplicate spatial draw identity");
+      nextSignatures.set(key, signature); currentRecords.set(key, record);
+      if (sameGeometrySignature(signatures.get(key), signature)) {
+        next.set(key, entries.get(key)); counters.preparedReused++;
+      } else {
+        const entry = prepare(record, projection);
+        // Check index bounds before any retained mutation, including isolated
+        // pieces whose first candidate query would otherwise happen at commit.
+        binKeys(entry, binSize);
+        next.set(key, entry); changed.add(key); counters.preparedNew++;
+      }
+    }
+    for (const key of entries.keys()) if (!next.has(key)) changed.add(key);
+    // Contact geometry can belong to a moving support. Its unchanged occupants
+    // must be checked too, including when their support was removed.
+    for (const [key, entry] of next) if (entry.supportKey && changed.has(entry.supportKey) && !changed.has(key)) {
+      next.set(key, { ...entry }); changed.add(key);
+    }
+    const changedEntries = [...changed].flatMap(key => next.has(key) ? [next.get(key)] : []);
+    resolveSupports(changedEntries, { get: key => next.get(key) ?? staticByKey.get(key) }, projection);
+    // Visual pairs retain one direction; explicit supports are independently
+    // mandatory and may not be collapsed into that pair representation.
+    const checkedSupports = new Set();
+    for (const entry of changedEntries) {
+      const path = new Set();
+      let current = entry;
+      while (current && !checkedSupports.has(current.key)) {
+        if (path.has(current.key)) throw new Error("spatial draw explicit support cycle");
+        path.add(current.key);
+        current = next.get(current.supportKey);
+      }
+      for (const key of path) checkedSupports.add(key);
+    }
+    const removedPairs = new Set();
+    for (const key of changed) for (const pair of incidents.get(key) ?? []) removedPairs.add(pair);
+    const candidateStarted = clock();
+    counters.preparationMs = Math.max(0, candidateStarted - started);
+    const nextPairs = new Map(), compared = new Set(), changedIndex = createSpatialIndex(binSize);
+    const compare = (a, b) => {
+      if (a.key === b.key) return;
+      const key = pairKey(a.key, b.key);
+      if (compared.has(key)) return;
+      compared.add(key);
+      const edges = [];
+      addRelation(a, b, projection, counters, edges);
+      if (edges.length) nextPairs.set(key, edges[0]);
+    };
+    for (const entry of changedEntries) {
+      if (entry.supportKey) compare(entry, next.get(entry.supportKey) ?? staticByKey.get(entry.supportKey));
+      for (const other of staticIndex.candidates(entry, counters)) compare(entry, other);
+      for (const other of index.candidates(entry, counters)) if (!changed.has(other.key)) compare(entry, other);
+      for (const other of changedIndex.candidates(entry, counters)) compare(entry, other);
+      changedIndex.add(entry);
+    }
+    counters.candidateMs = Math.max(0, clock() - candidateStarted);
+    counters.bins = staticIndex.size + (changed.size
+      ? new Set([...next.values()].flatMap(entry => binKeys(entry, binSize))).size : index.size);
+    const sameMembership = next.size === entries.size && [...next.keys()].every(key => entries.has(key));
+    const sameSupports = changedEntries.every(entry => entries.get(entry.key)?.supportKey === entry.supportKey);
+    const sameRelations = removedPairs.size === nextPairs.size &&
+      [...removedPairs].every(key => sameEdge(pairs.get(key), nextPairs.get(key)));
+    return { next, nextSignatures, currentRecords, changed, changedEntries, removedPairs, nextPairs,
+      geometryChanged: changed.size > 0, orderUnchanged: sameMembership && sameSupports && sameRelations,
+      entriesForOrder: () => [...next.values()].map(entry => ({ ...entry, record: currentRecords.get(entry.key) })).sort(compareEntries),
+      relationsForOrder: () => [...pairs].filter(([key]) => !removedPairs.has(key)).map(([, edge]) => edge).concat([...nextPairs.values()]),
+    };
+  }
+  function commit(update) {
+    for (const key of update.changed) {
+      const old = entries.get(key);
+      if (old) index.remove(old);
+    }
+    for (const entry of update.changedEntries) index.add(entry);
+    for (const key of update.removedPairs) {
+      const edge = pairs.get(key);
+      for (const endpoint of edge) {
+        const set = incidents.get(endpoint); set.delete(key);
+        if (!set.size) incidents.delete(endpoint);
+      }
+      pairs.delete(key);
+    }
+    for (const [key, edge] of update.nextPairs) {
+      pairs.set(key, edge);
+      for (const endpoint of edge) {
+        const set = incidents.get(endpoint) ?? new Set();
+        set.add(key); incidents.set(endpoint, set);
+      }
+    }
+    for (const [key, entry] of update.next) entry.record = update.currentRecords.get(key);
+    entries = update.next; signatures = update.nextSignatures;
+  }
+  return { stage, commit, get size() { return entries.size; }, get bins() { return index.size; } };
+}
 
 /** Retains checked static geometry, its spatial index and all static relations.
  * A static support must itself be static. Dynamic records may reference either
@@ -460,7 +633,7 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
   previous = undefined;
   let current = staticResult, orderedRecords = [...staticResult.records];
   let orderedIndexes = new Map(orderedRecords.map((record, index) => [keyOf(record), index]));
-  let dynamicSignatures = new Map();
+  const dynamics = createDynamicRelations(byKey, staticIndex, projection, binSize, clock);
   return Object.freeze({
     metrics: staticResult.metrics,
     withStaticRecords(records) {
@@ -468,9 +641,8 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
         { byKey, signatures, relations: staticResult.relations });
     },
     retained: () => Object.freeze({ staticRecords: byKey.size, staticRelations: staticResult.relations.length,
-      staticBins: staticIndex.size, dynamicRecords: dynamicSignatures.size, currentRecords: orderedRecords.length }),
+      staticBins: staticIndex.size, dynamicRecords: dynamics.size, currentRecords: orderedRecords.length }),
     compile(dynamicRecords = [], currentStaticRecords = []) {
-      const preparationStarted = clock();
       if (!Array.isArray(currentStaticRecords)) throw new Error("spatial static refresh requires an array");
       const refreshed = new Set();
       for (const record of currentStaticRecords) {
@@ -481,17 +653,14 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
           throw new Error(`spatial static geometry changed without a revision: ${key}`);
       }
       if (!Array.isArray(dynamicRecords)) throw new Error("spatial draw records must be an array");
-      const nextSignatures = new Map();
-      for (const record of dynamicRecords) {
-        if (record?.id == null) throw new Error("spatial draw record identity required");
-        const key = keyOf(record);
-        if (byKey.has(key) || nextSignatures.has(key)) throw new Error("duplicate spatial draw identity");
-        nextSignatures.set(key, geometrySignature(record));
-      }
-      const unchanged = nextSignatures.size === dynamicSignatures.size &&
-        [...nextSignatures].every(([key, signature]) => sameGeometrySignature(dynamicSignatures.get(key), signature));
+      const counters = countersFor(statics.length + dynamicRecords.length);
+      const update = dynamics.stage(dynamicRecords, counters);
       const refreshedRecords = new Map(currentStaticRecords.map(record => [keyOf(record), record]));
-      if (unchanged) {
+      // Equal edges imply the same deterministic acyclic order. Approximate
+      // cycles also depend on moving center depths, so changed geometry must
+      // rerun recovery even when every pair retained its edge direction.
+      if (update.orderUnchanged && (!update.geometryChanged || current.metrics.approximateCycles === 0)) {
+        dynamics.commit(update);
         const recordChanges = [];
         for (const record of [...currentStaticRecords, ...dynamicRecords]) {
           const index = orderedIndexes.get(keyOf(record)), previous = orderedRecords[index];
@@ -503,30 +672,18 @@ function buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, pr
         for (const [key, record] of refreshedRecords) byKey.get(key).record = record;
         return Object.freeze({ records: orderedRecords, relations: current.relations,
           recordChanges: Object.freeze(recordChanges),
-          metrics: Object.freeze({ ...countersFor(orderedRecords.length), bins: current.metrics.bins,
+          metrics: Object.freeze({ ...counters, bins: staticIndex.size + dynamics.bins,
             edges: current.metrics.edges, topologyReuses: 1 }) });
       }
-      const dynamics = prepareEntries(dynamicRecords, projection);
       // Only commit refreshes after validating and ordering the entire update.
-      const entries = mergeEntries(statics, dynamics, refreshedRecords);
-      resolveSupports(dynamics, new Map(entries.map(entry => [entry.key, entry])), projection);
-      const counters = countersFor(entries.length), dynamicIndex = createSpatialIndex(binSize), relations = [...staticResult.relations];
-      const candidatesStarted = clock();
-      counters.preparationMs = Math.max(0, candidatesStarted - preparationStarted);
-      for (const entry of dynamics) {
-        if (entry.supportKey) relations.push([entry.supportKey, entry.key]);
-        for (const other of staticIndex.candidates(entry, counters)) addRelation(other, entry, projection, counters, relations);
-        for (const other of dynamicIndex.candidates(entry, counters)) addRelation(other, entry, projection, counters, relations);
-        dynamicIndex.add(entry);
-      }
-      counters.bins = staticIndex.size + dynamicIndex.size;
-      counters.candidateMs = Math.max(0, clock() - candidatesStarted);
+      const entries = mergeEntries(statics, update.entriesForOrder(), refreshedRecords);
+      const relations = [...staticResult.relations, ...update.relationsForOrder()];
       const result = orderGraph(entries, relations, counters, clock, projection);
+      dynamics.commit(update);
       for (const [key, record] of refreshedRecords) byKey.get(key).record = record;
       current = result;
       orderedRecords = [...result.records];
       orderedIndexes = new Map(orderedRecords.map((record, index) => [keyOf(record), index]));
-      dynamicSignatures = nextSignatures;
       return Object.freeze({ ...result, records: orderedRecords });
     },
   });
