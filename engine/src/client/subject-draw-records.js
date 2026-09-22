@@ -11,7 +11,7 @@ function finite(value, name) {
 function checkedAnchor(anchor) {
   if (!anchor || !Number.isFinite(anchor.x) || !Number.isFinite(anchor.y))
     throw new Error("invalid subject draw anchor");
-  return anchor;
+  return Object.freeze({ x: anchor.x, y: anchor.y });
 }
 
 function textureBounds(texture, anchor, screen) {
@@ -105,7 +105,7 @@ export function subjectDrawGeometry({
 }
 
 /** Build the ordinary one-sprite record without taking ownership of its display. */
-export function ordinarySubjectDrawRecord({ subject, binding, geometry, display, sprite } = {}) {
+export function ordinarySubjectDrawRecord({ subject, binding, geometry, display } = {}) {
   if (!geometry?.footprint?.length) throw new Error("subject draw geometry required");
   const isStatic = binding?.kind === "static";
   const attachment = isStatic
@@ -127,8 +127,8 @@ export function ordinarySubjectDrawRecord({ subject, binding, geometry, display,
     screenBounds: geometry.screenBounds,
     hitArea: geometry.hitArea,
     contains: point => geometry.hitArea?.contains(
-      point.x - display.x - sprite.x,
-      point.y - display.y - sprite.y,
+      point.x - geometry.screen.x,
+      point.y - geometry.screen.y,
     ) === true,
     visible: true,
     orderGeometry: geometry.orderGeometry,
@@ -163,20 +163,21 @@ export function multipartSubjectDrawRecords(records) {
     role: "structure",
     moving: false,
     contains: point => record.hitArea?.contains(
-      point.x - record.display.x,
-      point.y - record.display.y,
+      (point.x - record.screen.x) / record.scale,
+      (point.y - record.screen.y) / record.scale,
     ) === true,
   })));
 }
 
 /** Shared transform parameters consumed by the existing multipart owner. */
 export function multipartSubjectSync({ subject, geometry, facing, pickable, hitAreaFor } = {}) {
+  const origin = Object.freeze({ x: subject.x, y: subject.y, z: subject.z });
   return Object.freeze({
     entityId: subject.id,
     anchor: geometry.anchor,
     screen: geometry.screen,
     scale: 1,
-    transform: point => transformBakedPartPoint(point, facing, subject, geometry.offset),
+    transform: point => transformBakedPartPoint(point, facing, origin, geometry.offset),
     pickable: pickable !== false,
     hitAreaFor,
   });

@@ -72,3 +72,25 @@ test("real stair parts share bounds before owner sync and preserve sibling roles
     source.traverse(object => object.geometry?.dispose());
   }
 });
+
+test('ordinary hit coordinates stay with the immutable geometry when shared displays move', () => {
+  const subject = {id:'a',x:2,y:0,z:0,screen:{x:20,y:10}};
+  const binding = DEFAULT_VISUAL_BINDINGS['goblin.worker'];
+  const hitArea = {contains:(x,y) => x === 2 && y === -3};
+  const geometry = subjectDrawGeometry({subject,binding,texture:texture(8,8),anchor:{x:.5,y:1},hitArea,verticalMetres:.54});
+  const display = {x:999,y:999}, sprite = {x:999,y:999};
+  const record = ordinarySubjectDrawRecord({subject,binding,geometry,display,sprite});
+  assert.equal(record.contains({x:22,y:7}),true);
+  display.x = -888; sprite.y = 444; subject.screen.x = 0;
+  assert.equal(record.contains({x:22,y:7}),true);
+  assert.equal(record.contains({x:2,y:-3}),false);
+});
+
+test('multipart hit coordinates pin the prepared origin and scale', () => {
+  const display = {x:1000,y:1000};
+  const [record] = multipartSubjectDrawRecords([{id:'a',part:'side',role:'upright-boundary',display,
+    footprint:[{x:0,y:0,z:0}],screen:Object.freeze({x:20,y:10}),scale:2,
+    hitArea:{contains:(x,y) => x === 2 && y === -3}}]);
+  assert.equal(record.contains({x:24,y:4}),true); display.x = -5; display.y = -9;
+  assert.equal(record.contains({x:24,y:4}),true); assert.equal(record.contains({x:22,y:7}),false);
+});
