@@ -122,3 +122,33 @@ test("passive ship motion leaves crew idle while local walking animates", () => 
   assert.equal(walked.walking,true);
   assert.equal(walked.direction,0);
 });
+
+test('cancelled animation samples preserve published motion history and frame phase', () => {
+  const clock = createAnimationClock({frameMs:100});
+  clock.sample([actor('a',0,0)],{now:0});
+  const task = clock.prepare({now:900});
+  assert.equal(task.sample(actor('a',2,0)).walking,true);
+  task.cancel(); task.cancel();
+  assert.throws(() => task.sample(actor('a',0,0)),/cancelled/);
+  assert.throws(() => task.publish(),/cancelled/);
+  assert.deepEqual(clock.sample([actor('a',0,0)],{now:100}),[{id:'a',walking:false,direction:2,frame:0}]);
+});
+
+test('animation frame samples incrementally and retires only on publication', () => {
+  const clock = createAnimationClock();
+  clock.sample([actor('a',0,0),actor('b',0,0)],{now:0});
+  const abandoned = clock.prepare({now:100}); abandoned.sample(actor('a',1,0));
+  const replacement = clock.prepare({now:150});
+  assert.throws(() => abandoned.publish(),/cancelled/);
+  assert.equal(replacement.sample(actor('b',1,0)).walking,true); replacement.publish();
+  assert.equal(clock.sample([actor('a',1,0)],{now:200})[0].walking,false);
+  const pending = clock.prepare({now:300}); pending.sample(actor('a',2,0)); clock.reset();
+  assert.throws(() => pending.publish(),/cancelled/);
+  assert.equal(clock.sample([actor('a',9,9)],{now:400})[0].walking,false);
+});
+
+test('paused actors without a running history use their current authored facing', () => {
+  const clock = createAnimationClock();
+  assert.equal(clock.sample([actor('a',0,0,0)],{paused:true})[0].direction,2);
+  assert.equal(clock.sample([actor('a',0,0,1)],{paused:true})[0].direction,1);
+});

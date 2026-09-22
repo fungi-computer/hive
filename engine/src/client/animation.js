@@ -8,41 +8,38 @@ function directionFromVector(dx, dz, facing = 0) {
   return ((Math.round(Math.atan2(dx, dz) / (Math.PI / 2)) % 4) + 4) % 4;
 }
 
+/** Samples a candidate frame without advancing the published animation history.
+ * A caller may sample one subject per work unit, then publish or cancel the frame.
+ * The synchronous sample API drives this same transaction. */
 export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
-  const history = new Map();
-  const states = new Map();
-  let phase = 0;
-  let lastNow;
-  return {
-    sample(subjects, { now = 0, paused = false, reset = false, sequence } = {}) {
-      if (reset) {
-        history.clear();
-        states.clear();
-        phase = 0;
-        lastNow = undefined;
-      }
-      if (paused) lastNow = undefined;
-      if (!paused && Number.isFinite(now)) {
-        phase += lastNow === undefined ? 0 : Math.max(0, now - lastNow);
-        lastNow = now;
-      }
-      const live = new Set(subjects.map((subject) => subject.id));
-      for (const id of history.keys()) if (!live.has(id)) history.delete(id);
-      for (const id of states.keys()) if (!live.has(id)) states.delete(id);
-      const sampled = [];
-      for (const subject of subjects) {
+  let history = new Map(), states = new Map(), phase = 0, lastNow, pending;
+
+  function prepare({ now = 0, paused = false, reset = false, sequence } = {}) {
+    pending?.cancel();
+    let oldHistory = reset ? new Map() : history;
+    let oldStates = reset ? new Map() : states;
+    let nextHistory = new Map(), nextStates = new Map();
+    const sampledIds = new Set();
+    let nextPhase = reset ? 0 : phase;
+    let nextNow = reset || paused ? undefined : lastNow;
+    if (!paused && Number.isFinite(now)) {
+      nextPhase += nextNow === undefined ? 0 : Math.max(0, now - nextNow);
+      nextNow = now;
+    }
+    let status = "preparing";
+    const task = Object.freeze({
+      sample(subject) {
+        if (status !== "preparing") throw new Error(`animation frame is ${status}`);
+        if (sampledIds.has(subject.id)) throw new Error(`duplicate animation subject ${subject.id}`);
+        sampledIds.add(subject.id);
+        const previous = oldHistory.get(subject.id), prior = oldStates.get(subject.id);
         if (paused) {
-          sampled.push(
-            states.get(subject.id) ?? {
-              id: subject.id,
-              walking: false,
-              direction: directionFromVector(0, 0, subject.facing),
-              frame: 0,
-            },
-          );
-          continue;
+          const state = prior ?? Object.freeze({ id: subject.id, walking: false,
+            direction: directionFromVector(0, 0, subject.facing), frame: 0 });
+          if (previous) nextHistory.set(subject.id, previous);
+          if (prior) nextStates.set(subject.id, prior);
+          return state;
         }
-        const previous = history.get(subject.id);
         const local = subject.local?.position ?? subject;
         const sameSupport = previous?.support === subject.support;
         const localDx = previous && sameSupport ? local.x - previous.x : 0;
@@ -50,10 +47,7 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
         const rotation = subject.local ? (subject.facing - subject.local.facing) * Math.PI / 2 : 0;
         const dx = Math.cos(rotation) * localDx - Math.sin(rotation) * localDz;
         const dz = Math.sin(rotation) * localDx + Math.cos(rotation) * localDz;
-        const moved = Boolean(
-          previous && (Math.abs(dx) > EPSILON || Math.abs(dz) > EPSILON),
-        );
-        const prior = states.get(subject.id);
+        const moved = Boolean(previous && (Math.abs(dx) > EPSILON || Math.abs(dz) > EPSILON));
         const facingChanged = previous && Math.abs((subject.facing ?? 0) - previous.facing) > EPSILON;
         const lastMotion = moved ? now : previous?.lastMotion;
         const walking = moved || Boolean(sameSupport && prior?.walking && lastMotion !== undefined && now - lastMotion < 120);
@@ -66,23 +60,48 @@ export function createAnimationClock({ frameMs = FRAME_MS } = {}) {
           if (Math.abs(workDx) > EPSILON || Math.abs(workDz) > EPSILON)
             direction = directionFromVector(workDx, workDz, subject.facing);
         }
-        const state = {
-          id: subject.id, walking, direction,
-          frame: Math.floor(phase / (walking || subject.activity ? frameMs : frameMs * 4)),
-        };
-        sampled.push(state);
-        history.set(subject.id, { x: local.x, y: local.y, z: local.z, support: subject.support, sequence, facing: subject.facing ?? 0, lastMotion });
-        states.set(subject.id, state);
-      }
-      return sampled;
+        const state = Object.freeze({ id: subject.id, walking, direction,
+          frame: Math.floor(nextPhase / (walking || subject.activity ? frameMs : frameMs * 4)) });
+        nextHistory.set(subject.id, { x: local.x, y: local.y, z: local.z, support: subject.support,
+          sequence, facing: subject.facing ?? 0, lastMotion });
+        nextStates.set(subject.id, state);
+        return state;
+      },
+      publish() {
+        if (status === "published") return;
+        if (status !== "preparing") throw new Error(`animation frame is ${status}`);
+        history = nextHistory; states = nextStates; phase = nextPhase; lastNow = nextNow;
+        status = "published"; pending = undefined;
+        oldHistory = oldStates = nextHistory = nextStates = undefined;
+        sampledIds.clear();
+      },
+      cancel() {
+        if (status !== "preparing") return;
+        status = "cancelled";
+        oldHistory = oldStates = nextHistory = nextStates = undefined;
+        sampledIds.clear();
+        if (pending === task) pending = undefined;
+      },
+    });
+    pending = task;
+    return task;
+  }
+
+  return Object.freeze({
+    prepare,
+    sample(subjects, options) {
+      const task = prepare(options);
+      try {
+        const sampled = subjects.map(subject => task.sample(subject));
+        task.publish();
+        return sampled;
+      } catch (error) { task.cancel(); throw error; }
     },
     reset() {
-      history.clear();
-      states.clear();
-      phase = 0;
-      lastNow = undefined;
+      pending?.cancel();
+      history = new Map(); states = new Map(); phase = 0; lastNow = undefined;
     },
-  };
+  });
 }
 
 export function animationFrames(figure, direction, walking) {

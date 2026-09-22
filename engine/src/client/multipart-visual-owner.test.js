@@ -47,3 +47,42 @@ test("multipart owner keeps sibling identities while resolving one entity target
   assert.equal(children[1].destroyed, true);
   assert.throws(() => owner.sync({ entityId: "stair-1", parts: [] }), /disposed/);
 });
+
+test('multipart preparation retains old resources, stages new siblings and retires on publish', () => {
+  const children = [], made = [];
+  const createSprite = () => {
+    const value = {x:0,y:0,visible:false,anchor:{set(){}},scale:{set(){}},destroy(){this.destroyed=true;}};
+    value.position = {set(x,y){value.x=x;value.y=y;}}; made.push(value); return value;
+  };
+  const owner = createMultipartVisualOwner({parent:{addChild(value){children.push(value);}},createSprite});
+  const a = {id:'a',texture:{},geometry:{footprint:[[0,0,0]]}}, b = {...a,id:'b'};
+  const original = owner.sync({entityId:'entity',parts:[a,b],screen:{x:10,y:20}});
+  const unchanged = owner.sync({entityId:'entity',parts:[a,b],screen:{x:10,y:20}});
+  assert.equal(unchanged[0],original[0]); assert.equal(unchanged[1],original[1]);
+  const task = owner.prepare({entityId:'entity',parts:[a,{...b,id:'new'}],screen:{x:50,y:60}});
+  task.advance(); assert.equal(made.length,2); assert.equal(original[0].display.x,10);
+  task.advance(); assert.equal(made.length,3); assert.equal(children.length,2);
+  while(!task.ready) task.advance();
+  assert.equal(task.records[1].display,made[2]); assert.equal(original[1].display.destroyed,undefined);
+  task.cancel(); assert.equal(made[2].destroyed,true); assert.equal(original[0].display.destroyed,undefined);
+  assert.equal(original[1].display.destroyed,undefined); assert.equal(task.records,undefined);
+  const next = owner.prepare({entityId:'entity',parts:[a],screen:{x:50,y:60}});
+  while(!next.ready) next.advance(); next.publish();
+  assert.equal(original[0].display.x,50); assert.equal(original[1].display.destroyed,true);
+  assert.equal(next.records[0].screen.x,50); assert(Object.isFrozen(next.records[0].footprint[0]));
+  owner.dispose(); assert.equal(original[0].display.destroyed,true);
+});
+
+test('unchanged immutable part inputs retain geometry without repeating transforms', () => {
+  const owner = createMultipartVisualOwner({parent:{addChild(){}},createSprite:sprite});
+  const part = Object.freeze({id:'body',texture:{},geometry:{footprint:[[0,0,0],[1,0,0],[1,0,1]]}});
+  let transforms = 0;
+  const transform = point => { transforms++; return point; };
+  const first = owner.sync({entityId:'entity',parts:[part],transform});
+  assert.equal(transforms,3);
+  const second = owner.sync({entityId:'entity',parts:[part],transform});
+  assert.equal(second[0],first[0]); assert.equal(transforms,3);
+  const third = owner.sync({entityId:'entity',parts:[part],transform:point=>({...point,x:point.x+2})});
+  assert.notEqual(third[0],first[0]); assert.equal(third[0].footprint[0].x,2);
+  owner.dispose();
+});
