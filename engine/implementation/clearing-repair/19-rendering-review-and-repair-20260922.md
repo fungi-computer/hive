@@ -144,6 +144,24 @@ terrain candidate bins/edges and combined topology/cycle recovery. Keep silhouet
 for clicking and the small spatial lookup needed by moving sprites. Do not place
 a forwarding wrapper around the existing compiler and call this replacement done.
 
+### Alternative considered: depth testing inside Pixi
+
+A GPU depth path could also remove the dense graph without replacing Pixi or the
+baked colors. It is not a drop-in use of the current ordering planes. Current grass
+RGBA combines a flat dual-grid base and upright blades into one image, while its
+ordering proxy is one upright plane. The current compiler explicitly forces
+supporting ground before the supported picture. Numerically depth-testing that
+plane can clip the part of the baked base behind its own support; a tiny depth bias
+does not repair this representation mismatch. Interacting ordinary Pixi sprites,
+water, shadows/partial alpha and picking would also need one matching depth policy.
+
+Choose structural terrain plus sparse authored-support insertion for this repair.
+It preserves the accepted picture semantics and removes the dominant dense graph
+without introducing a second depth representation or rebaking accepted art. Keep
+the mixed grass/cliff and furniture acceptance cases mandatory; if local constraints
+cannot handle those pictures, report the concrete counterexample instead of adding
+named exceptions or quietly rebuilding the old general graph.
+
 ### Delivery blocks and decision gates
 
 First replace dense terrain/grass preparation and order in the actual colony path,
