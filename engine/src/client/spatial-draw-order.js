@@ -689,7 +689,12 @@ function borrowedRecords(base, referenceState) {
     deleteProperty() { throw new Error("spatial draw records are a borrowed read-only view"); },
     defineProperty() { throw new Error("spatial draw records are a borrowed read-only view"); },
   });
-  return { records, publish(references) { state.current = references; } };
+  return { records,
+    // A ready consumer sees candidate references directly. Its view stays
+    // pinned even if the published borrowed view later refreshes in place.
+    stage(references) { return borrowedRecords(base, references).records; },
+    publish(references) { state.current = references; },
+  };
 }
 
 function* buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, previous) {
@@ -783,7 +788,7 @@ function* buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, p
         yield "reference";
       }
       nextView = orderView; nextIndexes = orderedIndexes;
-      result = Object.freeze({ records: orderView.records, relations: current.relations,
+      result = Object.freeze({ records: orderView.records, stagedRecords: orderView.stage(references), relations: current.relations,
         recordChanges,
         metrics: Object.freeze({ ...counters, edges: current.metrics.edges, topologyReuses: 1 }) });
     } else {
@@ -798,7 +803,7 @@ function* buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, p
         nextIndexes.set(keyOf(record), base.length); base.push(record); yield "reference";
       }
       nextView = borrowedRecords(base, references);
-      result = Object.freeze({ ...result, records: nextView.records });
+      result = Object.freeze({ ...result, records: nextView.records, stagedRecords: nextView.stage(references) });
     }
     let committed = false;
     return Object.freeze({ ...result,
@@ -806,9 +811,12 @@ function* buildSpatialDrawScene(staticRecords, { projection, binSize, clock }, p
         if (committed || expectedGeneration !== generation) throw new Error("spatial draw preparation is stale");
         dynamics.commit(update); nextView.publish(references);
         orderView = nextView; orderedIndexes = nextIndexes; staticReferences = nextStaticReferences;
-        if (!result.metrics.topologyReuses) current = result;
+        if (!result.metrics.topologyReuses) current = { relations: result.relations, metrics: result.metrics };
         generation++; committed = true;
-        return result;
+        // Candidate views belong to the task/consumer, not the retained order.
+        // Do not keep old candidate reference maps alive after publication.
+        const { stagedRecords: _stagedRecords, ...publishedResult } = result;
+        return Object.freeze(publishedResult);
       },
     });
   }
