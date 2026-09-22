@@ -204,6 +204,7 @@ export function createTerrainBatchMeshes({
     current.input = undefined;
     const available = new Map();
     for (const entry of active) {
+      yield "record";
       const list = available.get(entry.key) ?? [];
       list.push(entry);
       available.set(entry.key, list);

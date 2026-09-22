@@ -446,3 +446,12 @@ test("a mesh-construction failure releases earlier staged meshes and its failed 
     parent.destroy();
   }
 });
+
+
+test("indexing retained active runs also consumes preparation credit, including empty successors",()=>{
+ const owner=createTerrainBatchMeshes({maxMeshes:4});owner.update(view(0,4,1));
+ const task=owner.prepare([]);assert.equal(task.ready,false);
+ for(let i=0;i<3;i++)assert.equal(task.advance({records:1,meshes:0}),false);
+ assert.equal(task.advance({records:1,meshes:0}),true);assert.equal(owner.size,4);
+ task.cancel();assert.equal(owner.size,4);owner.dispose();
+});
