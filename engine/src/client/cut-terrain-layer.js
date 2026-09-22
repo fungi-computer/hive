@@ -1,3 +1,4 @@
+import { exposeTerrainPatch } from "../runtime/terrain-region-exposure.js";
 import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { createCameraCoverageOwner } from "./camera-coverage-owner.js";
 import { createTerrainRegionCache, TERRAIN_REGION_CACHE_CAPACITY } from "./terrain-region-cache.js";
@@ -154,11 +155,11 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       const id = patch.key.join(","), previous = regionEntries.get(id);
       const tops = new Map(patch.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`,surface.generatedTop]));
       for (const [column,top] of tops) generatedTops.set(column,top);
-      const sameBody = previous?.patch === patch && previous.paletteSignature === paletteSignature &&
+      const sameBody = previous?.patch === patch && previous.level === level && previous.paletteSignature === paletteSignature &&
         previous.verticalMetres === snapshot.baseline.verticalMetres && previous.variantSeed === snapshot.baseline.variantSeed;
       const samePrepared = previous?.plan === planned;
       const previousBody = sameBody && !samePrepared ? new Map(previous.body.map(record => [record.id,record])) : undefined;
-      const body = sameBody && samePrepared ? previous.body : terrainFaceRecords({ faces:patch.faces, palette:snapshot.baseline.materials,
+      const body = sameBody && samePrepared ? previous.body : terrainFaceRecords({ faces:exposeTerrainPatch({ patch, baseline: snapshot.baseline, level }), palette:snapshot.baseline.materials,
         verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }, { projection, appearance, generatedTops:tops, viewport:prepared })
         .map(record => previousBody?.get(record.id) ?? record);
       // Only returned support columns are eligible. Observations replace current
@@ -174,13 +175,13 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
         cover = terrainCoverRecords(surfaces, { level, projection, appearance, viewport:prepared,
           verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }).filter(record => {
           const root = record.attachment.point;
-          return root.x-.5 >= minX && root.x-.5 < bounds.maxX && root.z-.5 >= minZ && root.z-.5 < bounds.maxZ;
+          return record.storeyBand >= bounds.minY && record.storeyBand < bounds.maxY && root.x-.5 >= minX && root.x-.5 < bounds.maxX && root.z-.5 >= minZ && root.z-.5 < bounds.maxZ;
         }).map(record => {
           const old = previousCover.get(record.id);
           return old?.mask === record.mask && old.terrainBatch === record.terrainBatch ? old : record;
         });
       }
-      nextEntries.set(id,{patch,body,cover,coverSignature,paletteSignature,plan:planned,
+      nextEntries.set(id,{patch,level,body,cover,coverSignature,paletteSignature,plan:planned,
         verticalMetres:snapshot.baseline.verticalMetres,variantSeed:snapshot.baseline.variantSeed});
       nextRecords.push(...body,...cover);
     }

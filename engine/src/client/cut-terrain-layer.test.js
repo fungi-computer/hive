@@ -1,3 +1,4 @@
+import { materialPatch } from "../runtime/terrain-region-fixture.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Texture } from "pixi.js";
@@ -9,24 +10,20 @@ const bounds={minX:0,maxX:16,minY:-8,maxY:8,minZ:0,maxZ:8};
 const camera={x:0,y:0,zoom:1},screen={width:640,height:400},view={cutaway:true,level:0};
 const grass={kind:"grass",condition:"green",height:"full"};
 function frame(world=bounds,surfaces=[]) {return {revision:1,placementRevision:1,verticalMetres:.54,
-  baseline:{protocolVersion:4,bounds:world,verticalMetres:.54,materials:[{slot:0,solid:false},{slot:1,solid:true,art:"earth"}]},
+  baseline:{protocolVersion:5,bounds:world,verticalMetres:.54,materials:[{slot:0,solid:false},{slot:1,solid:true,art:"earth"}]},
   surfaces,structureSurfaces:[],water:[]};}
-function patch([x,z],level,world=bounds,cover) {
-  const core={minX:Math.max(world.minX,x*8),maxX:Math.min(world.maxX,(x+1)*8),minZ:Math.max(world.minZ,z*8),maxZ:Math.min(world.maxZ,(z+1)*8)};
-  const faces=[],surfaces=[];
-  for(let cx=core.minX-1;cx<=core.maxX;cx++)for(let cz=core.minZ-1;cz<=core.maxZ;cz++){
-    if(cx<world.minX||cx>=world.maxX||cz<world.minZ||cz>=world.maxZ)continue;
-    surfaces.push({cell:[cx,0,cz],material:1,generatedTop:0,...(cover?{cover}: {})});
-    if(cx>=core.minX&&cx<core.maxX&&cz>=core.minZ&&cz<core.maxZ)
-      faces.push({cell:[cx,Math.min(0,level),cz],face:"top",material:1,cap:level<0});
-  }
-  return {key:[x,z],bounds:core,faces,surfaces};
+function patch(key,world=bounds,cover) {
+  const result=materialPatch(key,world,([,y])=>y<=0?1:0),c=result.coverage;
+  for(let x=c.minX;x<c.maxX;x++)for(let z=c.minZ;z<c.maxZ;z++)
+    result.surfaces.push({cell:[x,0,z],material:1,generatedTop:0,...(cover?{cover}: {})});
+  return result;
 }
+
 function setup({world=bounds,auto=true,cover,onCoverage}={}) {
   const requests=[];let depth=0,maxDepth=0;
   const runtime={terrainRegions(request,receive){
     const entry={request,cancelled:false,send:event=>receive({...request,...event})};requests.push(entry);
-    if(auto)queueMicrotask(()=>{for(const key of request.regions)entry.send({kind:"patch",patch:patch(key,request.level,world,cover)});entry.send({kind:"complete"});});
+    if(auto)queueMicrotask(()=>{for(const key of request.regions)entry.send({kind:"patch",patch:patch(key,world,cover)});entry.send({kind:"complete"});});
     return()=>{entry.cancelled=true;};
   }};
   const layer=createCutTerrainLayer({runtime,projection:createOrderingProjection(),onCoverage:event=>{
@@ -42,10 +39,10 @@ test("live regions paint incrementally, retain body identity and never require a
   const {layer,requests,install}=setup({auto:false});install();layer.update(frame(),2);layer.position(camera,view,screen);
   assert.equal(requests.length,1);assert.equal(requests[0].request.regions.length,2);
   const [first,second]=requests[0].request.regions;
-  requests[0].send({kind:"patch",patch:patch(first,0)});layer.position(camera,view,screen);
+  requests[0].send({kind:"patch",patch:patch(first)});layer.position(camera,view,screen);
   const partial=layer.retainedRecords;assert(partial.records.length>0);assert.equal(layer.coverage.demandComplete,false);
   assert(layer.presentedTerrain.exposedFaces.length>0,"picking is available before completion");
-  requests[0].send({kind:"patch",patch:patch(second,0)});layer.position(camera,view,screen);
+  requests[0].send({kind:"patch",patch:patch(second)});layer.position(camera,view,screen);
   assert(layer.retainedRecords.records.length>partial.records.length);
   assert(partial.records.every(record=>layer.retainedRecords.records.includes(record)),"later patches keep existing face identity");
   requests[0].send({kind:"complete"});assert(layer.coverage.demandComplete);layer.dispose();
@@ -63,15 +60,18 @@ test("camera pan transform and unchanged padded demand do not rebuild terrain",a
   assert.equal(requests.length,1);assert.equal(maxDepth(),1);layer.dispose();
 });
 
-test("cut and epoch changes cancel stale subscriptions and immediately remove old caps",()=>{
+test("resident material supplies new cut caps without cancelling reads; epochs invalidate facts",()=>{
   const {layer,requests,install}=setup({auto:false,cover:grass});install();layer.update(frame(),1);layer.position(camera,view,screen);
-  const old=requests[0];for(const key of old.request.regions)old.send({kind:"patch",patch:patch(key,0,bounds,grass)});
+  const old=requests[0];for(const key of old.request.regions)old.send({kind:"patch",patch:patch(key,bounds,grass)});
   layer.position(camera,view,screen);assert(layer.retainedRecords.records.some(record=>record.role==="terrain-cover"));
-  layer.position(camera,{...view,level:-1},screen);assert(old.cancelled);assert.equal(layer.retainedRecords.records.length,0);
-  old.send({kind:"patch",patch:patch(old.request.regions[0],0,bounds,grass)});assert.equal(layer.retainedRecords.records.length,0);
-  const next=requests.at(-1);for(const key of next.request.regions)next.send({kind:"patch",patch:patch(key,-1,bounds,grass)});
-  layer.position(camera,{...view,level:-1},screen);assert(layer.retainedRecords.records.every(record=>record.cap));
-  layer.update(frame(),2);layer.position(camera,view,screen);assert.equal(layer.retainedRecords.records.length,0);assert(next.cancelled);layer.dispose();
+  for (const level of [-1,-2,-3]) {
+    layer.position(camera,{...view,level},screen);
+    assert(!old.cancelled); assert.equal(requests.length,1);
+    assert(layer.retainedRecords.records.length>0);
+    assert(layer.retainedRecords.records.every(record=>record.cap && record.cell[1]===level));
+  }
+  layer.position(camera,view,screen);assert(layer.retainedRecords.records.some(record=>record.role==="terrain-cover"));
+  layer.update(frame(),2);layer.position(camera,view,screen);assert.equal(layer.retainedRecords.records.length,0);assert(old.cancelled);layer.dispose();
 });
 
 test("complete region halos own seam masks and world-min edge blades without duplicates",async()=>{
@@ -143,7 +143,7 @@ test("browser patch notifications coalesce until the next animation frame",async
   const {layer,requests,install}=setup({auto:false,onCoverage:()=>notifications++});
   try {
     install();layer.update(frame(),1);layer.position(camera,view,screen);
-    for(const key of requests[0].request.regions){requests[0].send({kind:"patch",patch:patch(key,0)});await Promise.resolve();}
+    for(const key of requests[0].request.regions){requests[0].send({kind:"patch",patch:patch(key)});await Promise.resolve();}
     assert.equal(callbacks.size,1);assert.equal(notifications,0);
     const callback=callbacks.values().next().value;callbacks.clear();callback();assert.equal(notifications,1);
     requests[0].send({kind:"complete"});await Promise.resolve();assert.equal(callbacks.size,1);
@@ -157,7 +157,7 @@ test("region face facts survive rotation without terrain reads and unknown colum
   try {
     install();layer.update(frame(bounds,[{cell:[4,0,4],material:1,generatedTop:0,cover:grass}]),1);layer.position(camera,view,screen);
     const current=requests[0];
-    for(const key of current.request.regions)current.send({kind:"patch",patch:{...patch(key,0),surfaces:[]}});
+    for(const key of current.request.regions)current.send({kind:"patch",patch:{...patch(key),surfaces:[]}});
     current.send({kind:"complete"});layer.position(camera,view,screen);
     assert(layer.retainedRecords.records.length>0);assert(layer.retainedRecords.records.every(record=>record.role==="terrain"));
     for(let turn=1;turn<4;turn++){
@@ -201,8 +201,8 @@ test("empty and offscreen patch progress preserves presentation identity while v
     const {layer,requests,install}=setup({auto:false});install();layer.update(frame(),1);layer.position(camera,view,screen);
     try {
       const stream=requests[0], [visibleKey,emptyKey]=stream.request.regions;
-      const empty=()=>stream.send({kind:"patch",patch:{...patch(emptyKey,0),faces:offscreen?[{cell:[15,0,0],face:"top",material:1,cap:false}]:[],surfaces:[]}});
-      const visible=()=>stream.send({kind:"patch",patch:patch(visibleKey,0)});
+      const empty=()=>stream.send({kind:"patch",patch:materialPatch(emptyKey,bounds,([x,y,z])=>offscreen&&x===15&&y===0&&z===0?1:0)});
+      const visible=()=>stream.send({kind:"patch",patch:patch(visibleKey)});
       if(!emptyFirst){visible();layer.position(camera,view,screen);}
       const before=layer.retainedRecords,presented=layer.presentedTerrain,readyBefore=layer.coverage.cachedRegions;
       empty();layer.position(camera,view,screen);
@@ -214,4 +214,21 @@ test("empty and offscreen patch progress preserves presentation identity while v
       if(emptyFirst){visible();layer.position(camera,view,screen);assert.equal(layer.retainedRecords.revision,before.revision+1);assert(layer.retainedRecords.records.length>0);}
     } finally {layer.dispose();}
   }
+});
+
+test("vertical slabs share exterior grass facts but emit each blade patch only once",async()=>{
+  const world={...bounds,maxY:300},topView={cutaway:true,level:299};
+  const {layer,install,requests}=setup({world,cover:grass});install();layer.update(frame(world),1);
+  try {
+    await ready(layer,camera,topView);
+    assert(requests[0].request.regions.some(key=>key[2]===2),"test must include upper slabs");
+    const cover=layer.retainedRecords.records.filter(record=>record.role==="terrain-cover");
+    assert.equal(cover.length,17*9);
+    assert.equal(new Set(cover.map(record=>record.id)).size,cover.length);
+    layer.position(camera,{...topView,level:-1},screen);
+    assert(!layer.retainedRecords.records.some(record=>record.role==="terrain-cover"));
+    layer.position(camera,topView,screen);
+    assert.equal(requests.length,1,"return uses material slabs already received");
+    assert.equal(layer.retainedRecords.records.filter(record=>record.role==="terrain-cover").length,cover.length);
+  } finally {layer.dispose();}
 });

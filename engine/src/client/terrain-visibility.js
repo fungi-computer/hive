@@ -35,19 +35,18 @@ export function projectedBounds(points) {
 }
 
 /** Camera projection and original art for checked server-extracted faces. */
-export function terrainFaceRecords({ faces, palette, verticalMetres, variantSeed = 0 }, { projection, viewport, appearance, generatedTops = new Map() }) {
+export function* terrainFaceRecordSteps({ faces, palette, verticalMetres, variantSeed = 0 }, { projection, viewport, appearance, generatedTops = new Map() }) {
   const materials = new Map(palette.map(material => [material.slot, material]));
-  const records = [];
   for (const { cell, face, material, cap } of faces) {
     const direction = DIRECTIONS.find(value => value.face === face)?.offset;
     if (!direction) throw new Error("invalid terrain face orientation");
-    if (direction[0] * projection.direction.x + direction[1] * projection.direction.y + direction[2] * projection.direction.z >= -1e-7) continue;
+    if (direction[0] * projection.direction.x + direction[1] * projection.direction.y + direction[2] * projection.direction.z >= -1e-7) { yield null; continue; }
     const definition = materials.get(material);
     if (!definition?.solid) throw new Error("terrain face requires a solid material");
     const planarCorners = corners(cell, face, verticalMetres);
     const projected = planarCorners.map(point => projection.project(point));
     const screenBounds = projectedBounds(projected);
-    if (viewport && !overlaps(screenBounds, viewport)) continue;
+    if (viewport && !overlaps(screenBounds, viewport)) { yield null; continue; }
     const visual = appearance?.body({ cell, face, material, art:definition.art, cap,
       generatedTop:generatedTops.get(`${cell[0]},${cell[2]}`), seed:variantSeed, projection, verticalMetres });
     const record = { id:`terrain:${key(cell)}:${face}`, part:"face", role:"terrain", cell, face,
@@ -56,12 +55,16 @@ export function terrainFaceRecords({ faces, palette, verticalMetres, variantSeed
       material, cap, planarCorners, footprint:planarCorners, orderGeometry:{kind:"face",points:planarCorners},
       screenBounds, storeyBand:cell[1], pickable:false, visible:true, projected, ...(visual??{}) };
     const proxy = prepareOrderingProxy(record, projection);
-    if (!proxy) continue;
+    if (!proxy) { yield null; continue; }
     record.contains = point => polygonContains(proxy.polygon, point);
     freezeOrderingGeometry(record.orderGeometry);
-    records.push(record);
+    yield record;
   }
-  return records;
+}
+
+/** Synchronous collector for bounded callers and reference laws. */
+export function terrainFaceRecords(input, options) {
+  return [...terrainFaceRecordSteps(input, options)].filter(Boolean);
 }
 
 const coverIdentity = cover => `${cover.kind}\u0000${cover.condition}\u0000${cover.height}`;
@@ -69,14 +72,13 @@ const coverIdentity = cover => `${cover.kind}\u0000${cover.condition}\u0000${cov
 /** Dual-grid cover patches are ordinary sortable records derived from four
  * explicit same-level surface facts. They never infer grass from geology.
  */
-export function terrainCoverRecords(surfaces, { level, projection, viewport, appearance, verticalMetres, variantSeed = 0 } = {}) {
-  if (!appearance?.cover || !Number.isFinite(verticalMetres) || verticalMetres <= 0) return [];
+export function* terrainCoverRecordSteps(surfaces, { level, projection, viewport, appearance, verticalMetres, variantSeed = 0 } = {}) {
+  if (!appearance?.cover || !Number.isFinite(verticalMetres) || verticalMetres <= 0) return;
   const covered = new Map(surfaces.filter(surface => surface.cover && surface.cell[1] <= level)
     .map(surface => [`${surface.cell[0]},${surface.cell[2]}`, surface]));
   const roots = new Map();
   for (const surface of covered.values()) for (const [dx, dz] of [[0,0],[-1,0],[-1,-1],[0,-1]])
     roots.set(`${surface.cell[0]+dx},${surface.cell[2]+dz}`, [surface.cell[0]+dx, surface.cell[2]+dz]);
-  const records = [];
   for (const root of roots.values()) {
     const samples = [[0,0],[1,0],[1,1],[0,1]].map(([dx,dz]) => covered.get(`${root[0]+dx},${root[1]+dz}`));
     const identities = new Set(samples.filter(Boolean).map(surface => `${surface.cell[1]}\u0000${coverIdentity(surface.cover)}`));
@@ -96,20 +98,23 @@ export function terrainCoverRecords(surfaces, { level, projection, viewport, app
       const supports = samples.flatMap((surface, index) => surface && (mask & (1 << index))
         ? [Object.freeze([...surface.cell])] : []);
       const screenBounds = projectedBounds(visual.projected);
-      if (viewport && !overlaps(screenBounds, viewport)) continue;
+      if (viewport && !overlaps(screenBounds, viewport)) { yield null; continue; }
       const record = { id: `cover:${root[0]}:${y}:${root[1]}:${kind}:${condition}:${height}`, part: "cover", role: "terrain-cover",
         relationPolicy: "surface-cover", orderingKind: "compact", mask, footprint, screenBounds, storeyBand: y,
         renderPass: "opaque", attachment: Object.freeze({ kind: "surface-root", supports: Object.freeze(supports), point: footprint[0] }),
         pickable: false, visible: true, ...visual };
       const proxy = prepareOrderingProxy(record, projection);
-      if (!proxy) continue;
+      if (!proxy) { yield null; continue; }
       // Appearance owns the alpha silhouette used by the shared draw picker.
       // The full batching quad is never substituted for that silhouette.
       freezeOrderingGeometry(record.orderGeometry);
-      records.push(record);
+      yield record;
     }
   }
-  return records;
+}
+
+export function terrainCoverRecords(surfaces, options) {
+  return [...terrainCoverRecordSteps(surfaces, options)].filter(Boolean);
 }
 
 /** Conservative horizontal regions across the whole cut depth. There is no

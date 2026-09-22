@@ -28,6 +28,37 @@ inside the frame. Bounded staged terrain/order/display preparation, reusable
 material residency, real DO interaction measurements and a reachable preview
 remain required. Do not count this checkpoint as completion or smoothness proof.
 
+### First working slice measurement and material integration
+
+Root checkpoint `075af622` and integrated geometry `4cd7984a` built successfully
+(`u3127`, `68c1503961e240da915f0ac525dd6613`). A short real DO browser run used
+that frozen frontend at the previously authorized origin via Playwright route
+fulfillment, **not a new public preview**. Eight workers moved, authoritative time
+advanced, 178 terrain patches arrived, and return art was visually inspected.
+There were no page errors. Evidence is `.botanical/world-view-first-proof/` in the
+root repair lane; guarded receipt `u3131`, `b30cbc2c3406416ead63a3ce5d9baaa2`.
+
+That run is negative performance evidence: captured main-thread long tasks
+included 418 ms, 223 ms and 1,598 ms. The 64-wide view's first pan accumulated
+about 466 ms of topology work and 315 ms of mesh application. ANGLE SwiftShader
+limits hardware frame-rate inference. The input-delay probe captured no events
+and must be fixed to capture before the keymap consumes them; it provides no
+input-latency proof. Rapid rotation samples also preceded adoption, so this is
+not a four-view completion or camera-return acceptance run. The frame still
+prepares synchronously; proceed with bounded staged publication.
+
+Material protocol checkpoint `e8bd1c3d` is integrated as `93ec0e9a`. The renderer
+now derives faces from immutable material slabs and includes cut level in derived
+body identity. Exterior cover records belong to exactly one vertical slab as well
+as one horizontal region, preventing duplicate grass when taller worlds retain
+multiple slabs. Twenty focused renderer laws pass (`u3139`,
+`fe5faf145e114b4e9082ef6971588f2e`), including new local cuts without another read,
+return to resident upper slabs, mowable cover overrides, and yielding on culled
+faces. The data lane separately passed 83 focused laws and 31 immutability reruns;
+independent review passed 64 slab/full-authority comparisons. This new protocol
+has **not** been deployed; it requires a matching frontend and the separately
+authorized test backend. Cold sampling cost and combined gameplay remain unproven.
+
 ## Soundness verdict
 
 **Keep the physical engine, original art pipeline, WebSockets and Pixi. Do not

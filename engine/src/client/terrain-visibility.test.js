@@ -48,3 +48,15 @@ test("cover freezes its coverage geometry while atlas texture remains owned sepa
   for(const value of [geometry,geometry.points,...geometry.points,geometry.coverage,geometry.coverage.offset,geometry.coverage.rectangles,...geometry.coverage.rectangles])assert(Object.isFrozen(value));
   assert(!Object.isFrozen(terrainBatch));assert(!Object.isFrozen(texture));
 });
+
+test("face preparation yields even for culled faces and cancellation leaves the rest unread",async()=>{
+  const {terrainFaceRecordSteps}=await import("./terrain-visibility.js");
+  let reads=0;
+  const faces=Array.from({length:1000},()=>({get cell(){reads++;return[0,0,0];},face:"east",material:1,cap:false}));
+  const steps=terrainFaceRecordSteps({faces,palette:[{slot:1,solid:true}],verticalMetres:1},
+    {projection:{direction:{x:1,y:0,z:0}}});
+  assert.deepEqual(steps.next(),{value:null,done:false});
+  assert.equal(reads,1,"a skipped face is still a scheduling boundary");
+  steps.return();
+  assert.equal(reads,1,"cancelled preparation cannot continue visiting faces");
+});
