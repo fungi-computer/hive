@@ -156,9 +156,24 @@ Internal ownership:
 - Batch owner owns geometry/buffer allocation, reuse, retirement and disposal.
 - World-view owner owns the single pending successor and the publication barrier.
 
+The GPU buffers are compact presentation storage for terrain/cover quads: vertex
+positions, atlas UVs and triangle indices. They reduce Pixi draw calls; they are
+not world facts, ordering authority or a second terrain cache. The batch owner
+alone allocates, fills, reuses, publishes and retires active/candidate/spare
+buffers. Other modules submit an accepted record sequence and observe bounded
+metrics; they never mutate buffer arrays or destroy borrowed meshes directly.
+
 The caller must not reset internal maps, pass a second projection/depth contract,
 walk chunks to coordinate cleanup, or manually synchronize picking after paint.
 The top owner may coordinate its private children; that is its responsibility.
+
+Likewise, `world-view-owner` must not split subject records into static/dynamic
+arrays, build contact maps, assemble geometry signatures or choose invalidation
+rules for the structural owner. Its candidate supplies terrain revision/records
+and subject records. The structural owner owns classification, support resolution,
+retained structural revision, sparse insertion and the published picker. If the
+new API merely moves the old coordination into another forwarding function, the
+module boundary has not been delivered.
 
 ## 5. Data representation: facts versus pictures
 
