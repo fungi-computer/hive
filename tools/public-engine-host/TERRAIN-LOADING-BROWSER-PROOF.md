@@ -225,3 +225,50 @@ and grass beyond the original 64×64 clearing, exact top-face picks, a real cut
 cap, minimum zoom, bounded residency and matching pre/post-zoom image hashes.
 Its far/cut screenshots are retained; the cut-cap image was personally inspected.
 No additional backend deployment was needed for v6.
+
+## September 22 startup overlap checkpoint
+
+Source `5de88220` integrates lane `fe1fa714`: concurrent checked art loads and
+runtime/terrain demand before art installation. Fifteen lifecycle laws pass;
+build passes (`u3084`, `486993b34d92495eae14e3054245d868`). The selected suite is
+64/65; unchanged tree-binding expectation failure independently reproduced on
+baseline (`u3086`, `2f1ed9a3fab548c0a197c340c7b0904a`).
+
+Evidence is in `client-startup-overlap-20260922/.botanical/startup-overlap-browser/`
+beside the integration worktree. `SUMMARY.json`, exact drivers/reports and served
+file hashes are retained. The expired frontend origin was fulfilled from exact
+frozen files inside Playwright; backend HTTP/WebSocket traffic remained real.
+This is local frontend plus hosted DO evidence, not hosted frontend parity.
+
+Dependency barrier (`u3087`, `710879d4e7864a83b6769087daa48d69`, exit 0) held the
+static manifest. Region demand occurred at 4.457 s with art unavailable/runtime
+ready; three patches were already cached before release. Afterwards 35/35 ground
+checks, 17 visible subjects and 102 regions completed without page errors or HTTP
+terrain. Its artificial delay and pre-art raw coverage clock are not latency data.
+
+One normal matched pair, same corrected driver and fresh 256×256/eight-worker
+worlds, full Chromium with enabled software compositing:
+
+| Page-clock milestone | v6 `dd6d6e29` | `fe1fa714` |
+| --- | ---: | ---: |
+| Assets ready | 4.308 s | 3.576 s |
+| Runtime ready | 5.385 s | 4.207 s |
+| Useful sampled ground | 7.754 s | 5.798 s |
+| Published visible coverage | 9.817 s | 10.029 s |
+| Padded coverage | 12.784 s | 13.922 s |
+| Useful after readiness | 2.369 s | 1.591 s |
+| Visible after readiness | 4.433 s | 5.823 s |
+
+Both fail the unchanged 1 s/3 s gates, reach 35/35 samples and 102/102 regions,
+and record one aborted `/connect` followed by successful streaming. No page
+runtime errors. Useful ground is earlier in this pair; full coverage is not.
+No stable speedup or hardware smoothness claim. Baseline `u3090` /
+`47d1ba8c86b446689774025f215f49f0`; candidate `u3093` /
+`91363124d42147908d31de2edddd698a`; both exit 1.
+
+The maintained driver now separates raw receipt clocks from visible/padded
+publication clocks; the latter require assets/runtime ready and published draw
+records. Readiness itself is unchanged. Art overlap can complete receipt before
+any pixels exist, so treating raw cache completeness as visible produced an
+invalid negative latency. Both matched runs use the corrected rule. Completion
+screenshots preserve original art and were personally inspected.

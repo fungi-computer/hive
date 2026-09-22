@@ -27,6 +27,43 @@ historical; they do not authorize clipping the restored blades.
 
 ## Actual end-to-end ownership
 
+### September 22 priority correction: responsive live camera and cuts
+
+Levi reports that camera movement remains unusably slow and cut behavior cannot
+be assessed through the stalls. Startup improvement is not playable acceptance.
+The next repair owns the complete interaction/frame path, before further native
+sampling or initial-observation optimization.
+
+At `5de88220`, pan/zoom synchronously invoke the full `draw()`; terrain `position()`
+mixes parent transforms with demand and potentially large record preparation.
+Recorded 104 ms preparation plus 22/34 ms topology steps establish a blocking-work
+problem. Moving unchanged work into RAF would still block input.
+
+One client scene-preparation owner must:
+
+- Apply camera state/parent transforms without invoking full scene preparation
+  from input handlers. Coalesce input, ticker and received-patch invalidations.
+- Retain local geometry/relations as checkpoint B specifies. Give unavoidable
+  preparation, topology and buffer work explicit per-turn budgets. Work that
+  cannot yield at that budget must run in a client presentation worker. A worker
+  owns disposable presentation only, never simulation or camera-dependent DO state.
+- Stage bounded complete patches/cut snapshots, cancel obsolete view jobs, and
+  prevent ongoing actor animation from starving a pending terrain rebuild.
+- Keep the last coherent scene responsive until replacement publication. Commit
+  displays, order, picking and presented cut together. Requested cut and displayed
+  cut are distinct while pending; commands cannot silently use a different layer
+  from the one shown. Pending terrain remains unknown.
+- Prove input-to-painted movement, worst main-thread stalls and requested-cut-to-
+  displayed-cut latency with working actors, arriving regions, continuous input
+  and repeated cut supersession. Zero work in a paused small pan is insufficient.
+  Separate received, prepared, submitted and painted coverage.
+
+Target smooth 60 Hz camera motion on a hardware browser at normal viewport/zoom;
+record actual frame/input latency and machine. Shared-host software rendering can
+prove work bounds and correctness, not that hardware target. If rendering itself
+dominates after preparation is bounded, measure draw/upload/fill costs before
+accepting the repair. No startup-only milestone completes this interaction work.
+
 | Stage | Existing owner | Finding |
 | --- | --- | --- |
 | Physical facts | `engine/kernel/src/terrain.rs`, `generation.rs`, committed Region/SessionResident | One physical authority; cold per-cell sampling repeats column generation. |
@@ -317,10 +354,15 @@ and new frameworks do not replace passing the user-visible checks.
 
 ## Delivery status
 
-The review/plan is source-grounded; the remaining repair is not shipped. A startup
-change is being prepared separately after Levi requested a concrete fix. Record
-its commit, lifecycle tests and browser receipt before accepting/publishing it.
-V6 receipts above are historical, not a claim its temporary tunnel is still live.
+The review/plan is source-grounded; the full camera/cut repair is not shipped.
+Startup overlap is integrated as `5de88220` (lane `fe1fa714`): 15 lifecycle laws
+and the build pass. A selected suite is 64/65; the sole tree-binding expectation
+failure was independently reproduced on the unchanged baseline. Real-DO browser
+evidence is recorded in the loading proof. One matched pair shows useful ground
+7.754 → 5.798 s, but visible completion 9.817 → 10.029 s; both fail loading gates.
+This is a removed startup dependency, not an interaction/performance completion.
+Frontend files were locally served at the authorized origin; backend traffic was
+real. No updated public preview was published; the old temporary tunnel expired.
 
 Two independent source reviewers checked the plan. Their corrections are included:
 the actual receiver path, explicit preparation/queue budgets, atomic display/hit

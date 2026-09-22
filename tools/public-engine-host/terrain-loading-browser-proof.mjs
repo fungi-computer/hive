@@ -30,9 +30,22 @@ async function runCase(name){
   page.on("response",response=>{const record=requests.get(response.request());if(!record)return;record.headersAtMs=elapsed();record.status=response.status();pending.push(response.body().then(body=>{record.bodyAtMs=elapsed();record.bytes=body.byteLength;const reply=JSON.parse(body.toString());record.kind=reply.kind;record.chunks=reply.chunks?.length??0;record.surfaces=reply.chunks?.reduce((sum,chunk)=>sum+(chunk.surfaces?.length??0),0)??0;}).catch(error=>result.captureErrors.push({atMs:elapsed(),failure:response.request().failure(),message:error.message})));});
   page.on("websocket",socket=>{result.socketOrigin=new URL(socket.url()).origin;socket.on("framesent",frame=>{try{const value=JSON.parse(frame.payload.toString());if(value.type==="terrain-credit"){result.wsCreditCount++;result.wsCreditBytes+=Buffer.byteLength(frame.payload);if(result.wsCredits.length<2048)result.wsCredits.push({atMs:elapsed(),bytes:Buffer.byteLength(frame.payload),requestId:value.requestId,received:value.received});}if(value.type==="terrain-regions")result.wsRequests.push({atMs:elapsed(),bytes:Buffer.byteLength(frame.payload),request:value.request??value});}catch{}});socket.on("framereceived",frame=>{const payload=frame.payload,bytes=Buffer.byteLength(payload);let value;try{value=JSON.parse(payload.toString());}catch{}result.wsFrames.push({atMs:elapsed(),bytes,type:value?.type??value?.kind??null,keys:value&&typeof value==="object"?Object.keys(value):[],chunks:value?.chunks?.length??value?.reply?.chunks?.length??0,...(value?.type==="terrain-regions"?{terrain:{kind:value.event?.kind,requestId:value.event?.requestId,epoch:value.event?.epoch,terrainRevision:value.event?.terrainRevision,level:value.event?.level,key:value.event?.patch?.key,faces:value.event?.patch?.faces?.length??0,surfaces:value.event?.patch?.surfaces?.length??0}}:{})});});});
   await page.addInitScript(()=>{
-   const clock={readyAt:null,visibleAt:null,paddedAt:null};
+   const clock={readyAt:null,visibleAt:null,paddedAt:null,receivedVisibleAt:null,receivedPaddedAt:null};
    Object.defineProperty(window,"__TERRAIN_PROOF_CLOCK",{value:clock});
-   setInterval(()=>{const read=window.__HIVE_DRAW_DIAGNOSTICS;if(!read)return;const d=read(),c=d.spatialDraw?.coverage,now=performance.now();if(d.assetsReady&&d.runtimeReady)clock.readyAt??=now;if(c?.visibleRegions>0&&c.visibleComplete)clock.visibleAt??=now;if(c?.requestedRegions>0&&c.demandComplete&&!c.pending)clock.paddedAt??=now;},25);
+   setInterval(()=>{
+    const read=window.__HIVE_DRAW_DIAGNOSTICS;if(!read)return;
+    const d=read(),c=d.spatialDraw?.coverage,now=performance.now();
+    const ready=d.assetsReady&&d.runtimeReady;
+    if(ready)clock.readyAt??=now;
+    if(c?.visibleRegions>0&&c.visibleComplete){
+     clock.receivedVisibleAt??=now;
+     if(ready&&d.visibleDrawRecords>0)clock.visibleAt??=now;
+    }
+    if(c?.requestedRegions>0&&c.demandComplete&&!c.pending){
+     clock.receivedPaddedAt??=now;
+     if(ready&&d.visibleDrawRecords>0)clock.paddedAt??=now;
+    }
+   },25);
   });
   navigationAt=Date.now();result.navigationAt=new Date(navigationAt).toISOString();await page.goto(url.href,{waitUntil:"domcontentloaded"});result.domContentLoadedMs=elapsed();
   let coldPanDone=false,groundPanDone=false;const deadline=Date.now()+240000;
