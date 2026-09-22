@@ -7,6 +7,27 @@ It supersedes conflicting rendering instructions in packets 14–17. Packet 18's
 accepted whole-picture approximation remains binding. Historical proofs remain
 evidence at their recorded source, not claims about today's hosted preview.
 
+## Implementation checkpoint — ownership correction (not gameplay acceptance)
+
+The isolated `world-view-repair-20260922` lane replaces `world-scene-owner` with
+`world-view-owner`. It owns camera state, projection, inverse picking, retained
+screen-layer transforms and adoption of rotation/cut requests. Input no longer
+runs scene preparation; the Pixi frame consumes the latest requests. The client
+keeps requested UI choices while interaction reads the displayed view. A single
+view-publication notification refreshes UI eligibility and cancels/reset its
+owned gestures, including a tool armed between request and publication. The
+screen selection rectangle is separate from world designation overlays.
+
+Focused startup/interaction proof now uses the real world-view owner with leaf
+render/I/O services held at explicit barriers. Nine laws pass (`u3123`, invocation
+`ab2fc014038947c6a6ccabcac992d52c`), including input coalescing, old-view picking
+before adoption, new-view picking after adoption, armed placement plane reset,
+HUD refresh exactly on publication, and late-resource disposal. This establishes
+an ownership checkpoint only: full scene preparation still runs synchronously
+inside the frame. Bounded staged terrain/order/display preparation, reusable
+material residency, real DO interaction measurements and a reachable preview
+remain required. Do not count this checkpoint as completion or smoothness proof.
+
 ## Soundness verdict
 
 **Keep the physical engine, original art pipeline, WebSockets and Pixi. Do not

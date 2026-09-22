@@ -1,7 +1,6 @@
-import { createWorldSceneOwner } from "./world-scene-owner.js";
+import { createWorldViewOwner } from "./world-view-owner.js";
 import { createClientArtLoading } from "./client-art-loading.js";
 import { createDirectControl } from "./direct-control.js";
-import { createCameraGeometryOwner } from "./camera-geometry-owner.js";
 import { surfaceSubjectFromOrdered } from "./draw-record-facts.js";
 import { aimGroundPoint, createPreviewCache, fireInput } from "./aiming.js";
 import { createCueCursor, createEffectOwner } from "./effects.js";
@@ -29,7 +28,7 @@ import {
   WORLD_VIEW_CONTROLS,
   eligibleSelectedIds,
 } from "./controls.js";
-import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact, createTerrainProjectionCache, terrainLevelRange, setTerrainLevelRange } from "./world-view.js";
+import { createWorldView, setWorldViewLevel, toggleWorldCutaway, projectWorldFact, displayedTerrain, terrainLevelRange, setTerrainLevelRange } from "./world-view.js";
 import { createActor } from "xstate";
 import { createDefaultHtmlKeymap } from "@opentui/keymap/html";
 import {
@@ -246,13 +245,14 @@ export function createHiveClient({
   groundEffects.eventMode = "none";
   const transientLayer = new Container();
   const dragGraphic = new Graphics();
+  const designationGraphic = new Graphics();
   const terrainMarksGraphic = new Graphics();
   const environmentGraphic = new Graphics();
   environmentGraphic.eventMode = "none";
   const aimGraphic = new Graphics();
   const aimArcGraphic = new Graphics();
   const placementGraphic = new Graphics();
-  transientLayer.addChild(dragGraphic, aimGraphic, aimArcGraphic, placementGraphic);
+  transientLayer.addChild(designationGraphic, aimGraphic, aimArcGraphic, placementGraphic);
   const motionCues = createMotionCueOwner();
   // Remote observations arrive at the server's fixed publication cadence;
   // local Worker frames can stay responsive with the shorter local delay.
@@ -264,15 +264,10 @@ export function createHiveClient({
   let frameEpoch;
   let awaitingEpochTransition = false;
   let groundSprite = null;
-  const cameraGeometry = createCameraGeometryOwner();
-  const { project, groundPoint, surfacePoint, terrainPlaneCell } = cameraGeometry;
-  let orderingProjection = cameraGeometry.projection;
   let orderedSprites = [];
   let terrainFrame;
   let markSurfaceSource;
   let markSurfaces;
-  const terrainProjection = createTerrainProjectionCache();
-  const terrainPicker = cameraGeometry;
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
@@ -297,15 +292,21 @@ export function createHiveClient({
   let latestFacts = [];
   let pendingCues = [];
   const effectClock = () => Math.max(0, interpolation.presentationTime()) * 1000;
-  const worldScene = createWorldSceneOwner({ runtime, projection: orderingProjection, project, bindings, root, effectClock, onCoverage: () => draw() });
-  function observedTerrainFrame() { return terrainProjection.update(terrainFrame, state.view, frameEpoch); }
-  function displayedTerrainFrame() { return worldScene.presentedTerrain() ?? observedTerrainFrame(); }
-  function displayedTerrainHit(x, y, displayed) { return terrainPicker.hit(x, y, displayed, frameEpoch); }
-  function displayedTerrainPoint(x, y, displayed) { return terrainPicker.point(x, y, displayed, frameEpoch); }
+  const worldScene = createWorldViewOwner({ runtime, bindings, root, effectClock, initialView: worldView,
+    screenLayers: [terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer],
+    viewport: () => ({ width: canvasHost.clientWidth, height: canvasHost.clientHeight }),
+    onViewPublished() {
+      terrainArea.send({ type: "CANCEL" }); edgeGesture.send({ type: "CANCEL" }); gesture.send({ type: "CANCEL" });
+      clearPlacement(); exitAim(); state.dragging = null; state.hoverId = null; renderHud();
+    }, onCoverage: () => draw() });
+  const { camera, project, groundPoint, surfacePoint, terrainPlaneCell } = worldScene;
+  function displayedTerrainFrame() { return worldScene.presentedTerrain(); }
+  function displayedTerrainHit(x, y, displayed) { return worldScene.terrainHit(x, y, displayed); }
+  function displayedTerrainPoint(x, y, displayed) { return worldScene.terrainPoint(x, y, displayed); }
   function clearPlacement() {
     const control = terrainTarget.getSnapshot().context.control;
     terrainTarget.send({ type: "CLEAR_PLACEMENT",
-      y: control?.target === "world-surface" ? state.view.level : null });
+      y: control?.target === "world-surface" ? worldScene.view.level : null });
   }
   const placementAdvisory = createPlacementAdvisory(
     (query) => runtime.placementDecisions(query),
@@ -335,7 +336,7 @@ export function createHiveClient({
   }
   function closeActionBar() { actionBarState.set(null); }
   function updateTerrainDisplay() {
-    worldScene.updateTerrain(observedTerrainFrame(), frameEpoch);
+    worldScene.updateTerrain(terrainFrame, frameEpoch);
   }
 
   function prepareNewWorld(remote) {
@@ -355,8 +356,6 @@ export function createHiveClient({
     state.terrainMarks = [];
     state.environmentVisuals = [];
     terrainFrame = undefined;
-    terrainProjection.update(undefined, state.view, undefined);
-    terrainPicker.reset();
     worldScene.clear();
     state.view = createWorldView(worldView);
     state.dragging = null;
@@ -387,7 +386,7 @@ export function createHiveClient({
   }
   function selectedLauncher() {
     if (!aiming?.launcherId) return null;
-    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id) && projectWorldFact(fact, state.view).pickable);
+    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id) && projectWorldFact(fact, worldScene.view).pickable);
   }
   function toggleAim() {
     if (isAiming()) {
@@ -458,7 +457,7 @@ export function createHiveClient({
       terrainArea.send({ type: "CANCEL" });
       edgeGesture.send({ type: "CANCEL" });
       terrainTarget.send({ type: "ARM", control,
-        y: control.target === "world-surface" ? state.view.level : null });
+        y: control.target === "world-surface" ? worldScene.view.level : null });
       actionBarState.set(null);
       state.message = control.target === "terrain-area"
         ? `${control.label}: drag a rectangle; Escape exits`
@@ -471,7 +470,7 @@ export function createHiveClient({
       if (!control || control.availability?.status === "unavailable") return;
       exitAim(); gesture.send({ type: "CANCEL" }); terrainArea.send({ type: "CANCEL" }); edgeGesture.send({ type: "CANCEL" });
       terrainTarget.send({ type: selectedGroup?.catalog === group.catalog ? "ROTATE" : "ARM", control,
-        y: control.target === "world-surface" ? state.view.level : null });
+        y: control.target === "world-surface" ? worldScene.view.level : null });
       actionBarState.set(null);
       state.message = `${control.label}: click or drag to place · R rotates · Escape/Done exits`;
       renderHud();
@@ -503,7 +502,7 @@ export function createHiveClient({
       selectedIds: state.selectedIds,
       latestFacts,
       currentIds: [
-        ...latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, state.view).pickable).map((fact) => fact.id),
+        ...latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, worldScene.view).pickable).map((fact) => fact.id),
         ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
       ],
     });
@@ -667,7 +666,7 @@ export function createHiveClient({
               { key: id, size: "sm", variant: "outline",
                 // Eligibility follows the accepted world, even before the next drawing frame.
                 disabled: !latestFacts.some((fact) => fact.id === id && fact.pose?.position &&
-                  fact.visual && projectWorldFact(fact, state.view).pickable),
+                  fact.visual && projectWorldFact(fact, worldScene.view).pickable),
                 onClick: () => selectEntities([id]) },
               label,
             )),
@@ -781,62 +780,33 @@ export function createHiveClient({
     actionBarRoot.render(renderActionDock());
   }
 
-  const camera = {
-    x: 0,
-    y: 0,
-    zoom: canvasHost.clientWidth >= 600 ? 2 : 1,
-    pan(dx, dy) {
-      this.x -= dx;
-      this.y -= dy;
-      draw();
-    },
-    zoomBy(
-      delta,
-      point = { x: app.screen.width / 2, y: app.screen.height / 2 },
-    ) {
-      const before = {
-        x: (point.x - this.x) / this.zoom,
-        y: (point.y - this.y) / this.zoom,
-      };
-      this.zoom = Math.max(1, Math.min(4, this.zoom + delta));
-      this.x = point.x - before.x * this.zoom;
-      this.y = point.y - before.y * this.zoom;
-      draw();
-    },
-    reset() {
-      this.zoom = canvasHost.clientWidth >= 600 ? 2 : 1;
-      this.x = (canvasHost.clientWidth - 640 * this.zoom) / 2;
-      this.y = (canvasHost.clientHeight - 400 * this.zoom) / 2;
-      draw();
-    },
-    focus(target) {
-      if (!target) return;
-      const projected = project(target.x, target.y, target.z);
-      this.x = canvasHost.clientWidth / 2 - projected.x * this.zoom;
-      this.y = canvasHost.clientHeight / 2 - projected.y * this.zoom;
-    },
-  };
   function rotateCamera(delta) {
-    const center = { x: app.screen.width / 2, y: app.screen.height / 2 };
-    const local = { x: (center.x - camera.x) / camera.zoom, y: (center.y - camera.y) / camera.zoom };
-    const verticalMetres = displayedTerrainFrame()?.verticalMetres ?? 0.54;
-    const focus = cameraGeometry.planePoint(local.x, local.y, (state.view.level + 0.5) * verticalMetres);
     terrainArea.send({ type: "CANCEL" });
     edgeGesture.send({ type: "CANCEL" });
     gesture.send({ type: "CANCEL" });
     clearPlacement();
-    orderingProjection = cameraGeometry.rotate(delta);
-    worldScene.setProjection(orderingProjection, cameraGeometry.turn);
-    const projected = project(focus.x, focus.y, focus.z);
-    camera.x = center.x - projected.x * camera.zoom;
-    camera.y = center.y - projected.y * camera.zoom;
+    camera.rotate(delta);
     draw(); renderHud();
   }
+  // Input changes the already-published view immediately. Scene preparation has
+  // one entry per Pixi frame, even if input, observations and coverage all arrive
+  // together. Screen-space overlays follow the same affine camera change until
+  // the next frame rebuilds their UI geometry.
+  const presentationFrames = { requested: 0, prepared: 0 };
   function draw() {
     if (state.disposed || runtimeDisposed || !graphicsReady) return;
-    // Camera demand and complete region caching do not depend on textures.
-    // Keep facts/cues in their existing owners until the art can display them.
-    if (!art) { worldScene.position(camera, state.view, app.screen); return; }
+    presentationFrames.requested++;
+    if (groundSprite) {
+      groundSprite.position.set(320 * camera.zoom + camera.x, 200 * camera.zoom + camera.y);
+      groundSprite.scale.set(camera.zoom);
+    }
+  }
+  function drawFrame() {
+    if (state.disposed || runtimeDisposed || !graphicsReady) return;
+    presentationFrames.prepared++;
+    worldScene.beginFrame(state.view, app.screen);
+    // Demand runs before textures are ready; actors wait for their original art.
+    if (!art) return;
     const now = performance.now();
     directControl?.tick(now, state.paused);
     const visibleFacts = interpolation.render(now, { paused: state.paused });
@@ -845,7 +815,7 @@ export function createHiveClient({
     pendingCues = pendingCues.filter(cue => cue.time > presentedTime + 1e-9);
     for (const cue of due) if (presentedTime - cue.time <= 3) playCue(cue);
     const presentedFacts = (directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts)
-      .filter((fact) => projectWorldFact(fact, state.view).visible);
+      .filter((fact) => projectWorldFact(fact, worldScene.view).visible);
     state.subjects = presentedFacts
       .filter((fact) => fact.pose?.position && fact.visual)
       .map((fact) => ({
@@ -867,7 +837,7 @@ export function createHiveClient({
         placement: fact.placement,
         screen: { x: 0, y: 0 },
         hitZoom: camera.zoom,
-        pickable: projectWorldFact(fact, state.view).pickable,
+        pickable: projectWorldFact(fact, worldScene.view).pickable,
       }));
     const subjectTerrain = displayedTerrainFrame();
     if (subjectTerrain)
@@ -889,17 +859,17 @@ export function createHiveClient({
           : new Graphics().rect(0, 0, 640, 400).fill(0x24352e);
       }
       groundSprite.anchor?.set?.(0.5);
-      overlay.addChild(groundSprite, worldScene.container, terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer);
+      overlay.addChild(groundSprite, worldScene.container, terrainMarksGraphic, groundEffects, environmentGraphic, transientLayer, dragGraphic);
     }
     dragGraphic.clear();
     dragGraphic.visible = false;
+    designationGraphic.clear(); designationGraphic.visible = false;
     groundSprite.position.set(
       320 * camera.zoom + camera.x,
       200 * camera.zoom + camera.y,
     );
     groundSprite.scale.set(camera.zoom);
     groundSprite.visible = !terrainFrame;
-    worldScene.position(camera, state.view, app.screen);
     terrainMarksGraphic.clear();
     const displayedTerrain = displayedTerrainFrame();
     // Emission facts remain native state and are shown in the station's
@@ -976,23 +946,25 @@ export function createHiveClient({
       drag.start &&
       drag.current,
     );
-    if (area.value === "dragging" && displayed) {
-      const preview = visibleTerrainDesignationPreview(displayed, area.context.start, area.context.current, area.context.mode);
+    const publishedArea = terrainArea.getSnapshot();
+    if (publishedArea.value === "dragging" && displayed) {
+      const preview = visibleTerrainDesignationPreview(displayed, publishedArea.context.start, publishedArea.context.current, publishedArea.context.mode);
       for (const surface of preview) {
         const [x,y,z] = surface.cell;
         const points = [[x-.5,z-.5],[x+.5,z-.5],[x+.5,z+.5],[x-.5,z+.5]].flatMap(([a,b]) => {
           const p = project(a,(y+.5)*displayed.verticalMetres,b);
           return [p.x*camera.zoom+camera.x,p.y*camera.zoom+camera.y];
         });
-        dragGraphic.poly(points).fill({color:0xe8c779,alpha:.22}).stroke({color:0xe8c779,width:1});
+        designationGraphic.poly(points).fill({color:0xe8c779,alpha:.22}).stroke({color:0xe8c779,width:1});
       }
-      dragGraphic.visible = true;
+      designationGraphic.visible = true;
     }
     placementGraphic.clear();
     placementGraphic.visible = false;
-    if (edge.value === "dragging" && displayed) {
+    const publishedEdge = edgeGesture.getSnapshot();
+    if (publishedEdge.value === "dragging" && displayed) {
       placementGraphic.visible = true;
-      for (const segment of edge.context.edges) {
+      for (const segment of publishedEdge.context.edges) {
         const [worldA, worldB] = edgeSegmentEndpoints(segment, displayed.verticalMetres);
         const a = project(...worldA), b = project(...worldB);
         placementGraphic.moveTo(a.x * camera.zoom + camera.x, a.y * camera.zoom + camera.y).lineTo(b.x * camera.zoom + camera.x, b.y * camera.zoom + camera.y).stroke({ color: 0xe8c779, width: 3, alpha: 0.8 });
@@ -1329,7 +1301,7 @@ export function createHiveClient({
       ? ((Math.round(subject.pose.facing) % 4) + 4) % 4
       : ((Math.round(Math.atan2(cue.direction?.x ?? 0, cue.direction?.z ?? 0) / (Math.PI / 2)) % 4) + 4) % 4;
     const reaction = bindings[subject?.visual]?.reactions?.[cue.kind];
-    const authored = reaction?.path.reduce((value, key) => value?.[key], art)?.[(direction + cameraGeometry.turn) % 4];
+    const authored = reaction?.path.reduce((value, key) => value?.[key], art)?.[(direction + camera.turn) % 4];
     if (subject && Array.isArray(authored)) worldScene.react(subject.id, authored, reaction.duration);
     const bank = cue.kind === "launch" ? art.effects?.flash : cue.kind === "impact" ? art.effects?.dust : null;
     const frames = Array.isArray(bank) ? bank : bank ? [bank] : [];
@@ -1375,6 +1347,7 @@ export function createHiveClient({
     app.canvas.tabIndex = 0;
     canvasHost.appendChild(app.canvas);
     app.stage.addChild(overlay);
+    app.ticker.add(drawFrame);
     camera.reset();
     let width = canvasHost.clientWidth, height = canvasHost.clientHeight;
     resizeObserver = new ResizeObserver(() => {
@@ -1427,7 +1400,6 @@ export function createHiveClient({
       },
       destroy(sprite) { sprite?.destroy?.(); },
     });
-    app.ticker.add(draw);
     draw();
     renderHud();
     app.canvas.addEventListener("pointerdown", pointerDown);
@@ -1498,8 +1470,7 @@ export function createHiveClient({
           desc: "Pan camera",
           enabled: () => mode !== "survival",
           run: () => {
-            camera.x += x;
-            camera.y += y;
+            camera.move(x, y);
             draw();
           },
         })),
@@ -1574,7 +1545,7 @@ export function createHiveClient({
           }
           if (terrainFrame && (newEpoch || !previousTerrain)) {
             const visibleFacts = event.facts.filter((fact) => projectWorldFact(fact, state.view).visible);
-            camera.focus(terrainCameraFocus(visibleFacts, observedTerrainFrame()));
+            camera.focus(terrainCameraFocus(visibleFacts, displayedTerrain(terrainFrame, state.view)));
           }
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {
             worldScene.resetTimeline();
@@ -1681,7 +1652,7 @@ export function createHiveClient({
       if (state.disposed) return;
       state.disposed = true;
       artLoading.dispose();
-      if (graphicsReady) app.ticker?.remove(draw);
+      if (graphicsReady) app.ticker?.remove(drawFrame);
       stopRuntime();
       hudRoot.unmount();
       actionBarRoot.unmount();
@@ -1701,14 +1672,12 @@ export function createHiveClient({
       audio.dispose();
       cueCursor.dispose();
       effectOwner?.clear();
-      terrainPicker.dispose();
       if (graphicsReady) app.canvas.removeEventListener("pointerdown", pointerDown);
       if (graphicsReady) app.canvas.removeEventListener("pointermove", pointerMove);
       if (graphicsReady) app.canvas.removeEventListener("pointerup", pointerUp);
       if (graphicsReady) app.canvas.removeEventListener("pointercancel", pointerCancel);
       if (graphicsReady) app.canvas.removeEventListener("contextmenu", contextMenu);
       worldScene.dispose();
-      cameraGeometry.dispose();
       state.disposeArt?.();
       for (const child of overlay.removeChildren())
         child.destroy?.({
@@ -1724,10 +1693,11 @@ export function createHiveClient({
       return Object.freeze({ ...(picked ? { picked: { id: picked.record?.id, part: picked.record?.part, target: picked.target, occluded: picked.occluded } } : {}),
         ...(query.project ? { projected: project(query.project.x, query.project.y, query.project.z) } : {}),
         ...(query.terrainAt ? { terrainAt: displayedTerrainPoint(query.terrainAt.x, query.terrainAt.y, displayedTerrainFrame()) } : {}),
-        assetsReady: Boolean(art), runtimeReady,
+        assetsReady: Boolean(art), runtimeReady, presentationFrames: { ...presentationFrames },
         spatialDraw: worldScene.metrics(), visibleDrawRecords: orderedSprites.length,
-        frameSequence, frameEpoch, paused: state.paused, camera: { x: camera.x, y: camera.y, zoom: camera.zoom, turn: cameraGeometry.turn },
-        view: { level: state.view.level, cutaway: state.view.cutaway }, selectedIds: [...state.selectedIds],
+        frameSequence, frameEpoch, paused: state.paused, camera: { x: camera.x, y: camera.y, zoom: camera.zoom, turn: camera.turn },
+        view: { level: state.view.level, cutaway: state.view.cutaway },
+        displayedView: { level: worldScene.view.level, cutaway: worldScene.view.cutaway }, selectedIds: [...state.selectedIds],
         subjects: state.subjects.map(({id,x,y,z,support,visual,placement,pickable}) => ({id,x,y,z,support,visual,placement,pickable,screen:project(x,y,z)})),
         ...(query.scene ? { records: worldScene.snapshot(), surfaces: displayedTerrainFrame()?.surfaces } : {}) });
     },

@@ -110,11 +110,16 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     cache.updateFrame({ epoch: nextEpoch, terrain: frameValue });
   }
 
+  function transform(camera) {
+    if (disposed) return;
+    container.position.set(camera.x, camera.y);
+    container.scale.set(camera.zoom);
+  }
+
   function position(camera, view, screen) {
     if (disposed || !frame?.baseline) return;
     container.visible = true;
-    container.position.set(camera.x, camera.y);
-    container.scale.set(camera.zoom);
+    transform(camera);
     level = view.cutaway ? view.level : frame.baseline.bounds.maxY - 1;
     const viewport = { left:-camera.x/camera.zoom, right:(screen.width-camera.x)/camera.zoom,
       top:-camera.y/camera.zoom, bottom:(screen.height-camera.y)/camera.zoom };
@@ -240,6 +245,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       batches.update([]);
     },
     update,
+    transform,
     position,
     get sortableItems() { refreshWaterRecords(); return retainedRecords; },
     get retainedRecords() {

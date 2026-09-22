@@ -13,8 +13,11 @@ class Element {
   append(...children) { this.children.push(...children); }
   appendChild(child) { this.append(child); }
   replaceChildren(...children) { this.children = children; }
-  addEventListener() {}
-  removeEventListener() {}
+  listeners = new Map();
+  addEventListener(name, callback) { this.listeners.set(name, callback); }
+  removeEventListener(name) { this.listeners.delete(name); }
+  getBoundingClientRect() { return { left: 0, top: 0 }; }
+  focus() { document.activeElement = this; }
   remove() {}
 }
 const point = () => ({ set() {} });
@@ -58,11 +61,17 @@ class Application {
 }
 
 await mock.module("pixi.js", { exports: { Application, Container, Graphics, Sprite } });
-await mock.module("react-dom/client", { exports: { createRoot: () => ({ render() {}, unmount() {} }) } });
+await mock.module("react-dom/client", { exports: { createRoot: () => ({ render() { active.hudRenders++; }, unmount() {} }) } });
+const xstate = await import("xstate");
+await mock.module("xstate", { exports: { ...xstate, createActor(logic, ...args) {
+  const actor = xstate.createActor(logic, ...args);
+  if (logic.id === "hive-terrain-target") active.terrainTarget = actor;
+  return actor;
+} } });
 for (const [module, names] of [
   ["button", ["Button"]], ["slider", ["Slider"]], ["input", ["Input"]], ["card", ["Card", "CardContent"]],
 ]) await mock.module(`@fungi.computer/caps/components/${module}`, { exports: Object.fromEntries(names.map(name => [name, name])) });
-await mock.module("@opentui/keymap/html", { exports: { createDefaultHtmlKeymap: () => ({ registerLayer() {}, on() {} }) } });
+await mock.module("@opentui/keymap/html", { exports: { createDefaultHtmlKeymap: () => ({ registerLayer(layer) { active.keymap = layer; }, on() {} }) } });
 await mock.module("@opentui/keymap/extras", { exports: { createBindingLookup: () => ({ bindings: [] }), formatCommandBindings: () => "" } });
 await mock.module(new URL("../../../src/art/static-pack.js", import.meta.url).href, { exports: {
   loadStaticArtPack() { active.loads.push("static"); return active.statics.promise; },
@@ -73,28 +82,50 @@ await mock.module(new URL("../../../src/art/living-terrain-pack.js", import.meta
 await mock.module(new URL("./audio.js", import.meta.url).href, { exports: {
   createAudioOwner: () => ({ play: kind => active.audio.push(kind), dispose() {} }),
 } });
-await mock.module(new URL("./world-scene-owner.js", import.meta.url).href, { exports: {
-  createWorldSceneOwner() {
+await mock.module(new URL("./cut-terrain-layer.js", import.meta.url).href, { exports: {
+  createCutTerrainLayer() {
     const f = active;
     let frame, installed, disposed = false;
     return {
       container: new Container(),
-      installTerrainArt(pack) { assert(!disposed); installed = pack; f.installs++; if (f.disposeAfterInstall) queueMicrotask(() => f.client.dispose()); },
-      updateTerrain(next) { assert(!disposed); frame = next; },
-      presentedTerrain: () => frame,
+      installArt(pack) { assert(!disposed); installed = pack; f.installs++; if (f.disposeAfterInstall) queueMicrotask(() => f.client.dispose()); },
+      update(next) { assert(!disposed); frame = next; },
+      get presentedTerrain() { return frame; },
+      transform(camera) { assert(!disposed); f.transforms.push({ x: camera.x, y: camera.y, zoom: camera.zoom }); },
       position(camera, view) { assert(!disposed); if (frame) f.demand.push({ camera: { ...camera }, level: view.level }); },
-      render(input) { assert(!disposed); assert(input.art, "render cannot consume missing art"); f.renders.push(input); return []; },
-      resetTimeline() {}, clear() { frame = undefined; }, react() {},
-      metrics: () => ({}), snapshot: () => [], pick() {},
+      retainedRecords: { revision: 0, records: [] },
+      coverage: { coverage: [], patches: [] }, meshMetrics: {}, cameraCoverage: {},
+      applyOrder() {}, setProjection() {},
       dispose() { assert(!disposed); disposed = true; installed?.dispose(); },
     };
+  },
+} });
+await mock.module(new URL("./actor-presentation-owner.js", import.meta.url).href, { exports: {
+  createActorPresentationOwner() {
+    const f = active;
+    return {
+      update(input) { assert(input.art, "render cannot consume missing art"); f.renders.push(input); return []; },
+      clear() {}, dispose() {}, resetTimeline() {}, react() {}, syncOverlays() {},
+    };
+  },
+} });
+for (const [file, name] of [["placement-guide-owner", "createPlacementGuideOwner"], ["placement-ghost-owner", "createPlacementGhostOwner"]]) {
+  await mock.module(new URL(`./${file}.js`, import.meta.url).href, { exports: {
+    [name]: () => ({ update() {}, clear() {}, dispose() {} }),
+  } });
+}
+await mock.module(new URL("./spatial-scene-owner.js", import.meta.url).href, { exports: {
+  createSpatialSceneOwner: ({ projection }) => {
+    const f = active;
+    return { update: () => ({ records: [], applyOrderRequired: false }),
+      reset() {}, metrics: () => ({}), pick() { f.picks.push(projection); return {}; } };
   },
 } });
 
 const { createHiveClient } = await import("./client.js");
 function fixture({ readyOnStart = true } = {}) {
   const f = { graphics: Promise.withResolvers(), terrain: Promise.withResolvers(), statics: Promise.withResolvers(),
-    loads: [], sent: [], demand: [], renders: [], audio: [], installs: 0, runtimeDisposals: 0, subscriptions: 0 };
+    hudRenders: 0, loads: [], sent: [], demand: [], renders: [], transforms: [], picks: [], audio: [], installs: 0, runtimeDisposals: 0, subscriptions: 0 };
   active = f;
   globalThis.document = { createElement: () => new Element(), addEventListener() {}, removeEventListener() {}, activeElement: null };
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
@@ -136,6 +167,7 @@ test("runtime, camera demand and art load overlap while interaction waits for bo
     assert.equal(f.client.diagnostics().assetsReady, false);
     f.receive(f.frame(1));
     const focused = f.client.diagnostics().camera;
+    for (const draw of f.app.draws) draw();
     assert(f.demand.length > 0, "early observation must request camera terrain");
     assert.equal(f.client.diagnostics().frameSequence, 1);
     f.resize();
@@ -151,6 +183,7 @@ test("runtime, camera demand and art load overlap while interaction waits for bo
     await flush();
     assert.equal(f.client.state.ready, true);
     assert.equal(f.installs, 1);
+    for (const draw of f.app.draws) draw();
     assert.equal(f.renders.at(-1).frameSequence, 2);
     assert.equal(f.renders.at(-1).subjects[0].id, "worker");
     // The real online interpolation owner retains its 200 ms presentation delay.
@@ -164,6 +197,73 @@ test("runtime, camera demand and art load overlap while interaction waits for bo
   assert.equal(f.terrainPack.disposed, 1);
   assert.equal(f.staticPack.disposed, 1);
   assert.equal(f.app.destroyed, 1);
+});
+
+test("camera input and observation bursts transform immediately without preparing the scene between frames", async () => {
+  const f = fixture();
+  try {
+    f.graphics.resolve(); f.terrain.resolve(f.terrainPack); f.statics.resolve(f.staticPack);
+    await flush();
+    f.receive(f.frame(1));
+    for (const draw of f.app.draws) draw();
+    const before = f.client.diagnostics();
+    const renders = f.renders.length, demands = f.demand.length;
+    const right = f.keymap.commands.find(command => command.name === "camera.right");
+    for (let i = 0; i < 12; i++) right.run();
+    f.receive(f.frame(2)); f.receive(f.frame(3));
+    assert.equal(f.transforms.at(-1).x, before.camera.x + 12 * 24);
+    assert.equal(f.renders.length, renders, "input must not enter scene preparation");
+    assert.equal(f.demand.length, demands, "input must not enter terrain demand/preparation");
+    assert.equal(f.client.diagnostics().presentationFrames.prepared, before.presentationFrames.prepared);
+    for (const draw of f.app.draws) draw();
+    assert.equal(f.renders.length, renders + 1);
+    assert.equal(f.renders.at(-1).frameSequence, 3, "the next frame consumes latest observations");
+    assert.equal(f.demand.length, demands + 1);
+  } finally { f.client.dispose(); }
+  assert.equal(f.app.draws.size, 0);
+});
+
+test("rotation and cuts preserve displayed picking until the frame adopts the new view", async () => {
+  const f = fixture();
+  try {
+    f.graphics.resolve(); f.terrain.resolve(f.terrainPack); f.statics.resolve(f.staticPack);
+    await flush();
+    f.receive(f.frame(1));
+    for (const draw of f.app.draws) draw();
+    const down = () => f.app.canvas.listeners.get("pointerdown")({ button: 0, clientX: 400, clientY: 300 });
+    down();
+    const originalProjection = f.picks.at(-1), before = f.client.diagnostics();
+    f.terrainTarget.send({ type: "ARM", control: { target: "world-surface" }, y: before.displayedView.level });
+    const demands = f.demand.length, renders = f.renders.length;
+    f.keymap.commands.find(command => command.name === "camera.turn.right").run();
+    f.client.state.view = { ...f.client.state.view, range: { min: 0, max: 3 } };
+    const up = f.keymap.commands.find(command => command.name === "view.level.up");
+    up.run(); up.run();
+    assert.equal(f.terrainTarget.getSnapshot().context.planeY, before.displayedView.level);
+    f.terrainTarget.send({ type: "CANCEL" });
+    down();
+    f.terrainTarget.send({ type: "ARM", control: { target: "world-surface" }, y: before.displayedView.level });
+    assert.equal(f.picks.at(-1), originalProjection, "input still uses the displayed projection");
+    assert.equal(f.client.diagnostics().camera.turn, before.camera.turn);
+    assert.deepEqual(f.client.diagnostics().displayedView, before.displayedView);
+    assert.equal(f.client.diagnostics().view.level, 2, "UI may show the requested cut");
+    assert.equal(f.demand.length, demands);
+    assert.equal(f.renders.length, renders);
+    const hudBeforePublication = f.hudRenders;
+    for (const draw of f.app.draws) draw();
+    assert.equal(f.terrainTarget.getSnapshot().context.planeY, 2, "an armed build tool follows the published cut");
+    assert(f.hudRenders > hudBeforePublication, "published view refreshes contextual HUD eligibility");
+    const hudAfterPublication = f.hudRenders;
+    for (const draw of f.app.draws) draw();
+    assert.equal(f.hudRenders, hudAfterPublication, "unchanged frames do not repeatedly publish the view");
+    f.terrainTarget.send({ type: "CANCEL" });
+    down();
+    assert.notEqual(f.picks.at(-1), originalProjection);
+    assert.equal(f.client.diagnostics().camera.turn, 1);
+    assert.equal(f.client.diagnostics().displayedView.level, 2);
+    assert.equal(f.demand.at(-1).level, 2);
+    assert.equal(f.renders.at(-1).cameraTurn, 1);
+  } finally { f.client.dispose(); }
 });
 
 test("dispose before renderer initialization cleans late resources without starting runtime", async () => {
