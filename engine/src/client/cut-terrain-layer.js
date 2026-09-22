@@ -1,10 +1,10 @@
-import { exposeTerrainPatch } from "../runtime/terrain-region-exposure.js";
+import { createTerrainPictureOwner } from "./terrain-picture-owner.js";
 import { BufferImageSource, Container, Sprite, Texture } from "pixi.js";
 import { createCameraCoverageOwner } from "./camera-coverage-owner.js";
 import { createTerrainRegionCache, TERRAIN_REGION_CACHE_CAPACITY } from "./terrain-region-cache.js";
 import { createTerrainFaceAppearance } from "./terrain-face-appearance.js";
 import { createTerrainBatchMeshes } from "./terrain-face-batches.js";
-import { terrainCoverRecords, terrainFaceRecords, visibleTerrainRegions, prioritizeTerrainRegions } from "./terrain-visibility.js";
+import { visibleTerrainRegions, prioritizeTerrainRegions } from "./terrain-visibility.js";
 import { reconcileWaterSprites, waterCellKey } from "./water-sprite-reconciler.js";
 import { project } from "./geometry.js";
 
@@ -77,7 +77,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
   let coverageIdentity, reportedBudget;
   let surfaceIdentity;
   let presentedSurfaces = [], exposedFaces = [], presentedFrame, presentedSource;
-  const regionEntries = new Map();
+  const pictures = createTerrainPictureOwner();
 
   function installArt(pack) {
     if (disposed || terrainArt) throw new Error("terrain art can only be installed once");
@@ -102,7 +102,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     frame = frameValue;
     epoch = nextEpoch;
     if (!frameValue) {
-      cameraCoverage.reset(); cache.clear(); regionEntries.clear(); coverageIdentity = undefined; reportedBudget = undefined;
+      cameraCoverage.reset(); cache.clear(); pictures.clear(); coverageIdentity = undefined; reportedBudget = undefined;
       waterRecordEntries.clear(); presentedSurfaces = []; exposedFaces = []; presentedFrame = presentedSource = undefined;
       for (const entry of waterEntries.values()) entry.sprite.destroy();
       waterEntries.clear(); publishRecords([], []);
@@ -148,59 +148,16 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
     // Cull to the retained plan, not the moving camera. A new plan must recull
     // even when it requests exactly the same already-resident regions.
     const prepared = cameraCoverage.snapshot().prepared;
-    const overrides = new Map(frame.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`,surface]));
-    const paletteSignature = JSON.stringify(snapshot.baseline.materials);
-    const nextEntries = new Map(), nextRecords = [], generatedTops = new Map();
-    for (const patch of snapshot.patches) {
-      const id = patch.key.join(","), previous = regionEntries.get(id);
-      const tops = new Map(patch.surfaces.map(surface => [`${surface.cell[0]},${surface.cell[2]}`,surface.generatedTop]));
-      for (const [column,top] of tops) generatedTops.set(column,top);
-      const sameBody = previous?.patch === patch && previous.level === level && previous.paletteSignature === paletteSignature &&
-        previous.verticalMetres === snapshot.baseline.verticalMetres && previous.variantSeed === snapshot.baseline.variantSeed;
-      const samePrepared = previous?.plan === planned;
-      const previousBody = sameBody && !samePrepared ? new Map(previous.body.map(record => [record.id,record])) : undefined;
-      const body = sameBody && samePrepared ? previous.body : terrainFaceRecords({ faces:exposeTerrainPatch({ patch, baseline: snapshot.baseline, level }), palette:snapshot.baseline.materials,
-        verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }, { projection, appearance, generatedTops:tops, viewport:prepared })
-        .map(record => previousBody?.get(record.id) ?? record);
-      // Only returned support columns are eligible. Observations replace current
-      // cover facts on those columns; they never invent support in unknown space.
-      const surfaces = patch.surfaces.map(surface => overrides.get(`${surface.cell[0]},${surface.cell[2]}`) ?? surface);
-      const coverSignature = JSON.stringify(surfaces);
-      let cover = sameBody && samePrepared && previous.coverSignature === coverSignature ? previous.cover : undefined;
-      if (!cover) {
-        const bounds = patch.bounds, world = snapshot.baseline.bounds;
-        const minX = bounds.minX - Number(bounds.minX === world.minX);
-        const minZ = bounds.minZ - Number(bounds.minZ === world.minZ);
-        const previousCover = new Map((previous?.cover ?? []).map(record => [record.id,record]));
-        cover = terrainCoverRecords(surfaces, { level, projection, appearance, viewport:prepared,
-          verticalMetres:snapshot.baseline.verticalMetres, variantSeed:snapshot.baseline.variantSeed }).filter(record => {
-          const root = record.attachment.point;
-          return record.storeyBand >= bounds.minY && record.storeyBand < bounds.maxY && root.x-.5 >= minX && root.x-.5 < bounds.maxX && root.z-.5 >= minZ && root.z-.5 < bounds.maxZ;
-        }).map(record => {
-          const old = previousCover.get(record.id);
-          return old?.mask === record.mask && old.terrainBatch === record.terrainBatch ? old : record;
-        });
-      }
-      nextEntries.set(id,{patch,level,body,cover,coverSignature,paletteSignature,plan:planned,
-        verticalMetres:snapshot.baseline.verticalMetres,variantSeed:snapshot.baseline.variantSeed});
-      nextRecords.push(...body,...cover);
-    }
-    regionEntries.clear();
-    for (const [id,entry] of nextEntries) regionEntries.set(id,entry);
-    const nextExposed = nextRecords.filter(record => record.role === "terrain");
-    const exposedChanged = nextExposed.length !== exposedFaces.length || nextExposed.some((record,index)=>record!==exposedFaces[index]);
-    if (exposedChanged) exposedFaces = nextExposed;
-    const nextSurfaces = exposedFaces.filter(record=>record.face==="top").map(record=>({cell:record.cell,material:record.material,
-      generatedTop:generatedTops.get(`${record.cell[0]},${record.cell[2]}`)}));
-    const surfacesChanged = nextSurfaces.length !== presentedSurfaces.length || nextSurfaces.some((surface,index) => {
-      const previous = presentedSurfaces[index];
-      return surface.cell !== previous.cell || surface.material !== previous.material || surface.generatedTop !== previous.generatedTop;
-    });
-    if (surfacesChanged) presentedSurfaces = nextSurfaces;
-    if (exposedChanged || surfacesChanged) presentedFrame = undefined;
+    const task = pictures.prepare({ snapshot, plan: planned, viewport: prepared, surfaces: frame.surfaces,
+      level, projection, appearance });
+    // The frame owner will schedule this same task incrementally. The current
+    // synchronous entrypoint drains it for existing consumers during integration.
+    while (task.status === "pending") task.advance({ maxOperations: 2048 });
+    const product = task.publish();
+    if (product.exposedFaces !== exposedFaces || product.surfaces !== presentedSurfaces) presentedFrame = undefined;
+    exposedFaces = product.exposedFaces; presentedSurfaces = product.surfaces;
     coverageIdentity = { publication:snapshot.publication, surfaces:surfaceIdentity, plan:planned };
-    if (nextRecords.length !== records.length || nextRecords.some((record,index)=>record!==records[index]))
-      publishRecords(nextRecords, waterRecords);
+    if (product.records !== records) publishRecords(product.records, waterRecords);
   }
 
   function refreshWaterRecords() {
@@ -241,7 +198,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       projection = nextProjection; viewTurn = turn;
       appearance = terrainArt ? createTerrainFaceAppearance({ pack: terrainArt, turn }) : undefined;
       cameraCoverage.reset(); presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined;
-      coverageIdentity = undefined; regionEntries.clear(); waterRecordEntries.clear();
+      coverageIdentity = undefined; pictures.clear(); waterRecordEntries.clear();
       publishRecords([], []);
       batches.update([]);
     },
@@ -273,7 +230,7 @@ export function createCutTerrainLayer({ runtime, projection: initialProjection, 
       disposed = true; if (coverageAnimation !== undefined) globalThis.cancelAnimationFrame?.(coverageAnimation);
       coverageAnimation = undefined; coverageQueued = false; cameraCoverage.reset(); cache.dispose(); batches.dispose(); terrainArt?.dispose();
       for (const entry of waterEntries.values()) entry.sprite.destroy();
-      waterEntries.clear(); waterRecordEntries.clear(); regionEntries.clear(); waterTexture.destroy(true); records = []; waterRecords = []; retainedRecords = Object.freeze([]);
+      waterEntries.clear(); waterRecordEntries.clear(); pictures.dispose(); waterTexture.destroy(true); records = []; waterRecords = []; retainedRecords = Object.freeze([]);
       frame = undefined; terrainArt = undefined; appearance = undefined;
       presentedSurfaces = []; exposedFaces = []; presentedFrame = undefined; presentedSource = undefined;
       // A fulfilled service promise retains its chunk snapshot until released.
