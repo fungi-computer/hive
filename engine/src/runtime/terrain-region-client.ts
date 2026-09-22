@@ -9,7 +9,7 @@ export function createTerrainRegionClient(send: (command: WorkerTerrainRegionsCo
     seen: Map<string, TerrainRegionPatch>; received: number; timer?: ReturnType<typeof setTimeout> };
   let pending: Pending | undefined, connected = initiallyConnected, disposed = false;
   const identity = (request: TerrainRegionRequest) => ({ requestId: request.requestId,
-    epoch: request.epoch, terrainRevision: request.terrainRevision, level: request.level });
+    epoch: request.epoch, terrainRevision: request.terrainRevision });
   function cancel(current: Pending) {
     if (pending !== current) return;
     pending = undefined;

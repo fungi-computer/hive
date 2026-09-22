@@ -34,7 +34,7 @@ try{
      report.terrainStream.outside32Count+=outside.length;
      report.terrainStream.firstPatchFromNavigationMs??=performance.now()-networkStarted;
      report.terrainPatches.push({key:patch.key,requestId:message.event.requestId,terrainRevision:message.event.terrainRevision,
-       faceCount:patch.faces.length,outside32Count:outside.length,outside32Examples:outside.slice(0,4).map(({cell,cover})=>({cell,cover}))});
+       materialColumnCount:patch.columns.length,materialRunCount:patch.columns.reduce((sum,column)=>sum+column.runs.length,0),materialCoverage:patch.coverage,outside32Count:outside.length,outside32Examples:outside.slice(0,4).map(({cell,cover})=>({cell,cover}))});
      if(report.terrainPatches.length>120)report.terrainPatches.shift();
    }catch(error){report.captureErrors.push({kind:"terrain-websocket",message:error.message});}
  }));

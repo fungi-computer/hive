@@ -71,3 +71,25 @@ test("exposure rejects unsupported work or face budgets instead of truncating", 
   );
   assert.deepEqual(exposeTerrainFaces({ bounds, core, level: -1, sample }), []);
 });
+
+test("material slabs preserve caves and overhangs across horizontal/vertical seams at every cut",async()=>{
+ const {materialPatch}=await import('./terrain-region-fixture.js');
+ const {exposeTerrainPatch,terrainPatchExposureSteps}=await import('./terrain-region-exposure.js');
+ const bounds={minX:0,maxX:10,minY:0,maxY:260,minZ:0,maxZ:10};
+ const baseline={protocolVersion:5,bounds,materials:[{slot:0,solid:false},{slot:1,solid:true},{slot:2,solid:false}]};
+ const material=([x,y,z])=>(x===7||x===8||z===7)&&(y%64===0||y===127||y===128)?1:y===200?2:0;
+ const patches=[];
+ for(let rx=0;rx<2;rx++)for(let rz=0;rz<2;rz++)for(let slab=0;slab<3;slab++)patches.push(materialPatch([rx,rz,slab],bounds,material));
+ const key=face=>`${face.cell.join(',')}:${face.face}:${face.material}:${face.cap}`;
+ for(const level of [-1,0,63,64,126,127,128,129,199,200,201,255,259]) {
+  const expected=exposeTerrainFaces({bounds,core:bounds,level,sample:cell=>({kind:'known',solid:material(cell)===1,material:material(cell)})});
+  const actual=patches.flatMap(patch=>exposeTerrainPatch({patch,baseline,level}));
+  assert.equal(new Set(actual.map(key)).size,actual.length,'no duplicated seam faces');
+  assert.deepEqual(actual.map(key).sort(),expected.map(key).sort(),`cut ${level} preserves full authoritative exposure`);
+ }
+ for(const patch of patches) {
+  const steps=[...terrainPatchExposureSteps({patch,baseline,level:259})];
+  assert.equal(steps.length,(patch.bounds.maxX-patch.bounds.minX)*(patch.bounds.maxZ-patch.bounds.minZ));
+  assert(steps.every(faces=>faces.length<=128*6),'one step never processes more than one bounded core column');
+ }
+});

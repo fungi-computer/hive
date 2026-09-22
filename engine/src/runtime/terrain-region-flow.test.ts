@@ -1,14 +1,14 @@
+import { materialPatch } from "./terrain-region-fixture.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {startTerrainRegionStream} from "./terrain-region-stream";
 import type {TerrainRegionEvent,TerrainRegionRequest} from "./terrain-regions";
-const identity={requestId:1,epoch:0,terrainRevision:1,level:0};
-const request=(count:number):TerrainRegionRequest=>({...identity,regions:Array.from({length:count},(_,x)=>[x,0])});
-const patch=(key:[number,number])=>({kind:"patch" as const,...identity,patch:{key,
- bounds:{minX:key[0]*8,maxX:key[0]*8+8,minZ:0,maxZ:8},faces:[],surfaces:[]}});
+const identity={requestId:1,epoch:0,terrainRevision:1};
+const request=(count:number):TerrainRegionRequest=>({...identity,regions:Array.from({length:count},(_,x)=>[x,0,0])});
+const patch=(key:[number,number,number])=>({kind:"patch" as const,...identity,patch:materialPatch(key)});
 const drain=()=>new Promise<void>(resolve=>setImmediate(resolve));
 function fixture(count:number) {
- const reads:[number,number][]=[],events:TerrainRegionEvent[]=[];
+ const reads:[number,number,number][]=[],events:TerrainRegionEvent[]=[];
  const stream=startTerrainRegionStream(request(count),key=>{reads.push(key);return patch(key);},event=>events.push(event),async()=>{});
  return {stream,reads,events};
 }
@@ -57,6 +57,6 @@ test("terminal responses need no credit and cancellation during a read suppresse
  await stale.done;assert.deepEqual(events.map(event=>event.kind),["stale"]);
  let resolve!: (event:ReturnType<typeof patch>)=>void;
  const delayed=startTerrainRegionStream(request(10),()=>new Promise(done=>{resolve=done;}),event=>events.push(event));
- await Promise.resolve();delayed.cancel();resolve(patch([0,0]));await delayed.done;
+ await Promise.resolve();delayed.cancel();resolve(patch([0,0,0]));await delayed.done;
  assert.equal(events.length,1);
 });

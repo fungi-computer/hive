@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /** Actual DO socket contract proof; uses a fresh isolated bearer world. */
 import assert from 'node:assert/strict';
+import {validateTerrainMaterialPatch} from '../../engine/src/runtime/terrain-region-materials.js';
 import {randomBytes,createHash} from 'node:crypto';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import WebSocket from 'ws';
@@ -28,22 +29,22 @@ async function connect(){
  return{socket,events,wait,observation,send(value){if(value.type==='terrain-regions')received.set(value.requestId,0);report.requests.push({socket:number,atMs:Date.now()-started,...value});socket.send(JSON.stringify(value));}};
 }
 function checked(event,request){
- assert.equal(event.requestId,request.requestId);for(const key of ['epoch','terrainRevision','level'])assert.equal(event[key],request[key],`${key} mismatch`);
+ assert.equal(event.requestId,request.requestId);for(const key of ['epoch','terrainRevision'])assert.equal(event[key],request[key],`${key} mismatch`);
  assert(['patch','complete'].includes(event.kind),`unexpected terrain event ${event.kind}`);
- if(event.kind==='patch'){assert(request.regions.some(key=>key.join(',')===event.patch.key.join(',')),'unrequested patch');assert(Array.isArray(event.patch.faces));assert(Array.isArray(event.patch.surfaces));for(const face of event.patch.faces)assert(face.cell[1]<=request.level);}
+ if(event.kind==='patch'){assert(request.regions.some(key=>key.join(',')===event.patch.key.join(',')),'unrequested patch');validateTerrainMaterialPatch(event.patch);assert(Array.isArray(event.patch.surfaces));}
 }
 async function complete(connection,request){await connection.wait(e=>e.type==='terrain-regions'&&e.event.requestId===request.requestId&&e.event.kind!=='patch');const events=connection.events.filter(e=>e.type==='terrain-regions'&&e.event.requestId===request.requestId).map(e=>e.event);for(const event of events)checked(event,request);assert.equal(events.at(-1).kind,'complete');const patches=events.filter(e=>e.kind==='patch');assert.equal(patches.length,request.regions.length);assert.equal(new Set(patches.map(e=>e.patch.key.join(','))).size,patches.length);return patches;}
 try{
  await mkdir(output,{recursive:true});const source=await readFile(new URL(import.meta.url));await writeFile(`${output}/driver.mjs`,source);report.driverSha256=createHash('sha256').update(source).digest('hex');
  await http('observe');await command(running?'resume':'pause');const initial=await http('observe');assert.equal(initial.observation.paused,!running);const first=await connect(),terrain=first.observation.observation.terrain;
- assert.equal(terrain.baseline.protocolVersion,4);const identity={epoch:first.observation.observation.epoch,terrainRevision:terrain.revision,level:terrain.baseline.bounds.maxY-1};assert(Number.isInteger(identity.terrainRevision));
- const regions=Array.from({length:32},(_,i)=>[i%8-4,Math.floor(i/8)-2]);const request={type:'terrain-regions',requestId:1,...identity,regions};first.send(request);
+ assert.equal(terrain.baseline.protocolVersion,5);const identity={epoch:first.observation.observation.epoch,terrainRevision:terrain.revision};assert(Number.isInteger(identity.terrainRevision));
+ const regions=Array.from({length:32},(_,i)=>[i%8-4,Math.floor(i/8)-2,0]);const request={type:'terrain-regions',requestId:1,...identity,regions};first.send(request);
  const patch=await first.wait(e=>e.type==='terrain-regions'&&e.event.requestId===1);checked(patch.event,request);assert.equal(patch.event.kind,'patch','completion arrived before any patch');
  // Pause command shares the durable owner queue while region reads are in flight.
- await command(running?'resume':'pause');const patches=await complete(first,request);assert(patches.some(p=>p.patch.faces.length>0));report.checks.push(`incremental useful region patches precede completion; ${running?'resume':'pause'} interleaved`);
+ await command(running?'resume':'pause');const patches=await complete(first,request);assert(patches.some(p=>p.patch.columns.length>0));report.checks.push(`incremental useful region patches precede completion; ${running?'resume':'pause'} interleaved`);
  let repeatId=100;while(Date.now()-started<durationMs){const repeat={...request,requestId:repeatId++};first.send(repeat);await complete(first,repeat);}
- const canceled={...request,requestId:2,regions:Array.from({length:128},(_,i)=>[i%16-8,Math.floor(i/16)-4])};first.send(canceled);
- await first.wait(e=>e.type==='terrain-regions'&&e.event.requestId===2&&e.event.kind==='patch');first.send({type:'terrain-cancel',requestId:2});const replacement={...request,requestId:3,regions:[[8,0],[8,1]]};first.send(replacement);await complete(first,replacement);
+ const canceled={...request,requestId:2,regions:Array.from({length:128},(_,i)=>[i%16-8,Math.floor(i/16)-4,0])};first.send(canceled);
+ await first.wait(e=>e.type==='terrain-regions'&&e.event.requestId===2&&e.event.kind==='patch');first.send({type:'terrain-cancel',requestId:2});const replacement={...request,requestId:3,regions:[[8,0,0],[8,1,0]]};first.send(replacement);await complete(first,replacement);
  const canceledEvents=first.events.filter(e=>e.type==='terrain-regions'&&e.event.requestId===2).map(e=>e.event);report.cancellation={patches:canceledEvents.filter(e=>e.kind==='patch').length,completed:canceledEvents.some(e=>e.kind==='complete'),requested:canceled.regions.length};assert(report.cancellation.patches<canceled.regions.length,'cancellation failed: all128 patches delivered');assert(!report.cancellation.completed,'canceled stream delivered completion');
  const replacementFirst=first.events.findIndex(e=>e.type==='terrain-regions'&&e.event.requestId===3);assert(!first.events.slice(replacementFirst).some(e=>e.type==='terrain-regions'&&e.event.requestId===2),'canceled stream leaked after replacement started');report.checks.push('cancel and replace settles new identity without old-stream leakage');
  const reconnect={...canceled,requestId:4};first.send(reconnect);await first.wait(e=>e.type==='terrain-regions'&&e.event.requestId===4&&e.event.kind==='patch');first.socket.close();await new Promise(r=>first.socket.once('close',r));
