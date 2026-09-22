@@ -1,3 +1,11 @@
+**September 22 end-to-end platform audit:** [Engine platform audit](20-engine-platform-audit-20260922.md)
+assesses whether Edmund can build fast, scalable multiplayer games with large
+worlds on the current engine. The single-Region physical/durable foundation is
+worth keeping; creator preparation, broad runtime costs, long-lived multiplayer
+and regional world ownership remain blocking qualifications. It records current
+source findings and a 48/49 focused law run, with the stale test fixture explained.
+This is an audit and ordered qualification, not a claim those repairs shipped.
+
 **September 22 rendering review:** [Rendering review and repair](19-rendering-review-and-repair-20260922.md)
 owns the current rendering repair sequence and acceptance laws. Its follow-up
 [soundness verdict](19-rendering-review-and-repair-20260922.md#soundness-verdict)
