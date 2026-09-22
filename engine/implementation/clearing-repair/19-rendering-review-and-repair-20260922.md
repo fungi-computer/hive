@@ -67,6 +67,8 @@ authorized test backend. Cold sampling cost and combined gameplay remain unprove
 
 ## System review recut — replace the dense ordering model
 
+The detailed execution packet is [packet 21](21-structural-renderer-implementation-packet-20260922.md). It owns the step-by-step replacement sequence and early go/no-go cases.
+
 Levi's September 22 direction supersedes further incremental graph/scheduler tuning:
 review the system and make substantial changes that remove unnecessary rendering
 work. The staged world-view join is a recovery checkpoint, not an accepted solution.
