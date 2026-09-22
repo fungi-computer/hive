@@ -1,4 +1,5 @@
 import { createWorldSceneOwner } from "./world-scene-owner.js";
+import { createClientArtLoading } from "./client-art-loading.js";
 import { createDirectControl } from "./direct-control.js";
 import { createCameraGeometryOwner } from "./camera-geometry-owner.js";
 import { surfaceSubjectFromOrdered } from "./draw-record-facts.js";
@@ -275,6 +276,20 @@ export function createHiveClient({
   let art = null;
   let resizeObserver = null;
   let unsubscribeRuntime = null;
+  let graphicsReady = false, runtimeReady = false, runtimeDisposed = false;
+  function stopRuntime() {
+    if (runtimeDisposed) return;
+    runtimeDisposed = true;
+    runtimeReady = false;
+    unsubscribeRuntime?.();
+    unsubscribeRuntime = null;
+    runtime?.dispose();
+  }
+  function destroyApp() {
+    if (!graphicsReady) return;
+    graphicsReady = false;
+    app.destroy(true, { children: true, texture: false, textureSource: false });
+  }
   const cueCursor = createCueCursor();
   let effectOwner;
   let previewCache;
@@ -325,7 +340,7 @@ export function createHiveClient({
 
   function prepareNewWorld(remote) {
     closeActionBar();
-    if (remote) state.ready = false;
+    if (remote) { runtimeReady = false; state.ready = false; }
     state.pendingSave = false;
     state.pendingRestore = false;
     state.invitationOpen = false;
@@ -818,7 +833,10 @@ export function createHiveClient({
     draw(); renderHud();
   }
   function draw() {
-    if (!app.stage) return;
+    if (state.disposed || runtimeDisposed || !graphicsReady) return;
+    // Camera demand and complete region caching do not depend on textures.
+    // Keep facts/cues in their existing owners until the art can display them.
+    if (!art) { worldScene.position(camera, state.view, app.screen); return; }
     const now = performance.now();
     directControl?.tick(now, state.paused);
     const visibleFacts = interpolation.render(now, { paused: state.paused });
@@ -1331,10 +1349,16 @@ export function createHiveClient({
     if (!frames.length) return;
     effectOwner.play({ texture: frames[0], frames, layer: "ground", scale: cue.kind === "wake" ? 1.5 : 1, lifetime: cue.kind === "wake" ? 700 : 260, sprites: 1 }, cue);
   }
+  const artLoading = createClientArtLoading({
+    loadTerrain: () => loadLivingTerrainPack(),
+    loadStatic: () => loadStaticArtPack({ baseUrl: staticArtBase(import.meta.env?.BASE_URL ?? "/engine/") }),
+  });
   async function start() {
     if (directControlId || aiming) {
       nativeBinding = await import("../../generated/hive_kernel.js");
+      if (state.disposed) return;
       await nativeBinding.default();
+      if (state.disposed) return;
       if (aiming && typeof nativeBinding.preview_projectile !== "function") throw new Error("native projectile preview unavailable");
       if (directControlId) directControl = createDirectControl({ entity: directControlId, send: command => runtime.send(command), predict: input => JSON.parse(nativeBinding.predict_direct(JSON.stringify(input))) });
     }
@@ -1346,20 +1370,29 @@ export function createHiveClient({
       preference: "webgl",
       preferWebGLVersion: 2,
     });
+    graphicsReady = true;
+    if (state.disposed) { destroyApp(); return; }
     app.canvas.tabIndex = 0;
     canvasHost.appendChild(app.canvas);
     app.stage.addChild(overlay);
-    const terrainPack = await loadLivingTerrainPack();
-    let pack;
-    try {
-      pack = await loadStaticArtPack({ baseUrl: staticArtBase(import.meta.env?.BASE_URL ?? "/engine/") });
-    } catch (error) {
-      terrainPack.dispose();
-      throw error;
-    }
-    art = pack.art;
-    worldScene.installTerrainArt(terrainPack);
-    state.disposeArt = pack.dispose;
+    camera.reset();
+    let width = canvasHost.clientWidth, height = canvasHost.clientHeight;
+    resizeObserver = new ResizeObserver(() => {
+      if (state.disposed || (width === canvasHost.clientWidth && height === canvasHost.clientHeight)) return;
+      width = canvasHost.clientWidth; height = canvasHost.clientHeight;
+      camera.reset();
+      draw();
+    });
+    resizeObserver.observe(canvasHost);
+    startRuntime();
+    if (!await artLoading.install((terrainPack, pack) => {
+      worldScene.installTerrainArt(terrainPack);
+      art = pack.art;
+      state.disposeArt = pack.dispose;
+    }) || state.disposed) return;
+    state.ready = runtimeReady;
+    if (state.ready && state.connection.status === "online") state.message = persistence.statusLabel;
+    if (!state.paused) directControl?.observe(latestFacts);
     if (aiming) previewCache = createPreviewCache({ preview: json => nativeBinding.preview_projectile(json) });
     effectOwner = createEffectOwner({
       now: effectClock,
@@ -1414,11 +1447,6 @@ export function createHiveClient({
       },
       { passive: false },
     );
-    resizeObserver = new ResizeObserver(() => {
-      camera.reset();
-      draw();
-    });
-    resizeObserver.observe(canvasHost);
     const keymap = createDefaultHtmlKeymap(root);
     const bindings = createBindingLookup({
       "sim.pause": "space",
@@ -1486,6 +1514,8 @@ export function createHiveClient({
       ],
     });
     keymap.on("state", renderHud);
+  }
+  function startRuntime() {
     unsubscribeRuntime = runtime?.subscribe?.((event) => {
       if (state.disposed) return;
       if (event.type === "connection") {
@@ -1553,7 +1583,8 @@ export function createHiveClient({
           frameEpoch = event.epoch;
           frameSequence = event.sequence;
           updateTerrainDisplay();
-          if (!state.paused) directControl?.observe(event.facts);
+          if (art && !state.paused) directControl?.observe(event.facts);
+          if (!art) draw();
           for (const [id, pending] of intendedDestinations) {
             const destination = pending.destination;
             const subject = event.facts.find((fact) => fact.id === id);
@@ -1611,8 +1642,9 @@ export function createHiveClient({
         });
       }
       if (event.type === "ready") {
-        state.ready = true;
-        if (state.connection.status === "online") state.message = persistence.statusLabel;
+        runtimeReady = true;
+        state.ready = Boolean(art);
+        if (state.ready && state.connection.status === "online") state.message = persistence.statusLabel;
         renderHud();
       }
       if (event.type === "restored" && state.pendingRestore) {
@@ -1632,7 +1664,10 @@ export function createHiveClient({
     runtime?.send?.({ type: "start", game: mode });
   }
   start().catch((error) => {
+    artLoading.dispose();
+    stopRuntime();
     if (state.disposed) return;
+    state.ready = false;
     state.message = `Client unavailable: ${error.message}`;
     renderHud();
   });
@@ -1645,9 +1680,9 @@ export function createHiveClient({
     dispose() {
       if (state.disposed) return;
       state.disposed = true;
-      app.ticker?.remove(draw);
-      unsubscribeRuntime?.();
-      runtime?.dispose();
+      artLoading.dispose();
+      if (graphicsReady) app.ticker?.remove(draw);
+      stopRuntime();
       hudRoot.unmount();
       actionBarRoot.unmount();
       actionBarHost.remove();
@@ -1667,11 +1702,11 @@ export function createHiveClient({
       cueCursor.dispose();
       effectOwner?.clear();
       terrainPicker.dispose();
-      app.canvas?.removeEventListener("pointerdown", pointerDown);
-      app.canvas?.removeEventListener("pointermove", pointerMove);
-      app.canvas?.removeEventListener("pointerup", pointerUp);
-      app.canvas?.removeEventListener("pointercancel", pointerCancel);
-      app.canvas?.removeEventListener("contextmenu", contextMenu);
+      if (graphicsReady) app.canvas.removeEventListener("pointerdown", pointerDown);
+      if (graphicsReady) app.canvas.removeEventListener("pointermove", pointerMove);
+      if (graphicsReady) app.canvas.removeEventListener("pointerup", pointerUp);
+      if (graphicsReady) app.canvas.removeEventListener("pointercancel", pointerCancel);
+      if (graphicsReady) app.canvas.removeEventListener("contextmenu", contextMenu);
       worldScene.dispose();
       cameraGeometry.dispose();
       state.disposeArt?.();
@@ -1681,11 +1716,7 @@ export function createHiveClient({
           texture: false,
           textureSource: false,
         });
-      app.destroy(true, {
-        children: true,
-        texture: false,
-        textureSource: false,
-      });
+      destroyApp();
     },
     send: emit,
     diagnostics(query = {}) {
@@ -1693,7 +1724,7 @@ export function createHiveClient({
       return Object.freeze({ ...(picked ? { picked: { id: picked.record?.id, part: picked.record?.part, target: picked.target, occluded: picked.occluded } } : {}),
         ...(query.project ? { projected: project(query.project.x, query.project.y, query.project.z) } : {}),
         ...(query.terrainAt ? { terrainAt: displayedTerrainPoint(query.terrainAt.x, query.terrainAt.y, displayedTerrainFrame()) } : {}),
-        assetsReady: Boolean(art), runtimeReady: state.ready,
+        assetsReady: Boolean(art), runtimeReady,
         spatialDraw: worldScene.metrics(), visibleDrawRecords: orderedSprites.length,
         frameSequence, frameEpoch, paused: state.paused, camera: { x: camera.x, y: camera.y, zoom: camera.zoom, turn: cameraGeometry.turn },
         view: { level: state.view.level, cutaway: state.view.cutaway }, selectedIds: [...state.selectedIds],
