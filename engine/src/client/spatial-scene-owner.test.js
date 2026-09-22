@@ -216,7 +216,8 @@ test("unchanged geometry reuses topology and only refreshes current record slots
   assert.equal(empty.records,emptyReuse.records);
   const revision=owner.update({...update,revision:2});
   assert.equal(revision.staticRebuilt,true);
-  assert.equal(revision.metrics.staticWork.topologyBuilds,1);
+  assert.equal(revision.metrics.staticWork.topologyBuilds,0,"static preparation does not sort a graph discarded by the combined pass");
+  assert.equal(revision.metrics.topologyBuilds,1);
   assert(owner.metrics().times.orderReuseMs>=0);
 });
 

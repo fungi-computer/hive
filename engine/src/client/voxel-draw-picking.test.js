@@ -114,3 +114,17 @@ test("picking returns the established logical target identity", () => {
   });
   assert.deepEqual(pickVoxelDrawRecord([part], { x: 1, y: 2 }), { record: part, target: "stair:owner", occluded: false });
 });
+
+test("a frontmost hit reads only its record without copying the scene", () => {
+  const front = { id: "front", contains: () => true };
+  const source = Array.from({ length: 1000 }, (_, index) => ({ id: `behind:${index}` }));
+  source.push(front);
+  const visits = [];
+  const records = new Proxy(source, { get(target, property, receiver) {
+    if (typeof property === "string" && /^\d+$/.test(property)) visits.push(property);
+    if (property === Symbol.iterator) throw new Error("picking must not copy the scene");
+    return Reflect.get(target, property, receiver);
+  } });
+  assert.equal(pickVoxelDrawRecord(records, { x: 0, y: 0 }).record, front);
+  assert.deepEqual(visits, ["1000"]);
+});
