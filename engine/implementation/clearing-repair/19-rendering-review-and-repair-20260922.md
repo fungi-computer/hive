@@ -59,6 +59,110 @@ independent review passed 64 slab/full-authority comparisons. This new protocol
 has **not** been deployed; it requires a matching frontend and the separately
 authorized test backend. Cold sampling cost and combined gameplay remain unproven.
 
+## System review recut — replace the dense ordering model
+
+Levi's September 22 direction supersedes further incremental graph/scheduler tuning:
+review the system and make substantial changes that remove unnecessary rendering
+work. The staged world-view join is a recovery checkpoint, not an accepted solution.
+
+### Evidence that changes the approach
+
+The first joined hosted run used the actual separate performance DO, protocol 5,
+eight unpaused workers, original Pixi art and a public Cloudflare tunnel. Its retained
+report is `.botanical/world-view-joined-proof-1/REPORT.json` in the repair worktree;
+guard `u3167`, invocation `dc7c3e8ccd2346b6854a32ad77947b30`, terminal exit 1.
+Independent assets/runtime readiness was about 3.395 seconds from navigation;
+visible terrain receipt was 4.794 seconds and padded receipt 5.091 seconds. There
+were 48 material patches, about 766 KB of terrain transport, and no HTTP terrain
+fan-out. Thus “five-second terrain” is navigation-relative, not five seconds after
+readiness. Neither clock passes the complete gameplay contract by itself.
+
+At about 47 seconds there were only 59 published actor/prop records and no useful
+published ground. The pending order task had executed 576,601 operations through
+576,603 advances. It remained pending around 77 seconds. Work/transport assertions
+passed; loading, normalization, travel and cuts did not. Input evidence is insufficient
+because failed normalization prevented the planned interaction workload. This is
+negative acceptance evidence, not an input-latency improvement claim.
+
+One-operation task accounting adds avoidable overhead, but changing its batch size
+is not the architectural repair. Source review identifies unnecessary work itself:
+
+- `terrain-picture-owner` ties reuse to the camera plan. On a changed plan it can
+  re-expose a resident patch, reconstruct/project face geometry, then discard the
+  new record in favor of the old record with the same ID.
+- `terrain-visibility` emits known grid faces and upright grass as general ordering
+  records. The compiler reconstructs projected geometry, discovers candidate
+  overlaps, compares planes, and builds a global relation/topological graph.
+- Grass cards share parallel upright planes, yet ambiguous/coplanar paths can
+  expand opaque silhouette rectangles and compare their cross-product. Current
+  grass frames contain up to 28 merged rectangles. This is a source cost risk,
+  not proof that this particular branch dominates the failed run.
+- Grass already carries four explicit support-cell facts. The general compiler
+  does not consume that surface-root attachment; it rediscovers relationships
+  through geometry/support-height checks instead.
+- When exact whole-picture order is impossible, the compiler eventually chooses
+  an approximation anyway. The accepted product does not require general image
+  fragmentation or per-pixel geometric ordering of every sprite.
+
+### Replacement architecture
+
+Keep one world-view owner, client camera, original atlas pixels, Pixi, exact resident
+material slabs, authoritative DO, WebSocket transport, staged coherent publication,
+and alpha silhouettes for picking. Replace the dense scene representation/order
+algorithm beneath that owner. No alternate renderer or game-specific rule branch.
+
+1. **Retained terrain pictures independent of camera position.** Own chunk-local
+   packed quads and compact cell/face identities, derived from material revision,
+   cut and camera quadrant. Pan/zoom change transforms and visible membership;
+   they do not regenerate the same faces. Extract only relevant exposed faces;
+   use material-run boundaries rather than repeatedly testing six neighbors of
+   buried solid voxels. Retain known air/unknown/halo laws and caves; this is not
+   an authoritative heightmap conversion.
+2. **Structural terrain/cover order.** Camera-oriented grid traversal orders
+   opaque voxel cells without terrain-to-terrain overlap discovery. Upright grass
+   uses a stable authored dual-grid footprint/anchor as its preferred slot, with
+   actual occupied supports imposing local after-constraints and nearby cliffs
+   imposing before-constraints. A grass patch's root-center key alone is not enough:
+   it can paint before its foreground supporting tile and disappear into the ground.
+   Mowing changes the affected dual-grid masks (at most four roots per changed
+   surface cell), not the world graph. Original upright art remains intact.
+3. **Sparse sprite placement into that retained order.** Actors and authored props
+   use footprint/volume/support metadata and nearby conservative bounds to find
+   insertion positions. Keep mandatory support precedence and existing baked part
+   boundaries. Contradictory whole-picture relationships use a documented stable
+   approximation. Large beds/stairs are not made exact by a universal foot-Y sort;
+   no content-name special cases or reconstructed opaque-pixel geometry are allowed.
+
+The terrain sweep is justified by monotone ray traversal through disjoint grid
+cells for a fixed orthographic quadrant. That does not prove one scalar orders
+all tall cards against cliffs or every furniture picture. Those mixed cases are
+explicit obligations of the local insertion rule, not a reason to rebuild a
+whole-world graph. A global “ground first, actors last” pass is also insufficient.
+
+Remove dense uses of projected face proxies, silhouette rectangle refinement,
+terrain candidate bins/edges and combined topology/cycle recovery. Keep silhouettes
+for clicking and the small spatial lookup needed by moving sprites. Do not place
+a forwarding wrapper around the existing compiler and call this replacement done.
+
+### Delivery blocks and decision gates
+
+First replace dense terrain/grass preparation and order in the actual colony path,
+using the current original atlas and unchanged authority. Review flat grass,
+cliffs, multiple elevations, cut caps/cavities, chunk seams and all four quadrants.
+Include mowing and pan-out/return. A local retained-chunk change must not reconstruct
+unaffected chunks or perform terrain-pair/alpha-rectangle comparisons.
+
+Then join actors and existing multipart furniture through the sparse insertion
+owner, including behind/in-front, supported actors, beds and stairs. Preserve the
+accepted whole-picture approximation; publish picking, pictures and displayed cut
+together. Read the first resulting caller before expanding the mechanism.
+
+Finally run the original paired 64/256 hosted workload: working actors, continuous
+input during arrival, cuts, cold travel/return, loading gates, separate CPU/input/
+render/loading/resource measurements and public preview. The first failed run is
+retained and must not be replaced with a paused screenshot or relaxed threshold.
+No dramatic speedup is claimed until those measurements establish it.
+
 ## Soundness verdict
 
 **Keep the physical engine, original art pipeline, WebSockets and Pixi. Do not

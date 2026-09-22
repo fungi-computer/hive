@@ -85,17 +85,25 @@ await mock.module(new URL("./audio.js", import.meta.url).href, { exports: {
 await mock.module(new URL("./cut-terrain-layer.js", import.meta.url).href, { exports: {
   createCutTerrainLayer() {
     const f = active;
-    let frame, installed, disposed = false;
+    let frame, requested, installed, disposed = false;
     return {
       container: new Container(),
       installArt(pack) { assert(!disposed); installed = pack; f.installs++; if (f.disposeAfterInstall) queueMicrotask(() => f.client.dispose()); },
-      update(next) { assert(!disposed); frame = next; },
+      request(input) { assert(!disposed); requested = input; if (input.frame) f.demand.push({ camera: { ...input.camera }, level: input.view.level }); },
+      prepare() {
+        const input = requested;
+        const task = { ready: !f.holdTerrain, cancelled: 0, published: 0,
+          result: { terrainFrame: input.frame, records: [], revision: 0 },
+          advance() { if (!f.holdTerrain) task.ready = true; },
+          publish() { frame = input.frame; task.published++; }, cancel() { task.cancelled++; } };
+        f.terrainTasks.push(task);
+        return task;
+      },
+      clear() { frame = requested = undefined; },
       get presentedTerrain() { return frame; },
       transform(camera) { assert(!disposed); f.transforms.push({ x: camera.x, y: camera.y, zoom: camera.zoom }); },
-      position(camera, view) { assert(!disposed); if (frame) f.demand.push({ camera: { ...camera }, level: view.level }); },
-      retainedRecords: { revision: 0, records: [] },
+
       coverage: { coverage: [], patches: [] }, meshMetrics: {}, cameraCoverage: {},
-      applyOrder() {}, setProjection() {},
       dispose() { assert(!disposed); disposed = true; installed?.dispose(); },
     };
   },
@@ -104,7 +112,11 @@ await mock.module(new URL("./actor-presentation-owner.js", import.meta.url).href
   createActorPresentationOwner() {
     const f = active;
     return {
-      update(input) { assert(input.art, "render cannot consume missing art"); f.renders.push(input); return []; },
+      prepare(input) {
+        assert(input.art, "render cannot consume missing art");
+        return { ready: true, records: [], subjects: input.subjects,
+          publish() { f.renders.push(input); }, cancel() {} };
+      },
       clear() {}, dispose() {}, resetTimeline() {}, react() {}, syncOverlays() {},
     };
   },
@@ -117,15 +129,16 @@ for (const [file, name] of [["placement-guide-owner", "createPlacementGuideOwner
 await mock.module(new URL("./spatial-scene-owner.js", import.meta.url).href, { exports: {
   createSpatialSceneOwner: ({ projection }) => {
     const f = active;
-    return { update: () => ({ records: [], applyOrderRequired: false }),
-      reset() {}, metrics: () => ({}), pick() { f.picks.push(projection); return {}; } };
+    return { prepare: () => ({ status: "ready", result: { stagedRecords: [], applyOrderRequired: false }, cancel() {} }),
+      publish: () => ({ records: [] }),
+      reset() {}, metrics: () => ({ counts: {}, times: {} }), pick() { f.picks.push(projection); return {}; } };
   },
 } });
 
 const { createHiveClient } = await import("./client.js");
 function fixture({ readyOnStart = true } = {}) {
   const f = { graphics: Promise.withResolvers(), terrain: Promise.withResolvers(), statics: Promise.withResolvers(),
-    hudRenders: 0, loads: [], sent: [], demand: [], renders: [], transforms: [], picks: [], audio: [], installs: 0, runtimeDisposals: 0, subscriptions: 0 };
+    terrainTasks: [], hudRenders: 0, loads: [], sent: [], demand: [], renders: [], transforms: [], picks: [], audio: [], installs: 0, runtimeDisposals: 0, subscriptions: 0 };
   active = f;
   globalThis.document = { createElement: () => new Element(), addEventListener() {}, removeEventListener() {}, activeElement: null };
   globalThis.window = { addEventListener() {}, removeEventListener() {} };
@@ -363,4 +376,56 @@ test("renderer initialization failure releases loaded art and never starts the w
   f.client.dispose();
   assert.equal(f.app.destroyed, 0);
   assert.equal(f.runtimeDisposals, 1);
+});
+
+
+test("pending terrain keeps displayed subjects and picking coherent while newer observations coalesce", async () => {
+  const f = fixture();
+  try {
+    f.graphics.resolve(); f.terrain.resolve(f.terrainPack); f.statics.resolve(f.staticPack);
+    await flush();
+    const draw = () => { for (const callback of f.app.draws) callback(); };
+    f.receive(f.frame(1)); draw();
+    const subjects = f.client.state.subjects, before = f.client.diagnostics(), count = f.renders.length;
+    f.holdTerrain = true;
+    f.keymap.commands.find(command => command.name === "camera.turn.right").run();
+    draw();
+    const pending = f.terrainTasks.at(-1), tasks = f.terrainTasks.length;
+    for (let i = 2; i <= 4; i++) {
+      f.receive(f.frame(i));
+      f.keymap.commands.find(command => command.name === "camera.right").run();
+      draw();
+      assert.equal(f.terrainTasks.length, tasks, "new observations cannot restart the pending job");
+      assert.equal(f.client.state.subjects, subjects);
+      assert.equal(f.client.diagnostics().camera.turn, before.camera.turn);
+      assert.equal(f.renders.length, count);
+    }
+    assert.equal(f.transforms.at(-1).x, before.camera.x + 72, "camera transforms continue during pending preparation");
+    assert.equal(pending.cancelled, 0);
+    f.holdTerrain = false; draw();
+    assert.equal(pending.published, 1);
+    assert.equal(f.client.diagnostics().camera.turn, 1);
+    assert.equal(f.renders.at(-1).frameSequence, 1, "publication uses the original pinned actor snapshot");
+    draw();
+    assert.equal(f.renders.at(-1).frameSequence, 4, "the next job consumes the newest observation");
+  } finally { f.client.dispose(); }
+});
+
+test("superseded cut cancels its pending task and disposal cancels the successor", async () => {
+  const f = fixture();
+  try {
+    f.graphics.resolve(); f.terrain.resolve(f.terrainPack); f.statics.resolve(f.staticPack);
+    await flush();
+    f.receive(f.frame(1));
+    const draw = () => { for (const callback of f.app.draws) callback(); };
+    draw(); f.holdTerrain = true;
+    f.client.state.view = { ...f.client.state.view, range: { min: 0, max: 3 } };
+    const up = f.keymap.commands.find(command => command.name === "view.level.up");
+    up.run(); draw(); const first = f.terrainTasks.at(-1);
+    up.run(); draw(); const second = f.terrainTasks.at(-1);
+    assert.notEqual(first, second); assert.equal(first.cancelled, 1); assert.equal(first.published, 0);
+    assert.equal(f.client.diagnostics().displayedView.level, 0);
+    f.client.dispose();
+    assert.equal(second.cancelled, 1); assert.equal(second.published, 0);
+  } finally { f.client.dispose(); }
 });

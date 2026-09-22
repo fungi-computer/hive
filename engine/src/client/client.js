@@ -47,7 +47,7 @@ import { bindingCommand, buildPlacementCommand, terrainCellCommand, terrainAreaC
 import { selectedBrewStation } from "./colony-presentation.js";
 import { actionBarGroups, selectedActionBarControls } from "./action-bar.js";
 import { canonicalEdges, edgeSegmentEndpoints, nearestGridSegment } from "./edge-gesture.js";
-import { edgeStructureGhostSpec, edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
+import { edgeStructureGhostSpec } from "./edge-wall-presentation.js";
 import { createActionBarState } from "./action-bar-state.js";
 
 const displayedNumber = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
@@ -804,9 +804,8 @@ export function createHiveClient({
   function drawFrame() {
     if (state.disposed || runtimeDisposed || !graphicsReady) return;
     presentationFrames.prepared++;
-    worldScene.beginFrame(state.view, app.screen);
     // Demand runs before textures are ready; actors wait for their original art.
-    if (!art) return;
+    if (!art) { worldScene.frame({ view: state.view, screen: app.screen }); return; }
     const now = performance.now();
     directControl?.tick(now, state.paused);
     const visibleFacts = interpolation.render(now, { paused: state.paused });
@@ -814,34 +813,11 @@ export function createHiveClient({
     const due = pendingCues.filter(cue => cue.time <= presentedTime + 1e-9);
     pendingCues = pendingCues.filter(cue => cue.time > presentedTime + 1e-9);
     for (const cue of due) if (presentedTime - cue.time <= 3) playCue(cue);
-    const presentedFacts = (directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts)
-      .filter((fact) => projectWorldFact(fact, worldScene.view).visible);
-    state.subjects = presentedFacts
-      .filter((fact) => fact.pose?.position && fact.visual)
-      .map((fact) => ({
-        id: fact.id,
-        name: fact.label || fact.id,
-        x: fact.pose.position.x,
-        y: fact.pose.position.y,
-        z: fact.pose.position.z,
-        facing: fact.pose.facing,
-        visual: fact.visual,
-        motion: bindings[fact.visual]?.motion,
-        local: fact.local,
-        support: fact.support,
-        surface: fact.surface,
-        projectile: fact.projectile,
-        inventory: fact.inventory,
-        activity: fact.activity,
-        pose: fact.pose,
-        placement: fact.placement,
-        screen: { x: 0, y: 0 },
-        hitZoom: camera.zoom,
-        pickable: projectWorldFact(fact, worldScene.view).pickable,
-      }));
-    const subjectTerrain = displayedTerrainFrame();
-    if (subjectTerrain)
-      state.subjects.push(...edgeWallJunctionSubjects(state.subjects, bindings, subjectTerrain.verticalMetres));
+    worldScene.frame({ facts: directControl && !state.paused ? directControl.display(visibleFacts) : visibleFacts,
+      view: state.view, screen: app.screen, selectedIds: state.selectedIds,
+      art, paused: state.paused, frameSequence });
+    state.subjects = worldScene.subjects;
+    orderedSprites = worldScene.records;
     for (const cue of motionCues.sample(state.subjects, { now: presentedTime, paused: state.paused, sequence: frameSequence })) playMotionCue(cue);
     if (!groundSprite) {
       if (environment === "water") {
@@ -924,8 +900,7 @@ export function createHiveClient({
         : terrainCellCommand(buildControl, state.selectedIds, { cell: cells[0], source: "placement" }).input;
       requestPlacementDecision(buildControl, previewInput);
     }
-    orderedSprites = worldScene.render({ subjects: state.subjects, selectedIds: state.selectedIds,
-      art, paused: state.paused, frameSequence, guide, ghost: ghostSpec, placementStatus: state.placementDecision?.status });
+    worldScene.preview({ art, guide, ghost: ghostSpec, placementStatus: state.placementDecision?.status });
     const drag = gesture.getSnapshot().context;
     if (
       gesture.getSnapshot().value === "dragging" &&
