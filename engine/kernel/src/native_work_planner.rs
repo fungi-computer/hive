@@ -1578,7 +1578,9 @@ mod tests {
         kernel.state_weight = before_weight;
         assert_state_weight_matches_recount(&mut kernel);
 
-        let mut candidate = kernel.clone();
+        let committed = kernel.save_records().unwrap();
+        let mut candidate = Kernel::new();
+        candidate.restore_records(&committed).unwrap();
         candidate.state_weight = super::super::STATE_BYTES - 1;
         assert!(candidate.ensure_field_water_tasks(std::slice::from_ref(&requirement)).is_err());
         drop(candidate);
