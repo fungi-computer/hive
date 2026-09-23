@@ -189,16 +189,20 @@ test("slow recipient retains one frame while fast recipient advances; ack surviv
   const f = fixture();
   try {
     let host = f.make();
-    const socket = () => {
-      let attachment: any = { authenticated: true, hostStatusWire: JSON.stringify({ state: "running" }), pack: "formations", worldHandle: "test" };
+    const socket = (principal: string) => {
+      let attachment: any = { authenticated: true, principal, hostStatusWire: JSON.stringify({ state: "running" }), pack: "formations", worldHandle: "test" };
       return { frames: [] as string[], deserializeAttachment: () => attachment, serializeAttachment: (a: any) => { attachment = a; }, send(frame: string) { this.frames.push(frame); }, close() {} };
     };
-    const slow = socket(), fast = socket(); f.sockets.push(slow, fast);
+    // The public host currently publishes one Region host-scoped observation
+    // shared by authenticated participants; this test pins that delivery law.
+    const slow = socket("participant:slow"), fast = socket("participant:fast"); f.sockets.push(slow, fast);
     let builds = 0;
     const payload = (revision: number) => ({ hostStatus: { state: "running" }, revision, replayEpoch: 0, observation: { whistleRevision: 0, whistleAgent: [], whistleTargets: [] } });
     host.observationPayload = () => { builds++; return payload(host.region.readCommitted().revision); };
     await host.publishObservation();
     assert.equal(slow.frames.length, 1);
+    assert.deepEqual(JSON.parse(slow.frames[0]).observation, JSON.parse(fast.frames[0]).observation,
+      "distinct principals receive the same host-scoped projection at one Region revision");
     await host.publishObservation(); assert.equal(builds, 1);
     await host.renewLease(0); await host.runDue(100);
     fast.serializeAttachment(acknowledgeObservation(fast.deserializeAttachment(), 0, 0));
