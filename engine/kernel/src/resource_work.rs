@@ -170,7 +170,7 @@ impl Kernel {
                 continue;
             }
             order.progress_seconds = super::earned_work_seconds(order.progress_seconds, delta, required)?;
-            self.ecs.entity_mut(entity).insert(order.clone()); self.refresh_state_weight();
+            self.replace_accounted_component(entity, "hive.resource-order", order.clone())?;
             if order.progress_seconds + f64::EPSILON < required { continue; }
             let result = match &activity {
                 ActivityRef::ResourceEstablish { site, definition, cell } => self.establish_resource_site("native-resource", &worker, site, definition, cell[0], cell[1], cell[2]).map(|_| ()),

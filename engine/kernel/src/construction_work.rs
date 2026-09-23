@@ -1117,12 +1117,14 @@ impl Kernel {
     pub(super) fn advance_construction(&mut self, delta: f64) -> Result<()> {
         if delta == 0.0 { return Ok(()); }
         let mut query = self.ecs.query::<(&ExternalId, &ConstructionSite)>();
-        let mut pending: Vec<_> = query.iter(&self.ecs).map(|(id, site)| (id.0.clone(), site.clone())).collect();
+        let mut pending: Vec<_> = query.iter(&self.ecs)
+            .filter(|(_, site)| site.phase == ConstructionPhase::Working)
+            .map(|(id, site)| (id.0.clone(), site.clone())).collect();
+        if pending.is_empty() { return Ok(()); }
         pending.sort_by(|left, right| left.0.cmp(&right.0));
-        let working_ids: Vec<String> = pending.iter().filter(|(_, state)| state.phase == ConstructionPhase::Working).map(|(id, _)| id.clone()).collect();
+        let working_ids: Vec<String> = pending.iter().map(|(id, _)| id.clone()).collect();
         let readiness = construction_status(self, &working_ids)?;
         for (site_id, mut state) in pending {
-            if state.phase != ConstructionPhase::Working { continue; }
             let attempt = self.work_attempts.get(&site_id).and_then(|entity| self.ecs.get::<WorkAttempt>(*entity)).cloned();
             let worker_id = attempt.as_ref().and_then(|attempt| match &attempt.phase { crate::work_attempt::AttemptPhase::Executing { activity: crate::work_attempt::ActivityRef::Construction { site, mode: crate::work_attempt::ConstructionMode::Work, .. }, .. } if site == &site_id => Some(attempt.worker.clone()), _ => None });
             let Some(worker_id) = worker_id else { continue; };

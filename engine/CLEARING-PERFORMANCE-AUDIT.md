@@ -1,5 +1,45 @@
 # Clearing performance audit — September 13, 2026
 
+## September 23 source re-audit: next ownership cuts
+
+This section reviews the current Rust kernel and DO host source. It is a causal
+audit, **not a new hosted timing or population claim**. The September 13 numbers
+below describe an older source revision and must not be used as current capacity.
+
+1. **Retain the whole assignment episode.** The native planner reviews 32 tasks,
+   but `assign_verified` stops after eight validated matches and returns only
+   those eight. The remaining candidate costs, route results and matching are
+   discarded. A following review reconstructs the window and solves again. Keep
+   the bounded, versioned matching/search continuation under the kernel owner;
+   dispatch eight checked claims at a time from its result. Replan only when a
+   participating input changes, and commit the continuation with the world.
+   Merely changing `MAX_ASSIGNMENTS` to 32 would increase route admission and
+   mutation work in one step without fixing redundant solving.
+2. **Own changed records at canonical mutation.** The DO transaction persists
+   changed records, but `session.save()` first captures the full kernel, and
+   record diffing compares that full capture. A useful 100-worker step pays for
+   serialization of unrelated entities even if only progress fields changed.
+   Introduce a kernel-owned dirty-record journal with a versioned full baseline
+   for cold load/recovery; the region transaction remains the atomic authority.
+   Current local source correction removes full ECS/schema state-weight scans
+   from per-worker job and resource progress, but does not solve full capture.
+3. **Give the host a real next wake.** The host currently schedules a 100 ms
+   clock occurrence while leased, even when the native world has no due work.
+   The kernel and game systems should expose the next authoritative deadline
+   (work review, elapsed process, needs, cat, environment), and accepted commands
+   should wake it. Idle quiescence must preserve durable command identity and
+   time-dependent game rules.
+4. **Separate publication from simulation revision.** Observation, inventory and
+   Whistle projections rebuild on broad revision changes, and publication builds
+   a payload before checking for authenticated recipients. Give each projection
+   its owning fact dependencies and skip construction with no recipients. Measure
+   this separately from native step, record capture and socket transmission.
+
+For the next performance claim, use the same real 25/50/100-worker active fixture
+before and after each cut. Report candidate edges, route expansions, assignment
+passes, native step, full/delta capture, DO commit, observation and browser frame
+time separately; idle worker counts cannot stand in for useful throughput.
+
 King Bolete. Accepted runtime source: `ca18c66d7f359a8a5e9df84cb7469e94ca82a7fa`.
 This is a source audit and a short local WASM measurement, not a hosted capacity
 claim. The Clearing consolidation plan still owns the product outcome.

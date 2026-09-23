@@ -35,6 +35,8 @@ mod construction_work;
 mod deconstruction_work;
 #[path = "native_work_planner.rs"]
 mod native_work_planner;
+#[path = "state_accounting.rs"]
+mod state_accounting;
 #[path = "resource_work.rs"]
 mod resource_work;
 #[path = "job_owner.rs"]
@@ -5441,6 +5443,7 @@ impl Kernel {
     fn advance_staged_processes(&mut self, delta: f64) -> Result<()> {
         if delta == 0.0 { return Ok(()); }
         let ids: Vec<String> = self.ids.iter().filter_map(|(id, entity)| self.ecs.get::<StagedProcess>(*entity).map(|_| id.clone())).collect();
+        let mut changed = false;
         for id in ids {
             let entity = self.entity(&id)?; let Some(mut state) = self.ecs.get::<StagedProcess>(entity).cloned() else { continue; };
             if state.phase == ProcessPhase::Complete { continue; }
@@ -5454,8 +5457,10 @@ impl Kernel {
             if stage.mode != crate::staged_process::StageMode::Elapsed || state.entered_tick >= self.revision { continue; }
             state.progress_seconds = crate::world::earned_work_seconds(state.progress_seconds, delta, stage.duration_seconds)?;
             self.finish_process_stage(&id, state, &definition)?;
+            changed = true;
         }
-        self.refresh_state_weight(); Ok(())
+        if changed { self.refresh_state_weight(); }
+        Ok(())
     }
 
     pub fn process_requirements_json(&self, input: &str) -> Result<String> {

@@ -519,8 +519,7 @@ impl Kernel {
             let seconds = super::earned_work_seconds(work.seconds, delta, task.operation_work_seconds())?;
             let mut updated = work;
             updated.seconds = seconds;
-            self.ecs.entity_mut(task_entity).insert(updated);
-            self.refresh_state_weight();
+            self.replace_accounted_component(task_entity, "hive.job-task-work", updated)?;
             if seconds + f64::EPSILON < task.operation_work_seconds() { continue; }
             let mut operation = task.operation.clone();
             if let crate::job::TypedWorkOperation::ItemToItems { source: crate::job::EntityBinding::Result { step, slot }, input_kind, input_quantity, output_kind, output_quantity, work_seconds, result_slot } = operation {
