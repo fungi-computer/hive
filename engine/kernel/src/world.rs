@@ -4904,12 +4904,10 @@ impl Kernel {
     pub fn advance_candidate_json(&mut self, input: &str) -> Result<String> {
         self.ensure_ready()?;
         let result = (|| {
-            let parse_started = crate::capture_diagnostics::now_ms();
             if input.len() > 1024 * 1024 {
                 return Err("batch too large".into());
             }
             let batch: Batch = serde_json::from_str(input).map_err(|error| error.to_string())?;
-            crate::capture_diagnostics::record("advance_parse", parse_started);
             self.advance_batch(batch)
         })();
         if result.is_err() { self.discard_required = true; }
@@ -4917,7 +4915,6 @@ impl Kernel {
     }
 
     fn advance_batch(&mut self, batch: Batch) -> Result<String> {
-        let batch_started = crate::capture_diagnostics::now_ms();
         if !batch.delta.is_finite()
             || !(0.0..=1.0).contains(&batch.delta)
             || batch.writes.len() > 4096
@@ -5002,8 +4999,6 @@ impl Kernel {
                 })
             })
             .collect::<Result<Vec<_>>>()?;
-        crate::capture_diagnostics::record("advance_authored_and_actions", batch_started);
-        let physical_started = crate::capture_diagnostics::now_ms();
         let impacts = self.advance_projectiles(batch.delta)?;
         self.advance_direct(batch.delta)?;
         if self.state_weight.saturating_add(self.direct.values().map(Self::direct_weight).sum::<usize>()) > STATE_BYTES { return Err("region canonical state capacity".into()); }
@@ -5012,37 +5007,24 @@ impl Kernel {
         self.advance_excavation(batch.delta)?;
         self.advance_deconstruction(batch.delta)?;
         self.advance_construction(batch.delta)?;
-        crate::capture_diagnostics::record("advance_physical_before_movement", physical_started);
-        let movement_started = crate::capture_diagnostics::now_ms();
         self.advance_movement(batch.delta)?;
         self.settle_arrived_work_attempts()?;
-        crate::capture_diagnostics::record("advance_movement_and_arrivals", movement_started);
-        let environment_started = crate::capture_diagnostics::now_ms();
         let environment_work = self.environment.as_mut().map(|environment| environment.advance(batch.delta, self.revision)).transpose()?;
-        crate::capture_diagnostics::record("advance_environment", environment_started);
-        let lifecycle_started = crate::capture_diagnostics::now_ms();
         self.advance_process_work_attempts(batch.delta)?;
         self.advance_staged_processes(batch.delta)?;
         self.advance_resource_work(batch.delta)?;
         self.advance_job_transform_work(batch.delta)?;
-        crate::capture_diagnostics::record("advance_work_lifecycle", lifecycle_started);
-        let planner_started = crate::capture_diagnostics::now_ms();
         // Terrain and authored support surfaces are both lawful geometry
         // owners. The physical index contains each validated surface frame;
         // detached record fixtures with neither geometry remain dormant.
         if self.environment.is_some() || self.blocked_by_frame.keys().any(Option::is_some) {
             self.advance_native_work_planner(self.revision)?;
         }
-        crate::capture_diagnostics::record("advance_planner", planner_started);
-        let final_started = crate::capture_diagnostics::now_ms();
         self.cleanup_empty_ground_stock();
         self.time += batch.delta;
         let mut output = json!({"revision":self.revision,"results":results,"impacts":impacts});
         if let Some(work) = environment_work { output["environmentWork"] = serde_json::to_value(work.water).map_err(|e| e.to_string())?; output["atmosphereWork"] = serde_json::to_value(work.air).map_err(|e| e.to_string())?; }
-        let result = serde_json::to_string(&output).map_err(|e| e.to_string());
-        crate::capture_diagnostics::record("advance_cleanup_and_response", final_started);
-        crate::capture_diagnostics::record("advance_batch_total", batch_started);
-        result
+        serde_json::to_string(&output).map_err(|e| e.to_string())
     }
     fn settle_arrived_work_attempts(&mut self) -> Result<()> {
         let arrived: Vec<(String, AttemptPhase)> = self.work_attempts.iter().filter_map(|(task, entity)| {
