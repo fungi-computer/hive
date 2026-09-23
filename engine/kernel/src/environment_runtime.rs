@@ -3,8 +3,7 @@ use super::KernelEnvironment;
 use crate::terrain_atmosphere::{SmokeReceipt, SmokeSource};
 use crate::terrain_water::{PreparedExcavation, PreparedStructureChange};
 use crate::water::WaterWork;
-use serde::{Serialize, Deserialize};
-use std::collections::BTreeMap;
+use serde::Serialize;
 
 #[derive(Serialize)]
 #[serde(tag = "status", rename_all = "camelCase")]
@@ -34,21 +33,8 @@ pub(super) struct EmissionWait {
 #[serde(rename_all = "camelCase")]
 enum EmissionWaitReason { NoAirReceiver, Capacity, UnrepresentableInterval }
 
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub(super) struct PaidEmission {
-    pub catalog: String,
-    pub cell: crate::generation::Cell,
-    pub elapsed_s: f64,
-    pub admitted_revision: u64,
-}
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SavedAir {
-    version: u16,
-    atmosphere: crate::terrain_atmosphere::TerrainAtmosphereRecords,
-    emissions: BTreeMap<String, PaidEmission>,
-}
+pub(super) use crate::air_records::PaidEmission;
+use crate::air_records::{SavedAir, SAVED_AIR_VERSION};
 
 impl KernelEnvironment {
     pub(super) fn save_air(&self) -> Result<Option<Vec<u8>>, String> {
@@ -56,7 +42,7 @@ impl KernelEnvironment {
             if !self.paid_emissions.is_empty() { return Err("paid emissions require atmosphere".into()); }
             return Ok(None);
         };
-        let records = SavedAir { version: 1, atmosphere: air.save()?, emissions: self.paid_emissions.clone() };
+        let records = SavedAir { version: SAVED_AIR_VERSION, atmosphere: air.save()?, emissions: self.paid_emissions.clone() };
         let bytes = postcard::to_allocvec(&records).map_err(|_| "air record encoding failed")?;
         if bytes.len() > 2 * 1024 * 1024 + 64 * 1024 { return Err("air records exceed bound".into()); }
         Ok(Some(bytes))
@@ -69,7 +55,7 @@ impl KernelEnvironment {
         };
         if bytes.len() > 2 * 1024 * 1024 + 64 * 1024 { return Err("air records exceed bound".into()); }
         let (saved, rest): (SavedAir, &[u8]) = postcard::take_from_bytes(bytes).map_err(|_| "invalid air records")?;
-        if !rest.is_empty() || saved.version != 1 || saved.emissions.len() > 64 { return Err("invalid air record binding".into()); }
+        if !rest.is_empty() || saved.version != SAVED_AIR_VERSION || saved.emissions.len() > 64 { return Err("invalid air record binding".into()); }
         let air = crate::terrain_atmosphere::TerrainAtmosphere::restore(&mut self.world, &saved.atmosphere)?;
         if air.config() != expected { return Err("saved atmosphere does not match authored environment".into()); }
         let bounds = self.world.bounds();
