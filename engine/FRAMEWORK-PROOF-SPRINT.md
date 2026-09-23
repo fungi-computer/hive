@@ -338,6 +338,23 @@ to justify another retained state owner. Full `cargo test` still runs 14 stale
 Fallow was unavailable in the touched lanes. Both Cloudflare backends remain
 parked; hosted capacity and a same-build playable preview remain unproved.
 
+The next residual-cost diagnostic ran the same 1,800-step fixture on temporary
+WASM `f2ff0b8c1db76f7da028e27451dbf4dfc789c51039e14aa1c5e91a861664c974`.
+Its commands and every sampled world result matched the clean air-cut run.
+Of 23.46 seconds in the local capture wrapper, native `changed_records` used
+10.04 seconds (4.60 route rows, 4.45 changed entity/work rows), and the native
+record cursor used 4.72 seconds. The Rust probes leave about 8.7 seconds in
+the WASM/TypeScript capture boundary and surrounding wrapper; they do not
+attribute that residual more precisely. Terrain/water/structure export used
+only 0.049 seconds across the run, so extending the air cache to terrain
+would not address this workload. Diagnostic evidence is
+`.botanical/framework-v3-residual-diagnostic-full.json` (SHA-256
+`3323c46d1487e69c4bddfa37f6df591d2b9c636320616fd5577c442150a59dab`).
+The temporary probes were reverted, and the generated production WASM was
+restored to `581be772…81fa56c`. The next owner cut is the duplicated native
+and TypeScript record cursor/recovery-key inventory, with the Region's atomic
+SQL record table as the key authority; it is not accepted source yet.
+
 ## Exit and explicit nonclaims
 
 The sprint closes only with pinned source, reproducible fixture, local + workerd
