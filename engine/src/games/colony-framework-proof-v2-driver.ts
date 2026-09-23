@@ -3,7 +3,7 @@ import { GameSession } from "../runtime/session";
 import { colonyFrameworkProofV2Schedule as schedule } from "./colony-performance-config";
 
 /** Fixed command ledger for v2. Call once before each numbered physical step. */
-export function driveColonyFrameworkProofV2(session: GameSession, step: number): string[] {
+export function driveColonyFrameworkProofV2(session: Pick<GameSession, "command" | "terrainSurfaces">, step: number): string[] {
   const issued: string[] = [];
   if (step === 2) {
     for (const column of [[-70, -88], [-70, 88], [106, -88], [106, 88]] as [number, number][]) {

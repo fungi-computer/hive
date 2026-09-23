@@ -67,7 +67,7 @@ function fixture(receipts = 4096) {
   const make = () => {
     const host: any = Object.create(PublicEngineRegion.prototype);
     Object.assign(host, {
-      owner, region: open(), pack: "formations", tokenHash: "test", initialized: true,
+      owner, region: open(), pack: "formations", registration: {}, tokenHash: "test", initialized: true,
       resident: { begin() {}, accept() {}, discard() {}, takeCandidateCost() {} },
       ready: Promise.resolve(), residentQueue: Promise.resolve(), terrainStreams: new Map(),
       hostEnv: { PUBLIC_ORIGIN: "https://example.test" },

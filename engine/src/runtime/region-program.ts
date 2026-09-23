@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { RegionProgram, Json, RegionRecordReader, RegionTransition, RegionExecutionContext } from "../../../src/engine/region/index.ts";
 import type { GamePack, KernelPort, ActionRequest, CommandScope } from "../contracts";
 import { GameSession, type SessionSnapshot } from "./session";
+import { advanceDrivenOccurrence, prepareOccurrenceDriver, type SessionOccurrenceDriver } from "./occurrence-driver";
 import { checkedAction } from "./actions";
 import { checkedStoredSession, storeSession, hydrateSession, type StoredSession } from "./session-record-store";
 
@@ -44,6 +45,7 @@ export type SessionResidentOptions = {
   readonly ownerPrincipal: string;
   readonly hostPrincipal: string;
   readonly seed: number;
+  readonly occurrenceDriver?: SessionOccurrenceDriver;
   /** Explicit pause/resume permission; does not grant physical host authority. */
   readonly clockControllerPrincipals?: readonly string[];
   /** Authenticated host resolver; returning null rejects an unbound principal. */
@@ -70,7 +72,7 @@ export interface SessionResident {
   readonly observe: <T>(revision: number, state: SessionRegionState, records: RegionRecordReader, use: (session: GameSession) => T) => T;
 }
 
-function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope): unknown {
+function applyCommand(session: GameSession, command: RegionCommand, context: RegionExecutionContext, scope: CommandScope, driver?: SessionOccurrenceDriver): unknown {
   switch (command.kind) {
     case "action":
       session.request(command.action);
@@ -95,6 +97,7 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
       return { player: committed.player, party: committed.party, people: committed.people };
     }
     case "step":
+      if (driver) return advanceDrivenOccurrence(session, driver, context.occurrence?.sequence, command.delta);
       // The clock receipt proves an occurrence was committed. Native action
       // results from internal jobs can be numerous and already belong to the
       // candidate's physical state/outcome owner; echoing them into the clock
@@ -197,7 +200,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         const session = attempt.session;
         const { results, after, advanceWallMs, captureWallMs } = session.runDisposableCandidate(() => {
           const advanceStarted = performance.now();
-          const results = applyCommand(session, command, context, scope);
+          const results = applyCommand(session, command, context, scope, options.occurrenceDriver);
           const advanceWallMs = performance.now() - advanceStarted;
           const captureStarted = performance.now();
           const after = session.captureForCommit();
@@ -316,7 +319,7 @@ function createSessionRegionProgram(options: SessionRegionProgramOptions): Regio
     }
   }
   return {
-    id: `session-v2:${pack.id}:${implementationHash}`,
+    id: `session-v2:${pack.id}:${implementationHash}${options.occurrenceDriver ? `:${options.occurrenceDriver.id}@${options.occurrenceDriver.version}` : ""}`,
     initial: () => {
       const saved = storeSession(withSession(undefined, session => session.save()));
       return { state: { session: saved.session }, records: saved.records };
@@ -362,7 +365,7 @@ export function createSessionRegionRuntime(options: SessionResidentOptions) {
     initialActions: options.pack.initialActions ? structuredClone(options.pack.initialActions) : undefined,
     partyJoin: options.pack.partyJoin ? Object.freeze({ footprint: Object.freeze(options.pack.partyJoin.footprint.map(cell => Object.freeze([...cell] as [number, number]))), prepare: options.pack.partyJoin.prepare }) : undefined,
   });
-  const frozenOptions = Object.freeze({ ...options, pack,
+  const frozenOptions = Object.freeze({ ...options, pack, occurrenceDriver: prepareOccurrenceDriver(options.occurrenceDriver),
     clockControllerPrincipals: Object.freeze([...(options.clockControllerPrincipals ?? [])]),
   });
   const resident = createSessionResident(frozenOptions);

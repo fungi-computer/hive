@@ -11,12 +11,7 @@ import { createObservationProjector, type SessionObservation } from "../../engin
 import { terrainWireForRevision } from "../../engine/src/runtime/terrain-wire";
 import { wasmKernelPort } from "../../engine/src/runtime/wasm-kernel";
 import { WasmKernel, initSync } from "../../engine/generated/hive_kernel.js";
-import { colonyServerPack } from "../../engine/src/games/colony";
-import { createColonyFrameworkProofPack, createColonyFrameworkProofV2Pack, createColonyPerformancePack } from "../../engine/src/games/colony-performance";
-import { colonyFrameworkProofGameId, colonyFrameworkProofV2GameId, parseColonyPerformanceGameId } from "../../engine/src/games/colony-performance-config";
-import { formationsPack } from "../../engine/src/games/formations";
-import { piratesPack } from "../../engine/src/games/pirates";
-import { survivalPack } from "../../engine/src/games/survival";
+import { publicPackRegistration, type PublicPackRegistration } from "./pack-registration";
 import {
   LEASE_MS,
   clockRequest,
@@ -40,6 +35,7 @@ import { advanceClockOccurrence } from "./clock-schedule";
 import { sessionClockDemand, nextWakeDeadline, withRecoveryWake } from "./wake-policy";
 import { canSendObservation, acknowledgeObservation, type ObservationDelivery } from "./observation-delivery";
 import { createFrameworkCostLedger, type SqlCost } from "./framework-cost-ledger";
+import { readOccurrenceDriverResult, type OccurrenceDriverResult } from "../../engine/src/runtime/occurrence-driver";
 import { MAX_KERNEL_RECORDS } from "../../engine/src/runtime/kernel-records";
 
 type Environment = {
@@ -100,25 +96,6 @@ type PublicObservationPayload = {
 const MAX_OBSERVATION_BYTES = 1024 * 1024;
 /** Region reads are paged separately from the native snapshot's total bound. */
 const RECORD_PAGE_SIZE = 40;
-
-function packFor(pack: PublicPack) {
-  if (pack === colonyFrameworkProofGameId) return createColonyFrameworkProofPack();
-  if (pack === colonyFrameworkProofV2GameId) return createColonyFrameworkProofV2Pack();
-  const preset = parseColonyPerformanceGameId(pack);
-  if (preset) return createColonyPerformancePack(preset.size, preset.workers);
-  switch (pack) {
-    case "survival":
-      return survivalPack;
-    case "pirates":
-      return piratesPack;
-    case "colony":
-      return colonyServerPack;
-    case "formations":
-      return formationsPack;
-    default:
-      throw new Error("public-host-format");
-  }
-}
 
 async function sha256Hex(value: string): Promise<string> {
   const bytes = await crypto.subtle.digest(
@@ -215,6 +192,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion<SessionRegionState, unknown>>;
   private resident!: SessionResident;
   private pack!: PublicPack;
+  private registration!: PublicPackRegistration;
   private tokenHash!: string;
   private worldHandle: string | undefined;
   private readonly owner: RegionSqliteOwner;
@@ -313,8 +291,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     pack: PublicPack,
     tokenHash: string,
   ): Promise<void> {
-    const game = packFor(pack);
-    this.proofLedger = pack === colonyFrameworkProofGameId || pack === colonyFrameworkProofV2GameId
+    const registration = publicPackRegistration(pack);
+    this.registration = registration;
+    const game = registration.pack;
+    this.proofLedger = registration.measureCosts
       ? createFrameworkCostLedger(this.hostEnv.IMPLEMENTATION_HASH, pack) : undefined;
     if (pack === "colony") this.owner.transactionSync(() => {
       this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_participants (
@@ -332,8 +312,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       implementationHash: this.hostEnv.IMPLEMENTATION_HASH,
       ownerPrincipal: playerPrincipal,
       hostPrincipal,
-      clockControllerPrincipals: parseColonyPerformanceGameId(pack) || pack === colonyFrameworkProofGameId || pack === colonyFrameworkProofV2GameId ? [playerPrincipal] : [],
-      seed: 17,
+      clockControllerPrincipals: registration.clockControl ? [playerPrincipal] : [],
+      occurrenceDriver: registration.occurrenceDriver,
+      seed: registration.seed,
       scopeForPrincipal: (principal) => {
         if (principal === hostPrincipal) return { kind: "host" };
         if (pack !== "colony" && principal === playerPrincipal) return game.localScope ?? null;
@@ -837,6 +818,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     const sqlCost: SqlCost = { sqlWallMs: 0, rowsRead: 0, rowsWritten: 0, statements: 0 };
     this.activeSqlCost = this.proofLedger ? sqlCost : undefined;
     let dueSequence: number | null = null;
+    let driven: OccurrenceDriverResult | undefined;
     let alarmLatenessMs = 0;
     let dispatchWallMs = 0;
     const transactionStarted = performance.now();
@@ -882,10 +864,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       dueSequence = row.due_sequence;
       alarmLatenessMs = Math.max(0, now - dueDeadline);
       const dispatchStarted = performance.now();
-      this.region.dispatchOccurrence(`${this.pack}-host`, {
+      const receipt = this.region.dispatchOccurrence(`${this.pack}-host`, {
         sequence: row.due_sequence,
         request,
       });
+      if (this.registration.occurrenceDriver) {
+        driven = readOccurrenceDriverResult(receipt.result && typeof receipt.result === "object" && !Array.isArray(receipt.result)
+          ? receipt.result.results : undefined);
+        const driver = this.registration.occurrenceDriver;
+        if (driven.step !== row.due_sequence + 1 || driven.driver !== driver.id || driven.version !== driver.version)
+          throw new Error("public-scheduled-receipt-mismatch");
+      }
       dispatchWallMs = performance.now() - dispatchStarted;
       const next = advanceClockOccurrence(row.due_sequence, dueDeadline, Date.now());
       this.owner.sql.exec(
@@ -908,6 +897,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       return row;
       });
       if (acceptedRevision !== undefined) this.resident.accept(acceptedRevision);
+      if (driven && dueSequence !== null && acceptedRevision !== undefined)
+        this.proofLedger?.scheduled({ sequence: dueSequence, revision: acceptedRevision, result: driven });
       const candidateCost = this.resident.takeCandidateCost();
       if (this.proofLedger && dueSequence !== null && acceptedRevision !== undefined && candidateCost) {
         this.proofLedger.step({ sequence: dueSequence, revision: acceptedRevision,
@@ -1128,7 +1119,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         return withCors(await this.observationResponse(), origin);
       }
       const operation = new URL(request.url).pathname.split("/").at(-1);
-      if ((parseColonyPerformanceGameId(pack) || pack === colonyFrameworkProofGameId) && request.method === "POST" &&
+      if (this.registration.placementQuery && request.method === "POST" &&
           operation === "placement") {
         const query = await readPlacementDecision(request);
         // This private preset owns one pre-authored player/party. A URL or query

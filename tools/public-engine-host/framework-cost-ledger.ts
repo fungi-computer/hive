@@ -1,3 +1,4 @@
+import type { OccurrenceDriverResult } from "../../engine/src/runtime/occurrence-driver";
 /** Bounded, read-only cost evidence for the versioned framework workload. */
 export type CandidateCost = {
   readonly advanceWallMs: number;
@@ -67,6 +68,10 @@ export function createFrameworkCostLedger(implementationHash: string, workload: 
     publications = [];
   };
   return {
+    scheduled(sample: { sequence: number; revision: number; result: OccurrenceDriverResult }) {
+      if (sample.result.commands.length)
+        emit(JSON.stringify({ ...header, kind: "scheduled-commands", ...sample }));
+    },
     step(sample: StepCost) {
       repeatedFailure = undefined;
       steps.push(sample);

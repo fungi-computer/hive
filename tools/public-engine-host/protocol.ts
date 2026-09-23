@@ -1,9 +1,9 @@
 import { z } from "zod";
-import { colonyFrameworkProofGameId, colonyFrameworkProofV2GameId, parseColonyPerformanceGameId, type ColonyPerformanceSize, type ColonyPerformanceWorkerCount } from "../../engine/src/games/colony-performance-config";
+import { colonyFrameworkProofGameId, colonyFrameworkProofV2GameId, colonyFrameworkProofV3GameId, parseColonyPerformanceGameId, type ColonyPerformanceSize, type ColonyPerformanceWorkerCount } from "../../engine/src/games/colony-performance-config";
 import { placementDecisionQuerySchema } from "../../engine/src/runtime/placement-decision";
 
 export const PACKS = ["survival", "pirates", "colony", "formations"] as const;
-export type PublicPack = (typeof PACKS)[number] | `colony-performance-${ColonyPerformanceSize}-${ColonyPerformanceWorkerCount}` | typeof colonyFrameworkProofGameId | typeof colonyFrameworkProofV2GameId;
+export type PublicPack = (typeof PACKS)[number] | `colony-performance-${ColonyPerformanceSize}-${ColonyPerformanceWorkerCount}` | typeof colonyFrameworkProofGameId | typeof colonyFrameworkProofV2GameId | typeof colonyFrameworkProofV3GameId;
 export const BODY_BYTES = 8192;
 export const LEASE_MS = 15_000;
 export const STEP_MS = 100;
@@ -54,8 +54,8 @@ export function packFromPath(pathname: string): PublicPack | null {
   // Colony request through the old bearer-token singleton.
   if (!match || match[1] === "colony") return null;
   const performance = parseColonyPerformanceGameId(match[1]);
-  if (!performance && match[1] !== colonyFrameworkProofGameId && match[1] !== colonyFrameworkProofV2GameId && !PACKS.some(pack => pack === match[1])) return null;
-  if (match[2] === "placement" && !performance && match[1] !== colonyFrameworkProofGameId && match[1] !== colonyFrameworkProofV2GameId) return null;
+  if (!performance && match[1] !== colonyFrameworkProofGameId && match[1] !== colonyFrameworkProofV2GameId && match[1] !== colonyFrameworkProofV3GameId && !PACKS.some(pack => pack === match[1])) return null;
+  if (match[2] === "placement" && !performance && match[1] !== colonyFrameworkProofGameId && match[1] !== colonyFrameworkProofV2GameId && match[1] !== colonyFrameworkProofV3GameId) return null;
   return match[1] as PublicPack;
 }
 
