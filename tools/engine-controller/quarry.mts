@@ -5,7 +5,7 @@ import { createQuarryRegionProgram } from "../../src/world-presets/excavation-re
 
 export type QuarryRegion = ReturnType<
   typeof openRegion<
-    ReturnType<ReturnType<typeof createQuarryRegionProgram>["initial"]>,
+    ReturnType<ReturnType<typeof createQuarryRegionProgram>["initial"]>["state"],
     ReturnType<ReturnType<typeof createQuarryRegionProgram>["parseCommand"]>
   >
 >;
@@ -35,6 +35,7 @@ export function quarryController(region: QuarryRegion, principal: string) {
     ]),
     observation: z.strictObject({
       revision: z.number().int().nonnegative(),
+      replayEpoch: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
       excavated: z.number().int().nonnegative(),
       visibleChalk: z.number().int().nonnegative(),
     }),
@@ -46,6 +47,7 @@ export function quarryController(region: QuarryRegion, principal: string) {
       // chalk unit per excavation. No interior terrain or private snapshot leaks.
       return {
         revision: current.revision,
+        replayEpoch: region.readReplayWindow().epoch,
         excavated: current.state.excavated,
         visibleChalk: current.state.excavated,
       };

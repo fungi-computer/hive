@@ -54,8 +54,14 @@ export class QuarryRegion {
       await this.ctx.storage.sync();
       return Response.json({
         snapshot: this.region.readCommitted(),
+        replayEpoch: this.region.readReplayWindow().epoch,
         events: this.region.readEvents(0, 128),
       });
+    }
+    if (path === "/replay-window" && request.method === "GET") {
+      if (!(authorized(request, this.env.WRITER_SECRET) || authorized(request, this.env.SPECTATOR_SECRET)))
+        return new Response("Forbidden", { status: 403 });
+      return Response.json(this.region.readReplayWindow());
     }
     if (path !== "/command" || request.method !== "POST")
       return new Response("Not found", { status: 404 });
@@ -100,7 +106,7 @@ export class QuarryRegion {
       const status =
         message === "region-forbidden"
           ? 403
-          : message === "region-command-conflict"
+          : ["region-command-conflict", "region-command-retired", "region-command-epoch-gap"].includes(message)
             ? 409
             : message === "injected-before-commit"
               ? 503

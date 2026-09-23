@@ -90,7 +90,7 @@ test("disconnected party residents remain eligible for automatic work while anot
     const records = new Map(region.readRecords(committed.revision, "", 40).records.map(record => [record.key, record.bytes]));
     resident.begin(committed.revision, committed.state, { read: key => records.get(key) });
     try {
-      const receipt = region.dispatch(principal, { id, command });
+      const receipt = region.dispatch(principal, { id, replayEpoch: region.readReplayWindow().epoch, command });
       resident.accept(receipt.revision);
       return receipt;
     } catch (error) {
@@ -166,7 +166,7 @@ test("actual Colony water records commit with session and recover after failed S
   };
   try {
     let region = open();
-    const command = { id: "step-1", command: { kind: "step", delta: 0.1 } };
+    const command = { id: "step-1", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
     const receipt = dispatch(region, command);
     assert.equal(receipt.status, "applied");
     assert.deepEqual(receipt.result, { tick: 2, paused: false, results: null }, "clock receipt does not duplicate internal action results");
@@ -179,7 +179,7 @@ test("actual Colony water records commit with session and recover after failed S
     assert.deepEqual(records(region), saved);
     const header = region.readCommitted();
     failRecord = true;
-    const next = { id: "step-2", command: { kind: "step", delta: 0.1 } };
+    const next = { id: "step-2", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
     assert.throws(() => dispatch(region, next), /injected record failure/);
     assert.deepEqual(region.readCommitted(), header);
     assert.deepEqual(records(region), saved);
@@ -241,8 +241,8 @@ test("resident discards rolled-back multi-command work and accepts historical re
     const records = new Map(region.readRecords(revision, "", 40).records.map(record => [record.key, record.bytes]));
     return { read: (key: string) => records.get(key) };
   };
-  const first = { id: "first", command: { kind: "step", delta: 0.1 } };
-  const second = { id: "second", command: { kind: "step", delta: 0.1 } };
+  const first = { id: "first", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
+  const second = { id: "second", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
   try {
     const before = region.readCommitted();
     const bytes = region.readRecords(before.revision).records;
@@ -306,13 +306,13 @@ test("resident session reuses accepted candidate and fails closed across retry a
   try {
     const first = region.readCommitted();
     resident.begin(first.revision, first.state, reader(first.revision));
-    const firstReceipt = region.dispatch("clock", { id: "resident-1", command: { kind: "step", delta: 0.1 } });
+    const firstReceipt = region.dispatch("clock", { id: "resident-1", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } });
     resident.accept(firstReceipt.revision);
     const afterFirst = region.readCommitted();
     const beforeReuse = created;
     const readsBeforeReuse = recordReads;
     resident.begin(afterFirst.revision, afterFirst.state, reader(afterFirst.revision));
-    const second = region.dispatch("clock", { id: "resident-2", command: { kind: "step", delta: 0.1 } });
+    const second = region.dispatch("clock", { id: "resident-2", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } });
     resident.accept(second.revision);
     assert.equal(created, beforeReuse);
     assert.equal(recordReads, readsBeforeReuse);
@@ -320,7 +320,7 @@ test("resident session reuses accepted candidate and fails closed across retry a
     const batch = region.readCommitted();
     resident.begin(batch.revision, batch.state, reader(batch.revision));
     for (const id of ["resident-3", "resident-4", "resident-5"])
-      region.dispatch("clock", { id, command: { kind: "step", delta: 0.1 } });
+      region.dispatch("clock", { id, replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } });
     resident.accept(region.readCommitted().revision);
     assert.equal(resident.observe(5, region.readCommitted().state, reader(5), session => session.simulationTime), 0.5);
     const current = region.readCommitted();
@@ -328,7 +328,7 @@ test("resident session reuses accepted candidate and fails closed across retry a
     assert.throws(() => resident.accept(current.revision + 1), /resident-revision-mismatch/);
     const failed = region.readCommitted();
     resident.begin(failed.revision, failed.state, reader(failed.revision));
-    assert.throws(() => region.dispatch("player", { id: "resident-failure", command: { kind: "command", name: "missing" } }), /unknown game command/);
+    assert.throws(() => region.dispatch("player", { id: "resident-failure", replayEpoch: region.readReplayWindow().epoch, command: { kind: "command", name: "missing" } }), /unknown game command/);
     assert.ok(created > beforeReuse);
   } finally {
     resident.dispose();
@@ -375,7 +375,7 @@ test("resident detaches failed native candidates and preserves primary errors", 
     resident.begin(committed.revision, committed.state, reader(committed.revision));
     failDispose = true;
     assert.throws(
-      () => region.dispatch("player", { id: "poisoned", command: { kind: "command", name: "missing" } }),
+      () => region.dispatch("player", { id: "poisoned", replayEpoch: region.readReplayWindow().epoch, command: { kind: "command", name: "missing" } }),
       /unknown game command/,
       "native cleanup must not replace the command error",
     );
@@ -385,7 +385,7 @@ test("resident detaches failed native candidates and preserves primary errors", 
     // retrying starts from the committed revision in a fresh native port.
     resident.begin(committed.revision, committed.state, reader(committed.revision));
     assert.equal(created, 3);
-    const receipt = region.dispatch("clock", { id: "retry", command: { kind: "step", delta: 0.1 } });
+    const receipt = region.dispatch("clock", { id: "retry", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } });
     resident.accept(receipt.revision);
     assert.equal(region.readCommitted().revision, 1);
 
@@ -565,7 +565,7 @@ for (const failure of ["advance", "capture"] as const) {
       const bytes = new Map(records().map(record => [record.key, record.bytes]));
       runtime.resident.begin(committed.revision, committed.state, { read: key => bytes.get(key) });
     };
-    const command = { id: "step-command", command: { kind: "step", delta: 0.1 } };
+    const command = { id: "step-command", replayEpoch: region.readReplayWindow().epoch, command: { kind: "step", delta: 0.1 } };
     const occurrence = { sequence: 0, request: { id: "clock-1", command: { kind: "step", delta: 0.1 } } };
     try {
       const before = region.readCommitted();

@@ -138,22 +138,24 @@ test("personal rest admission stays paused; actor/knowledge grants are copied an
     "actor",
     "knownDigVoxels",
     "paused",
+    "replayEpoch",
     "revision",
     "tick",
   ]);
   assert.deepEqual(Object.keys(observation.actor).sort(), [
     "hydration",
     "id",
-    "level",
     "nourishment",
     "rest",
     "x",
+    "y",
     "z",
   ]);
   assert.equal(observation.actor.id, "rowan");
   assert.deepEqual(observation.knownDigVoxels, [digVoxel]);
   const receipt = await invoke(module, "command", {
     id: "personal-rest",
+    replayEpoch: region.readReplayWindow().epoch,
     expectedRevision: 0,
     command: { kind: "rest" },
   });
@@ -188,13 +190,14 @@ test("ungranted actor/cell and host-time inputs cannot mutate the real region", 
     { kind: "set-paused", paused: false },
   ]) {
     await assert.rejects(
-      invoke(module, "command", { id: "denied", expectedRevision: 0, command }),
+      invoke(module, "command", { id: "denied", replayEpoch: region.readReplayWindow().epoch, expectedRevision: 0, command }),
     );
     assert.deepEqual(region.readCommitted(), before);
   }
   await assert.rejects(
     invoke(module, "command", {
       id: "principal-injection",
+      replayEpoch: region.readReplayWindow().epoch,
       expectedRevision: 0,
       principal: "goblin-host",
       command: { kind: "rest" },
@@ -213,6 +216,7 @@ test("paused personal dig has a durable receipt; reconstructed retry cannot dupl
   const { region, reopen, db } = fixture(t);
   const input = {
     id: "personal-dig",
+    replayEpoch: region.readReplayWindow().epoch,
     expectedRevision: 0,
     command: { kind: "dig", voxel: digVoxel },
   };
@@ -221,7 +225,7 @@ test("paused personal dig has a durable receipt; reconstructed retry cannot dupl
   const admitted = region.readCommitted();
   assert.equal(admitted.state.clearing.tick, 0);
   assert.equal(admitted.state.clearing.paused, true);
-  assert.deepEqual(admitted.state.clearing.terrain.exports, []);
+  assert.deepEqual(admitted.state.clearing.terrain.world.changes, []);
   assert.equal(admitted.state.clearing.jobs.length, 1);
   assert(admitted.state.clearing.jobs[0].kind === "dig");
   assert.deepEqual(admitted.state.clearing.jobs[0].scope, {
@@ -248,16 +252,18 @@ test("paused personal dig has a durable receipt; reconstructed retry cannot dupl
   // Only the host drives the unchanged clock and actual libcolony optimizer.
   resumed.dispatch("goblin-player", {
     id: "unpause",
+    replayEpoch: region.readReplayWindow().epoch,
     expectedRevision: 1,
     command: { kind: "set-paused", paused: false },
   });
   resumed.dispatch("goblin-host", {
     id: "work",
+    replayEpoch: region.readReplayWindow().epoch,
     expectedRevision: 2,
     command: { kind: "advance", ticks: 120 },
   });
   const worked = resumed.readCommitted();
-  assert.equal(worked.state.clearing.terrain.exports.length, 1);
+  assert.equal(worked.state.clearing.terrain.world.changes.length, 1);
   assert.equal(
     worked.state.clearing.materials.lots
       .filter((lot) => lot.material === "soil")

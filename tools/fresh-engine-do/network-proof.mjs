@@ -196,10 +196,11 @@ function survivorX(snapshot) {
   return row?.components["hive.position"]?.x ?? 0;
 }
 async function hostStep(id, expectedRevision) {
+  const { replayEpoch } = await debugSnapshot();
   const response = await fetch(`${endpoint}/command`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secrets.HOST_SECRET}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ id, expectedRevision, command: { kind: "step", delta: 0.1 } }),
+    body: JSON.stringify({ id, replayEpoch, expectedRevision, command: { kind: "step", delta: 0.1 } }),
     signal: AbortSignal.timeout(10_000),
   });
   assert.equal(response.status, 200);

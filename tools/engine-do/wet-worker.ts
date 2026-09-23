@@ -43,6 +43,8 @@ function commandError(error: unknown): Response {
     "harness-forbidden": 403,
     "region-forbidden": 403,
     "region-command-conflict": 409,
+    "region-command-retired": 409,
+    "region-command-epoch-gap": 409,
     "injected-before-commit": 503,
   };
   return Response.json(
@@ -95,8 +97,14 @@ export class WetRegion {
       await this.ctx.storage.sync();
       return Response.json({
         snapshot: this.region.readCommitted(),
+        replayEpoch: this.region.readReplayWindow().epoch,
         events: this.region.readEvents(0, 128),
       });
+    }
+    if (path === "/replay-window" && request.method === "GET") {
+      if (!(authorized(request, this.env.WRITER_SECRET) || authorized(request, this.env.HOST_SECRET)))
+        return new Response("Forbidden", { status: 403 });
+      return Response.json(this.region.readReplayWindow());
     }
     if (path !== "/command" || request.method !== "POST")
       return new Response("Not found", { status: 404 });

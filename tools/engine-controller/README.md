@@ -7,7 +7,7 @@ and region before registration; guest input cannot change either. Observation
 and receipt-result schemas are explicit consumer definitions. Raw checkpoints,
 hidden voxels and event history are absent.
 
-`command({id, expectedRevision, command})` calls the unchanged native region
+`command({id, replayEpoch, expectedRevision, command})` calls the unchanged native region
 owner. Its receipt is durable. Retry exactly the same input after an uncertain
 response; a new execute invocation is not a new physical command. Altered input
 under the same ID conflicts. The region authorizes every new command. A committed
@@ -165,3 +165,16 @@ The generated-wet main-world join replaces local-cell dig commands with
 `{kind:"dig", voxel:[worldX,worldY,worldZ]}` and bumps the Goblin RegionProgram
 identity to `goblin-wet18-v1:<optimizer-build>`. Old controller proof IDs above
 remain evidence for the earlier source; current source laws qualify this join.
+
+Read the authenticated replay epoch before creating a new command. Preserve its
+original epoch and complete envelope for every retry; a retired identity rejects
+instead of being stamped with a new epoch. DO proof hosts expose `GET /replay-window`;
+controller observations expose `replayEpoch`. Watchdog result lookup requires both
+`id` and `replayEpoch`, matching the durable queued command identity.
+
+September 23 replay adoption: the native Quarry controller proof exercises missing
+and future epoch rejection, process loss after physical commitment, and exact
+replay after reconstruction. Goblin's retained law fixture currently fails at
+initial Region admission (`region-byte-budget`) before any controller command;
+it is not evidence for the current command boundary. Its projection uses the
+current physical `y` footing and Region initial-state shape.

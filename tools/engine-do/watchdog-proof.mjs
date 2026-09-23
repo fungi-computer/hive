@@ -144,6 +144,7 @@ async function responseJson(response) {
     throw new Error(`HTTP ${response.status} ${response.statusText}: non-JSON response ${redact(body).slice(0, 4096)}`);
   }
 }
+let replayEpoch;
 async function command(input, { role = "WRITER_SECRET", fault } = {}) {
   const response = await fetch(`${endpoint}/work`, {
     method: "POST",
@@ -169,6 +170,7 @@ async function snapshot() {
 }
 const dig = (id, expectedRevision, x) => ({
   id,
+  replayEpoch,
   expectedRevision,
   command: { kind: "excavate", at: { x, y: -1, z: 0 } },
 });
@@ -212,7 +214,7 @@ function physical(state, count) {
   assert.equal(state.witness[0].repairs, 0, "Constructor alarm repair was not needed");
 }
 async function publicResult(id) {
-  const response = await fetch(`${endpoint}/work?id=${encodeURIComponent(id)}`, {
+  const response = await fetch(`${endpoint}/work?id=${encodeURIComponent(id)}&replayEpoch=${replayEpoch}`, {
     headers: { Authorization: `Bearer ${secrets.WRITER_SECRET}` },
     signal: AbortSignal.timeout(5000),
   });
@@ -223,6 +225,7 @@ async function publicResult(id) {
   return result;
 }
 async function laws() {
+  replayEpoch = (await snapshot()).replayEpoch;
   const oversized = await command(dig("\u0001".repeat(80), 0, 0));
   assert.equal(oversized.status, 409);
   assert.equal(oversized.body.error, "harness-job-identity-too-long");
