@@ -10,6 +10,11 @@ export type CandidateCost = {
 
 export type SqlCost = {
   sqlWallMs: number;
+  durableTransactionWallMs: number;
+  alarmSetWallMs: number;
+  alarmDeleteWallMs: number;
+  alarmSetCalls: number;
+  alarmDeleteCalls: number;
   rowsRead: number;
   rowsWritten: number;
   statements: number;
@@ -26,6 +31,7 @@ export type StepCost = CandidateCost & SqlCost & {
 export type PublicationCost = {
   readonly revision: number;
   readonly recipients: number;
+  readonly eligibilityWallMs: number;
   readonly buildWallMs: number;
   readonly sendWallMs: number;
   readonly encodedBytes: number;
@@ -47,11 +53,12 @@ function distribution(values: readonly number[]) {
 export function createFrameworkCostLedger(implementationHash: string, workload: string, emit: (line: string) => void = console.log) {
   let steps: StepCost[] = [];
   let publications: PublicationCost[] = [];
+  let skippedPublications: { revision: number; candidates: number; eligibilityWallMs: number }[] = [];
   let repeatedFailure: { sequence: number | null; error: string; count: number } | undefined;
   const header = { proof: "framework-host-cost-v1", implementationHash, workload };
   const flushSteps = () => {
     if (!steps.length) return;
-    const fields = ["advanceWallMs", "captureWallMs", "changedRecordBytes", "recordPuts", "recordRemoves", "sqlWallMs", "rowsRead", "rowsWritten", "statements", "alarmLatenessMs", "dispatchWallMs", "transactionWallMs"] as const;
+    const fields = ["advanceWallMs", "captureWallMs", "changedRecordBytes", "recordPuts", "recordRemoves", "sqlWallMs", "durableTransactionWallMs", "alarmSetWallMs", "alarmDeleteWallMs", "alarmSetCalls", "alarmDeleteCalls", "rowsRead", "rowsWritten", "statements", "alarmLatenessMs", "dispatchWallMs", "transactionWallMs"] as const;
     const costs = Object.fromEntries(fields.map(field => [field, distribution(steps.map(step => step[field]))]));
     emit(JSON.stringify({ ...header, kind: "committed-steps", count: steps.length, firstSequence: steps[0].sequence,
       lastSequence: steps.at(-1)!.sequence, firstRevision: steps[0].revision, lastRevision: steps.at(-1)!.revision,
@@ -60,12 +67,20 @@ export function createFrameworkCostLedger(implementationHash: string, workload: 
   };
   const flushPublications = () => {
     if (!publications.length) return;
-    const fields = ["recipients", "buildWallMs", "sendWallMs", "encodedBytes"] as const;
+    const fields = ["recipients", "eligibilityWallMs", "buildWallMs", "sendWallMs", "encodedBytes"] as const;
     const costs = Object.fromEntries(fields.map(field => [field, distribution(publications.map(publication => publication[field]))]));
     emit(JSON.stringify({ ...header, kind: "publications", count: publications.length,
       firstRevision: publications[0].revision, lastRevision: publications.at(-1)!.revision,
       costs, samples: publications }));
     publications = [];
+  };
+  const flushSkippedPublications = () => {
+    if (!skippedPublications.length) return;
+    emit(JSON.stringify({ ...header, kind: "publication-skips", count: skippedPublications.length,
+      candidates: skippedPublications.reduce((sum, sample) => sum + sample.candidates, 0),
+      eligibilityWallMs: distribution(skippedPublications.map(sample => sample.eligibilityWallMs)),
+      samples: skippedPublications }));
+    skippedPublications = [];
   };
   return {
     scheduled(sample: { sequence: number; revision: number; result: OccurrenceDriverResult }) {
@@ -78,12 +93,18 @@ export function createFrameworkCostLedger(implementationHash: string, workload: 
       if (steps.length >= BATCH_SIZE) flushSteps();
     },
     publication(sample: PublicationCost) {
+      if (sample.recipients === 0) throw new Error("zero-recipient publication must be recorded as a skip");
       publications.push(sample);
       if (publications.length >= BATCH_SIZE) flushPublications();
+    },
+    publicationSkipped(sample: { revision: number; candidates: number; eligibilityWallMs: number }) {
+      skippedPublications.push(sample);
+      if (skippedPublications.length >= BATCH_SIZE) flushSkippedPublications();
     },
     failure(sequence: number | null, error: unknown) {
       flushSteps();
       flushPublications();
+      flushSkippedPublications();
       const message = error instanceof Error ? error.message : String(error);
       const count = repeatedFailure?.sequence === sequence && repeatedFailure.error === message
         ? repeatedFailure.count + 1 : 1;
@@ -91,6 +112,6 @@ export function createFrameworkCostLedger(implementationHash: string, workload: 
       if (count === 1 || count % BATCH_SIZE === 0)
         emit(JSON.stringify({ ...header, kind: "failure", sequence, error: message, repeatedAttempts: count }));
     },
-    flush() { flushSteps(); flushPublications(); },
+    flush() { flushSteps(); flushPublications(); flushSkippedPublications(); },
   };
 }
