@@ -109,17 +109,24 @@ test("pirate cargo uses shared hauling through translated/rotated frames and in-
           assert.deepEqual(session.save(), saved);
           recoveredInFlight = true;
         }
-        if (lots.filter(lot => lot.container === holdId).reduce((sum, lot) => sum + lot.quantity, 0) === 2) break;
+        const heldKinds = new Set(lots.filter(lot => lot.container === holdId && lot.quantity > 0).map(lot => lot.kind));
+        if (
+          heldKinds.has("bread") &&
+          heldKinds.has("wood") &&
+          session.query(query(SupplyAllocation)).length === 0
+        ) break;
       }
       assert(recoveredInFlight, `heading ${facing} never picked up cargo`);
       const cargo = session.query(query(MaterialLot)).map(row => row.get(MaterialLot));
       assert.equal(cargo.filter(lot => lot.container === holdId).reduce((sum, lot) => sum + lot.quantity, 0), 2);
       assert.equal(cargo.filter(lot => lot.kind === "bread").reduce((sum, lot) => sum + lot.quantity, 0), 4);
       assert.equal(cargo.filter(lot => lot.kind === "wood").reduce((sum, lot) => sum + lot.quantity, 0), 3);
+      assert.equal(session.query(query(SupplyAllocation)).length, 0,
+        "delivered obligations retire after both declared materials reach the hold");
       assert.deepEqual(
-        session.query(query(SupplyAllocation)).map(row => row.get(SupplyAllocation).state).sort(),
-        ["delivered", "delivered"],
-        "both authored supply obligations settle through the shared allocation owner",
+        cargo.filter(lot => lot.container === holdId).map(lot => lot.kind).sort(),
+        ["bread", "wood"],
+        "the hold receives both authored cargo kinds through shared allocation and transfer owners",
       );
       assert.equal(cargo.reduce((sum, lot) => sum + lot.quantity, 0), 7);
       session.restore(session.save());

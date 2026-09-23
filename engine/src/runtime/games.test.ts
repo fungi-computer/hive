@@ -111,27 +111,30 @@ test("independently authored fatigue follows movement and survives restore", () 
   }
 });
 
-test("survival can take and eat successive split lots, including after restore", () => {
+test("survival can take and eat successive owned portions, including after restore", () => {
   const port = wasmKernelPort(new WasmKernel());
   try {
     const session = new GameSession({ port, pack: survivalPack });
     session.start();
     assert(survivalPack.components.some((definition) => definition.id === Container.id),
       "the pack declares the native container capability used by its authored inventory");
+    const scope = { kind: "player", player: "local" } as const;
     session.request({
       kind: "move",
       entity: entity("survival.survivor.1"),
-      destination: { x: 2, y: 0, z: 0, frame: null },
+      destination: { x: 1, y: 0, z: 0, frame: null },
     });
     for (let i = 0; i < 15; i++) session.step(0.1);
     for (let meal = 0; meal < 2; meal++) {
-      session.command("takeFood", {});
-      assert.equal(session.step(0.1)[0].accepted, true);
+      session.command("takeFood", null, scope);
+      const taken = session.step(0.1)[0];
+      assert.equal(taken.accepted, true, `take bread: ${taken.reason ?? "rejected"}`);
       const carried = session.query(query(MaterialLot)).filter(row => row.get(MaterialLot).container === entity("survival.survivor.1"));
-      assert.equal(carried.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), meal + 1,
+      assert.equal(carried.reduce((sum, row) => sum + row.get(MaterialLot).quantity, 0), 1,
         "native transfer moves physical custody without duplicating bread");
-      session.command("eatFood", {});
-      assert.equal(session.step(0.1)[0].accepted, true);
+      session.command("eatFood", null, scope);
+      const eaten = session.step(0.1)[0];
+      assert.equal(eaten.accepted, true, `eat bread: ${eaten.reason ?? "rejected"}`);
       session.restore(session.save());
       session.step(0.1);
     }
