@@ -600,21 +600,27 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private residentRecords(revision: number) {
     let records: Map<string, Uint8Array> | undefined;
-    return { read: (key: string) => {
+    const loadRecords = () => {
       if (!records) {
         records = new Map();
         let cursor = "";
         for (;;) {
           const page = this.region.readRecords(revision, cursor, RECORD_PAGE_SIZE);
-          for (const record of page.records) records.set(record.key, record.bytes);
-          if (records.size > MAX_KERNEL_RECORDS) throw new Error("public-kernel-record-limit");
+          for (const record of page.records) {
+            if (records.size >= MAX_KERNEL_RECORDS) throw new Error("public-kernel-record-limit");
+            records.set(record.key, record.bytes);
+          }
           if (page.nextKey === undefined) break;
           if (page.nextKey <= cursor) throw new Error("public-kernel-record-cursor");
           cursor = page.nextKey;
         }
       }
-      return records.get(key);
-    } };
+      return records;
+    };
+    return {
+      read: (key: string) => loadRecords().get(key),
+      records: () => [...loadRecords()].map(([key, bytes]) => ({ key, bytes })),
+    };
   }
 
   private async observationResponse(): Promise<Response> {
