@@ -87,8 +87,9 @@ try {
     replayEpoch: ${initial.replayEpoch}, expectedRevision: ${initial.revision},
     command: { kind: "command", name: "setMealRule", input: { recovery: 10 } } });`)).status, 400,
     "the controller grant cannot change pack rules");
-  assert.deepEqual(await value(await execute(runtime, "return await survival.observe({});")), initial,
-    "rejected out-of-grant action leaves the scoped world unchanged");
+  const afterRejected = await value(await execute(runtime, "return await survival.observe({});"));
+  assert.equal(afterRejected.carriedBread + afterRejected.lockerBread, 8,
+    "rejected out-of-grant action cannot move or consume food");
 
   const takeSubmission = await value(await execute(runtime, `
     for (let attempt = 0; attempt < 4; attempt++) {

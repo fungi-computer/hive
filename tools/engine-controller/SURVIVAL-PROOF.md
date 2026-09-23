@@ -42,6 +42,16 @@ proof result is claimed for Survival here. The earlier sprint checkpoint's
 Pirates result remains evidence for Pirates on its recorded source/WASM hashes;
 it does not qualify this Survival controller.
 
+In the September 23 integration worktree, the actual public worker and rebuilt
+WASM did start. The first proof assertion incorrectly assumed the autonomous
+physical clock would stand still after a rejected command; that assertion now
+checks food custody instead. The subsequent accepted `takeFood` intent did not
+produce a pickup within 20 simulated seconds: the observation remained at zero
+carried bread and eight in the locker while the Region advanced past revision
+200. This is a **failed second-pack behavioral witness**, not a controller or
+DO-recovery pass. Diagnose the existing Survival job/transfer path before using
+this driver to claim pack reuse.
+
 This is an execution-capability witness, not a full Shiitake model/session run.
 The maintained integration seam exists: Hive supplies a scoped
 `ModuleRegistration`, and Shiitake's maintained run scope adds instruction
