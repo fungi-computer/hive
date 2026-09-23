@@ -46,7 +46,10 @@ impl Kernel {
         // IDs once, then visit the actual archetype for each changed entity.
         // Scanning every schema for every dirty identity made sparse updates
         // pay for registered components that the entity cannot own.
-        let component_names: BTreeMap<_, _> = self.registry.ids.iter()
+        let component_names: BTreeMap<_, _> = self
+            .registry
+            .ids
+            .iter()
             .map(|(name, component)| (*component, name.as_str()))
             .collect();
         let mut route_ids = BTreeSet::new();
@@ -57,11 +60,38 @@ impl Kernel {
         changed.extend(self.projectile_contacts.changed().cloned());
         let mut motion = BTreeMap::new();
         for id in changed {
-            let entity = self.ids.get(&id).copied();
-            let mut row = entity.map(|entity| EntityRecord { id: id.clone(), components: self.ecs.entity(entity).archetype().components().iter()
-                .filter_map(|component| component_names.get(component).and_then(|name| self.registry.read(&self.ecs, entity, name).map(|value| ((*name).to_owned(), value))))
-                .collect() })
-                .map(serde_json::to_value).transpose().map_err(|error| error.to_string())?;
+            // The external-ID index can briefly retain an entity after a
+            // direct ECS despawn. Treat that identity as absent and emit its
+            // normal tombstones instead of dereferencing a stale Bevy handle.
+            let entity = self
+                .ids
+                .get(&id)
+                .copied()
+                .filter(|entity| self.ecs.get_entity(*entity).is_ok());
+            let mut row = entity
+                .map(|entity| {
+                    let components: BTreeMap<_, _> = self
+                        .ecs
+                        .entity(entity)
+                        .archetype()
+                        .components()
+                        .iter()
+                        .filter_map(|component| {
+                            component_names.get(component).and_then(|name| {
+                                self.registry
+                                    .read(&self.ecs, entity, name)
+                                    .map(|value| ((*name).to_owned(), value))
+                            })
+                        })
+                        .collect();
+                    EntityRecord {
+                        id: id.clone(),
+                        components,
+                    }
+                })
+                .map(serde_json::to_value)
+                .transpose()
+                .map_err(|error| error.to_string())?;
             if let Some(row) = &mut row {
                 let entity = entity.unwrap();
                 if let Some(job) = self.ecs.get::<crate::job::Job>(entity) { row["job"] = serde_json::to_value(job).map_err(|error| error.to_string())?; }
@@ -131,7 +161,10 @@ mod tests {
         use crate::record_bundle::RecordCapture;
         let initial: Vec<_> = (0..2).map(|index| serde_json::json!({
             "id":format!("row-{index}"),
-            "components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}
+            "components":{
+                "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
+                "hive.body":{"speed":1.0}
+            }
         })).collect();
         let mut kernel = Kernel::new();
         kernel.load(&serde_json::json!({"format":"hive-game","version":3,"game":"sparse-records","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
@@ -140,7 +173,8 @@ mod tests {
         kernel.accept_record_journal(kernel.record_journal_token());
 
         let retained = kernel.entity("row-0").unwrap();
-        kernel.ecs.entity_mut(retained).remove::<Position>();
+        kernel.ecs.entity_mut(retained).remove::<Body>();
+        kernel.ecs.entity_mut(retained).insert(Traversal { clearance_cells: 1, max_step_cells: 1 });
         let removed = kernel.entity("row-1").unwrap();
         kernel.ecs.despawn(removed);
 
@@ -151,6 +185,34 @@ mod tests {
         let (difference, _) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(manifest.sequence), kernel.revision, kernel.time).unwrap();
         assert!(difference.keys().is_empty(), "incremental rows and removals equal the detached full checkpoint");
         kernel.accept_record_journal(token);
+    }
+
+    #[test]
+    fn changed_component_records_are_stable_across_insertion_order() {
+        use crate::record_bundle::RecordCapture;
+        let capture = |body_first: bool| {
+            let mut kernel = Kernel::new();
+            kernel.load(r#"{"format":"hive-game","version":3,"game":"component-order","components":[],"materialCatalog":[],"initial":[{"id":"worker","components":{"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}}]}"#).unwrap();
+            let mut cursor = RecordCapture::default();
+            let (_, baseline) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(0), kernel.revision, kernel.time).unwrap();
+            kernel.accept_record_journal(kernel.record_journal_token());
+            let entity = kernel.entity("worker").unwrap();
+            if body_first {
+                kernel.ecs.entity_mut(entity).insert(Body { speed: 1.0 });
+                kernel.ecs.entity_mut(entity).insert(Traversal { clearance_cells: 1, max_step_cells: 1 });
+            } else {
+                kernel.ecs.entity_mut(entity).insert(Traversal { clearance_cells: 1, max_step_cells: 1 });
+                kernel.ecs.entity_mut(entity).insert(Body { speed: 1.0 });
+            }
+            let token = kernel.record_journal_token();
+            let (delta, manifest) = cursor.capture_changed(kernel.changed_records().unwrap(), baseline.sequence, kernel.revision, kernel.time, kernel.record_state_weight()).unwrap();
+            let records: BTreeMap<_, _> = delta.keys().into_iter().map(|key| (key.clone(), delta.read(&key).unwrap())).collect();
+            let (difference, _) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(manifest.sequence), kernel.revision, kernel.time).unwrap();
+            assert!(difference.keys().is_empty(), "component additions match the detached checkpoint");
+            kernel.accept_record_journal(token);
+            records
+        };
+        assert_eq!(capture(true), capture(false), "record bytes use stable schema-name ordering");
     }
     #[test]
     fn pending_search_capture_matches_checkpoint_and_ack_preserves_new_progress() {
