@@ -1,0 +1,13 @@
+{
+  "group": "terrain",
+  "files": [
+    "engine/src/client/terrain-layer.test.js",
+    "engine/src/runtime/terrain-presentation.test.ts"
+  ],
+  "artifacts": [],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/cut-terrain-r1/.botanical/clearing-repair-qualification/terrain/terrain-layer.test.mjs",
+    "/home/levi/src/hive-worktrees/cut-terrain-r1/.botanical/clearing-repair-qualification/terrain/terrain-presentation.test.mjs"
+  ],
+  "exit": 0
+}

@@ -1,0 +1,49 @@
+{
+  "status": "Astra art accepted; candidate caller source reviewed; Delivery integration/served proof pending",
+  "baseRevision": "765c3282982d2ee6b07d5bea67bc21d08e4c2011",
+  "baseline": {
+    "animal-study-animals.js": "27207ae54a09c1afa69e05ce50717814fa219bf45ebed12fcd818fb480e678bc",
+    "animal-study.js": "8e9cd8d20822040df6890b39c42761fd0d1cf6723027f90461d9068cecc79bd7",
+    "animal-study.html": "bd1ad33a9c7431a5d32d37bac10e9b7759450ed04417e8ccbe763131caa4c9ed",
+    "src/art.js": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554"
+  },
+  "candidate": {
+    "animal-study-woolly.js": "de723256206c3423f956e5dd02a30ba9c0bcc946c8126c4e8b973546987f9088",
+    "animal-study-animals.js": "1cc46ea6ce6b678a1c3db8dea483eee37584d1853f83450bdab0a43694d8738d",
+    "animal-study.js": "2d04925f1f39d41a9913be869124140a648c95bbbab9b9e6555e1b5658143215",
+    "animal-study.html": "374f73e2d3d26e689c94312db31a3c2ba6bf489527a07a8503272c92a3e53104"
+  },
+  "patch": {
+    "path": ".botanical/woolly-study/art-integration.patch",
+    "sha256": "f8a499db13db361a07bf6451c62547c014db705d693082cfa8a29edd6e292e00"
+  },
+  "review": {
+    "art": "Original three woolly forms accepted; native/four facings/walk/graze sheets and 8 sampled recorded frames personally viewed",
+    "source": "New module path-substitution only from proved woolly.js; old animal geometry preserved; caller herd switch and immediate texture/visibility consumers read",
+    "proofScope": "run-u1180.scope",
+    "proofInvocation": "150900e0908c41de8be19702a6a9e74d",
+    "proofExit": 0,
+    "motionDecodeScope": "run-u1181.scope",
+    "motionDecodeExit": 0,
+    "oldCowMatchedFrames": 96,
+    "newFrames": 288,
+    "minimumPadding": 4,
+    "notClaimed": [
+      "Uncut motion playback",
+      "Integrated production caller browser behavior",
+      "Hosted artifact parity",
+      "Animal husbandry or main gameplay"
+    ]
+  },
+  "handoff": {
+    "owner": "game-delivery",
+    "acknowledged": true,
+    "queued": "Serial optional-study slot after the pinned upstairs release",
+    "trackedIntegration": false,
+    "joinedProof": "House/Woolly switch, poses, pause, House-only packs, normal/narrow and hosted parity are Delivery-owned"
+  }
+}

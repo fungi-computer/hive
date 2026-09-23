@@ -1,0 +1,21 @@
+{
+  "url": "http://127.0.0.1:5187/",
+  "errors": [],
+  "screenshots": [
+    "01-paused-two-person.png",
+    "02-paused-orders-admitted.png",
+    "03-resumed-shared-work.png"
+  ],
+  "pausedTick": 21,
+  "commandTicks": [
+    21,
+    21,
+    21
+  ],
+  "sharedScope": {
+    "party": "home",
+    "actors": null
+  },
+  "resumedTick": 25,
+  "success": true
+}

@@ -1,0 +1,47 @@
+{
+  "artifacts": "/home/levi/src/hive/.botanical/asset-mcp/stdio-first-20260909",
+  "scope": "local MCP export rendered through Three ObjectLoader",
+  "errors": [],
+  "views": {
+    "baseline": {
+      "sha256": "ec33d735fff0bde5ba315a43eeb5bdb61f3ebdbad56fa1961a78955725c20e9a",
+      "render": {
+        "frame": 1,
+        "calls": 51,
+        "triangles": 1220,
+        "points": 0,
+        "lines": 0
+      },
+      "alphaBounds": [
+        25,
+        70,
+        211,
+        220
+      ],
+      "opaque": 13448
+    },
+    "variant": {
+      "sha256": "796cd995a5468f3e77b13213ed4a2a0001b09ca6ad2f2bc7b4a4a4613a49cc58",
+      "render": {
+        "frame": 1,
+        "calls": 51,
+        "triangles": 1220,
+        "points": 0,
+        "lines": 0
+      },
+      "alphaBounds": [
+        24,
+        70,
+        222,
+        206
+      ],
+      "opaque": 11942
+    }
+  },
+  "screenshots": [
+    "normal.png",
+    "narrow-390.png"
+  ],
+  "url": "http://127.0.0.1:5197/tools/asset-mcp/viewer.html?artifacts=%2F.botanical%2Fasset-mcp%2Fstdio-first-20260909%2F",
+  "downloadExact": true
+}

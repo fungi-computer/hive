@@ -1,0 +1,19 @@
+{
+  "CONTRACT.md": "c7bfbda5d78bf479490d587c6eaad27c6021c66b82897c3a5ebb603f6342d89c",
+  "geometry.mjs": "d82adab5f53189974ed8ff1b3249f10f244013f6d8e586faab631ac2870e9889",
+  "faces.mjs": "bd99ba60e1c9c0960e492e51f1f6612cadd389fe0f209e521518515d931b9551",
+  "residual.mjs": "e3b97b509763f564dbac997f26299caa7f223dca58032e30fa70144f65dcc394",
+  "first-caller.mjs": "a74eedf188ba958a63a39fec6365a9f455d1d44822f755b9fedd7e0ae31af3cb",
+  "state.mjs": "f375b04fbd851c240f2aadbaedbf27edddc558446a1193fa8c5ab91edfb0d1a8",
+  "guess.mjs": "682b43f910c8c7daefed4d9eabdb12debee38f8836e94f157c4aae7082bc634c",
+  "linear.mjs": "4243e23277ffada0b41649367c5cdc6c08347a07b2a06d1f5fb9cd6597db0f2c",
+  "newton.mjs": "b130c62ed02af581821184bbd35e06c9969f632a8e69e2d8a0874e0ed5422d89",
+  "closure.mjs": "684203674f11205e2bd352b62b1ee6ec419eb0964491122caebebd500b7d6921",
+  "volume.mjs": "c54d5470e512483a76ddee0f1e235ad73464b23d26fc9e1dd3d79bf6a69542fd",
+  "qualify.mjs": "112272d423da12234e4f298438f38cba907121a887397154975171ed82252f21",
+  "column-reference/soil.mjs": "8664df3a99269437a88d8f33ef26ad2b61d961ca802f31f28d7473b885aff6d1",
+  "column-reference/geometry.mjs": "6d2f7d1aeca5bfce0b98a6b27a6a6c4f88d5882512c1e278ec679eb41e498ceb",
+  "column-reference/linear.mjs": "7d1a2895db6e689c6ce5beff05116b3554fefed4f033bce0218e030f03572f10",
+  "column-reference/solve.mjs": "35e0b7cfcc657fec9ad491fafa2835d67a003d1ddcde35858565c0d30927694c",
+  "column-reference/column.mjs": "6471b9066a9a22a8358d74606ac8616d82274777801519a95f8de8be1513fb47"
+}

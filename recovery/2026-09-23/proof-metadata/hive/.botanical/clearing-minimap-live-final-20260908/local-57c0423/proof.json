@@ -1,0 +1,130 @@
+{
+  "url": "http://127.0.0.1:5195/",
+  "output": ".botanical/clearing-minimap-live-final-20260908/local-57c0423",
+  "scriptSha256": "79a02ca69093d59690601c35dbd2c77ac2e4bdb3f3dceb39deefd676a0ca2780",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused live minimap, input ownership, and stump-local-goods trace"
+  },
+  "parity": {
+    "served": {
+      "index": "5981abb3ca9ec3800a01f1195a586de16a403cdd29eac9146ebb9ef7d211157b",
+      "assets": {
+        "assets/game-kwYm78K_.js": "bf7407acd48eb4779642d44c9c9708367bee90437687093579564732e643a857",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-Dr5CS--E.js": "3a3cd52951b1eca195b6a755999e99722560aeb8a5426448dedb8bafc83a20da",
+        "assets/home-027I8I5-.js": "b493e62f017242ec55f93cbe86f06aba87990705dcc1796970b7ab9cbafa308b",
+        "assets/figures-CLLfi72n.js": "8f6b6e43c50704ce348e367a9a6fe3654472128a939b1e5191753ee0c8a61575",
+        "assets/mixed-shelf-BQIySdm5.js": "23aabd19eff44bda56dc110fde742f81ead0a0bb9e72550c09877913c8164894",
+        "assets/construction-BsYLdOu4.js": "15811b5961e6d94c09285b8263393f3c402186d8746b8297471a4bb4baebef8f",
+        "assets/Geometry-DOF3DU4F.js": "d86cbcbc56b1011f3ab3d401dc57e616bb377f1e88c9eff90fb5339771b817b5",
+        "assets/getTextureBatchBindGroup-BNcjaXOC.js": "d61ff516cf2287e0ce978c6036dca2985bf94a2ad1d89041156db595d96446ba",
+        "assets/BatchableSprite-BY1ydbON.js": "ea9d2ac43c25dd9cfc938016977df8b4cbd2b9463659536f80fdea780fdeade1",
+        "assets/Graphics-CXGaDwn_.js": "6827dd8e1ff571eb2f6028dcb7e79268ce898a01602bcdc090dc435ea86e2c81",
+        "assets/CanvasPool-BEW4kBZf.js": "04dfaaf75fe03ae90810956ef0199b13d6ca5f166a0440538403fc6a84278dd4",
+        "assets/canvasUtils-Do_fy2vU.js": "0360de4d65e399bc553ac718835b0e231269e18895270529ba7f09792b709c6d",
+        "assets/getPo2TextureFromSource-8nZ4SkgP.js": "67fa99bd905000c2727b7911adf7cbf20cbda0bb35a88ac8b416d639320291e0",
+        "assets/art-Ba6NkcGj.js": "c5521e3804d30f092633cfe13a804799e59214efb18b6b15b80605a16d3daa26",
+        "assets/clearing-Cw-2n4FR.js": "a8068f02bb7abe55a9bd538e93cfec01ed10171a5d0af1a4f0ae6a2d90329345",
+        "assets/clearing-NsSvRIMz.css": "25bd04b85ec8d7c2e825e4293f93828d09c74e07addd18f97f8e9877b317b7b9",
+        "assets/game-DERSsx7I.css": "23e8319528c290dfb35e2e6c5628cf104d02130d7e806a1d4d76cd969da52300",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "local": {
+      "index": "5981abb3ca9ec3800a01f1195a586de16a403cdd29eac9146ebb9ef7d211157b",
+      "assets": {
+        "assets/game-kwYm78K_.js": "bf7407acd48eb4779642d44c9c9708367bee90437687093579564732e643a857",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-Dr5CS--E.js": "3a3cd52951b1eca195b6a755999e99722560aeb8a5426448dedb8bafc83a20da",
+        "assets/home-027I8I5-.js": "b493e62f017242ec55f93cbe86f06aba87990705dcc1796970b7ab9cbafa308b",
+        "assets/figures-CLLfi72n.js": "8f6b6e43c50704ce348e367a9a6fe3654472128a939b1e5191753ee0c8a61575",
+        "assets/mixed-shelf-BQIySdm5.js": "23aabd19eff44bda56dc110fde742f81ead0a0bb9e72550c09877913c8164894",
+        "assets/construction-BsYLdOu4.js": "15811b5961e6d94c09285b8263393f3c402186d8746b8297471a4bb4baebef8f",
+        "assets/Geometry-DOF3DU4F.js": "d86cbcbc56b1011f3ab3d401dc57e616bb377f1e88c9eff90fb5339771b817b5",
+        "assets/getTextureBatchBindGroup-BNcjaXOC.js": "d61ff516cf2287e0ce978c6036dca2985bf94a2ad1d89041156db595d96446ba",
+        "assets/BatchableSprite-BY1ydbON.js": "ea9d2ac43c25dd9cfc938016977df8b4cbd2b9463659536f80fdea780fdeade1",
+        "assets/Graphics-CXGaDwn_.js": "6827dd8e1ff571eb2f6028dcb7e79268ce898a01602bcdc090dc435ea86e2c81",
+        "assets/CanvasPool-BEW4kBZf.js": "04dfaaf75fe03ae90810956ef0199b13d6ca5f166a0440538403fc6a84278dd4",
+        "assets/canvasUtils-Do_fy2vU.js": "0360de4d65e399bc553ac718835b0e231269e18895270529ba7f09792b709c6d",
+        "assets/getPo2TextureFromSource-8nZ4SkgP.js": "67fa99bd905000c2727b7911adf7cbf20cbda0bb35a88ac8b416d639320291e0",
+        "assets/art-Ba6NkcGj.js": "c5521e3804d30f092633cfe13a804799e59214efb18b6b15b80605a16d3daa26",
+        "assets/clearing-Cw-2n4FR.js": "a8068f02bb7abe55a9bd538e93cfec01ed10171a5d0af1a4f0ae6a2d90329345",
+        "assets/clearing-NsSvRIMz.css": "25bd04b85ec8d7c2e825e4293f93828d09c74e07addd18f97f8e9877b317b7b9",
+        "assets/game-DERSsx7I.css": "23e8319528c290dfb35e2e6c5628cf104d02130d7e806a1d4d76cd969da52300",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "exact": true
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "screenshots": [
+    "normal-minimap-menu.png",
+    "normal-stump-local-goods.png"
+  ],
+  "claims": {
+    "initialMenu": {
+      "paused": true,
+      "actorMarkers": 2,
+      "treeMarkers": 8,
+      "visibleArea": "0,15 0,0 15,0 15,14.999999999999998",
+      "visibleAreaCells": 225
+    },
+    "mapRecenter": {
+      "partialVisibleArea": "1.382352941176471,15 0,13.53125 0,0 13.53125,0 15,1.382352941176471 15,14 14,15",
+      "partialVisibleAreaCells": 222.46966911764704,
+      "pointer": {
+        "cell": {
+          "x": 1,
+          "z": 1,
+          "level": 0
+        },
+        "visibleArea": "2,15 0,13 0,0 13,0 15,2 15,5 5,15"
+      },
+      "keyboard": {
+        "keys": [
+          "ArrowRight×3",
+          "ArrowDown×3",
+          "Enter"
+        ],
+        "cursor": {
+          "x": 4,
+          "z": 4
+        },
+        "visibleArea": "2,15 0,13 0,0 13,0 15,2 15,11 11,15"
+      },
+      "spacePaused": true,
+      "frozenSimulation": true
+    },
+    "pausedCameraFreshness": {
+      "pan": "1,15 0,14 0,0 12,0 15,3 15,10 10,15",
+      "zoom": "4,15 0,11 0,0 9,0 14.5,5.5 5,15",
+      "resize": "0,10 0,0 8,0 13.5,5.5 4.5,14.5",
+      "frozenSimulation": true
+    },
+    "armedWallMap": {
+      "tool": "wall",
+      "noSiteOrJobCommit": true,
+      "nextCanvasStroke": "tool placement preview"
+    },
+    "stumpLocalGoods": {
+      "oak": "oak-1",
+      "lot": "lot-1",
+      "amount": 6,
+      "materialActions": true,
+      "storeControls": 0,
+      "limitation": "No shelf is built in this focused trace; Store availability remains the existing material panel policy."
+    }
+  },
+  "limits": [
+    "One fresh paused Clearing and one oak only; no house, storage transfer, persistence, or upper-stair fixture is claimed.",
+    "The quantized Visible area is a clipped grid-space outline, not a continuous camera frustum.",
+    "The stump trace proves the local-goods handoff into existing Material lot actions; it does not execute Store without a shelf."
+  ],
+  "passed": false,
+  "failure": "AssertionError [ERR_ASSERTION]: narrow HUD must not overflow horizontally\n\n421 !== 390\n"
+}

@@ -1,0 +1,315 @@
+{
+  "source": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/floor.js": "6001f1ee34744845f8fb92e38b8300cea821821a2dc0edb982e86e61559d81cc",
+    "src/art/stair.js": "bf3ae8dc52d16ab4d76c2d6f16d4063d0176c1a5f4ba3863ba548d4a8c341741",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/render-depth-study-20260908/index.html": "81e00808c97618b2c39b31ba99f59bf9b0562796efad7c96507f983145148f0c",
+    ".botanical/render-depth-study-20260908/main.js": "94aa9c2f4303c36461e3f1c0f979a0633340b970f81251b66e35fd3a643f49c0",
+    ".botanical/render-depth-study-20260908/envelopes.js": "daec1386d0ea42a9e7fb298aad9866bf690248386bd12b548a0de2c5a7a3e258",
+    ".botanical/render-depth-study-20260908/order.js": "f46baaa0e547b5eec9929ae86c3e12f4c5398fc87492a62eca18525eb75b075f",
+    ".botanical/render-depth-study-20260908/fixtures.js": "086c7fd5ecb6c25436ca8992c7f3a8d0902ebfa9b1b82798653af1c5d1143031",
+    ".botanical/render-depth-study-20260908/capture.mjs": "be7e5bfb10ba83c5b616e7d9d0f5c38b4b71065bae511f55f54bf593861b94c6"
+  },
+  "passed": true,
+  "errors": [],
+  "relations": [
+    {
+      "id": "bed-floor-0",
+      "ordered": [
+        "head-floor",
+        "foot-floor",
+        "bed"
+      ],
+      "edges": [
+        [
+          "head-floor",
+          "foot-floor"
+        ],
+        [
+          "head-floor",
+          "bed"
+        ],
+        [
+          "foot-floor",
+          "bed"
+        ]
+      ],
+      "supportEdges": [
+        [
+          "head-floor",
+          "bed"
+        ],
+        [
+          "foot-floor",
+          "bed"
+        ]
+      ],
+      "unresolved": [],
+      "cyclicOrBlocked": [],
+      "candidates": 3,
+      "totalPairs": 3
+    },
+    {
+      "id": "bed-floor-1",
+      "ordered": [
+        "head-floor",
+        "foot-floor",
+        "bed"
+      ],
+      "edges": [
+        [
+          "head-floor",
+          "foot-floor"
+        ],
+        [
+          "head-floor",
+          "bed"
+        ],
+        [
+          "foot-floor",
+          "bed"
+        ]
+      ],
+      "supportEdges": [
+        [
+          "head-floor",
+          "bed"
+        ],
+        [
+          "foot-floor",
+          "bed"
+        ]
+      ],
+      "unresolved": [],
+      "cyclicOrBlocked": [],
+      "candidates": 3,
+      "totalPairs": 3
+    },
+    {
+      "id": "between-storeys",
+      "ordered": [
+        "below",
+        "floor",
+        "above"
+      ],
+      "edges": [
+        [
+          "below",
+          "floor"
+        ],
+        [
+          "floor",
+          "above"
+        ]
+      ],
+      "supportEdges": [],
+      "unresolved": [],
+      "cyclicOrBlocked": [],
+      "candidates": 2,
+      "totalPairs": 3
+    },
+    {
+      "id": "bed-sleeper-0",
+      "ordered": [
+        "bed",
+        "sleeper"
+      ],
+      "edges": [],
+      "supportEdges": [],
+      "unresolved": [
+        {
+          "ids": [
+            "bed",
+            "sleeper"
+          ],
+          "reason": "intersecting-envelopes"
+        }
+      ],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "bed-sleeper-1",
+      "ordered": [
+        "bed",
+        "sleeper"
+      ],
+      "edges": [],
+      "supportEdges": [],
+      "unresolved": [
+        {
+          "ids": [
+            "bed",
+            "sleeper"
+          ],
+          "reason": "intersecting-envelopes"
+        }
+      ],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "bed-side--1",
+      "ordered": [
+        "walker",
+        "bed"
+      ],
+      "edges": [
+        [
+          "walker",
+          "bed"
+        ]
+      ],
+      "supportEdges": [],
+      "unresolved": [],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "bed-side-1",
+      "ordered": [
+        "bed",
+        "walker"
+      ],
+      "edges": [
+        [
+          "bed",
+          "walker"
+        ]
+      ],
+      "supportEdges": [],
+      "unresolved": [],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "foreground-tree",
+      "ordered": [
+        "tree",
+        "walker"
+      ],
+      "edges": [],
+      "supportEdges": [],
+      "unresolved": [
+        {
+          "ids": [
+            "walker",
+            "tree"
+          ],
+          "reason": "intersecting-envelopes"
+        }
+      ],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "stair-0",
+      "ordered": [
+        "stair",
+        "walker"
+      ],
+      "edges": [],
+      "supportEdges": [],
+      "unresolved": [
+        {
+          "ids": [
+            "stair",
+            "walker"
+          ],
+          "reason": "intersecting-envelopes"
+        }
+      ],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "stair-0.5",
+      "ordered": [
+        "stair",
+        "walker"
+      ],
+      "edges": [],
+      "supportEdges": [],
+      "unresolved": [
+        {
+          "ids": [
+            "stair",
+            "walker"
+          ],
+          "reason": "intersecting-envelopes"
+        }
+      ],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "stair-1",
+      "ordered": [
+        "stair",
+        "walker"
+      ],
+      "edges": [],
+      "supportEdges": [],
+      "unresolved": [
+        {
+          "ids": [
+            "stair",
+            "walker"
+          ],
+          "reason": "intersecting-envelopes"
+        }
+      ],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    },
+    {
+      "id": "wall-corner",
+      "ordered": [
+        "walker",
+        "corner"
+      ],
+      "edges": [
+        [
+          "walker",
+          "corner"
+        ]
+      ],
+      "supportEdges": [],
+      "unresolved": [],
+      "cyclicOrBlocked": [],
+      "candidates": 1,
+      "totalPairs": 1
+    }
+  ],
+  "sourceAfter": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/floor.js": "6001f1ee34744845f8fb92e38b8300cea821821a2dc0edb982e86e61559d81cc",
+    "src/art/stair.js": "bf3ae8dc52d16ab4d76c2d6f16d4063d0176c1a5f4ba3863ba548d4a8c341741",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/render-depth-study-20260908/index.html": "81e00808c97618b2c39b31ba99f59bf9b0562796efad7c96507f983145148f0c",
+    ".botanical/render-depth-study-20260908/main.js": "94aa9c2f4303c36461e3f1c0f979a0633340b970f81251b66e35fd3a643f49c0",
+    ".botanical/render-depth-study-20260908/envelopes.js": "daec1386d0ea42a9e7fb298aad9866bf690248386bd12b548a0de2c5a7a3e258",
+    ".botanical/render-depth-study-20260908/order.js": "f46baaa0e547b5eec9929ae86c3e12f4c5398fc87492a62eca18525eb75b075f",
+    ".botanical/render-depth-study-20260908/fixtures.js": "086c7fd5ecb6c25436ca8992c7f3a8d0902ebfa9b1b82798653af1c5d1143031",
+    ".botanical/render-depth-study-20260908/capture.mjs": "be7e5bfb10ba83c5b616e7d9d0f5c38b4b71065bae511f55f54bf593861b94c6"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "output": ".botanical/common-transfer-v7-final-20260908/hosted-parity",
+  "mode": "served-byte-parity",
+  "scriptSha256": "d7bc59a61457569b79c2e265ca7413bf74ee7ef2702911f4972794c0c9e6bcac",
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: served index asset graph drifted\n+ actual - expected\n\n  [\n+   'assets/game-DOHO7RKN.js',\n-   'assets/game-BQ9BReB0.js',\n    'assets/modulepreload-polyfill-B5Qt9EMX.js',\n+   'assets/scale-Bd594I-l.js',\n+   'assets/home-IqZ-xkb8.js',\n+   'assets/figures-DrkBIU0g.js',\n+   'assets/construction-Bf9YS2Ub.js',\n+   'assets/Geometry-D9iSRME1.js',\n+   'assets/getTextureBatchBindGroup-iZ1azQZx.js',\n+   'assets/BatchableSprite-B9LKIddv.js',\n+   'assets/Graphics-BytAZ1AB.js',\n+   'assets/CanvasPool-B-vnEizi.js',\n+   'assets/canvasUtils-D_ZIInJm.js',\n+   'assets/getPo2TextureFromSource-Ck0WyiVh.js',\n+   'assets/art--B9xmJim.js',\n+   'assets/clearing-gPoaZAq9.js',\n-   'assets/scale-Ck6elWo_.js',\n-   'assets/home-GEckJ98-.js',\n-   'assets/figures-DUCwvsh6.js',\n-   'assets/construction-7X1h1jbw.js',\n-   'assets/Geometry-jXZiBKLg.js',\n-   'assets/getTextureBatchBindGroup-jCvT6pnK.js',\n-   'assets/BatchableSprite-C-PuQSVq.js',\n-   'assets/Graphics-3QaMsxkw.js',\n-   'assets/CanvasPool-BKo-6SE2.js',\n-   'assets/canvasUtils-CnRulJrS.js',\n-   'assets/getPo2TextureFromSource-BBOuc2Oy.js',\n-   'assets/art-tAPjra0y.js',\n-   'assets/clearing-B3EKwxSR.js',\n    'assets/game-DE30T3Wi.css',\n    'assets/styles-BN-Rw34z.css'\n  ]\n\n    at file:///home/levi/src/hive/scripts/prove-common-transfer-v7.mjs:57:10\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

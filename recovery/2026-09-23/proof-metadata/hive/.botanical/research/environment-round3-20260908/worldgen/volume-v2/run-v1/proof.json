@@ -1,0 +1,73 @@
+{
+  "scope": "isolated height-authoritative voxel cave base and codec; no pathfinding, traversal, natural entrances, live fluid/gas stock, biome, page, or game integration",
+  "pocketContract": {
+    "seed": "volume-v2-fixed-cave-pocket-v1",
+    "region": {
+      "minX": -64,
+      "maxXExclusive": 64,
+      "minY": -48,
+      "maxYExclusive": 16,
+      "minZ": -64,
+      "maxZExclusive": 64
+    },
+    "shape": {
+      "width": 3,
+      "height": 4,
+      "depth": 3
+    }
+  },
+  "checks": [
+    {
+      "name": "height-sea bed owns generated top and three solid protected layers",
+      "ms": 322.911
+    },
+    {
+      "name": "one fixed seed and bounded region contain a 3x4x3 generated geometric empty pocket",
+      "ms": 7390.61
+    },
+    {
+      "name": "negative-coordinate point and brick snapshots agree across a shared brick boundary",
+      "ms": 145.108
+    },
+    {
+      "name": "atomic edits, eviction, actual checkpoint reload, and overlay accounting preserve cave state",
+      "ms": 196.809
+    },
+    {
+      "name": "recipe identity and schema reject incompatible old voxel checkpoint",
+      "ms": 0.72
+    }
+  ],
+  "errors": [],
+  "hashes": {
+    "sourceVoxelBase": "44e28bd39c1f97193ca3471ce851bfe040b238401d566fdb223f1e4c76059201",
+    "heightSeaTerrain": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+    "candidate": "6aae7b83f71d95f30157f78603de9cc2f90a1d4bf0aab8818e03aebe355e6e3f",
+    "probe": "3d2d32c9b14d1e2e8594b2c1bded53afa8cd1948d0b4d47c825bd294f979565e"
+  },
+  "timing": {
+    "totalMs": 8059.073
+  },
+  "pocket": {
+    "x": 18,
+    "y": -48,
+    "z": -64,
+    "width": 3,
+    "height": 4,
+    "depth": 3,
+    "meaning": "generated geometric empty pocket only; not pathfinding, actor clearance, traversal, or a natural entrance"
+  },
+  "fixedScan": {
+    "bricks": 256,
+    "temporarySnapshotBytes": 1048576,
+    "cells": 1048576
+  },
+  "codec": {
+    "revision": 1,
+    "changedCells": 2,
+    "sparseOverlayBytes": 101,
+    "checkpointBytes": 993,
+    "residentProjectionCapBytes": 32768,
+    "caveMetricEvaluations": 4842
+  }
+}

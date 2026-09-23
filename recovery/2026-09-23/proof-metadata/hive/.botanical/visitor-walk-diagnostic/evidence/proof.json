@@ -1,0 +1,302 @@
+{
+  "sourceHashes": {
+    "src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4",
+    "src/art.js": "9951e1c7e8cf98e4a2fb03348070878588a5c869376229a9e4791fd85e33620b",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    ".botanical/visitor-walk-diagnostic/index.html": "16f3ac1c283f42b542dd59a46d7ca49a82f0a67e5840c4b8c2405ee4c4828c26"
+  },
+  "report": {
+    "rowan": [
+      {
+        "direction": 0,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 1,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 2,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 3,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      }
+    ],
+    "witch-crooked": [
+      {
+        "direction": 0,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 1,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 2,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 3,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      }
+    ],
+    "witch-runner": [
+      {
+        "direction": 0,
+        "distinct": 8,
+        "equivalence": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "direction": 1,
+        "distinct": 8,
+        "equivalence": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "direction": 2,
+        "distinct": 8,
+        "equivalence": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      },
+      {
+        "direction": 3,
+        "distinct": 8,
+        "equivalence": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ]
+      }
+    ],
+    "child-cloth": [
+      {
+        "direction": 0,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 1,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 2,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 3,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      }
+    ],
+    "child-apprentice": [
+      {
+        "direction": 0,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 1,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 2,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      },
+      {
+        "direction": 3,
+        "distinct": 5,
+        "equivalence": [
+          0,
+          1,
+          2,
+          1,
+          0,
+          5,
+          6,
+          5
+        ]
+      }
+    ]
+  },
+  "errors": []
+}

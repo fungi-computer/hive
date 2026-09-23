@@ -1,0 +1,64 @@
+{
+  "sourceSha256": {
+    ".botanical/animation-study/figures.js": "a28d412db54bf858b918fde01577386f682f8f396a5d2dc20c6bb139b21c8413",
+    ".botanical/animation-study/main.js": "91b7c401bc1970e4cce2f7059476a6925fa6b1c7d589e3f1a2ac6dbe668ab35b",
+    ".botanical/animation-study/index.html": "684ba33ae7e527fbdf550ee5ed98ec61fc8b7ea65f2ea9b2d4cb5a61badccdad",
+    ".botanical/animation-study/prove.mjs": "ce2de5315a89b4867497ab1297f18d57ca21724f28446f0d7b4e502085f0846e",
+    "src/art/figures.js": "4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b",
+    "src/art.js": "07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785"
+  },
+  "frames": [
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  ],
+  "pauseFrameAndImage": true,
+  "errors": []
+}

@@ -1,0 +1,22 @@
+{
+  "mode": "local-served-recorded-playback",
+  "base": "http://127.0.0.1:5199/",
+  "errors": [],
+  "claims": {
+    "cellsPerDepth": 9,
+    "selectedVoxel": true,
+    "finalFrame": 200,
+    "finalSeconds": 600,
+    "topCenterAddedKg": 0.9949265023284966,
+    "playPause": true,
+    "narrow": {
+      "client": 390,
+      "scroll": 390,
+      "slider": {
+        "left": 37,
+        "right": 353
+      }
+    },
+    "catalog": true
+  }
+}

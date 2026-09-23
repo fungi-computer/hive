@@ -1,0 +1,3564 @@
+{
+  "startedAt": "2026-09-20T12:26:41.049Z",
+  "samples": [
+    {
+      "at": 1875.1999998092651,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 0,
+        "visibleComplete": true,
+        "demandComplete": true,
+        "viewBudget": false,
+        "visibleRegions": 0,
+        "readyVisibleRegions": 0,
+        "requestedRegions": 0,
+        "readyRegions": 0,
+        "cachedRegions": 0,
+        "pending": false,
+        "loading": {
+          "requests": 0,
+          "cancelled": 0,
+          "receivedPatches": 0,
+          "receivedBytes": 0,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": null
+        }
+      },
+      "visualBuild": {
+        "frames": 5,
+        "unchangedFrames": 4,
+        "totalMs": 0.5999999046325684
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 2418.699999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 0,
+        "visibleComplete": true,
+        "demandComplete": true,
+        "viewBudget": false,
+        "visibleRegions": 0,
+        "readyVisibleRegions": 0,
+        "requestedRegions": 0,
+        "readyRegions": 0,
+        "cachedRegions": 0,
+        "pending": false,
+        "loading": {
+          "requests": 0,
+          "cancelled": 0,
+          "receivedPatches": 0,
+          "receivedBytes": 0,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": null
+        }
+      },
+      "visualBuild": {
+        "frames": 15,
+        "unchangedFrames": 14,
+        "totalMs": 0.9999997615814209
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 2978.899999856949,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 0,
+        "visibleComplete": true,
+        "demandComplete": true,
+        "viewBudget": false,
+        "visibleRegions": 0,
+        "readyVisibleRegions": 0,
+        "requestedRegions": 0,
+        "readyRegions": 0,
+        "cachedRegions": 0,
+        "pending": false,
+        "loading": {
+          "requests": 0,
+          "cancelled": 0,
+          "receivedPatches": 0,
+          "receivedBytes": 0,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": null
+        }
+      },
+      "visualBuild": {
+        "frames": 25,
+        "unchangedFrames": 24,
+        "totalMs": 1.2999999523162842
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 3498.0999999046326,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 0,
+        "visibleComplete": true,
+        "demandComplete": true,
+        "viewBudget": false,
+        "visibleRegions": 0,
+        "readyVisibleRegions": 0,
+        "requestedRegions": 0,
+        "readyRegions": 0,
+        "cachedRegions": 0,
+        "pending": false,
+        "loading": {
+          "requests": 0,
+          "cancelled": 0,
+          "receivedPatches": 0,
+          "receivedBytes": 0,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": null
+        }
+      },
+      "visualBuild": {
+        "frames": 36,
+        "unchangedFrames": 35,
+        "totalMs": 1.8000004291534424
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 4038.699999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 0,
+        "visibleComplete": true,
+        "demandComplete": true,
+        "viewBudget": false,
+        "visibleRegions": 0,
+        "readyVisibleRegions": 0,
+        "requestedRegions": 0,
+        "readyRegions": 0,
+        "cachedRegions": 0,
+        "pending": false,
+        "loading": {
+          "requests": 0,
+          "cancelled": 0,
+          "receivedPatches": 0,
+          "receivedBytes": 0,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": null
+        }
+      },
+      "visualBuild": {
+        "frames": 47,
+        "unchangedFrames": 46,
+        "totalMs": 2.1000001430511475
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 4769.5,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 114469,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 4,
+        "requestedRegions": 102,
+        "readyRegions": 4,
+        "cachedRegions": 4,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 4,
+          "receivedBytes": 114469,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 53,
+        "unchangedFrames": 49,
+        "totalMs": 14.800000190734863
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 5351.5,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 362752,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 14,
+        "requestedRegions": 102,
+        "readyRegions": 14,
+        "cachedRegions": 14,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 14,
+          "receivedBytes": 362752,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 57,
+        "unchangedFrames": 50,
+        "totalMs": 17.600000143051147
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 5876.599999904633,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 493027,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 20,
+        "requestedRegions": 102,
+        "readyRegions": 20,
+        "cachedRegions": 20,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 20,
+          "receivedBytes": 493027,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 61,
+        "unchangedFrames": 52,
+        "totalMs": 21.200000286102295
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 6749.899999856949,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 730601,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 30,
+        "requestedRegions": 102,
+        "readyRegions": 30,
+        "cachedRegions": 30,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 30,
+          "receivedBytes": 730601,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 66,
+        "unchangedFrames": 52,
+        "totalMs": 26.600000143051147
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 7369.199999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 838268,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 36,
+        "requestedRegions": 102,
+        "readyRegions": 36,
+        "cachedRegions": 36,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 36,
+          "receivedBytes": 838268,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 70,
+        "unchangedFrames": 52,
+        "totalMs": 29.00000023841858
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 8064.799999952316,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 838268,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 36,
+        "requestedRegions": 102,
+        "readyRegions": 36,
+        "cachedRegions": 36,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 36,
+          "receivedBytes": 838268,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 73,
+        "unchangedFrames": 52,
+        "totalMs": 30.100000381469727
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 8637.199999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 999518,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 44,
+        "requestedRegions": 102,
+        "readyRegions": 44,
+        "cachedRegions": 44,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 44,
+          "receivedBytes": 999518,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 77,
+        "unchangedFrames": 52,
+        "totalMs": 37.200000286102295
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 9189,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 999518,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 44,
+        "requestedRegions": 102,
+        "readyRegions": 44,
+        "cachedRegions": 44,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 44,
+          "receivedBytes": 999518,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 80,
+        "unchangedFrames": 52,
+        "totalMs": 45.50000023841858
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 9807.399999856949,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1104656,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 48,
+        "requestedRegions": 102,
+        "readyRegions": 48,
+        "cachedRegions": 48,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 48,
+          "receivedBytes": 1104656,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 83,
+        "unchangedFrames": 52,
+        "totalMs": 48.80000019073486
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 10488.699999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1186629,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 52,
+        "requestedRegions": 102,
+        "readyRegions": 52,
+        "cachedRegions": 52,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 52,
+          "receivedBytes": 1186629,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 87,
+        "unchangedFrames": 52,
+        "totalMs": 51.40000009536743
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 11044.099999904633,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1186629,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": false,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 52,
+        "requestedRegions": 102,
+        "readyRegions": 52,
+        "cachedRegions": 52,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 52,
+          "receivedBytes": 1186629,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 90,
+        "unchangedFrames": 52,
+        "totalMs": 52.89999985694885
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 11563.699999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1345626,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 60,
+        "cachedRegions": 60,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 60,
+          "receivedBytes": 1345626,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 93,
+        "unchangedFrames": 52,
+        "totalMs": 53.99999976158142
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 12120,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1345626,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 60,
+        "cachedRegions": 60,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 60,
+          "receivedBytes": 1345626,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 96,
+        "unchangedFrames": 52,
+        "totalMs": 55.200000047683716
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 12736.299999952316,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1412613,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 64,
+        "cachedRegions": 64,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 64,
+          "receivedBytes": 1412613,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 98,
+        "unchangedFrames": 52,
+        "totalMs": 56.200000047683716
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 13339.5,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1480628,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 68,
+        "cachedRegions": 68,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 68,
+          "receivedBytes": 1480628,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 101,
+        "unchangedFrames": 52,
+        "totalMs": 58.09999990463257
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 14026.599999904633,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1480628,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 68,
+        "cachedRegions": 68,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 68,
+          "receivedBytes": 1480628,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 105,
+        "unchangedFrames": 52,
+        "totalMs": 59.5
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 14583,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1545241,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 72,
+        "cachedRegions": 72,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 72,
+          "receivedBytes": 1545241,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 108,
+        "unchangedFrames": 52,
+        "totalMs": 60.40000009536743
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 15121.199999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1653914,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 75,
+        "cachedRegions": 75,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 75,
+          "receivedBytes": 1653914,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 111,
+        "unchangedFrames": 52,
+        "totalMs": 61.799999952316284
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 15681.699999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1668967,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 76,
+        "cachedRegions": 76,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 76,
+          "receivedBytes": 1668967,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 115,
+        "unchangedFrames": 52,
+        "totalMs": 67.70000004768372
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 16590.699999809265,
+      "coverage": {
+        "capacity": 256,
+        "maxBytes": 33554432,
+        "retainedBytes": 1736190,
+        "epoch": 0,
+        "terrainRevision": 0,
+        "level": 39,
+        "visibleComplete": true,
+        "demandComplete": false,
+        "viewBudget": false,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 80,
+        "cachedRegions": 80,
+        "pending": true,
+        "loading": {
+          "requests": 1,
+          "cancelled": 0,
+          "receivedPatches": 80,
+          "receivedBytes": 1736190,
+          "retries": 0,
+          "retryAt": null,
+          "firstPatchMs": 327.39999985694885
+        }
+      },
+      "visualBuild": {
+        "frames": 119,
+        "unchangedFrames": 52,
+        "totalMs": 70.10000014305115
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    }
+  ],
+  "errors": [],
+  "success": true,
+  "transport": {
+    "sockets": [
+      {
+        "id": 1,
+        "createdAt": 2978.5999999046326
+      }
+    ],
+    "frames": [
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 3734.0999999046326,
+        "type": "ready",
+        "bytes": 50,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4145.699999809265,
+        "type": "observation",
+        "bytes": 511737,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 4213.699999809265,
+        "type": "terrain-regions",
+        "requestId": 1,
+        "regions": 102,
+        "bufferedBefore": 0,
+        "bufferedAfter": 827
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4455.899999856949,
+        "type": "observation",
+        "bytes": 36254,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4527.899999856949,
+        "type": "observation",
+        "bytes": 36286,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4534.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 28907,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4542.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 30065,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4762.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 40547,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4765,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15410,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 4766.699999809265,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 4,
+        "bufferedBefore": 0,
+        "bufferedAfter": 52
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4770,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15554,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4771.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 38564,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4774.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 25060,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4778.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15427,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 4779,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 8,
+        "bufferedBefore": 0,
+        "bufferedAfter": 52
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5043.099999904633,
+        "type": "observation",
+        "bytes": 36302,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5048.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15411,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5050.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 29899,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5060.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 42795,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5073.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15424,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5074.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 12,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5346.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16023,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5348.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 35276,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5566.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15432,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5567.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15976,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5569.299999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 16,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5570.699999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 51431,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5575.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15913,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5577.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16179,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5579,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16034,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5580.699999809265,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 20,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5860,
+        "type": "observation",
+        "bytes": 36510,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5868.399999856949,
+        "type": "observation",
+        "bytes": 36510,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5872.899999856949,
+        "type": "observation",
+        "bytes": 36254,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6052.799999952316,
+        "type": "observation",
+        "bytes": 36286,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6057.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 22649,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6059.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 21190,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6063.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 41368,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6065.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15797,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 6066.599999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 24,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6348.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15276,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6350.099999904633,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6356.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 30479,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6358.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 29000,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6361,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 31290,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 6362.199999809265,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 28,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6736.699999809265,
+        "type": "observation",
+        "bytes": 36525,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6743.199999809265,
+        "type": "observation",
+        "bytes": 36527,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6746.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15483,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6748.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16192,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7042.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16304,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7051.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 29113,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 7053.5,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 32,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7055.199999809265,
+        "type": "observation",
+        "bytes": 36271,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7060.799999952316,
+        "type": "observation",
+        "bytes": 36284,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7064.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16192,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7355.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15795,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7356.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15193,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7358.799999952316,
+        "type": "observation",
+        "bytes": 36338,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7364,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15760,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 7364.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 36,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7365.899999856949,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7869.5,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7875.099999904633,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7879.899999856949,
+        "type": "observation",
+        "bytes": 36357,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8058.699999809265,
+        "type": "observation",
+        "bytes": 36385,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8065.799999952316,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8071.599999904633,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8074.699999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15562,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8076,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15214,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8286.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15419,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8288.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16223,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 8289.5,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 40,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8290.599999904633,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8298.5,
+        "type": "observation",
+        "bytes": 36357,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 8623.099999904633,
+        "type": "heartbeat",
+        "bufferedBefore": 0,
+        "bufferedAfter": 20
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8624,
+        "type": "observation",
+        "bytes": 36411,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8628.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15770,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8631.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15447,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8633.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 53108,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8635.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15427,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 8636.699999809265,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 44,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8966.099999904633,
+        "type": "observation",
+        "bytes": 36550,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8973.799999952316,
+        "type": "observation",
+        "bytes": 36550,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8978.5,
+        "type": "observation",
+        "bytes": 36328,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8982,
+        "type": "observation",
+        "bytes": 36356,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9171.599999904633,
+        "type": "observation",
+        "bytes": 36412,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9177.199999809265,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9181.299999952316,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9185.599999904633,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9384.599999904633,
+        "type": "observation",
+        "bytes": 36349,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9395.299999952316,
+        "type": "observation",
+        "bytes": 36457,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9399.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 38771,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9403.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 32491,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9795.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 18492,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9797.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15844,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 9798.199999809265,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 48,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9799.199999809265,
+        "type": "observation",
+        "bytes": 36579,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9803.399999856949,
+        "type": "observation",
+        "bytes": 36605,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10077.799999952316,
+        "type": "observation",
+        "bytes": 36605,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10082.399999856949,
+        "type": "observation",
+        "bytes": 36444,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10089.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15441,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10090.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15179,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10091.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15587,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10092.699999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 36226,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 10094.299999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 52,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10467.099999904633,
+        "type": "observation",
+        "bytes": 36460,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10474.399999856949,
+        "type": "observation",
+        "bytes": 36516,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10478.599999904633,
+        "type": "observation",
+        "bytes": 36600,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10483.299999952316,
+        "type": "observation",
+        "bytes": 36602,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10670.199999809265,
+        "type": "observation",
+        "bytes": 36442,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10675.5,
+        "type": "observation",
+        "bytes": 36458,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10678.799999952316,
+        "type": "observation",
+        "bytes": 36538,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10850.399999856949,
+        "type": "observation",
+        "bytes": 36584,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10856.599999904633,
+        "type": "observation",
+        "bytes": 36610,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10861.5,
+        "type": "observation",
+        "bytes": 36482,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11026.199999809265,
+        "type": "observation",
+        "bytes": 36512,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11031.399999856949,
+        "type": "observation",
+        "bytes": 36570,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11036.199999809265,
+        "type": "observation",
+        "bytes": 36628,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11041,
+        "type": "observation",
+        "bytes": 36626,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11212.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16056,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11214.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 27916,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11216.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 26017,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11218.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15435,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 11219.099999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 56,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11220.399999856949,
+        "type": "observation",
+        "bytes": 36528,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11549.199999809265,
+        "type": "observation",
+        "bytes": 36541,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11553.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15791,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11554.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20749,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11556.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15831,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11557.699999809265,
+        "type": "observation",
+        "bytes": 36596,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11562.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 22122,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 11563.099999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 60,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11882.099999904633,
+        "type": "observation",
+        "bytes": 36622,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11887,
+        "type": "observation",
+        "bytes": 36621,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11890.899999856949,
+        "type": "observation",
+        "bytes": 36524,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12096.399999856949,
+        "type": "observation",
+        "bytes": 36530,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12102.099999904633,
+        "type": "observation",
+        "bytes": 36612,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12111.099999904633,
+        "type": "observation",
+        "bytes": 36646,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12116.599999904633,
+        "type": "observation",
+        "bytes": 36652,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12368.599999904633,
+        "type": "observation",
+        "bytes": 36578,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12378.199999809265,
+        "type": "observation",
+        "bytes": 36586,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12385.299999952316,
+        "type": "observation",
+        "bytes": 36616,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12391.5,
+        "type": "observation",
+        "bytes": 36650,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12721,
+        "type": "observation",
+        "bytes": 36648,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12726.5,
+        "type": "observation",
+        "bytes": 36587,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12731.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16122,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12732.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15205,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12733.699999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15388,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12735,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20732,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 12735.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 64,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13095,
+        "type": "observation",
+        "bytes": 36592,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13100.5,
+        "type": "observation",
+        "bytes": 36646,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13105.199999809265,
+        "type": "observation",
+        "bytes": 36673,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13109.099999904633,
+        "type": "observation",
+        "bytes": 36670,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13317.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15448,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13319.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 19694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13330.699999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15209,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13332.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 18124,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 13333.199999809265,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 68,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13334.5,
+        "type": "observation",
+        "bytes": 36606,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 13561.799999952316,
+        "type": "heartbeat",
+        "bufferedBefore": 0,
+        "bufferedAfter": 20
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13562.5,
+        "type": "observation",
+        "bytes": 36615,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13569.899999856949,
+        "type": "observation",
+        "bytes": 36643,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13573.699999809265,
+        "type": "observation",
+        "bytes": 36673,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13780.599999904633,
+        "type": "observation",
+        "bytes": 36674,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13791,
+        "type": "observation",
+        "bytes": 36608,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13796.799999952316,
+        "type": "observation",
+        "bytes": 36610,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13802.399999856949,
+        "type": "observation",
+        "bytes": 36664,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14009,
+        "type": "observation",
+        "bytes": 36698,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14013.599999904633,
+        "type": "observation",
+        "bytes": 36698,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14018.099999904633,
+        "type": "observation",
+        "bytes": 36668,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14022.699999809265,
+        "type": "observation",
+        "bytes": 36662,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14221.399999856949,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14226.599999904633,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14230.699999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16124,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14232.199999809265,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 17645,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14234.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15472,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14235.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15832,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 14237.099999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 72,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14570.299999952316,
+        "type": "observation",
+        "bytes": 36672,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14576.099999904633,
+        "type": "observation",
+        "bytes": 36642,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14579.799999952316,
+        "type": "observation",
+        "bytes": 36642,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14791.699999809265,
+        "type": "observation",
+        "bytes": 36668,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14798.299999952316,
+        "type": "observation",
+        "bytes": 36636,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14803.399999856949,
+        "type": "observation",
+        "bytes": 36632,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14807.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 30361,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15113.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 37458,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15117.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 41199,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15415.799999952316,
+        "type": "observation",
+        "bytes": 36604,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15420.899999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15168,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 15421.899999856949,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 76,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15422.799999952316,
+        "type": "observation",
+        "bytes": 36604,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15424.799999952316,
+        "type": "observation",
+        "bytes": 36604,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15658.299999952316,
+        "type": "observation",
+        "bytes": 36630,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15664.799999952316,
+        "type": "observation",
+        "bytes": 36690,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15674,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15678.299999952316,
+        "type": "observation",
+        "bytes": 36690,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15871.099999904633,
+        "type": "observation",
+        "bytes": 36690,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15876,
+        "type": "observation",
+        "bytes": 36688,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15879.899999856949,
+        "type": "observation",
+        "bytes": 36687,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15883.799999952316,
+        "type": "observation",
+        "bytes": 36697,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16067.399999856949,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16079,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16068.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15645,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16070,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20190,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16071.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15769,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 16074.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 80,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16075.799999952316,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16561.89999985695,
+        "type": "observation",
+        "bytes": 36692,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16569.89999985695,
+        "type": "observation",
+        "bytes": 36692,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16574,
+        "type": "observation",
+        "bytes": 36689,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16583.39999985695,
+        "type": "observation",
+        "bytes": 36691,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16788.39999985695,
+        "type": "observation",
+        "bytes": 36695,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16793.199999809265,
+        "type": "observation",
+        "bytes": 36691,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16798.099999904633,
+        "type": "observation",
+        "bytes": 36687,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 16802.799999952316,
+        "type": "observation",
+        "bytes": 36697,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17019.89999985695,
+        "type": "observation",
+        "bytes": 36699,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17026.599999904633,
+        "type": "observation",
+        "bytes": 36697,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17032,
+        "type": "observation",
+        "bytes": 36701,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17036.199999809265,
+        "type": "observation",
+        "bytes": 36699,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17303.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15305,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17305,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15538,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17307,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 32918,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17310.39999985695,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 26361,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 17311.599999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 84,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17313,
+        "type": "observation",
+        "bytes": 36657,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 17317,
+        "type": "observation",
+        "bytes": 36655,
+        "bufferedAmount": 0
+      }
+    ],
+    "longtasks": [
+      {
+        "at": 381,
+        "duration": 84
+      },
+      {
+        "at": 698.2999999523163,
+        "duration": 69
+      },
+      {
+        "at": 1229.6999998092651,
+        "duration": 147
+      },
+      {
+        "at": 1698.2999999523163,
+        "duration": 116
+      },
+      {
+        "at": 1819.2999999523163,
+        "duration": 55
+      },
+      {
+        "at": 1877.3999998569489,
+        "duration": 60
+      },
+      {
+        "at": 2178.899999856949,
+        "duration": 52
+      },
+      {
+        "at": 2278.2999999523163,
+        "duration": 69
+      },
+      {
+        "at": 2348.199999809265,
+        "duration": 68
+      },
+      {
+        "at": 2419,
+        "duration": 107
+      },
+      {
+        "at": 2526.899999856949,
+        "duration": 62
+      },
+      {
+        "at": 2731.7999999523163,
+        "duration": 51
+      },
+      {
+        "at": 2923.5999999046326,
+        "duration": 53
+      },
+      {
+        "at": 3735.0999999046326,
+        "duration": 55
+      },
+      {
+        "at": 3793.899999856949,
+        "duration": 50
+      },
+      {
+        "at": 3844.2999999523163,
+        "duration": 52
+      },
+      {
+        "at": 4039,
+        "duration": 51
+      },
+      {
+        "at": 4134.699999809265,
+        "duration": 60
+      },
+      {
+        "at": 4208.599999904633,
+        "duration": 244
+      },
+      {
+        "at": 4462.5,
+        "duration": 64
+      },
+      {
+        "at": 4549.799999952316,
+        "duration": 211
+      },
+      {
+        "at": 4779.299999952316,
+        "duration": 262
+      },
+      {
+        "at": 5075.399999856949,
+        "duration": 269
+      },
+      {
+        "at": 5351.699999809265,
+        "duration": 212
+      },
+      {
+        "at": 5581.899999856949,
+        "duration": 277
+      },
+      {
+        "at": 5876.899999856949,
+        "duration": 172
+      },
+      {
+        "at": 6068.5,
+        "duration": 277
+      },
+      {
+        "at": 6362.799999952316,
+        "duration": 372
+      },
+      {
+        "at": 6752,
+        "duration": 289
+      },
+      {
+        "at": 7065.299999952316,
+        "duration": 289
+      },
+      {
+        "at": 7369.599999904633,
+        "duration": 499
+      },
+      {
+        "at": 7883.199999809265,
+        "duration": 173
+      },
+      {
+        "at": 8076.899999856949,
+        "duration": 209
+      },
+      {
+        "at": 8302.699999809265,
+        "duration": 320
+      },
+      {
+        "at": 8637.5,
+        "duration": 326
+      },
+      {
+        "at": 8985.5,
+        "duration": 182
+      },
+      {
+        "at": 9189.099999904633,
+        "duration": 192
+      },
+      {
+        "at": 9405.299999952316,
+        "duration": 387
+      },
+      {
+        "at": 9809.599999904633,
+        "duration": 266
+      },
+      {
+        "at": 10094.699999809265,
+        "duration": 371
+      },
+      {
+        "at": 10489,
+        "duration": 179
+      },
+      {
+        "at": 10681.799999952316,
+        "duration": 167
+      },
+      {
+        "at": 10864.899999856949,
+        "duration": 160
+      },
+      {
+        "at": 11044.299999952316,
+        "duration": 167
+      },
+      {
+        "at": 11224.599999904633,
+        "duration": 323
+      },
+      {
+        "at": 11563.899999856949,
+        "duration": 316
+      },
+      {
+        "at": 11894.5,
+        "duration": 200
+      },
+      {
+        "at": 12120.199999809265,
+        "duration": 247
+      },
+      {
+        "at": 12402.399999856949,
+        "duration": 316
+      },
+      {
+        "at": 12736.599999904633,
+        "duration": 356
+      },
+      {
+        "at": 13112.199999809265,
+        "duration": 204
+      },
+      {
+        "at": 13339.699999809265,
+        "duration": 221
+      },
+      {
+        "at": 13576.699999809265,
+        "duration": 202
+      },
+      {
+        "at": 13805.799999952316,
+        "duration": 202
+      },
+      {
+        "at": 14026.899999856949,
+        "duration": 193
+      },
+      {
+        "at": 14237.399999856949,
+        "duration": 331
+      },
+      {
+        "at": 14583.699999809265,
+        "duration": 206
+      },
+      {
+        "at": 14809.099999904633,
+        "duration": 303
+      },
+      {
+        "at": 15121.399999856949,
+        "duration": 293
+      },
+      {
+        "at": 15428.299999952316,
+        "duration": 228
+      },
+      {
+        "at": 15681.899999856949,
+        "duration": 187
+      },
+      {
+        "at": 15886.599999904633,
+        "duration": 180
+      },
+      {
+        "at": 16079.299999952316,
+        "duration": 481
+      },
+      {
+        "at": 16591,
+        "duration": 193
+      },
+      {
+        "at": 16805.699999809265,
+        "duration": 213
+      }
+    ],
+    "lag": [
+      {
+        "at": 274.39999985694885,
+        "lag": 0.39999985694885254
+      },
+      {
+        "at": 374.09999990463257,
+        "lag": 0
+      },
+      {
+        "at": 495.7999999523163,
+        "lag": 21.700000047683716
+      },
+      {
+        "at": 574.1999998092651,
+        "lag": 0
+      },
+      {
+        "at": 674.1999998092651,
+        "lag": 0
+      },
+      {
+        "at": 799.5999999046326,
+        "lag": 25.40000009536743
+      },
+      {
+        "at": 874.0999999046326,
+        "lag": 0
+      },
+      {
+        "at": 974.1999998092651,
+        "lag": 0.09999990463256836
+      },
+      {
+        "at": 1074.2999999523163,
+        "lag": 0.10000014305114746
+      },
+      {
+        "at": 1176.1999998092651,
+        "lag": 1.8999998569488525
+      },
+      {
+        "at": 1381.5999999046326,
+        "lag": 105.40000009536743
+      },
+      {
+        "at": 1474.1999998092651,
+        "lag": 0
+      },
+      {
+        "at": 1575.8999998569489,
+        "lag": 1.7000000476837158
+      },
+      {
+        "at": 1819,
+        "lag": 143.10000014305115
+      },
+      {
+        "at": 1937.6999998092651,
+        "lag": 18.699999809265137
+      },
+      {
+        "at": 2035.6999998092651,
+        "lag": 0
+      },
+      {
+        "at": 2132,
+        "lag": 0
+      },
+      {
+        "at": 2231.0999999046326,
+        "lag": 0
+      },
+      {
+        "at": 2348,
+        "lag": 16.90000009536743
+      },
+      {
+        "at": 2526.899999856949,
+        "lag": 78.89999985694885
+      },
+      {
+        "at": 2639.7999999523163,
+        "lag": 12.900000095367432
+      },
+      {
+        "at": 2731.699999809265,
+        "lag": 0
+      },
+      {
+        "at": 2827.199999809265,
+        "lag": 0
+      },
+      {
+        "at": 2922.399999856949,
+        "lag": 0
+      },
+      {
+        "at": 3025,
+        "lag": 2.6000001430511475
+      },
+      {
+        "at": 3165.5999999046326,
+        "lag": 40.59999990463257
+      },
+      {
+        "at": 3260.5,
+        "lag": 0
+      },
+      {
+        "at": 3354.699999809265,
+        "lag": 0
+      },
+      {
+        "at": 3402.199999809265,
+        "lag": 0
+      },
+      {
+        "at": 3545.5999999046326,
+        "lag": 43.40000009536743
+      },
+      {
+        "at": 3642.699999809265,
+        "lag": 0
+      },
+      {
+        "at": 3688.5,
+        "lag": 0
+      },
+      {
+        "at": 3793.899999856949,
+        "lag": 5.3999998569488525
+      },
+      {
+        "at": 3943,
+        "lag": 49.10000014305115
+      },
+      {
+        "at": 4038.2999999523163,
+        "lag": 0
+      },
+      {
+        "at": 4134.699999809265,
+        "lag": 0
+      },
+      {
+        "at": 4461.699999809265,
+        "lag": 227
+      },
+      {
+        "at": 4761.799999952316,
+        "lag": 200.10000014305115
+      },
+      {
+        "at": 4779.199999809265,
+        "lag": 0
+      },
+      {
+        "at": 5048.199999809265,
+        "lag": 169
+      },
+      {
+        "at": 5350.799999952316,
+        "lag": 202.60000014305115
+      },
+      {
+        "at": 5580.899999856949,
+        "lag": 130.09999990463257
+      },
+      {
+        "at": 6051.199999809265,
+        "lag": 370.2999999523163
+      },
+      {
+        "at": 6735.099999904633,
+        "lag": 583.9000000953674
+      },
+      {
+        "at": 7355.099999904633,
+        "lag": 520
+      },
+      {
+        "at": 8056.799999952316,
+        "lag": 601.7000000476837
+      },
+      {
+        "at": 8302.599999904633,
+        "lag": 145.79999995231628
+      },
+      {
+        "at": 8964.199999809265,
+        "lag": 561.5999999046326
+      },
+      {
+        "at": 9180.599999904633,
+        "lag": 116.40000009536743
+      },
+      {
+        "at": 9792.799999952316,
+        "lag": 512.2000000476837
+      },
+      {
+        "at": 10094.699999809265,
+        "lag": 201.89999985694885
+      },
+      {
+        "at": 10668.5,
+        "lag": 473.80000019073486
+      },
+      {
+        "at": 10855.5,
+        "lag": 87
+      },
+      {
+        "at": 11044.299999952316,
+        "lag": 88.79999995231628
+      },
+      {
+        "at": 11548.399999856949,
+        "lag": 404.09999990463257
+      },
+      {
+        "at": 12095.5,
+        "lag": 447.10000014305115
+      },
+      {
+        "at": 12719.799999952316,
+        "lag": 524.2999999523163
+      },
+      {
+        "at": 13112.199999809265,
+        "lag": 292.39999985694885
+      },
+      {
+        "at": 13561.699999809265,
+        "lag": 349.5
+      },
+      {
+        "at": 13805.599999904633,
+        "lag": 143.90000009536743
+      },
+      {
+        "at": 14220.5,
+        "lag": 314.90000009536743
+      },
+      {
+        "at": 14790,
+        "lag": 469.5
+      },
+      {
+        "at": 15414.899999856949,
+        "lag": 524.8999998569489
+      },
+      {
+        "at": 15869.899999856949,
+        "lag": 355
+      },
+      {
+        "at": 16561.099999904633,
+        "lag": 591.2000000476837
+      },
+      {
+        "at": 16801.89999985695,
+        "lag": 140.79999995231628
+      },
+      {
+        "at": 17303.199999809265,
+        "lag": 401.2999999523163
+      }
+    ],
+    "dropped": 0
+  },
+  "finishedAt": "2026-09-20T12:27:00.550Z"
+}

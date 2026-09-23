@@ -1,0 +1,21 @@
+{
+  "group": "terrain",
+  "files": [
+    "src/art/living-terrain-pack.test.js",
+    "engine/src/client/cut-terrain-layer.test.js",
+    "engine/src/client/cut-terrain.test.js",
+    "engine/src/client/terrain-chunk-cache.test.js",
+    "engine/src/client/terrain-face-appearance.test.js",
+    "engine/src/runtime/terrain-presentation.test.ts"
+  ],
+  "artifacts": [],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-repair-qualification/terrain/living-terrain-pack.test.mjs",
+    "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-repair-qualification/terrain/cut-terrain-layer.test.mjs",
+    "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-repair-qualification/terrain/cut-terrain.test.mjs",
+    "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-repair-qualification/terrain/terrain-chunk-cache.test.mjs",
+    "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-repair-qualification/terrain/terrain-face-appearance.test.mjs",
+    "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-repair-qualification/terrain/terrain-presentation.test.mjs"
+  ],
+  "exit": 0
+}

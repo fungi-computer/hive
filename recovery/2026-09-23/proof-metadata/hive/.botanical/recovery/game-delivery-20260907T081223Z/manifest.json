@@ -1,0 +1,42 @@
+{
+  "branch": "feat/goblin-bed-and-breakfast-mvp",
+  "head": "016b1a02b009e798165bd4ba11653093cf4ee1c6",
+  "created": "20260907T081223Z",
+  "files": {
+    "ARCHITECTURE.md": "1a0575254bca5e46853f7996a98ca983a4920e0fee50ab9eb885c4097da6ffad",
+    "PROTOTYPE.md": "ec7df7c247fbc580dd46672c273df9f5263cbef71e2f7bfe6d607189c3ea160a",
+    "package-lock.json": "fa74f3a368ae99b32ef07e29886d703ec98eaa8506c8da38987f122072dc19a5",
+    "package.json": "6216639db07000547ce61c2c23facebe1717d9e2368cec815aac869c469bbbfa",
+    "src/activity.ts": "405809fcca7ab30f6373b934d5f2fff2a02b14db4f2e21cd319d72f0da35679c",
+    "src/actors.ts": "5a615356603ca504a3dccbe4ceb5f9c8974476bb0a9ce42f49bf0ad68ee25e8c",
+    "src/art.js": "07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785",
+    "src/art/figures.js": "4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b",
+    "src/clearing.test.js": "36c1438a416daa8783d62c592f0b0d021ad45ecb49cc8db6fa6de7156e51aaf2",
+    "src/clearing.ts": "c22c99e2abb61a489c781acb8bb9a226b76577234a8c2a8617772512f276f919",
+    "src/construction-view.js": "c4f6f174bdd97eb849f16321536867b896e7cd866e3940f9c97da7967bf2204a",
+    "src/construction.js": "1d7145d623fded0b2637b93e2dfbd4e4004739ba6769d6973acb23d27d73f794",
+    "src/hud.jsx": "0489961f8b0a56b7842b3ae15e2d0b01f057afca3e81194528dc46170d0bfa65",
+    "src/jobs.ts": "cb7a0c290f1fe68a7d51dbc79f61e93e07ce6b9777d932f5693681e7bbf27700",
+    "src/main.js": "51c53a4ccec7b8a1268cd3358cb40574420031a466f2b4c72b5fb18955c50db8",
+    "src/matching.ts": "47d925684260d12435edee4d1f6a3328fcb2c1ead0b56f7109059839654c1092",
+    "src/model.ts": "2e7d24835701d64c9820aa62191ed8b6b8a730f3341d7a60171f22d83eb55360",
+    "src/orders.ts": "54dfd6368c2d6ec122cc5397f0d4fd7880b3e94f6c45595f8f329d2458deaf74",
+    "src/resources.ts": "62f046c2e6850ae6645de71e0b7e9bb313f1ec59907dacedec97be7442ca0e2e",
+    "src/routine.ts": "94ae44d570f41b31d2840d91077b6fb084a91237b4ae30a0957bf871073b8174",
+    "src/study.css": "d2cc9b0eef178526a5a5814458cb82fd7410114a27b1a35352ef3f77892c7445",
+    "src/study.js": "cb71ece101ab45fa1ca9d0932183d2fda92bb5323d5d09662d645b97b2f8d419",
+    "src/view.js": "052181d2f7d78ceefb10d50b64ab85497a4f6f3aa292c1052a7fc3ce62c62fe6",
+    "src/world.js": "d96f036caee3a63f463116ba8844978305f2c0778da60bf30bfcc01c2b4507be",
+    "study.html": "f0694f33aa75e9d6f3e8c314c644e51417d45cfc364a67d557e8143e3ec929f1",
+    "tsconfig.json": "6c7329aba892cb3052f456b5061512fa055a378df6a010f4705359a14fdb8a4f"
+  },
+  "deleted": [
+    "src/clearing.js",
+    "src/jobs.js",
+    "src/resources.js"
+  ],
+  "exclusions": [
+    "ignored evidence, references, node_modules and preserved dist remain in place"
+  ],
+  "archive_sha256": "4866c0548b82b4be065782c3d336372df2a4341cbb4b27f5cc837749ac09aca5"
+}

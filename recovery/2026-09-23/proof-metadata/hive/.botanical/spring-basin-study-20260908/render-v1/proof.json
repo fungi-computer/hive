@@ -1,0 +1,307 @@
+{
+  "source": {
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/spring-basin-study-20260908/basin.js": "a3fe6e3a861a483494ad0f0e469b704a3b2518beccf5c0ad9a730f074f8a2b86",
+    ".botanical/spring-basin-study-20260908/study.js": "441f92a1c0da70f7f4d9281e7da4eb50b4c485caaf34600f901dd5acf16fd082",
+    ".botanical/spring-basin-study-20260908/index.html": "690a4c86e190d7be4f4205900f8e0afefe9470bd2b1a9ea245239d9226b68041",
+    ".botanical/spring-basin-study-20260908/capture.mjs": "fef038f99e840b3cbcaaa7471eb30541d51e03e09d9064aa377470ca57a085c9"
+  },
+  "passed": true,
+  "errors": [],
+  "clicks": [
+    {
+      "id": "full-0",
+      "actual": "full-0"
+    },
+    {
+      "id": "full-1",
+      "actual": "full-1"
+    },
+    {
+      "id": "full-2",
+      "actual": "full-2"
+    },
+    {
+      "id": "full-3",
+      "actual": "full-3"
+    },
+    {
+      "id": "low-0",
+      "actual": "low-0"
+    },
+    {
+      "id": "low-1",
+      "actual": "low-1"
+    },
+    {
+      "id": "low-2",
+      "actual": "low-2"
+    },
+    {
+      "id": "low-3",
+      "actual": "low-3"
+    },
+    {
+      "id": "dry-0",
+      "actual": "dry-0"
+    },
+    {
+      "id": "dry-1",
+      "actual": "dry-1"
+    },
+    {
+      "id": "dry-2",
+      "actual": "dry-2"
+    },
+    {
+      "id": "dry-3",
+      "actual": "dry-3"
+    }
+  ],
+  "report": {
+    "ready": true,
+    "lastPicked": null,
+    "rows": [
+      {
+        "id": "full-0",
+        "fill": "full",
+        "dir": 0,
+        "hash": "353de08de5c99071731bd2a89796c0ab25871aa2ac99cd4356036e7091324cb2",
+        "bounds": {
+          "minX": 44,
+          "minY": 62,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 350,
+          "clipped": false
+        }
+      },
+      {
+        "id": "full-1",
+        "fill": "full",
+        "dir": 1,
+        "hash": "525464722bd03e049d6375cb74a40497efd5fe53e6a7ecc97f52ba08a6c03011",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 348,
+          "clipped": false
+        }
+      },
+      {
+        "id": "full-2",
+        "fill": "full",
+        "dir": 2,
+        "hash": "f5db13b4f558e38511ea4a10c8a533f809f4b18f12ca66b625038562231408f0",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 340,
+          "clipped": false
+        }
+      },
+      {
+        "id": "full-3",
+        "fill": "full",
+        "dir": 3,
+        "hash": "6133b9dbb3c1e9657bd18d5363934e8c82db59860f355aec833a0b175cbb3b79",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 341,
+          "clipped": false
+        }
+      },
+      {
+        "id": "low-0",
+        "fill": "low",
+        "dir": 0,
+        "hash": "cb38ff7b3e71181831527fb1ac293c3d289d0fa26c8db111de78af1ba23e9638",
+        "bounds": {
+          "minX": 44,
+          "minY": 62,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 350,
+          "clipped": false
+        }
+      },
+      {
+        "id": "low-1",
+        "fill": "low",
+        "dir": 1,
+        "hash": "4232e9efb5cb4360ef16fd7dc0a73e7f4cb252ce4443e832621e11d219e1ba67",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 348,
+          "clipped": false
+        }
+      },
+      {
+        "id": "low-2",
+        "fill": "low",
+        "dir": 2,
+        "hash": "25abb0224d83d8d490d90da222907e429faacac9d60db65c5ae006175dacf762",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 340,
+          "clipped": false
+        }
+      },
+      {
+        "id": "low-3",
+        "fill": "low",
+        "dir": 3,
+        "hash": "5273e320b8b07be59e4b484a52a74158c424f423f2eca5919cafc0d51c802ac2",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 341,
+          "clipped": false
+        }
+      },
+      {
+        "id": "dry-0",
+        "fill": "dry",
+        "dir": 0,
+        "hash": "4528ab1ee3180177cc21f7865f7ebb202667620e2ffe96a46252d01f272b11e1",
+        "bounds": {
+          "minX": 44,
+          "minY": 62,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 350,
+          "clipped": false
+        }
+      },
+      {
+        "id": "dry-1",
+        "fill": "dry",
+        "dir": 1,
+        "hash": "fae4b899cf02e24bce7ebc0364738d9cfde4c80dbb7021722c1b11dffc31a5a6",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 348,
+          "clipped": false
+        }
+      },
+      {
+        "id": "dry-2",
+        "fill": "dry",
+        "dir": 2,
+        "hash": "a14d61853559ccecf6ead8007adfe31bade546e49fd0496e412345715c8acac9",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 340,
+          "clipped": false
+        }
+      },
+      {
+        "id": "dry-3",
+        "fill": "dry",
+        "dir": 3,
+        "hash": "627130feff119b6f7550c82a8c425d0b99ef4d783a18e22c0b6f1bb3645bbe61",
+        "bounds": {
+          "minX": 44,
+          "minY": 64,
+          "maxX": 67,
+          "maxY": 81,
+          "count": 341,
+          "clipped": false
+        }
+      }
+    ],
+    "geometry": [
+      {
+        "fill": "full",
+        "bodyFloor": 0.05499999970197689,
+        "expectedFloor": 0.055,
+        "water": 0.285,
+        "expectedWater": 0.285,
+        "bounds": {
+          "min": [
+            -0.4650000035762787,
+            0.012000000104308128,
+            -0.4650000035762787
+          ],
+          "max": [
+            0.4650000035762787,
+            0.525,
+            0.4650000035762787
+          ]
+        }
+      },
+      {
+        "fill": "low",
+        "bodyFloor": 0.05499999970197689,
+        "expectedFloor": 0.055,
+        "water": 0.115,
+        "expectedWater": 0.115,
+        "bounds": {
+          "min": [
+            -0.4650000035762787,
+            0.012000000104308128,
+            -0.4650000035762787
+          ],
+          "max": [
+            0.4650000035762787,
+            0.525,
+            0.4650000035762787
+          ]
+        }
+      },
+      {
+        "fill": "dry",
+        "bodyFloor": 0.05499999970197689,
+        "expectedFloor": 0.055,
+        "water": null,
+        "expectedWater": null,
+        "bounds": {
+          "min": [
+            -0.4650000035762787,
+            0.012000000104308128,
+            -0.4650000035762787
+          ],
+          "max": [
+            0.4650000035762787,
+            0.525,
+            0.4650000035762787
+          ]
+        }
+      }
+    ],
+    "bakeSource": "function bake(renderer, s, c, w, h, ink = true) {\n  renderer.setSize(w, h, false);\n  renderer.render(s, c);\n  const canvas = document.createElement(\"canvas\");\n  canvas.width = w;\n  canvas.height = h;\n  const ctx = canvas.getContext(\"2d\");\n  ctx.drawImage(renderer.domElement, 0, 0);\n  if (ink) outline(ctx, w, h);\n  s.traverse((o) => {\n    if (o.geometry) o.geometry.dispose();\n  });\n  const texture = Texture.from(canvas);\n  texture.source.scaleMode = \"nearest\";\n  registerVisibleTexture(texture, ctx.getImageData(0, 0, w, h).data, w, h);\n  return texture;\n}",
+    "anchorSource": "function anchor(c) {\n  const foot = new THREE.Vector3(0, 0, 0).project(c);\n  return { x: 0.5, y: (1 - foot.y) / 2 };\n}"
+  },
+  "sourceAfter": {
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/spring-basin-study-20260908/basin.js": "a3fe6e3a861a483494ad0f0e469b704a3b2518beccf5c0ad9a730f074f8a2b86",
+    ".botanical/spring-basin-study-20260908/study.js": "441f92a1c0da70f7f4d9281e7da4eb50b4c485caaf34600f901dd5acf16fd082",
+    ".botanical/spring-basin-study-20260908/index.html": "690a4c86e190d7be4f4205900f8e0afefe9470bd2b1a9ea245239d9226b68041",
+    ".botanical/spring-basin-study-20260908/capture.mjs": "fef038f99e840b3cbcaaa7471eb30541d51e03e09d9064aa377470ca57a085c9"
+  }
+}

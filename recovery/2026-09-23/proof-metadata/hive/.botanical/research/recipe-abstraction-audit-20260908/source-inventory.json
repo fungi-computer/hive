@@ -1,0 +1,15 @@
+{
+  "observedAt": "2026-09-08T19:23:59.322907+00:00",
+  "head": "7ff7111141676dd524ed06bbf53d1eccd526102c",
+  "note": "Read-only audit of a moving worktree; active writer retains custody; hashes identify final observed bytes, not an atomic source freeze or acceptance.",
+  "files": {
+    "src/recipes.ts": "f80ae626ad73d896a26b67679bffe5f065eed9b5de8429ba4b84c3e04eacef40",
+    "src/construction.js": "99b6de8e38919abf9ccc63bb2a8e9186cea41dbf4853685284537e9963558e18",
+    "src/materials.ts": "98968542871b03ef2fbda34d3cbdd4a09e94ce818dd5dbc63fc9dac67f43f9af",
+    "src/brewing.ts": "6cc2e490a2784fb5ccb2cc3cc5315bf0ee9079ccbc94ba200fc88618576e57b7",
+    "src/model.ts": "2f5e109b2b0c5ba8eebc591eec106dfb1597f4986a1a2440f888a67c50b16e0e",
+    "src/persistence.ts": "76caa38170bd0661107bdeb2cd16af9d827a396724d5fa1413e95ef2f4edacdd",
+    "src/jobs.ts": "897035f3d4e9d1cbfbc865a4de4f7edadd8c22e1e9ea81eb3c5d30bffc1d04e4",
+    "src/activity.ts": "ee46b323432fa7c0f5ef52028d9a3e4fecbcb85e1bdd4e14d7e6a388b50542bb"
+  }
+}

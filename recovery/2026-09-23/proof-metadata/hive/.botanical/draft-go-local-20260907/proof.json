@@ -1,0 +1,145 @@
+{
+  "proof": "draft-go-local",
+  "baseUrl": "http://127.0.0.1:5188/",
+  "wrapperInvocation": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh node scripts/prove-draft-go.mjs http://127.0.0.1:5188/ .botanical/draft-go-local-20260907",
+  "hashes": {
+    "source": {
+      "src/model.ts": {
+        "expected": "8169176c147c5e0a2322b83bca74d9c5a12c39e1390a85fee5168323fef33862",
+        "actual": "8169176c147c5e0a2322b83bca74d9c5a12c39e1390a85fee5168323fef33862",
+        "ok": true
+      },
+      "src/actors.ts": {
+        "expected": "327d6b96e221231d3ab8e15c03740a10843924ea7cda49e1343801999abeec44",
+        "actual": "327d6b96e221231d3ab8e15c03740a10843924ea7cda49e1343801999abeec44",
+        "ok": true
+      },
+      "src/orders.ts": {
+        "expected": "a2877c5178cdba2f37e0c779239ded2f94ffb7bf4d42b6e7d03f638d1729928c",
+        "actual": "a2877c5178cdba2f37e0c779239ded2f94ffb7bf4d42b6e7d03f638d1729928c",
+        "ok": true
+      },
+      "src/jobs.ts": {
+        "expected": "bc1d83533a95500600c1c807620a02f66dcf481aa27f3c9add7be92ee5a1e53c",
+        "actual": "bc1d83533a95500600c1c807620a02f66dcf481aa27f3c9add7be92ee5a1e53c",
+        "ok": true
+      },
+      "src/routine.ts": {
+        "expected": "5a395b8f583d03590781b69e6a553e05db930dc9a6f61c3b399b6df5d1aaf4c9",
+        "actual": "5a395b8f583d03590781b69e6a553e05db930dc9a6f61c3b399b6df5d1aaf4c9",
+        "ok": true
+      },
+      "src/clearing.ts": {
+        "expected": "e003526ed6591e403813cec3dee02486fe3da007e064be92e3754f21773733a3",
+        "actual": "e003526ed6591e403813cec3dee02486fe3da007e064be92e3754f21773733a3",
+        "ok": true
+      },
+      "src/persistence.ts": {
+        "expected": "2794ce5d5f4875fadf2f8def0f817b948f1af9437f133d3a477bb5bc9034c341",
+        "actual": "2794ce5d5f4875fadf2f8def0f817b948f1af9437f133d3a477bb5bc9034c341",
+        "ok": true
+      },
+      "src/ui-actions.ts": {
+        "expected": "a1a13ac74d75cc10829255a4d490f29dcff95e0ffebc952c8665219146197ade",
+        "actual": "a1a13ac74d75cc10829255a4d490f29dcff95e0ffebc952c8665219146197ade",
+        "ok": true
+      },
+      "src/hud.jsx": {
+        "expected": "15a6ffc03bcb69f7c4a1baaea6c14407141aaec6498365ed76c1a0ea058260b5",
+        "actual": "15a6ffc03bcb69f7c4a1baaea6c14407141aaec6498365ed76c1a0ea058260b5",
+        "ok": true
+      },
+      "src/main.js": {
+        "expected": "e611a47bd350fe6fd865bba6085e21be36e69575fa77cf2549b3f86e4b20c75c",
+        "actual": "e611a47bd350fe6fd865bba6085e21be36e69575fa77cf2549b3f86e4b20c75c",
+        "ok": true
+      },
+      "src/view.js": {
+        "expected": "9ae3a90e89167ee0c4dc73c5ff2e42b64280ebd29c5511361c046481ca9f8968",
+        "actual": "9ae3a90e89167ee0c4dc73c5ff2e42b64280ebd29c5511361c046481ca9f8968",
+        "ok": true
+      },
+      "src/activity.ts": {
+        "expected": "520b2890b78894bd36a8606a534eb108f6e9174e5a1a014e7934773eb03efb50",
+        "actual": "520b2890b78894bd36a8606a534eb108f6e9174e5a1a014e7934773eb03efb50",
+        "ok": true
+      },
+      "src/construction.js": {
+        "expected": "d550df189e52b94afb2e3c1b520692323ccbc643e5d9417528f2cbf39f7e54bc",
+        "actual": "d550df189e52b94afb2e3c1b520692323ccbc643e5d9417528f2cbf39f7e54bc",
+        "ok": true
+      }
+    },
+    "dist": {
+      "dist/index.html": {
+        "expected": "a8fccd5d0648adad513f1185d4309eab45cc4aef7c1fdd89b101205566ac6546",
+        "actual": "a8fccd5d0648adad513f1185d4309eab45cc4aef7c1fdd89b101205566ac6546",
+        "ok": true
+      },
+      "dist/assets/game-Y9euOUFb.js": {
+        "expected": "8e58ae58a5fc28fd0dd8d004ec826fb9fcb01741d2c62e514de88c321dc65c6d",
+        "actual": "8e58ae58a5fc28fd0dd8d004ec826fb9fcb01741d2c62e514de88c321dc65c6d",
+        "ok": true
+      },
+      "dist/assets/game-CbYhief5.css": {
+        "expected": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "actual": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "ok": true
+      },
+      "dist/assets/art-BfFl4vsZ.js": {
+        "expected": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "actual": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "ok": true
+      }
+    },
+    "served": {
+      "dist/index.html": {
+        "expected": "a8fccd5d0648adad513f1185d4309eab45cc4aef7c1fdd89b101205566ac6546",
+        "actual": "a8fccd5d0648adad513f1185d4309eab45cc4aef7c1fdd89b101205566ac6546",
+        "ok": true
+      },
+      "dist/assets/game-Y9euOUFb.js": {
+        "expected": "8e58ae58a5fc28fd0dd8d004ec826fb9fcb01741d2c62e514de88c321dc65c6d",
+        "actual": "8e58ae58a5fc28fd0dd8d004ec826fb9fcb01741d2c62e514de88c321dc65c6d",
+        "status": 200,
+        "ok": true
+      },
+      "dist/assets/game-CbYhief5.css": {
+        "expected": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "actual": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "status": 200,
+        "ok": true
+      },
+      "dist/assets/art-BfFl4vsZ.js": {
+        "expected": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "actual": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "status": 200,
+        "ok": true
+      }
+    },
+    "script": {
+      "file": "scripts/prove-draft-go.mjs",
+      "actual": "d7691c1d5892c713dcd342d19eb9245cd0431f91e8827c3a4783775ae520b8f1"
+    }
+  },
+  "assertions": [
+    "Pinned source, local dist, served index/game/CSS/art, and proof-script hashes recorded; source and served artifact values match the frozen candidate."
+  ],
+  "snapshots": {},
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "success": false,
+  "failure": {
+    "name": "Error",
+    "message": "browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --disable-dev-shm-usage --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-YVJmJV --remote-debugging-pipe --no-startup-window\n<launched> pid=2709506\n[pid=2709506][err] /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory\nCall log:\n\u001b[2m  - <launching> /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --disable-dev-shm-usage --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-YVJmJV --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=2709506\u001b[22m\n\u001b[2m  - [pid=2709506][err] /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory\u001b[22m\n\u001b[2m  - [pid=2709506] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=2709506] <kill>\u001b[22m\n\u001b[2m  - [pid=2709506] <will force kill>\u001b[22m\n\u001b[2m  - [pid=2709506] exception while trying to kill process: Error: kill ESRCH\u001b[22m\n\u001b[2m  - [pid=2709506] <process did exit: exitCode=127, signal=null>\u001b[22m\n\u001b[2m  - [pid=2709506] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=2709506] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=2709506] <gracefully close end>\u001b[22m\n",
+    "stack": "browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --disable-dev-shm-usage --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-YVJmJV --remote-debugging-pipe --no-startup-window\n<launched> pid=2709506\n[pid=2709506][err] /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory\nCall log:\n\u001b[2m  - <launching> /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --disable-dev-shm-usage --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-YVJmJV --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=2709506\u001b[22m\n\u001b[2m  - [pid=2709506][err] /home/levi/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory\u001b[22m\n\u001b[2m  - [pid=2709506] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=2709506] <kill>\u001b[22m\n\u001b[2m  - [pid=2709506] <will force kill>\u001b[22m\n\u001b[2m  - [pid=2709506] exception while trying to kill process: Error: kill ESRCH\u001b[22m\n\u001b[2m  - [pid=2709506] <process did exit: exitCode=127, signal=null>\u001b[22m\n\u001b[2m  - [pid=2709506] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=2709506] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=2709506] <gracefully close end>\u001b[22m\n\n    at /home/levi/src/hive/scripts/prove-draft-go.mjs:181:28"
+  },
+  "limits": [
+    "One fresh, local browser context against the pinned server; no test/build/source mutation.",
+    "Only Rowan is selected; unselected Sedge makes the retained shared wall job observably wait.",
+    "The proof observes public UI gestures plus read-only __GOBLIN state hooks; it does not inject commands or mutate save storage."
+  ]
+}

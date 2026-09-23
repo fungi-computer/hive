@@ -1,0 +1,229 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study.html",
+  "silhouettes": {
+    "rowan": {
+      "minHeight": 38,
+      "maxHeight": 41
+    },
+    "knight": {
+      "minHeight": 39,
+      "maxHeight": 42
+    },
+    "wizard": {
+      "minHeight": 45,
+      "maxHeight": 51
+    },
+    "goblin": {
+      "minHeight": 33,
+      "maxHeight": 36
+    },
+    "cat": {
+      "minHeight": 20,
+      "maxHeight": 25
+    }
+  },
+  "facing": [
+    {
+      "direction": 0,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    },
+    {
+      "direction": 1,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    },
+    {
+      "direction": 2,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    },
+    {
+      "direction": 3,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    }
+  ],
+  "paused": {
+    "direction": 0,
+    "pose": "walk",
+    "playing": false,
+    "frame": 4
+  },
+  "assignment": {
+    "character": "rowan",
+    "task": "job-1:chop:oak-1",
+    "cost": 134
+  },
+  "game": {
+    "seed": 42,
+    "tick": 180,
+    "paused": false,
+    "nextId": 3,
+    "pawn": {
+      "x": 4,
+      "z": 4,
+      "level": 0,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 77.83999999999992
+    },
+    "cat": {
+      "x": 4,
+      "z": 5,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 200
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 179
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-2",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 6
+      }
+    ],
+    "sites": [],
+    "jobs": [],
+    "felled": 1,
+    "finishedJobs": 1,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 45
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Oak felled. Six wood on the ground, ready to carry."
+  },
+  "errors": []
+}

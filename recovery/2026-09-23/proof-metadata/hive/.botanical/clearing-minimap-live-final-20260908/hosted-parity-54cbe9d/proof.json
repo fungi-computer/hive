@@ -1,0 +1,20 @@
+{
+  "scope": "Hosted HTTP byte parity only; no hosted browser interaction",
+  "revision": "54cbe9d1cf1e7daec6f1d48d28289f2afeba7d85",
+  "deploymentId": "2d439486-cd91-4e1a-b251-109f072c08c5",
+  "distFileCount": 64,
+  "indexSha256": "6b9e54b9f78c37922960e2d3f826e89bc560781eaa471295cfe0df4f0486ea93",
+  "results": [
+    {
+      "base": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev",
+      "fileCount": 64,
+      "mismatches": []
+    },
+    {
+      "base": "https://2d439486-fungi-goblin-bnb.levi-fe0.workers.dev",
+      "fileCount": 64,
+      "mismatches": []
+    }
+  ],
+  "passed": true
+}

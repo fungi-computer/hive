@@ -1,0 +1,287 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "frozenTarget": {
+    "url": "http://127.0.0.1:5188/",
+    "distSha256": {
+      "dist/index.html": "caaa8f74c77d9ff4b3e5e737fefea8c101eb3f1c0b31e24e66dbfe1fffe90638",
+      "dist/assets/game-E5IO99WR.js": "009c85d3dc426a1a42002e2eddf5a9ac70cdd53c44b1ca4d19e4af1fd7777064",
+      "dist/assets/art-CCSP12DF.js": "37435e9bf8030f3ec971348825cf416d2451672b6bfbecf8834052e9e3af4211"
+    }
+  },
+  "scriptSha256": "7f4a1e047e4550a744968923610d3cee6f3be25fa97e1107a444a12ce92ad7d6",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; focused paused/shared input proof only",
+    "exit": 0
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-paused-oak.png",
+    "failure.png"
+  ],
+  "capsButtons": [
+    "#pause",
+    "#mark-chop",
+    "#chop-now",
+    "[data-build=\"wall\"]"
+  ],
+  "traces": {},
+  "success": false,
+  "failure": "locator.screenshot: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('.target-window')\u001b[22m\n\n    at screenshot (/home/levi/src/hive/scripts/prove-paused-work.mjs:81:33)\n    at runPausedScenario (/home/levi/src/hive/scripts/prove-paused-work.mjs:198:9)\n    at async file:///home/levi/src/hive/scripts/prove-paused-work.mjs:276:3",
+  "failureState": {
+    "seed": 42,
+    "tick": 56,
+    "paused": true,
+    "nextId": 4,
+    "actors": {
+      "rowan": {
+        "x": 7,
+        "z": 10,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 79.32799999999997,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      },
+      "sedge": {
+        "x": 10,
+        "z": 12,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 80,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan"
+        ]
+      }
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [
+      {
+        "id": "site-2",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-1",
+        "kind": "chop",
+        "target": "oak-1",
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ordered",
+        "routine": false
+      },
+      {
+        "id": "job-3",
+        "kind": "build",
+        "target": "site-2",
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ordered",
+        "routine": false
+      }
+    ],
+    "claims": {},
+    "workDirty": true,
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "commands": [
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "chop",
+        "tree": "oak-1",
+        "direct": false,
+        "tick": 56
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 56
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Blueprint placed. Wood will be brought when it is available."
+  },
+  "failureUi": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": "wall",
+    "phase": "ready",
+    "gesture": null,
+    "hoverCell": {
+      "x": 7,
+      "z": 5,
+      "level": 0
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "errors": [],
+  "failure": "Error: page.evaluate: TypeError: Failed to resolve module specifier 'pixi.js'\n    at eval (eval at evaluate (:311:30), <anonymous>:2:66)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)"
+}

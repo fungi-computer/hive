@@ -1,0 +1,5259 @@
+{
+  "proof": "hosted-paused-camera",
+  "mode": "after",
+  "url": "https://professor-findlaw-looks-atlas.trycloudflare.com/engine/colony-performance.html?size=256&workers=8&diagnostics=draw",
+  "startedAt": "2026-09-20T10:13:11.445Z",
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "phases": [
+    {
+      "name": "idle",
+      "before": {
+        "draw": {
+          "spatialDraw": {
+            "counts": {
+              "compile": 36,
+              "staticRebuild": 3,
+              "dynamicInsert": 315,
+              "applyOrder": 3,
+              "staticFaceComparisons": 131175,
+              "dynamicFaceComparisons": 210,
+              "candidateVisits": 1206624,
+              "topologyBuilds": 38,
+              "topologyReuses": 1,
+              "staticPreparedNew": 17353,
+              "staticPreparedReused": 50,
+              "staticRelationsReused": 1
+            },
+            "times": {
+              "compileMs": 2674.4999997615814,
+              "staticRebuildMs": 2421.5,
+              "dynamicInsertMs": 244.79999947547913,
+              "topologyUpdateMs": 244.69999933242798,
+              "orderReuseMs": 0.10000014305114746,
+              "applyOrderMs": 122.5
+            },
+            "latest": {
+              "records": 17362,
+              "candidateVisits": 1179,
+              "faceComparisons": 173,
+              "bins": 437,
+              "edges": 115698,
+              "topologyBuilds": 1,
+              "topologyReuses": 0,
+              "coplanarSkips": 0,
+              "coverageRefinements": 0,
+              "coverageFaceComparisons": 0,
+              "approximateOverlaps": 0,
+              "approximateCycles": 0,
+              "preparedNew": 0,
+              "preparedReused": 0,
+              "relationsReused": 0,
+              "preparationMs": 14.299999952316284,
+              "candidateMs": 2.4000000953674316,
+              "topologyMs": 57.39999985694885,
+              "staticRebuilt": true,
+              "staticFaceComparisons": 131173,
+              "staticWork": {
+                "records": 17353,
+                "candidateVisits": 1205157,
+                "faceComparisons": 131173,
+                "bins": 418,
+                "edges": 115467,
+                "topologyBuilds": 1,
+                "topologyReuses": 0,
+                "coplanarSkips": 36562,
+                "coverageRefinements": 44,
+                "coverageFaceComparisons": 52,
+                "approximateOverlaps": 43,
+                "approximateCycles": 0,
+                "preparedNew": 17303,
+                "preparedReused": 50,
+                "relationsReused": 1,
+                "preparationMs": 1619,
+                "candidateMs": 654.6000001430511,
+                "topologyMs": 101.79999995231628
+              }
+            },
+            "retained": {
+              "staticRecords": 17353,
+              "staticRelations": 115467,
+              "staticBins": 418,
+              "dynamicRecords": 9,
+              "currentRecords": 17362
+            },
+            "samples": {
+              "staticRebuildMs": [
+                0.09999990463256836,
+                12.799999952316284,
+                2408.600000143051
+              ],
+              "dynamicInsertMs": [
+                0.10000014305114746,
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "topologyUpdateMs": [
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "orderReuseMs": [
+                0.10000014305114746
+              ],
+              "applyOrderMs": [
+                0.20000004768371582,
+                0.09999990463256836,
+                122.20000004768372
+              ]
+            },
+            "visualBuild": {
+              "frames": 411,
+              "unchangedFrames": 375,
+              "totalMs": 261.90000009536743
+            },
+            "cameraCoverage": {
+              "plans": 1,
+              "retained": 364,
+              "padding": 128,
+              "prepared": {
+                "left": 27.14406779661033,
+                "right": 706.1440677966103,
+                "top": -330.1164295122996,
+                "bottom": 358.8835704877004
+              },
+              "refresh": {
+                "left": 71.94406779661033,
+                "right": 661.3440677966104,
+                "top": -285.3164295122996,
+                "bottom": 314.0835704877004
+              },
+              "viewport": {
+                "left": 155.14406779661033,
+                "right": 578.1440677966103,
+                "top": -202.1164295122996,
+                "bottom": 230.8835704877004
+              },
+              "chunks": 759,
+              "withinPrepared": true
+            },
+            "coverage": {
+              "capacity": 2048,
+              "epoch": 0,
+              "terrainRevision": 0,
+              "demandComplete": true,
+              "viewBudget": false,
+              "requestedChunks": 759,
+              "readyChunks": 759,
+              "retainedChunks": 759,
+              "cachedChunks": 759,
+              "pending": false
+            },
+            "primitives": 17362
+          },
+          "visibleDrawRecords": 17362,
+          "frameSequence": 33,
+          "frameEpoch": 0,
+          "paused": true,
+          "camera": {
+            "x": -310.28813559322066,
+            "y": 404.2328590245992,
+            "zoom": 2,
+            "turn": 0
+          },
+          "view": {
+            "level": 19,
+            "cutaway": false
+          },
+          "selectedIds": [],
+          "subjects": [
+            {
+              "id": "colony.guest.1",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "goblin.guest",
+              "pickable": true,
+              "screen": {
+                "x": 352.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.oak",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 320.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-10",
+              "x": 25,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 720.0000000000001,
+                "y": 235.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-11",
+              "x": 8,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 416.0000000000002,
+                "y": 115.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-12",
+              "x": -9,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 112.00000000000017,
+                "y": -4.99762907387491
+              }
+            },
+            {
+              "id": "colony.tree.performance-13",
+              "x": -26,
+              "y": 9.99,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -191.9999999999999,
+                "y": -135.5794247626983
+              }
+            },
+            {
+              "id": "colony.tree.performance-14",
+              "x": 14,
+              "y": 9.450000000000001,
+              "z": 7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 432.00000000000017,
+                "y": 203.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-15",
+              "x": -3,
+              "y": 9.99,
+              "z": 9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 128.00000000000017,
+                "y": 72.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-16",
+              "x": -20,
+              "y": 9.99,
+              "z": 11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -175.99999999999994,
+                "y": -47.57942476269821
+              }
+            },
+            {
+              "id": "colony.tree.performance-17",
+              "x": 20,
+              "y": 9.450000000000001,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 448.00000000000017,
+                "y": 291.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-18",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 144.0000000000002,
+                "y": 171.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-19",
+              "x": -14,
+              "y": 9.99,
+              "z": 16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -159.99999999999994,
+                "y": 40.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-20",
+              "x": 26,
+              "y": 9.450000000000001,
+              "z": 17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000002,
+                "y": 379.00237092612514
+              }
+            },
+            {
+              "id": "colony.tree.performance-21",
+              "x": 9,
+              "y": 9.450000000000001,
+              "z": 19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 160.00000000000017,
+                "y": 259.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-22",
+              "x": -8,
+              "y": 9.99,
+              "z": 21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -143.99999999999991,
+                "y": 128.42057523730173
+              }
+            },
+            {
+              "id": "colony.tree.performance-23",
+              "x": -25,
+              "y": 10.530000000000001,
+              "z": 23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -448,
+                "y": -2.1612204515216504
+              }
+            },
+            {
+              "id": "colony.tree.performance-24",
+              "x": 15,
+              "y": 9.99,
+              "z": 24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.00000000000009,
+                "y": 336.4205752373017
+              }
+            },
+            {
+              "id": "colony.tree.performance-25",
+              "x": -2,
+              "y": 9.99,
+              "z": 26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -127.99999999999997,
+                "y": 216.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-26",
+              "x": -19,
+              "y": 10.530000000000001,
+              "z": 28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -431.9999999999999,
+                "y": 85.8387795484784
+              }
+            },
+            {
+              "id": "colony.tree.performance-27",
+              "x": 21,
+              "y": 8.91,
+              "z": -28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1104.0000000000002,
+                "y": -10.41583338505152
+              }
+            },
+            {
+              "id": "colony.tree.performance-28",
+              "x": 4,
+              "y": 8.91,
+              "z": -26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 800.0000000000002,
+                "y": -130.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-29",
+              "x": -13,
+              "y": 8.91,
+              "z": -24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 496.0000000000003,
+                "y": -250.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-30",
+              "x": 27,
+              "y": 8.91,
+              "z": -23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1120.0000000000002,
+                "y": 77.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-31",
+              "x": 10,
+              "y": 8.91,
+              "z": -21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 816.0000000000002,
+                "y": -42.41583338505155
+              }
+            },
+            {
+              "id": "colony.tree.performance-32",
+              "x": -7,
+              "y": 8.91,
+              "z": -19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 512.0000000000003,
+                "y": -162.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-33",
+              "x": -24,
+              "y": 9.450000000000001,
+              "z": -17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 208.00000000000026,
+                "y": -292.9976290738749
+              }
+            },
+            {
+              "id": "colony.tree.performance-34",
+              "x": 16,
+              "y": 8.91,
+              "z": -16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 832.0000000000002,
+                "y": 45.584166614948465
+              }
+            },
+            {
+              "id": "colony.tree.performance-35",
+              "x": -1,
+              "y": 8.91,
+              "z": -14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 528.0000000000002,
+                "y": -74.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-36",
+              "x": -18,
+              "y": 9.450000000000001,
+              "z": -12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 224.0000000000002,
+                "y": -204.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-37",
+              "x": 22,
+              "y": 8.91,
+              "z": -11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 848.0000000000001,
+                "y": 133.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-38",
+              "x": 5,
+              "y": 9.450000000000001,
+              "z": -9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 544.0000000000002,
+                "y": 3.0023709261251197
+              }
+            },
+            {
+              "id": "colony.tree.performance-39",
+              "x": -12,
+              "y": 9.450000000000001,
+              "z": -7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 240.00000000000023,
+                "y": -116.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-4",
+              "x": 13,
+              "y": 8.91,
+              "z": -10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 688.0000000000002,
+                "y": 69.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-40",
+              "x": 28,
+              "y": 8.91,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 864,
+                "y": 221.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-41",
+              "x": 11,
+              "y": 9.450000000000001,
+              "z": -4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 560.0000000000002,
+                "y": 91.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-42",
+              "x": -6,
+              "y": 9.450000000000001,
+              "z": -2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 256.00000000000017,
+                "y": -28.997629073874933
+              }
+            },
+            {
+              "id": "colony.tree.performance-43",
+              "x": -23,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -47.9999999999999,
+                "y": -148.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-44",
+              "x": 17,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 576.0000000000002,
+                "y": 179.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-45",
+              "x": 0,
+              "y": 9.450000000000001,
+              "z": 3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 272.0000000000002,
+                "y": 59.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-46",
+              "x": -17,
+              "y": 9.450000000000001,
+              "z": 5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -31.999999999999886,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-47",
+              "x": 23,
+              "y": 9.450000000000001,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 592.0000000000002,
+                "y": 267.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-48",
+              "x": 6,
+              "y": 9.450000000000001,
+              "z": 8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 288.00000000000017,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-49",
+              "x": -11,
+              "y": 9.99,
+              "z": 10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -15.999999999999872,
+                "y": 16.420575237301737
+              }
+            },
+            {
+              "id": "colony.tree.performance-5",
+              "x": -4,
+              "y": 9.450000000000001,
+              "z": -8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 384.0000000000002,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-50",
+              "x": -28,
+              "y": 9.99,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -319.99999999999994,
+                "y": -103.57942476269825
+              }
+            },
+            {
+              "id": "colony.tree.performance-6",
+              "x": -21,
+              "y": 9.450000000000001,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 80.00000000000017,
+                "y": -180.99762907387498
+              }
+            },
+            {
+              "id": "colony.tree.performance-7",
+              "x": 19,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 704.0000000000002,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-8",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": -3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 400.0000000000002,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.tree.performance-9",
+              "x": -15,
+              "y": 9.450000000000001,
+              "z": -1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 96.0000000000002,
+                "y": -92.99762907387486
+              }
+            },
+            {
+              "id": "colony.tree.pine",
+              "x": -5,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.0000000000002,
+                "y": 27.002370926125074
+              }
+            },
+            {
+              "id": "colony.tree.willow",
+              "x": 4,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000003,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.worker.3",
+              "x": -5,
+              "y": 8.91,
+              "z": -19.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 552.4640000000004,
+                "y": -150.6478333850516
+              }
+            },
+            {
+              "id": "colony.worker.4",
+              "x": -22,
+              "y": 8.91,
+              "z": -17.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 248.4640000000003,
+                "y": -270.64783338505157
+              }
+            },
+            {
+              "id": "colony.worker.5",
+              "x": 18,
+              "y": 8.91,
+              "z": -16.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 872.4640000000004,
+                "y": 57.352166614948416
+              }
+            },
+            {
+              "id": "colony.worker.6",
+              "x": 1,
+              "y": 8.91,
+              "z": -14.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 568.4640000000003,
+                "y": -62.64783338505158
+              }
+            },
+            {
+              "id": "colony.worker.7",
+              "x": -16,
+              "y": 9.450000000000001,
+              "z": -13.069000000000015,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 273.1040000000005,
+                "y": -197.549629073875
+              }
+            },
+            {
+              "id": "colony.worker.8",
+              "x": 24,
+              "y": 8.91,
+              "z": -11.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 888.4640000000003,
+                "y": 145.35216661494843
+              }
+            },
+            {
+              "id": "party:1.person.0",
+              "x": -28,
+              "y": 8.91,
+              "z": -22.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 232.46400000000037,
+                "y": -358.64783338505157
+              }
+            },
+            {
+              "id": "party:1.person.1",
+              "x": 12,
+              "y": 8.91,
+              "z": -21.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 856.4640000000003,
+                "y": -30.64783338505159
+              }
+            }
+          ]
+        },
+        "performance": {
+          "source": "durable-object",
+          "frames": 34,
+          "sequence": 33,
+          "simulationTime": 3.2000000000000015,
+          "paused": true,
+          "simulationRate": 1.0557571758495545,
+          "observationGap": {
+            "samples": 32,
+            "median": 101,
+            "p95": 245.60000014305115
+          },
+          "httpRoundTrip": {
+            "samples": 97,
+            "median": 269.39999985694885,
+            "p95": 433.80000019073486
+          },
+          "terrainRoundTrip": {
+            "samples": 95,
+            "median": 269.19999980926514,
+            "p95": 402.90000009536743
+          },
+          "receivedBytes": 11085535,
+          "requests": 97,
+          "failedRequests": 0,
+          "observedWorkers": 8,
+          "movingWorkers": 0,
+          "wood": 0,
+          "stumps": 0,
+          "retainedSamples": {
+            "observations": 32,
+            "progression": 32,
+            "http": 97,
+            "terrain": 95
+          }
+        },
+        "heap": {
+          "used": 212000000,
+          "total": 254000000
+        }
+      },
+      "after": {
+        "draw": {
+          "spatialDraw": {
+            "counts": {
+              "compile": 36,
+              "staticRebuild": 3,
+              "dynamicInsert": 315,
+              "applyOrder": 3,
+              "staticFaceComparisons": 131175,
+              "dynamicFaceComparisons": 210,
+              "candidateVisits": 1206624,
+              "topologyBuilds": 38,
+              "topologyReuses": 1,
+              "staticPreparedNew": 17353,
+              "staticPreparedReused": 50,
+              "staticRelationsReused": 1
+            },
+            "times": {
+              "compileMs": 2674.4999997615814,
+              "staticRebuildMs": 2421.5,
+              "dynamicInsertMs": 244.79999947547913,
+              "topologyUpdateMs": 244.69999933242798,
+              "orderReuseMs": 0.10000014305114746,
+              "applyOrderMs": 122.5
+            },
+            "latest": {
+              "records": 17362,
+              "candidateVisits": 1179,
+              "faceComparisons": 173,
+              "bins": 437,
+              "edges": 115698,
+              "topologyBuilds": 1,
+              "topologyReuses": 0,
+              "coplanarSkips": 0,
+              "coverageRefinements": 0,
+              "coverageFaceComparisons": 0,
+              "approximateOverlaps": 0,
+              "approximateCycles": 0,
+              "preparedNew": 0,
+              "preparedReused": 0,
+              "relationsReused": 0,
+              "preparationMs": 14.299999952316284,
+              "candidateMs": 2.4000000953674316,
+              "topologyMs": 57.39999985694885,
+              "staticRebuilt": true,
+              "staticFaceComparisons": 131173,
+              "staticWork": {
+                "records": 17353,
+                "candidateVisits": 1205157,
+                "faceComparisons": 131173,
+                "bins": 418,
+                "edges": 115467,
+                "topologyBuilds": 1,
+                "topologyReuses": 0,
+                "coplanarSkips": 36562,
+                "coverageRefinements": 44,
+                "coverageFaceComparisons": 52,
+                "approximateOverlaps": 43,
+                "approximateCycles": 0,
+                "preparedNew": 17303,
+                "preparedReused": 50,
+                "relationsReused": 1,
+                "preparationMs": 1619,
+                "candidateMs": 654.6000001430511,
+                "topologyMs": 101.79999995231628
+              }
+            },
+            "retained": {
+              "staticRecords": 17353,
+              "staticRelations": 115467,
+              "staticBins": 418,
+              "dynamicRecords": 9,
+              "currentRecords": 17362
+            },
+            "samples": {
+              "staticRebuildMs": [
+                0.09999990463256836,
+                12.799999952316284,
+                2408.600000143051
+              ],
+              "dynamicInsertMs": [
+                0.10000014305114746,
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "topologyUpdateMs": [
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "orderReuseMs": [
+                0.10000014305114746
+              ],
+              "applyOrderMs": [
+                0.20000004768371582,
+                0.09999990463256836,
+                122.20000004768372
+              ]
+            },
+            "visualBuild": {
+              "frames": 419,
+              "unchangedFrames": 383,
+              "totalMs": 265.400000333786
+            },
+            "cameraCoverage": {
+              "plans": 1,
+              "retained": 372,
+              "padding": 128,
+              "prepared": {
+                "left": 27.14406779661033,
+                "right": 706.1440677966103,
+                "top": -330.1164295122996,
+                "bottom": 358.8835704877004
+              },
+              "refresh": {
+                "left": 71.94406779661033,
+                "right": 661.3440677966104,
+                "top": -285.3164295122996,
+                "bottom": 314.0835704877004
+              },
+              "viewport": {
+                "left": 155.14406779661033,
+                "right": 578.1440677966103,
+                "top": -202.1164295122996,
+                "bottom": 230.8835704877004
+              },
+              "chunks": 759,
+              "withinPrepared": true
+            },
+            "coverage": {
+              "capacity": 2048,
+              "epoch": 0,
+              "terrainRevision": 0,
+              "demandComplete": true,
+              "viewBudget": false,
+              "requestedChunks": 759,
+              "readyChunks": 759,
+              "retainedChunks": 759,
+              "cachedChunks": 759,
+              "pending": false
+            },
+            "primitives": 17362
+          },
+          "visibleDrawRecords": 17362,
+          "frameSequence": 33,
+          "frameEpoch": 0,
+          "paused": true,
+          "camera": {
+            "x": -310.28813559322066,
+            "y": 404.2328590245992,
+            "zoom": 2,
+            "turn": 0
+          },
+          "view": {
+            "level": 19,
+            "cutaway": false
+          },
+          "selectedIds": [],
+          "subjects": [
+            {
+              "id": "colony.guest.1",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "goblin.guest",
+              "pickable": true,
+              "screen": {
+                "x": 352.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.oak",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 320.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-10",
+              "x": 25,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 720.0000000000001,
+                "y": 235.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-11",
+              "x": 8,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 416.0000000000002,
+                "y": 115.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-12",
+              "x": -9,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 112.00000000000017,
+                "y": -4.99762907387491
+              }
+            },
+            {
+              "id": "colony.tree.performance-13",
+              "x": -26,
+              "y": 9.99,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -191.9999999999999,
+                "y": -135.5794247626983
+              }
+            },
+            {
+              "id": "colony.tree.performance-14",
+              "x": 14,
+              "y": 9.450000000000001,
+              "z": 7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 432.00000000000017,
+                "y": 203.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-15",
+              "x": -3,
+              "y": 9.99,
+              "z": 9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 128.00000000000017,
+                "y": 72.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-16",
+              "x": -20,
+              "y": 9.99,
+              "z": 11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -175.99999999999994,
+                "y": -47.57942476269821
+              }
+            },
+            {
+              "id": "colony.tree.performance-17",
+              "x": 20,
+              "y": 9.450000000000001,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 448.00000000000017,
+                "y": 291.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-18",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 144.0000000000002,
+                "y": 171.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-19",
+              "x": -14,
+              "y": 9.99,
+              "z": 16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -159.99999999999994,
+                "y": 40.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-20",
+              "x": 26,
+              "y": 9.450000000000001,
+              "z": 17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000002,
+                "y": 379.00237092612514
+              }
+            },
+            {
+              "id": "colony.tree.performance-21",
+              "x": 9,
+              "y": 9.450000000000001,
+              "z": 19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 160.00000000000017,
+                "y": 259.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-22",
+              "x": -8,
+              "y": 9.99,
+              "z": 21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -143.99999999999991,
+                "y": 128.42057523730173
+              }
+            },
+            {
+              "id": "colony.tree.performance-23",
+              "x": -25,
+              "y": 10.530000000000001,
+              "z": 23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -448,
+                "y": -2.1612204515216504
+              }
+            },
+            {
+              "id": "colony.tree.performance-24",
+              "x": 15,
+              "y": 9.99,
+              "z": 24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.00000000000009,
+                "y": 336.4205752373017
+              }
+            },
+            {
+              "id": "colony.tree.performance-25",
+              "x": -2,
+              "y": 9.99,
+              "z": 26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -127.99999999999997,
+                "y": 216.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-26",
+              "x": -19,
+              "y": 10.530000000000001,
+              "z": 28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -431.9999999999999,
+                "y": 85.8387795484784
+              }
+            },
+            {
+              "id": "colony.tree.performance-27",
+              "x": 21,
+              "y": 8.91,
+              "z": -28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1104.0000000000002,
+                "y": -10.41583338505152
+              }
+            },
+            {
+              "id": "colony.tree.performance-28",
+              "x": 4,
+              "y": 8.91,
+              "z": -26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 800.0000000000002,
+                "y": -130.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-29",
+              "x": -13,
+              "y": 8.91,
+              "z": -24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 496.0000000000003,
+                "y": -250.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-30",
+              "x": 27,
+              "y": 8.91,
+              "z": -23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1120.0000000000002,
+                "y": 77.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-31",
+              "x": 10,
+              "y": 8.91,
+              "z": -21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 816.0000000000002,
+                "y": -42.41583338505155
+              }
+            },
+            {
+              "id": "colony.tree.performance-32",
+              "x": -7,
+              "y": 8.91,
+              "z": -19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 512.0000000000003,
+                "y": -162.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-33",
+              "x": -24,
+              "y": 9.450000000000001,
+              "z": -17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 208.00000000000026,
+                "y": -292.9976290738749
+              }
+            },
+            {
+              "id": "colony.tree.performance-34",
+              "x": 16,
+              "y": 8.91,
+              "z": -16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 832.0000000000002,
+                "y": 45.584166614948465
+              }
+            },
+            {
+              "id": "colony.tree.performance-35",
+              "x": -1,
+              "y": 8.91,
+              "z": -14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 528.0000000000002,
+                "y": -74.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-36",
+              "x": -18,
+              "y": 9.450000000000001,
+              "z": -12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 224.0000000000002,
+                "y": -204.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-37",
+              "x": 22,
+              "y": 8.91,
+              "z": -11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 848.0000000000001,
+                "y": 133.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-38",
+              "x": 5,
+              "y": 9.450000000000001,
+              "z": -9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 544.0000000000002,
+                "y": 3.0023709261251197
+              }
+            },
+            {
+              "id": "colony.tree.performance-39",
+              "x": -12,
+              "y": 9.450000000000001,
+              "z": -7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 240.00000000000023,
+                "y": -116.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-4",
+              "x": 13,
+              "y": 8.91,
+              "z": -10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 688.0000000000002,
+                "y": 69.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-40",
+              "x": 28,
+              "y": 8.91,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 864,
+                "y": 221.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-41",
+              "x": 11,
+              "y": 9.450000000000001,
+              "z": -4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 560.0000000000002,
+                "y": 91.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-42",
+              "x": -6,
+              "y": 9.450000000000001,
+              "z": -2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 256.00000000000017,
+                "y": -28.997629073874933
+              }
+            },
+            {
+              "id": "colony.tree.performance-43",
+              "x": -23,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -47.9999999999999,
+                "y": -148.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-44",
+              "x": 17,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 576.0000000000002,
+                "y": 179.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-45",
+              "x": 0,
+              "y": 9.450000000000001,
+              "z": 3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 272.0000000000002,
+                "y": 59.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-46",
+              "x": -17,
+              "y": 9.450000000000001,
+              "z": 5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -31.999999999999886,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-47",
+              "x": 23,
+              "y": 9.450000000000001,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 592.0000000000002,
+                "y": 267.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-48",
+              "x": 6,
+              "y": 9.450000000000001,
+              "z": 8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 288.00000000000017,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-49",
+              "x": -11,
+              "y": 9.99,
+              "z": 10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -15.999999999999872,
+                "y": 16.420575237301737
+              }
+            },
+            {
+              "id": "colony.tree.performance-5",
+              "x": -4,
+              "y": 9.450000000000001,
+              "z": -8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 384.0000000000002,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-50",
+              "x": -28,
+              "y": 9.99,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -319.99999999999994,
+                "y": -103.57942476269825
+              }
+            },
+            {
+              "id": "colony.tree.performance-6",
+              "x": -21,
+              "y": 9.450000000000001,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 80.00000000000017,
+                "y": -180.99762907387498
+              }
+            },
+            {
+              "id": "colony.tree.performance-7",
+              "x": 19,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 704.0000000000002,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-8",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": -3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 400.0000000000002,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.tree.performance-9",
+              "x": -15,
+              "y": 9.450000000000001,
+              "z": -1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 96.0000000000002,
+                "y": -92.99762907387486
+              }
+            },
+            {
+              "id": "colony.tree.pine",
+              "x": -5,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.0000000000002,
+                "y": 27.002370926125074
+              }
+            },
+            {
+              "id": "colony.tree.willow",
+              "x": 4,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000003,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.worker.3",
+              "x": -5,
+              "y": 8.91,
+              "z": -19.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 552.4640000000004,
+                "y": -150.6478333850516
+              }
+            },
+            {
+              "id": "colony.worker.4",
+              "x": -22,
+              "y": 8.91,
+              "z": -17.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 248.4640000000003,
+                "y": -270.64783338505157
+              }
+            },
+            {
+              "id": "colony.worker.5",
+              "x": 18,
+              "y": 8.91,
+              "z": -16.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 872.4640000000004,
+                "y": 57.352166614948416
+              }
+            },
+            {
+              "id": "colony.worker.6",
+              "x": 1,
+              "y": 8.91,
+              "z": -14.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 568.4640000000003,
+                "y": -62.64783338505158
+              }
+            },
+            {
+              "id": "colony.worker.7",
+              "x": -16,
+              "y": 9.450000000000001,
+              "z": -13.069000000000015,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 273.1040000000005,
+                "y": -197.549629073875
+              }
+            },
+            {
+              "id": "colony.worker.8",
+              "x": 24,
+              "y": 8.91,
+              "z": -11.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 888.4640000000003,
+                "y": 145.35216661494843
+              }
+            },
+            {
+              "id": "party:1.person.0",
+              "x": -28,
+              "y": 8.91,
+              "z": -22.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 232.46400000000037,
+                "y": -358.64783338505157
+              }
+            },
+            {
+              "id": "party:1.person.1",
+              "x": 12,
+              "y": 8.91,
+              "z": -21.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 856.4640000000003,
+                "y": -30.64783338505159
+              }
+            }
+          ]
+        },
+        "performance": {
+          "source": "durable-object",
+          "frames": 34,
+          "sequence": 33,
+          "simulationTime": 3.2000000000000015,
+          "paused": true,
+          "simulationRate": 1.0557571758495545,
+          "observationGap": {
+            "samples": 32,
+            "median": 101,
+            "p95": 245.60000014305115
+          },
+          "httpRoundTrip": {
+            "samples": 97,
+            "median": 269.39999985694885,
+            "p95": 433.80000019073486
+          },
+          "terrainRoundTrip": {
+            "samples": 95,
+            "median": 269.19999980926514,
+            "p95": 402.90000009536743
+          },
+          "receivedBytes": 11158331,
+          "requests": 97,
+          "failedRequests": 0,
+          "observedWorkers": 8,
+          "movingWorkers": 0,
+          "wood": 0,
+          "stumps": 0,
+          "retainedSamples": {
+            "observations": 32,
+            "progression": 32,
+            "http": 97,
+            "terrain": 95
+          }
+        },
+        "heap": {
+          "used": 212000000,
+          "total": 254000000
+        }
+      },
+      "elapsedMs": 5098.675086999996,
+      "frameIntervals": {
+        "samples": 6,
+        "median": 816.5999999999913,
+        "p95": 1883.2999999999884,
+        "max": 1883.2999999999884
+      },
+      "counts": {
+        "compile": 0,
+        "staticRebuild": 0,
+        "dynamicInsert": 0,
+        "applyOrder": 0,
+        "staticFaceComparisons": 0,
+        "dynamicFaceComparisons": 0,
+        "candidateVisits": 0,
+        "topologyBuilds": 0,
+        "topologyReuses": 0,
+        "staticPreparedNew": 0,
+        "staticPreparedReused": 0,
+        "staticRelationsReused": 0
+      },
+      "times": {
+        "compileMs": 0,
+        "staticRebuildMs": 0,
+        "dynamicInsertMs": 0,
+        "topologyUpdateMs": 0,
+        "orderReuseMs": 0,
+        "applyOrderMs": 0
+      }
+    },
+    {
+      "name": "small-pan",
+      "before": {
+        "draw": {
+          "spatialDraw": {
+            "counts": {
+              "compile": 36,
+              "staticRebuild": 3,
+              "dynamicInsert": 315,
+              "applyOrder": 3,
+              "staticFaceComparisons": 131175,
+              "dynamicFaceComparisons": 210,
+              "candidateVisits": 1206624,
+              "topologyBuilds": 38,
+              "topologyReuses": 1,
+              "staticPreparedNew": 17353,
+              "staticPreparedReused": 50,
+              "staticRelationsReused": 1
+            },
+            "times": {
+              "compileMs": 2674.4999997615814,
+              "staticRebuildMs": 2421.5,
+              "dynamicInsertMs": 244.79999947547913,
+              "topologyUpdateMs": 244.69999933242798,
+              "orderReuseMs": 0.10000014305114746,
+              "applyOrderMs": 122.5
+            },
+            "latest": {
+              "records": 17362,
+              "candidateVisits": 1179,
+              "faceComparisons": 173,
+              "bins": 437,
+              "edges": 115698,
+              "topologyBuilds": 1,
+              "topologyReuses": 0,
+              "coplanarSkips": 0,
+              "coverageRefinements": 0,
+              "coverageFaceComparisons": 0,
+              "approximateOverlaps": 0,
+              "approximateCycles": 0,
+              "preparedNew": 0,
+              "preparedReused": 0,
+              "relationsReused": 0,
+              "preparationMs": 14.299999952316284,
+              "candidateMs": 2.4000000953674316,
+              "topologyMs": 57.39999985694885,
+              "staticRebuilt": true,
+              "staticFaceComparisons": 131173,
+              "staticWork": {
+                "records": 17353,
+                "candidateVisits": 1205157,
+                "faceComparisons": 131173,
+                "bins": 418,
+                "edges": 115467,
+                "topologyBuilds": 1,
+                "topologyReuses": 0,
+                "coplanarSkips": 36562,
+                "coverageRefinements": 44,
+                "coverageFaceComparisons": 52,
+                "approximateOverlaps": 43,
+                "approximateCycles": 0,
+                "preparedNew": 17303,
+                "preparedReused": 50,
+                "relationsReused": 1,
+                "preparationMs": 1619,
+                "candidateMs": 654.6000001430511,
+                "topologyMs": 101.79999995231628
+              }
+            },
+            "retained": {
+              "staticRecords": 17353,
+              "staticRelations": 115467,
+              "staticBins": 418,
+              "dynamicRecords": 9,
+              "currentRecords": 17362
+            },
+            "samples": {
+              "staticRebuildMs": [
+                0.09999990463256836,
+                12.799999952316284,
+                2408.600000143051
+              ],
+              "dynamicInsertMs": [
+                0.10000014305114746,
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "topologyUpdateMs": [
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "orderReuseMs": [
+                0.10000014305114746
+              ],
+              "applyOrderMs": [
+                0.20000004768371582,
+                0.09999990463256836,
+                122.20000004768372
+              ]
+            },
+            "visualBuild": {
+              "frames": 420,
+              "unchangedFrames": 384,
+              "totalMs": 269.7000002861023
+            },
+            "cameraCoverage": {
+              "plans": 1,
+              "retained": 373,
+              "padding": 128,
+              "prepared": {
+                "left": 27.14406779661033,
+                "right": 706.1440677966103,
+                "top": -330.1164295122996,
+                "bottom": 358.8835704877004
+              },
+              "refresh": {
+                "left": 71.94406779661033,
+                "right": 661.3440677966104,
+                "top": -285.3164295122996,
+                "bottom": 314.0835704877004
+              },
+              "viewport": {
+                "left": 155.14406779661033,
+                "right": 578.1440677966103,
+                "top": -202.1164295122996,
+                "bottom": 230.8835704877004
+              },
+              "chunks": 759,
+              "withinPrepared": true
+            },
+            "coverage": {
+              "capacity": 2048,
+              "epoch": 0,
+              "terrainRevision": 0,
+              "demandComplete": true,
+              "viewBudget": false,
+              "requestedChunks": 759,
+              "readyChunks": 759,
+              "retainedChunks": 759,
+              "cachedChunks": 759,
+              "pending": false
+            },
+            "primitives": 17362
+          },
+          "visibleDrawRecords": 17362,
+          "frameSequence": 33,
+          "frameEpoch": 0,
+          "paused": true,
+          "camera": {
+            "x": -310.28813559322066,
+            "y": 404.2328590245992,
+            "zoom": 2,
+            "turn": 0
+          },
+          "view": {
+            "level": 19,
+            "cutaway": false
+          },
+          "selectedIds": [],
+          "subjects": [
+            {
+              "id": "colony.guest.1",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "goblin.guest",
+              "pickable": true,
+              "screen": {
+                "x": 352.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.oak",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 320.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-10",
+              "x": 25,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 720.0000000000001,
+                "y": 235.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-11",
+              "x": 8,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 416.0000000000002,
+                "y": 115.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-12",
+              "x": -9,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 112.00000000000017,
+                "y": -4.99762907387491
+              }
+            },
+            {
+              "id": "colony.tree.performance-13",
+              "x": -26,
+              "y": 9.99,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -191.9999999999999,
+                "y": -135.5794247626983
+              }
+            },
+            {
+              "id": "colony.tree.performance-14",
+              "x": 14,
+              "y": 9.450000000000001,
+              "z": 7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 432.00000000000017,
+                "y": 203.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-15",
+              "x": -3,
+              "y": 9.99,
+              "z": 9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 128.00000000000017,
+                "y": 72.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-16",
+              "x": -20,
+              "y": 9.99,
+              "z": 11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -175.99999999999994,
+                "y": -47.57942476269821
+              }
+            },
+            {
+              "id": "colony.tree.performance-17",
+              "x": 20,
+              "y": 9.450000000000001,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 448.00000000000017,
+                "y": 291.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-18",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 144.0000000000002,
+                "y": 171.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-19",
+              "x": -14,
+              "y": 9.99,
+              "z": 16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -159.99999999999994,
+                "y": 40.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-20",
+              "x": 26,
+              "y": 9.450000000000001,
+              "z": 17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000002,
+                "y": 379.00237092612514
+              }
+            },
+            {
+              "id": "colony.tree.performance-21",
+              "x": 9,
+              "y": 9.450000000000001,
+              "z": 19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 160.00000000000017,
+                "y": 259.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-22",
+              "x": -8,
+              "y": 9.99,
+              "z": 21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -143.99999999999991,
+                "y": 128.42057523730173
+              }
+            },
+            {
+              "id": "colony.tree.performance-23",
+              "x": -25,
+              "y": 10.530000000000001,
+              "z": 23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -448,
+                "y": -2.1612204515216504
+              }
+            },
+            {
+              "id": "colony.tree.performance-24",
+              "x": 15,
+              "y": 9.99,
+              "z": 24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.00000000000009,
+                "y": 336.4205752373017
+              }
+            },
+            {
+              "id": "colony.tree.performance-25",
+              "x": -2,
+              "y": 9.99,
+              "z": 26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -127.99999999999997,
+                "y": 216.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-26",
+              "x": -19,
+              "y": 10.530000000000001,
+              "z": 28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -431.9999999999999,
+                "y": 85.8387795484784
+              }
+            },
+            {
+              "id": "colony.tree.performance-27",
+              "x": 21,
+              "y": 8.91,
+              "z": -28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1104.0000000000002,
+                "y": -10.41583338505152
+              }
+            },
+            {
+              "id": "colony.tree.performance-28",
+              "x": 4,
+              "y": 8.91,
+              "z": -26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 800.0000000000002,
+                "y": -130.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-29",
+              "x": -13,
+              "y": 8.91,
+              "z": -24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 496.0000000000003,
+                "y": -250.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-30",
+              "x": 27,
+              "y": 8.91,
+              "z": -23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1120.0000000000002,
+                "y": 77.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-31",
+              "x": 10,
+              "y": 8.91,
+              "z": -21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 816.0000000000002,
+                "y": -42.41583338505155
+              }
+            },
+            {
+              "id": "colony.tree.performance-32",
+              "x": -7,
+              "y": 8.91,
+              "z": -19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 512.0000000000003,
+                "y": -162.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-33",
+              "x": -24,
+              "y": 9.450000000000001,
+              "z": -17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 208.00000000000026,
+                "y": -292.9976290738749
+              }
+            },
+            {
+              "id": "colony.tree.performance-34",
+              "x": 16,
+              "y": 8.91,
+              "z": -16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 832.0000000000002,
+                "y": 45.584166614948465
+              }
+            },
+            {
+              "id": "colony.tree.performance-35",
+              "x": -1,
+              "y": 8.91,
+              "z": -14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 528.0000000000002,
+                "y": -74.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-36",
+              "x": -18,
+              "y": 9.450000000000001,
+              "z": -12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 224.0000000000002,
+                "y": -204.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-37",
+              "x": 22,
+              "y": 8.91,
+              "z": -11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 848.0000000000001,
+                "y": 133.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-38",
+              "x": 5,
+              "y": 9.450000000000001,
+              "z": -9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 544.0000000000002,
+                "y": 3.0023709261251197
+              }
+            },
+            {
+              "id": "colony.tree.performance-39",
+              "x": -12,
+              "y": 9.450000000000001,
+              "z": -7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 240.00000000000023,
+                "y": -116.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-4",
+              "x": 13,
+              "y": 8.91,
+              "z": -10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 688.0000000000002,
+                "y": 69.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-40",
+              "x": 28,
+              "y": 8.91,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 864,
+                "y": 221.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-41",
+              "x": 11,
+              "y": 9.450000000000001,
+              "z": -4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 560.0000000000002,
+                "y": 91.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-42",
+              "x": -6,
+              "y": 9.450000000000001,
+              "z": -2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 256.00000000000017,
+                "y": -28.997629073874933
+              }
+            },
+            {
+              "id": "colony.tree.performance-43",
+              "x": -23,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -47.9999999999999,
+                "y": -148.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-44",
+              "x": 17,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 576.0000000000002,
+                "y": 179.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-45",
+              "x": 0,
+              "y": 9.450000000000001,
+              "z": 3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 272.0000000000002,
+                "y": 59.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-46",
+              "x": -17,
+              "y": 9.450000000000001,
+              "z": 5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -31.999999999999886,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-47",
+              "x": 23,
+              "y": 9.450000000000001,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 592.0000000000002,
+                "y": 267.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-48",
+              "x": 6,
+              "y": 9.450000000000001,
+              "z": 8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 288.00000000000017,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-49",
+              "x": -11,
+              "y": 9.99,
+              "z": 10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -15.999999999999872,
+                "y": 16.420575237301737
+              }
+            },
+            {
+              "id": "colony.tree.performance-5",
+              "x": -4,
+              "y": 9.450000000000001,
+              "z": -8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 384.0000000000002,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-50",
+              "x": -28,
+              "y": 9.99,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -319.99999999999994,
+                "y": -103.57942476269825
+              }
+            },
+            {
+              "id": "colony.tree.performance-6",
+              "x": -21,
+              "y": 9.450000000000001,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 80.00000000000017,
+                "y": -180.99762907387498
+              }
+            },
+            {
+              "id": "colony.tree.performance-7",
+              "x": 19,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 704.0000000000002,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-8",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": -3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 400.0000000000002,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.tree.performance-9",
+              "x": -15,
+              "y": 9.450000000000001,
+              "z": -1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 96.0000000000002,
+                "y": -92.99762907387486
+              }
+            },
+            {
+              "id": "colony.tree.pine",
+              "x": -5,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.0000000000002,
+                "y": 27.002370926125074
+              }
+            },
+            {
+              "id": "colony.tree.willow",
+              "x": 4,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000003,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.worker.3",
+              "x": -5,
+              "y": 8.91,
+              "z": -19.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 552.4640000000004,
+                "y": -150.6478333850516
+              }
+            },
+            {
+              "id": "colony.worker.4",
+              "x": -22,
+              "y": 8.91,
+              "z": -17.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 248.4640000000003,
+                "y": -270.64783338505157
+              }
+            },
+            {
+              "id": "colony.worker.5",
+              "x": 18,
+              "y": 8.91,
+              "z": -16.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 872.4640000000004,
+                "y": 57.352166614948416
+              }
+            },
+            {
+              "id": "colony.worker.6",
+              "x": 1,
+              "y": 8.91,
+              "z": -14.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 568.4640000000003,
+                "y": -62.64783338505158
+              }
+            },
+            {
+              "id": "colony.worker.7",
+              "x": -16,
+              "y": 9.450000000000001,
+              "z": -13.069000000000015,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 273.1040000000005,
+                "y": -197.549629073875
+              }
+            },
+            {
+              "id": "colony.worker.8",
+              "x": 24,
+              "y": 8.91,
+              "z": -11.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 888.4640000000003,
+                "y": 145.35216661494843
+              }
+            },
+            {
+              "id": "party:1.person.0",
+              "x": -28,
+              "y": 8.91,
+              "z": -22.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 232.46400000000037,
+                "y": -358.64783338505157
+              }
+            },
+            {
+              "id": "party:1.person.1",
+              "x": 12,
+              "y": 8.91,
+              "z": -21.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 856.4640000000003,
+                "y": -30.64783338505159
+              }
+            }
+          ]
+        },
+        "performance": {
+          "source": "durable-object",
+          "frames": 34,
+          "sequence": 33,
+          "simulationTime": 3.2000000000000015,
+          "paused": true,
+          "simulationRate": 1.0557571758495545,
+          "observationGap": {
+            "samples": 32,
+            "median": 101,
+            "p95": 245.60000014305115
+          },
+          "httpRoundTrip": {
+            "samples": 97,
+            "median": 269.39999985694885,
+            "p95": 433.80000019073486
+          },
+          "terrainRoundTrip": {
+            "samples": 95,
+            "median": 269.19999980926514,
+            "p95": 402.90000009536743
+          },
+          "receivedBytes": 11158331,
+          "requests": 97,
+          "failedRequests": 0,
+          "observedWorkers": 8,
+          "movingWorkers": 0,
+          "wood": 0,
+          "stumps": 0,
+          "retainedSamples": {
+            "observations": 32,
+            "progression": 32,
+            "http": 97,
+            "terrain": 95
+          }
+        },
+        "heap": {
+          "used": 212000000,
+          "total": 254000000
+        }
+      },
+      "after": {
+        "draw": {
+          "spatialDraw": {
+            "counts": {
+              "compile": 36,
+              "staticRebuild": 3,
+              "dynamicInsert": 315,
+              "applyOrder": 3,
+              "staticFaceComparisons": 131175,
+              "dynamicFaceComparisons": 210,
+              "candidateVisits": 1206624,
+              "topologyBuilds": 38,
+              "topologyReuses": 1,
+              "staticPreparedNew": 17353,
+              "staticPreparedReused": 50,
+              "staticRelationsReused": 1
+            },
+            "times": {
+              "compileMs": 2674.4999997615814,
+              "staticRebuildMs": 2421.5,
+              "dynamicInsertMs": 244.79999947547913,
+              "topologyUpdateMs": 244.69999933242798,
+              "orderReuseMs": 0.10000014305114746,
+              "applyOrderMs": 122.5
+            },
+            "latest": {
+              "records": 17362,
+              "candidateVisits": 1179,
+              "faceComparisons": 173,
+              "bins": 437,
+              "edges": 115698,
+              "topologyBuilds": 1,
+              "topologyReuses": 0,
+              "coplanarSkips": 0,
+              "coverageRefinements": 0,
+              "coverageFaceComparisons": 0,
+              "approximateOverlaps": 0,
+              "approximateCycles": 0,
+              "preparedNew": 0,
+              "preparedReused": 0,
+              "relationsReused": 0,
+              "preparationMs": 14.299999952316284,
+              "candidateMs": 2.4000000953674316,
+              "topologyMs": 57.39999985694885,
+              "staticRebuilt": true,
+              "staticFaceComparisons": 131173,
+              "staticWork": {
+                "records": 17353,
+                "candidateVisits": 1205157,
+                "faceComparisons": 131173,
+                "bins": 418,
+                "edges": 115467,
+                "topologyBuilds": 1,
+                "topologyReuses": 0,
+                "coplanarSkips": 36562,
+                "coverageRefinements": 44,
+                "coverageFaceComparisons": 52,
+                "approximateOverlaps": 43,
+                "approximateCycles": 0,
+                "preparedNew": 17303,
+                "preparedReused": 50,
+                "relationsReused": 1,
+                "preparationMs": 1619,
+                "candidateMs": 654.6000001430511,
+                "topologyMs": 101.79999995231628
+              }
+            },
+            "retained": {
+              "staticRecords": 17353,
+              "staticRelations": 115467,
+              "staticBins": 418,
+              "dynamicRecords": 9,
+              "currentRecords": 17362
+            },
+            "samples": {
+              "staticRebuildMs": [
+                0.09999990463256836,
+                12.799999952316284,
+                2408.600000143051
+              ],
+              "dynamicInsertMs": [
+                0.10000014305114746,
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "topologyUpdateMs": [
+                3.8999998569488525,
+                3,
+                2.5,
+                4,
+                3.3999998569488525,
+                2.200000047683716,
+                2.200000047683716,
+                2.5,
+                3.6999998092651367,
+                4.900000095367432,
+                5.1000001430511475,
+                3.700000047683716,
+                3.3999998569488525,
+                3.4000000953674316,
+                3.799999952316284,
+                6.200000047683716,
+                5.3999998569488525,
+                5.400000095367432,
+                7.200000047683716,
+                3,
+                3.8999998569488525,
+                5.699999809265137,
+                5.099999904632568,
+                3.299999952316284,
+                5.5,
+                4.900000095367432,
+                3.3999998569488525,
+                5.200000047683716,
+                6.700000047683716,
+                3.799999952316284,
+                3.9000000953674316,
+                4.799999952316284,
+                4.3999998569488525,
+                5.900000095367432,
+                99.29999995231628
+              ],
+              "orderReuseMs": [
+                0.10000014305114746
+              ],
+              "applyOrderMs": [
+                0.20000004768371582,
+                0.09999990463256836,
+                122.20000004768372
+              ]
+            },
+            "visualBuild": {
+              "frames": 468,
+              "unchangedFrames": 432,
+              "totalMs": 293.8000009059906
+            },
+            "cameraCoverage": {
+              "plans": 1,
+              "retained": 421,
+              "padding": 128,
+              "prepared": {
+                "left": 27.14406779661033,
+                "right": 706.1440677966103,
+                "top": -330.1164295122996,
+                "bottom": 358.8835704877004
+              },
+              "refresh": {
+                "left": 71.94406779661033,
+                "right": 661.3440677966104,
+                "top": -285.3164295122996,
+                "bottom": 314.0835704877004
+              },
+              "viewport": {
+                "left": 155.14406779661033,
+                "right": 578.1440677966103,
+                "top": -202.1164295122996,
+                "bottom": 230.8835704877004
+              },
+              "chunks": 759,
+              "withinPrepared": true
+            },
+            "coverage": {
+              "capacity": 2048,
+              "epoch": 0,
+              "terrainRevision": 0,
+              "demandComplete": true,
+              "viewBudget": false,
+              "requestedChunks": 759,
+              "readyChunks": 759,
+              "retainedChunks": 759,
+              "cachedChunks": 759,
+              "pending": false
+            },
+            "primitives": 17362
+          },
+          "visibleDrawRecords": 17362,
+          "frameSequence": 33,
+          "frameEpoch": 0,
+          "paused": true,
+          "camera": {
+            "x": -310.28813559322066,
+            "y": 404.2328590245992,
+            "zoom": 2,
+            "turn": 0
+          },
+          "view": {
+            "level": 19,
+            "cutaway": false
+          },
+          "selectedIds": [],
+          "subjects": [
+            {
+              "id": "colony.guest.1",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "goblin.guest",
+              "pickable": true,
+              "screen": {
+                "x": 352.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.oak",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 320.0000000000002,
+                "y": 67.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-10",
+              "x": 25,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 720.0000000000001,
+                "y": 235.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-11",
+              "x": 8,
+              "y": 9.450000000000001,
+              "z": 2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 416.0000000000002,
+                "y": 115.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-12",
+              "x": -9,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 112.00000000000017,
+                "y": -4.99762907387491
+              }
+            },
+            {
+              "id": "colony.tree.performance-13",
+              "x": -26,
+              "y": 9.99,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -191.9999999999999,
+                "y": -135.5794247626983
+              }
+            },
+            {
+              "id": "colony.tree.performance-14",
+              "x": 14,
+              "y": 9.450000000000001,
+              "z": 7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 432.00000000000017,
+                "y": 203.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-15",
+              "x": -3,
+              "y": 9.99,
+              "z": 9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 128.00000000000017,
+                "y": 72.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-16",
+              "x": -20,
+              "y": 9.99,
+              "z": 11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -175.99999999999994,
+                "y": -47.57942476269821
+              }
+            },
+            {
+              "id": "colony.tree.performance-17",
+              "x": 20,
+              "y": 9.450000000000001,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 448.00000000000017,
+                "y": 291.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-18",
+              "x": 3,
+              "y": 9.450000000000001,
+              "z": 14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 144.0000000000002,
+                "y": 171.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-19",
+              "x": -14,
+              "y": 9.99,
+              "z": 16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -159.99999999999994,
+                "y": 40.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-20",
+              "x": 26,
+              "y": 9.450000000000001,
+              "z": 17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000002,
+                "y": 379.00237092612514
+              }
+            },
+            {
+              "id": "colony.tree.performance-21",
+              "x": 9,
+              "y": 9.450000000000001,
+              "z": 19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 160.00000000000017,
+                "y": 259.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-22",
+              "x": -8,
+              "y": 9.99,
+              "z": 21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -143.99999999999991,
+                "y": 128.42057523730173
+              }
+            },
+            {
+              "id": "colony.tree.performance-23",
+              "x": -25,
+              "y": 10.530000000000001,
+              "z": 23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -448,
+                "y": -2.1612204515216504
+              }
+            },
+            {
+              "id": "colony.tree.performance-24",
+              "x": 15,
+              "y": 9.99,
+              "z": 24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.00000000000009,
+                "y": 336.4205752373017
+              }
+            },
+            {
+              "id": "colony.tree.performance-25",
+              "x": -2,
+              "y": 9.99,
+              "z": 26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -127.99999999999997,
+                "y": 216.42057523730176
+              }
+            },
+            {
+              "id": "colony.tree.performance-26",
+              "x": -19,
+              "y": 10.530000000000001,
+              "z": 28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -431.9999999999999,
+                "y": 85.8387795484784
+              }
+            },
+            {
+              "id": "colony.tree.performance-27",
+              "x": 21,
+              "y": 8.91,
+              "z": -28,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1104.0000000000002,
+                "y": -10.41583338505152
+              }
+            },
+            {
+              "id": "colony.tree.performance-28",
+              "x": 4,
+              "y": 8.91,
+              "z": -26,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 800.0000000000002,
+                "y": -130.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-29",
+              "x": -13,
+              "y": 8.91,
+              "z": -24,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 496.0000000000003,
+                "y": -250.41583338505154
+              }
+            },
+            {
+              "id": "colony.tree.performance-30",
+              "x": 27,
+              "y": 8.91,
+              "z": -23,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 1120.0000000000002,
+                "y": 77.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-31",
+              "x": 10,
+              "y": 8.91,
+              "z": -21,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 816.0000000000002,
+                "y": -42.41583338505155
+              }
+            },
+            {
+              "id": "colony.tree.performance-32",
+              "x": -7,
+              "y": 8.91,
+              "z": -19,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 512.0000000000003,
+                "y": -162.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-33",
+              "x": -24,
+              "y": 9.450000000000001,
+              "z": -17,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 208.00000000000026,
+                "y": -292.9976290738749
+              }
+            },
+            {
+              "id": "colony.tree.performance-34",
+              "x": 16,
+              "y": 8.91,
+              "z": -16,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 832.0000000000002,
+                "y": 45.584166614948465
+              }
+            },
+            {
+              "id": "colony.tree.performance-35",
+              "x": -1,
+              "y": 8.91,
+              "z": -14,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 528.0000000000002,
+                "y": -74.41583338505157
+              }
+            },
+            {
+              "id": "colony.tree.performance-36",
+              "x": -18,
+              "y": 9.450000000000001,
+              "z": -12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 224.0000000000002,
+                "y": -204.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-37",
+              "x": 22,
+              "y": 8.91,
+              "z": -11,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 848.0000000000001,
+                "y": 133.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-38",
+              "x": 5,
+              "y": 9.450000000000001,
+              "z": -9,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 544.0000000000002,
+                "y": 3.0023709261251197
+              }
+            },
+            {
+              "id": "colony.tree.performance-39",
+              "x": -12,
+              "y": 9.450000000000001,
+              "z": -7,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 240.00000000000023,
+                "y": -116.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-4",
+              "x": 13,
+              "y": 8.91,
+              "z": -10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 688.0000000000002,
+                "y": 69.58416661494844
+              }
+            },
+            {
+              "id": "colony.tree.performance-40",
+              "x": 28,
+              "y": 8.91,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 864,
+                "y": 221.58416661494843
+              }
+            },
+            {
+              "id": "colony.tree.performance-41",
+              "x": 11,
+              "y": 9.450000000000001,
+              "z": -4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 560.0000000000002,
+                "y": 91.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-42",
+              "x": -6,
+              "y": 9.450000000000001,
+              "z": -2,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 256.00000000000017,
+                "y": -28.997629073874933
+              }
+            },
+            {
+              "id": "colony.tree.performance-43",
+              "x": -23,
+              "y": 9.450000000000001,
+              "z": 0,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -47.9999999999999,
+                "y": -148.99762907387495
+              }
+            },
+            {
+              "id": "colony.tree.performance-44",
+              "x": 17,
+              "y": 9.450000000000001,
+              "z": 1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 576.0000000000002,
+                "y": 179.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-45",
+              "x": 0,
+              "y": 9.450000000000001,
+              "z": 3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 272.0000000000002,
+                "y": 59.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-46",
+              "x": -17,
+              "y": 9.450000000000001,
+              "z": 5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -31.999999999999886,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-47",
+              "x": 23,
+              "y": 9.450000000000001,
+              "z": 6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 592.0000000000002,
+                "y": 267.0023709261251
+              }
+            },
+            {
+              "id": "colony.tree.performance-48",
+              "x": 6,
+              "y": 9.450000000000001,
+              "z": 8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 288.00000000000017,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-49",
+              "x": -11,
+              "y": 9.99,
+              "z": 10,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -15.999999999999872,
+                "y": 16.420575237301737
+              }
+            },
+            {
+              "id": "colony.tree.performance-5",
+              "x": -4,
+              "y": 9.450000000000001,
+              "z": -8,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 384.0000000000002,
+                "y": -60.99762907387492
+              }
+            },
+            {
+              "id": "colony.tree.performance-50",
+              "x": -28,
+              "y": 9.99,
+              "z": 12,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": -319.99999999999994,
+                "y": -103.57942476269825
+              }
+            },
+            {
+              "id": "colony.tree.performance-6",
+              "x": -21,
+              "y": 9.450000000000001,
+              "z": -6,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 80.00000000000017,
+                "y": -180.99762907387498
+              }
+            },
+            {
+              "id": "colony.tree.performance-7",
+              "x": 19,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 704.0000000000002,
+                "y": 147.00237092612508
+              }
+            },
+            {
+              "id": "colony.tree.performance-8",
+              "x": 2,
+              "y": 9.450000000000001,
+              "z": -3,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 400.0000000000002,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.tree.performance-9",
+              "x": -15,
+              "y": 9.450000000000001,
+              "z": -1,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 96.0000000000002,
+                "y": -92.99762907387486
+              }
+            },
+            {
+              "id": "colony.tree.pine",
+              "x": -5,
+              "y": 9.450000000000001,
+              "z": 4,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 176.0000000000002,
+                "y": 27.002370926125074
+              }
+            },
+            {
+              "id": "colony.tree.willow",
+              "x": 4,
+              "y": 9.450000000000001,
+              "z": -5,
+              "support": null,
+              "visual": "colony.tree",
+              "pickable": true,
+              "screen": {
+                "x": 464.0000000000003,
+                "y": 27.002370926125096
+              }
+            },
+            {
+              "id": "colony.worker.3",
+              "x": -5,
+              "y": 8.91,
+              "z": -19.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 552.4640000000004,
+                "y": -150.6478333850516
+              }
+            },
+            {
+              "id": "colony.worker.4",
+              "x": -22,
+              "y": 8.91,
+              "z": -17.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 248.4640000000003,
+                "y": -270.64783338505157
+              }
+            },
+            {
+              "id": "colony.worker.5",
+              "x": 18,
+              "y": 8.91,
+              "z": -16.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 872.4640000000004,
+                "y": 57.352166614948416
+              }
+            },
+            {
+              "id": "colony.worker.6",
+              "x": 1,
+              "y": 8.91,
+              "z": -14.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 568.4640000000003,
+                "y": -62.64783338505158
+              }
+            },
+            {
+              "id": "colony.worker.7",
+              "x": -16,
+              "y": 9.450000000000001,
+              "z": -13.069000000000015,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 273.1040000000005,
+                "y": -197.549629073875
+              }
+            },
+            {
+              "id": "colony.worker.8",
+              "x": 24,
+              "y": 8.91,
+              "z": -11.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 888.4640000000003,
+                "y": 145.35216661494843
+              }
+            },
+            {
+              "id": "party:1.person.0",
+              "x": -28,
+              "y": 8.91,
+              "z": -22.529000000000003,
+              "support": null,
+              "visual": "colony.rowan",
+              "pickable": true,
+              "screen": {
+                "x": 232.46400000000037,
+                "y": -358.64783338505157
+              }
+            },
+            {
+              "id": "party:1.person.1",
+              "x": 12,
+              "y": 8.91,
+              "z": -21.529000000000003,
+              "support": null,
+              "visual": "colony.sedge",
+              "pickable": true,
+              "screen": {
+                "x": 856.4640000000003,
+                "y": -30.64783338505159
+              }
+            }
+          ]
+        },
+        "performance": {
+          "source": "durable-object",
+          "frames": 34,
+          "sequence": 33,
+          "simulationTime": 3.2000000000000015,
+          "paused": true,
+          "simulationRate": 1.0557571758495545,
+          "observationGap": {
+            "samples": 32,
+            "median": 101,
+            "p95": 245.60000014305115
+          },
+          "httpRoundTrip": {
+            "samples": 97,
+            "median": 269.39999985694885,
+            "p95": 433.80000019073486
+          },
+          "terrainRoundTrip": {
+            "samples": 95,
+            "median": 269.19999980926514,
+            "p95": 402.90000009536743
+          },
+          "receivedBytes": 11485913,
+          "requests": 97,
+          "failedRequests": 0,
+          "observedWorkers": 8,
+          "movingWorkers": 0,
+          "wood": 0,
+          "stumps": 0,
+          "retainedSamples": {
+            "observations": 32,
+            "progression": 32,
+            "http": 97,
+            "terrain": 95
+          }
+        },
+        "heap": {
+          "used": 212000000,
+          "total": 254000000
+        }
+      },
+      "elapsedMs": 41896.73634700001,
+      "frameIntervals": {
+        "samples": 40,
+        "median": 833.2999999999884,
+        "p95": 1849.800000000003,
+        "max": 2216.5999999999913
+      },
+      "counts": {
+        "compile": 0,
+        "staticRebuild": 0,
+        "dynamicInsert": 0,
+        "applyOrder": 0,
+        "staticFaceComparisons": 0,
+        "dynamicFaceComparisons": 0,
+        "candidateVisits": 0,
+        "topologyBuilds": 0,
+        "topologyReuses": 0,
+        "staticPreparedNew": 0,
+        "staticPreparedReused": 0,
+        "staticRelationsReused": 0
+      },
+      "times": {
+        "compileMs": 0,
+        "staticRebuildMs": 0,
+        "dynamicInsertMs": 0,
+        "topologyUpdateMs": 0,
+        "orderReuseMs": 0,
+        "applyOrderMs": 0
+      }
+    }
+  ],
+  "errors": [
+    "keyboard.press: Target page, context or browser has been closed\n    at pan (/home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/camera-browser-proof.mjs:59:126)\n    at async phase (/home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/camera-browser-proof.mjs:47:36)\n    at async file:///home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/camera-browser-proof.mjs:66:2"
+  ],
+  "success": false,
+  "driverSha256": "e7ad54f90c4d550985fa1e01fd5b096abc8601df07781e450739bd4051fbcd87",
+  "initial": {
+    "draw": {
+      "spatialDraw": {
+        "counts": {
+          "compile": 36,
+          "staticRebuild": 3,
+          "dynamicInsert": 315,
+          "applyOrder": 3,
+          "staticFaceComparisons": 131175,
+          "dynamicFaceComparisons": 210,
+          "candidateVisits": 1206624,
+          "topologyBuilds": 38,
+          "topologyReuses": 1,
+          "staticPreparedNew": 17353,
+          "staticPreparedReused": 50,
+          "staticRelationsReused": 1
+        },
+        "times": {
+          "compileMs": 2674.4999997615814,
+          "staticRebuildMs": 2421.5,
+          "dynamicInsertMs": 244.79999947547913,
+          "topologyUpdateMs": 244.69999933242798,
+          "orderReuseMs": 0.10000014305114746,
+          "applyOrderMs": 122.5
+        },
+        "latest": {
+          "records": 17362,
+          "candidateVisits": 1179,
+          "faceComparisons": 173,
+          "bins": 437,
+          "edges": 115698,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 0,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 14.299999952316284,
+          "candidateMs": 2.4000000953674316,
+          "topologyMs": 57.39999985694885,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 131173,
+          "staticWork": {
+            "records": 17353,
+            "candidateVisits": 1205157,
+            "faceComparisons": 131173,
+            "bins": 418,
+            "edges": 115467,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 36562,
+            "coverageRefinements": 44,
+            "coverageFaceComparisons": 52,
+            "approximateOverlaps": 43,
+            "approximateCycles": 0,
+            "preparedNew": 17303,
+            "preparedReused": 50,
+            "relationsReused": 1,
+            "preparationMs": 1619,
+            "candidateMs": 654.6000001430511,
+            "topologyMs": 101.79999995231628
+          }
+        },
+        "retained": {
+          "staticRecords": 17353,
+          "staticRelations": 115467,
+          "staticBins": 418,
+          "dynamicRecords": 9,
+          "currentRecords": 17362
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0.09999990463256836,
+            12.799999952316284,
+            2408.600000143051
+          ],
+          "dynamicInsertMs": [
+            0.10000014305114746,
+            3.8999998569488525,
+            3,
+            2.5,
+            4,
+            3.3999998569488525,
+            2.200000047683716,
+            2.200000047683716,
+            2.5,
+            3.6999998092651367,
+            4.900000095367432,
+            5.1000001430511475,
+            3.700000047683716,
+            3.3999998569488525,
+            3.4000000953674316,
+            3.799999952316284,
+            6.200000047683716,
+            5.3999998569488525,
+            5.400000095367432,
+            7.200000047683716,
+            3,
+            3.8999998569488525,
+            5.699999809265137,
+            5.099999904632568,
+            3.299999952316284,
+            5.5,
+            4.900000095367432,
+            3.3999998569488525,
+            5.200000047683716,
+            6.700000047683716,
+            3.799999952316284,
+            3.9000000953674316,
+            4.799999952316284,
+            4.3999998569488525,
+            5.900000095367432,
+            99.29999995231628
+          ],
+          "topologyUpdateMs": [
+            3.8999998569488525,
+            3,
+            2.5,
+            4,
+            3.3999998569488525,
+            2.200000047683716,
+            2.200000047683716,
+            2.5,
+            3.6999998092651367,
+            4.900000095367432,
+            5.1000001430511475,
+            3.700000047683716,
+            3.3999998569488525,
+            3.4000000953674316,
+            3.799999952316284,
+            6.200000047683716,
+            5.3999998569488525,
+            5.400000095367432,
+            7.200000047683716,
+            3,
+            3.8999998569488525,
+            5.699999809265137,
+            5.099999904632568,
+            3.299999952316284,
+            5.5,
+            4.900000095367432,
+            3.3999998569488525,
+            5.200000047683716,
+            6.700000047683716,
+            3.799999952316284,
+            3.9000000953674316,
+            4.799999952316284,
+            4.3999998569488525,
+            5.900000095367432,
+            99.29999995231628
+          ],
+          "orderReuseMs": [
+            0.10000014305114746
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            122.20000004768372
+          ]
+        },
+        "visualBuild": {
+          "frames": 390,
+          "unchangedFrames": 354,
+          "totalMs": 216.30000019073486
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 343,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "chunks": 759,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 2048,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "demandComplete": true,
+          "viewBudget": false,
+          "requestedChunks": 759,
+          "readyChunks": 759,
+          "retainedChunks": 759,
+          "cachedChunks": 759,
+          "pending": false
+        },
+        "primitives": 17362
+      },
+      "visibleDrawRecords": 17362,
+      "frameSequence": 33,
+      "frameEpoch": 0,
+      "paused": true,
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      },
+      "view": {
+        "level": 19,
+        "cutaway": false
+      },
+      "selectedIds": [],
+      "subjects": [
+        {
+          "id": "colony.guest.1",
+          "x": 3,
+          "y": 9.450000000000001,
+          "z": 1,
+          "support": null,
+          "visual": "goblin.guest",
+          "pickable": true,
+          "screen": {
+            "x": 352.0000000000002,
+            "y": 67.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.oak",
+          "x": 2,
+          "y": 9.450000000000001,
+          "z": 2,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 320.0000000000002,
+            "y": 67.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-10",
+          "x": 25,
+          "y": 9.450000000000001,
+          "z": 0,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 720.0000000000001,
+            "y": 235.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-11",
+          "x": 8,
+          "y": 9.450000000000001,
+          "z": 2,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 416.0000000000002,
+            "y": 115.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-12",
+          "x": -9,
+          "y": 9.450000000000001,
+          "z": 4,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 112.00000000000017,
+            "y": -4.99762907387491
+          }
+        },
+        {
+          "id": "colony.tree.performance-13",
+          "x": -26,
+          "y": 9.99,
+          "z": 6,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -191.9999999999999,
+            "y": -135.5794247626983
+          }
+        },
+        {
+          "id": "colony.tree.performance-14",
+          "x": 14,
+          "y": 9.450000000000001,
+          "z": 7,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 432.00000000000017,
+            "y": 203.0023709261251
+          }
+        },
+        {
+          "id": "colony.tree.performance-15",
+          "x": -3,
+          "y": 9.99,
+          "z": 9,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 128.00000000000017,
+            "y": 72.42057523730176
+          }
+        },
+        {
+          "id": "colony.tree.performance-16",
+          "x": -20,
+          "y": 9.99,
+          "z": 11,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -175.99999999999994,
+            "y": -47.57942476269821
+          }
+        },
+        {
+          "id": "colony.tree.performance-17",
+          "x": 20,
+          "y": 9.450000000000001,
+          "z": 12,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 448.00000000000017,
+            "y": 291.0023709261251
+          }
+        },
+        {
+          "id": "colony.tree.performance-18",
+          "x": 3,
+          "y": 9.450000000000001,
+          "z": 14,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 144.0000000000002,
+            "y": 171.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-19",
+          "x": -14,
+          "y": 9.99,
+          "z": 16,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -159.99999999999994,
+            "y": 40.42057523730176
+          }
+        },
+        {
+          "id": "colony.tree.performance-20",
+          "x": 26,
+          "y": 9.450000000000001,
+          "z": 17,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 464.0000000000002,
+            "y": 379.00237092612514
+          }
+        },
+        {
+          "id": "colony.tree.performance-21",
+          "x": 9,
+          "y": 9.450000000000001,
+          "z": 19,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 160.00000000000017,
+            "y": 259.0023709261251
+          }
+        },
+        {
+          "id": "colony.tree.performance-22",
+          "x": -8,
+          "y": 9.99,
+          "z": 21,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -143.99999999999991,
+            "y": 128.42057523730173
+          }
+        },
+        {
+          "id": "colony.tree.performance-23",
+          "x": -25,
+          "y": 10.530000000000001,
+          "z": 23,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -448,
+            "y": -2.1612204515216504
+          }
+        },
+        {
+          "id": "colony.tree.performance-24",
+          "x": 15,
+          "y": 9.99,
+          "z": 24,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 176.00000000000009,
+            "y": 336.4205752373017
+          }
+        },
+        {
+          "id": "colony.tree.performance-25",
+          "x": -2,
+          "y": 9.99,
+          "z": 26,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -127.99999999999997,
+            "y": 216.42057523730176
+          }
+        },
+        {
+          "id": "colony.tree.performance-26",
+          "x": -19,
+          "y": 10.530000000000001,
+          "z": 28,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -431.9999999999999,
+            "y": 85.8387795484784
+          }
+        },
+        {
+          "id": "colony.tree.performance-27",
+          "x": 21,
+          "y": 8.91,
+          "z": -28,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 1104.0000000000002,
+            "y": -10.41583338505152
+          }
+        },
+        {
+          "id": "colony.tree.performance-28",
+          "x": 4,
+          "y": 8.91,
+          "z": -26,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 800.0000000000002,
+            "y": -130.41583338505154
+          }
+        },
+        {
+          "id": "colony.tree.performance-29",
+          "x": -13,
+          "y": 8.91,
+          "z": -24,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 496.0000000000003,
+            "y": -250.41583338505154
+          }
+        },
+        {
+          "id": "colony.tree.performance-30",
+          "x": 27,
+          "y": 8.91,
+          "z": -23,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 1120.0000000000002,
+            "y": 77.58416661494844
+          }
+        },
+        {
+          "id": "colony.tree.performance-31",
+          "x": 10,
+          "y": 8.91,
+          "z": -21,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 816.0000000000002,
+            "y": -42.41583338505155
+          }
+        },
+        {
+          "id": "colony.tree.performance-32",
+          "x": -7,
+          "y": 8.91,
+          "z": -19,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 512.0000000000003,
+            "y": -162.41583338505157
+          }
+        },
+        {
+          "id": "colony.tree.performance-33",
+          "x": -24,
+          "y": 9.450000000000001,
+          "z": -17,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 208.00000000000026,
+            "y": -292.9976290738749
+          }
+        },
+        {
+          "id": "colony.tree.performance-34",
+          "x": 16,
+          "y": 8.91,
+          "z": -16,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 832.0000000000002,
+            "y": 45.584166614948465
+          }
+        },
+        {
+          "id": "colony.tree.performance-35",
+          "x": -1,
+          "y": 8.91,
+          "z": -14,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 528.0000000000002,
+            "y": -74.41583338505157
+          }
+        },
+        {
+          "id": "colony.tree.performance-36",
+          "x": -18,
+          "y": 9.450000000000001,
+          "z": -12,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 224.0000000000002,
+            "y": -204.99762907387495
+          }
+        },
+        {
+          "id": "colony.tree.performance-37",
+          "x": 22,
+          "y": 8.91,
+          "z": -11,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 848.0000000000001,
+            "y": 133.58416661494843
+          }
+        },
+        {
+          "id": "colony.tree.performance-38",
+          "x": 5,
+          "y": 9.450000000000001,
+          "z": -9,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 544.0000000000002,
+            "y": 3.0023709261251197
+          }
+        },
+        {
+          "id": "colony.tree.performance-39",
+          "x": -12,
+          "y": 9.450000000000001,
+          "z": -7,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 240.00000000000023,
+            "y": -116.99762907387492
+          }
+        },
+        {
+          "id": "colony.tree.performance-4",
+          "x": 13,
+          "y": 8.91,
+          "z": -10,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 688.0000000000002,
+            "y": 69.58416661494844
+          }
+        },
+        {
+          "id": "colony.tree.performance-40",
+          "x": 28,
+          "y": 8.91,
+          "z": -6,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 864,
+            "y": 221.58416661494843
+          }
+        },
+        {
+          "id": "colony.tree.performance-41",
+          "x": 11,
+          "y": 9.450000000000001,
+          "z": -4,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 560.0000000000002,
+            "y": 91.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-42",
+          "x": -6,
+          "y": 9.450000000000001,
+          "z": -2,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 256.00000000000017,
+            "y": -28.997629073874933
+          }
+        },
+        {
+          "id": "colony.tree.performance-43",
+          "x": -23,
+          "y": 9.450000000000001,
+          "z": 0,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -47.9999999999999,
+            "y": -148.99762907387495
+          }
+        },
+        {
+          "id": "colony.tree.performance-44",
+          "x": 17,
+          "y": 9.450000000000001,
+          "z": 1,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 576.0000000000002,
+            "y": 179.0023709261251
+          }
+        },
+        {
+          "id": "colony.tree.performance-45",
+          "x": 0,
+          "y": 9.450000000000001,
+          "z": 3,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 272.0000000000002,
+            "y": 59.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-46",
+          "x": -17,
+          "y": 9.450000000000001,
+          "z": 5,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -31.999999999999886,
+            "y": -60.99762907387492
+          }
+        },
+        {
+          "id": "colony.tree.performance-47",
+          "x": 23,
+          "y": 9.450000000000001,
+          "z": 6,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 592.0000000000002,
+            "y": 267.0023709261251
+          }
+        },
+        {
+          "id": "colony.tree.performance-48",
+          "x": 6,
+          "y": 9.450000000000001,
+          "z": 8,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 288.00000000000017,
+            "y": 147.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-49",
+          "x": -11,
+          "y": 9.99,
+          "z": 10,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -15.999999999999872,
+            "y": 16.420575237301737
+          }
+        },
+        {
+          "id": "colony.tree.performance-5",
+          "x": -4,
+          "y": 9.450000000000001,
+          "z": -8,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 384.0000000000002,
+            "y": -60.99762907387492
+          }
+        },
+        {
+          "id": "colony.tree.performance-50",
+          "x": -28,
+          "y": 9.99,
+          "z": 12,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": -319.99999999999994,
+            "y": -103.57942476269825
+          }
+        },
+        {
+          "id": "colony.tree.performance-6",
+          "x": -21,
+          "y": 9.450000000000001,
+          "z": -6,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 80.00000000000017,
+            "y": -180.99762907387498
+          }
+        },
+        {
+          "id": "colony.tree.performance-7",
+          "x": 19,
+          "y": 9.450000000000001,
+          "z": -5,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 704.0000000000002,
+            "y": 147.00237092612508
+          }
+        },
+        {
+          "id": "colony.tree.performance-8",
+          "x": 2,
+          "y": 9.450000000000001,
+          "z": -3,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 400.0000000000002,
+            "y": 27.002370926125096
+          }
+        },
+        {
+          "id": "colony.tree.performance-9",
+          "x": -15,
+          "y": 9.450000000000001,
+          "z": -1,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 96.0000000000002,
+            "y": -92.99762907387486
+          }
+        },
+        {
+          "id": "colony.tree.pine",
+          "x": -5,
+          "y": 9.450000000000001,
+          "z": 4,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 176.0000000000002,
+            "y": 27.002370926125074
+          }
+        },
+        {
+          "id": "colony.tree.willow",
+          "x": 4,
+          "y": 9.450000000000001,
+          "z": -5,
+          "support": null,
+          "visual": "colony.tree",
+          "pickable": true,
+          "screen": {
+            "x": 464.0000000000003,
+            "y": 27.002370926125096
+          }
+        },
+        {
+          "id": "colony.worker.3",
+          "x": -5,
+          "y": 8.91,
+          "z": -19.529000000000003,
+          "support": null,
+          "visual": "colony.rowan",
+          "pickable": true,
+          "screen": {
+            "x": 552.4640000000004,
+            "y": -150.6478333850516
+          }
+        },
+        {
+          "id": "colony.worker.4",
+          "x": -22,
+          "y": 8.91,
+          "z": -17.529000000000003,
+          "support": null,
+          "visual": "colony.sedge",
+          "pickable": true,
+          "screen": {
+            "x": 248.4640000000003,
+            "y": -270.64783338505157
+          }
+        },
+        {
+          "id": "colony.worker.5",
+          "x": 18,
+          "y": 8.91,
+          "z": -16.529000000000003,
+          "support": null,
+          "visual": "colony.rowan",
+          "pickable": true,
+          "screen": {
+            "x": 872.4640000000004,
+            "y": 57.352166614948416
+          }
+        },
+        {
+          "id": "colony.worker.6",
+          "x": 1,
+          "y": 8.91,
+          "z": -14.529000000000003,
+          "support": null,
+          "visual": "colony.sedge",
+          "pickable": true,
+          "screen": {
+            "x": 568.4640000000003,
+            "y": -62.64783338505158
+          }
+        },
+        {
+          "id": "colony.worker.7",
+          "x": -16,
+          "y": 9.450000000000001,
+          "z": -13.069000000000015,
+          "support": null,
+          "visual": "colony.rowan",
+          "pickable": true,
+          "screen": {
+            "x": 273.1040000000005,
+            "y": -197.549629073875
+          }
+        },
+        {
+          "id": "colony.worker.8",
+          "x": 24,
+          "y": 8.91,
+          "z": -11.529000000000003,
+          "support": null,
+          "visual": "colony.sedge",
+          "pickable": true,
+          "screen": {
+            "x": 888.4640000000003,
+            "y": 145.35216661494843
+          }
+        },
+        {
+          "id": "party:1.person.0",
+          "x": -28,
+          "y": 8.91,
+          "z": -22.529000000000003,
+          "support": null,
+          "visual": "colony.rowan",
+          "pickable": true,
+          "screen": {
+            "x": 232.46400000000037,
+            "y": -358.64783338505157
+          }
+        },
+        {
+          "id": "party:1.person.1",
+          "x": 12,
+          "y": 8.91,
+          "z": -21.529000000000003,
+          "support": null,
+          "visual": "colony.sedge",
+          "pickable": true,
+          "screen": {
+            "x": 856.4640000000003,
+            "y": -30.64783338505159
+          }
+        }
+      ]
+    },
+    "performance": {
+      "source": "durable-object",
+      "frames": 34,
+      "sequence": 33,
+      "simulationTime": 3.2000000000000015,
+      "paused": true,
+      "simulationRate": 1.0557571758495545,
+      "observationGap": {
+        "samples": 32,
+        "median": 101,
+        "p95": 245.60000014305115
+      },
+      "httpRoundTrip": {
+        "samples": 97,
+        "median": 269.39999985694885,
+        "p95": 433.80000019073486
+      },
+      "terrainRoundTrip": {
+        "samples": 95,
+        "median": 269.19999980926514,
+        "p95": 402.90000009536743
+      },
+      "receivedBytes": 10903545,
+      "requests": 97,
+      "failedRequests": 0,
+      "observedWorkers": 8,
+      "movingWorkers": 0,
+      "wood": 0,
+      "stumps": 0,
+      "retainedSamples": {
+        "observations": 32,
+        "progression": 32,
+        "http": 97,
+        "terrain": 95
+      }
+    },
+    "heap": {
+      "used": 212000000,
+      "total": 254000000
+    }
+  },
+  "transport": {
+    "browserWorkers": [],
+    "socketOrigins": [
+      "wss://hive-performance-engine-preview.levi-fe0.workers.dev"
+    ]
+  },
+  "failureState": null,
+  "finishedAt": "2026-09-20T10:16:04.729Z"
+}

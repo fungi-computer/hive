@@ -1,0 +1,414 @@
+{
+  "proof": "clearing-playable-browser",
+  "frontend": "https://clearing-2c8f099f-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony#world=[invite]",
+  "output": "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-releases/20260916T070033Z-2c8f099f/hosted-playable",
+  "sourceInventory": [
+    {
+      "path": "engine/src/client/action-bar.js",
+      "sha256": "2852d6c38c807d313314fc31161b7a43feb9d107f05a13d3084d44c53b986bfc"
+    },
+    {
+      "path": "engine/src/client/art-placement.js",
+      "sha256": "45a42bad43c90cca8355517627bb5ec0f67f10b880b097816d3e78387b09b224"
+    },
+    {
+      "path": "engine/src/client/build-placement.js",
+      "sha256": "9a6d8576b9b470cd108627508ea47a9c1878c4509c2684c83db8fb79159e7362"
+    },
+    {
+      "path": "engine/src/client/client.js",
+      "sha256": "63ac891bb1eef883d1a663ae8ce8f98c6415f67a98fae1937021cd692c78f873"
+    },
+    {
+      "path": "engine/src/client/controls.js",
+      "sha256": "612a14beae8971f99b963d7379579426015cf3789267246d6e979079b588f1e6"
+    },
+    {
+      "path": "engine/src/client/edge-gesture.js",
+      "sha256": "6e30104ff4ce479898894770aee21599454557accbdb586ee4b8ee365a7e1318"
+    },
+    {
+      "path": "engine/src/client/isometric-sorter.js",
+      "sha256": "baff4e001dcf1656fa0f124052ed8958c0644fdca5b433349ff2c995da2fe10c"
+    },
+    {
+      "path": "engine/src/client/terrain-band-plan.js",
+      "sha256": "4eb1b83bcdabf678f8474f17d02148593efa9f5c280847025e51972e9d21b041"
+    },
+    {
+      "path": "engine/src/client/terrain-layer.js",
+      "sha256": "da6bea7bfc15c1716f2bb0ba9046fa6473c76a6ae784132637c57985b306b454"
+    },
+    {
+      "path": "engine/src/client/whistle-command.js",
+      "sha256": "5c72ad0aaf7eccc8a3acb4de641c08eecd29b913ba6fea2a9397e1c4c51c576a"
+    },
+    {
+      "path": "engine/src/games/colony-building.ts",
+      "sha256": "280c41ee199431875c58955a3cbd3ba5ec5f93b4849b9672bc07aac8b1396143"
+    },
+    {
+      "path": "engine/src/games/colony-party.ts",
+      "sha256": "a5d52259114e0d130cf232e43054f8bdd190575d91ea56f6cf28e867c02de8bf"
+    },
+    {
+      "path": "engine/src/games/colony.ts",
+      "sha256": "e5e5e60291642350a72cc667fe6ab0d40f387b32c7d0c7da01a14308f700f959"
+    },
+    {
+      "path": "engine/src/runtime/remote-client.ts",
+      "sha256": "ee87124881b0ed64006059688eb5208fbcb1000188dabb9606317ccd1adcb674"
+    },
+    {
+      "path": "public/generated-art/goblin-static-art-v6/manifest.json",
+      "sha256": "bc03df2f43dd8b7652b69a0647ff65f0986660c905e19e837a939544f8045761"
+    },
+    {
+      "path": "src/art/terrain-faces.js",
+      "sha256": "1919f13e909fba459cdd1f59678d8fb666778d08aa006767ecab4e3b514233aa"
+    },
+    {
+      "path": "tools/public-engine-host/playable-browser-proof.mjs",
+      "sha256": "d2c89e4e1eb77d04e6c47e27ae807de9b8467bb0eb84893a5a4ed1a0ec30c8a7"
+    },
+    {
+      "path": "tools/public-engine-host/protocol.ts",
+      "sha256": "5b28ec7326ea587216eb81771c43395ccd44efaa4204d8f44ac37580b27e2935"
+    },
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "c9a2f58c775ce49614e1bef510a4931986b1364e32d8b085d12d1dbd4c33d51d"
+    }
+  ],
+  "limits": [
+    "One fresh browser context and one fresh invited world.",
+    "Public UI controls and HTTP receipts only; no page command injection or save mutation.",
+    "The driver does not start, build, deploy, or repair the frontend/backend.",
+    "Placement uses the visible-world gesture owner; if the built artifact cannot expose a target, the evidence records that limit."
+  ],
+  "assertions": [
+    {
+      "name": "fresh world joins one party with two people",
+      "party": "party:1",
+      "people": [
+        "party:1.person.0",
+        "party:1.person.1"
+      ]
+    },
+    {
+      "name": "camera reset follows an ordinary viewport resize",
+      "canvas": {
+        "width": 846.703125,
+        "height": 866
+      }
+    },
+    {
+      "name": "selection has no side effect",
+      "commandsAfterSelection": 0
+    },
+    {
+      "name": "Go is rejected before Draft",
+      "command": "go"
+    }
+  ],
+  "screenshots": [
+    "desktop-01-joined.png",
+    "failure.png"
+  ],
+  "join": {
+    "status": 200,
+    "player": "player:1",
+    "party": "party:1",
+    "people": [
+      "party:1.person.0",
+      "party:1.person.1"
+    ]
+  },
+  "commands": [
+    {
+      "name": "go",
+      "id": "9fb7afa2-9c52-464c-8cbc-e98be473710c",
+      "command": {
+        "kind": "command",
+        "name": "go",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ],
+          "destination": {
+            "x": -1,
+            "y": 7.290000000000001,
+            "z": 0,
+            "frame": null
+          }
+        }
+      },
+      "response": {
+        "status": 400,
+        "value": {
+          "error": "bad-request"
+        }
+      }
+    }
+  ],
+  "commandResponses": [
+    {
+      "id": "9fb7afa2-9c52-464c-8cbc-e98be473710c",
+      "name": "go",
+      "status": 400,
+      "value": {
+        "error": "bad-request"
+      }
+    }
+  ],
+  "errors": [],
+  "success": false,
+  "failure": "locator.waitFor: Error: strict mode violation: getByRole('button', { name: 'Draft', exact: true }) resolved to 2 elements:\n    1) <button type=\"button\" aria-label=\"Draft\" class=\"btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-out…>Draft</button> aka getByLabel('Draft')\n    2) <button type=\"button\" class=\"btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-outline btn-sm\">Draft</button> aka getByRole('region', { name: 'Rowan' }).getByRole('button', { name: 'Draft' })\n\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Draft', exact: true }) to be visible\u001b[22m\n\n    at waitForVisible (/home/levi/src/hive-worktrees/clearing-edge-integration/tools/public-engine-host/playable-browser-proof.mjs:78:16)\n    at /home/levi/src/hive-worktrees/clearing-edge-integration/tools/public-engine-host/playable-browser-proof.mjs:343:16",
+  "finalObservation": {
+    "revision": 48,
+    "time": 4.699999999999999,
+    "facts": [
+      {
+        "id": "colony.guest.1",
+        "visual": "goblin.guest",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 3,
+            "y": 7.290000000000001,
+            "z": 1
+          }
+        }
+      },
+      {
+        "id": "colony.tree.oak",
+        "visual": "colony.tree",
+        "pose": {
+          "position": {
+            "x": 2,
+            "y": 7.290000000000001,
+            "z": 2
+          },
+          "facing": 0
+        }
+      },
+      {
+        "id": "colony.tree.pine",
+        "visual": "colony.tree",
+        "pose": {
+          "position": {
+            "x": -5,
+            "y": 7.290000000000001,
+            "z": 4
+          },
+          "facing": 0
+        }
+      },
+      {
+        "id": "colony.tree.willow",
+        "visual": "colony.tree",
+        "pose": {
+          "position": {
+            "x": 4,
+            "y": 6.75,
+            "z": -5
+          },
+          "facing": 0
+        }
+      },
+      {
+        "id": "party:1.person.0",
+        "visual": "colony.rowan",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 0,
+            "y": 7.290000000000001,
+            "z": 0
+          }
+        },
+        "inventory": {
+          "items": [
+            {
+              "kind": "pail",
+              "quantity": 1,
+              "id": "lot.1",
+              "container": {
+                "capacity": 7,
+                "contents": {
+                  "items": []
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "party:1.person.1",
+        "visual": "colony.sedge",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 2,
+            "y": 7.290000000000001,
+            "z": 0
+          }
+        },
+        "inventory": {
+          "items": [
+            {
+              "kind": "pail",
+              "quantity": 1,
+              "id": "lot.2",
+              "container": {
+                "capacity": 7,
+                "contents": {
+                  "items": []
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "party:1.starter-store",
+        "visual": "crate",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 4,
+            "y": 7.290000000000001,
+            "z": 0
+          }
+        },
+        "inventory": {
+          "items": [
+            {
+              "kind": "bread",
+              "quantity": 6
+            },
+            {
+              "kind": "malt",
+              "quantity": 4
+            },
+            {
+              "kind": "wood",
+              "quantity": 48
+            },
+            {
+              "kind": "barm",
+              "quantity": 1,
+              "id": "lot.6",
+              "container": {
+                "capacity": 1,
+                "contents": {
+                  "items": []
+                }
+              }
+            },
+            {
+              "kind": "keg",
+              "quantity": 1,
+              "id": "lot.7",
+              "container": {
+                "capacity": 4,
+                "contents": {
+                  "items": []
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "presentationFacts": [
+      {
+        "id": "party-store-party:1",
+        "label": "Party store",
+        "value": 62
+      },
+      {
+        "id": "worker-carried",
+        "label": "Workers carry",
+        "value": 2
+      },
+      {
+        "id": "worker-party:1.person.0-control",
+        "label": "Party worker",
+        "value": "automatic",
+        "subjects": [
+          "party:1.person.0"
+        ]
+      },
+      {
+        "id": "worker-party:1.person.1-control",
+        "label": "Party worker",
+        "value": "automatic",
+        "subjects": [
+          "party:1.person.1"
+        ]
+      },
+      {
+        "id": "worker-party:1.person.0-pail",
+        "label": "Pail",
+        "value": "Carried · in this worker's custody",
+        "subjects": [
+          "party:1.person.0"
+        ]
+      },
+      {
+        "id": "worker-party:1.person.1-pail",
+        "label": "Pail",
+        "value": "Carried · in this worker's custody",
+        "subjects": [
+          "party:1.person.1"
+        ]
+      },
+      {
+        "id": "guest-quantity",
+        "label": "Guest meal",
+        "value": 0,
+        "subjects": [
+          "colony.guest.1"
+        ]
+      },
+      {
+        "id": "dig-progress-party:1.person.0",
+        "label": "Worker digging",
+        "value": 0,
+        "subjects": [
+          "party:1.person.0"
+        ]
+      },
+      {
+        "id": "dig-progress-party:1.person.1",
+        "label": "Worker digging",
+        "value": 0,
+        "subjects": [
+          "party:1.person.1"
+        ]
+      },
+      {
+        "id": "spoil-carried",
+        "label": "Spoil carried",
+        "value": 0
+      },
+      {
+        "id": "spoil-ground",
+        "label": "Loose spoil",
+        "value": 0
+      },
+      {
+        "id": "dig-orders",
+        "label": "Dig orders",
+        "value": 0
+      },
+      {
+        "id": "dig-blocked",
+        "label": "Dig blocked",
+        "value": "none"
+      }
+    ],
+    "terrainMarks": []
+  }
+}

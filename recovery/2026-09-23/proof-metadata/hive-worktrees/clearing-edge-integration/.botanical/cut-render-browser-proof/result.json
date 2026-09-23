@@ -1,0 +1,15 @@
+{
+  "status": 200,
+  "errors": [],
+  "facts": {
+    "title": "Hive · Colony",
+    "canvas": [
+      {
+        "width": 958,
+        "height": 966
+      }
+    ],
+    "status": "Browser local · saves stay here"
+  },
+  "failure": null
+}

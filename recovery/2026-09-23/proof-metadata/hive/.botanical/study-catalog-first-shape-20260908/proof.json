@@ -1,0 +1,51 @@
+{
+  "kind": "study-catalog-first-shape",
+  "catalog": {
+    "groupIds": [
+      "environment",
+      "systems",
+      "people",
+      "places"
+    ],
+    "titles": [
+      "Water Lab",
+      "Air, heat & smoke",
+      "World Lab",
+      "Clearing minimap",
+      "Mixed shelves",
+      "People & proportion",
+      "The Devil and demons",
+      "Animals on the road",
+      "The Copper Familiar",
+      "Goblin hospitality",
+      "Floor details",
+      "Fire and light",
+      "Still roots, moving leaves"
+    ],
+    "pending": 2,
+    "peopleAnchor": true
+  },
+  "leaves": {
+    "devil": {
+      "skip": "Skip to study",
+      "crumbs": [
+        "/study.html",
+        "/study.html#people"
+      ],
+      "current": "The Devil and demons",
+      "back": "Back to the clearing",
+      "content": true
+    },
+    "goblinDen": {
+      "skip": "Skip to study",
+      "crumbs": [
+        "/study.html",
+        "/study.html#places"
+      ],
+      "current": "Goblin hospitality",
+      "back": "Back to the clearing",
+      "content": true
+    }
+  },
+  "errors": []
+}

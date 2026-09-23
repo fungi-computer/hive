@@ -1,0 +1,16 @@
+{
+  "group": "resource",
+  "files": [
+    "engine/src/games/colony-mugwort-command.test.ts",
+    "engine/src/games/colony-work.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/resource/colony-mugwort-command.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/resource/colony-work.test.mjs"
+  ],
+  "exit": 1
+}

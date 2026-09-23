@@ -1,0 +1,841 @@
+{
+  "url": "http://127.0.0.1:5187/.botanical/upstairs-study/index.html",
+  "invocation": {
+    "runner": "run-proof.sh",
+    "command": [
+      "node",
+      "/home/levi/src/hive/.botanical/upstairs-study/capture-v2.mjs",
+      ".botanical/upstairs-study/proof-v2",
+      "."
+    ]
+  },
+  "sourceSha256Before": {
+    ".botanical/upstairs-study/capture-v2.mjs": "91be26809d5277530e6e3e364ab5ff11273c8f76246dcf4385e52a5f8bd13aaf",
+    ".botanical/upstairs-study/index.html": "16c5dfbcef65a8ca767af39d758467fc2422c7acfcc385ec9fa05e75fdb1ea50",
+    ".botanical/upstairs-study/main.js": "19c2436f409cfa5a3c5149eb3d80e19f9b346dda65eabbda9ca3d36e1e53cc66",
+    ".botanical/upstairs-study/home.js": "84b708d9ba10f0a33b41c8aa428cb489c3da615622f323d16afdcbc2d81cbd93",
+    ".botanical/upstairs-study/stair.js": "16ff70c0cf82807989905e17321e0e42b9a9a07ff5950d8925855d72bfe7609b",
+    ".botanical/upstairs-study/floor.js": "18f4b73dfabfb7426e908153edd9329287b4a3dee5c37184e99cfbfa876b32ad",
+    ".botanical/upstairs-study/datum.js": "7e39120c702da7d2a0cbe97f6feaa318e4e8265498f0aef1773132010e742600",
+    ".botanical/upstairs-study/scale.js": "baf51194fb8709f80ad767a0a0d8dda5259eb21022673f25b910a13a4c9dd632",
+    ".botanical/upstairs-study/bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    ".botanical/upstairs-study/baseline-home.js": "af15f17f6dda6f9c3f8860a6eea9a4a9426eb9b457b99b08fc757a30c771b70a",
+    ".botanical/upstairs-study/baseline/src/world.js": "8c2f7756ac524c128257ede5773a297a84ffcf1be9f299dc587c78861583d18b",
+    ".botanical/upstairs-study/baseline/src/art.js": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+    ".botanical/upstairs-study/baseline/src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    ".botanical/upstairs-study/baseline/src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    ".botanical/upstairs-study/baseline/src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/upstairs-study/baseline/src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    ".botanical/upstairs-study/baseline/src/art/shelf.js": "0548ec13765fdee3a030b5326ca837b7fe1721a3f0fc4636558ba799df81fa03",
+    ".botanical/upstairs-study/baseline/src/art/home.js": "75814f7660b777b1c0c05de01236841ab32d3b7143f262cb75f5da9389f755ef",
+    ".botanical/upstairs-study/baseline/src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552"
+  },
+  "sourceSha256After": {
+    ".botanical/upstairs-study/capture-v2.mjs": "91be26809d5277530e6e3e364ab5ff11273c8f76246dcf4385e52a5f8bd13aaf",
+    ".botanical/upstairs-study/index.html": "16c5dfbcef65a8ca767af39d758467fc2422c7acfcc385ec9fa05e75fdb1ea50",
+    ".botanical/upstairs-study/main.js": "19c2436f409cfa5a3c5149eb3d80e19f9b346dda65eabbda9ca3d36e1e53cc66",
+    ".botanical/upstairs-study/home.js": "84b708d9ba10f0a33b41c8aa428cb489c3da615622f323d16afdcbc2d81cbd93",
+    ".botanical/upstairs-study/stair.js": "16ff70c0cf82807989905e17321e0e42b9a9a07ff5950d8925855d72bfe7609b",
+    ".botanical/upstairs-study/floor.js": "18f4b73dfabfb7426e908153edd9329287b4a3dee5c37184e99cfbfa876b32ad",
+    ".botanical/upstairs-study/datum.js": "7e39120c702da7d2a0cbe97f6feaa318e4e8265498f0aef1773132010e742600",
+    ".botanical/upstairs-study/scale.js": "baf51194fb8709f80ad767a0a0d8dda5259eb21022673f25b910a13a4c9dd632",
+    ".botanical/upstairs-study/bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    ".botanical/upstairs-study/baseline-home.js": "af15f17f6dda6f9c3f8860a6eea9a4a9426eb9b457b99b08fc757a30c771b70a",
+    ".botanical/upstairs-study/baseline/src/world.js": "8c2f7756ac524c128257ede5773a297a84ffcf1be9f299dc587c78861583d18b",
+    ".botanical/upstairs-study/baseline/src/art.js": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+    ".botanical/upstairs-study/baseline/src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    ".botanical/upstairs-study/baseline/src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    ".botanical/upstairs-study/baseline/src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/upstairs-study/baseline/src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    ".botanical/upstairs-study/baseline/src/art/shelf.js": "0548ec13765fdee3a030b5326ca837b7fe1721a3f0fc4636558ba799df81fa03",
+    ".botanical/upstairs-study/baseline/src/art/home.js": "75814f7660b777b1c0c05de01236841ab32d3b7143f262cb75f5da9389f755ef",
+    ".botanical/upstairs-study/baseline/src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552"
+  },
+  "dimensions": {
+    "field": [
+      640,
+      400
+    ],
+    "strip": [
+      672,
+      256
+    ]
+  },
+  "propAnchor": {
+    "x": 0.5,
+    "y": 0.6924599083615355
+  },
+  "pawnAnchor": {
+    "x": 0.5,
+    "y": 0.7522974435066674
+  },
+  "regressions": {
+    "count": 12,
+    "failures": []
+  },
+  "stateByLabel": {
+    "axis0-upper-sample0": {
+      "playing": false,
+      "tick": 0,
+      "direction": 0,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 0,
+      "fraction": 0,
+      "moving": true,
+      "facing": 0,
+      "poseFrame": 0,
+      "position": {
+        "x": 5,
+        "z": 4,
+        "height": 0
+      }
+    },
+    "axis0-upper-sample9": {
+      "playing": false,
+      "tick": 9,
+      "direction": 0,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 9,
+      "fraction": 0.5,
+      "moving": true,
+      "facing": 0,
+      "poseFrame": 4,
+      "position": {
+        "x": 5,
+        "z": 5,
+        "height": 1.08
+      }
+    },
+    "axis0-upper-sample18": {
+      "playing": false,
+      "tick": 18,
+      "direction": 0,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 18,
+      "fraction": 1,
+      "moving": false,
+      "facing": 0,
+      "poseFrame": 0,
+      "position": {
+        "x": 5,
+        "z": 6,
+        "height": 2.16
+      }
+    },
+    "axis0-upper-game2x-sample18": {
+      "playing": false,
+      "tick": 18,
+      "direction": 0,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 2,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 18,
+      "fraction": 1,
+      "moving": false,
+      "facing": 0,
+      "poseFrame": 0,
+      "position": {
+        "x": 5,
+        "z": 6,
+        "height": 2.16
+      }
+    },
+    "axis1-upper-sample0": {
+      "playing": false,
+      "tick": 0,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 0,
+      "fraction": 0,
+      "moving": true,
+      "facing": 1,
+      "poseFrame": 0,
+      "position": {
+        "x": 5,
+        "z": 4,
+        "height": 0
+      }
+    },
+    "axis1-upper-sample9": {
+      "playing": false,
+      "tick": 9,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 9,
+      "fraction": 0.5,
+      "moving": true,
+      "facing": 1,
+      "poseFrame": 4,
+      "position": {
+        "x": 6,
+        "z": 4,
+        "height": 1.08
+      }
+    },
+    "axis1-upper-sample18": {
+      "playing": false,
+      "tick": 18,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 18,
+      "fraction": 1,
+      "moving": false,
+      "facing": 1,
+      "poseFrame": 0,
+      "position": {
+        "x": 7,
+        "z": 4,
+        "height": 2.16
+      }
+    },
+    "axis1-upper-game2x-sample18": {
+      "playing": false,
+      "tick": 18,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "rowan",
+      "cargo": "carry",
+      "scale": 2,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 18,
+      "fraction": 1,
+      "moving": false,
+      "facing": 1,
+      "poseFrame": 0,
+      "position": {
+        "x": 7,
+        "z": 4,
+        "height": 2.16
+      }
+    },
+    "sedge-carry-sample9": {
+      "playing": false,
+      "tick": 9,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "witch-runner",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 9,
+      "fraction": 0.5,
+      "moving": true,
+      "facing": 1,
+      "poseFrame": 4,
+      "position": {
+        "x": 6,
+        "z": 4,
+        "height": 1.08
+      }
+    },
+    "sedge-carry-sample18": {
+      "playing": false,
+      "tick": 18,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "witch-runner",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "upper",
+      "stage": "finished",
+      "cycleTick": 18,
+      "fraction": 1,
+      "moving": false,
+      "facing": 1,
+      "poseFrame": 0,
+      "position": {
+        "x": 7,
+        "z": 4,
+        "height": 2.16
+      }
+    },
+    "ground-cutaway": {
+      "playing": false,
+      "tick": 18,
+      "direction": 1,
+      "travel": "ascend",
+      "chosen": "witch-runner",
+      "cargo": "carry",
+      "scale": 1,
+      "selectedLevel": "ground",
+      "stage": "finished",
+      "cycleTick": 18,
+      "fraction": 1,
+      "moving": false,
+      "facing": 1,
+      "poseFrame": 0,
+      "position": {
+        "x": 7,
+        "z": 4,
+        "height": 2.16
+      }
+    }
+  },
+  "captures": [
+    {
+      "label": "axis0-upper-sample0",
+      "name": "field-20260907202732-axis0-tick0-native-axis0-upper-sample0.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202732-axis0-tick0-native-axis0-upper-sample0.png",
+      "state": {
+        "playing": false,
+        "tick": 0,
+        "direction": 0,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 0,
+        "fraction": 0,
+        "moving": true,
+        "facing": 0,
+        "poseFrame": 0,
+        "position": {
+          "x": 5,
+          "z": 4,
+          "height": 0
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 336,
+          "y": 180
+        },
+        "projected": {
+          "x": 336,
+          "y": 180
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis0-upper-sample9",
+      "name": "field-20260907202734-axis0-tick9-native-axis0-upper-sample9.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202734-axis0-tick9-native-axis0-upper-sample9.png",
+      "state": {
+        "playing": false,
+        "tick": 9,
+        "direction": 0,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 9,
+        "fraction": 0.5,
+        "moving": true,
+        "facing": 0,
+        "poseFrame": 4,
+        "position": {
+          "x": 5,
+          "z": 5,
+          "height": 1.08
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 320,
+          "y": 167
+        },
+        "projected": {
+          "x": 320,
+          "y": 167
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis0-upper-sample18",
+      "name": "field-20260907202737-axis0-tick18-native-axis0-upper-sample18.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202737-axis0-tick18-native-axis0-upper-sample18.png",
+      "state": {
+        "playing": false,
+        "tick": 18,
+        "direction": 0,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 18,
+        "fraction": 1,
+        "moving": false,
+        "facing": 0,
+        "poseFrame": 0,
+        "position": {
+          "x": 5,
+          "z": 6,
+          "height": 2.16
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 304,
+          "y": 154
+        },
+        "projected": {
+          "x": 304,
+          "y": 154
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis0-upper-game2x-sample18",
+      "name": "field-20260907202740-axis0-tick18-game2x-axis0-upper-game2x-sample18.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202740-axis0-tick18-game2x-axis0-upper-game2x-sample18.png",
+      "state": {
+        "playing": false,
+        "tick": 18,
+        "direction": 0,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 2,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 18,
+        "fraction": 1,
+        "moving": false,
+        "facing": 0,
+        "poseFrame": 0,
+        "position": {
+          "x": 5,
+          "z": 6,
+          "height": 2.16
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 304,
+          "y": 154
+        },
+        "projected": {
+          "x": 304,
+          "y": 154
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis1-upper-sample0",
+      "name": "field-20260907202744-axis1-tick0-native-axis1-upper-sample0.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202744-axis1-tick0-native-axis1-upper-sample0.png",
+      "state": {
+        "playing": false,
+        "tick": 0,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 0,
+        "fraction": 0,
+        "moving": true,
+        "facing": 1,
+        "poseFrame": 0,
+        "position": {
+          "x": 5,
+          "z": 4,
+          "height": 0
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 336,
+          "y": 180
+        },
+        "projected": {
+          "x": 336,
+          "y": 180
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis1-upper-sample9",
+      "name": "field-20260907202750-axis1-tick9-native-axis1-upper-sample9.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202750-axis1-tick9-native-axis1-upper-sample9.png",
+      "state": {
+        "playing": false,
+        "tick": 9,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 9,
+        "fraction": 0.5,
+        "moving": true,
+        "facing": 1,
+        "poseFrame": 4,
+        "position": {
+          "x": 6,
+          "z": 4,
+          "height": 1.08
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 352,
+          "y": 167
+        },
+        "projected": {
+          "x": 352,
+          "y": 167
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis1-upper-sample18",
+      "name": "field-20260907202756-axis1-tick18-native-axis1-upper-sample18.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202756-axis1-tick18-native-axis1-upper-sample18.png",
+      "state": {
+        "playing": false,
+        "tick": 18,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 18,
+        "fraction": 1,
+        "moving": false,
+        "facing": 1,
+        "poseFrame": 0,
+        "position": {
+          "x": 7,
+          "z": 4,
+          "height": 2.16
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 368,
+          "y": 154
+        },
+        "projected": {
+          "x": 368,
+          "y": 154
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "axis1-upper-game2x-sample18",
+      "name": "field-20260907202803-axis1-tick18-game2x-axis1-upper-game2x-sample18.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202803-axis1-tick18-game2x-axis1-upper-game2x-sample18.png",
+      "state": {
+        "playing": false,
+        "tick": 18,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "rowan",
+        "cargo": "carry",
+        "scale": 2,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 18,
+        "fraction": 1,
+        "moving": false,
+        "facing": 1,
+        "poseFrame": 0,
+        "position": {
+          "x": 7,
+          "z": 4,
+          "height": 2.16
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 368,
+          "y": 154
+        },
+        "projected": {
+          "x": 368,
+          "y": 154
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "sedge-carry-sample9",
+      "name": "field-20260907202811-axis1-tick9-native-sedge-carry-sample9.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202811-axis1-tick9-native-sedge-carry-sample9.png",
+      "state": {
+        "playing": false,
+        "tick": 9,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "witch-runner",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 9,
+        "fraction": 0.5,
+        "moving": true,
+        "facing": 1,
+        "poseFrame": 4,
+        "position": {
+          "x": 6,
+          "z": 4,
+          "height": 1.08
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 352,
+          "y": 167
+        },
+        "projected": {
+          "x": 352,
+          "y": 167
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "sedge-carry-sample18",
+      "name": "field-20260907202816-axis1-tick18-native-sedge-carry-sample18.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202816-axis1-tick18-native-sedge-carry-sample18.png",
+      "state": {
+        "playing": false,
+        "tick": 18,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "witch-runner",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "upper",
+        "stage": "finished",
+        "cycleTick": 18,
+        "fraction": 1,
+        "moving": false,
+        "facing": 1,
+        "poseFrame": 0,
+        "position": {
+          "x": 7,
+          "z": 4,
+          "height": 2.16
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 368,
+          "y": 154
+        },
+        "projected": {
+          "x": 368,
+          "y": 154
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    },
+    {
+      "label": "ground-cutaway",
+      "name": "field-20260907202821-axis1-tick18-native-ground-cutaway.png",
+      "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202821-axis1-tick18-native-ground-cutaway.png",
+      "state": {
+        "playing": false,
+        "tick": 18,
+        "direction": 1,
+        "travel": "ascend",
+        "chosen": "witch-runner",
+        "cargo": "carry",
+        "scale": 1,
+        "selectedLevel": "ground",
+        "stage": "finished",
+        "cycleTick": 18,
+        "fraction": 1,
+        "moving": false,
+        "facing": 1,
+        "poseFrame": 0,
+        "position": {
+          "x": 7,
+          "z": 4,
+          "height": 2.16
+        }
+      },
+      "actor": {
+        "texture": true,
+        "resource": true,
+        "anchor": true,
+        "position": {
+          "x": 368,
+          "y": 154
+        },
+        "projected": {
+          "x": 368,
+          "y": 154
+        },
+        "positionMatches": true
+      },
+      "stair": {
+        "texture": true,
+        "resource": true,
+        "anchor": true
+      }
+    }
+  ],
+  "strip": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/strip-1788812845440-native.png",
+  "recorded": {
+    "mimeType": "video/webm;codecs=vp8",
+    "durationMs": 8000,
+    "bytes": 93981,
+    "path": "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/motion-8s.webm"
+  },
+  "screenshots": [
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/strip-1788812845440-native.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202732-axis0-tick0-native-axis0-upper-sample0.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202734-axis0-tick9-native-axis0-upper-sample9.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202737-axis0-tick18-native-axis0-upper-sample18.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202740-axis0-tick18-game2x-axis0-upper-game2x-sample18.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202744-axis1-tick0-native-axis1-upper-sample0.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202750-axis1-tick9-native-axis1-upper-sample9.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202756-axis1-tick18-native-axis1-upper-sample18.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202803-axis1-tick18-game2x-axis1-upper-game2x-sample18.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202811-axis1-tick9-native-sedge-carry-sample9.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202816-axis1-tick18-native-sedge-carry-sample18.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/field-20260907202821-axis1-tick18-native-ground-cutaway.png",
+    "/home/levi/src/hive/.botanical/upstairs-study/proof-v2/motion-8s.webm"
+  ],
+  "assertions": {
+    "readyTextures": true,
+    "regressions": true,
+    "sampledIdentity": true,
+    "upperSamples": true,
+    "groundCutaway": true,
+    "nativeCss": true,
+    "gameCss": true,
+    "pausedSamples": true,
+    "motion": true,
+    "browserErrors": []
+  },
+  "errors": []
+}

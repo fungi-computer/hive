@@ -1,0 +1,55 @@
+{
+  "implementationHash": "62778b856f06e1491d0823a528ea7d95f59810546c103d41fe239c9f75db09f7",
+  "wasmSha256": "a52053a37591b85b4f87f397818e070c1873d21474d59d8a22d4653187fe01c2",
+  "initial": {
+    "revision": 0,
+    "replayEpoch": 0,
+    "time": 0,
+    "cargo": {
+      "bread": 4,
+      "wood": 3,
+      "delivered": 0,
+      "pending": 2,
+      "result": "pending"
+    }
+  },
+  "accepted": {
+    "region": "public-v1-pirates-10de1d71b1c84b371ac72eb4105311a4",
+    "principal": "pirates-player",
+    "commandId": "load-cargo-0",
+    "replayEpoch": 0,
+    "status": "applied",
+    "revision": 4,
+    "result": {
+      "paused": false,
+      "results": [],
+      "tick": 3
+    }
+  },
+  "terminal": {
+    "revision": 63,
+    "replayEpoch": 0,
+    "time": 6.199999999999994,
+    "cargo": {
+      "bread": 4,
+      "wood": 3,
+      "delivered": 2,
+      "pending": 0,
+      "result": "complete"
+    }
+  },
+  "recovered": {
+    "revision": 64,
+    "replayEpoch": 0,
+    "time": 6.299999999999994,
+    "cargo": {
+      "bread": 4,
+      "wood": 3,
+      "delivered": 2,
+      "pending": 0,
+      "result": "complete"
+    }
+  },
+  "runtime": "local workerd, unchanged public engine DO + native Code Mode + actual Mycelium execute",
+  "hosted": false
+}

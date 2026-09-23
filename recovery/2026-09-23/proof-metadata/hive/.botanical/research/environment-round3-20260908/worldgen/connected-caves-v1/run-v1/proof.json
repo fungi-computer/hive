@@ -1,0 +1,292 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "name": "new component identity; no silent old-world migration",
+      "pass": true
+    },
+    {
+      "name": "actual signed surface entrances, gallery/chamber and six-face connectivity",
+      "pass": true
+    },
+    {
+      "name": "request order, bounded eviction and descriptor snapshot ownership",
+      "pass": true
+    },
+    {
+      "name": "filled entrance survives real file reopen; stale/foreign admission and base-equal reversion",
+      "pass": true
+    },
+    {
+      "name": "bounded regional descriptors and explicit finite-domain admission",
+      "pass": true
+    }
+  ],
+  "fixtures": [
+    {
+      "region": {
+        "x": 0,
+        "z": 4
+      },
+      "shape": {
+        "id": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907/feature/pit-gallery-capsules-v1/0,4",
+        "region": [
+          0,
+          4
+        ],
+        "present": true,
+        "bedLevel": 21,
+        "entranceCell": {
+          "x": 73,
+          "y": 23,
+          "z": 562
+        },
+        "turn": 3,
+        "pointsMetres": [
+          [
+            73.5,
+            12.690000000000001,
+            562.5
+          ],
+          [
+            73.5,
+            8.91,
+            562.5
+          ],
+          [
+            79.5,
+            6.210000000000001,
+            554.5
+          ],
+          [
+            83.5,
+            1.8900000000000001,
+            542.5
+          ]
+        ],
+        "radiusMetres": 1.35,
+        "chamberRadiiMetres": [
+          3.4,
+          2.4,
+          3.8
+        ],
+        "boundsMetres": {
+          "min": [
+            72.15,
+            -0.5099999999999998,
+            538.7
+          ],
+          "max": [
+            86.9,
+            14.040000000000001,
+            563.85
+          ]
+        }
+      },
+      "carvedFeatureCells": 503,
+      "connectedCells": 503,
+      "storageBricks": 7,
+      "newlyCarvedFromOldSolid": 482,
+      "preservedOutsideCells": 28169
+    },
+    {
+      "region": {
+        "x": -1,
+        "z": 4
+      },
+      "shape": {
+        "id": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907/feature/pit-gallery-capsules-v1/-1,4",
+        "region": [
+          -1,
+          4
+        ],
+        "present": true,
+        "bedLevel": 22,
+        "entranceCell": {
+          "x": -53,
+          "y": 24,
+          "z": 569
+        },
+        "turn": 1,
+        "pointsMetres": [
+          [
+            -52.5,
+            13.23,
+            569.5
+          ],
+          [
+            -52.5,
+            9.450000000000001,
+            569.5
+          ],
+          [
+            -58.5,
+            6.75,
+            577.5
+          ],
+          [
+            -62.5,
+            2.43,
+            589.5
+          ]
+        ],
+        "radiusMetres": 1.35,
+        "chamberRadiiMetres": [
+          3.4,
+          2.4,
+          3.8
+        ],
+        "boundsMetres": {
+          "min": [
+            -65.9,
+            0.03000000000000025,
+            568.15
+          ],
+          "max": [
+            -51.15,
+            14.58,
+            593.3
+          ]
+        }
+      },
+      "carvedFeatureCells": 503,
+      "connectedCells": 503,
+      "storageBricks": 6,
+      "newlyCarvedFromOldSolid": 482,
+      "preservedOutsideCells": 24073
+    }
+  ],
+  "identity": {
+    "worldId": "connected-cave-fixed-fixture-v1",
+    "spaceId": "surface",
+    "base": {
+      "heightIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+      "heightSeed": "hive-world-lab-seed-20260907",
+      "codecSchema": 2,
+      "heightSource": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf",
+      "voxelRecipe": "height-sea-connected-caves-v3",
+      "features": {
+        "id": "pit-gallery-capsules-v1",
+        "regionMetres": 128,
+        "candidateJitterCells": 20,
+        "dryMarginLevels": 3,
+        "radiusMetres": 1.35,
+        "points": [
+          [
+            0,
+            2,
+            0
+          ],
+          [
+            0,
+            -5,
+            0
+          ],
+          [
+            8,
+            -10,
+            6
+          ],
+          [
+            20,
+            -18,
+            10
+          ]
+        ],
+        "chamberRadiiMetres": [
+          3.8,
+          2.4,
+          3.4
+        ],
+        "cacheCapRegions": 16,
+        "sampling": "physical-voxel-centres"
+      },
+      "units": {
+        "horizontalMetres": 1,
+        "verticalMetres": 0.54,
+        "voxelsPerStorey": 4
+      },
+      "bounds": {
+        "minX": -2048,
+        "maxX": 2048,
+        "minZ": -2048,
+        "maxZ": 2048,
+        "minY": -64,
+        "maxY": 64
+      },
+      "brickSide": 16,
+      "residentBrickCap": 8,
+      "cave": {
+        "id": "global-trilinear-two-octave-cave-v1",
+        "sampleNamespace": "height-sea-cave-density-v2",
+        "macro": {
+          "horizontalMetres": 32,
+          "verticalMetres": 18,
+          "weight": 0.78,
+          "salt": "cave-macro"
+        },
+        "detail": {
+          "horizontalMetres": 11,
+          "verticalMetres": 7,
+          "weight": 0.22,
+          "salt": "cave-detail"
+        },
+        "voidThreshold": 0.42,
+        "protectedSolidLayers": 3
+      }
+    }
+  },
+  "sources": {
+    "voxel-world.mjs": "68dcf790fc56b83cf661ad2a78294860809d98648a321d2c60fa3a4340d54112",
+    "features.mjs": "b91219b568be736243b80fd16af35473587d3b7ada5819fd51ac2efde1590f48",
+    "qualify.mjs": "b9274575e7f160e2650c68d0c4662d1f80d1b6077e8d656d1231e1f84525a00d",
+    "CONTRACT.md": "30a8a492e349706ea1acd39e541bd89f295acf9e57f6f36d37a783b2b9c878b9"
+  },
+  "implementation": {
+    "revision": 1,
+    "changedCells": 1,
+    "changedBricks": 1,
+    "sparseOverlayBytes": 51,
+    "checkpointBytes": 1270,
+    "residentBricks": 0,
+    "residentBytes": 0,
+    "maxResidentBricks": 8,
+    "residentProjectionCapBytes": 32768,
+    "generatedBricks": 14,
+    "heightSamples": 3585,
+    "caveMetricEvaluations": 41645,
+    "caveFeatures": {
+      "descriptors": 3,
+      "heightSamples": 3,
+      "membershipQueries": 12743,
+      "segmentTests": 36258,
+      "chamberTests": 11613,
+      "evictions": 3,
+      "residentDescriptors": 0,
+      "residentDescriptorCap": 16,
+      "geometryTestsPerCellAtMost": 4
+    },
+    "evictions": 14
+  },
+  "reverseOrderFixtures": 13,
+  "featureWork": {
+    "descriptors": 33,
+    "heightSamples": 33,
+    "membershipQueries": 36440,
+    "segmentTests": 100211,
+    "chamberTests": 32457,
+    "evictions": 17,
+    "residentDescriptors": 16,
+    "residentDescriptorCap": 16,
+    "geometryTestsPerCellAtMost": 4
+  },
+  "elapsedMs": 676.8637809999999,
+  "limits": [
+    "voxel-centre geometry, not smooth collision",
+    "dry margin checks entrance column only; whole gallery may intersect outside terrain",
+    "pit is not a human-walkability/stair proof",
+    "no initialized air/liquid or physical excavation settlement",
+    "no live game or browser integration",
+    "two fixed regions, not global capacity or full ecology"
+  ]
+}

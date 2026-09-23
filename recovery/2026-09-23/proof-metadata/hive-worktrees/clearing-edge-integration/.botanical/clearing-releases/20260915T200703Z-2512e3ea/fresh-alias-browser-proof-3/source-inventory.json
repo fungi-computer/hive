@@ -1,0 +1,78 @@
+[
+  {
+    "path": "engine/src/client/action-bar.js",
+    "sha256": "45568de5323bfbf290bc5e39ad4fa93aa2ddfc11ff87d98f7d07b0ee4cb4b527"
+  },
+  {
+    "path": "engine/src/client/art-placement.js",
+    "sha256": "45a42bad43c90cca8355517627bb5ec0f67f10b880b097816d3e78387b09b224"
+  },
+  {
+    "path": "engine/src/client/build-placement.js",
+    "sha256": "9a6d8576b9b470cd108627508ea47a9c1878c4509c2684c83db8fb79159e7362"
+  },
+  {
+    "path": "engine/src/client/client.js",
+    "sha256": "ca9b30d2db28aa5dfb5019269478e186fca886275c3622cc5deac04efd384bdb"
+  },
+  {
+    "path": "engine/src/client/controls.js",
+    "sha256": "612a14beae8971f99b963d7379579426015cf3789267246d6e979079b588f1e6"
+  },
+  {
+    "path": "engine/src/client/edge-gesture.js",
+    "sha256": "6e30104ff4ce479898894770aee21599454557accbdb586ee4b8ee365a7e1318"
+  },
+  {
+    "path": "engine/src/client/isometric-sorter.js",
+    "sha256": "baff4e001dcf1656fa0f124052ed8958c0644fdca5b433349ff2c995da2fe10c"
+  },
+  {
+    "path": "engine/src/client/terrain-band-plan.js",
+    "sha256": "4eb1b83bcdabf678f8474f17d02148593efa9f5c280847025e51972e9d21b041"
+  },
+  {
+    "path": "engine/src/client/terrain-layer.js",
+    "sha256": "f8fdbde420effd2baefc612ba87bf189f91beeee18294eda2ddddd242f462e1e"
+  },
+  {
+    "path": "engine/src/client/whistle-command.js",
+    "sha256": "dbbef0ec563d515acb1f5a745e28e7fd3aa6d5c082e3e9cc57a40092c4739fd0"
+  },
+  {
+    "path": "engine/src/games/colony-building.ts",
+    "sha256": "77942870246c3d6ed19b67f582ec0d1f61be2e2ee45c47c8b218744f35468137"
+  },
+  {
+    "path": "engine/src/games/colony-party.ts",
+    "sha256": "7adb9db1291c03355774e7b2530be0f03540643667870ba20ccf29476967145f"
+  },
+  {
+    "path": "engine/src/games/colony.ts",
+    "sha256": "456776bbd99e785900f34ce99ff7b5c14133b36104508dd59c93c7c2a77d79a7"
+  },
+  {
+    "path": "engine/src/runtime/remote-client.ts",
+    "sha256": "ee87124881b0ed64006059688eb5208fbcb1000188dabb9606317ccd1adcb674"
+  },
+  {
+    "path": "public/generated-art/goblin-static-art-v6/manifest.json",
+    "sha256": "bc03df2f43dd8b7652b69a0647ff65f0986660c905e19e837a939544f8045761"
+  },
+  {
+    "path": "src/art/terrain-faces.js",
+    "sha256": "1919f13e909fba459cdd1f59678d8fb666778d08aa006767ecab4e3b514233aa"
+  },
+  {
+    "path": "tools/public-engine-host/playable-browser-proof.mjs",
+    "sha256": "1be2218c3a6f129f940bddc2d66dd4b66ea7c09f38892183869ffc3eebb8f5bf"
+  },
+  {
+    "path": "tools/public-engine-host/protocol.ts",
+    "sha256": "5b28ec7326ea587216eb81771c43395ccd44efaa4204d8f44ac37580b27e2935"
+  },
+  {
+    "path": "tools/public-engine-host/worker.ts",
+    "sha256": "437b8613e4f873bc90fc284a45ad4e7f4de277ed90681fa1520b779ab0655ff5"
+  }
+]

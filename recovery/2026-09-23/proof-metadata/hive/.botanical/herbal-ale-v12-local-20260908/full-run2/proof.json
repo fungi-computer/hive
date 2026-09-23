@@ -1,0 +1,613 @@
+{
+  "mode": "local-served-browser-interaction",
+  "url": "http://127.0.0.1:5198/",
+  "scriptSha256": "712dcf0820216234261c59ffe151f38f5f5497eeb635031dde60fc1911cff8c7",
+  "errors": [],
+  "screenshots": [
+    "filled-pail-to-kettle.png",
+    "filled-kettle-settled.png",
+    "brew-prepare-attended.png",
+    "brew-ferment-calm.png",
+    "brew-keg-stage.png",
+    "brew-settled-batch.png",
+    "failure.png"
+  ],
+  "claims": {
+    "fresh": {
+      "paused": true,
+      "tick": 0,
+      "cache": {
+        "id": "feature:reclaimed-timber-cache",
+        "access": "sealed"
+      },
+      "spring": {
+        "id": "feature:spring",
+        "water": 8
+      }
+    },
+    "cacheRepair": {
+      "id": "feature:reclaimed-timber-cache",
+      "selectedAt": {
+        "x": 166,
+        "y": 408
+      },
+      "repaired": true,
+      "consumedOrdinaryWood": 2
+    },
+    "station": {
+      "id": "site-5",
+      "anchor": {
+        "x": 2,
+        "z": 2,
+        "level": 0
+      },
+      "footprint": [
+        {
+          "x": 2,
+          "z": 2,
+          "level": 0
+        },
+        {
+          "x": 3,
+          "z": 2,
+          "level": 0
+        },
+        {
+          "x": 2,
+          "z": 3,
+          "level": 0
+        },
+        {
+          "x": 3,
+          "z": 3,
+          "level": 0
+        }
+      ],
+      "finished": true,
+      "wood": {
+        "embedded": 6,
+        "groundUsed": 4,
+        "cacheUsed": 2,
+        "cacheRemaining": 8
+      }
+    },
+    "carrying": {
+      "operation": "brew-water-10",
+      "actor": "rowan",
+      "pail": "source-pail-lot:feature:reclaimed-timber-cache",
+      "water": "lot-5",
+      "quantity": 2,
+      "phase": "pour"
+    },
+    "settlement": {
+      "station": "site-5",
+      "selectedAt": {
+        "x": 550,
+        "y": 248
+      },
+      "kettleWater": 2,
+      "springWater": 6,
+      "operationCount": 0,
+      "bindingCount": 0,
+      "operationTransferCount": 0,
+      "pailLocation": {
+        "kind": "ground",
+        "x": 3,
+        "z": 4,
+        "level": 0
+      }
+    },
+    "recipeHerb": {
+      "id": "herb-12",
+      "cell": {
+        "x": 4,
+        "z": 2,
+        "level": 0
+      },
+      "grownAndHarvested": true
+    },
+    "brew": {
+      "station": "site-5",
+      "transformation": "brew:job-15",
+      "ale": 4,
+      "spentGrain": 1,
+      "processRetired": true
+    }
+  },
+  "parity": {
+    "local": {
+      "index": "18623131fea5e2ed0b6ebb859dc8b99717f6b9708d6a9d9260ac632b902b4dae",
+      "assets": {
+        "assets/game-DPV1nYxI.js": "eb9ba39130f17f2c6fdbb710a0b502b671571f62b231d6f4289c638b0e2b7b48",
+        "assets/styles-j137NpJO.js": "a0fc64f2743128f6b9ce5cf47af8fc2b3d9bf1f7d563182cf965d12cc77560f7",
+        "assets/scale-DssWbXhX.js": "b255bb29e8f25fc62fc866d3b39096efd89c45d1008f1f1ceb884c7d05907634",
+        "assets/home-Cjuf95CH.js": "012e5e16f8ce723698c9349fee4d35224c1fed101f0ef6f171e1988862cf7830",
+        "assets/figures-BQSHnzbQ.js": "83f23753b601014646b9cda911d75a71a0eda510d0ebdae4000a662d52b76691",
+        "assets/mixed-shelf-fZY6dUPQ.js": "979a7149b1afea8966ee78ea8c77d9126c561dc30929c223c328f4cc926fffaa",
+        "assets/construction-BLM0-cKS.js": "0abc30a0febca0bd0d20662e6386b5eb6e14596fe09459352ad8eae7612e2dcc",
+        "assets/Geometry-Bqg1g8mR.js": "e181e4d39922c9a4d39123f17e46c0d68703fb6124597a43062226568bf6e45b",
+        "assets/getTextureBatchBindGroup-D6cCJTig.js": "23a2e1cba3748726564570c86d6584520e96a533022b38dbcdf115689c3d5de2",
+        "assets/BatchableSprite-B9JuO0gZ.js": "2d7f0da8dc46a21af9750d799fe1749055d9b1bee863f185404dd8a4a42e7003",
+        "assets/Graphics-K0fKxRg6.js": "6b840271da1af2179321573da39466121c5f246e0313f7eb5632dbe1d12f86f2",
+        "assets/CanvasPool-DTxMh97C.js": "148592defbee72076f141c51f43b0aeb121f5c3c8bfa0445bbafbf06c9118259",
+        "assets/canvasUtils-D3EhIrFt.js": "8873f02c2d65876300fdd007699f9643b9930c2bd2b124af75c228c01a66fecb",
+        "assets/getPo2TextureFromSource-ab4kvI6P.js": "2216d9383346e78a5fb86afced6d48f2d783420c578e7385ec558028c82d90c0",
+        "assets/art-DzJ9PKwK.js": "b2f1ec77a5a2c7994d0e50c9fd85b9551d7846b22a8e11684dd4dd32e9d5c5ee",
+        "assets/clearing-BDfQqVTn.js": "d2a131b5a575aaacee8777737dea6f24c7825e21920e85362d04e5a64cda11a1",
+        "assets/card-32JlXUNT.js": "2ecb80162d4c4441f3dfe1e092ebb498d0d1c18493b2d11fd41e6da4cb87e671",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc",
+        "assets/clearing-CIHJZZDS.css": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+        "assets/game-DOLMiSuj.css": "57ef50dab9d4f35f8abec89726d71b2c4fc3decaa337fd1c18cfe3f6933d2336"
+      }
+    },
+    "served": {
+      "index": "18623131fea5e2ed0b6ebb859dc8b99717f6b9708d6a9d9260ac632b902b4dae",
+      "assets": {
+        "assets/game-DPV1nYxI.js": "eb9ba39130f17f2c6fdbb710a0b502b671571f62b231d6f4289c638b0e2b7b48",
+        "assets/styles-j137NpJO.js": "a0fc64f2743128f6b9ce5cf47af8fc2b3d9bf1f7d563182cf965d12cc77560f7",
+        "assets/scale-DssWbXhX.js": "b255bb29e8f25fc62fc866d3b39096efd89c45d1008f1f1ceb884c7d05907634",
+        "assets/home-Cjuf95CH.js": "012e5e16f8ce723698c9349fee4d35224c1fed101f0ef6f171e1988862cf7830",
+        "assets/figures-BQSHnzbQ.js": "83f23753b601014646b9cda911d75a71a0eda510d0ebdae4000a662d52b76691",
+        "assets/mixed-shelf-fZY6dUPQ.js": "979a7149b1afea8966ee78ea8c77d9126c561dc30929c223c328f4cc926fffaa",
+        "assets/construction-BLM0-cKS.js": "0abc30a0febca0bd0d20662e6386b5eb6e14596fe09459352ad8eae7612e2dcc",
+        "assets/Geometry-Bqg1g8mR.js": "e181e4d39922c9a4d39123f17e46c0d68703fb6124597a43062226568bf6e45b",
+        "assets/getTextureBatchBindGroup-D6cCJTig.js": "23a2e1cba3748726564570c86d6584520e96a533022b38dbcdf115689c3d5de2",
+        "assets/BatchableSprite-B9JuO0gZ.js": "2d7f0da8dc46a21af9750d799fe1749055d9b1bee863f185404dd8a4a42e7003",
+        "assets/Graphics-K0fKxRg6.js": "6b840271da1af2179321573da39466121c5f246e0313f7eb5632dbe1d12f86f2",
+        "assets/CanvasPool-DTxMh97C.js": "148592defbee72076f141c51f43b0aeb121f5c3c8bfa0445bbafbf06c9118259",
+        "assets/canvasUtils-D3EhIrFt.js": "8873f02c2d65876300fdd007699f9643b9930c2bd2b124af75c228c01a66fecb",
+        "assets/getPo2TextureFromSource-ab4kvI6P.js": "2216d9383346e78a5fb86afced6d48f2d783420c578e7385ec558028c82d90c0",
+        "assets/art-DzJ9PKwK.js": "b2f1ec77a5a2c7994d0e50c9fd85b9551d7846b22a8e11684dd4dd32e9d5c5ee",
+        "assets/clearing-BDfQqVTn.js": "d2a131b5a575aaacee8777737dea6f24c7825e21920e85362d04e5a64cda11a1",
+        "assets/card-32JlXUNT.js": "2ecb80162d4c4441f3dfe1e092ebb498d0d1c18493b2d11fd41e6da4cb87e671",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc",
+        "assets/clearing-CIHJZZDS.css": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+        "assets/game-DOLMiSuj.css": "57ef50dab9d4f35f8abec89726d71b2c4fc3decaa337fd1c18cfe3f6933d2336"
+      }
+    },
+    "exact": true
+  },
+  "failure": {
+    "message": "locator.click: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#tap')\u001b[22m\n\u001b[2m    - locator resolved to <button id=\"tap\" type=\"button\" data-action=\"tap\" data-site=\"site-5\" aria-label=\"Tap herbal ale\" class=\"btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:ou…>Tap herbal ale</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <label class=\"cutaway-control\">…</label> from <div role=\"navigation\" aria-label=\"Colony controls\" class=\"card border border-base-300 bg-base-100 text-base-content command-bar\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <label class=\"cutaway-control\">…</label> from <div role=\"navigation\" aria-label=\"Colony controls\" class=\"card border border-base-300 bg-base-100 text-base-content command-bar\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    21 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <label class=\"cutaway-control\">…</label> from <div role=\"navigation\" aria-label=\"Colony controls\" class=\"card border border-base-300 bg-base-100 text-base-content command-bar\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n",
+    "stack": "locator.click: Timeout 45000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#tap')\u001b[22m\n\u001b[2m    - locator resolved to <button id=\"tap\" type=\"button\" data-action=\"tap\" data-site=\"site-5\" aria-label=\"Tap herbal ale\" class=\"btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:ou…>Tap herbal ale</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <label class=\"cutaway-control\">…</label> from <div role=\"navigation\" aria-label=\"Colony controls\" class=\"card border border-base-300 bg-base-100 text-base-content command-bar\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is visible, enabled and stable\u001b[22m\n\u001b[2m      - scrolling into view if needed\u001b[22m\n\u001b[2m      - done scrolling\u001b[22m\n\u001b[2m      - <label class=\"cutaway-control\">…</label> from <div role=\"navigation\" aria-label=\"Colony controls\" class=\"card border border-base-300 bg-base-100 text-base-content command-bar\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    21 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is visible, enabled and stable\u001b[22m\n\u001b[2m       - scrolling into view if needed\u001b[22m\n\u001b[2m       - done scrolling\u001b[22m\n\u001b[2m       - <label class=\"cutaway-control\">…</label> from <div role=\"navigation\" aria-label=\"Colony controls\" class=\"card border border-base-300 bg-base-100 text-base-content command-bar\">…</div> subtree intercepts pointer events\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /home/levi/src/hive/scripts/prove-fill-kettle-v10.mjs:598:32",
+    "state": {
+      "seed": 42,
+      "tick": 2561,
+      "paused": true,
+      "nextId": 21,
+      "actors": {
+        "rowan": {
+          "x": 2,
+          "z": 4,
+          "level": 0,
+          "dir": 2,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "id": "rowan",
+          "name": "Rowan",
+          "figure": "rowan",
+          "drafted": false,
+          "rest": 49.267999999998835,
+          "routine": false,
+          "allowedWork": {
+            "chop": true,
+            "haul": true,
+            "build": true,
+            "garden": true,
+            "craft": true
+          },
+          "task": null,
+          "assignment": null
+        },
+        "sedge": {
+          "x": 10,
+          "z": 12,
+          "level": 0,
+          "dir": 0,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "id": "sedge",
+          "name": "Sedge",
+          "figure": "witch-runner",
+          "drafted": false,
+          "rest": 80,
+          "routine": false,
+          "allowedWork": {
+            "chop": true,
+            "haul": true,
+            "build": true,
+            "garden": true,
+            "craft": true
+          },
+          "task": null,
+          "assignment": null
+        }
+      },
+      "parties": {
+        "home": {
+          "id": "home",
+          "members": [
+            "rowan"
+          ]
+        }
+      },
+      "cat": {
+        "x": 2,
+        "z": 5,
+        "level": 0,
+        "dir": 3,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "nextMove": 2600
+      },
+      "trees": [
+        {
+          "id": "oak-1",
+          "x": 3,
+          "z": 4,
+          "level": 0,
+          "work": 80,
+          "felledAt": 289
+        },
+        {
+          "id": "oak-2",
+          "x": 10,
+          "z": 3,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-3",
+          "x": 3,
+          "z": 9,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-4",
+          "x": 11,
+          "z": 10,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-5",
+          "x": 6,
+          "z": 2,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-6",
+          "x": 1,
+          "z": 6,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-7",
+          "x": 6,
+          "z": 12,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-8",
+          "x": 12,
+          "z": 6,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        }
+      ],
+      "herbs": [],
+      "materials": {
+        "lots": [
+          {
+            "id": "source-lot:feature:spring",
+            "material": "water",
+            "quantity": 6,
+            "location": {
+              "kind": "container",
+              "container": "source:feature:spring"
+            }
+          },
+          {
+            "id": "source-lot:feature:reclaimed-timber-cache",
+            "material": "wood",
+            "quantity": 7,
+            "location": {
+              "kind": "container",
+              "container": "source:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-pail-lot:feature:reclaimed-timber-cache",
+            "material": "pail",
+            "quantity": 1,
+            "location": {
+              "kind": "ground",
+              "x": 3,
+              "z": 4,
+              "level": 0
+            }
+          },
+          {
+            "id": "source-malt-lot:feature:reclaimed-timber-cache",
+            "material": "malt",
+            "quantity": 2,
+            "location": {
+              "kind": "container",
+              "container": "source-supplies:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-barm-lot:feature:reclaimed-timber-cache",
+            "material": "barm",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "brew-barm:site-5"
+            }
+          },
+          {
+            "id": "source-keg-lot:feature:reclaimed-timber-cache",
+            "material": "keg",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "brew-keg:site-5"
+            }
+          },
+          {
+            "id": "lot-8",
+            "material": "ale",
+            "quantity": 4,
+            "location": {
+              "kind": "container",
+              "container": "vessel:source-keg-lot:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "lot-9",
+            "material": "spent-grain",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "brew-tray:site-5"
+            }
+          }
+        ],
+        "transfers": [],
+        "bindings": [],
+        "transformations": [
+          {
+            "id": "brew:job-15",
+            "definition": "herbal-ale-v1",
+            "inputs": [
+              {
+                "role": "malt",
+                "lot": "lot-6",
+                "material": "malt",
+                "quantity": 2
+              },
+              {
+                "role": "water",
+                "lot": "lot-5",
+                "material": "water",
+                "quantity": 2
+              },
+              {
+                "role": "mugwort",
+                "lot": "herb-bundle-14",
+                "material": "mugwort",
+                "quantity": 1
+              },
+              {
+                "role": "fuel",
+                "lot": "lot-7",
+                "material": "wood",
+                "quantity": 1
+              }
+            ],
+            "settlement": {
+              "station": "kettle:site-5",
+              "retained": [
+                {
+                  "role": "catalyst",
+                  "lot": "source-barm-lot:feature:reclaimed-timber-cache",
+                  "material": "barm",
+                  "quantity": 1
+                },
+                {
+                  "role": "package",
+                  "lot": "source-keg-lot:feature:reclaimed-timber-cache",
+                  "material": "keg",
+                  "quantity": 1
+                }
+              ],
+              "outputs": [
+                {
+                  "role": "ale",
+                  "destination": "vessel:source-keg-lot:feature:reclaimed-timber-cache",
+                  "material": "ale",
+                  "quantity": 4
+                },
+                {
+                  "role": "spent-grain",
+                  "destination": "brew-tray:site-5",
+                  "material": "spent-grain",
+                  "quantity": 1
+                }
+              ]
+            }
+          }
+        ],
+        "consumptions": [],
+        "embedded": [
+          {
+            "container": "construction-buffer:site-5",
+            "material": "wood",
+            "quantity": 6
+          }
+        ],
+        "nextLotId": 10,
+        "consumedWood": 2
+      },
+      "sources": [
+        {
+          "id": "feature:spring",
+          "kind": "spring",
+          "access": "open",
+          "x": 13,
+          "z": 13,
+          "level": 0
+        },
+        {
+          "id": "feature:reclaimed-timber-cache",
+          "kind": "reclaimed-timber-cache",
+          "access": "sealed",
+          "repaired": true,
+          "x": 1,
+          "z": 13,
+          "level": 0
+        }
+      ],
+      "pendingSources": [],
+      "operations": [],
+      "processes": [],
+      "rocks": [
+        {
+          "x": 1,
+          "z": 1,
+          "level": 0
+        },
+        {
+          "x": 13,
+          "z": 12,
+          "level": 0
+        },
+        {
+          "x": 2,
+          "z": 13,
+          "level": 0
+        },
+        {
+          "x": 12,
+          "z": 1,
+          "level": 0
+        }
+      ],
+      "watcher": {
+        "x": 13,
+        "z": 2,
+        "level": 0
+      },
+      "sites": [
+        {
+          "id": "site-5",
+          "type": "brew-station",
+          "x": 2,
+          "z": 2,
+          "level": 0,
+          "direction": 0,
+          "work": 144,
+          "finishedAt": 784
+        }
+      ],
+      "jobs": [],
+      "workDirty": false,
+      "felled": 1,
+      "finishedJobs": 7,
+      "rested": 0,
+      "harvestedHerbs": 1,
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "chop",
+          "tree": "oak-1",
+          "direct": false,
+          "tick": 154
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "repair-cache",
+          "tick": 358
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "build",
+          "type": "brew-station",
+          "direction": 0,
+          "x": 2,
+          "z": 2,
+          "level": 0,
+          "tick": 526
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "fill-kettle",
+          "station": "site-5",
+          "tick": 850
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "sow",
+          "x": 4,
+          "z": 2,
+          "level": 0,
+          "tick": 1186
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "harvest",
+          "herb": "herb-12",
+          "tick": 1538
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "brew",
+          "station": "site-5",
+          "tick": 1666
+        }
+      ],
+      "feed": {
+        "seed": 42,
+        "sequence": 1,
+        "nextAt": 50,
+        "last": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        }
+      },
+      "demand": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      },
+      "notice": "Herbal ale is settled in the keg."
+    }
+  }
+}

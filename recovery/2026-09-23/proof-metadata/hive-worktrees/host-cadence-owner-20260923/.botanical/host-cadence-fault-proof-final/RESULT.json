@@ -1,0 +1,55 @@
+{
+  "source": "4107a49621d67b6d39d60f017ba18dc41ad1a0f8",
+  "inventory": [
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "0490c84b18c7ee67d9cff8852780daba4cf3c92360035288a8297f0da6020559"
+    },
+    {
+      "path": "tools/public-engine-host/host-cadence.ts",
+      "sha256": "67ea3396efefe524317f0da9cbdf8d8634c736548176880398b45134240df266"
+    },
+    {
+      "path": "engine/src/runtime/host-status.ts",
+      "sha256": "a37bd930d467161918da0d51dbf33b78359a1359f1e5f312a28349a56fd36ad8"
+    },
+    {
+      "path": "src/engine/region/index.ts",
+      "sha256": "ddc52d5059c967932accb099f21d815b79a2a0fbae062972b1dd61a377424b8e"
+    },
+    {
+      "path": "src/engine/region/records.ts",
+      "sha256": "4b4f8321f8ae1e05073535bcbbfe158375ddf14428590f63f96e2254548fc390"
+    },
+    {
+      "path": "engine/generated/hive_kernel_bg.wasm",
+      "sha256": "f454c8c5d7c86e83c8a5fa04e7bc9e7e4a8ec7bae567233ca91bc4ea75499e4f"
+    }
+  ],
+  "implementationHash": "3247871ae421e0eb2c8f035c93cb4a0b0cff17ad2a74b8c354397a3034b10c95",
+  "results": [
+    {
+      "code": "region-record-capacity",
+      "status": "faulted",
+      "attempts": 1,
+      "sequence": 1,
+      "recordCount": 948,
+      "alarm": null,
+      "restartPreservedWorld": true,
+      "unsupportedStopsAlarm": true
+    },
+    {
+      "code": "injected-storage-failure",
+      "status": "recovered",
+      "attempts": 1,
+      "fromSequence": 1,
+      "toSequence": 2,
+      "requestFreeRecovery": true
+    }
+  ],
+  "limits": [
+    "Local workerd crash/retry correctness, not hosted capacity.",
+    "If storage cannot persist retry/fault metadata or any alarm, finite platform retry law remains outside this application proof.",
+    "Injection throws after the real native candidate, record writes and clock UPDATE; it is not a production route."
+  ]
+}

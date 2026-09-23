@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-09-09T06:01:37.666Z",
+  "files": [
+    {
+      "path": ".botanical/asset-mcp/fiend/anoma.html",
+      "bytes": 12842,
+      "sha256": "d877286c509c37be4b422038a909085fbb6068778660125ceadd68995482534f"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/capabilities.json",
+      "bytes": 101668,
+      "sha256": "92de11aaa88ae902e5d66985b07fa9b0ee44db335d0c99da8b2e86b269e69753"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/inspect.mjs",
+      "bytes": 3252,
+      "sha256": "4fbcfbb7abce45b471d09779e6154e99b2fbed9685926f9e02d251ca41e9635a"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/landing.headers",
+      "bytes": 654,
+      "sha256": "f21e1c3e5dc9f6dbe24faa37a477737816a78930647da96eced9cb9c9e1dcb9d"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/landing.html",
+      "bytes": 1583,
+      "sha256": "02aff5619d88349cad0868307c24eb0b2e2c5e4e750e263b5eedb6714190e12a"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/landing.js",
+      "bytes": 173,
+      "sha256": "9d3595218723343df7aa3eac3f5899f80618f704c146865d0613fb8c72df5f3e"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/mascot.js",
+      "bytes": 3106,
+      "sha256": "f57b9d60435328811d5fc98f4f68f354952fcafbfe30e66b0400441503243d9a"
+    },
+    {
+      "path": ".botanical/asset-mcp/fiend/tool-summary.json",
+      "bytes": 12230,
+      "sha256": "06af950c3c8db415f19d3bd9f8eb2c83f7357bbfbf9a5afb753b85811facc800"
+    }
+  ]
+}

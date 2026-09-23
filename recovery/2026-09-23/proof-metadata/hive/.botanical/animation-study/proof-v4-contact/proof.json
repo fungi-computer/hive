@@ -1,0 +1,137 @@
+{
+  "sourceSha256": {
+    ".botanical/animation-study/figures.js": "ec69c39aa75b10a227b8e6f22673f2ac248a5d44e84a14b21e217dca8fc9e380",
+    ".botanical/animation-study/main.js": "93157cd682d2132f22f0c508fe9c50468184d295fb98190275b61c6f9ed8a32a",
+    ".botanical/animation-study/index.html": "96aa2b5c45511f69ec19d701a3846ef94e5ac04b249f7d5a11a593d4870dd2bd",
+    ".botanical/animation-study/prove.mjs": "181d1d793eaad11795cc74994cb395aa4016ea1af17fdd38653c29164ab3f66e",
+    "src/art/figures.js": "4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b",
+    "src/art.js": "07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785"
+  },
+  "frames": [
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  ],
+  "pauseFrameAndImage": true,
+  "hair": {
+    "minPadding": 10,
+    "uniqueFrames": {
+      "idle": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "walk": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "chop": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "build": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "carry": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "pickup": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "deliver": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "sleep": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "errors": []
+}

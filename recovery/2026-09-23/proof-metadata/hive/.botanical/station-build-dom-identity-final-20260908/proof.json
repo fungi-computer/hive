@@ -1,0 +1,233 @@
+{
+  "mode": "focused-real-input-station-build-display-identity",
+  "url": "http://127.0.0.1:5209/",
+  "scriptSha256": "e1db1574ebdcb63026d14b9eba1e500e9b79ee961e5468526650e94eb5f266d5",
+  "errors": [],
+  "screenshots": [
+    "station-built.png",
+    "station-late-inspected.png"
+  ],
+  "claims": {
+    "built": {
+      "station": {
+        "id": "site-3",
+        "type": "brew-station",
+        "x": 2,
+        "z": 2,
+        "level": 0,
+        "direction": 0,
+        "work": 144,
+        "finishedAt": 628
+      },
+      "originalBlackCenter": [
+        {
+          "kind": "sprite",
+          "path": "world/_Container[4]/_Container[5]/Sprite[1]",
+          "label": "Sprite",
+          "bounds": {
+            "x": 566,
+            "y": 169,
+            "width": 224,
+            "height": 224
+          },
+          "zIndex": 0,
+          "order": 23,
+          "target": {
+            "kind": "tree",
+            "id": "oak-5",
+            "level": 0,
+            "action": "tree"
+          },
+          "orientation": "standing",
+          "texture": {
+            "uid": 851,
+            "width": 112,
+            "height": 112,
+            "sourceUid": 851,
+            "sourceWidth": 112,
+            "sourceHeight": 112
+          }
+        },
+        {
+          "kind": "sprite",
+          "path": "world/Sprite[0]",
+          "label": "Sprite",
+          "bounds": {
+            "x": -90,
+            "y": -20,
+            "width": 1280,
+            "height": 800
+          },
+          "zIndex": 0,
+          "order": 1,
+          "target": null,
+          "orientation": null,
+          "texture": {
+            "uid": 2,
+            "width": 640,
+            "height": 400,
+            "sourceUid": 2,
+            "sourceWidth": 640,
+            "sourceHeight": 400
+          }
+        }
+      ],
+      "stationPoint": {
+        "x": 550,
+        "y": 260
+      }
+    },
+    "late": {
+      "tick": 2599,
+      "station": {
+        "id": "site-3",
+        "type": "brew-station",
+        "x": 2,
+        "z": 2,
+        "level": 0,
+        "direction": 0,
+        "work": 144,
+        "finishedAt": 628
+      },
+      "originalBlackCenter": [
+        {
+          "kind": "sprite",
+          "path": "world/_Container[4]/_Container[5]/Sprite[1]",
+          "label": "Sprite",
+          "bounds": {
+            "x": 566,
+            "y": 169,
+            "width": 224,
+            "height": 224
+          },
+          "zIndex": 0,
+          "order": 23,
+          "target": {
+            "kind": "tree",
+            "id": "oak-5",
+            "level": 0,
+            "action": "tree"
+          },
+          "orientation": "standing",
+          "texture": {
+            "uid": 851,
+            "width": 112,
+            "height": 112,
+            "sourceUid": 851,
+            "sourceWidth": 112,
+            "sourceHeight": 112
+          }
+        },
+        {
+          "kind": "sprite",
+          "path": "world/Sprite[0]",
+          "label": "Sprite",
+          "bounds": {
+            "x": -90,
+            "y": -20,
+            "width": 1280,
+            "height": 800
+          },
+          "zIndex": 0,
+          "order": 1,
+          "target": null,
+          "orientation": null,
+          "texture": {
+            "uid": 2,
+            "width": 640,
+            "height": 400,
+            "sourceUid": 2,
+            "sourceWidth": 640,
+            "sourceHeight": 400
+          }
+        }
+      ],
+      "domAtOriginalBlackCenter": [
+        {
+          "tag": "CANVAS",
+          "id": null,
+          "className": "",
+          "width": 1100,
+          "height": 760,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 1100,
+            "height": 760
+          }
+        },
+        {
+          "tag": "DIV",
+          "id": "stage",
+          "className": "",
+          "width": null,
+          "height": null,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 1100,
+            "height": 760
+          }
+        },
+        {
+          "tag": "MAIN",
+          "id": "game",
+          "className": "",
+          "width": null,
+          "height": null,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 1100,
+            "height": 760
+          }
+        },
+        {
+          "tag": "BODY",
+          "id": null,
+          "className": "",
+          "width": null,
+          "height": null,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 1100,
+            "height": 760
+          }
+        },
+        {
+          "tag": "HTML",
+          "id": null,
+          "className": "",
+          "width": null,
+          "height": null,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 1100,
+            "height": 760
+          }
+        }
+      ],
+      "canvases": [
+        {
+          "tag": "CANVAS",
+          "id": null,
+          "className": "",
+          "width": 1100,
+          "height": 760,
+          "bounds": {
+            "x": 0,
+            "y": 0,
+            "width": 1100,
+            "height": 760
+          }
+        }
+      ],
+      "stationPoint": {
+        "x": 550,
+        "y": 260
+      }
+    }
+  }
+}

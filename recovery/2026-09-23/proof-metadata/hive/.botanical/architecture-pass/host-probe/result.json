@@ -1,0 +1,20 @@
+{
+  "scope": "0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-u179.scope",
+  "node": "v24.20.0",
+  "versions": {
+    "wrangler": "4.127.1",
+    "workerd": "1.20260828.1",
+    "miniflare": "5.20260828.0-alpha"
+  },
+  "hashes": {
+    "colony.js": "2f31c9b940595268842c30eb02a5249227b4c3c93467c5f19d23d438b75c5fd6",
+    "colony.wasm": "08a46ee9b5c6135ae165bdd4f5983a8ce28ad70d6da63cac0a53e79067077ef1"
+  },
+  "compatibilityDate": "2026-09-07",
+  "failure": "Error: Wrangler exited 1\n    at file:///home/levi/src/hive/.botanical/architecture-pass/host-probe/probe.mjs:28:40",
+  "success": false,
+  "childExit": {
+    "code": 1,
+    "signal": null
+  }
+}

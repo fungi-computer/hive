@@ -1,0 +1,16 @@
+{
+  "group": "construction",
+  "files": [
+    "engine/src/runtime/construction-actions.test.ts",
+    "engine/src/games/colony-construction.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/construction/construction-actions.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/construction/colony-construction.test.mjs"
+  ],
+  "exit": 0
+}

@@ -1,0 +1,1779 @@
+{
+  "kind": "audit",
+  "schema_version": 10,
+  "version": "3.20.0",
+  "command": "audit",
+  "verdict": "pass",
+  "changed_files_count": 20,
+  "base_ref": "origin/engine/clearing-edge-integration-20260914",
+  "head_sha": "4692acac",
+  "elapsed_ms": 6828,
+  "summary": {
+    "dead_code_issues": 25,
+    "dead_code_has_errors": true,
+    "complexity_findings": 13,
+    "max_cyclomatic": 183,
+    "duplication_clone_groups": 3
+  },
+  "attribution": {
+    "gate": "new-only",
+    "dead_code_introduced": 0,
+    "dead_code_inherited": 25,
+    "complexity_introduced": 0,
+    "complexity_inherited": 13,
+    "duplication_introduced": 0,
+    "duplication_inherited": 3,
+    "styling_introduced": 0,
+    "styling_inherited": 0,
+    "duplication_demoted": 0
+  },
+  "dead_code": {
+    "schema_version": 9,
+    "version": "3.20.0",
+    "elapsed_ms": 1499,
+    "total_issues": 25,
+    "entry_points": {
+      "total": 228,
+      "sources": {
+        "default_index": 1,
+        "package.json": 16,
+        "plugin": 211
+      }
+    },
+    "summary": {
+      "total_issues": 25,
+      "unused_files": 0,
+      "unused_exports": 15,
+      "unused_types": 3,
+      "private_type_leaks": 0,
+      "unused_dependencies": 7,
+      "unused_enum_members": 0,
+      "unused_class_members": 0,
+      "unused_store_members": 0,
+      "unprovided_injects": 0,
+      "unrendered_components": 0,
+      "unused_component_props": 0,
+      "unused_component_emits": 0,
+      "unused_component_inputs": 0,
+      "unused_component_outputs": 0,
+      "unused_svelte_events": 0,
+      "unused_server_actions": 0,
+      "unused_load_data_keys": 0,
+      "unresolved_imports": 0,
+      "unlisted_dependencies": 0,
+      "duplicate_exports": 0,
+      "type_only_dependencies": 0,
+      "test_only_dependencies": 0,
+      "dev_dependencies_in_production": 0,
+      "circular_dependencies": 0,
+      "re_export_cycles": 0,
+      "boundary_violations": 0,
+      "boundary_coverage_violations": 0,
+      "boundary_call_violations": 0,
+      "policy_violations": 0,
+      "stale_suppressions": 0,
+      "unused_catalog_entries": 0,
+      "empty_catalog_groups": 0,
+      "unresolved_catalog_references": 0,
+      "unused_dependency_overrides": 0,
+      "misconfigured_dependency_overrides": 0,
+      "invalid_client_exports": 0,
+      "mixed_client_server_barrels": 0,
+      "misplaced_directives": 0,
+      "route_collisions": 0,
+      "dynamic_segment_name_conflicts": 0
+    },
+    "unused_files": [],
+    "unused_exports": [
+      {
+        "path": "engine/src/contracts.ts",
+        "export_name": "RESERVED_COMPONENTS",
+        "is_type_only": false,
+        "line": 10,
+        "col": 13,
+        "span_start": 532,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony-stockpile-command.ts",
+        "export_name": "colonyStockpileInputSchema",
+        "is_type_only": false,
+        "line": 15,
+        "col": 13,
+        "span_start": 632,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony-stockpile-command.ts",
+        "export_name": "colonyStockpilePolicyInputSchema",
+        "is_type_only": false,
+        "line": 20,
+        "col": 13,
+        "span_start": 804,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "export_name": "colonyMaterialCatalog",
+        "is_type_only": false,
+        "line": 43,
+        "col": 13,
+        "span_start": 1990,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "export_name": "colonyStockpileProfiles",
+        "is_type_only": false,
+        "line": 48,
+        "col": 13,
+        "span_start": 2296,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "export_name": "Worker",
+        "is_type_only": false,
+        "line": 55,
+        "col": 9,
+        "span_start": 2879,
+        "is_re_export": true,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API",
+            "note": "This finding originates from a re-export; verify it is not part of your public API before removing"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "export_name": "ColonyTree",
+        "is_type_only": false,
+        "line": 57,
+        "col": 9,
+        "span_start": 2974,
+        "is_re_export": true,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API",
+            "note": "This finding originates from a re-export; verify it is not part of your public API before removing"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "export_name": "ColonyTreePolicy",
+        "is_type_only": false,
+        "line": 57,
+        "col": 21,
+        "span_start": 2986,
+        "is_re_export": true,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API",
+            "note": "This finding originates from a re-export; verify it is not part of your public API before removing"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "export_name": "Guest",
+        "is_type_only": false,
+        "line": 58,
+        "col": 13,
+        "span_start": 3040,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/sdk/common.ts",
+        "export_name": "beginEmission",
+        "is_type_only": false,
+        "line": 21,
+        "col": 13,
+        "span_start": 616,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/sdk/common.ts",
+        "export_name": "exchangeFieldWater",
+        "is_type_only": false,
+        "line": 26,
+        "col": 13,
+        "span_start": 755,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/sdk/common.ts",
+        "export_name": "VesselCapability",
+        "is_type_only": false,
+        "line": 89,
+        "col": 13,
+        "span_start": 2688,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/sdk/common.ts",
+        "export_name": "dropLot",
+        "is_type_only": false,
+        "line": 168,
+        "col": 13,
+        "span_start": 4911,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/sdk/common.ts",
+        "export_name": "establishResourceSite",
+        "is_type_only": false,
+        "line": 183,
+        "col": 13,
+        "span_start": 5504,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/sdk/common.ts",
+        "export_name": "tendResourceSite",
+        "is_type_only": false,
+        "line": 184,
+        "col": 13,
+        "span_start": 5761,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the unused export from the public API"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-export"
+          }
+        ],
+        "introduced": false
+      }
+    ],
+    "unused_types": [
+      {
+        "path": "engine/src/contracts.ts",
+        "export_name": "ComponentValue",
+        "is_type_only": true,
+        "line": 144,
+        "col": 12,
+        "span_start": 4054,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the `export` (or `export type`) keyword from the type declaration"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-type"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/contracts.ts",
+        "export_name": "DeliveryActivity",
+        "is_type_only": true,
+        "line": 607,
+        "col": 17,
+        "span_start": 24216,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the `export` (or `export type`) keyword from the type declaration"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-type"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/contracts.ts",
+        "export_name": "GamePackTransport",
+        "is_type_only": true,
+        "line": 825,
+        "col": 17,
+        "span_start": 33778,
+        "is_re_export": false,
+        "actions": [
+          {
+            "type": "remove-export",
+            "auto_fixable": true,
+            "description": "Remove the `export` (or `export type`) keyword from the type declaration"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the line",
+            "comment": "// fallow-ignore-next-line unused-type"
+          }
+        ],
+        "introduced": false
+      }
+    ],
+    "private_type_leaks": [],
+    "unused_dependencies": [
+      {
+        "package_name": "@fungi.computer/cairn",
+        "location": "dependencies",
+        "path": "tools/engine-controller/package.json",
+        "line": 12,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from dependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"@fungi.computer/cairn\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "@fungi.computer/cairn",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "package_name": "@fungi.computer/forage",
+        "location": "dependencies",
+        "path": "tools/engine-controller/package.json",
+        "line": 13,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from dependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"@fungi.computer/forage\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "@fungi.computer/forage",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "package_name": "@fungi.computer/mule",
+        "location": "dependencies",
+        "path": "tools/engine-controller/package.json",
+        "line": 14,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from dependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"@fungi.computer/mule\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "@fungi.computer/mule",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "package_name": "@fungi.computer/cairn",
+        "location": "dependencies",
+        "path": "tools/engine-do/package.json",
+        "line": 7,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from dependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"@fungi.computer/cairn\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "@fungi.computer/cairn",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "package_name": "partyserver",
+        "location": "dependencies",
+        "path": "tools/network-library-qualification/package.json",
+        "line": 15,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from dependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"partyserver\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "partyserver",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      }
+    ],
+    "unused_dev_dependencies": [
+      {
+        "package_name": "@modelcontextprotocol/sdk",
+        "location": "devDependencies",
+        "path": "tools/engine-controller/package.json",
+        "line": 20,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from devDependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"@modelcontextprotocol/sdk\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "@modelcontextprotocol/sdk",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "package_name": "ai",
+        "location": "devDependencies",
+        "path": "tools/engine-controller/package.json",
+        "line": 22,
+        "actions": [
+          {
+            "type": "remove-dependency",
+            "auto_fixable": true,
+            "description": "Remove from devDependencies in package.json"
+          },
+          {
+            "type": "add-to-config",
+            "auto_fixable": false,
+            "description": "Add \"ai\" to ignoreDependencies in fallow config",
+            "config_key": "ignoreDependencies",
+            "value": "ai",
+            "value_schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json#/properties/ignoreDependencies/items"
+          }
+        ],
+        "introduced": false
+      }
+    ],
+    "unused_optional_dependencies": [],
+    "unused_enum_members": [],
+    "unused_class_members": [],
+    "unresolved_imports": [],
+    "unlisted_dependencies": [],
+    "duplicate_exports": [],
+    "type_only_dependencies": [],
+    "test_only_dependencies": [],
+    "dev_dependencies_in_production": [],
+    "circular_dependencies": [],
+    "re_export_cycles": [],
+    "boundary_violations": [],
+    "boundary_coverage_violations": [],
+    "boundary_call_violations": [],
+    "policy_violations": [],
+    "stale_suppressions": [],
+    "unused_catalog_entries": [],
+    "empty_catalog_groups": [],
+    "unresolved_catalog_references": [],
+    "unused_dependency_overrides": [],
+    "misconfigured_dependency_overrides": [],
+    "invalid_client_exports": [],
+    "mixed_client_server_barrels": [],
+    "misplaced_directives": [],
+    "route_collisions": [],
+    "dynamic_segment_name_conflicts": []
+  },
+  "duplication": {
+    "clone_groups": [
+      {
+        "instances": [
+          {
+            "file": "engine/src/games/colony-building.ts",
+            "start_line": 9,
+            "end_line": 14,
+            "start_col": 6,
+            "end_col": 59,
+            "fragment": "cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict();"
+          },
+          {
+            "file": "engine/src/games/colony-stockpile-command.ts",
+            "start_line": 9,
+            "end_line": 14,
+            "start_col": 6,
+            "end_col": 59,
+            "fragment": "cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict();"
+          },
+          {
+            "file": "engine/src/games/colony.ts",
+            "start_line": 172,
+            "end_line": 177,
+            "start_col": 6,
+            "end_col": 76,
+            "fragment": "pointInput = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst areaInput = z.object({ start: pointInput, end: pointInput }).strict();"
+          }
+        ],
+        "token_count": 77,
+        "line_count": 6,
+        "fingerprint": "dup:2d325d8f",
+        "spread": 0,
+        "actions": [
+          {
+            "type": "extract-shared",
+            "auto_fixable": false,
+            "description": "Extract duplicated code (6 lines, 3 instances) into a shared function"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the duplicated code",
+            "comment": "// fallow-ignore-next-line code-duplication"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "instances": [
+          {
+            "file": "engine/src/games/colony-building.ts",
+            "start_line": 9,
+            "end_line": 14,
+            "start_col": 0,
+            "end_col": 58,
+            "fragment": "const cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict()"
+          },
+          {
+            "file": "engine/src/games/colony-stockpile-command.ts",
+            "start_line": 9,
+            "end_line": 14,
+            "start_col": 0,
+            "end_col": 58,
+            "fragment": "const cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict()"
+          }
+        ],
+        "token_count": 98,
+        "line_count": 6,
+        "fingerprint": "dup:37906c28",
+        "spread": 0,
+        "actions": [
+          {
+            "type": "extract-shared",
+            "auto_fixable": false,
+            "description": "Extract duplicated code (6 lines, 2 instances) into a shared function"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the duplicated code",
+            "comment": "// fallow-ignore-next-line code-duplication"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "instances": [
+          {
+            "file": "engine/src/games/colony.ts",
+            "start_line": 127,
+            "end_line": 138,
+            "start_col": 2,
+            "end_col": 11,
+            "fragment": "{\n    id: guestId,\n    components: {\n      \"hive.position\": { x: 3, y: 0, z: 1, facing: 0 },\n      \"hive.body\": { speed: 1 },\n      \"hive.container\": { capacity: 4 },\n      \"hive.traversal\": { clearanceCells: 1, maxStepCells: 1 },\n      \"hive.visual\": { sprite: \"goblin.guest\", label: \"Guest\" },\n      \"colony.guest\": { hungry: true },\n    },\n  },\n  ...trees."
+          },
+          {
+            "file": "engine/src/games/colony.ts",
+            "start_line": 868,
+            "end_line": 869,
+            "start_col": 2,
+            "end_col": 11,
+            "fragment": "{ id: guestId, components: { \"hive.position\": { x: 3, y: 0, z: 1, facing: 0 }, \"hive.body\": { speed: 1 }, \"hive.container\": { capacity: 4 }, \"hive.traversal\": { clearanceCells: 1, maxStepCells: 1 }, \"hive.visual\": { sprite: \"goblin.guest\", label: \"Guest\" }, \"colony.guest\": { hungry: true } } },\n  ...trees."
+          }
+        ],
+        "token_count": 50,
+        "line_count": 12,
+        "fingerprint": "dup:6f87acd9",
+        "spread": 3,
+        "suggested_name": "hive",
+        "actions": [
+          {
+            "type": "extract-shared",
+            "auto_fixable": false,
+            "description": "Extract duplicated code (12 lines, 2 instances) into a shared function"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the duplicated code",
+            "comment": "// fallow-ignore-next-line code-duplication"
+          }
+        ],
+        "introduced": false
+      }
+    ],
+    "clone_families": [
+      {
+        "files": [
+          "engine/src/games/colony.ts"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "engine/src/games/colony.ts",
+                "start_line": 127,
+                "end_line": 138,
+                "start_col": 2,
+                "end_col": 11,
+                "fragment": "{\n    id: guestId,\n    components: {\n      \"hive.position\": { x: 3, y: 0, z: 1, facing: 0 },\n      \"hive.body\": { speed: 1 },\n      \"hive.container\": { capacity: 4 },\n      \"hive.traversal\": { clearanceCells: 1, maxStepCells: 1 },\n      \"hive.visual\": { sprite: \"goblin.guest\", label: \"Guest\" },\n      \"colony.guest\": { hungry: true },\n    },\n  },\n  ...trees."
+              },
+              {
+                "file": "engine/src/games/colony.ts",
+                "start_line": 868,
+                "end_line": 869,
+                "start_col": 2,
+                "end_col": 11,
+                "fragment": "{ id: guestId, components: { \"hive.position\": { x: 3, y: 0, z: 1, facing: 0 }, \"hive.body\": { speed: 1 }, \"hive.container\": { capacity: 4 }, \"hive.traversal\": { clearanceCells: 1, maxStepCells: 1 }, \"hive.visual\": { sprite: \"goblin.guest\", label: \"Guest\" }, \"colony.guest\": { hungry: true } } },\n  ...trees."
+              }
+            ],
+            "token_count": 50,
+            "line_count": 12,
+            "fingerprint": "dup:6f87acd9",
+            "spread": 3,
+            "suggested_name": "hive",
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract duplicated code (12 lines, 2 instances) into a shared function"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "total_duplicated_lines": 12,
+        "total_duplicated_tokens": 50,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (12 lines) from colony.ts, colony.ts",
+            "estimated_savings": 12
+          }
+        ],
+        "actions": [
+          {
+            "type": "extract-shared",
+            "auto_fixable": false,
+            "description": "Extract 1 duplicated code block (12 lines) into a shared module",
+            "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+          },
+          {
+            "type": "apply-suggestion",
+            "auto_fixable": false,
+            "description": "Extract shared function (12 lines) from colony.ts, colony.ts"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the duplicated code",
+            "comment": "// fallow-ignore-next-line code-duplication"
+          }
+        ]
+      },
+      {
+        "files": [
+          "engine/src/games/colony-building.ts",
+          "engine/src/games/colony-stockpile-command.ts"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "engine/src/games/colony-building.ts",
+                "start_line": 9,
+                "end_line": 14,
+                "start_col": 0,
+                "end_col": 58,
+                "fragment": "const cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict()"
+              },
+              {
+                "file": "engine/src/games/colony-stockpile-command.ts",
+                "start_line": 9,
+                "end_line": 14,
+                "start_col": 0,
+                "end_col": 58,
+                "fragment": "const cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict()"
+              }
+            ],
+            "token_count": 98,
+            "line_count": 6,
+            "fingerprint": "dup:37906c28",
+            "spread": 0,
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract duplicated code (6 lines, 2 instances) into a shared function"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "total_duplicated_lines": 6,
+        "total_duplicated_tokens": 98,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (6 lines) from colony-building.ts, colony-stockpile-command.ts",
+            "estimated_savings": 6
+          }
+        ],
+        "actions": [
+          {
+            "type": "extract-shared",
+            "auto_fixable": false,
+            "description": "Extract 1 duplicated code block (6 lines) into a shared module",
+            "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+          },
+          {
+            "type": "apply-suggestion",
+            "auto_fixable": false,
+            "description": "Extract shared function (6 lines) from colony-building.ts, colony-stockpile-command.ts"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the duplicated code",
+            "comment": "// fallow-ignore-next-line code-duplication"
+          }
+        ]
+      },
+      {
+        "files": [
+          "engine/src/games/colony-building.ts",
+          "engine/src/games/colony-stockpile-command.ts",
+          "engine/src/games/colony.ts"
+        ],
+        "groups": [
+          {
+            "instances": [
+              {
+                "file": "engine/src/games/colony-building.ts",
+                "start_line": 9,
+                "end_line": 14,
+                "start_col": 6,
+                "end_col": 59,
+                "fragment": "cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict();"
+              },
+              {
+                "file": "engine/src/games/colony-stockpile-command.ts",
+                "start_line": 9,
+                "end_line": 14,
+                "start_col": 6,
+                "end_col": 59,
+                "fragment": "cell = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst area = z.object({ start: cell, end: cell }).strict();"
+              },
+              {
+                "file": "engine/src/games/colony.ts",
+                "start_line": 172,
+                "end_line": 177,
+                "start_col": 6,
+                "end_col": 76,
+                "fragment": "pointInput = z.tuple([\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n  z.number().int().min(-1_000_000).max(1_000_000),\n]);\nconst areaInput = z.object({ start: pointInput, end: pointInput }).strict();"
+              }
+            ],
+            "token_count": 77,
+            "line_count": 6,
+            "fingerprint": "dup:2d325d8f",
+            "spread": 0,
+            "actions": [
+              {
+                "type": "extract-shared",
+                "auto_fixable": false,
+                "description": "Extract duplicated code (6 lines, 3 instances) into a shared function"
+              },
+              {
+                "type": "suppress-line",
+                "auto_fixable": false,
+                "description": "Suppress with an inline comment above the duplicated code",
+                "comment": "// fallow-ignore-next-line code-duplication"
+              }
+            ]
+          }
+        ],
+        "total_duplicated_lines": 6,
+        "total_duplicated_tokens": 77,
+        "suggestions": [
+          {
+            "kind": "ExtractFunction",
+            "description": "Extract shared function (6 lines) from colony-building.ts, colony-stockpile-command.ts, colony.ts",
+            "estimated_savings": 12
+          }
+        ],
+        "actions": [
+          {
+            "type": "extract-shared",
+            "auto_fixable": false,
+            "description": "Extract 1 duplicated code block (6 lines) into a shared module",
+            "note": "These clone groups share the same files, indicating a structural relationship; refactor together"
+          },
+          {
+            "type": "apply-suggestion",
+            "auto_fixable": false,
+            "description": "Extract shared function (6 lines) from colony-building.ts, colony-stockpile-command.ts, colony.ts"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the duplicated code",
+            "comment": "// fallow-ignore-next-line code-duplication"
+          }
+        ]
+      }
+    ],
+    "stats": {
+      "total_files": 668,
+      "files_with_clones": 3,
+      "total_lines": 585264,
+      "duplicated_lines": 32,
+      "total_tokens": 3862515,
+      "duplicated_tokens": 302,
+      "clone_groups": 3,
+      "clone_instances": 7,
+      "duplication_percentage": 0.00546761803220427
+    }
+  },
+  "complexity": {
+    "findings": [
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "checkedAction",
+        "line": 121,
+        "col": 7,
+        "cyclomatic": 183,
+        "cognitive": 51,
+        "line_count": 203,
+        "param_count": 1,
+        "exceeded": "all",
+        "severity": "critical",
+        "crap": 296.0,
+        "coverage_tier": "high",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `checkedAction` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "activity",
+        "line": 88,
+        "col": 17,
+        "cyclomatic": 45,
+        "cognitive": 16,
+        "line_count": 31,
+        "param_count": 1,
+        "exceeded": "all",
+        "severity": "critical",
+        "crap": 482.4,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `activity` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/visual-projection.ts",
+        "name": "appendVisualProjections",
+        "line": 43,
+        "col": 7,
+        "cyclomatic": 38,
+        "cognitive": 31,
+        "line_count": 39,
+        "param_count": 4,
+        "exceeded": "all",
+        "severity": "high",
+        "crap": 42.9,
+        "coverage_tier": "high",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `appendVisualProjections` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/visual-projection.ts",
+        "name": "validVisualPlacement",
+        "line": 22,
+        "col": 7,
+        "cyclomatic": 25,
+        "cognitive": 14,
+        "line_count": 20,
+        "param_count": 1,
+        "exceeded": "cyclomatic",
+        "severity": "moderate",
+        "actions": [
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `validVisualPlacement` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "name": "run",
+        "line": 379,
+        "col": 11,
+        "cyclomatic": 15,
+        "cognitive": 9,
+        "line_count": 29,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 63.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `run` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `run` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "constructionTarget",
+        "line": 40,
+        "col": 27,
+        "cyclomatic": 15,
+        "cognitive": 10,
+        "line_count": 13,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "high",
+        "crap": 63.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `constructionTarget` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "refactor-function",
+            "auto_fixable": false,
+            "description": "Refactor `constructionTarget` to reduce complexity (extract helper functions, simplify branching)",
+            "note": "Consider splitting into smaller functions with single responsibilities"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "jobOperation",
+        "line": 60,
+        "col": 21,
+        "cyclomatic": 13,
+        "cognitive": 3,
+        "line_count": 8,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 49.5,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `jobOperation` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "<arrow>",
+        "line": 76,
+        "col": 27,
+        "cyclomatic": 12,
+        "cognitive": 5,
+        "line_count": 7,
+        "param_count": 2,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 43.1,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `<arrow>` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "jobBinding",
+        "line": 53,
+        "col": 19,
+        "cyclomatic": 11,
+        "cognitive": 6,
+        "line_count": 7,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 37.1,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `jobBinding` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "name": "trees",
+        "line": 580,
+        "col": 41,
+        "cyclomatic": 10,
+        "cognitive": 7,
+        "line_count": 10,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 31.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `trees` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/games/colony.ts",
+        "name": "inspect",
+        "line": 671,
+        "col": 13,
+        "cyclomatic": 10,
+        "cognitive": 9,
+        "line_count": 192,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 31.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `inspect` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "constructionCell",
+        "line": 36,
+        "col": 25,
+        "cyclomatic": 10,
+        "cognitive": 1,
+        "line_count": 4,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 31.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `constructionCell` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      },
+      {
+        "path": "engine/src/runtime/actions.ts",
+        "name": "jobPlan",
+        "line": 71,
+        "col": 16,
+        "cyclomatic": 10,
+        "cognitive": 2,
+        "line_count": 13,
+        "param_count": 1,
+        "exceeded": "crap",
+        "severity": "moderate",
+        "crap": 31.6,
+        "coverage_tier": "partial",
+        "coverage_source": "estimated",
+        "actions": [
+          {
+            "type": "increase-coverage",
+            "auto_fixable": false,
+            "description": "Increase test coverage for `jobPlan` (file is reachable from existing tests; add targeted assertions for uncovered branches)",
+            "note": "CRAP = CC^2 * (1 - cov/100)^3 + CC; targeted branch coverage is more efficient than scaffolding new test files when the file already has coverage"
+          },
+          {
+            "type": "suppress-line",
+            "auto_fixable": false,
+            "description": "Suppress with an inline comment above the function declaration",
+            "comment": "// fallow-ignore-next-line complexity",
+            "placement": "above-function-declaration"
+          }
+        ],
+        "introduced": false
+      }
+    ],
+    "summary": {
+      "files_analyzed": 9,
+      "functions_analyzed": 276,
+      "functions_above_threshold": 13,
+      "max_cyclomatic_threshold": 20,
+      "max_cognitive_threshold": 15,
+      "max_crap_threshold": 30.0,
+      "max_unit_size_threshold": 60,
+      "coverage_source_consistency": "uniform",
+      "severity_critical_count": 2,
+      "severity_high_count": 3,
+      "severity_moderate_count": 8
+    },
+    "vital_signs": {
+      "dead_file_pct": 0.0,
+      "dead_export_pct": 12.0,
+      "avg_cyclomatic": 3.3,
+      "critical_complexity_pct": 0.4,
+      "p90_cyclomatic": 5,
+      "maintainability_avg": 79.5,
+      "maintainability_low_pct": 33.3,
+      "unused_dep_count": 0,
+      "unused_deps_per_k_files": 0.0,
+      "circular_dep_count": 0,
+      "circular_deps_per_k_files": 0.0,
+      "counts": {
+        "total_files": 9,
+        "total_exports": 150,
+        "dead_files": 0,
+        "dead_exports": 18,
+        "total_lines": 2803,
+        "files_scored": 9,
+        "total_deps": 0
+      },
+      "unit_size_profile": {
+        "low_risk": 93.1,
+        "medium_risk": 2.5,
+        "high_risk": 3.3,
+        "very_high_risk": 1.1
+      },
+      "functions_over_60_loc_per_k": 10.9,
+      "unit_interfacing_profile": {
+        "low_risk": 94.9,
+        "medium_risk": 4.0,
+        "high_risk": 1.1,
+        "very_high_risk": 0.0
+      },
+      "p95_fan_in": 61,
+      "coupling_high_pct": 0.0,
+      "p95_render_fan_in": 2,
+      "render_fan_in_high_pct": 0.0,
+      "max_render_fan_in": 5,
+      "top_render_fan_in": [
+        {
+          "component": "Panel",
+          "path": "src/hud.jsx",
+          "render_sites": 5,
+          "distinct_parents": 5
+        },
+        {
+          "component": "Key",
+          "path": "src/hud.jsx",
+          "render_sites": 7,
+          "distinct_parents": 4
+        },
+        {
+          "component": "ClearingMinimap",
+          "path": "src/clearing-minimap.jsx",
+          "render_sites": 2,
+          "distinct_parents": 2
+        },
+        {
+          "component": "ControlGroup",
+          "path": "src/world-lab/controls.jsx",
+          "render_sites": 3,
+          "distinct_parents": 1
+        },
+        {
+          "component": "BrewStationPanel",
+          "path": "src/BrewStationPanel.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "BrewhouseAir",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "CheckpointControls",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "FieldControls",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "LayerControls",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "RoomControls",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "RoomFacts",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "TechnicalDetails",
+          "path": "src/brewhouse-air/main.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "Build",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "Character",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "FieldWaterTarget",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "Hud",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "HudHost",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "Menu",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "Orders",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        },
+        {
+          "component": "Target",
+          "path": "src/hud.jsx",
+          "render_sites": 1,
+          "distinct_parents": 1
+        }
+      ],
+      "total_loc": 2803
+    },
+    "framework_health": {
+      "detected_frameworks": [
+        "react"
+      ],
+      "detectors": [
+        {
+          "id": "unused-component-prop",
+          "framework": "react",
+          "status": "active"
+        },
+        {
+          "id": "prop-drilling",
+          "framework": "react",
+          "status": "disabled_by_config",
+          "reason": "disabled_by_config"
+        },
+        {
+          "id": "thin-wrapper",
+          "framework": "react",
+          "status": "disabled_by_config",
+          "reason": "disabled_by_config"
+        },
+        {
+          "id": "duplicate-prop-shape",
+          "framework": "react",
+          "status": "disabled_by_config",
+          "reason": "disabled_by_config"
+        }
+      ]
+    },
+    "css_analytics": {
+      "files": [],
+      "summary": {
+        "files_analyzed": 28,
+        "total_rules": 926,
+        "total_declarations": 2512,
+        "important_declarations": 20,
+        "empty_rules": 4,
+        "max_nesting_depth": 0,
+        "unique_colors": 188,
+        "unique_font_sizes": 43,
+        "unique_z_indexes": 10,
+        "unique_box_shadows": 4,
+        "unique_border_radii": 14,
+        "unique_line_heights": 13,
+        "custom_properties_defined": 8,
+        "custom_properties_unreferenced": 0,
+        "custom_properties_undefined": 20,
+        "keyframes_defined": 1,
+        "keyframes_unreferenced": 0,
+        "keyframes_undefined": 0,
+        "scoped_unused_classes": 0,
+        "duplicate_declaration_blocks": 12,
+        "duplicate_declarations_total": 77,
+        "tailwind_arbitrary_values": 0,
+        "tailwind_arbitrary_value_uses": 0,
+        "preprocessor_stylesheets": 0,
+        "preprocessor_reachability_abstained": false,
+        "raw_style_values": 0,
+        "unused_property_registrations": 0,
+        "unused_layers": 0,
+        "unresolved_class_references": 0,
+        "unreferenced_css_classes": 37,
+        "unused_font_faces": 0,
+        "unused_theme_tokens": 0,
+        "near_duplicate_theme_tokens": 0,
+        "near_duplicate_css_in_js_tokens": 0,
+        "font_size_units_used": 3,
+        "notable_truncated_files": 0
+      },
+      "font_size_unit_mix": {
+        "axis": "Font sizes",
+        "notations": [
+          {
+            "notation": "rem",
+            "count": 17
+          },
+          {
+            "notation": "px",
+            "count": 16
+          },
+          {
+            "notation": "%",
+            "count": 2
+          }
+        ],
+        "actions": [
+          {
+            "type": "standardize",
+            "auto_fixable": false,
+            "description": "Font sizes are authored in several notations; standardize on one (rem is the most common) so the scale is a single source of truth, unless this is an intentional migration in progress."
+          }
+        ]
+      }
+    },
+    "styling_health": {
+      "formula_version": 3,
+      "score": 91.1,
+      "grade": "A",
+      "penalties": {
+        "duplication": 2.5,
+        "dead_surface": 2.2,
+        "broken_references": 0.0,
+        "token_erosion": 4.2,
+        "structural": 0.0
+      },
+      "confidence": "high"
+    }
+  },
+  "next_steps": [
+    {
+      "id": "trace-unused-export",
+      "command": "fallow dead-code --trace engine/src/contracts.ts:RESERVED_COMPONENTS",
+      "reason": "verify an export is truly unused before deleting"
+    },
+    {
+      "id": "complexity-breakdown",
+      "command": "fallow health --complexity-breakdown",
+      "reason": "see per-decision-point contributions for a hotspot"
+    }
+  ],
+  "_meta": {
+    "telemetry": {
+      "analysis_run_id": "run_695c4b0005b6562b"
+    }
+  }
+}

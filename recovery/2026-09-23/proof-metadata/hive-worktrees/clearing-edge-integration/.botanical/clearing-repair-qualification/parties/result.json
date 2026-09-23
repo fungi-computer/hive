@@ -1,0 +1,30 @@
+{
+  "group": "parties",
+  "files": [
+    "engine/src/sdk/authoring.test.ts",
+    "engine/src/sdk/public.test.ts",
+    "engine/src/games/colony-party.test.ts",
+    "engine/src/runtime/colony-player-control.test.ts",
+    "engine/src/runtime/kernel-records.test.ts",
+    "engine/src/runtime/remote-client.test.ts",
+    "engine/src/runtime/session.test.ts",
+    "engine/src/runtime/session-region-records.test.ts",
+    "engine/src/runtime/visual-projection.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/authoring.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/public.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/colony-party.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/colony-player-control.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/kernel-records.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/remote-client.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/session.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/session-region-records.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/parties/visual-projection.test.mjs"
+  ],
+  "exit": 0
+}

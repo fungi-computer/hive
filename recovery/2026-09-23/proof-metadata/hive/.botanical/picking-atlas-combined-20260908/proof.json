@@ -1,0 +1,14 @@
+{
+  "base": "http://127.0.0.1:5193/",
+  "sourceCommit": "24709e28cf313bf9a77f7b59d561c14cf30d1b86",
+  "pages": {},
+  "screenshots": [],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Updating to 2,048 × 2,048 cells · 4 cells\\/pixel/. Input:\n\n'Loading 2,048 × 2,048 cells · 4 cells/pixel'\n\n    at file:///tmp/hive-picking-release-C1JH6e/tmp-combined-proof.mjs:68:10",
+  "scriptSha256": "3d175d4640cb8fd852597370c619d94c6fd343ddab3d231a50af068715352c93"
+}

@@ -1,0 +1,416 @@
+{
+  "scope": "same native binary, three fresh processes: ordinary, restored, cache-reset control; fixed tank/dt, Z-sort disabled; no game/WASM/portable-save claim",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "captureRule": "first completed step <=500 with max(abs(density/divergence warm field)) >1e-15",
+  "targetStep": 750,
+  "tolerances": {
+    "x": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "y": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "z": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "vx": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "vy": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "vz": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "mass": {
+      "absolute": 0,
+      "relative": 0
+    },
+    "pressureWarm": {
+      "absolute": 1e-12,
+      "relative": 1e-09
+    },
+    "divergenceWarm": {
+      "absolute": 1e-12,
+      "relative": 1e-09
+    }
+  },
+  "sourceSha256": {
+    "reference.cpp": "311c535b7fb30eb5b9119616f741481ce0dcf90e9c89841c50c2dd02c12fdfda",
+    "reference-checkpoint.h": "f68b1cf2af8680795251d1c96ba8a74d29b3daf9e813c828c9f4589e2b3cec0f",
+    "reference": "790e604e1dd9af7f582229088a1b2d5b6aabed48b3aded9a633ab01a113019fd",
+    "compile-reference.py": "0c1885037117e56475cf2423820ed786f58a021f279b7430d320ff836f520d1b",
+    "run-neighbor-history.py": "d8ce9f4e0aeea7c1582ba8e1a2db45a11e7bfd181283caece361f85c882a1bb3"
+  },
+  "results": [
+    {
+      "mode": "restart-write",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-write",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1712.891638,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.2130941152543,
+        "pointSets": 2,
+        "particles": 512
+      }
+    },
+    {
+      "mode": "restart-read",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-read",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1347.710589,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.21309411524784,
+        "pointSets": 2,
+        "particles": 512
+      }
+    },
+    {
+      "mode": "restart-reset",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-reset",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1733.799675,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.21309411524784,
+        "pointSets": 2,
+        "particles": 512
+      }
+    }
+  ],
+  "comparison": {
+    "immediateRestoreByteExact": true,
+    "resetControlCheckpointByteExact": true,
+    "ordinaryVsRestartFirst": {
+      "byteExact": false,
+      "metadataExact": true,
+      "identityObjectStateExact": true,
+      "withinDeclaredTolerance": true,
+      "byIdFields": {
+        "x": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "y": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "z": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vx": {
+          "maxAbsoluteDifference": 5.55653613398821e-19,
+          "differentBitPatterns": 205,
+          "particlesOutsideTolerance": 0
+        },
+        "vy": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vz": {
+          "maxAbsoluteDifference": 3.7947076036992655e-19,
+          "differentBitPatterns": 214,
+          "particlesOutsideTolerance": 0
+        },
+        "mass": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "pressureWarm": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "divergenceWarm": {
+          "maxAbsoluteDifference": 5.421010862427522e-20,
+          "differentBitPatterns": 99,
+          "particlesOutsideTolerance": 0
+        }
+      }
+    },
+    "resetVsRestartFirst": {
+      "byteExact": true,
+      "metadataExact": true,
+      "identityObjectStateExact": true,
+      "withinDeclaredTolerance": true,
+      "byIdFields": {
+        "x": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "y": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "z": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vx": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vy": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vz": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "mass": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "pressureWarm": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "divergenceWarm": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        }
+      }
+    },
+    "ordinaryVsRestartFinal": {
+      "byteExact": false,
+      "metadataExact": true,
+      "identityObjectStateExact": true,
+      "withinDeclaredTolerance": false,
+      "byIdFields": {
+        "x": {
+          "maxAbsoluteDifference": 0.00019733123244869422,
+          "differentBitPatterns": 512,
+          "particlesOutsideTolerance": 478
+        },
+        "y": {
+          "maxAbsoluteDifference": 2.5460134764648812e-05,
+          "differentBitPatterns": 512,
+          "particlesOutsideTolerance": 473
+        },
+        "z": {
+          "maxAbsoluteDifference": 0.00019891877790145784,
+          "differentBitPatterns": 512,
+          "particlesOutsideTolerance": 477
+        },
+        "vx": {
+          "maxAbsoluteDifference": 0.006531531736292548,
+          "differentBitPatterns": 512,
+          "particlesOutsideTolerance": 482
+        },
+        "vy": {
+          "maxAbsoluteDifference": 0.00047635676555791984,
+          "differentBitPatterns": 512,
+          "particlesOutsideTolerance": 486
+        },
+        "vz": {
+          "maxAbsoluteDifference": 0.006448220613091412,
+          "differentBitPatterns": 512,
+          "particlesOutsideTolerance": 483
+        },
+        "mass": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "pressureWarm": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "divergenceWarm": {
+          "maxAbsoluteDifference": 0.09871521114683901,
+          "differentBitPatterns": 377,
+          "particlesOutsideTolerance": 373
+        }
+      }
+    },
+    "resetVsRestartFinal": {
+      "byteExact": true,
+      "metadataExact": true,
+      "identityObjectStateExact": true,
+      "withinDeclaredTolerance": true,
+      "byIdFields": {
+        "x": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "y": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "z": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vx": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vy": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "vz": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "mass": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "pressureWarm": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        },
+        "divergenceWarm": {
+          "maxAbsoluteDifference": 0.0,
+          "differentBitPatterns": 0,
+          "particlesOutsideTolerance": 0
+        }
+      }
+    },
+    "ordinaryVsRestartNeighbors": {
+      "sameMembership": true,
+      "sameOrder": false,
+      "differentSequences": 478,
+      "firstDifference": {
+        "particleId": 1,
+        "pointSet": 0,
+        "left": [
+          0,
+          64,
+          65,
+          8,
+          9,
+          72,
+          73,
+          2,
+          3,
+          66,
+          10,
+          74
+        ],
+        "right": [
+          0,
+          64,
+          65,
+          10,
+          74,
+          8,
+          9,
+          72,
+          73,
+          2,
+          3,
+          66
+        ]
+      },
+      "leftCompletedStep": 173,
+      "rightCompletedStep": 173
+    },
+    "resetVsRestartNeighbors": {
+      "sameMembership": true,
+      "sameOrder": true,
+      "differentSequences": 0,
+      "firstDifference": null,
+      "leftCompletedStep": 173,
+      "rightCompletedStep": 173
+    }
+  },
+  "diagnosticHypothesisPass": true,
+  "ordinaryRestartLawPass": false,
+  "viewer": {
+    "file": "tank-positions.json",
+    "frames": 76,
+    "particles": 512,
+    "boundarySamples": 3986,
+    "sha256": "63a36c56a040866b184979b3b3705a9d31138546879d2800ba5dd752da17af55",
+    "bytes": 1544036
+  },
+  "pass": true,
+  "wallSeconds": 5.008937411010265,
+  "maxChildRssKiB": 18432,
+  "evidenceSha256": {
+    "cache-reset-checkpoint.bin": "13db93a3086ee7b5fbdd8a966ec6210c9e2c6812945b08a57de911a9b907c1f4",
+    "cache-reset-final.bin": "42d78013c3a57c9a4a0bf8262f9d5d9943932c9a7b07d26632a0b36de0278fe0",
+    "cache-reset-first-neighbors.json": "11622963067f591942170a1e32984263e93b3fd7b7698f2004bf12e49e492fee",
+    "cache-reset-first-step.bin": "21e0546bfc15c84b627fc4d47232cb9f2dd984364a4ca4eaf5897e8d19d21e47",
+    "checkpoint.bin": "13db93a3086ee7b5fbdd8a966ec6210c9e2c6812945b08a57de911a9b907c1f4",
+    "restart-read.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-read.stdout": "056a6620b0d085f0f0806c9215a4ced03f47b76d30872faac64ba8a92cb3c4d9",
+    "restart-reset.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-reset.stdout": "5711ee79a6d633c73c7672a4f7c097f660b4f15e43d48a85170eef5c2a8f5e3e",
+    "restart-write.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-write.stdout": "5b7b360bf4c8200867a9610136b4f96bf53b82e09ac1cd03f433726693b5464c",
+    "restarted-final.bin": "42d78013c3a57c9a4a0bf8262f9d5d9943932c9a7b07d26632a0b36de0278fe0",
+    "restarted-first-neighbors.json": "11622963067f591942170a1e32984263e93b3fd7b7698f2004bf12e49e492fee",
+    "restarted-first-step.bin": "21e0546bfc15c84b627fc4d47232cb9f2dd984364a4ca4eaf5897e8d19d21e47",
+    "restored.bin": "13db93a3086ee7b5fbdd8a966ec6210c9e2c6812945b08a57de911a9b907c1f4",
+    "tank-positions.json": "63a36c56a040866b184979b3b3705a9d31138546879d2800ba5dd752da17af55",
+    "uninterrupted-final.bin": "e00fb45fe42054166441d19a3cba1728fc20e38349e477850ad1a3875a902cb9",
+    "uninterrupted-first-neighbors.json": "8aebaf5885234b34671ae7dff203529d75d9c004bdf3db277821a071e7c6c452",
+    "uninterrupted-first-step.bin": "c5a9e6ee533290cc5098c6cb472218d1b8daf018b1ad1836c4c35fd138edca19"
+  }
+}

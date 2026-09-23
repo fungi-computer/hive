@@ -1,0 +1,11 @@
+{
+  "mode": "local-served-mugwort-establishment",
+  "base": "http://127.0.0.1:5200/",
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "failure": {
+    "message": "paused admission must not advance time\n\n26 !== 0\n",
+    "stack": "AssertionError [ERR_ASSERTION]: paused admission must not advance time\n\n26 !== 0\n\n    at file:///tmp/hive-ecology-release-Rmx7BT/scripts/prove-mugwort-establishment.mjs:118:10"
+  }
+}

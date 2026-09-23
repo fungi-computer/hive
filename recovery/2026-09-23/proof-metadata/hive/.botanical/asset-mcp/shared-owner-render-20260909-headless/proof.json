@@ -1,0 +1,47 @@
+{
+  "artifacts": "/home/levi/src/hive/.botanical/asset-mcp/shared-owner-20260909",
+  "scope": "local MCP export rendered through Three ObjectLoader",
+  "errors": [],
+  "views": {
+    "baseline": {
+      "sha256": "6d1b1c3f0a5b60f7fc42c8dfb4d9d2ab082070630c24a3f4709a77e6f1f4f12d",
+      "render": {
+        "frame": 1,
+        "calls": 51,
+        "triangles": 1220,
+        "points": 0,
+        "lines": 0
+      },
+      "alphaBounds": [
+        25,
+        70,
+        211,
+        220
+      ],
+      "opaque": 13448
+    },
+    "variant": {
+      "sha256": "8b61e991600786bf2498d42086811fa00795900bce0eb5b4180ee46e05a9573c",
+      "render": {
+        "frame": 1,
+        "calls": 51,
+        "triangles": 1220,
+        "points": 0,
+        "lines": 0
+      },
+      "alphaBounds": [
+        24,
+        70,
+        222,
+        206
+      ],
+      "opaque": 11942
+    }
+  },
+  "screenshots": [
+    "normal.png",
+    "narrow-390.png"
+  ],
+  "url": "http://127.0.0.1:5197/tools/asset-mcp/viewer.html?artifacts=%2F.botanical%2Fasset-mcp%2Fshared-owner-20260909%2F",
+  "downloadExact": true
+}

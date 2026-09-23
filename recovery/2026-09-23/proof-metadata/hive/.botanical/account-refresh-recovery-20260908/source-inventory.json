@@ -1,0 +1,119 @@
+{
+  "utc": "2026-09-08T16:34:19.128707+00:00",
+  "head": "20d6f60eef059d92d0c0e6512a78785e878159a9",
+  "root": "/home/levi/src/hive",
+  "files": [
+    {
+      "path": "scripts/prove.mjs",
+      "sha256": "b4ce3c95d6cd8db7691f61f657f2ce27945ea41c5051ac92c475b4a2d76e895f",
+      "bytes": 10648
+    },
+    {
+      "path": "src/activity.ts",
+      "sha256": "e65b6f564d9dec537fdba0f530183f721b77f6a35776688fa2a93d2401a6cce5",
+      "bytes": 13329
+    },
+    {
+      "path": "src/clearing.ts",
+      "sha256": "ec868250520f0bb50aee57c07dfdda4c55ae119c4c54feede04932ae163322a2",
+      "bytes": 4293
+    },
+    {
+      "path": "src/construction.js",
+      "sha256": "b7878794971bebbb87ab8ba5d560c6e2c733c1469548d2658139375a59ac25f7",
+      "bytes": 18845
+    },
+    {
+      "path": "src/finite-sources.ts",
+      "sha256": "915ae5c17d4c5c43579990adc781d740e49661cc5e67268bd57529837cc66413",
+      "bytes": 15494
+    },
+    {
+      "path": "src/jobs.ts",
+      "sha256": "36aa438470989f6c5517ef7f4ad50341d469991139d739a16988fbfa9d793389",
+      "bytes": 18539
+    },
+    {
+      "path": "src/materials.ts",
+      "sha256": "c9fff8b51929fa8ef3d5d5efbe8417e10b9542f83677f8b6f40d01765486fa95",
+      "bytes": 36786
+    },
+    {
+      "path": "src/model.ts",
+      "sha256": "cc412d1efb8b577fc29352aa6fb1d1437370155789a3feef400a1bc3265c3df3",
+      "bytes": 9264
+    },
+    {
+      "path": "src/orders.ts",
+      "sha256": "53854513f28c7a001e2594bb78ad7b675a676a8fd5cc1df5dc78df2e8cedaa59",
+      "bytes": 8233
+    },
+    {
+      "path": "src/world.js",
+      "sha256": "3a0bba373192791ebb61beb48e8ef810e2fd3b9ba8f508d67b8943f20dc3351a",
+      "bytes": 4959
+    },
+    {
+      "path": "scripts/prove-caps-style.mjs",
+      "sha256": "431c5729bfe245c2555760a5d332a0fd63e47d74c17d59848238bd902b9dd5f2",
+      "bytes": 4865
+    },
+    {
+      "path": "scripts/prove-clearing-minimap-live.mjs",
+      "sha256": "07229eaf4d48e788adcefac1eeb5bcd573e6b7ab7300bebfe44f339e3e14cd27",
+      "bytes": 18381
+    },
+    {
+      "path": "scripts/prove-clearing-minimap-narrow.mjs",
+      "sha256": "5c5fc36c05740b7d2669bde1dbf1ceee750c5243dc140fcbff2cc87414c04874",
+      "bytes": 8566
+    },
+    {
+      "path": "scripts/prove-common-transfer-v7.mjs",
+      "sha256": "d7bc59a61457569b79c2e265ca7413bf74ee7ef2702911f4972794c0c9e6bcac",
+      "bytes": 15132
+    },
+    {
+      "path": "scripts/prove-deconstruct-presentation.mjs",
+      "sha256": "f1d92ce49a7268427ce59254f9208801ab7d0a40921cbfb48b49e1a0cd164c68",
+      "bytes": 6846
+    },
+    {
+      "path": "scripts/prove-hosted-save-studies-smoke.mjs",
+      "sha256": "db99fc11e26a14a2599b6a2ebef4b633b497bde2c3967e38fc9c8eaa8c155731",
+      "bytes": 9950
+    },
+    {
+      "path": "scripts/prove-mixed-storage-v8.mjs",
+      "sha256": "8e9a78f55ed0ac4facd29ea813896ea29ec9ceddbd91cea3d64ede59e326e674",
+      "bytes": 26120
+    },
+    {
+      "path": "scripts/prove-paused-work.mjs",
+      "sha256": "d6c1b007bd35ca98655a41ddf04db9a237d0b989569e5a64f9e51c73c6b1988f",
+      "bytes": 11985
+    },
+    {
+      "path": "scripts/prove-structure-hit-go.mjs",
+      "sha256": "8b7efa61aab65df4b8a104461e675821b3b66a802264495a1d9b2660d32a0878",
+      "bytes": 13663
+    },
+    {
+      "path": "scripts/prove-upstairs-bedroom.mjs",
+      "sha256": "3976247497f299aa6621dfd0a22d6f40abc69d44665939b70095d015eaf259af",
+      "bytes": 32470
+    },
+    {
+      "path": "scripts/prove-work-panel.mjs",
+      "sha256": "996525aa5b3fcd73036461bc176661215ea3fafa3dded18718af25e363144184",
+      "bytes": 16038
+    }
+  ],
+  "patch_sha256": "1e6f346a5b13081ac60b52092adf61c2bc7f72d9c4b3955805aa6930167f7256",
+  "preserved_in_place": [
+    ".fungi/",
+    ".botanical/ prior evidence",
+    "all existing runtime stores and servers"
+  ],
+  "authority": "Levi authorized exact Codex Session refresh in original panes after account login. No source reset, Git mutation, replay, backend restart or prior orphan-store reopening."
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "path": "solver.mjs",
+    "sha256": "a72a3a2810eaaf5e87564631084d042f94aa36975bec84c4fa97ff49962a43eb",
+    "bytes": 21431
+  },
+  {
+    "path": "qualify-metric.mjs",
+    "sha256": "7e5bacdbfbabf8e341a09be9bbcdfb61c212473f1b600c3c1caf1deee1ec2f72",
+    "bytes": 9000
+  },
+  {
+    "path": "metric-qualification-v1.json",
+    "sha256": "411df87fca2eb652e3985adb811dbac22cebe725cf8e88890f98c9354b517732",
+    "bytes": 3506
+  },
+  {
+    "path": "square-checkpoint/solver.mjs",
+    "sha256": "67ce0968afe17328774d911a7f282e51ee5b77b1f4ba4fc4bde22f4f7272edea",
+    "bytes": 19374
+  }
+]

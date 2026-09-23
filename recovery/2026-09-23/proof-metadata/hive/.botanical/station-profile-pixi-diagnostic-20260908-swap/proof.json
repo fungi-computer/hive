@@ -1,0 +1,286 @@
+{
+  "profiles": {
+    "empty": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1400
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1400
+      }
+    },
+    "stock-w0-b0-k0": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1400
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1400
+      }
+    },
+    "stock-w1-b0-k0": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1400
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1400
+      }
+    },
+    "stock-w0-b1-k0": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1417
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1417
+      }
+    },
+    "stock-w1-b1-k0": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1417
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1417
+      }
+    },
+    "stock-w0-b0-k1": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1401
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1401
+      }
+    },
+    "stock-w1-b0-k1": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1401
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1401
+      }
+    },
+    "stock-w0-b1-k1": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      }
+    },
+    "stock-w1-b1-k1": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      }
+    },
+    "prepare": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      }
+    },
+    "prepare-attended": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1462
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1462
+      }
+    },
+    "ferment": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      }
+    },
+    "keg": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      }
+    },
+    "settled": {
+      "source": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      },
+      "pixi": {
+        "corner": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "opaque": 1418
+      }
+    }
+  },
+  "errors": [],
+  "passed": true
+}

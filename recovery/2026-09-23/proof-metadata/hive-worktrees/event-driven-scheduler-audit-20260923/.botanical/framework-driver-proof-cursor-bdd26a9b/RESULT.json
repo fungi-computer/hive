@@ -1,0 +1,2323 @@
+{
+  "source": "bdd26a9b245126db37b27e3c65ed8fa92744f1f5",
+  "dirtySource": "M engine/scripts/measure-framework-proof-v3.ts\n M engine/scripts/measure-framework-proof.ts",
+  "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+  "inventory": [
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "d69eba472594cf079bc6a73b508e838f76afb07d6bed3007e6893a33c2efe783"
+    },
+    {
+      "path": "tools/public-engine-host/pack-registration.ts",
+      "sha256": "d3c336f12b524872fbf9823cdaa336c23557b8e0aade215db78331f9364ff897"
+    },
+    {
+      "path": "engine/src/runtime/occurrence-driver.ts",
+      "sha256": "3b76aa9c31c1a2fee3037bae424d030cf63d41dbb71487e75314a2f632e1db54"
+    },
+    {
+      "path": "engine/src/runtime/region-program.ts",
+      "sha256": "f145a097b8edc8f11ef51fb9444d7a9535033a46a056fc9a4f3d4c2ae6fc518c"
+    },
+    {
+      "path": "src/engine/region/index.ts",
+      "sha256": "ddc52d5059c967932accb099f21d815b79a2a0fbae062972b1dd61a377424b8e"
+    },
+    {
+      "path": "engine/src/games/colony-framework-proof-v2-driver.ts",
+      "sha256": "d7fb0b3e60189ca565098736e43472673a749539b997ae15e962a48ff8791802"
+    },
+    {
+      "path": "engine/src/games/colony-performance-config.ts",
+      "sha256": "2f39b6e6ff3aa4fcea4bebe3bd0f275e2442ec539caf164b1ddf5bc9b5d89d31"
+    },
+    {
+      "path": "engine/src/games/colony-framework-proof-v3.ts",
+      "sha256": "8dd364c40caabe096a9b66e0b15f0cfc3d2276f1d84559bf90be50eccba4d8e0"
+    },
+    {
+      "path": "src/engine/region/records.ts",
+      "sha256": "4b4f8321f8ae1e05073535bcbbfe158375ddf14428590f63f96e2254548fc390"
+    },
+    {
+      "path": "engine/generated/hive_kernel_bg.wasm",
+      "sha256": "f454c8c5d7c86e83c8a5fa04e7bc9e7e4a8ec7bae567233ca91bc4ea75499e4f"
+    }
+  ],
+  "game": "colony-framework-proof-256-100-v3",
+  "checkpoints": [
+    {
+      "stage": "paused",
+      "sequence": 40,
+      "revision": 41,
+      "clockResult": {
+        "paused": false,
+        "results": {
+          "actions": {
+            "accepted": 0,
+            "attempted": 0,
+            "rejected": 0
+          },
+          "commands": [],
+          "driver": "colony-framework-command-ledger-v2",
+          "notes": [],
+          "step": 40,
+          "version": 1
+        },
+        "tick": 41
+      },
+      "stockpiles": [
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": -70,
+              "y": 10.530000000000001,
+              "z": 88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.-70.19.88.-70.88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 38,
+              "nextReviewTick": 46
+            }
+          },
+          "id": "stockpile.33:colony.stockpile.-70.19.88.-70.88.-70.19.88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": 106,
+              "y": 9.99,
+              "z": 88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.106.18.88.106.88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 38,
+              "nextReviewTick": 46
+            }
+          },
+          "id": "stockpile.33:colony.stockpile.106.18.88.106.88.106.18.88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": -70,
+              "y": 7.83,
+              "z": -88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.-70.14.-88.-70.-88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 38,
+              "nextReviewTick": 46
+            }
+          },
+          "id": "stockpile.35:colony.stockpile.-70.14.-88.-70.-88.-70.14.-88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": 106,
+              "y": 7.83,
+              "z": -88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.106.14.-88.106.-88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 38,
+              "nextReviewTick": 46
+            }
+          },
+          "id": "stockpile.35:colony.stockpile.106.14.-88.106.-88.106.14.-88"
+        }
+      ]
+    },
+    {
+      "stage": "autonomous-restart",
+      "beforeSequence": 40,
+      "sequence": 41,
+      "revision": 43
+    }
+  ],
+  "ledger": [
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "scheduled-commands",
+      "sequence": 1,
+      "revision": 2,
+      "result": {
+        "driver": "colony-framework-command-ledger-v2",
+        "version": 1,
+        "step": 2,
+        "commands": [
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  -70,
+                  14,
+                  -88
+                ],
+                "start": [
+                  -70,
+                  14,
+                  -88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          },
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  -70,
+                  19,
+                  88
+                ],
+                "start": [
+                  -70,
+                  19,
+                  88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          },
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  106,
+                  14,
+                  -88
+                ],
+                "start": [
+                  106,
+                  14,
+                  -88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          },
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  106,
+                  18,
+                  88
+                ],
+                "start": [
+                  106,
+                  18,
+                  88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          }
+        ],
+        "notes": [
+          "designate four finite-capacity storage destinations"
+        ],
+        "actions": {
+          "attempted": 4,
+          "accepted": 4,
+          "rejected": 0
+        }
+      }
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publication-skips",
+      "count": 20,
+      "candidates": 37,
+      "eligibilityWallMs": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "total": 0
+      },
+      "samples": [
+        {
+          "revision": 1,
+          "candidates": 0,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 2,
+          "candidates": 1,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 2,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 2,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 3,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 3,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 4,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 4,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 5,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 5,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 6,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 6,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 7,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 7,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 8,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 8,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 9,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 9,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 10,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 10,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "committed-steps",
+      "count": 20,
+      "firstSequence": 0,
+      "lastSequence": 19,
+      "firstRevision": 1,
+      "lastRevision": 20,
+      "costs": {
+        "advanceWallMs": {
+          "p50": 33,
+          "p95": 106,
+          "p99": 554,
+          "max": 554,
+          "total": 1369
+        },
+        "captureWallMs": {
+          "p50": 10,
+          "p95": 14,
+          "p99": 39,
+          "max": 39,
+          "total": 225
+        },
+        "changedRecordBytes": {
+          "p50": 114770,
+          "p95": 207168,
+          "p99": 390564,
+          "max": 390564,
+          "total": 2598352
+        },
+        "recordPuts": {
+          "p50": 111,
+          "p95": 162,
+          "p99": 433,
+          "max": 433,
+          "total": 2681
+        },
+        "recordRemoves": {
+          "p50": 0,
+          "p95": 16,
+          "p99": 47,
+          "max": 47,
+          "total": 66
+        },
+        "sqlWallMs": {
+          "p50": 2,
+          "p95": 4,
+          "p99": 5,
+          "max": 5,
+          "total": 41
+        },
+        "durableTransactionWallMs": {
+          "p50": 54,
+          "p95": 135,
+          "p99": 637,
+          "max": 637,
+          "total": 1891
+        },
+        "alarmSetWallMs": {
+          "p50": 0,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "total": 2
+        },
+        "alarmDeleteWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "alarmSetCalls": {
+          "p50": 1,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "total": 20
+        },
+        "alarmDeleteCalls": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "rowsRead": {
+          "p50": 323,
+          "p95": 475,
+          "p99": 555,
+          "max": 555,
+          "total": 6679
+        },
+        "rowsWritten": {
+          "p50": 141,
+          "p95": 243,
+          "p99": 857,
+          "max": 857,
+          "total": 3801
+        },
+        "statements": {
+          "p50": 22,
+          "p95": 24,
+          "p99": 35,
+          "max": 35,
+          "total": 455
+        },
+        "alarmLatenessMs": {
+          "p50": 0,
+          "p95": 8,
+          "p99": 345,
+          "max": 345,
+          "total": 356
+        },
+        "dispatchWallMs": {
+          "p50": 46,
+          "p95": 124,
+          "p99": 612,
+          "max": 612,
+          "total": 1685
+        },
+        "transactionWallMs": {
+          "p50": 54,
+          "p95": 135,
+          "p99": 637,
+          "max": 637,
+          "total": 1894
+        }
+      },
+      "samples": [
+        {
+          "sequence": 0,
+          "revision": 1,
+          "alarmLatenessMs": 345,
+          "dispatchWallMs": 612,
+          "transactionWallMs": 637,
+          "advanceWallMs": 554,
+          "captureWallMs": 39,
+          "recordPuts": 433,
+          "recordRemoves": 0,
+          "changedRecordBytes": 390564,
+          "sqlWallMs": 5,
+          "durableTransactionWallMs": 637,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 475,
+          "rowsWritten": 857,
+          "statements": 35
+        },
+        {
+          "sequence": 1,
+          "revision": 2,
+          "alarmLatenessMs": 8,
+          "dispatchWallMs": 60,
+          "transactionWallMs": 73,
+          "advanceWallMs": 41,
+          "captureWallMs": 10,
+          "recordPuts": 90,
+          "recordRemoves": 0,
+          "changedRecordBytes": 147085,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 73,
+          "alarmSetWallMs": 1,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 214,
+          "rowsWritten": 130,
+          "statements": 20
+        },
+        {
+          "sequence": 2,
+          "revision": 3,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 46,
+          "transactionWallMs": 54,
+          "advanceWallMs": 31,
+          "captureWallMs": 9,
+          "recordPuts": 94,
+          "recordRemoves": 0,
+          "changedRecordBytes": 138550,
+          "sqlWallMs": 4,
+          "durableTransactionWallMs": 54,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 228,
+          "rowsWritten": 133,
+          "statements": 20
+        },
+        {
+          "sequence": 3,
+          "revision": 4,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 42,
+          "transactionWallMs": 53,
+          "advanceWallMs": 31,
+          "captureWallMs": 8,
+          "recordPuts": 94,
+          "recordRemoves": 0,
+          "changedRecordBytes": 127713,
+          "sqlWallMs": 0,
+          "durableTransactionWallMs": 53,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 234,
+          "rowsWritten": 130,
+          "statements": 20
+        },
+        {
+          "sequence": 4,
+          "revision": 5,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 37,
+          "transactionWallMs": 47,
+          "advanceWallMs": 26,
+          "captureWallMs": 8,
+          "recordPuts": 105,
+          "recordRemoves": 0,
+          "changedRecordBytes": 124910,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 47,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 251,
+          "rowsWritten": 149,
+          "statements": 22
+        },
+        {
+          "sequence": 5,
+          "revision": 6,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 42,
+          "transactionWallMs": 52,
+          "advanceWallMs": 28,
+          "captureWallMs": 10,
+          "recordPuts": 102,
+          "recordRemoves": 0,
+          "changedRecordBytes": 114770,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 52,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 258,
+          "rowsWritten": 138,
+          "statements": 22
+        },
+        {
+          "sequence": 6,
+          "revision": 7,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 50,
+          "transactionWallMs": 62,
+          "advanceWallMs": 37,
+          "captureWallMs": 10,
+          "recordPuts": 131,
+          "recordRemoves": 0,
+          "changedRecordBytes": 117718,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 61,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 315,
+          "rowsWritten": 182,
+          "statements": 22
+        },
+        {
+          "sequence": 7,
+          "revision": 8,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 55,
+          "transactionWallMs": 64,
+          "advanceWallMs": 38,
+          "captureWallMs": 11,
+          "recordPuts": 116,
+          "recordRemoves": 0,
+          "changedRecordBytes": 109452,
+          "sqlWallMs": 3,
+          "durableTransactionWallMs": 64,
+          "alarmSetWallMs": 1,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 300,
+          "rowsWritten": 152,
+          "statements": 22
+        },
+        {
+          "sequence": 8,
+          "revision": 9,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 46,
+          "transactionWallMs": 55,
+          "advanceWallMs": 36,
+          "captureWallMs": 7,
+          "recordPuts": 141,
+          "recordRemoves": 0,
+          "changedRecordBytes": 78898,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 55,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 355,
+          "rowsWritten": 187,
+          "statements": 23
+        },
+        {
+          "sequence": 9,
+          "revision": 10,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 90,
+          "transactionWallMs": 100,
+          "advanceWallMs": 77,
+          "captureWallMs": 10,
+          "recordPuts": 111,
+          "recordRemoves": 0,
+          "changedRecordBytes": 207168,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 99,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 297,
+          "rowsWritten": 141,
+          "statements": 22
+        },
+        {
+          "sequence": 10,
+          "revision": 11,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 101,
+          "transactionWallMs": 112,
+          "advanceWallMs": 87,
+          "captureWallMs": 11,
+          "recordPuts": 162,
+          "recordRemoves": 0,
+          "changedRecordBytes": 185912,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 112,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 394,
+          "rowsWritten": 220,
+          "statements": 23
+        },
+        {
+          "sequence": 11,
+          "revision": 12,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 124,
+          "transactionWallMs": 135,
+          "advanceWallMs": 106,
+          "captureWallMs": 14,
+          "recordPuts": 152,
+          "recordRemoves": 0,
+          "changedRecordBytes": 159114,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 135,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 374,
+          "rowsWritten": 205,
+          "statements": 23
+        },
+        {
+          "sequence": 12,
+          "revision": 13,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 72,
+          "transactionWallMs": 85,
+          "advanceWallMs": 57,
+          "captureWallMs": 12,
+          "recordPuts": 147,
+          "recordRemoves": 47,
+          "changedRecordBytes": 170969,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 85,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 555,
+          "rowsWritten": 243,
+          "statements": 24
+        },
+        {
+          "sequence": 13,
+          "revision": 14,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 67,
+          "transactionWallMs": 75,
+          "advanceWallMs": 56,
+          "captureWallMs": 9,
+          "recordPuts": 124,
+          "recordRemoves": 16,
+          "changedRecordBytes": 98333,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 74,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 416,
+          "rowsWritten": 162,
+          "statements": 23
+        },
+        {
+          "sequence": 14,
+          "revision": 15,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 42,
+          "transactionWallMs": 51,
+          "advanceWallMs": 33,
+          "captureWallMs": 6,
+          "recordPuts": 136,
+          "recordRemoves": 3,
+          "changedRecordBytes": 85347,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 51,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 370,
+          "rowsWritten": 176,
+          "statements": 24
+        },
+        {
+          "sequence": 15,
+          "revision": 16,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 35,
+          "transactionWallMs": 42,
+          "advanceWallMs": 23,
+          "captureWallMs": 9,
+          "recordPuts": 113,
+          "recordRemoves": 0,
+          "changedRecordBytes": 70274,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 42,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 335,
+          "rowsWritten": 127,
+          "statements": 22
+        },
+        {
+          "sequence": 16,
+          "revision": 17,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 36,
+          "transactionWallMs": 43,
+          "advanceWallMs": 24,
+          "captureWallMs": 9,
+          "recordPuts": 107,
+          "recordRemoves": 0,
+          "changedRecordBytes": 66274,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 43,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 323,
+          "rowsWritten": 118,
+          "statements": 22
+        },
+        {
+          "sequence": 17,
+          "revision": 18,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 44,
+          "transactionWallMs": 52,
+          "advanceWallMs": 30,
+          "captureWallMs": 11,
+          "recordPuts": 111,
+          "recordRemoves": 0,
+          "changedRecordBytes": 68602,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 52,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 333,
+          "rowsWritten": 123,
+          "statements": 22
+        },
+        {
+          "sequence": 18,
+          "revision": 19,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 42,
+          "transactionWallMs": 52,
+          "advanceWallMs": 30,
+          "captureWallMs": 9,
+          "recordPuts": 103,
+          "recordRemoves": 0,
+          "changedRecordBytes": 62470,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 52,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 315,
+          "rowsWritten": 112,
+          "statements": 22
+        },
+        {
+          "sequence": 19,
+          "revision": 20,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 42,
+          "transactionWallMs": 50,
+          "advanceWallMs": 24,
+          "captureWallMs": 13,
+          "recordPuts": 109,
+          "recordRemoves": 0,
+          "changedRecordBytes": 74229,
+          "sqlWallMs": 4,
+          "durableTransactionWallMs": 50,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 337,
+          "rowsWritten": 116,
+          "statements": 22
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publication-skips",
+      "count": 20,
+      "candidates": 40,
+      "eligibilityWallMs": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "total": 0
+      },
+      "samples": [
+        {
+          "revision": 11,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 11,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 12,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 12,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 13,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 13,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 14,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 14,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 15,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 15,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 16,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 16,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 17,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 17,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 18,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 18,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 19,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 19,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 20,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 20,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publications",
+      "count": 20,
+      "firstRevision": 2,
+      "lastRevision": 21,
+      "costs": {
+        "recipients": {
+          "p50": 2,
+          "p95": 2,
+          "p99": 2,
+          "max": 2,
+          "total": 39
+        },
+        "eligibilityWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 1,
+          "max": 1,
+          "total": 1
+        },
+        "buildWallMs": {
+          "p50": 20,
+          "p95": 29,
+          "p99": 31,
+          "max": 31,
+          "total": 417
+        },
+        "sendWallMs": {
+          "p50": 2,
+          "p95": 3,
+          "p99": 3,
+          "max": 3,
+          "total": 39
+        },
+        "encodedBytes": {
+          "p50": 362384,
+          "p95": 364472,
+          "p99": 364472,
+          "max": 364472,
+          "total": 7090758
+        }
+      },
+      "samples": [
+        {
+          "revision": 2,
+          "recipients": 1,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 25,
+          "sendWallMs": 1,
+          "encodedBytes": 207660
+        },
+        {
+          "revision": 3,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 24,
+          "sendWallMs": 3,
+          "encodedBytes": 358598
+        },
+        {
+          "revision": 4,
+          "recipients": 2,
+          "eligibilityWallMs": 1,
+          "buildWallMs": 29,
+          "sendWallMs": 2,
+          "encodedBytes": 359046
+        },
+        {
+          "revision": 5,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 20,
+          "sendWallMs": 2,
+          "encodedBytes": 359526
+        },
+        {
+          "revision": 6,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 21,
+          "sendWallMs": 2,
+          "encodedBytes": 360006
+        },
+        {
+          "revision": 7,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 25,
+          "sendWallMs": 2,
+          "encodedBytes": 360486
+        },
+        {
+          "revision": 8,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 20,
+          "sendWallMs": 2,
+          "encodedBytes": 360996
+        },
+        {
+          "revision": 9,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 17,
+          "sendWallMs": 3,
+          "encodedBytes": 361476
+        },
+        {
+          "revision": 10,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 2,
+          "encodedBytes": 361960
+        },
+        {
+          "revision": 11,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 17,
+          "sendWallMs": 2,
+          "encodedBytes": 362384
+        },
+        {
+          "revision": 12,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 29,
+          "sendWallMs": 2,
+          "encodedBytes": 362818
+        },
+        {
+          "revision": 13,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 1,
+          "encodedBytes": 362926
+        },
+        {
+          "revision": 14,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 1,
+          "encodedBytes": 363308
+        },
+        {
+          "revision": 15,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 31,
+          "sendWallMs": 2,
+          "encodedBytes": 363680
+        },
+        {
+          "revision": 16,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 14,
+          "sendWallMs": 2,
+          "encodedBytes": 363996
+        },
+        {
+          "revision": 17,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 15,
+          "sendWallMs": 3,
+          "encodedBytes": 364056
+        },
+        {
+          "revision": 18,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 18,
+          "sendWallMs": 1,
+          "encodedBytes": 364420
+        },
+        {
+          "revision": 19,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 17,
+          "sendWallMs": 2,
+          "encodedBytes": 364472
+        },
+        {
+          "revision": 20,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 27,
+          "sendWallMs": 2,
+          "encodedBytes": 364472
+        },
+        {
+          "revision": 21,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 20,
+          "sendWallMs": 2,
+          "encodedBytes": 364472
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publication-skips",
+      "count": 20,
+      "candidates": 40,
+      "eligibilityWallMs": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "total": 0
+      },
+      "samples": [
+        {
+          "revision": 21,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 21,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 22,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 22,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 23,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 23,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 24,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 24,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 25,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 25,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 26,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 26,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 27,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 27,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 28,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 28,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 29,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 29,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 30,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 30,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "committed-steps",
+      "count": 20,
+      "firstSequence": 20,
+      "lastSequence": 39,
+      "firstRevision": 21,
+      "lastRevision": 40,
+      "costs": {
+        "advanceWallMs": {
+          "p50": 22,
+          "p95": 29,
+          "p99": 34,
+          "max": 34,
+          "total": 447
+        },
+        "captureWallMs": {
+          "p50": 12,
+          "p95": 17,
+          "p99": 25,
+          "max": 25,
+          "total": 254
+        },
+        "changedRecordBytes": {
+          "p50": 76253,
+          "p95": 88604,
+          "p99": 90088,
+          "max": 90088,
+          "total": 1549760
+        },
+        "recordPuts": {
+          "p50": 113,
+          "p95": 127,
+          "p99": 130,
+          "max": 130,
+          "total": 2270
+        },
+        "recordRemoves": {
+          "p50": 0,
+          "p95": 9,
+          "p99": 15,
+          "max": 15,
+          "total": 27
+        },
+        "sqlWallMs": {
+          "p50": 2,
+          "p95": 3,
+          "p99": 4,
+          "max": 4,
+          "total": 39
+        },
+        "durableTransactionWallMs": {
+          "p50": 49,
+          "p95": 60,
+          "p99": 61,
+          "max": 61,
+          "total": 966
+        },
+        "alarmSetWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "alarmDeleteWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "alarmSetCalls": {
+          "p50": 1,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "total": 20
+        },
+        "alarmDeleteCalls": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "rowsRead": {
+          "p50": 351,
+          "p95": 398,
+          "p99": 415,
+          "max": 415,
+          "total": 7075
+        },
+        "rowsWritten": {
+          "p50": 122,
+          "p95": 138,
+          "p99": 142,
+          "max": 142,
+          "total": 2458
+        },
+        "statements": {
+          "p50": 22,
+          "p95": 23,
+          "p99": 23,
+          "max": 23,
+          "total": 443
+        },
+        "alarmLatenessMs": {
+          "p50": 0,
+          "p95": 1,
+          "p99": 1,
+          "max": 1,
+          "total": 9
+        },
+        "dispatchWallMs": {
+          "p50": 39,
+          "p95": 52,
+          "p99": 52,
+          "max": 52,
+          "total": 781
+        },
+        "transactionWallMs": {
+          "p50": 49,
+          "p95": 60,
+          "p99": 61,
+          "max": 61,
+          "total": 966
+        }
+      },
+      "samples": [
+        {
+          "sequence": 20,
+          "revision": 21,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 28,
+          "transactionWallMs": 36,
+          "advanceWallMs": 18,
+          "captureWallMs": 7,
+          "recordPuts": 111,
+          "recordRemoves": 0,
+          "changedRecordBytes": 75537,
+          "sqlWallMs": 0,
+          "durableTransactionWallMs": 36,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 343,
+          "rowsWritten": 118,
+          "statements": 22
+        },
+        {
+          "sequence": 21,
+          "revision": 22,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 52,
+          "transactionWallMs": 60,
+          "advanceWallMs": 21,
+          "captureWallMs": 25,
+          "recordPuts": 108,
+          "recordRemoves": 0,
+          "changedRecordBytes": 68590,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 60,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 330,
+          "rowsWritten": 117,
+          "statements": 22
+        },
+        {
+          "sequence": 22,
+          "revision": 23,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 39,
+          "transactionWallMs": 47,
+          "advanceWallMs": 23,
+          "captureWallMs": 12,
+          "recordPuts": 114,
+          "recordRemoves": 0,
+          "changedRecordBytes": 72349,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 47,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 350,
+          "rowsWritten": 122,
+          "statements": 22
+        },
+        {
+          "sequence": 23,
+          "revision": 24,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 33,
+          "transactionWallMs": 46,
+          "advanceWallMs": 19,
+          "captureWallMs": 11,
+          "recordPuts": 116,
+          "recordRemoves": 0,
+          "changedRecordBytes": 77139,
+          "sqlWallMs": 3,
+          "durableTransactionWallMs": 46,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 354,
+          "rowsWritten": 125,
+          "statements": 22
+        },
+        {
+          "sequence": 24,
+          "revision": 25,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 18,
+          "transactionWallMs": 25,
+          "advanceWallMs": 9,
+          "captureWallMs": 7,
+          "recordPuts": 101,
+          "recordRemoves": 0,
+          "changedRecordBytes": 65113,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 25,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 307,
+          "rowsWritten": 111,
+          "statements": 22
+        },
+        {
+          "sequence": 25,
+          "revision": 26,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 45,
+          "transactionWallMs": 55,
+          "advanceWallMs": 34,
+          "captureWallMs": 8,
+          "recordPuts": 115,
+          "recordRemoves": 3,
+          "changedRecordBytes": 80901,
+          "sqlWallMs": 3,
+          "durableTransactionWallMs": 55,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 367,
+          "rowsWritten": 125,
+          "statements": 23
+        },
+        {
+          "sequence": 26,
+          "revision": 27,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 43,
+          "transactionWallMs": 51,
+          "advanceWallMs": 26,
+          "captureWallMs": 14,
+          "recordPuts": 103,
+          "recordRemoves": 0,
+          "changedRecordBytes": 67819,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 51,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 313,
+          "rowsWritten": 113,
+          "statements": 22
+        },
+        {
+          "sequence": 27,
+          "revision": 28,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 41,
+          "transactionWallMs": 49,
+          "advanceWallMs": 22,
+          "captureWallMs": 16,
+          "recordPuts": 112,
+          "recordRemoves": 0,
+          "changedRecordBytes": 77260,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 49,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 342,
+          "rowsWritten": 121,
+          "statements": 22
+        },
+        {
+          "sequence": 28,
+          "revision": 29,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 35,
+          "transactionWallMs": 45,
+          "advanceWallMs": 17,
+          "captureWallMs": 15,
+          "recordPuts": 110,
+          "recordRemoves": 9,
+          "changedRecordBytes": 74320,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 45,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 376,
+          "rowsWritten": 126,
+          "statements": 23
+        },
+        {
+          "sequence": 29,
+          "revision": 30,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 20,
+          "transactionWallMs": 26,
+          "advanceWallMs": 11,
+          "captureWallMs": 7,
+          "recordPuts": 113,
+          "recordRemoves": 0,
+          "changedRecordBytes": 79119,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 26,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 351,
+          "rowsWritten": 119,
+          "statements": 22
+        },
+        {
+          "sequence": 30,
+          "revision": 31,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 39,
+          "transactionWallMs": 50,
+          "advanceWallMs": 22,
+          "captureWallMs": 12,
+          "recordPuts": 117,
+          "recordRemoves": 15,
+          "changedRecordBytes": 74204,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 50,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 415,
+          "rowsWritten": 142,
+          "statements": 23
+        },
+        {
+          "sequence": 31,
+          "revision": 32,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 44,
+          "transactionWallMs": 57,
+          "advanceWallMs": 29,
+          "captureWallMs": 11,
+          "recordPuts": 127,
+          "recordRemoves": 0,
+          "changedRecordBytes": 87035,
+          "sqlWallMs": 3,
+          "durableTransactionWallMs": 57,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 387,
+          "rowsWritten": 136,
+          "statements": 22
+        },
+        {
+          "sequence": 32,
+          "revision": 33,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 52,
+          "transactionWallMs": 61,
+          "advanceWallMs": 28,
+          "captureWallMs": 16,
+          "recordPuts": 118,
+          "recordRemoves": 0,
+          "changedRecordBytes": 78341,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 61,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 362,
+          "rowsWritten": 126,
+          "statements": 22
+        },
+        {
+          "sequence": 33,
+          "revision": 34,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 48,
+          "transactionWallMs": 59,
+          "advanceWallMs": 26,
+          "captureWallMs": 17,
+          "recordPuts": 121,
+          "recordRemoves": 0,
+          "changedRecordBytes": 85638,
+          "sqlWallMs": 2,
+          "durableTransactionWallMs": 59,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 373,
+          "rowsWritten": 128,
+          "statements": 22
+        },
+        {
+          "sequence": 34,
+          "revision": 35,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 33,
+          "transactionWallMs": 44,
+          "advanceWallMs": 19,
+          "captureWallMs": 11,
+          "recordPuts": 107,
+          "recordRemoves": 0,
+          "changedRecordBytes": 75924,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 44,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 331,
+          "rowsWritten": 114,
+          "statements": 22
+        },
+        {
+          "sequence": 35,
+          "revision": 36,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 36,
+          "transactionWallMs": 43,
+          "advanceWallMs": 22,
+          "captureWallMs": 11,
+          "recordPuts": 104,
+          "recordRemoves": 0,
+          "changedRecordBytes": 76253,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 43,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 328,
+          "rowsWritten": 108,
+          "statements": 22
+        },
+        {
+          "sequence": 36,
+          "revision": 37,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 46,
+          "transactionWallMs": 54,
+          "advanceWallMs": 29,
+          "captureWallMs": 14,
+          "recordPuts": 119,
+          "recordRemoves": 0,
+          "changedRecordBytes": 83395,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 54,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 363,
+          "rowsWritten": 128,
+          "statements": 22
+        },
+        {
+          "sequence": 37,
+          "revision": 38,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 47,
+          "transactionWallMs": 58,
+          "advanceWallMs": 24,
+          "captureWallMs": 17,
+          "recordPuts": 130,
+          "recordRemoves": 0,
+          "changedRecordBytes": 88604,
+          "sqlWallMs": 3,
+          "durableTransactionWallMs": 58,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 398,
+          "rowsWritten": 138,
+          "statements": 22
+        },
+        {
+          "sequence": 38,
+          "revision": 39,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 33,
+          "transactionWallMs": 40,
+          "advanceWallMs": 21,
+          "captureWallMs": 8,
+          "recordPuts": 100,
+          "recordRemoves": 0,
+          "changedRecordBytes": 72131,
+          "sqlWallMs": 1,
+          "durableTransactionWallMs": 40,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 309,
+          "rowsWritten": 107,
+          "statements": 22
+        },
+        {
+          "sequence": 39,
+          "revision": 40,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 49,
+          "transactionWallMs": 60,
+          "advanceWallMs": 27,
+          "captureWallMs": 15,
+          "recordPuts": 124,
+          "recordRemoves": 0,
+          "changedRecordBytes": 90088,
+          "sqlWallMs": 4,
+          "durableTransactionWallMs": 60,
+          "alarmSetWallMs": 0,
+          "alarmDeleteWallMs": 0,
+          "alarmSetCalls": 1,
+          "alarmDeleteCalls": 0,
+          "rowsRead": 376,
+          "rowsWritten": 134,
+          "statements": 22
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publication-skips",
+      "count": 20,
+      "candidates": 40,
+      "eligibilityWallMs": {
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "total": 0
+      },
+      "samples": [
+        {
+          "revision": 31,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 31,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 32,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 32,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 33,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 33,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 34,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 34,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 35,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 35,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 36,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 36,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 37,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 37,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 38,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 38,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 39,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 39,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 40,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        },
+        {
+          "revision": 40,
+          "candidates": 2,
+          "eligibilityWallMs": 0
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "34a8333fae4c3a52898cf8b8959e311d4d162647193b8af265877129219bfab7",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publications",
+      "count": 20,
+      "firstRevision": 22,
+      "lastRevision": 41,
+      "costs": {
+        "recipients": {
+          "p50": 2,
+          "p95": 2,
+          "p99": 2,
+          "max": 2,
+          "total": 40
+        },
+        "eligibilityWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "buildWallMs": {
+          "p50": 19,
+          "p95": 32,
+          "p99": 33,
+          "max": 33,
+          "total": 430
+        },
+        "sendWallMs": {
+          "p50": 2,
+          "p95": 3,
+          "p99": 3,
+          "max": 3,
+          "total": 38
+        },
+        "encodedBytes": {
+          "p50": 363992,
+          "p95": 364472,
+          "p99": 364472,
+          "max": 364472,
+          "total": 7283012
+        }
+      },
+      "samples": [
+        {
+          "revision": 22,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 17,
+          "sendWallMs": 2,
+          "encodedBytes": 364472
+        },
+        {
+          "revision": 23,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 23,
+          "sendWallMs": 2,
+          "encodedBytes": 364472
+        },
+        {
+          "revision": 24,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 1,
+          "encodedBytes": 364470
+        },
+        {
+          "revision": 25,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 1,
+          "encodedBytes": 364470
+        },
+        {
+          "revision": 26,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 19,
+          "sendWallMs": 1,
+          "encodedBytes": 364410
+        },
+        {
+          "revision": 27,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 32,
+          "sendWallMs": 2,
+          "encodedBytes": 364402
+        },
+        {
+          "revision": 28,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 28,
+          "sendWallMs": 3,
+          "encodedBytes": 364402
+        },
+        {
+          "revision": 29,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 26,
+          "sendWallMs": 3,
+          "encodedBytes": 364224
+        },
+        {
+          "revision": 30,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 18,
+          "sendWallMs": 2,
+          "encodedBytes": 364284
+        },
+        {
+          "revision": 31,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 17,
+          "sendWallMs": 3,
+          "encodedBytes": 363996
+        },
+        {
+          "revision": 32,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 2,
+          "encodedBytes": 363992
+        },
+        {
+          "revision": 33,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 21,
+          "sendWallMs": 2,
+          "encodedBytes": 363992
+        },
+        {
+          "revision": 34,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 27,
+          "sendWallMs": 3,
+          "encodedBytes": 363964
+        },
+        {
+          "revision": 35,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 28,
+          "sendWallMs": 1,
+          "encodedBytes": 363992
+        },
+        {
+          "revision": 36,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 18,
+          "sendWallMs": 2,
+          "encodedBytes": 363958
+        },
+        {
+          "revision": 37,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 16,
+          "sendWallMs": 1,
+          "encodedBytes": 363938
+        },
+        {
+          "revision": 38,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 33,
+          "sendWallMs": 2,
+          "encodedBytes": 363906
+        },
+        {
+          "revision": 39,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 20,
+          "sendWallMs": 2,
+          "encodedBytes": 363930
+        },
+        {
+          "revision": 40,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 22,
+          "sendWallMs": 1,
+          "encodedBytes": 363870
+        },
+        {
+          "revision": 41,
+          "recipients": 2,
+          "eligibilityWallMs": 0,
+          "buildWallMs": 17,
+          "sendWallMs": 2,
+          "encodedBytes": 363868
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "number": 1,
+      "observations": 41
+    },
+    {
+      "number": 2,
+      "observations": 40
+    }
+  ],
+  "elapsedWallMs": 10463.389599,
+  "minimumSequence": 40,
+  "clientCount": 2,
+  "finalSequence": 41,
+  "limits": [
+    "Short actual-workerd host law, not capacity or 10-minute qualification",
+    "Proof-only RPC replays the last actual Region occurrence; production routes are unchanged",
+    "Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"
+  ]
+}

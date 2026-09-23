@@ -1,0 +1,7161 @@
+{
+  "startedAt": "2026-09-20T12:30:51.514Z",
+  "samples": [
+    {
+      "at": 2767.4000000953674,
+      "spatialDraw": {
+        "counts": {
+          "compile": 1,
+          "staticRebuild": 1,
+          "dynamicInsert": 0,
+          "applyOrder": 1,
+          "staticFaceComparisons": 0,
+          "dynamicFaceComparisons": 0,
+          "candidateVisits": 0,
+          "topologyBuilds": 1,
+          "topologyReuses": 1,
+          "staticPreparedNew": 0,
+          "staticPreparedReused": 0,
+          "staticRelationsReused": 0
+        },
+        "times": {
+          "compileMs": 0.2999999523162842,
+          "staticRebuildMs": 0,
+          "dynamicInsertMs": 0.2999999523162842,
+          "topologyUpdateMs": 0,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 0.20000004768371582
+        },
+        "latest": {
+          "records": 0,
+          "candidateVisits": 0,
+          "faceComparisons": 0,
+          "bins": 0,
+          "edges": 0,
+          "topologyBuilds": 0,
+          "topologyReuses": 1,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 0,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 0,
+          "candidateMs": 0,
+          "topologyMs": 0,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 0,
+          "staticWork": {
+            "records": 0,
+            "candidateVisits": 0,
+            "faceComparisons": 0,
+            "bins": 0,
+            "edges": 0,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 0,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 0,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 0,
+            "preparedReused": 0,
+            "relationsReused": 0,
+            "preparationMs": 0,
+            "candidateMs": 0,
+            "topologyMs": 0
+          }
+        },
+        "retained": {
+          "staticRecords": 0,
+          "staticRelations": 0,
+          "staticBins": 0,
+          "dynamicRecords": 0,
+          "currentRecords": 0
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842
+          ],
+          "topologyUpdateMs": [],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 0,
+          "spareMeshes": 0,
+          "activeQuads": 0,
+          "spareQuads": 0,
+          "activeBufferBytes": 0,
+          "spareBufferBytes": 0,
+          "activeRecords": 0,
+          "spareRecords": 0,
+          "retainedRecords": 0
+        },
+        "visualBuild": {
+          "frames": 5,
+          "unchangedFrames": 4,
+          "totalMs": 1.0999999046325684
+        },
+        "cameraCoverage": {
+          "plans": 0,
+          "retained": 0,
+          "padding": 0,
+          "regions": 0,
+          "withinPrepared": false
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 0,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 0,
+          "readyVisibleRegions": 0,
+          "requestedRegions": 0,
+          "readyRegions": 0,
+          "cachedRegions": 0,
+          "pending": false,
+          "loading": {
+            "requests": 0,
+            "cancelled": 0,
+            "receivedPatches": 0,
+            "receivedBytes": 0,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": null
+          }
+        },
+        "primitives": 0
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 3279.2000000476837,
+      "spatialDraw": {
+        "counts": {
+          "compile": 1,
+          "staticRebuild": 1,
+          "dynamicInsert": 0,
+          "applyOrder": 1,
+          "staticFaceComparisons": 0,
+          "dynamicFaceComparisons": 0,
+          "candidateVisits": 0,
+          "topologyBuilds": 1,
+          "topologyReuses": 1,
+          "staticPreparedNew": 0,
+          "staticPreparedReused": 0,
+          "staticRelationsReused": 0
+        },
+        "times": {
+          "compileMs": 0.2999999523162842,
+          "staticRebuildMs": 0,
+          "dynamicInsertMs": 0.2999999523162842,
+          "topologyUpdateMs": 0,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 0.20000004768371582
+        },
+        "latest": {
+          "records": 0,
+          "candidateVisits": 0,
+          "faceComparisons": 0,
+          "bins": 0,
+          "edges": 0,
+          "topologyBuilds": 0,
+          "topologyReuses": 1,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 0,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 0,
+          "candidateMs": 0,
+          "topologyMs": 0,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 0,
+          "staticWork": {
+            "records": 0,
+            "candidateVisits": 0,
+            "faceComparisons": 0,
+            "bins": 0,
+            "edges": 0,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 0,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 0,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 0,
+            "preparedReused": 0,
+            "relationsReused": 0,
+            "preparationMs": 0,
+            "candidateMs": 0,
+            "topologyMs": 0
+          }
+        },
+        "retained": {
+          "staticRecords": 0,
+          "staticRelations": 0,
+          "staticBins": 0,
+          "dynamicRecords": 0,
+          "currentRecords": 0
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842
+          ],
+          "topologyUpdateMs": [],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 0,
+          "spareMeshes": 0,
+          "activeQuads": 0,
+          "spareQuads": 0,
+          "activeBufferBytes": 0,
+          "spareBufferBytes": 0,
+          "activeRecords": 0,
+          "spareRecords": 0,
+          "retainedRecords": 0
+        },
+        "visualBuild": {
+          "frames": 7,
+          "unchangedFrames": 6,
+          "totalMs": 1.0999999046325684
+        },
+        "cameraCoverage": {
+          "plans": 0,
+          "retained": 0,
+          "padding": 0,
+          "regions": 0,
+          "withinPrepared": false
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 0,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 0,
+          "readyVisibleRegions": 0,
+          "requestedRegions": 0,
+          "readyRegions": 0,
+          "cachedRegions": 0,
+          "pending": false,
+          "loading": {
+            "requests": 0,
+            "cancelled": 0,
+            "receivedPatches": 0,
+            "receivedBytes": 0,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": null
+          }
+        },
+        "primitives": 0
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 3801.2000000476837,
+      "spatialDraw": {
+        "counts": {
+          "compile": 1,
+          "staticRebuild": 1,
+          "dynamicInsert": 0,
+          "applyOrder": 1,
+          "staticFaceComparisons": 0,
+          "dynamicFaceComparisons": 0,
+          "candidateVisits": 0,
+          "topologyBuilds": 1,
+          "topologyReuses": 1,
+          "staticPreparedNew": 0,
+          "staticPreparedReused": 0,
+          "staticRelationsReused": 0
+        },
+        "times": {
+          "compileMs": 0.2999999523162842,
+          "staticRebuildMs": 0,
+          "dynamicInsertMs": 0.2999999523162842,
+          "topologyUpdateMs": 0,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 0.20000004768371582
+        },
+        "latest": {
+          "records": 0,
+          "candidateVisits": 0,
+          "faceComparisons": 0,
+          "bins": 0,
+          "edges": 0,
+          "topologyBuilds": 0,
+          "topologyReuses": 1,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 0,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 0,
+          "candidateMs": 0,
+          "topologyMs": 0,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 0,
+          "staticWork": {
+            "records": 0,
+            "candidateVisits": 0,
+            "faceComparisons": 0,
+            "bins": 0,
+            "edges": 0,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 0,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 0,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 0,
+            "preparedReused": 0,
+            "relationsReused": 0,
+            "preparationMs": 0,
+            "candidateMs": 0,
+            "topologyMs": 0
+          }
+        },
+        "retained": {
+          "staticRecords": 0,
+          "staticRelations": 0,
+          "staticBins": 0,
+          "dynamicRecords": 0,
+          "currentRecords": 0
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842
+          ],
+          "topologyUpdateMs": [],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 0,
+          "spareMeshes": 0,
+          "activeQuads": 0,
+          "spareQuads": 0,
+          "activeBufferBytes": 0,
+          "spareBufferBytes": 0,
+          "activeRecords": 0,
+          "spareRecords": 0,
+          "retainedRecords": 0
+        },
+        "visualBuild": {
+          "frames": 12,
+          "unchangedFrames": 11,
+          "totalMs": 1.2999999523162842
+        },
+        "cameraCoverage": {
+          "plans": 0,
+          "retained": 0,
+          "padding": 0,
+          "regions": 0,
+          "withinPrepared": false
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 0,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 0,
+          "readyVisibleRegions": 0,
+          "requestedRegions": 0,
+          "readyRegions": 0,
+          "cachedRegions": 0,
+          "pending": false,
+          "loading": {
+            "requests": 0,
+            "cancelled": 0,
+            "receivedPatches": 0,
+            "receivedBytes": 0,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": null
+          }
+        },
+        "primitives": 0
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 4310.299999952316,
+      "spatialDraw": {
+        "counts": {
+          "compile": 1,
+          "staticRebuild": 1,
+          "dynamicInsert": 0,
+          "applyOrder": 1,
+          "staticFaceComparisons": 0,
+          "dynamicFaceComparisons": 0,
+          "candidateVisits": 0,
+          "topologyBuilds": 1,
+          "topologyReuses": 1,
+          "staticPreparedNew": 0,
+          "staticPreparedReused": 0,
+          "staticRelationsReused": 0
+        },
+        "times": {
+          "compileMs": 0.2999999523162842,
+          "staticRebuildMs": 0,
+          "dynamicInsertMs": 0.2999999523162842,
+          "topologyUpdateMs": 0,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 0.20000004768371582
+        },
+        "latest": {
+          "records": 0,
+          "candidateVisits": 0,
+          "faceComparisons": 0,
+          "bins": 0,
+          "edges": 0,
+          "topologyBuilds": 0,
+          "topologyReuses": 1,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 0,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 0,
+          "candidateMs": 0,
+          "topologyMs": 0,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 0,
+          "staticWork": {
+            "records": 0,
+            "candidateVisits": 0,
+            "faceComparisons": 0,
+            "bins": 0,
+            "edges": 0,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 0,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 0,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 0,
+            "preparedReused": 0,
+            "relationsReused": 0,
+            "preparationMs": 0,
+            "candidateMs": 0,
+            "topologyMs": 0
+          }
+        },
+        "retained": {
+          "staticRecords": 0,
+          "staticRelations": 0,
+          "staticBins": 0,
+          "dynamicRecords": 0,
+          "currentRecords": 0
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842
+          ],
+          "topologyUpdateMs": [],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 0,
+          "spareMeshes": 0,
+          "activeQuads": 0,
+          "spareQuads": 0,
+          "activeBufferBytes": 0,
+          "spareBufferBytes": 0,
+          "activeRecords": 0,
+          "spareRecords": 0,
+          "retainedRecords": 0
+        },
+        "visualBuild": {
+          "frames": 19,
+          "unchangedFrames": 18,
+          "totalMs": 1.3999998569488525
+        },
+        "cameraCoverage": {
+          "plans": 0,
+          "retained": 0,
+          "padding": 0,
+          "regions": 0,
+          "withinPrepared": false
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 0,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 0,
+          "readyVisibleRegions": 0,
+          "requestedRegions": 0,
+          "readyRegions": 0,
+          "cachedRegions": 0,
+          "pending": false,
+          "loading": {
+            "requests": 0,
+            "cancelled": 0,
+            "receivedPatches": 0,
+            "receivedBytes": 0,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": null
+          }
+        },
+        "primitives": 0
+      },
+      "camera": {
+        "x": -217,
+        "y": 33,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 4952.900000095367,
+      "spatialDraw": {
+        "counts": {
+          "compile": 2,
+          "staticRebuild": 2,
+          "dynamicInsert": 9,
+          "applyOrder": 2,
+          "staticFaceComparisons": 2,
+          "dynamicFaceComparisons": 2,
+          "candidateVisits": 40,
+          "topologyBuilds": 3,
+          "topologyReuses": 1,
+          "staticPreparedNew": 50,
+          "staticPreparedReused": 0,
+          "staticRelationsReused": 0
+        },
+        "times": {
+          "compileMs": 38.200000047683716,
+          "staticRebuildMs": 29.100000143051147,
+          "dynamicInsertMs": 9,
+          "topologyUpdateMs": 8.700000047683716,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 0.2999999523162842
+        },
+        "latest": {
+          "records": 59,
+          "candidateVisits": 4,
+          "faceComparisons": 2,
+          "bins": 154,
+          "edges": 2,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 5.599999904632568,
+          "candidateMs": 2.5,
+          "topologyMs": 0.10000014305114746,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 2,
+          "staticWork": {
+            "records": 50,
+            "candidateVisits": 36,
+            "faceComparisons": 2,
+            "bins": 137,
+            "edges": 1,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 0,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 0,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 50,
+            "preparedReused": 0,
+            "relationsReused": 0,
+            "preparationMs": 26.399999856948853,
+            "candidateMs": 2.200000047683716,
+            "topologyMs": 0.2999999523162842
+          }
+        },
+        "retained": {
+          "staticRecords": 50,
+          "staticRelations": 1,
+          "staticBins": 137,
+          "dynamicRecords": 9,
+          "currentRecords": 59
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 0,
+          "spareMeshes": 0,
+          "activeQuads": 0,
+          "spareQuads": 0,
+          "activeBufferBytes": 0,
+          "spareBufferBytes": 0,
+          "activeRecords": 0,
+          "spareRecords": 0,
+          "retainedRecords": 0
+        },
+        "visualBuild": {
+          "frames": 25,
+          "unchangedFrames": 23,
+          "totalMs": 26.299999713897705
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 0,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 0,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": false,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 0,
+          "requestedRegions": 102,
+          "readyRegions": 0,
+          "cachedRegions": 0,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 0,
+            "receivedBytes": 0,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": null
+          }
+        },
+        "primitives": 59
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 5688.099999904633,
+      "spatialDraw": {
+        "counts": {
+          "compile": 6,
+          "staticRebuild": 4,
+          "dynamicInsert": 45,
+          "applyOrder": 5,
+          "staticFaceComparisons": 11598,
+          "dynamicFaceComparisons": 119,
+          "candidateVisits": 95192,
+          "topologyBuilds": 9,
+          "topologyReuses": 1,
+          "staticPreparedNew": 1886,
+          "staticPreparedReused": 455,
+          "staticRelationsReused": 1101
+        },
+        "times": {
+          "compileMs": 341.40000009536743,
+          "staticRebuildMs": 295.80000019073486,
+          "dynamicInsertMs": 45.200000047683716,
+          "topologyUpdateMs": 44.90000009536743,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 26.5
+        },
+        "latest": {
+          "records": 1895,
+          "candidateVisits": 391,
+          "faceComparisons": 43,
+          "bins": 180,
+          "edges": 9286,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 7.299999952316284,
+          "candidateMs": 0.2999999523162842,
+          "topologyMs": 1.5,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 1886,
+          "staticRelations": 9223,
+          "staticBins": 162,
+          "dynamicRecords": 9,
+          "currentRecords": 1895
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 23,
+          "spareMeshes": 0,
+          "activeQuads": 1836,
+          "spareQuads": 0,
+          "activeBufferBytes": 139536,
+          "spareBufferBytes": 0,
+          "activeRecords": 1836,
+          "spareRecords": 0,
+          "retainedRecords": 1836
+        },
+        "visualBuild": {
+          "frames": 30,
+          "unchangedFrames": 24,
+          "totalMs": 34.69999957084656
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 5,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 208614,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": false,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 8,
+          "requestedRegions": 102,
+          "readyRegions": 8,
+          "cachedRegions": 8,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 8,
+            "receivedBytes": 208614,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 1895
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 6234.299999952316,
+      "spatialDraw": {
+        "counts": {
+          "compile": 10,
+          "staticRebuild": 6,
+          "dynamicInsert": 81,
+          "applyOrder": 7,
+          "staticFaceComparisons": 16613,
+          "dynamicFaceComparisons": 291,
+          "candidateVisits": 139963,
+          "topologyBuilds": 15,
+          "topologyReuses": 1,
+          "staticPreparedNew": 2419,
+          "staticPreparedReused": 4508,
+          "staticRelationsReused": 22016
+        },
+        "times": {
+          "compileMs": 628.0000002384186,
+          "staticRebuildMs": 494.60000014305115,
+          "dynamicInsertMs": 132.10000014305115,
+          "topologyUpdateMs": 131.80000019073486,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 57.09999966621399
+        },
+        "latest": {
+          "records": 2428,
+          "candidateVisits": 433,
+          "faceComparisons": 42,
+          "bins": 185,
+          "edges": 14250,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 8.200000047683716,
+          "candidateMs": 0.40000009536743164,
+          "topologyMs": 12.599999904632568,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 2419,
+          "staticRelations": 14188,
+          "staticBins": 163,
+          "dynamicRecords": 9,
+          "currentRecords": 2428
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 25,
+          "spareMeshes": 0,
+          "activeQuads": 2369,
+          "spareQuads": 0,
+          "activeBufferBytes": 180044,
+          "spareBufferBytes": 0,
+          "activeRecords": 2369,
+          "spareRecords": 0,
+          "retainedRecords": 2369
+        },
+        "visualBuild": {
+          "frames": 34,
+          "unchangedFrames": 24,
+          "totalMs": 43.89999961853027
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 9,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 493027,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": false,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 20,
+          "requestedRegions": 102,
+          "readyRegions": 20,
+          "cachedRegions": 20,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 20,
+            "receivedBytes": 493027,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 2428
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 7079.200000047684,
+      "spatialDraw": {
+        "counts": {
+          "compile": 14,
+          "staticRebuild": 8,
+          "dynamicInsert": 117,
+          "applyOrder": 10,
+          "staticFaceComparisons": 33572,
+          "dynamicFaceComparisons": 532,
+          "candidateVisits": 295127,
+          "topologyBuilds": 21,
+          "topologyReuses": 1,
+          "staticPreparedNew": 4656,
+          "staticPreparedReused": 10646,
+          "staticRelationsReused": 59274
+        },
+        "times": {
+          "compileMs": 1204.8000001907349,
+          "staticRebuildMs": 959.4000000953674,
+          "dynamicInsertMs": 243.50000023841858,
+          "topologyUpdateMs": 243.2000002861023,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 110.59999942779541
+        },
+        "latest": {
+          "records": 4665,
+          "candidateVisits": 650,
+          "faceComparisons": 70,
+          "bins": 207,
+          "edges": 29075,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 12.700000047683716,
+          "candidateMs": 2.5,
+          "topologyMs": 14,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 4656,
+          "staticRelations": 28975,
+          "staticBins": 188,
+          "dynamicRecords": 9,
+          "currentRecords": 4665
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 36,
+          "spareMeshes": 0,
+          "activeQuads": 4606,
+          "spareQuads": 0,
+          "activeBufferBytes": 350056,
+          "spareBufferBytes": 0,
+          "activeRecords": 4606,
+          "spareRecords": 0,
+          "retainedRecords": 4606
+        },
+        "visualBuild": {
+          "frames": 39,
+          "unchangedFrames": 25,
+          "totalMs": 49.299999475479126
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 14,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 775788,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": false,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 32,
+          "requestedRegions": 102,
+          "readyRegions": 32,
+          "cachedRegions": 32,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 32,
+            "receivedBytes": 775788,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 4665
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 8005,
+      "spatialDraw": {
+        "counts": {
+          "compile": 18,
+          "staticRebuild": 10,
+          "dynamicInsert": 153,
+          "applyOrder": 12,
+          "staticFaceComparisons": 39272,
+          "dynamicFaceComparisons": 804,
+          "candidateVisits": 346211,
+          "topologyBuilds": 27,
+          "topologyReuses": 1,
+          "staticPreparedNew": 5426,
+          "staticPreparedReused": 20075,
+          "staticRelationsReused": 118192
+        },
+        "times": {
+          "compileMs": 1874.6000003814697,
+          "staticRebuildMs": 1431.5000002384186,
+          "dynamicInsertMs": 440.6000003814697,
+          "topologyUpdateMs": 440.30000042915344,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 155.79999923706055
+        },
+        "latest": {
+          "records": 5435,
+          "candidateVisits": 582,
+          "faceComparisons": 68,
+          "bins": 210,
+          "edges": 33540,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 15.299999952316284,
+          "candidateMs": 0.7000000476837158,
+          "topologyMs": 23.5,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 5426,
+          "staticRelations": 33442,
+          "staticBins": 196,
+          "dynamicRecords": 9,
+          "currentRecords": 5435
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 37,
+          "spareMeshes": 0,
+          "activeQuads": 5376,
+          "spareQuads": 0,
+          "activeBufferBytes": 408576,
+          "spareBufferBytes": 0,
+          "activeRecords": 5376,
+          "spareRecords": 0,
+          "retainedRecords": 5376
+        },
+        "visualBuild": {
+          "frames": 43,
+          "unchangedFrames": 25,
+          "totalMs": 55.79999923706055
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 18,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 999518,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": false,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 44,
+          "requestedRegions": 102,
+          "readyRegions": 44,
+          "cachedRegions": 44,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 44,
+            "receivedBytes": 999518,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 5435
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 8646.5,
+      "spatialDraw": {
+        "counts": {
+          "compile": 21,
+          "staticRebuild": 12,
+          "dynamicInsert": 180,
+          "applyOrder": 14,
+          "staticFaceComparisons": 50327,
+          "dynamicFaceComparisons": 1030,
+          "candidateVisits": 433749,
+          "topologyBuilds": 32,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6367,
+          "staticPreparedReused": 31464,
+          "staticRelationsReused": 191272
+        },
+        "times": {
+          "compileMs": 2374.100000143051,
+          "staticRebuildMs": 1838.9000000953674,
+          "dynamicInsertMs": 532.400000333786,
+          "topologyUpdateMs": 532.1000003814697,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 208.29999923706055
+        },
+        "latest": {
+          "records": 6376,
+          "candidateVisits": 637,
+          "faceComparisons": 80,
+          "bins": 212,
+          "edges": 41763,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 14.400000095367432,
+          "candidateMs": 0.7999999523162842,
+          "topologyMs": 15.700000047683716,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 2524,
+          "staticWork": {
+            "records": 6367,
+            "candidateVisits": 23722,
+            "faceComparisons": 2524,
+            "bins": 198,
+            "edges": 41642,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 947,
+            "coverageRefinements": 1,
+            "coverageFaceComparisons": 130,
+            "approximateOverlaps": 1,
+            "approximateCycles": 0,
+            "preparedNew": 404,
+            "preparedReused": 5963,
+            "relationsReused": 39638,
+            "preparationMs": 184.09999990463257,
+            "candidateMs": 15,
+            "topologyMs": 15.799999952316284
+          }
+        },
+        "retained": {
+          "staticRecords": 6367,
+          "staticRelations": 41642,
+          "staticBins": 198,
+          "dynamicRecords": 9,
+          "currentRecords": 6376
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6317,
+          "spareQuads": 0,
+          "activeBufferBytes": 480092,
+          "spareBufferBytes": 0,
+          "activeRecords": 6317,
+          "spareRecords": 0,
+          "retainedRecords": 6317
+        },
+        "visualBuild": {
+          "frames": 47,
+          "unchangedFrames": 26,
+          "totalMs": 59.299999713897705
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 22,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 1271593,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": false,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 56,
+          "requestedRegions": 102,
+          "readyRegions": 56,
+          "cachedRegions": 56,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 56,
+            "receivedBytes": 1271593,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6376
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 9403.400000095367,
+      "spatialDraw": {
+        "counts": {
+          "compile": 25,
+          "staticRebuild": 14,
+          "dynamicInsert": 216,
+          "applyOrder": 16,
+          "staticFaceComparisons": 53340,
+          "dynamicFaceComparisons": 1350,
+          "candidateVisits": 460800,
+          "topologyBuilds": 38,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6642,
+          "staticPreparedReused": 44463,
+          "staticRelationsReused": 277168
+        },
+        "times": {
+          "compileMs": 2968.899999856949,
+          "staticRebuildMs": 2332.5,
+          "dynamicInsertMs": 633.3000004291534,
+          "topologyUpdateMs": 633.0000004768372,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 235.69999933242798
+        },
+        "latest": {
+          "records": 6651,
+          "candidateVisits": 637,
+          "faceComparisons": 80,
+          "bins": 213,
+          "edges": 44458,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 3.700000047683716,
+          "candidateMs": 0.5999999046325684,
+          "topologyMs": 5.1000001430511475,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6642,
+          "staticRelations": 44337,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6651
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6592,
+          "spareQuads": 0,
+          "activeBufferBytes": 500992,
+          "spareBufferBytes": 0,
+          "activeRecords": 6592,
+          "spareRecords": 0,
+          "retainedRecords": 6592
+        },
+        "visualBuild": {
+          "frames": 51,
+          "unchangedFrames": 26,
+          "totalMs": 62.299999475479126
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 26,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 1412613,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 64,
+          "cachedRegions": 64,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 64,
+            "receivedBytes": 1412613,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6651
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 10073.700000047684,
+      "spatialDraw": {
+        "counts": {
+          "compile": 27,
+          "staticRebuild": 16,
+          "dynamicInsert": 234,
+          "applyOrder": 18,
+          "staticFaceComparisons": 53810,
+          "dynamicFaceComparisons": 1511,
+          "candidateVisits": 464621,
+          "topologyBuilds": 42,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6687,
+          "staticPreparedReused": 57754,
+          "staticRelationsReused": 365903
+        },
+        "times": {
+          "compileMs": 3363.7000000476837,
+          "staticRebuildMs": 2697.0000002384186,
+          "dynamicInsertMs": 663.6000003814697,
+          "topologyUpdateMs": 663.3000004291534,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 264.3999993801117
+        },
+        "latest": {
+          "records": 6696,
+          "candidateVisits": 637,
+          "faceComparisons": 81,
+          "bins": 213,
+          "edges": 44796,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 2.8999998569488525,
+          "candidateMs": 0.7000000476837158,
+          "topologyMs": 4.700000047683716,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 351,
+          "staticWork": {
+            "records": 6687,
+            "candidateVisits": 1978,
+            "faceComparisons": 351,
+            "bins": 199,
+            "edges": 44672,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 98,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 3,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 38,
+            "preparedReused": 6649,
+            "relationsReused": 44398,
+            "preparationMs": 205.5,
+            "candidateMs": 9.599999904632568,
+            "topologyMs": 11.299999952316284
+          }
+        },
+        "retained": {
+          "staticRecords": 6687,
+          "staticRelations": 44672,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6696
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6637,
+          "spareQuads": 0,
+          "activeBufferBytes": 504412,
+          "spareBufferBytes": 0,
+          "activeRecords": 6637,
+          "spareRecords": 0,
+          "retainedRecords": 6637
+        },
+        "visualBuild": {
+          "frames": 55,
+          "unchangedFrames": 28,
+          "totalMs": 67.79999947547913
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 30,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 1575487,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 73,
+          "cachedRegions": 73,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 73,
+            "receivedBytes": 1575487,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6696
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 10633.700000047684,
+      "spatialDraw": {
+        "counts": {
+          "compile": 30,
+          "staticRebuild": 18,
+          "dynamicInsert": 261,
+          "applyOrder": 20,
+          "staticFaceComparisons": 54842,
+          "dynamicFaceComparisons": 1752,
+          "candidateVisits": 473491,
+          "topologyBuilds": 47,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6751,
+          "staticPreparedReused": 71165,
+          "staticRelationsReused": 455539
+        },
+        "times": {
+          "compileMs": 3760.900000333786,
+          "staticRebuildMs": 3039.7000002861023,
+          "dynamicInsertMs": 717.9000005722046,
+          "topologyUpdateMs": 717.6000006198883,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 296.29999923706055
+        },
+        "latest": {
+          "records": 6760,
+          "candidateVisits": 637,
+          "faceComparisons": 80,
+          "bins": 213,
+          "edges": 45462,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 11,
+          "candidateMs": 0.9000000953674316,
+          "topologyMs": 6.599999904632568,
+          "staticRebuilt": true,
+          "staticFaceComparisons": 423,
+          "staticWork": {
+            "records": 6751,
+            "candidateVisits": 3186,
+            "faceComparisons": 423,
+            "bins": 199,
+            "edges": 45341,
+            "topologyBuilds": 1,
+            "topologyReuses": 0,
+            "coplanarSkips": 69,
+            "coverageRefinements": 0,
+            "coverageFaceComparisons": 3,
+            "approximateOverlaps": 0,
+            "approximateCycles": 0,
+            "preparedNew": 27,
+            "preparedReused": 6724,
+            "relationsReused": 44964,
+            "preparationMs": 105.20000004768372,
+            "candidateMs": 5.200000047683716,
+            "topologyMs": 8.799999952316284
+          }
+        },
+        "retained": {
+          "staticRecords": 6751,
+          "staticRelations": 45341,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6760
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6701,
+          "spareQuads": 0,
+          "activeBufferBytes": 509276,
+          "spareBufferBytes": 0,
+          "activeRecords": 6701,
+          "spareRecords": 0,
+          "retainedRecords": 6701
+        },
+        "visualBuild": {
+          "frames": 59,
+          "unchangedFrames": 29,
+          "totalMs": 69.3999993801117
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 34,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 1736190,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 80,
+          "cachedRegions": 80,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 80,
+            "receivedBytes": 1736190,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6760
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 11532.599999904633,
+      "spatialDraw": {
+        "counts": {
+          "compile": 34,
+          "staticRebuild": 20,
+          "dynamicInsert": 297,
+          "applyOrder": 24,
+          "staticFaceComparisons": 54920,
+          "dynamicFaceComparisons": 2113,
+          "candidateVisits": 476521,
+          "topologyBuilds": 53,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6764,
+          "staticPreparedReused": 84678,
+          "staticRelationsReused": 546314
+        },
+        "times": {
+          "compileMs": 4266.60000038147,
+          "staticRebuildMs": 3425.0000002384186,
+          "dynamicInsertMs": 837.7000005245209,
+          "topologyUpdateMs": 837.4000005722046,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 380.79999923706055
+        },
+        "latest": {
+          "records": 6773,
+          "candidateVisits": 548,
+          "faceComparisons": 97,
+          "bins": 215,
+          "edges": 45574,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 8.399999856948853,
+          "candidateMs": 0.7999999523162842,
+          "topologyMs": 12.400000095367432,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6764,
+          "staticRelations": 45452,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6773
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6714,
+          "spareQuads": 0,
+          "activeBufferBytes": 510264,
+          "spareBufferBytes": 0,
+          "activeRecords": 6714,
+          "spareRecords": 0,
+          "retainedRecords": 6714
+        },
+        "visualBuild": {
+          "frames": 63,
+          "unchangedFrames": 29,
+          "totalMs": 74.49999976158142
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 38,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 1978897,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 92,
+          "cachedRegions": 92,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 92,
+            "receivedBytes": 1978897,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6773
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 12079.900000095367,
+      "spatialDraw": {
+        "counts": {
+          "compile": 38,
+          "staticRebuild": 21,
+          "dynamicInsert": 333,
+          "applyOrder": 26,
+          "staticFaceComparisons": 55173,
+          "dynamicFaceComparisons": 2488,
+          "candidateVisits": 480067,
+          "topologyBuilds": 58,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6777,
+          "staticPreparedReused": 91442,
+          "staticRelationsReused": 591766
+        },
+        "times": {
+          "compileMs": 4561.000000238419,
+          "staticRebuildMs": 3624.2000002861023,
+          "dynamicInsertMs": 932.5000002384186,
+          "topologyUpdateMs": 932.2000002861023,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 406.49999952316284
+        },
+        "latest": {
+          "records": 6786,
+          "candidateVisits": 658,
+          "faceComparisons": 94,
+          "bins": 218,
+          "edges": 45707,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 7.900000095367432,
+          "candidateMs": 0.6999998092651367,
+          "topologyMs": 9.600000143051147,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6777,
+          "staticRelations": 45579,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6786
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743,
+            199.20000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716,
+            13.300000190734863,
+            12.400000095367432
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6727,
+          "spareQuads": 0,
+          "activeBufferBytes": 511252,
+          "spareBufferBytes": 0,
+          "activeRecords": 6727,
+          "spareRecords": 0,
+          "retainedRecords": 6727
+        },
+        "visualBuild": {
+          "frames": 67,
+          "unchangedFrames": 29,
+          "totalMs": 76.99999952316284
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 42,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 2127767,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": false,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 100,
+          "cachedRegions": 100,
+          "pending": true,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 100,
+            "receivedBytes": 2127767,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6786
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 12591.799999952316,
+      "spatialDraw": {
+        "counts": {
+          "compile": 41,
+          "staticRebuild": 21,
+          "dynamicInsert": 360,
+          "applyOrder": 28,
+          "staticFaceComparisons": 55173,
+          "dynamicFaceComparisons": 2785,
+          "candidateVisits": 482195,
+          "topologyBuilds": 61,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6777,
+          "staticPreparedReused": 91442,
+          "staticRelationsReused": 591766
+        },
+        "times": {
+          "compileMs": 4672.10000038147,
+          "staticRebuildMs": 3624.2000002861023,
+          "dynamicInsertMs": 1043.1000003814697,
+          "topologyUpdateMs": 1042.8000004291534,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 437.19999957084656
+        },
+        "latest": {
+          "records": 6786,
+          "candidateVisits": 715,
+          "faceComparisons": 107,
+          "bins": 218,
+          "edges": 45716,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 4.700000047683716,
+          "candidateMs": 2,
+          "topologyMs": 8.099999904632568,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6777,
+          "staticRelations": 45579,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6786
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743,
+            199.20000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716,
+            13.300000190734863,
+            12.400000095367432,
+            14.299999952316284,
+            16.40000009536743
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6727,
+          "spareQuads": 0,
+          "activeBufferBytes": 511252,
+          "spareBufferBytes": 0,
+          "activeRecords": 6727,
+          "spareRecords": 0,
+          "retainedRecords": 6727
+        },
+        "visualBuild": {
+          "frames": 70,
+          "unchangedFrames": 29,
+          "totalMs": 79.59999966621399
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 45,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 2158727,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 102,
+          "cachedRegions": 102,
+          "pending": false,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 102,
+            "receivedBytes": 2158727,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6786
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 13129.5,
+      "spatialDraw": {
+        "counts": {
+          "compile": 43,
+          "staticRebuild": 21,
+          "dynamicInsert": 378,
+          "applyOrder": 30,
+          "staticFaceComparisons": 55173,
+          "dynamicFaceComparisons": 3035,
+          "candidateVisits": 483616,
+          "topologyBuilds": 63,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6777,
+          "staticPreparedReused": 91442,
+          "staticRelationsReused": 591766
+        },
+        "times": {
+          "compileMs": 4751.700000286102,
+          "staticRebuildMs": 3624.2000002861023,
+          "dynamicInsertMs": 1122.1000003814697,
+          "topologyUpdateMs": 1121.8000004291534,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 485.099999666214
+        },
+        "latest": {
+          "records": 6786,
+          "candidateVisits": 690,
+          "faceComparisons": 130,
+          "bins": 217,
+          "edges": 45727,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 5.299999952316284,
+          "candidateMs": 1.0999999046325684,
+          "topologyMs": 8.800000190734863,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6777,
+          "staticRelations": 45579,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6786
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743,
+            199.20000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716,
+            13.300000190734863,
+            12.400000095367432,
+            14.299999952316284,
+            16.40000009536743,
+            27.200000047683716,
+            20.700000047683716
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 38,
+          "spareMeshes": 0,
+          "activeQuads": 6727,
+          "spareQuads": 0,
+          "activeBufferBytes": 511252,
+          "spareBufferBytes": 0,
+          "activeRecords": 6727,
+          "spareRecords": 0,
+          "retainedRecords": 6727
+        },
+        "visualBuild": {
+          "frames": 72,
+          "unchangedFrames": 29,
+          "totalMs": 80.49999976158142
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 47,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 2158727,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 102,
+          "cachedRegions": 102,
+          "pending": false,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 102,
+            "receivedBytes": 2158727,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6786
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 13651.799999952316,
+      "spatialDraw": {
+        "counts": {
+          "compile": 45,
+          "staticRebuild": 21,
+          "dynamicInsert": 396,
+          "applyOrder": 32,
+          "staticFaceComparisons": 55173,
+          "dynamicFaceComparisons": 3264,
+          "candidateVisits": 485374,
+          "topologyBuilds": 65,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6777,
+          "staticPreparedReused": 91442,
+          "staticRelationsReused": 591766
+        },
+        "times": {
+          "compileMs": 4819.800000190735,
+          "staticRebuildMs": 3624.2000002861023,
+          "dynamicInsertMs": 1189.6000003814697,
+          "topologyUpdateMs": 1189.3000004291534,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 517.2999997138977
+        },
+        "latest": {
+          "records": 6786,
+          "candidateVisits": 997,
+          "faceComparisons": 109,
+          "bins": 217,
+          "edges": 45715,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 3,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 5.200000047683716,
+          "candidateMs": 1.0999999046325684,
+          "topologyMs": 8.200000047683716,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6777,
+          "staticRelations": 45579,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6786
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743,
+            199.20000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29,
+            47.200000047683716,
+            20.299999952316284
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29,
+            47.200000047683716,
+            20.299999952316284
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716,
+            13.300000190734863,
+            12.400000095367432,
+            14.299999952316284,
+            16.40000009536743,
+            27.200000047683716,
+            20.700000047683716,
+            17.200000047683716,
+            15
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 39,
+          "spareMeshes": 0,
+          "activeQuads": 6727,
+          "spareQuads": 0,
+          "activeBufferBytes": 511252,
+          "spareBufferBytes": 0,
+          "activeRecords": 6727,
+          "spareRecords": 0,
+          "retainedRecords": 6727
+        },
+        "visualBuild": {
+          "frames": 74,
+          "unchangedFrames": 29,
+          "totalMs": 81.59999966621399
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 49,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 2158727,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 102,
+          "cachedRegions": 102,
+          "pending": false,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 102,
+            "receivedBytes": 2158727,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6786
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 14159.900000095367,
+      "spatialDraw": {
+        "counts": {
+          "compile": 46,
+          "staticRebuild": 21,
+          "dynamicInsert": 405,
+          "applyOrder": 33,
+          "staticFaceComparisons": 55173,
+          "dynamicFaceComparisons": 3358,
+          "candidateVisits": 486214,
+          "topologyBuilds": 66,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6777,
+          "staticPreparedReused": 91442,
+          "staticRelationsReused": 591766
+        },
+        "times": {
+          "compileMs": 4887.000000238419,
+          "staticRebuildMs": 3624.2000002861023,
+          "dynamicInsertMs": 1256.7000002861023,
+          "topologyUpdateMs": 1256.400000333786,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 559.3999998569489
+        },
+        "latest": {
+          "records": 6786,
+          "candidateVisits": 840,
+          "faceComparisons": 94,
+          "bins": 216,
+          "edges": 45714,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 18,
+          "candidateMs": 1.0999999046325684,
+          "topologyMs": 25.200000047683716,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6777,
+          "staticRelations": 45579,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6786
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743,
+            199.20000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29,
+            47.200000047683716,
+            20.299999952316284,
+            67.09999990463257
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29,
+            47.200000047683716,
+            20.299999952316284,
+            67.09999990463257
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716,
+            13.300000190734863,
+            12.400000095367432,
+            14.299999952316284,
+            16.40000009536743,
+            27.200000047683716,
+            20.700000047683716,
+            17.200000047683716,
+            15,
+            42.10000014305115
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 39,
+          "spareMeshes": 0,
+          "activeQuads": 6727,
+          "spareQuads": 0,
+          "activeBufferBytes": 511252,
+          "spareBufferBytes": 0,
+          "activeRecords": 6727,
+          "spareRecords": 0,
+          "retainedRecords": 6727
+        },
+        "visualBuild": {
+          "frames": 75,
+          "unchangedFrames": 29,
+          "totalMs": 81.89999985694885
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 50,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 2158727,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 102,
+          "cachedRegions": 102,
+          "pending": false,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 102,
+            "receivedBytes": 2158727,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6786
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    },
+    {
+      "at": 14677.799999952316,
+      "spatialDraw": {
+        "counts": {
+          "compile": 48,
+          "staticRebuild": 21,
+          "dynamicInsert": 423,
+          "applyOrder": 35,
+          "staticFaceComparisons": 55173,
+          "dynamicFaceComparisons": 3571,
+          "candidateVisits": 487895,
+          "topologyBuilds": 68,
+          "topologyReuses": 1,
+          "staticPreparedNew": 6777,
+          "staticPreparedReused": 91442,
+          "staticRelationsReused": 591766
+        },
+        "times": {
+          "compileMs": 4951,
+          "staticRebuildMs": 3624.2000002861023,
+          "dynamicInsertMs": 1320.6000001430511,
+          "topologyUpdateMs": 1320.3000001907349,
+          "orderReuseMs": 0.2999999523162842,
+          "applyOrderMs": 592.6999998092651
+        },
+        "latest": {
+          "records": 6786,
+          "candidateVisits": 947,
+          "faceComparisons": 110,
+          "bins": 217,
+          "edges": 45733,
+          "topologyBuilds": 1,
+          "topologyReuses": 0,
+          "coplanarSkips": 0,
+          "coverageRefinements": 0,
+          "coverageFaceComparisons": 1,
+          "approximateOverlaps": 0,
+          "approximateCycles": 0,
+          "preparedNew": 0,
+          "preparedReused": 0,
+          "relationsReused": 0,
+          "preparationMs": 8.900000095367432,
+          "candidateMs": 2,
+          "topologyMs": 17.09999990463257,
+          "staticRebuilt": false,
+          "staticFaceComparisons": 0,
+          "staticWork": null
+        },
+        "retained": {
+          "staticRecords": 6777,
+          "staticRelations": 45579,
+          "staticBins": 199,
+          "dynamicRecords": 9,
+          "currentRecords": 6786
+        },
+        "samples": {
+          "staticRebuildMs": [
+            0,
+            29.100000143051147,
+            59.10000014305115,
+            207.59999990463257,
+            110.09999990463257,
+            88.70000004768372,
+            198.79999995231628,
+            266,
+            175.10000014305115,
+            297,
+            183.79999995231628,
+            223.59999990463257,
+            209.70000004768372,
+            283.89999985694885,
+            133.70000004768372,
+            230.80000019073486,
+            216.90000009536743,
+            125.79999995231628,
+            134.89999985694885,
+            250.40000009536743,
+            199.20000004768372
+          ],
+          "dynamicInsertMs": [
+            0.2999999523162842,
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29,
+            47.200000047683716,
+            20.299999952316284,
+            67.09999990463257,
+            24.199999809265137,
+            39.700000047683716
+          ],
+          "topologyUpdateMs": [
+            8.700000047683716,
+            9.299999952316284,
+            5.5,
+            11.200000047683716,
+            10.200000047683716,
+            20.90000009536743,
+            7.099999904632568,
+            32.40000009536743,
+            26.5,
+            15.399999856948853,
+            22.800000190734863,
+            31.5,
+            41.700000047683716,
+            55.799999952316284,
+            46.10000014305115,
+            42,
+            53.200000047683716,
+            36.200000047683716,
+            20.5,
+            35.09999990463257,
+            33.799999952316284,
+            32.5,
+            18.90000009536743,
+            15.700000047683716,
+            17.600000143051147,
+            12.699999809265137,
+            11.900000095367432,
+            16.5,
+            25.90000009536743,
+            21.100000143051147,
+            49.799999952316284,
+            20.09999990463257,
+            28.799999952316284,
+            26.09999990463257,
+            14.799999952316284,
+            23.899999856948853,
+            30,
+            28.800000190734863,
+            60.799999952316284,
+            21,
+            50,
+            29,
+            47.200000047683716,
+            20.299999952316284,
+            67.09999990463257,
+            24.199999809265137,
+            39.700000047683716
+          ],
+          "orderReuseMs": [
+            0.2999999523162842
+          ],
+          "applyOrderMs": [
+            0.20000004768371582,
+            0.09999990463256836,
+            15.400000095367432,
+            8.200000047683716,
+            2.5999999046325684,
+            7.699999809265137,
+            22.899999856948853,
+            11,
+            2.1999998092651367,
+            40.299999952316284,
+            8.599999904632568,
+            36.59999990463257,
+            35.5,
+            17,
+            14.600000143051147,
+            12.799999952316284,
+            19.5,
+            9.200000047683716,
+            8.899999856948853,
+            23,
+            12.199999809265137,
+            43.700000047683716,
+            8.900000095367432,
+            19.700000047683716,
+            13.300000190734863,
+            12.400000095367432,
+            14.299999952316284,
+            16.40000009536743,
+            27.200000047683716,
+            20.700000047683716,
+            17.200000047683716,
+            15,
+            42.10000014305115,
+            14,
+            19.299999952316284
+          ]
+        },
+        "meshes": {
+          "limits": {
+            "meshes": 512,
+            "spareMeshes": 16,
+            "spareQuads": 16000
+          },
+          "activeMeshes": 40,
+          "spareMeshes": 0,
+          "activeQuads": 6727,
+          "spareQuads": 0,
+          "activeBufferBytes": 511252,
+          "spareBufferBytes": 0,
+          "activeRecords": 6727,
+          "spareRecords": 0,
+          "retainedRecords": 6727
+        },
+        "visualBuild": {
+          "frames": 77,
+          "unchangedFrames": 29,
+          "totalMs": 83.39999985694885
+        },
+        "cameraCoverage": {
+          "plans": 1,
+          "retained": 52,
+          "padding": 128,
+          "prepared": {
+            "left": 27.14406779661033,
+            "right": 706.1440677966103,
+            "top": -330.1164295122996,
+            "bottom": 358.8835704877004
+          },
+          "refresh": {
+            "left": 71.94406779661033,
+            "right": 661.3440677966104,
+            "top": -285.3164295122996,
+            "bottom": 314.0835704877004
+          },
+          "viewport": {
+            "left": 155.14406779661033,
+            "right": 578.1440677966103,
+            "top": -202.1164295122996,
+            "bottom": 230.8835704877004
+          },
+          "regions": 102,
+          "withinPrepared": true
+        },
+        "coverage": {
+          "capacity": 256,
+          "maxBytes": 33554432,
+          "retainedBytes": 2158727,
+          "epoch": 0,
+          "terrainRevision": 0,
+          "level": 39,
+          "visibleComplete": true,
+          "demandComplete": true,
+          "viewBudget": false,
+          "visibleRegions": 60,
+          "readyVisibleRegions": 60,
+          "requestedRegions": 102,
+          "readyRegions": 102,
+          "cachedRegions": 102,
+          "pending": false,
+          "loading": {
+            "requests": 1,
+            "cancelled": 0,
+            "receivedPatches": 102,
+            "receivedBytes": 2158727,
+            "retries": 0,
+            "retryAt": null,
+            "firstPatchMs": 241.70000004768372
+          }
+        },
+        "primitives": 6786
+      },
+      "camera": {
+        "x": -310.28813559322066,
+        "y": 404.2328590245992,
+        "zoom": 2,
+        "turn": 0
+      }
+    }
+  ],
+  "errors": [],
+  "success": true,
+  "transport": {
+    "sockets": [
+      {
+        "id": 1,
+        "createdAt": 3484.7000000476837
+      }
+    ],
+    "frames": [
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4496.5,
+        "type": "ready",
+        "bytes": 50,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4593.099999904633,
+        "type": "observation",
+        "bytes": 511737,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 4746.200000047684,
+        "type": "terrain-regions",
+        "requestId": 1,
+        "regions": 102,
+        "bufferedBefore": 0,
+        "bufferedAfter": 827
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4968.799999952316,
+        "type": "observation",
+        "bytes": 36254,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 4975.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 28907,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5322.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 30065,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5327.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 40547,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5331.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15410,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5332.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 4,
+        "bufferedBefore": 0,
+        "bufferedAfter": 52
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5333.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15554,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5335.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 38564,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5339.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 25060,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5342.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15427,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5344,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 8,
+        "bufferedBefore": 0,
+        "bufferedAfter": 52
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5345.400000095367,
+        "type": "observation",
+        "bytes": 36286,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5681.799999952316,
+        "type": "observation",
+        "bytes": 36302,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5689,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15411,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5690.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 29899,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5713.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 42795,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5725.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15424,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5727.099999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 12,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5950.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16023,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5952.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 35276,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5964.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15432,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5968.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15976,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 5969.099999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 16,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 5972.599999904633,
+        "type": "observation",
+        "bytes": 36510,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6198.5,
+        "type": "observation",
+        "bytes": 36510,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6210.799999952316,
+        "type": "observation",
+        "bytes": 36254,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6221.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 51431,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6226.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15913,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6229,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16179,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6231.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16034,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 6233.099999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 20,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6238,
+        "type": "observation",
+        "bytes": 36286,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6248.5,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6257.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 22649,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6262.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 21190,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6266.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 41368,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6273.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15797,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 6274.400000095367,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 24,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6607.700000047684,
+        "type": "observation",
+        "bytes": 36525,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6613.200000047684,
+        "type": "observation",
+        "bytes": 36527,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6620,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15276,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6621.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 30479,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6623.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 29000,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6626.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 31290,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 6628.400000095367,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 28,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6628.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15483,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 6629.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16192,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7064.900000095367,
+        "type": "observation",
+        "bytes": 36527,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7070.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16304,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7073.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 29113,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 7078.400000095367,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 32,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7082.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16192,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7084.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15795,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7087.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15193,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7090,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15760,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 7090.900000095367,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 36,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7138.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15562,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7481.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15214,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7482.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15419,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7483.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16223,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 7484.700000047684,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 40,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7485.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15770,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7486.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15447,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7488,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 53108,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 7491.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15427,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 7492.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 44,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8006.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 38771,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8010,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 32491,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8012.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 18492,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8013.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15844,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 8014.5,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 48,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8014.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15441,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8015.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15179,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8329.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15587,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8331,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 36226,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 8333.200000047684,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 52,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8636.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16056,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8639,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 27916,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8640.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 26017,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 8645,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15435,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 8645.900000095367,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 56,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9009.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15791,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9011.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20749,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9012.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15831,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9014.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 22122,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 9015.799999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 60,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9392.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16122,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9394.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15205,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9397.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15388,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9400.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20732,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 9401.5,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 64,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 9628.200000047684,
+        "type": "heartbeat",
+        "bufferedBefore": 53,
+        "bufferedAfter": 73
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9629.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15448,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9633.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 19694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9635.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15209,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9636.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 18124,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 9638.299999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 68,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9638.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16124,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9641.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 17645,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9642.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15472,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9644.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15832,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 9645.700000047684,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 72,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 9736.200000047684,
+        "type": "observation",
+        "bytes": 36527,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10067.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 30361,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10359.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 37458,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10362.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 41199,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10379.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15168,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 10383.700000047684,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 76,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10384.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 16079,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10601.799999952316,
+        "type": "observation",
+        "bytes": 36271,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10610.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15645,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10613.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20190,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10615.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15769,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 10616.700000047684,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 80,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10618.5,
+        "type": "observation",
+        "bytes": 36284,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10627,
+        "type": "observation",
+        "bytes": 36338,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10638.099999904633,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10649.099999904633,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10656.400000095367,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10663.5,
+        "type": "observation",
+        "bytes": 36357,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10670.700000047684,
+        "type": "observation",
+        "bytes": 36385,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10682.599999904633,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10691.200000047684,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10698,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10709.099999904633,
+        "type": "observation",
+        "bytes": 36357,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10717,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15305,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10718.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15538,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10720.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 32918,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10726.299999952316,
+        "type": "observation",
+        "bytes": 36411,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 10732.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 26361,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 10733.5,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 84,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11029.900000095367,
+        "type": "observation",
+        "bytes": 36550,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11041.400000095367,
+        "type": "observation",
+        "bytes": 36550,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11054.400000095367,
+        "type": "observation",
+        "bytes": 36328,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11064.599999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15428,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11066,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15410,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11069.200000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 32970,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11071.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15726,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 11072.599999904633,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 88,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11073.900000095367,
+        "type": "observation",
+        "bytes": 36356,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11080.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15412,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11082.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 19337,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11083.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 24517,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11088.5,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15165,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 11089.299999952316,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 92,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11094.400000095367,
+        "type": "observation",
+        "bytes": 36412,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11510.099999904633,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11517.599999904633,
+        "type": "observation",
+        "bytes": 36553,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11526,
+        "type": "observation",
+        "bytes": 36329,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11539.299999952316,
+        "type": "observation",
+        "bytes": 36349,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11544.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 22835,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11550.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15851,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11553.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20463,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11564.700000047684,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15500,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 11565.400000095367,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 96,
+        "bufferedBefore": 0,
+        "bufferedAfter": 53
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11566.799999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15166,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11570.700000047684,
+        "type": "observation",
+        "bytes": 36457,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11585.900000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 20895,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11587.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 23325,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11929.299999952316,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15755,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 11932.200000047684,
+        "type": "terrain-credit",
+        "requestId": 1,
+        "received": 100,
+        "bufferedBefore": 0,
+        "bufferedAfter": 54
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11933.200000047684,
+        "type": "observation",
+        "bytes": 36579,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11943.200000047684,
+        "type": "observation",
+        "bytes": 36605,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 11952.400000095367,
+        "type": "observation",
+        "bytes": 36444,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12059.099999904633,
+        "type": "observation",
+        "bytes": 36460,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12068.099999904633,
+        "type": "observation",
+        "bytes": 36516,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12074.700000047684,
+        "type": "observation",
+        "bytes": 36600,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12084.400000095367,
+        "type": "observation",
+        "bytes": 36602,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12098.400000095367,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15422,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12102.099999904633,
+        "type": "terrain-regions",
+        "kind": "patch",
+        "requestId": 1,
+        "bytes": 15768,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12105.099999904633,
+        "type": "terrain-regions",
+        "kind": "complete",
+        "requestId": 1,
+        "bytes": 109,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12107.799999952316,
+        "type": "observation",
+        "bytes": 36442,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12119.400000095367,
+        "type": "observation",
+        "bytes": 36458,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12135.200000047684,
+        "type": "observation",
+        "bytes": 36538,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12141.299999952316,
+        "type": "observation",
+        "bytes": 36584,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12149.299999952316,
+        "type": "observation",
+        "bytes": 36610,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12155.400000095367,
+        "type": "observation",
+        "bytes": 36482,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12163.5,
+        "type": "observation",
+        "bytes": 36512,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12169,
+        "type": "observation",
+        "bytes": 36570,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12176.400000095367,
+        "type": "observation",
+        "bytes": 36628,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12185.200000047684,
+        "type": "observation",
+        "bytes": 36626,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12194.099999904633,
+        "type": "observation",
+        "bytes": 36528,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12377.799999952316,
+        "type": "observation",
+        "bytes": 36541,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12393.799999952316,
+        "type": "observation",
+        "bytes": 36596,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12405.5,
+        "type": "observation",
+        "bytes": 36622,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12423.099999904633,
+        "type": "observation",
+        "bytes": 36621,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12435.799999952316,
+        "type": "observation",
+        "bytes": 36524,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12473.299999952316,
+        "type": "observation",
+        "bytes": 36530,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12512.5,
+        "type": "observation",
+        "bytes": 36612,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12594.5,
+        "type": "observation",
+        "bytes": 36646,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12611.700000047684,
+        "type": "observation",
+        "bytes": 36652,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12654.400000095367,
+        "type": "observation",
+        "bytes": 36578,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12699.599999904633,
+        "type": "observation",
+        "bytes": 36586,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12756.400000095367,
+        "type": "observation",
+        "bytes": 36616,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12801,
+        "type": "observation",
+        "bytes": 36650,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12915.799999952316,
+        "type": "observation",
+        "bytes": 36648,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12931.900000095367,
+        "type": "observation",
+        "bytes": 36587,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12945.900000095367,
+        "type": "observation",
+        "bytes": 36592,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 12974.700000047684,
+        "type": "observation",
+        "bytes": 36646,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13013.700000047684,
+        "type": "observation",
+        "bytes": 36673,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13054.599999904633,
+        "type": "observation",
+        "bytes": 36670,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13131.799999952316,
+        "type": "observation",
+        "bytes": 36606,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13143.900000095367,
+        "type": "observation",
+        "bytes": 36615,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13177.700000047684,
+        "type": "observation",
+        "bytes": 36643,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13219.700000047684,
+        "type": "observation",
+        "bytes": 36673,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13262.099999904633,
+        "type": "observation",
+        "bytes": 36674,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13312,
+        "type": "observation",
+        "bytes": 36608,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13353.599999904633,
+        "type": "observation",
+        "bytes": 36610,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13435.700000047684,
+        "type": "observation",
+        "bytes": 36664,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13448.099999904633,
+        "type": "observation",
+        "bytes": 36698,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13475.900000095367,
+        "type": "observation",
+        "bytes": 36698,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13523.299999952316,
+        "type": "observation",
+        "bytes": 36668,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13582,
+        "type": "observation",
+        "bytes": 36662,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13655.599999904633,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13720.099999904633,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13784.400000095367,
+        "type": "observation",
+        "bytes": 36672,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13849.900000095367,
+        "type": "observation",
+        "bytes": 36642,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 13996.200000047684,
+        "type": "observation",
+        "bytes": 36642,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14011.599999904633,
+        "type": "observation",
+        "bytes": 36668,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14053.599999904633,
+        "type": "observation",
+        "bytes": 36636,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14133.400000095367,
+        "type": "observation",
+        "bytes": 36632,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "sent",
+        "socket": 1,
+        "at": 14181.599999904633,
+        "type": "heartbeat",
+        "bufferedBefore": 0,
+        "bufferedAfter": 20
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14212.799999952316,
+        "type": "observation",
+        "bytes": 36604,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14223.200000047684,
+        "type": "observation",
+        "bytes": 36604,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14296.299999952316,
+        "type": "observation",
+        "bytes": 36604,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14361.900000095367,
+        "type": "observation",
+        "bytes": 36630,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14440.5,
+        "type": "observation",
+        "bytes": 36690,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14572.700000047684,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14590.400000095367,
+        "type": "observation",
+        "bytes": 36690,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14667.200000047684,
+        "type": "observation",
+        "bytes": 36690,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14747.099999904633,
+        "type": "observation",
+        "bytes": 36688,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14829.700000047684,
+        "type": "observation",
+        "bytes": 36687,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14919.200000047684,
+        "type": "observation",
+        "bytes": 36697,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 14998.099999904633,
+        "type": "observation",
+        "bytes": 36694,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15108.599999904633,
+        "type": "observation",
+        "bytes": 36692,
+        "bufferedAmount": 0
+      },
+      {
+        "direction": "received",
+        "socket": 1,
+        "at": 15153.799999952316,
+        "type": "observation",
+        "bytes": 36692,
+        "bufferedAmount": 0
+      }
+    ],
+    "longtasks": [
+      {
+        "at": 588.5,
+        "duration": 234
+      },
+      {
+        "at": 1108.7999999523163,
+        "duration": 422
+      },
+      {
+        "at": 2035.7999999523163,
+        "duration": 253
+      },
+      {
+        "at": 2614.9000000953674,
+        "duration": 77
+      },
+      {
+        "at": 2693.0999999046326,
+        "duration": 53
+      },
+      {
+        "at": 4560.799999952316,
+        "duration": 155
+      },
+      {
+        "at": 4736,
+        "duration": 215
+      },
+      {
+        "at": 4987.400000095367,
+        "duration": 333
+      },
+      {
+        "at": 5349.900000095367,
+        "duration": 330
+      },
+      {
+        "at": 5727.099999904633,
+        "duration": 220
+      },
+      {
+        "at": 5985,
+        "duration": 205
+      },
+      {
+        "at": 6274.599999904633,
+        "duration": 332
+      },
+      {
+        "at": 6630.599999904633,
+        "duration": 431
+      },
+      {
+        "at": 7142.200000047684,
+        "duration": 338
+      },
+      {
+        "at": 7514.799999952316,
+        "duration": 489
+      },
+      {
+        "at": 8016.599999904633,
+        "duration": 312
+      },
+      {
+        "at": 8335.700000047684,
+        "duration": 300
+      },
+      {
+        "at": 8656,
+        "duration": 353
+      },
+      {
+        "at": 9017.099999904633,
+        "duration": 375
+      },
+      {
+        "at": 9405,
+        "duration": 222
+      },
+      {
+        "at": 9738.700000047684,
+        "duration": 327
+      },
+      {
+        "at": 10075.099999904633,
+        "duration": 284
+      },
+      {
+        "at": 10388.799999952316,
+        "duration": 211
+      },
+      {
+        "at": 10734.200000047684,
+        "duration": 294
+      },
+      {
+        "at": 11105.5,
+        "duration": 403
+      },
+      {
+        "at": 11592.599999904633,
+        "duration": 336
+      },
+      {
+        "at": 11957.5,
+        "duration": 97
+      },
+      {
+        "at": 12228.900000095367,
+        "duration": 144
+      },
+      {
+        "at": 12826.099999904633,
+        "duration": 87
+      },
+      {
+        "at": 13064.400000095367,
+        "duration": 63
+      },
+      {
+        "at": 13358.400000095367,
+        "duration": 72
+      },
+      {
+        "at": 13866.400000095367,
+        "duration": 124
+      },
+      {
+        "at": 14500.599999904633,
+        "duration": 70
+      }
+    ],
+    "lag": [
+      {
+        "at": 407,
+        "lag": 0.2999999523162842
+      },
+      {
+        "at": 507.40000009536743,
+        "lag": 0.40000009536743164
+      },
+      {
+        "at": 843.7000000476837,
+        "lag": 236.29999995231628
+      },
+      {
+        "at": 907.5,
+        "lag": 0
+      },
+      {
+        "at": 1006.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 1108,
+        "lag": 1.0999999046325684
+      },
+      {
+        "at": 1534.5,
+        "lag": 326.5
+      },
+      {
+        "at": 1606.7999999523163,
+        "lag": 0
+      },
+      {
+        "at": 1706.9000000953674,
+        "lag": 0.10000014305114746
+      },
+      {
+        "at": 1808.5999999046326,
+        "lag": 1.6999998092651367
+      },
+      {
+        "at": 1906.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 2035.7999999523163,
+        "lag": 28.899999856948853
+      },
+      {
+        "at": 2292.5,
+        "lag": 156.70000004768372
+      },
+      {
+        "at": 2306.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 2407.7000000476837,
+        "lag": 0.7999999523162842
+      },
+      {
+        "at": 2506.7999999523163,
+        "lag": 0
+      },
+      {
+        "at": 2606.9000000953674,
+        "lag": 0.10000014305114746
+      },
+      {
+        "at": 2751.7999999523163,
+        "lag": 44.89999985694885
+      },
+      {
+        "at": 2807,
+        "lag": 0
+      },
+      {
+        "at": 2906.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 3007.0999999046326,
+        "lag": 0.19999980926513672
+      },
+      {
+        "at": 3106.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 3207,
+        "lag": 0.09999990463256836
+      },
+      {
+        "at": 3306.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 3406.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 3506.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 3607,
+        "lag": 0.09999990463256836
+      },
+      {
+        "at": 3706.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 3807.5,
+        "lag": 0.5999999046325684
+      },
+      {
+        "at": 3906.9000000953674,
+        "lag": 0
+      },
+      {
+        "at": 4007.0999999046326,
+        "lag": 0.19999980926513672
+      },
+      {
+        "at": 4106.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 4206.799999952316,
+        "lag": 0
+      },
+      {
+        "at": 4307.700000047684,
+        "lag": 0.9000000953674316
+      },
+      {
+        "at": 4406.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 4506.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 4952.299999952316,
+        "lag": 345.39999985694885
+      },
+      {
+        "at": 5326.900000095367,
+        "lag": 274.60000014305115
+      },
+      {
+        "at": 5688.900000095367,
+        "lag": 262
+      },
+      {
+        "at": 5963.900000095367,
+        "lag": 175
+      },
+      {
+        "at": 6228.799999952316,
+        "lag": 164.89999985694885
+      },
+      {
+        "at": 6619.799999952316,
+        "lag": 291
+      },
+      {
+        "at": 7082.099999904633,
+        "lag": 362.2999999523163
+      },
+      {
+        "at": 7106.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 7482.599999904633,
+        "lag": 275.69999980926514
+      },
+      {
+        "at": 7506.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 8005.799999952316,
+        "lag": 398.89999985694885
+      },
+      {
+        "at": 8636.299999952316,
+        "lag": 530.5
+      },
+      {
+        "at": 9016.099999904633,
+        "lag": 279.7999999523163
+      },
+      {
+        "at": 9628,
+        "lag": 511.90000009536743
+      },
+      {
+        "at": 9706.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 10075.099999904633,
+        "lag": 268.19999980926514
+      },
+      {
+        "at": 10600.5,
+        "lag": 425.40000009536743
+      },
+      {
+        "at": 10648.099999904633,
+        "lag": 0
+      },
+      {
+        "at": 11029.099999904633,
+        "lag": 281
+      },
+      {
+        "at": 11533.400000095367,
+        "lag": 404.30000019073486
+      },
+      {
+        "at": 12055.400000095367,
+        "lag": 422
+      },
+      {
+        "at": 12147.299999952316,
+        "lag": 0
+      },
+      {
+        "at": 12206.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 12375.799999952316,
+        "lag": 68.89999985694885
+      },
+      {
+        "at": 12433.200000047684,
+        "lag": 0
+      },
+      {
+        "at": 12506.799999952316,
+        "lag": 0
+      },
+      {
+        "at": 12606.900000095367,
+        "lag": 0.10000014305114746
+      },
+      {
+        "at": 12709.799999952316,
+        "lag": 2.8999998569488525
+      },
+      {
+        "at": 12811.299999952316,
+        "lag": 1.5
+      },
+      {
+        "at": 12913.799999952316,
+        "lag": 2.5
+      },
+      {
+        "at": 13006.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 13130.299999952316,
+        "lag": 23.399999856948853
+      },
+      {
+        "at": 13207,
+        "lag": 0
+      },
+      {
+        "at": 13307,
+        "lag": 0
+      },
+      {
+        "at": 13433.799999952316,
+        "lag": 26.799999952316284
+      },
+      {
+        "at": 13506.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 13645.599999904633,
+        "lag": 38.69999980926514
+      },
+      {
+        "at": 13707,
+        "lag": 0
+      },
+      {
+        "at": 13806.799999952316,
+        "lag": 0
+      },
+      {
+        "at": 13991.299999952316,
+        "lag": 84.5
+      },
+      {
+        "at": 14021.799999952316,
+        "lag": 0
+      },
+      {
+        "at": 14107.599999904633,
+        "lag": 0
+      },
+      {
+        "at": 14206.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 14306.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 14406.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 14570.900000095367,
+        "lag": 64
+      },
+      {
+        "at": 14606.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 14706.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 14810.099999904633,
+        "lag": 3.1999998092651367
+      },
+      {
+        "at": 14906.900000095367,
+        "lag": 0
+      },
+      {
+        "at": 15009.900000095367,
+        "lag": 3
+      },
+      {
+        "at": 15121.799999952316,
+        "lag": 11.899999856948853
+      }
+    ],
+    "dropped": 0
+  },
+  "finishedAt": "2026-09-20T12:31:07.468Z"
+}

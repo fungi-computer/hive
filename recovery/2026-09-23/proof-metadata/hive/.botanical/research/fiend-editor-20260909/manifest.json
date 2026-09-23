@@ -1,0 +1,135 @@
+{
+  "sourcePin": "e69f76ed41069827b72550d9a4b1e3901ab61e3b",
+  "files": [
+    {
+      "name": "RECOMMENDATION.md",
+      "bytes": 9166,
+      "sha256": "a14ad5c98482fbd34f61d7beb2ac1a5c4f41a7bf10e4ad3d3148efb7e3c91448"
+    },
+    {
+      "name": "capability-390.png",
+      "bytes": 61800,
+      "sha256": "861b31b38d1e54b6cf8b34be1669cf39705ed4dfc4f278358cc1f056415d03be"
+    },
+    {
+      "name": "capability-normal.png",
+      "bytes": 151034,
+      "sha256": "3a7e6311d1fcaf98fd35ceac6ff9b75bdef9ad965cce764d07682dc14c941a62"
+    },
+    {
+      "name": "detail-390.png",
+      "bytes": 64316,
+      "sha256": "4557c0fe6c835cbb7b69bf648cd8728880e3154a47f189988ff7616f23ab6211"
+    },
+    {
+      "name": "detail-normal.png",
+      "bytes": 206390,
+      "sha256": "d8b9f15babadd90588ea79e5177b446284a139ce5c68abf49783a2e3ab345743"
+    },
+    {
+      "name": "detail-observations.json",
+      "bytes": 24378,
+      "sha256": "4a84e59da197ffd5dd30a2913b2eeebfd173d26d5f4ae85b8aba035fd9246c77"
+    },
+    {
+      "name": "detail.mjs",
+      "bytes": 3307,
+      "sha256": "e63b7257005d8cea1d4c9bfb86ae10852a8c3f3deb344b4c4d8e602bb0bbb58c"
+    },
+    {
+      "name": "feedback-panel.png",
+      "bytes": 206356,
+      "sha256": "3a489068723d22ccc7329b64199abea419924d0b795aef17ab5f2811e71e1ef9"
+    },
+    {
+      "name": "fiend-editor.js",
+      "bytes": 18198,
+      "sha256": "124ac8bff971ec89f0eed5c1e0a9d1e9a178e66e35d4c5c4b02953f4e91a9fe3"
+    },
+    {
+      "name": "fiend-integration.js",
+      "bytes": 13550,
+      "sha256": "0da0113c0471f4820838041b58d8d0d2bdf789f75a41bfbf86ac55e193d27474"
+    },
+    {
+      "name": "fiend-scene.js",
+      "bytes": 841,
+      "sha256": "efb9af74b3c5b5305118f9d0fdd1dfc48ca436df16454901b84cc571f15ed5bf"
+    },
+    {
+      "name": "fiend-three-core.js",
+      "bytes": 1458113,
+      "sha256": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6"
+    },
+    {
+      "name": "fiend-viewport.js",
+      "bytes": 20181,
+      "sha256": "597f323c2b9c8c7e6f87bc92192baf5ecd940edb9533198b0c8dcbdcf706e196"
+    },
+    {
+      "name": "inspect.mjs",
+      "bytes": 2963,
+      "sha256": "1bde5f9e8c5d15a7455f52d77e86c52ea52ce7da7e0a05d7fb3fdf06f18c7fa4"
+    },
+    {
+      "name": "observations.json",
+      "bytes": 221006,
+      "sha256": "2c8349d441c970019b587b0f319686de49ab0b119a12052ec8dc97b61be400e3"
+    },
+    {
+      "name": "pinned-editor.js",
+      "bytes": 18198,
+      "sha256": "124ac8bff971ec89f0eed5c1e0a9d1e9a178e66e35d4c5c4b02953f4e91a9fe3"
+    },
+    {
+      "name": "pinned-viewport.js",
+      "bytes": 20181,
+      "sha256": "597f323c2b9c8c7e6f87bc92192baf5ecd940edb9533198b0c8dcbdcf706e196"
+    },
+    {
+      "name": "public-390.png",
+      "bytes": 56828,
+      "sha256": "7e71d078f2d9c5e95f6a222a2c60a95d01749ac5aeb825ec193bf49a73b51cbe"
+    },
+    {
+      "name": "public-normal.png",
+      "bytes": 161784,
+      "sha256": "35764f0244eeb489c4dfc28ad11812dd4a0e14dd886f27d876b98fc353b27a1e"
+    },
+    {
+      "name": "public-page.html",
+      "bytes": 3792,
+      "sha256": "e1a10c8d3aad5a9d45e1fe55258acc6f3be520f7280c58883fb4adfb91957eac"
+    },
+    {
+      "name": "selected-properties.png",
+      "bytes": 174364,
+      "sha256": "7a2093cc55fde6416200fe4a98d90de585d8612e7b48bbc0cb71ffc25e96413e"
+    },
+    {
+      "name": "three-LICENSE",
+      "bytes": 1081,
+      "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+    },
+    {
+      "name": "three-commit.json",
+      "bytes": 8143,
+      "sha256": "231da1df9cea335eb2b277ecb08dc3461982d97ed2a74676377f15d897a16dd7"
+    },
+    {
+      "name": "three-editor.js",
+      "bytes": 18198,
+      "sha256": "124ac8bff971ec89f0eed5c1e0a9d1e9a178e66e35d4c5c4b02953f4e91a9fe3"
+    },
+    {
+      "name": "three-package.json",
+      "bytes": 3672,
+      "sha256": "ab4ff6950aab522dfe6980f19914a5eb2cadb689a36c6c44f4d3869c5e46dc89"
+    },
+    {
+      "name": "three-viewport.js",
+      "bytes": 20181,
+      "sha256": "597f323c2b9c8c7e6f87bc92192baf5ecd940edb9533198b0c8dcbdcf706e196"
+    }
+  ]
+}

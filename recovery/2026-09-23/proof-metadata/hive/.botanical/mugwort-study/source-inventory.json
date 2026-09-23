@@ -1,0 +1,196 @@
+{
+  "status": "Astra art and bounded source acceptance; production integration pending Delivery",
+  "date": "2026-09-07",
+  "artKeys": [
+    "art.herbs.mugwort.planted",
+    "art.herbs.mugwort.growing",
+    "art.herbs.mugwort.ready",
+    "art.herbs.mugwort.bundle"
+  ],
+  "sourceSha256": {
+    ".botanical/mugwort-study/prove.mjs": "e136b8b3feb654ec610aa4964afa3f559e05691e0716ed9773beeb54b01290b1",
+    ".botanical/mugwort-study/index.html": "f27e71c05aad0818412f555ffea7846be039408068cff99067046c55582a57d5",
+    ".botanical/mugwort-study/main.js": "c0382d80eb11d25fb053b522fa475fec5a180d6b702649aad50028b9544f740b",
+    ".botanical/mugwort-study/mugwort.js": "4346f2d6c81d46fc4c423c3bfa0a2ec1bd533ef6fc888b9bdff6b6dced086b71",
+    "src/art.js": "9951e1c7e8cf98e4a2fb03348070878588a5c869376229a9e4791fd85e33620b",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4"
+  },
+  "handoffSha256": {
+    ".botanical/mugwort-study/candidate/src/art.js": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+    ".botanical/mugwort-study/candidate/src/art/herbs.js": "94a3768dd454f54a2bfa36a0e0f2ac8401c21d0f8e862d0286fdcdbf5a718ce7",
+    ".botanical/mugwort-study/art-integration.patch": "dd81ce701dd678b8eed676c6039c53f4666ad50d5df67852b88a83b3bec2c8ba",
+    ".botanical/mugwort-study/proof-v2/proof.json": "c6f85bd5ed07ecdd8215f8d416b192338981333224f542c3298912ff63f1f7a1",
+    ".botanical/mugwort-study/proof-v2/bundle-native.png": "acf78754302efc1fffad272d28a79a4d3b961237656238fc309326d13d6e6ec4",
+    ".botanical/mugwort-study/proof-v2/field-game2x.png": "513e103c2c98ae204f5a7f8acaf9d2590261f6fc1b81a2375dd1254755f38725",
+    ".botanical/mugwort-study/proof-v2/field-native.png": "a8ea1b7c6f733bcb798c7eb02f4ab7cb4b5d7989bb504667a4bacd4985db4a1e",
+    ".botanical/mugwort-study/proof-v2/growing-native.png": "1bb68ae7c1ffe97d5acdfdabc333d49eaf4741381280a5c9ac8f3b35a39adbd0",
+    ".botanical/mugwort-study/proof-v2/planted-native.png": "afda3e069b3056d2b96c8d81664b0dabfca80e1ebc8a3897629769c8ca4f9622",
+    ".botanical/mugwort-study/proof-v2/ready-native.png": "a12b917a4f8002d6a3695e414e26e63f59466f7a230134aed65d5761e46e44bc",
+    ".botanical/mugwort-study/proof-v2/strip-native.png": "6d7c9d5218474c18f47294c8b30396fba9b8472dbb948e26d1a638367bb5f73d"
+  },
+  "proof": {
+    "scope": "run-u876.scope",
+    "nativeSession": 91661,
+    "nativeExit": 0,
+    "exitEvidence": "native proof-worker receipt; root independently read assertions and current hashes",
+    "browserErrors": [],
+    "textures": {
+      "planted": {
+        "width": 112,
+        "height": 112,
+        "padding": [
+          48,
+          69,
+          48,
+          31
+        ],
+        "pixelHash": 3009897739
+      },
+      "growing": {
+        "width": 112,
+        "height": 112,
+        "padding": [
+          48,
+          63,
+          48,
+          31
+        ],
+        "pixelHash": 1810537981
+      },
+      "ready": {
+        "width": 112,
+        "height": 112,
+        "padding": [
+          48,
+          55,
+          48,
+          31
+        ],
+        "pixelHash": 2283318919
+      },
+      "bundle": {
+        "width": 112,
+        "height": 112,
+        "padding": [
+          46,
+          72,
+          47,
+          33
+        ],
+        "pixelHash": 2029638007
+      }
+    }
+  },
+  "personallyViewed": [
+    "proof-v2/strip-native.png",
+    "proof-v2/field-native.png",
+    "proof-v2/field-game2x.png"
+  ],
+  "review": "Bounded Terra source/caller review accepted; no integration blocker.",
+  "limitations": [
+    "Static asset/caller proof on Vite, not the production bakeArt integration or hosted planting gameplay.",
+    "No growth/work/timing/occupancy/persistence behavior implemented by this art patch.",
+    "No facings or animation frames; no motion claim."
+  ],
+  "preserved": [
+    "proof-v1"
+  ],
+  "deliveryAcknowledgment": {
+    "received": true,
+    "scope": "Exact art-integration.patch custody accepted; Delivery owns serial application and joined build/hosted proof.",
+    "integrationStatus": "Committed, published, and bounded hosted art/product acceptance recorded; next tiny-map storage outcome delegated to Delivery."
+  },
+  "integratedArtSha256": {
+    "src/art.js": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+    "src/art/herbs.js": "94a3768dd454f54a2bfa36a0e0f2ac8401c21d0f8e862d0286fdcdbf5a718ce7"
+  },
+  "coreCheckpoint": {
+    "commit": "870c0a94be3add43a5fd66c1d0f202eec45bc739",
+    "verifiedByAstra": [
+      "local HEAD equals exact remote feature ref",
+      "both accepted art hashes match committed objects"
+    ],
+    "reportedByDelivery": {
+      "wasmAndCoreTests": {
+        "scope": "run-u890",
+        "exit": 0,
+        "passed": 43,
+        "total": 43,
+        "seconds": 8.865
+      },
+      "typecheck": {
+        "scope": "run-u891",
+        "exit": 0
+      },
+      "build": {
+        "scope": "run-u892",
+        "exit": 0,
+        "seconds": 10.69,
+        "warnings": "existing chunk warning"
+      },
+      "sourceReview": "Independent Terra Garden history schema blocker corrected by sole writer; live-history law added while retaining strict v1-v3."
+    },
+    "limitations": "Astra did not rerun this suite or independently review the entire core diff. Presentation join and browser/hosted gameplay proof remain pending; this is not a deployment acceptance."
+  },
+  "releaseAcceptance": {
+    "status": "Astra accepts bounded tiny-map mugwort release",
+    "featureCommit": "3895bd13f0359e91394e7006755e980cd03ed7e2",
+    "runtimeCommit": "f707b1999db82b8c3e869ff60f0e2fdfffc15b6d",
+    "preview": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+    "deploymentReportedByDelivery": "76e10e85-f621-4fe2-ae3f-0b9a1543b694",
+    "hostedProof": {
+      "path": ".botanical/mugwort-home-hosted-f707b19/proof.json",
+      "sha256": "ab0dbbbc89b244eb821d1102145b2b04d6821ee629475f38f96937581150d586",
+      "scopeReportedByDelivery": "run-u927.scope",
+      "exit": 0,
+      "errors": [],
+      "servedParity": {
+        "indexUrl": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+        "assets": {
+          "gameJs": "assets/game-Dzd4qadi.js",
+          "gameCss": "assets/game-CxFQJg3g.css",
+          "artJs": "assets/art-BZ4FxRqi.js"
+        },
+        "hashes": {
+          "index": "faa725db6110a14cbb0139ea1ae10da180cc7b176b18e27d2cadaad89bab1101",
+          "gameJs": "0f70af4bf919257a198e2d7ed653fe55ad517c154ed93e37d80b5c08eca2b792",
+          "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+          "artJs": "3db8740af8a882feacc52979b8eaf654daed078303c5c7d5383e1f2001f4bed2"
+        },
+        "matchesLocalDist": true
+      }
+    },
+    "personallyVerified": [
+      "local HEAD equals exact remote feature ref",
+      "both accepted art source hashes",
+      "actual proof script hash matches hosted evidence",
+      "frozen local dist hashes match recorded served parity",
+      "physical mouse Harvest admission and state result assertions read in actual script",
+      "point coordinate snapshot fix and herb/bundle render callers read"
+    ],
+    "personallyViewed": [
+      ".botanical/mugwort-home-hosted-f707b19/normal-stage-ready.png",
+      ".botanical/mugwort-home-hosted-f707b19/normal-bundle-paused.png",
+      ".botanical/mugwort-home-hosted-f707b19/narrow-work-bundle.png"
+    ],
+    "scopeLimits": [
+      "No browser/unit suite rerun or uncut video review by Astra.",
+      "Browser path is Rowan; Sedge remains a visitor.",
+      "Browser observes stage sequence; exact work/growth thresholds are unit-law coverage, not independently asserted by JSON threshold literals.",
+      "Paused reload compares the enumerated actor/herb/job/feed/Garden facts, not every field of the entire world.",
+      "Art bundle pixels accepted in isolated native/game study; hosted bundle frame includes normal actor/cat occlusion.",
+      "No weather, breeding, grafting, generic farming or world expansion."
+    ],
+    "sourceLabelErratum": "Original proof retains frozenTarget.source bb7c135f. Astra compared source through f707b199: only HERB_GROWING_TICKS export removal differs. Recorded dist parity is verified; Delivery owns attached provenance clarification without overwriting original evidence.",
+    "qualityAdvisories": {
+      "fallowFindings": 71,
+      "cloneGroups": 32,
+      "deadCodeIssues": 8,
+      "actorTaskAssignmentCargoCognitive": 83,
+      "disposition": "Visible inherited and current debts, not blanket clean-quality acceptance."
+    }
+  }
+}

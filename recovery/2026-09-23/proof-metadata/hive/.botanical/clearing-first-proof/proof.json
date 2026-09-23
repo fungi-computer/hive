@@ -1,0 +1,271 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "viewport": {
+    "width": 1120,
+    "height": 900
+  },
+  "canvas": {
+    "width": 480,
+    "height": 320,
+    "display": "960×640"
+  },
+  "initial": {
+    "tick": 48,
+    "paused": false,
+    "pawn": {
+      "x": 3,
+      "z": 4,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 0,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "demand": null,
+    "notice": "Stranded. No roof. And the locals are getting hungry."
+  },
+  "assigned": {
+    "tick": 144,
+    "paused": false,
+    "pawn": {
+      "x": 2,
+      "z": 1,
+      "dir": 3,
+      "mode": "chop",
+      "path": [],
+      "leg": 0,
+      "work": 1,
+      "task": {
+        "kind": "chop",
+        "tree": "oak-1"
+      },
+      "from": {
+        "x": 2,
+        "z": 2
+      }
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 0,
+    "assignment": {
+      "character": "rowan",
+      "task": "chop-oak-1",
+      "cost": 112
+    },
+    "commands": [
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 112
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "One swing at a time. Wood means a chance."
+  },
+  "paused": {
+    "tick": 214,
+    "paused": true,
+    "pawn": {
+      "x": 2,
+      "z": 1,
+      "dir": 3,
+      "mode": "chop",
+      "path": [],
+      "leg": 0,
+      "work": 71,
+      "task": {
+        "kind": "chop",
+        "tree": "oak-1"
+      },
+      "from": {
+        "x": 2,
+        "z": 2
+      }
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 0,
+    "assignment": {
+      "character": "rowan",
+      "task": "chop-oak-1",
+      "cost": 112
+    },
+    "commands": [
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 112
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "One swing at a time. Wood means a chance."
+  },
+  "result": {
+    "tick": 223,
+    "paused": false,
+    "pawn": {
+      "x": 2,
+      "z": 1,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 80,
+      "task": null,
+      "from": {
+        "x": 2,
+        "z": 2
+      }
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": 223
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 6,
+    "felled": 1,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 112
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Tree felled · +6 wood. Enough for a small shelter."
+  },
+  "errors": []
+}

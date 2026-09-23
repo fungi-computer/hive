@@ -1,0 +1,106 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "served": [
+    {
+      "id": "guest-1",
+      "name": "Mallow",
+      "order": 1
+    },
+    {
+      "id": "guest-2",
+      "name": "Fern",
+      "order": 2
+    }
+  ],
+  "completed": {
+    "tick": 846,
+    "paused": false,
+    "keeper": {
+      "x": 6,
+      "z": 3,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "carrying": false,
+      "task": "deliver",
+      "guestId": "guest-2",
+      "from": {
+        "x": 6,
+        "z": 2
+      }
+    },
+    "guest": null,
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 703,
+      "last": {
+        "id": "guest-2",
+        "name": "Fern",
+        "tick": 441,
+        "order": "Mushroom soup"
+      }
+    },
+    "commands": [
+      {
+        "tick": 142,
+        "kind": "prepare"
+      },
+      {
+        "tick": 258,
+        "kind": "deliver"
+      },
+      {
+        "tick": 533,
+        "kind": "prepare"
+      },
+      {
+        "tick": 664,
+        "kind": "deliver"
+      }
+    ],
+    "assignment": null,
+    "prepared": 2,
+    "served": 2,
+    "satisfied": 2,
+    "departed": 2,
+    "celebration": {
+      "tick": 755,
+      "name": "Fern"
+    },
+    "notice": "Fern leaves happy. The table is free again."
+  },
+  "reset": {
+    "tick": 3,
+    "paused": false,
+    "keeper": {
+      "x": 3,
+      "z": 4,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "carrying": false
+    },
+    "guest": null,
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "commands": [],
+    "assignment": null,
+    "prepared": 0,
+    "served": 0,
+    "satisfied": 0,
+    "departed": 0,
+    "celebration": null,
+    "notice": "Click Pip, then the hearth to prepare a warm welcome."
+  },
+  "errors": [],
+  "failed": []
+}

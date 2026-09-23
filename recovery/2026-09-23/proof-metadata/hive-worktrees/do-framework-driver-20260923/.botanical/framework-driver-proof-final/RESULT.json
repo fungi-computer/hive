@@ -1,0 +1,213 @@
+{
+  "source": "ed2e910f9c017d596e5a2e5252a7754b1a08c50a",
+  "dirtySource": "M tools/public-engine-host/HOST-OWNER-PROOF.md\n?? tools/public-engine-host/framework-driver-proof.mjs",
+  "implementationHash": "cca55ec1747b0de67d0ff95548c2d8e18673c9d96dd81f810e041c7cab1a2b0a",
+  "inventory": [
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "021f4a1acade397ade6dab4c4586ddebed1472106e62377ec3793f376a23bead"
+    },
+    {
+      "path": "tools/public-engine-host/pack-registration.ts",
+      "sha256": "d3c336f12b524872fbf9823cdaa336c23557b8e0aade215db78331f9364ff897"
+    },
+    {
+      "path": "engine/src/runtime/occurrence-driver.ts",
+      "sha256": "3b76aa9c31c1a2fee3037bae424d030cf63d41dbb71487e75314a2f632e1db54"
+    },
+    {
+      "path": "engine/src/runtime/region-program.ts",
+      "sha256": "f145a097b8edc8f11ef51fb9444d7a9535033a46a056fc9a4f3d4c2ae6fc518c"
+    },
+    {
+      "path": "src/engine/region/index.ts",
+      "sha256": "c13cbc6e1aec175581533d5d5f3e16a5d55a87d33a61863543fb1704f9172390"
+    },
+    {
+      "path": "engine/src/games/colony-framework-proof-v2-driver.ts",
+      "sha256": "d7fb0b3e60189ca565098736e43472673a749539b997ae15e962a48ff8791802"
+    },
+    {
+      "path": "engine/src/games/colony-performance-config.ts",
+      "sha256": "2f39b6e6ff3aa4fcea4bebe3bd0f275e2442ec539caf164b1ddf5bc9b5d89d31"
+    },
+    {
+      "path": "engine/src/games/colony-framework-proof-v3.ts",
+      "sha256": "8dd364c40caabe096a9b66e0b15f0cfc3d2276f1d84559bf90be50eccba4d8e0"
+    },
+    {
+      "path": "engine/generated/hive_kernel_bg.wasm",
+      "sha256": "5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89"
+    }
+  ],
+  "game": "colony-framework-proof-256-100-v3",
+  "checkpoints": [
+    {
+      "stage": "paused",
+      "sequence": 3,
+      "revision": 4,
+      "clockResult": {
+        "paused": false,
+        "results": {
+          "actions": {
+            "accepted": 0,
+            "attempted": 0,
+            "rejected": 0
+          },
+          "commands": [],
+          "driver": "colony-framework-command-ledger-v2",
+          "notes": [],
+          "step": 3,
+          "version": 1
+        },
+        "tick": 4
+      },
+      "stockpiles": [
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": -70,
+              "y": 10.530000000000001,
+              "z": 88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.-70.19.88.-70.88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 2,
+              "nextReviewTick": 3
+            }
+          },
+          "id": "stockpile.33:colony.stockpile.-70.19.88.-70.88.-70.19.88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": 106,
+              "y": 9.99,
+              "z": 88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.106.18.88.106.88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 2,
+              "nextReviewTick": 3
+            }
+          },
+          "id": "stockpile.33:colony.stockpile.106.18.88.106.88.106.18.88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": -70,
+              "y": 7.83,
+              "z": -88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.-70.14.-88.-70.-88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 2,
+              "nextReviewTick": 3
+            }
+          },
+          "id": "stockpile.35:colony.stockpile.-70.14.-88.-70.-88.-70.14.-88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": 106,
+              "y": 7.83,
+              "z": -88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.106.14.-88.106.-88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 2,
+              "nextReviewTick": 3
+            }
+          },
+          "id": "stockpile.35:colony.stockpile.106.14.-88.106.-88.106.14.-88"
+        }
+      ]
+    },
+    {
+      "stage": "autonomous-restart",
+      "beforeSequence": 3,
+      "sequence": 4,
+      "revision": 6
+    }
+  ],
+  "finalSequence": 4,
+  "limits": [
+    "Short actual-workerd host law, not capacity or 10-minute qualification",
+    "Proof-only RPC replays the last actual Region occurrence; production routes are unchanged",
+    "Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"
+  ]
+}

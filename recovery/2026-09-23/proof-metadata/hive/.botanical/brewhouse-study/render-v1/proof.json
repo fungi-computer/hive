@@ -1,0 +1,16 @@
+{
+  "source": {
+    "bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    "capture.mjs": "4c1f4f9dabed4f28f330debc5acedce28627c7560a852c7c27fbc240ff883832",
+    "composition.js": "a141b4f8a8f654e79360a13c4142343e6765a27e1b4d7e08028cb09d47e64635",
+    "index.html": "495dfb1e9ffaa34a041e2e4d8dca98d4a623835b8fcbd594421d49732fd131d4",
+    "main.js": "d4031ba2a84ed635cfa1308aa7e6ef560881e3937c26e14ec0be723db415f325",
+    "props.js": "70e53e22368af641e527cc0a17251a7275dc379ee59a23307507317d48f9c5f9",
+    "shell.js": "4151700c1588df370f7e85db2fe05debfc6a39f66ae594e48c832fb2eed6cd03",
+    "style.css": "870545d03295e6dbdfa410b51440d523dd7c31c121b0c09fb7c1891c7717630b",
+    "template.js": "bd75d79b6dd20ee40b1eacee48d018ec378df1b008d4f44f18ab94905e4736f8",
+    "world.js": "fb9cb4f6c9d76377cb636682ac80b3c7e04e2107a63e69108f470c9c864533f5"
+  },
+  "checks": {},
+  "errors": []
+}

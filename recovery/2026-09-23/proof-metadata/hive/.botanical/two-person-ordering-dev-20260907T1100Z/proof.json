@@ -1,0 +1,12 @@
+{
+  "url": "http://127.0.0.1:5187/",
+  "errors": [],
+  "screenshots": [
+    "01-visible-visitor.png",
+    "02-sedge-recruited.png",
+    "03-both-selected.png",
+    "failure.png"
+  ],
+  "success": false,
+  "failure": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'project')\n    at eval (eval at evaluate (:311:30), <anonymous>:1:35)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at project (/home/levi/src/hive/scripts/prove-two-person.mjs:35:8)\n    at clickCell (/home/levi/src/hive/scripts/prove-two-person.mjs:40:23)\n    at /home/levi/src/hive/scripts/prove-two-person.mjs:96:9"
+}

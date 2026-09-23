@@ -1,0 +1,32 @@
+{
+  "solver.mjs": {
+    "source": ".botanical/research/environment-round2-20260908/water/solver.mjs",
+    "sha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "bytes": 12091
+  },
+  "experiment.mjs": {
+    "source": ".botanical/research/environment-round2-20260908/water/experiment.mjs",
+    "sha256": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+    "bytes": 9604
+  },
+  "API.md": {
+    "source": ".botanical/research/environment-round2-20260908/water/API.md",
+    "sha256": "05b7ff3f45f43e5e2aec1c3efa37ff5af125e5923c65b24af5c906cbe203796d",
+    "bytes": 3567
+  },
+  "study.md": {
+    "source": ".botanical/research/environment-round2-20260908/water/study.md",
+    "sha256": "0ee1e18ddb6971ddf0f7d82302c1dba3fea4eae29cb4e3f13faf1d5928ada1e1",
+    "bytes": 9237
+  },
+  "NEXT-METHOD-REVIEW.md": {
+    "source": ".botanical/research/environment-round2-20260908/water/NEXT-METHOD-REVIEW.md",
+    "sha256": "0a1c83b649a59a7c4e83bae60a6e78a80a1de2139a3231f0c8f52d3172d0507b",
+    "bytes": 5339
+  },
+  "PREDECLARED.md": {
+    "source": ".botanical/research/environment-round2-20260908/water/PREDECLARED.md",
+    "sha256": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd",
+    "bytes": 3883
+  }
+}

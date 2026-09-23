@@ -1,0 +1,1080 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "viewport": {
+    "width": 1120,
+    "height": 900
+  },
+  "canvas": {
+    "width": 480,
+    "height": 320,
+    "display": "960×640"
+  },
+  "initial": {
+    "tick": 51,
+    "paused": false,
+    "pawn": {
+      "x": 3,
+      "z": 4,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 0,
+    "shelters": [],
+    "completed": 0,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Stranded. No roof. And the locals are getting hungry."
+  },
+  "orderPaused": {
+    "tick": 214,
+    "paused": true,
+    "pawn": {
+      "x": 3,
+      "z": 4,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 0,
+    "shelters": [],
+    "completed": 0,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Stranded. No roof. And the locals are getting hungry."
+  },
+  "iterations": [
+    {
+      "chopAssignment": {
+        "tick": 247,
+        "paused": false,
+        "pawn": {
+          "x": 2,
+          "z": 1,
+          "dir": 3,
+          "mode": "chop",
+          "path": [],
+          "leg": 0,
+          "work": 1,
+          "task": {
+            "kind": "chop",
+            "tree": "oak-1"
+          },
+          "from": {
+            "x": 2,
+            "z": 2
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 0,
+        "shelters": [],
+        "completed": 0,
+        "assignment": {
+          "character": "rowan",
+          "task": "chop-oak-1",
+          "cost": 112
+        },
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 1,
+          "nextAt": 50,
+          "last": {
+            "kind": "demand",
+            "name": "Mallow",
+            "tick": 50,
+            "text": "A roof before supper, human. Or you're supper."
+          }
+        },
+        "demand": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        },
+        "notice": "One swing at a time. Wood means a chance."
+      },
+      "harvested": {
+        "tick": 327,
+        "paused": false,
+        "pawn": {
+          "x": 2,
+          "z": 1,
+          "dir": 3,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 80,
+          "task": null,
+          "from": {
+            "x": 2,
+            "z": 2
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 6,
+        "felled": 1,
+        "shelters": [],
+        "completed": 0,
+        "assignment": null,
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 1,
+          "nextAt": 50,
+          "last": {
+            "kind": "demand",
+            "name": "Mallow",
+            "tick": 50,
+            "text": "A roof before supper, human. Or you're supper."
+          }
+        },
+        "demand": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        },
+        "notice": "Tree felled · +6 wood. Enough for a small shelter."
+      },
+      "committed": {
+        "tick": 520,
+        "paused": false,
+        "pawn": {
+          "x": 2,
+          "z": 1.625,
+          "dir": 0,
+          "mode": "walk",
+          "path": [
+            {
+              "x": 2,
+              "z": 2
+            }
+          ],
+          "leg": 5,
+          "work": 0,
+          "task": {
+            "kind": "build",
+            "site": "shelter-1"
+          },
+          "from": {
+            "x": 2,
+            "z": 1
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 1,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 0,
+            "finishedAt": null
+          }
+        ],
+        "completed": 0,
+        "assignment": {
+          "character": "rowan",
+          "task": "build-shelter-1",
+          "cost": 108
+        },
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 1,
+          "nextAt": 50,
+          "last": {
+            "kind": "demand",
+            "name": "Mallow",
+            "tick": 50,
+            "text": "A roof before supper, human. Or you're supper."
+          }
+        },
+        "demand": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        },
+        "notice": "Six wood committed. Rowan is heading to the marked site."
+      },
+      "constructionPaused": {
+        "tick": 585,
+        "paused": true,
+        "pawn": {
+          "x": 2,
+          "z": 2,
+          "dir": 0,
+          "mode": "build",
+          "path": [],
+          "leg": 0,
+          "work": 62,
+          "task": {
+            "kind": "build",
+            "site": "shelter-1"
+          },
+          "from": {
+            "x": 2,
+            "z": 1
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 1,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 62,
+            "finishedAt": null
+          }
+        ],
+        "completed": 0,
+        "assignment": {
+          "character": "rowan",
+          "task": "build-shelter-1",
+          "cost": 108
+        },
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 1,
+          "nextAt": 50,
+          "last": {
+            "kind": "demand",
+            "name": "Mallow",
+            "tick": 50,
+            "text": "A roof before supper, human. Or you're supper."
+          }
+        },
+        "demand": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        },
+        "notice": "Posts, braces, then a roof. Keep your hands steady."
+      },
+      "finished": {
+        "tick": 623,
+        "paused": false,
+        "pawn": {
+          "x": 2,
+          "z": 2,
+          "dir": 0,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 100,
+          "task": null,
+          "from": {
+            "x": 2,
+            "z": 1
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 1,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 100,
+            "finishedAt": 623
+          }
+        ],
+        "completed": 1,
+        "assignment": null,
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 2,
+          "nextAt": 50,
+          "last": {
+            "kind": "approval",
+            "name": "Mallow",
+            "tick": 623,
+            "text": "A roof! Fine. You may remain inconveniently alive."
+          }
+        },
+        "demand": {
+          "kind": "approval",
+          "name": "Mallow",
+          "tick": 623,
+          "text": "A roof! Fine. You may remain inconveniently alive."
+        },
+        "notice": "Shelter finished. A roof, a dry corner, another day alive."
+      }
+    },
+    {
+      "chopAssignment": {
+        "tick": 702,
+        "paused": false,
+        "pawn": {
+          "x": 5,
+          "z": 2,
+          "dir": 2,
+          "mode": "chop",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "task": {
+            "kind": "chop",
+            "tree": "oak-2"
+          },
+          "from": {
+            "x": 4,
+            "z": 2
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 1,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 100,
+            "finishedAt": 623
+          }
+        ],
+        "completed": 1,
+        "assignment": {
+          "character": "rowan",
+          "task": "chop-oak-2",
+          "cost": 104
+        },
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          },
+          {
+            "kind": "chop",
+            "tree": "oak-2",
+            "tick": 679
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 2,
+          "nextAt": 50,
+          "last": {
+            "kind": "approval",
+            "name": "Mallow",
+            "tick": 623,
+            "text": "A roof! Fine. You may remain inconveniently alive."
+          }
+        },
+        "demand": {
+          "kind": "approval",
+          "name": "Mallow",
+          "tick": 623,
+          "text": "A roof! Fine. You may remain inconveniently alive."
+        },
+        "notice": "One swing at a time. Wood means a chance."
+      },
+      "harvested": {
+        "tick": 783,
+        "paused": false,
+        "pawn": {
+          "x": 5,
+          "z": 2,
+          "dir": 2,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 80,
+          "task": null,
+          "from": {
+            "x": 4,
+            "z": 2
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": 782
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 6,
+        "felled": 2,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 100,
+            "finishedAt": 623
+          }
+        ],
+        "completed": 1,
+        "assignment": null,
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          },
+          {
+            "kind": "chop",
+            "tree": "oak-2",
+            "tick": 679
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 2,
+          "nextAt": 50,
+          "last": {
+            "kind": "approval",
+            "name": "Mallow",
+            "tick": 623,
+            "text": "A roof! Fine. You may remain inconveniently alive."
+          }
+        },
+        "demand": {
+          "kind": "approval",
+          "name": "Mallow",
+          "tick": 623,
+          "text": "A roof! Fine. You may remain inconveniently alive."
+        },
+        "notice": "Tree felled · +6 wood. Enough for a small shelter."
+      },
+      "committed": {
+        "tick": 933,
+        "paused": false,
+        "pawn": {
+          "x": 5,
+          "z": 2,
+          "dir": 0,
+          "mode": "build",
+          "path": [],
+          "leg": 0,
+          "work": 5,
+          "task": {
+            "kind": "build",
+            "site": "shelter-2"
+          },
+          "from": {
+            "x": 4,
+            "z": 2
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": 782
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 2,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 100,
+            "finishedAt": 623
+          },
+          {
+            "id": "shelter-2",
+            "x": 4,
+            "z": 3,
+            "work": 5,
+            "finishedAt": null
+          }
+        ],
+        "completed": 1,
+        "assignment": {
+          "character": "rowan",
+          "task": "build-shelter-2",
+          "cost": 100
+        },
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          },
+          {
+            "kind": "chop",
+            "tree": "oak-2",
+            "tick": 679
+          },
+          {
+            "kind": "build",
+            "x": 4,
+            "z": 3,
+            "tick": 928
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 2,
+          "nextAt": 50,
+          "last": {
+            "kind": "approval",
+            "name": "Mallow",
+            "tick": 623,
+            "text": "A roof! Fine. You may remain inconveniently alive."
+          }
+        },
+        "demand": {
+          "kind": "approval",
+          "name": "Mallow",
+          "tick": 623,
+          "text": "A roof! Fine. You may remain inconveniently alive."
+        },
+        "notice": "Posts, braces, then a roof. Keep your hands steady."
+      },
+      "constructionPaused": null,
+      "finished": {
+        "tick": 1028,
+        "paused": false,
+        "pawn": {
+          "x": 5,
+          "z": 2,
+          "dir": 0,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 100,
+          "task": null,
+          "from": {
+            "x": 4,
+            "z": 2
+          }
+        },
+        "trees": [
+          {
+            "id": "oak-1",
+            "x": 1,
+            "z": 1,
+            "felledAt": 326
+          },
+          {
+            "id": "oak-2",
+            "x": 5,
+            "z": 1,
+            "felledAt": 782
+          },
+          {
+            "id": "oak-3",
+            "x": 1,
+            "z": 4,
+            "felledAt": null
+          }
+        ],
+        "wood": 0,
+        "felled": 2,
+        "shelters": [
+          {
+            "id": "shelter-1",
+            "x": 2,
+            "z": 3,
+            "work": 100,
+            "finishedAt": 623
+          },
+          {
+            "id": "shelter-2",
+            "x": 4,
+            "z": 3,
+            "work": 100,
+            "finishedAt": 1028
+          }
+        ],
+        "completed": 2,
+        "assignment": null,
+        "commands": [
+          {
+            "kind": "chop",
+            "tree": "oak-1",
+            "tick": 215
+          },
+          {
+            "kind": "build",
+            "x": 2,
+            "z": 3,
+            "tick": 516
+          },
+          {
+            "kind": "chop",
+            "tree": "oak-2",
+            "tick": 679
+          },
+          {
+            "kind": "build",
+            "x": 4,
+            "z": 3,
+            "tick": 928
+          }
+        ],
+        "feed": {
+          "seed": 42,
+          "sequence": 2,
+          "nextAt": 50,
+          "last": {
+            "kind": "approval",
+            "name": "Mallow",
+            "tick": 623,
+            "text": "A roof! Fine. You may remain inconveniently alive."
+          }
+        },
+        "demand": {
+          "kind": "approval",
+          "name": "Mallow",
+          "tick": 623,
+          "text": "A roof! Fine. You may remain inconveniently alive."
+        },
+        "notice": "Shelter finished. A roof, a dry corner, another day alive."
+      }
+    }
+  ],
+  "completed": {
+    "tick": 1061,
+    "paused": false,
+    "pawn": {
+      "x": 5,
+      "z": 2,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 100,
+      "task": null,
+      "from": {
+        "x": 4,
+        "z": 2
+      }
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": 326
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": 782
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 2,
+    "shelters": [
+      {
+        "id": "shelter-1",
+        "x": 2,
+        "z": 3,
+        "work": 100,
+        "finishedAt": 623
+      },
+      {
+        "id": "shelter-2",
+        "x": 4,
+        "z": 3,
+        "work": 100,
+        "finishedAt": 1028
+      }
+    ],
+    "completed": 2,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 215
+      },
+      {
+        "kind": "build",
+        "x": 2,
+        "z": 3,
+        "tick": 516
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 679
+      },
+      {
+        "kind": "build",
+        "x": 4,
+        "z": 3,
+        "tick": 928
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 50,
+      "last": {
+        "kind": "approval",
+        "name": "Mallow",
+        "tick": 623,
+        "text": "A roof! Fine. You may remain inconveniently alive."
+      }
+    },
+    "demand": {
+      "kind": "approval",
+      "name": "Mallow",
+      "tick": 623,
+      "text": "A roof! Fine. You may remain inconveniently alive."
+    },
+    "notice": "Shelter finished. A roof, a dry corner, another day alive."
+  },
+  "reset": {
+    "tick": 14,
+    "paused": true,
+    "pawn": {
+      "x": 3,
+      "z": 4,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 0,
+    "felled": 0,
+    "shelters": [],
+    "completed": 0,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "demand": null,
+    "notice": "Stranded. No roof. And the locals are getting hungry."
+  },
+  "errors": []
+}

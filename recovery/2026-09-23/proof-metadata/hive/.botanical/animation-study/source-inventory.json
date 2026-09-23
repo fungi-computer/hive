@@ -1,0 +1,30 @@
+[
+  {
+    "path": ".botanical/animation-study/figures.js",
+    "sha256": "ec69c39aa75b10a227b8e6f22673f2ac248a5d44e84a14b21e217dca8fc9e380"
+  },
+  {
+    "path": ".botanical/animation-study/figures-for-integration.js",
+    "sha256": "ad27d9da24bbed68110538ec9f8bb7c481e49830f3e76e1c72092556e1a72474"
+  },
+  {
+    "path": ".botanical/animation-study/main.js",
+    "sha256": "93157cd682d2132f22f0c508fe9c50468184d295fb98190275b61c6f9ed8a32a"
+  },
+  {
+    "path": ".botanical/animation-study/index.html",
+    "sha256": "96aa2b5c45511f69ec19d701a3846ef94e5ac04b249f7d5a11a593d4870dd2bd"
+  },
+  {
+    "path": ".botanical/animation-study/prove.mjs",
+    "sha256": "181d1d793eaad11795cc74994cb395aa4016ea1af17fdd38653c29164ab3f66e"
+  },
+  {
+    "path": "src/art.js",
+    "sha256": "07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785"
+  },
+  {
+    "path": "src/art/figures.js",
+    "sha256": "4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b"
+  }
+]

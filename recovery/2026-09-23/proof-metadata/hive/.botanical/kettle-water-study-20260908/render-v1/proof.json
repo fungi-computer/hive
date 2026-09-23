@@ -1,0 +1,22 @@
+{
+  "source": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-station-study-20260908/station.js": "fc1f582e774dad8ee2763531be82e512adad1287f18cdf7f9504b94d8319b347",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-supplies-study-20260908/props.js": "615d7b596b225a36b577e48b58f55c5045fc4b735e25a0d06f5da80f85ef8563",
+    ".botanical/kettle-water-study-20260908/kettle.js": "89872a1f6fa4e5e8a3d2e9d78d396d5ab322cd0898ec383e8ddef8b2265760b7",
+    ".botanical/kettle-water-study-20260908/study.js": "895df0abbb28f3813bbb52be38e04035adf79cf5a0460217b92cb6e62c3ae630",
+    ".botanical/kettle-water-study-20260908/index.html": "e43a4a11ec14e3f6623dc1b47ea978f0ec7c474bff230ff9e594ae892c5fef0f",
+    ".botanical/kettle-water-study-20260908/capture.mjs": "726c001aead277d8055893ae36103a4d568b67f348b01a6918340d0f47837a78"
+  },
+  "passed": false,
+  "errors": [
+    "http://127.0.0.1:5187/.botanical/kettle-water-study-20260908/index.html: net::ERR_CONNECTION_REFUSED"
+  ],
+  "clicks": [],
+  "scope": "New clear-water appearance on accepted station. Eight displayed bakes and twenty default kettle pixel-parity pairs. No runtime, save, process, quantity, or hosted proof.",
+  "failure": "page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:5187/.botanical/kettle-water-study-20260908/index.html\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:5187/.botanical/kettle-water-study-20260908/index.html\", waiting until \"networkidle\"\u001b[22m\n\n    at /home/levi/src/hive/.botanical/kettle-water-study-20260908/capture.mjs:21:14"
+}

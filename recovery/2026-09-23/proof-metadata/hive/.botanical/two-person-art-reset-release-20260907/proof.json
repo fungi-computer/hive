@@ -1,0 +1,258 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "errors": [],
+  "screenshots": [
+    "01-visible-visitor.png",
+    "02-sedge-recruited.png",
+    "03-both-selected.png",
+    "04-shared-rectangle-applied.png",
+    "05-narrow-two-person.png",
+    "failure.png"
+  ],
+  "artReadyMs": 4272,
+  "orderClick": {
+    "events": [
+      {
+        "type": "pointerdown",
+        "target": "chop-queued"
+      },
+      {
+        "type": "pointerup",
+        "target": "chop-queued"
+      },
+      {
+        "type": "click",
+        "target": "chop-queued"
+      }
+    ],
+    "commands": [
+      {
+        "party": "home",
+        "kind": "recruit",
+        "actor": "sedge",
+        "tick": 44
+      },
+      {
+        "party": "home",
+        "actors": [
+          "rowan",
+          "sedge"
+        ],
+        "kind": "chop",
+        "tree": "oak-8",
+        "direct": false,
+        "tick": 124
+      }
+    ],
+    "selection": {
+      "selectedIds": [
+        "rowan",
+        "sedge"
+      ],
+      "inspectedId": null,
+      "tree": "oak-8",
+      "context": {
+        "x": 912,
+        "y": 496
+      },
+      "designationTargetIds": [],
+      "cutaway": true,
+      "panMode": false,
+      "direction": 0,
+      "tool": null,
+      "phase": "idle",
+      "gesture": null,
+      "hoverCell": null
+    }
+  },
+  "disabledCapsActivationBlocked": true,
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n4 !== 0\n\n    at file:///home/levi/src/hive/scripts/prove-two-person.mjs:218:10\n    at runNextTicks (node:internal/process/task_queues:65:5)\n    at process.processImmediate (node:internal/timers:541:9)",
+  "failureState": {
+    "seed": 42,
+    "tick": 5,
+    "paused": false,
+    "nextId": 1,
+    "actors": {
+      "rowan": {
+        "x": 7,
+        "z": 10,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 79.94,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      },
+      "sedge": {
+        "x": 10,
+        "z": 12,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 80,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan"
+        ]
+      }
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [],
+    "claims": {},
+    "workDirty": false,
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "demand": null,
+    "notice": "A borrowed axe. No home. Bramble seems optimistic."
+  },
+  "failureUi": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": null,
+    "phase": "idle",
+    "gesture": null,
+    "hoverCell": null
+  }
+}

@@ -1,0 +1,4087 @@
+{
+  "url": "http://127.0.0.1:5187/.botanical/shelf-study/index.html",
+  "invocation": {
+    "runner": "run-proof.sh",
+    "command": [
+      "node",
+      "/home/levi/src/hive/.botanical/shelf-study/prove.mjs",
+      ".botanical/shelf-study/proof-v2",
+      "."
+    ]
+  },
+  "sourceSha256Before": {
+    ".botanical/shelf-study/prove.mjs": "b4aa25cee376b1461c6abc526fb0fa03a0b7ff2824622d88d32beb3a17afc9f3",
+    ".botanical/shelf-study/index.html": "a3e572955cd35b82641b9da449827da15e5e11e67b9085dfc79f6876ee035375",
+    ".botanical/shelf-study/main.js": "dcebcde512a6142716626e41da11f3e6a115ac53497f34fc1536291034b461dc",
+    ".botanical/shelf-study/figures.js": "ac8d96e0bd0e5227fdf3d95a78ed25afd4f3ef0ba567d36ee42c0d91378be8ca",
+    ".botanical/shelf-study/herbs.js": "28a1bb64b47d6ba9578c90c786e950c04888b88c844dea391ccfa799f1ae365d",
+    ".botanical/shelf-study/shelf.js": "0ce099c564d03a7a8690a3f05bd5e6c9be9bd79783d51cf146d177dec04d22df",
+    ".botanical/shelf-study/baseline-figures.js": "8bfe95851df05cc77df3815402f4d46480db757596aa4662fbf6fe4352ed105f",
+    ".botanical/shelf-study/baseline-herbs.js": "4346f2d6c81d46fc4c423c3bfa0a2ec1bd533ef6fc888b9bdff6b6dced086b71",
+    ".botanical/shelf-study/baseline/src/art.js": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+    ".botanical/shelf-study/baseline/src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4",
+    ".botanical/shelf-study/baseline/src/art/herbs.js": "94a3768dd454f54a2bfa36a0e0f2ac8401c21d0f8e862d0286fdcdbf5a718ce7",
+    ".botanical/shelf-study/baseline/src/art/home.js": "4d4af1eb23b695318c0def911e14685fc1d4b8a7bf7d48a489b1cfbcdac17eb9",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e"
+  },
+  "sourceSha256After": {
+    ".botanical/shelf-study/prove.mjs": "b4aa25cee376b1461c6abc526fb0fa03a0b7ff2824622d88d32beb3a17afc9f3",
+    ".botanical/shelf-study/index.html": "a3e572955cd35b82641b9da449827da15e5e11e67b9085dfc79f6876ee035375",
+    ".botanical/shelf-study/main.js": "dcebcde512a6142716626e41da11f3e6a115ac53497f34fc1536291034b461dc",
+    ".botanical/shelf-study/figures.js": "ac8d96e0bd0e5227fdf3d95a78ed25afd4f3ef0ba567d36ee42c0d91378be8ca",
+    ".botanical/shelf-study/herbs.js": "28a1bb64b47d6ba9578c90c786e950c04888b88c844dea391ccfa799f1ae365d",
+    ".botanical/shelf-study/shelf.js": "0ce099c564d03a7a8690a3f05bd5e6c9be9bd79783d51cf146d177dec04d22df",
+    ".botanical/shelf-study/baseline-figures.js": "8bfe95851df05cc77df3815402f4d46480db757596aa4662fbf6fe4352ed105f",
+    ".botanical/shelf-study/baseline-herbs.js": "4346f2d6c81d46fc4c423c3bfa0a2ec1bd533ef6fc888b9bdff6b6dced086b71",
+    ".botanical/shelf-study/baseline/src/art.js": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+    ".botanical/shelf-study/baseline/src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4",
+    ".botanical/shelf-study/baseline/src/art/herbs.js": "94a3768dd454f54a2bfa36a0e0f2ac8401c21d0f8e862d0286fdcdbf5a718ce7",
+    ".botanical/shelf-study/baseline/src/art/home.js": "4d4af1eb23b695318c0def911e14685fc1d4b8a7bf7d48a489b1cfbcdac17eb9",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e"
+  },
+  "native": {
+    "prop": [
+      112,
+      112
+    ],
+    "pawn": [
+      80,
+      80
+    ]
+  },
+  "canvasDimensions": {
+    "field": [
+      640,
+      400
+    ],
+    "strip": [
+      448,
+      256
+    ],
+    "contacts": [
+      640,
+      384
+    ]
+  },
+  "propAnchor": {
+    "x": 0.5,
+    "y": 0.6924599083615355
+  },
+  "pawnAnchor": {
+    "x": 0.5,
+    "y": 0.7522974435066674
+  },
+  "textures": {
+    "shelf": {
+      "stakes": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            67,
+            43,
+            28
+          ],
+          "pixelHash": 3383277979
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            66,
+            43,
+            28
+          ],
+          "pixelHash": 3769906401
+        }
+      ],
+      "frame": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            46,
+            43,
+            28
+          ],
+          "pixelHash": 3832913552
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            46,
+            43,
+            28
+          ],
+          "pixelHash": 4061666173
+        }
+      ],
+      "finished": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 610177911
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 1333318167
+        }
+      ],
+      "filled": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 569745232
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 1465465980
+        }
+      ]
+    },
+    "figures": {
+      "rowan": {
+        "carry-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1121085271
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 24438093
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                29,
+                19
+              ],
+              "pixelHash": 3475460074
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 24438093
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1121085271
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1271656006
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 2826024506
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1271656006
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                24,
+                17
+              ],
+              "pixelHash": 2949829585
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                25,
+                17
+              ],
+              "pixelHash": 1942862700
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                24,
+                17
+              ],
+              "pixelHash": 1035016564
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                25,
+                17
+              ],
+              "pixelHash": 1942862700
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                24,
+                17
+              ],
+              "pixelHash": 2949829585
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                25,
+                19
+              ],
+              "pixelHash": 558964784
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                23,
+                24,
+                19
+              ],
+              "pixelHash": 2948672951
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                25,
+                19
+              ],
+              "pixelHash": 558964784
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 272615399
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                28,
+                19
+              ],
+              "pixelHash": 3026170185
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                22,
+                28,
+                19
+              ],
+              "pixelHash": 3242482116
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                28,
+                19
+              ],
+              "pixelHash": 3026170185
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 272615399
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 1022497486
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                22,
+                28,
+                17
+              ],
+              "pixelHash": 1650670722
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 1022497486
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 2014708534
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                34,
+                17
+              ],
+              "pixelHash": 1158943473
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3951615086
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                34,
+                17
+              ],
+              "pixelHash": 1158943473
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 2014708534
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 2837425717
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                29,
+                19
+              ],
+              "pixelHash": 588961941
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 2837425717
+            }
+          ]
+        ],
+        "pickup-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 4193215146
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3919429593
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1608500537
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3919429593
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 4193215146
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 2622717153
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3470831487
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 2622717153
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                27,
+                17
+              ],
+              "pixelHash": 1372055519
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 406221676
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                29,
+                17
+              ],
+              "pixelHash": 2562247867
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 406221676
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                27,
+                17
+              ],
+              "pixelHash": 1372055519
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                26,
+                17
+              ],
+              "pixelHash": 3785856762
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                26,
+                17
+              ],
+              "pixelHash": 2004044073
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                26,
+                17
+              ],
+              "pixelHash": 3785856762
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                27,
+                18
+              ],
+              "pixelHash": 3096160024
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 1285671052
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                29,
+                18
+              ],
+              "pixelHash": 2700596769
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 1285671052
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                27,
+                18
+              ],
+              "pixelHash": 3096160024
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                26,
+                18
+              ],
+              "pixelHash": 80913107
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                26,
+                18
+              ],
+              "pixelHash": 2930442895
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                26,
+                18
+              ],
+              "pixelHash": 80913107
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1578406339
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1343245262
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1056918069
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1343245262
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1578406339
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1761794159
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 2253673490
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1761794159
+            }
+          ]
+        ]
+      },
+      "witch-runner": {
+        "carry-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                29,
+                17
+              ],
+              "pixelHash": 3011089005
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 1403954361
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                24,
+                20
+              ],
+              "pixelHash": 1932859888
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                23,
+                19
+              ],
+              "pixelHash": 1778450909
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                23,
+                17
+              ],
+              "pixelHash": 1301985013
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                26,
+                17
+              ],
+              "pixelHash": 2232496956
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                28,
+                18
+              ],
+              "pixelHash": 2350585245
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                30,
+                17
+              ],
+              "pixelHash": 3934724535
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                25,
+                17
+              ],
+              "pixelHash": 3532130585
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                24,
+                17
+              ],
+              "pixelHash": 3997933520
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                24,
+                18
+              ],
+              "pixelHash": 1218145934
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                17
+              ],
+              "pixelHash": 19814856
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                25,
+                17
+              ],
+              "pixelHash": 4008524600
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                19
+              ],
+              "pixelHash": 3316353467
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                20
+              ],
+              "pixelHash": 2334716414
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                19
+              ],
+              "pixelHash": 3976869121
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 3597086792
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                27,
+                19
+              ],
+              "pixelHash": 417684339
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                14,
+                27,
+                19
+              ],
+              "pixelHash": 3257506238
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                23,
+                14,
+                27,
+                19
+              ],
+              "pixelHash": 2076864428
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                23,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 3335228768
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 3489092745
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 1635304077
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                30,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 4082941357
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                14,
+                27,
+                18
+              ],
+              "pixelHash": 180098111
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                26,
+                17
+              ],
+              "pixelHash": 2850860098
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                26,
+                17
+              ],
+              "pixelHash": 2851029162
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                17
+              ],
+              "pixelHash": 10311972
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                14,
+                27,
+                18
+              ],
+              "pixelHash": 3483121087
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 2976503150
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 749121921
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 2670539495
+            }
+          ]
+        ],
+        "pickup-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                30,
+                17
+              ],
+              "pixelHash": 820203695
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                17
+              ],
+              "pixelHash": 3673106904
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 1600364456
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 245538017
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 1991970695
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                28,
+                17
+              ],
+              "pixelHash": 3857726436
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                17
+              ],
+              "pixelHash": 3428682165
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                30,
+                17
+              ],
+              "pixelHash": 3500580431
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                27,
+                17
+              ],
+              "pixelHash": 1988384310
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                17
+              ],
+              "pixelHash": 4057791249
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                17
+              ],
+              "pixelHash": 1018885064
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                17
+              ],
+              "pixelHash": 853899761
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                27,
+                17
+              ],
+              "pixelHash": 2233911969
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                17
+              ],
+              "pixelHash": 1429534579
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                17
+              ],
+              "pixelHash": 3558688265
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                17
+              ],
+              "pixelHash": 2252665430
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                30,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 3977676707
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                18
+              ],
+              "pixelHash": 1753983210
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                28,
+                18
+              ],
+              "pixelHash": 3811379921
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                28,
+                18
+              ],
+              "pixelHash": 1438144623
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 2190714423
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                15,
+                26,
+                18
+              ],
+              "pixelHash": 726746721
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                18
+              ],
+              "pixelHash": 3201804419
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                30,
+                15,
+                26,
+                18
+              ],
+              "pixelHash": 4067261252
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 2800881007
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 504706889
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 892679601
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 1904782712
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 1648467263
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 3713629189
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 497373724
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 3300630992
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "identities": {
+    "capturedState": {
+      "playing": true,
+      "frame": 5,
+      "direction": 0,
+      "pose": "carry-herb",
+      "chosen": "rowan",
+      "standing": false,
+      "scale": 1,
+      "shown": 5
+    },
+    "shelves": [
+      {
+        "stage": "stakes",
+        "direction": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.6924599083615355
+        },
+        "anchorMatchesPropAnchor": true,
+        "textureObjectMatchesStage": true,
+        "textureResourceMatchesStage": true,
+        "textureUid": 2
+      },
+      {
+        "stage": "frame",
+        "direction": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.6924599083615355
+        },
+        "anchorMatchesPropAnchor": true,
+        "textureObjectMatchesStage": true,
+        "textureResourceMatchesStage": true,
+        "textureUid": 4
+      },
+      {
+        "stage": "finished",
+        "direction": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.6924599083615355
+        },
+        "anchorMatchesPropAnchor": true,
+        "textureObjectMatchesStage": true,
+        "textureResourceMatchesStage": true,
+        "textureUid": 6
+      },
+      {
+        "stage": "filled",
+        "direction": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.6924599083615355
+        },
+        "anchorMatchesPropAnchor": true,
+        "textureObjectMatchesStage": true,
+        "textureResourceMatchesStage": true,
+        "textureUid": 8
+      }
+    ],
+    "actors": [
+      {
+        "kind": "rowan",
+        "pose": "carry-herb",
+        "direction": 0,
+        "shown": 5,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.7522974435066674
+        },
+        "anchorMatchesPawnAnchor": true,
+        "textureObjectMatchesStage": true,
+        "textureResourceMatchesStage": true,
+        "textureUid": 15
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "carry-herb",
+        "direction": 0,
+        "shown": 5,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.7522974435066674
+        },
+        "anchorMatchesPawnAnchor": true,
+        "textureObjectMatchesStage": true,
+        "textureResourceMatchesStage": true,
+        "textureUid": 79
+      }
+    ]
+  },
+  "regressions": {
+    "count": 132,
+    "equalCount": 132,
+    "failures": [],
+    "mugwortCount": 4,
+    "poseCount": 128
+  },
+  "controls": {
+    "pause": {
+      "before": {
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 1,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          15,
+          79
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "after": {
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 1,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          15,
+          79
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "frameFrozen": true,
+      "pixelsFrozen": true
+    },
+    "step": {
+      "beforeFrame": 5,
+      "afterFrame": 6,
+      "frameAdvanced": true,
+      "pixelsChanged": true
+    },
+    "turn": {
+      "observed": [
+        0,
+        1,
+        2,
+        3,
+        0
+      ],
+      "allFour": true
+    },
+    "standing": {
+      "before": {
+        "state": {
+          "playing": false,
+          "frame": 3,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": true,
+          "scale": 1,
+          "shown": 0
+        },
+        "actorTextureUids": [
+          10,
+          74
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "after": {
+        "state": {
+          "playing": false,
+          "frame": 4,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": true,
+          "scale": 1,
+          "shown": 0
+        },
+        "actorTextureUids": [
+          10,
+          74
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "texture": {
+        "state": {
+          "playing": false,
+          "frame": 3,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": true,
+          "scale": 1,
+          "shown": 0
+        },
+        "matchesCarryFrame0": true
+      },
+      "locksShownCarryFrame0": true
+    },
+    "motion": {
+      "mimeType": "video/webm;codecs=vp8",
+      "durationMs": 10000,
+      "bytes": 341680,
+      "path": "/home/levi/src/hive/.botanical/shelf-study/proof-v2/motion-10s.webm"
+    }
+  },
+  "screenshots": [
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/shelf-strip-native.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-game2x-direction0.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/contacts-rowan-carry-herb-native.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/contacts-witch-runner-carry-herb-native.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/contacts-rowan-pickup-herb-native.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/contacts-witch-runner-pickup-herb-native.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/motion-10s.webm",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-native-direction0.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-game2x-direction0.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-native-direction1.png",
+    "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-game2x-direction1.png"
+  ],
+  "assertions": {
+    "shelfStages": {
+      "expected": [
+        "stakes",
+        "frame",
+        "finished",
+        "filled"
+      ],
+      "actual": [
+        "stakes",
+        "frame",
+        "finished",
+        "filled"
+      ],
+      "exact": true
+    },
+    "figureKinds": {
+      "expected": [
+        "rowan",
+        "witch-runner"
+      ],
+      "actual": [
+        "rowan",
+        "witch-runner"
+      ],
+      "exact": true
+    },
+    "figurePoses": {
+      "expected": [
+        "carry-herb",
+        "pickup-herb"
+      ],
+      "actual": {
+        "rowan": [
+          "carry-herb",
+          "pickup-herb"
+        ],
+        "witch-runner": [
+          "carry-herb",
+          "pickup-herb"
+        ]
+      },
+      "exact": true
+    },
+    "shelfDimensions": {
+      "stakes": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            67,
+            43,
+            28
+          ],
+          "pixelHash": 3383277979
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            66,
+            43,
+            28
+          ],
+          "pixelHash": 3769906401
+        }
+      ],
+      "frame": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            46,
+            43,
+            28
+          ],
+          "pixelHash": 3832913552
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            43,
+            46,
+            43,
+            28
+          ],
+          "pixelHash": 4061666173
+        }
+      ],
+      "finished": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 610177911
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 1333318167
+        }
+      ],
+      "filled": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 569745232
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": true,
+          "padding": [
+            42,
+            43,
+            42,
+            28
+          ],
+          "pixelHash": 1465465980
+        }
+      ]
+    },
+    "figureDimensions": {
+      "rowan": {
+        "carry-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1121085271
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 24438093
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                29,
+                19
+              ],
+              "pixelHash": 3475460074
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 24438093
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1121085271
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1271656006
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 2826024506
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1271656006
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                24,
+                17
+              ],
+              "pixelHash": 2949829585
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                25,
+                17
+              ],
+              "pixelHash": 1942862700
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                24,
+                17
+              ],
+              "pixelHash": 1035016564
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                25,
+                17
+              ],
+              "pixelHash": 1942862700
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                24,
+                17
+              ],
+              "pixelHash": 2949829585
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                25,
+                19
+              ],
+              "pixelHash": 558964784
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                23,
+                24,
+                19
+              ],
+              "pixelHash": 2948672951
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                25,
+                19
+              ],
+              "pixelHash": 558964784
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 272615399
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                28,
+                19
+              ],
+              "pixelHash": 3026170185
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                22,
+                28,
+                19
+              ],
+              "pixelHash": 3242482116
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                31,
+                23,
+                28,
+                19
+              ],
+              "pixelHash": 3026170185
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 272615399
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 1022497486
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                22,
+                28,
+                17
+              ],
+              "pixelHash": 1650670722
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 1022497486
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 2014708534
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                34,
+                17
+              ],
+              "pixelHash": 1158943473
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3951615086
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                34,
+                17
+              ],
+              "pixelHash": 1158943473
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 2014708534
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 2837425717
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                29,
+                19
+              ],
+              "pixelHash": 588961941
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                23,
+                31,
+                19
+              ],
+              "pixelHash": 2837425717
+            }
+          ]
+        ],
+        "pickup-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 4193215146
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3919429593
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 1608500537
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3919429593
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 4193215146
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 2622717153
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 3470831487
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                32,
+                17
+              ],
+              "pixelHash": 2622717153
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                27,
+                17
+              ],
+              "pixelHash": 1372055519
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 406221676
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                29,
+                17
+              ],
+              "pixelHash": 2562247867
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                28,
+                17
+              ],
+              "pixelHash": 406221676
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                27,
+                17
+              ],
+              "pixelHash": 1372055519
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                26,
+                17
+              ],
+              "pixelHash": 3785856762
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                26,
+                17
+              ],
+              "pixelHash": 2004044073
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                34,
+                23,
+                26,
+                17
+              ],
+              "pixelHash": 3785856762
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                27,
+                18
+              ],
+              "pixelHash": 3096160024
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 1285671052
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                29,
+                18
+              ],
+              "pixelHash": 2700596769
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                28,
+                18
+              ],
+              "pixelHash": 1285671052
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                27,
+                18
+              ],
+              "pixelHash": 3096160024
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                26,
+                18
+              ],
+              "pixelHash": 80913107
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                26,
+                18
+              ],
+              "pixelHash": 2930442895
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                32,
+                23,
+                26,
+                18
+              ],
+              "pixelHash": 80913107
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1578406339
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1343245262
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1056918069
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1343245262
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1578406339
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1761794159
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 2253673490
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                23,
+                34,
+                18
+              ],
+              "pixelHash": 1761794159
+            }
+          ]
+        ]
+      },
+      "witch-runner": {
+        "carry-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                29,
+                17
+              ],
+              "pixelHash": 3011089005
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 1403954361
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                24,
+                20
+              ],
+              "pixelHash": 1932859888
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                23,
+                19
+              ],
+              "pixelHash": 1778450909
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                23,
+                17
+              ],
+              "pixelHash": 1301985013
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                26,
+                17
+              ],
+              "pixelHash": 2232496956
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                28,
+                18
+              ],
+              "pixelHash": 2350585245
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                13,
+                30,
+                17
+              ],
+              "pixelHash": 3934724535
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                25,
+                17
+              ],
+              "pixelHash": 3532130585
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                24,
+                17
+              ],
+              "pixelHash": 3997933520
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                24,
+                18
+              ],
+              "pixelHash": 1218145934
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                17
+              ],
+              "pixelHash": 19814856
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                25,
+                17
+              ],
+              "pixelHash": 4008524600
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                19
+              ],
+              "pixelHash": 3316353467
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                20
+              ],
+              "pixelHash": 2334716414
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                24,
+                19
+              ],
+              "pixelHash": 3976869121
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 3597086792
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                27,
+                19
+              ],
+              "pixelHash": 417684339
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                14,
+                27,
+                19
+              ],
+              "pixelHash": 3257506238
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                23,
+                14,
+                27,
+                19
+              ],
+              "pixelHash": 2076864428
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                23,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 3335228768
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 3489092745
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 1635304077
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                30,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 4082941357
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                14,
+                27,
+                18
+              ],
+              "pixelHash": 180098111
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                26,
+                17
+              ],
+              "pixelHash": 2850860098
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                26,
+                17
+              ],
+              "pixelHash": 2851029162
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                17
+              ],
+              "pixelHash": 10311972
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                25,
+                14,
+                27,
+                18
+              ],
+              "pixelHash": 3483121087
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 2976503150
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 749121921
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                24,
+                13,
+                27,
+                19
+              ],
+              "pixelHash": 2670539495
+            }
+          ]
+        ],
+        "pickup-herb": [
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                30,
+                17
+              ],
+              "pixelHash": 820203695
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                17
+              ],
+              "pixelHash": 3673106904
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 1600364456
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 245538017
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                27,
+                17
+              ],
+              "pixelHash": 1991970695
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                28,
+                17
+              ],
+              "pixelHash": 3857726436
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                17
+              ],
+              "pixelHash": 3428682165
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                30,
+                17
+              ],
+              "pixelHash": 3500580431
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                27,
+                17
+              ],
+              "pixelHash": 1988384310
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                17
+              ],
+              "pixelHash": 4057791249
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                17
+              ],
+              "pixelHash": 1018885064
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                17
+              ],
+              "pixelHash": 853899761
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                27,
+                17
+              ],
+              "pixelHash": 2233911969
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                17
+              ],
+              "pixelHash": 1429534579
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                17
+              ],
+              "pixelHash": 3558688265
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                17
+              ],
+              "pixelHash": 2252665430
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                30,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 3977676707
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                28,
+                18
+              ],
+              "pixelHash": 1753983210
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                28,
+                18
+              ],
+              "pixelHash": 3811379921
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                28,
+                18
+              ],
+              "pixelHash": 1438144623
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                15,
+                27,
+                18
+              ],
+              "pixelHash": 2190714423
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                15,
+                26,
+                18
+              ],
+              "pixelHash": 726746721
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                29,
+                15,
+                26,
+                18
+              ],
+              "pixelHash": 3201804419
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                30,
+                15,
+                26,
+                18
+              ],
+              "pixelHash": 4067261252
+            }
+          ],
+          [
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 2800881007
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 504706889
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 892679601
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                28,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 1904782712
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                27,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 1648467263
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 3713629189
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 497373724
+            },
+            {
+              "width": 80,
+              "height": 80,
+              "nonempty": true,
+              "padding": [
+                26,
+                14,
+                29,
+                18
+              ],
+              "pixelHash": 3300630992
+            }
+          ]
+        ]
+      }
+    },
+    "alphaMarginsAndNonempty": true,
+    "alphaFailures": [],
+    "shelfUniqueImages": 8,
+    "shelfUniqueEnough": true,
+    "figureUniqueCounts": {
+      "rowan": {
+        "carry-herb": [
+          5,
+          5,
+          5,
+          5
+        ],
+        "pickup-herb": [
+          5,
+          5,
+          5,
+          5
+        ]
+      },
+      "witch-runner": {
+        "carry-herb": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "pickup-herb": [
+          8,
+          8,
+          8,
+          8
+        ]
+      }
+    },
+    "figureMotionUniqueEnough": true,
+    "regressions": {
+      "count": 132,
+      "equalCount": 132,
+      "failures": [],
+      "mugwortCount": 4,
+      "poseCount": 128
+    },
+    "regressionsAllTrue": true,
+    "identities": {
+      "capturedState": {
+        "playing": true,
+        "frame": 5,
+        "direction": 0,
+        "pose": "carry-herb",
+        "chosen": "rowan",
+        "standing": false,
+        "scale": 1,
+        "shown": 5
+      },
+      "shelves": [
+        {
+          "stage": "stakes",
+          "direction": 0,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.6924599083615355
+          },
+          "anchorMatchesPropAnchor": true,
+          "textureObjectMatchesStage": true,
+          "textureResourceMatchesStage": true,
+          "textureUid": 2
+        },
+        {
+          "stage": "frame",
+          "direction": 0,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.6924599083615355
+          },
+          "anchorMatchesPropAnchor": true,
+          "textureObjectMatchesStage": true,
+          "textureResourceMatchesStage": true,
+          "textureUid": 4
+        },
+        {
+          "stage": "finished",
+          "direction": 0,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.6924599083615355
+          },
+          "anchorMatchesPropAnchor": true,
+          "textureObjectMatchesStage": true,
+          "textureResourceMatchesStage": true,
+          "textureUid": 6
+        },
+        {
+          "stage": "filled",
+          "direction": 0,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.6924599083615355
+          },
+          "anchorMatchesPropAnchor": true,
+          "textureObjectMatchesStage": true,
+          "textureResourceMatchesStage": true,
+          "textureUid": 8
+        }
+      ],
+      "actors": [
+        {
+          "kind": "rowan",
+          "pose": "carry-herb",
+          "direction": 0,
+          "shown": 5,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.7522974435066674
+          },
+          "anchorMatchesPawnAnchor": true,
+          "textureObjectMatchesStage": true,
+          "textureResourceMatchesStage": true,
+          "textureUid": 15
+        },
+        {
+          "kind": "witch-runner",
+          "pose": "carry-herb",
+          "direction": 0,
+          "shown": 5,
+          "anchor": {
+            "x": 0.5,
+            "y": 0.7522974435066674
+          },
+          "anchorMatchesPawnAnchor": true,
+          "textureObjectMatchesStage": true,
+          "textureResourceMatchesStage": true,
+          "textureUid": 79
+        }
+      ]
+    },
+    "identitiesValid": true,
+    "pause": {
+      "before": {
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 1,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          15,
+          79
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "after": {
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 1,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          15,
+          79
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "frameFrozen": true,
+      "pixelsFrozen": true
+    },
+    "step": {
+      "beforeFrame": 5,
+      "afterFrame": 6,
+      "frameAdvanced": true,
+      "pixelsChanged": true
+    },
+    "turn": {
+      "observed": [
+        0,
+        1,
+        2,
+        3,
+        0
+      ],
+      "allFour": true
+    },
+    "standing": {
+      "before": {
+        "state": {
+          "playing": false,
+          "frame": 3,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": true,
+          "scale": 1,
+          "shown": 0
+        },
+        "actorTextureUids": [
+          10,
+          74
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "after": {
+        "state": {
+          "playing": false,
+          "frame": 4,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": true,
+          "scale": 1,
+          "shown": 0
+        },
+        "actorTextureUids": [
+          10,
+          74
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      "texture": {
+        "state": {
+          "playing": false,
+          "frame": 3,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": true,
+          "scale": 1,
+          "shown": 0
+        },
+        "matchesCarryFrame0": true
+      },
+      "locksShownCarryFrame0": true
+    },
+    "motionRecording": {
+      "mimeType": "video/webm;codecs=vp8",
+      "durationMs": 10000,
+      "bytes": 341680,
+      "path": "/home/levi/src/hive/.botanical/shelf-study/proof-v2/motion-10s.webm"
+    },
+    "sceneSnapshots": [
+      {
+        "name": "field-native-direction0.png",
+        "path": "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-native-direction0.png",
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 3,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 1,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          39,
+          103
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      {
+        "name": "field-game2x-direction0.png",
+        "path": "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-game2x-direction0.png",
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 3,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 2,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          39,
+          103
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      {
+        "name": "field-native-direction1.png",
+        "path": "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-native-direction1.png",
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 1,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          15,
+          79
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      },
+      {
+        "name": "field-game2x-direction1.png",
+        "path": "/home/levi/src/hive/.botanical/shelf-study/proof-v2/field-game2x-direction1.png",
+        "state": {
+          "playing": false,
+          "frame": 5,
+          "direction": 0,
+          "pose": "carry-herb",
+          "chosen": "rowan",
+          "standing": false,
+          "scale": 2,
+          "shown": 5
+        },
+        "actorTextureUids": [
+          15,
+          79
+        ],
+        "actorTextureKinds": [
+          80,
+          80
+        ]
+      }
+    ],
+    "browserErrors": []
+  },
+  "errors": []
+}

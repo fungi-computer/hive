@@ -1,0 +1,74 @@
+{
+  "mode": "read-only-live-display-identity",
+  "url": "http://127.0.0.1:5207/",
+  "scriptSha256": "4d917f02c8d2be5d92d2cf7930b5af26a1cac4b67c5580af1b130c4d8d4d0653",
+  "point": {
+    "x": 678,
+    "y": 194
+  },
+  "errors": [],
+  "displayCandidates": [
+    {
+      "kind": "graphics",
+      "path": "world/Graphics[8]",
+      "label": "Graphics",
+      "bounds": {
+        "x": -90,
+        "y": -20,
+        "width": 1280,
+        "height": 800
+      },
+      "zIndex": 0,
+      "order": 51,
+      "target": null,
+      "texture": null
+    },
+    {
+      "kind": "sprite",
+      "path": "world/_Container[4]/_Container[5]/Sprite[1]",
+      "label": "Sprite",
+      "bounds": {
+        "x": 566,
+        "y": 169,
+        "width": 224,
+        "height": 224
+      },
+      "zIndex": 0,
+      "order": 21,
+      "target": null,
+      "texture": {
+        "uid": 851,
+        "width": 112,
+        "height": 112,
+        "sourceUid": 851,
+        "sourceWidth": 112,
+        "sourceHeight": 112
+      }
+    },
+    {
+      "kind": "sprite",
+      "path": "world/Sprite[0]",
+      "label": "Sprite",
+      "bounds": {
+        "x": -90,
+        "y": -20,
+        "width": 1280,
+        "height": 800
+      },
+      "zIndex": 0,
+      "order": 1,
+      "target": null,
+      "texture": {
+        "uid": 2,
+        "width": 640,
+        "height": 400,
+        "sourceUid": 2,
+        "sourceWidth": 640,
+        "sourceHeight": 400
+      }
+    }
+  ],
+  "screenshots": [
+    "fresh-display-point.png"
+  ]
+}

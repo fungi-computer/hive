@@ -1,0 +1,47 @@
+{
+  "endpoint": "http://127.0.0.1:8801",
+  "origin": "https://professor-findlaw-looks-atlas.trycloudflare.com",
+  "startedAt": "2026-09-20T11:46:09.633Z",
+  "http": [
+    {
+      "path": "observe",
+      "method": "GET",
+      "atMs": 3
+    },
+    {
+      "path": "command",
+      "method": "POST",
+      "atMs": 488
+    },
+    {
+      "path": "observe",
+      "method": "GET",
+      "atMs": 737
+    },
+    {
+      "path": "connect",
+      "method": "GET",
+      "atMs": 813
+    }
+  ],
+  "events": [
+    {
+      "socket": 1,
+      "atMs": 883,
+      "bytes": 50,
+      "type": "ready"
+    },
+    {
+      "socket": 1,
+      "atMs": 893,
+      "bytes": 511788,
+      "type": "observation"
+    }
+  ],
+  "requests": [],
+  "checks": [],
+  "success": false,
+  "driverSha256": "3f8d4d66033b0f4bfde1b00af67a8165b354999e3b3018294449d2ecaa734543",
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nundefined !== 4\n",
+  "finishedAt": "2026-09-20T11:46:10.532Z"
+}

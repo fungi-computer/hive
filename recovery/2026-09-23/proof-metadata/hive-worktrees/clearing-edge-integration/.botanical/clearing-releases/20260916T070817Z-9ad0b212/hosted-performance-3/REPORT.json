@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "url": "https://clearing-9ad0b212-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance?size=128&workers=100",
+  "samples": 9,
+  "medianMs": 18,
+  "p95Ms": 293.2999999523163,
+  "woodOutput": 0,
+  "routeRequests": 0,
+  "assignmentCost": null,
+  "snapshot": "2562266 B",
+  "wire": "2,739,917 B",
+  "canvas": {
+    "width": 846,
+    "height": 866
+  },
+  "errors": []
+}

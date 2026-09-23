@@ -1,0 +1,41 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "errors": [],
+  "first": {
+    "x": 688,
+    "y": 410
+  },
+  "beforeHover": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": "wall",
+    "phase": "ready",
+    "gesture": null,
+    "hoverCell": null
+  },
+  "afterHover": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": "wall",
+    "phase": "ready",
+    "gesture": null,
+    "hoverCell": {
+      "x": 4,
+      "z": 5,
+      "level": 0
+    }
+  },
+  "success": true
+}

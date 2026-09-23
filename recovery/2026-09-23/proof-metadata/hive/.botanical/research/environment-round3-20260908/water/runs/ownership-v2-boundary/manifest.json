@@ -1,0 +1,97 @@
+{
+  "stamp": "ownership-v2",
+  "hashes": {
+    "candidate.mjs": "f12c2cd1d00da9722458a320f2854d9fad7a1c18a53141113c8d285dde81c966",
+    "admission.mjs": "d20105704b7981792fa6e369605abacc7faeb489c5b3d232af1a614671ae008a",
+    "boundary-proof.mjs": "2be7035805063e5605a57457b99fedfe831ba6c4b5789ea1a99a794e2fd86963",
+    "fixtures.mjs": "d7f53ed6e01fd3c27fabe0f4d5695fc0658a6efb691649f740c9636a7b72c416",
+    "BOUNDARY-PREDECLARED.md": "ae1dd2567d69491cd08506133cc045c2e194e2a0b37762d41d87d839e8dd129c",
+    "wetReference": "5d91cdbcf6d840481892fc4c41159e1d1da299a5a52d14ba76cfdc69261b24d5"
+  },
+  "node": "v24.20.0",
+  "outcomes": [
+    {
+      "name": "corrupt-admission",
+      "status": "passed",
+      "elapsedMs": 171.159883,
+      "rejectedStates": [
+        "reordered-face-array",
+        "duplicate-face-id",
+        "wrong-endpoint",
+        "wrong-axis",
+        "wrong-stencil",
+        "wrong-lookup",
+        "open-outer-wall",
+        "negative-spacing",
+        "mismatched-area",
+        "mismatched-length",
+        "bad-grid-size",
+        "fractional-revision",
+        "unknown-revision",
+        "bed-nan",
+        "bad-solid-bit",
+        "unknown-region",
+        "negative-volume",
+        "infinite-volume",
+        "infinite-momentum",
+        "dry-momentum",
+        "solid-volume",
+        "short-history",
+        "nonfinite-discharge",
+        "closed-face-discharge",
+        "wrong-stock-ledger",
+        "clock-step-mismatch",
+        "negative-clock",
+        "wrong-gate-history",
+        "unknown-field"
+      ],
+      "rejectedOptions": 3
+    },
+    {
+      "name": "private-input-borrowed-view-and-retained-checkpoint",
+      "status": "passed",
+      "elapsedMs": 36.993526,
+      "inputIndependent": true,
+      "checkpointGeometryAndHistoryIndependent": true,
+      "viewsReadOnly": true,
+      "retainedAcrossLaterSteps": true
+    },
+    {
+      "name": "replacement-is-not-arbitrary-geometry-edit",
+      "status": "passed",
+      "elapsedMs": 67.872228,
+      "invalidReplacementAtomic": true,
+      "sameGeometryCheckpointRestoreExact": true
+    },
+    {
+      "name": "owned-supported-edits",
+      "status": "passed",
+      "elapsedMs": 75.22967599999998,
+      "exactReferenceEdits": true,
+      "everyVolumePreserved": true,
+      "repeatedEditsIdempotent": true,
+      "arbitraryEditsRejected": true
+    },
+    {
+      "name": "wet-reference-continuation-and-history",
+      "status": "passed",
+      "elapsedMs": 647.083586,
+      "intervals": 100,
+      "completeStateReceiptsDiagnosticsExact": true,
+      "restartExact": true,
+      "withdrawnDuringContinuation": 0.30000000000001137,
+      "qDiscardHasNoEffect": true,
+      "lostHistoryL1": 0.05448518531520505
+    },
+    {
+      "name": "rejection-retry-and-step-allocation",
+      "status": "passed",
+      "elapsedMs": 10.896614,
+      "rejectedCalls": 4,
+      "canonicalStateUnchanged": true,
+      "exactRetry": true,
+      "typedArraysDuringStep": 0,
+      "typedBytesDuringStep": 0
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/upstairs-bedroom-final12-20260907",
+  "frozenTarget": {
+    "buildCommit": "ae64fa8",
+    "runtimeSourceCommit": "ae64fa8",
+    "localAssets": {
+      "gameJs": "assets/game-Blm7Frw2.js",
+      "gameCss": "assets/game-CvQe2sTu.css",
+      "artJs": "assets/art-Ci6kLFIF.js"
+    },
+    "localHashes": {
+      "index": "faf51dff03c90f1f65dea52f9983cca413e10d78e80691a4a1099d21abadc6ed",
+      "gameJs": "b42428b06a4e9799c5f6c818d8a75e792d8e33af7d749b48503d8f2550400482",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "d1427348997d559d580a835e9132cd2bbc85da15def3373dbb3f1985e247ab56"
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-Blm7Frw2.js",
+      "gameCss": "assets/game-CvQe2sTu.css",
+      "artJs": "assets/art-Ci6kLFIF.js"
+    },
+    "hashes": {
+      "index": "faf51dff03c90f1f65dea52f9983cca413e10d78e80691a4a1099d21abadc6ed",
+      "gameJs": "b42428b06a4e9799c5f6c818d8a75e792d8e33af7d749b48503d8f2550400482",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "d1427348997d559d580a835e9132cd2bbc85da15def3373dbb3f1985e247ab56"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "4ba16d82de64171e921bd3f01546f28f6746d6eed4b8811210cfb2889b5dd0e7",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused upstairs bedroom browser proof"
+  },
+  "screenshots": [
+    "normal-earned-48-oak.png",
+    "normal-floor-work-from-below.png",
+    "normal-upstairs-traversal-carry.png"
+  ],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "claims": {
+    "newClearing": {
+      "paused": true,
+      "tick": 0,
+      "physicalWood": 0,
+      "homeMembers": [
+        "rowan"
+      ]
+    },
+    "recruit": {
+      "visibleSedge": true,
+      "homeMembers": [
+        "rowan",
+        "sedge"
+      ]
+    },
+    "earnedOak": {
+      "felled": 8,
+      "generatedWood": 48,
+      "physicalWood": 48,
+      "freeStock": false
+    },
+    "levelSwitchCancelsStroke": {
+      "toolPersists": true,
+      "phase": "ready",
+      "straySites": 0,
+      "strayJobs": 0
+    },
+    "floorBeforeStair": {
+      "actor": "rowan",
+      "actorLevel": 0,
+      "task": "deliver",
+      "stairSites": 0
+    },
+    "supportAdmissionParking": {
+      "rowan": {
+        "x": 3,
+        "z": 11,
+        "drafted": false
+      },
+      "sedge": {
+        "x": 10,
+        "z": 10,
+        "drafted": false
+      },
+      "catPath": [
+        {
+          "x": 9,
+          "z": 10,
+          "level": 0
+        },
+        {
+          "x": 9,
+          "z": 11,
+          "level": 0
+        },
+        {
+          "x": 8,
+          "z": 11,
+          "level": 0
+        },
+        {
+          "x": 7,
+          "z": 11,
+          "level": 0
+        },
+        {
+          "x": 6,
+          "z": 11,
+          "level": 0
+        },
+        {
+          "x": 5,
+          "z": 11,
+          "level": 0
+        },
+        {
+          "x": 4,
+          "z": 11,
+          "level": 0
+        }
+      ],
+      "actorsReturnedToWork": true
+    },
+    "stairFootprint": {
+      "id": "site-61",
+      "lower": {
+        "x": 8,
+        "z": 2,
+        "level": 0
+      },
+      "middle": {
+        "x": 8,
+        "z": 3,
+        "level": 0
+      },
+      "upper": {
+        "x": 8,
+        "z": 4,
+        "level": 1
+      },
+      "direction": 0,
+      "cells": [
+        {
+          "x": 8,
+          "z": 2,
+          "level": 0
+        },
+        {
+          "x": 8,
+          "z": 3,
+          "level": 0
+        },
+        {
+          "x": 8,
+          "z": 4,
+          "level": 0
+        }
+      ]
+    },
+    "soleStairTraversalCarry": {
+      "actor": "rowan",
+      "actorLevel": 0,
+      "pathLevels": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "cargo": {
+        "job": "job-86",
+        "site": "site-85",
+        "amount": 1
+      }
+    },
+    "fixtureWood": {
+      "earnedWood": 48,
+      "deliveredToFixture": 40,
+      "remainingWood": 8,
+      "conservedWood": 48,
+      "exactUnitLaw": "unit tests own the 18-tick edge and conservation/corruption laws; browser records this 40-delivered/8-remaining fixture"
+    },
+    "levelScopedPicking": {
+      "groundCannotPickUpper": true,
+      "groundSelectedSite": "site-29",
+      "groundSelectedLevel": 0,
+      "upperCannotPickLower": true,
+      "upperSelectedSite": "site-85",
+      "upperSelectedLevel": 1
+    }
+  },
+  "success": false,
+  "failure": "page.waitForFunction: Timeout 45000ms exceeded.\n    at waitState (/home/levi/src/hive/scripts/prove-upstairs-bedroom.mjs:135:8)\n    at /home/levi/src/hive/scripts/prove-upstairs-bedroom.mjs:808:9"
+}

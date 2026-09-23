@@ -1,0 +1,9 @@
+{
+  "mode": "focused-real-input-station-build-display-identity",
+  "url": "http://127.0.0.1:5209/",
+  "scriptSha256": "49bf6994340aa4e62e106c1c727d41498002c61a73dd07eda3b3b46abd9ce10c",
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "failure": "page.waitForFunction: Target page, context or browser has been closed\n    at waitState (/home/levi/src/hive/scripts/prove-station-build-display-identity.mjs:101:10)\n    at /home/levi/src/hive/scripts/prove-station-build-display-identity.mjs:141:9"
+}

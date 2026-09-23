@@ -1,0 +1,39 @@
+{
+  "url": "http://127.0.0.1:5187/world-lab.html",
+  "errors": [],
+  "screenshots": [
+    "normal-1280.png",
+    "narrow-390.png"
+  ],
+  "normal": {
+    "initial": {
+      "requested": "4,096 × 4,096 cells · 8 cells/pixel",
+      "displayed": "4,096 × 4,096 cells · 8 cells/pixel",
+      "lifecycle": "showing request #1",
+      "exact": "Cell0, 0Exact terrainsurface-waterBed level8 · 4.32 mSea datum12"
+    },
+    "named": {
+      "requested": "4,096 × 4,096 cells · 8 cells/pixel",
+      "displayed": "4,096 × 4,096 cells · 8 cells/pixel",
+      "lifecycle": "sampling request #2",
+      "exact": "Cell-720, -1120Exact terrainsea-level-groundBed level12 · 6.48 mSea datum12"
+    },
+    "zoomed": {
+      "requested": "2,048 × 2,048 cells · 4 cells/pixel",
+      "displayed": "2,048 × 2,048 cells · 4 cells/pixel",
+      "lifecycle": "showing request #3",
+      "exact": "Cell-720, -1120Exact terrainsea-level-groundBed level12 · 6.48 mSea datum12"
+    },
+    "claims": [
+      "React Caps controls call the existing named-location and zoom controller methods",
+      "requested and displayed scale are separately visible and converge after the existing worker result",
+      "selected exact cell remains a one-cell sampler readout"
+    ]
+  },
+  "narrow": {
+    "viewport": "390x844",
+    "controlsReachable": true,
+    "horizontalOverflow": false
+  },
+  "success": true
+}

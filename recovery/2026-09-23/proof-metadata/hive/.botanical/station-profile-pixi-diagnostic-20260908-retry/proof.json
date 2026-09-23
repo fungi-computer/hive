@@ -1,0 +1,4 @@
+{
+  "errors": [],
+  "failure": "Error: page.evaluate: TypeError: Cannot read properties of undefined (reading 'visible')\n    at WebGLRenderer.render (http://127.0.0.1:5191/node_modules/pixi.js/dist/pixi.mjs:20264:28)\n    at GenerateTextureSystem.generateTexture (http://127.0.0.1:5191/node_modules/pixi.js/dist/pixi.mjs:46541:20)\n    at _ExtractSystem.pixels (http://127.0.0.1:5191/node_modules/pixi.js/dist/pixi.mjs:46210:84)\n    at eval (eval at evaluate (:311:30), <anonymous>:34:47)\n    at Array.forEach (<anonymous>)\n    at eval (eval at evaluate (:311:30), <anonymous>:24:11)\n    at async <anonymous>:337:30"
+}

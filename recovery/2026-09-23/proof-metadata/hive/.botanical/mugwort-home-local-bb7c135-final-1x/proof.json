@@ -1,0 +1,363 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/mugwort-home-local-bb7c135-final-1x",
+  "frozenTarget": {
+    "source": "bb7c135f",
+    "local": {
+      "assets": {
+        "gameJs": "assets/game-Dzd4qadi.js",
+        "gameCss": "assets/game-CxFQJg3g.css",
+        "artJs": "assets/art-BZ4FxRqi.js"
+      },
+      "hashes": {
+        "index": "faa725db6110a14cbb0139ea1ae10da180cc7b176b18e27d2cadaad89bab1101",
+        "gameJs": "0f70af4bf919257a198e2d7ed653fe55ad517c154ed93e37d80b5c08eca2b792",
+        "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+        "artJs": "3db8740af8a882feacc52979b8eaf654daed078303c5c7d5383e1f2001f4bed2"
+      }
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-Dzd4qadi.js",
+      "gameCss": "assets/game-CxFQJg3g.css",
+      "artJs": "assets/art-BZ4FxRqi.js"
+    },
+    "hashes": {
+      "index": "faa725db6110a14cbb0139ea1ae10da180cc7b176b18e27d2cadaad89bab1101",
+      "gameJs": "0f70af4bf919257a198e2d7ed653fe55ad517c154ed93e37d80b5c08eca2b792",
+      "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+      "artJs": "3db8740af8a882feacc52979b8eaf654daed078303c5c7d5383e1f2001f4bed2"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "9550c38fc83771629d1d1e73e81f5d789cf7a929f5c53f4a2b0836cf08875c56",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused mugwort UI/input proof"
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-ordered-plant.png",
+    "normal-garden-paused.png",
+    "normal-sow-travel.png",
+    "normal-sow-working.png",
+    "normal-stage-planted.png",
+    "normal-stage-growing.png",
+    "normal-stage-ready.png"
+  ],
+  "claims": {
+    "toolCancel": {
+      "rightClickExitsWithoutCommand": true,
+      "freshPlantStillWorks": true
+    },
+    "pausedReload": {
+      "exactFacts": true,
+      "gardenRowanAllowed": false,
+      "orderedWork": 0
+    },
+    "sow": {
+      "rowanAssigned": true,
+      "sharedJob": true,
+      "speed": 4
+    },
+    "nonReadyInspection": {
+      "stage": "planted",
+      "harvestAbsent": true
+    },
+    "fixedStages": {
+      "observed": [
+        "planted",
+        "growing",
+        "ready"
+      ],
+      "thresholds": {
+        "sowWork20": 20,
+        "growthElapsed80": 80,
+        "readyElapsed240": 240,
+        "harvestWork20": 20
+      }
+    },
+    "harvestClickDiagnostic": {
+      "geometry": {
+        "rect": {
+          "left": 667,
+          "top": 299.5,
+          "right": 869,
+          "bottom": 339.5,
+          "width": 202,
+          "height": 40
+        },
+        "center": {
+          "x": 768,
+          "y": 319.5
+        },
+        "hit": {
+          "id": "harvest-herb",
+          "tag": "BUTTON",
+          "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+        },
+        "hitIsButton": true,
+        "connected": true
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "target": {
+            "id": "harvest-herb",
+            "tag": "BUTTON",
+            "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+          },
+          "path": [
+            {
+              "id": "harvest-herb",
+              "tag": "BUTTON",
+              "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+            },
+            {
+              "id": null,
+              "tag": "DIV",
+              "className": "card border border-base-300 bg-base-100 text-base-content window target-window"
+            },
+            {
+              "id": "hud",
+              "tag": "DIV",
+              "className": null
+            },
+            {
+              "id": "game",
+              "tag": "MAIN",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "BODY",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "HTML",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "#document",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": null,
+              "className": null
+            }
+          ]
+        },
+        {
+          "type": "pointerup",
+          "target": {
+            "id": "harvest-herb",
+            "tag": "BUTTON",
+            "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+          },
+          "path": [
+            {
+              "id": "harvest-herb",
+              "tag": "BUTTON",
+              "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+            },
+            {
+              "id": null,
+              "tag": "DIV",
+              "className": "card border border-base-300 bg-base-100 text-base-content window target-window"
+            },
+            {
+              "id": "hud",
+              "tag": "DIV",
+              "className": null
+            },
+            {
+              "id": "game",
+              "tag": "MAIN",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "BODY",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "HTML",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "#document",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": null,
+              "className": null
+            }
+          ]
+        },
+        {
+          "type": "click",
+          "target": {
+            "id": "harvest-herb",
+            "tag": "BUTTON",
+            "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+          },
+          "path": [
+            {
+              "id": "harvest-herb",
+              "tag": "BUTTON",
+              "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md"
+            },
+            {
+              "id": null,
+              "tag": "DIV",
+              "className": "card border border-base-300 bg-base-100 text-base-content window target-window"
+            },
+            {
+              "id": "hud",
+              "tag": "DIV",
+              "className": null
+            },
+            {
+              "id": "game",
+              "tag": "MAIN",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "BODY",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "HTML",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": "#document",
+              "className": null
+            },
+            {
+              "id": null,
+              "tag": null,
+              "className": null
+            }
+          ]
+        }
+      ],
+      "button": {
+        "disabled": true,
+        "aria": "Harvest queued",
+        "connected": true
+      },
+      "notice": "Paused · Mugwort harvest ordered.",
+      "selection": {
+        "selectedIds": [],
+        "inspectedTarget": {
+          "kind": "herb",
+          "id": "herb-1",
+          "point": {
+            "x": 640,
+            "y": 196
+          }
+        },
+        "tree": null,
+        "herb": "herb-1",
+        "site": null,
+        "context": {
+          "x": 640,
+          "y": 196
+        },
+        "designationTargetIds": [],
+        "cutaway": true,
+        "panMode": false,
+        "direction": 0,
+        "tool": null,
+        "phase": "idle",
+        "gesture": null,
+        "hoverCell": null
+      },
+      "paused": true,
+      "matchingJobs": [
+        {
+          "id": "job-3",
+          "kind": "harvest",
+          "target": "herb-1",
+          "scope": {
+            "party": "home",
+            "actors": null
+          },
+          "reason": "Ordered",
+          "routine": false
+        }
+      ],
+      "matchingCommands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "harvest",
+          "herb": "herb-1",
+          "tick": 496
+        }
+      ],
+      "herb": {
+        "x": 0,
+        "z": 0,
+        "level": 0,
+        "id": "herb-1",
+        "kind": "mugwort",
+        "stage": "ready",
+        "work": 0,
+        "plantedAt": 141
+      },
+      "bundles": [],
+      "tick": 496
+    },
+    "pausedHarvestAdmission": {
+      "target": "herb-1",
+      "party": "home",
+      "actors": null,
+      "herbReady": true,
+      "bundles": 0,
+      "commandRecorded": true,
+      "tick": 496
+    }
+  },
+  "exit": 1,
+  "failure": {
+    "name": "AssertionError",
+    "message": "paused harvest capture must show partial work",
+    "stack": "AssertionError [ERR_ASSERTION]: paused harvest capture must show partial work\n    at file:///home/levi/src/hive/scripts/prove-mugwort.mjs:425:10"
+  },
+  "failureSnapshot": {
+    "actor": {
+      "mode": "idle",
+      "task": null,
+      "x": 1,
+      "z": 0,
+      "work": 0
+    },
+    "matchingJob": null,
+    "herb": null,
+    "bundles": [
+      {
+        "id": "herb-bundle-4",
+        "kind": "mugwort",
+        "amount": 1,
+        "x": 0,
+        "z": 0,
+        "level": 0
+      }
+    ],
+    "workDirty": false,
+    "tick": 529
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": "/home/levi/src/hive/.botanical/structure-hit-go-final-20260908",
+  "frozenTarget": {
+    "sourceCommit": "32cd423",
+    "expectedNames": {
+      "gameJs": "game-Da9L3nkd.js",
+      "gameCss": "game-CvQe2sTu.css",
+      "artJs": "art-Nx9QtN6s.js"
+    },
+    "expectedHashes": {
+      "index": "7e663e596bce790a4d1f0a4975a5bcbf4220e2e2840051e718f7f1d79f9841fb",
+      "gameJs": "ccb6dd72dd1034d01256c7d33eeff835cb7b2e9cd426930e2c3332868440ece0",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "4b1fd019e9478a70544c935cdd241ab74e92c00dd002164bb1d897d0b768e9a0"
+    }
+  },
+  "localHashes": {
+    "index": "7e663e596bce790a4d1f0a4975a5bcbf4220e2e2840051e718f7f1d79f9841fb",
+    "gameJs": "ccb6dd72dd1034d01256c7d33eeff835cb7b2e9cd426930e2c3332868440ece0",
+    "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+    "artJs": "4b1fd019e9478a70544c935cdd241ab74e92c00dd002164bb1d897d0b768e9a0"
+  },
+  "servedHashes": {
+    "index": "7e663e596bce790a4d1f0a4975a5bcbf4220e2e2840051e718f7f1d79f9841fb",
+    "gameJs": "ccb6dd72dd1034d01256c7d33eeff835cb7b2e9cd426930e2c3332868440ece0",
+    "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+    "artJs": "4b1fd019e9478a70544c935cdd241ab74e92c00dd002164bb1d897d0b768e9a0"
+  },
+  "scriptSha256": "b3075753c837245c5950d77937a24a4c8bd0cda453c7f418faec0ccf0ae8be63",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "expectedDuration": "short focused run; no upstairs fixture",
+    "scope": "one ground wall silhouette/padding proof plus armed right-click cancellation"
+  },
+  "screenshots": [],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "claims": {},
+  "success": false,
+  "failure": "Error: Too many arguments. If you need to pass more than 1 argument to the function wrap them in an object.\n    at assertEvaluateOptions (/home/levi/src/hive/node_modules/playwright-core/lib/coreBundle.js:57776:11)\n    at _Frame.evaluate (/home/levi/src/hive/node_modules/playwright-core/lib/coreBundle.js:60409:9)\n    at _Page.evaluate (/home/levi/src/hive/node_modules/playwright-core/lib/coreBundle.js:61718:38)\n    at project (file:///home/levi/src/hive/scripts/prove-structure-hit-go.mjs:78:8)\n    at clickCell (file:///home/levi/src/hive/scripts/prove-structure-hit-go.mjs:85:23)\n    at file:///home/levi/src/hive/scripts/prove-structure-hit-go.mjs:290:9"
+}

@@ -1,0 +1,36 @@
+{
+  "revision": "d588e5fd80c5f3adc06cd1d0a176477fdb11e3f9",
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "errors": [],
+  "claims": {
+    "narrow": {
+      "level": 0,
+      "targetBottom": 401,
+      "railTop": 405,
+      "overlap": 0,
+      "targetClientHeight": 202,
+      "targetScrollHeight": 235
+    },
+    "midStroke": {
+      "before": {
+        "tick": 0,
+        "sites": 0,
+        "jobs": 0
+      },
+      "after": {
+        "tick": 0,
+        "sites": 0,
+        "jobs": 0,
+        "level": 1,
+        "tool": "wall",
+        "phase": "ready"
+      }
+    },
+    "incompatible": {
+      "level": 0,
+      "tool": null,
+      "notice": "Paused · Ground selected; the armed tool was disarmed because it is unavailable on this level."
+    }
+  },
+  "success": true
+}

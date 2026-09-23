@@ -1,0 +1,11 @@
+{
+  "url": "http://127.0.0.1:5187/",
+  "errors": [],
+  "screenshots": [
+    "01-visible-visitor.png",
+    "02-sedge-recruited.png",
+    "failure.png"
+  ],
+  "success": false,
+  "failure": "page.evaluate: DataCloneError: Failed to execute 'structuredClone' on 'Window': function assign2(_args, _params) {\n    {\n      throw new Error(`This isn't supposed to be called`);\n    }\n  } could not be cloned.\n    at get selection (http://127.0.0.1:5187/src/main.js?t=1788772556739:478:14)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:23)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at ui (/home/levi/src/hive/scripts/prove-two-person.mjs:31:23)\n    at /home/levi/src/hive/scripts/prove-two-person.mjs:88:27"
+}

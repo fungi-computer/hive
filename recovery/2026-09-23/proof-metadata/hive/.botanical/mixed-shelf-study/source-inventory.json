@@ -1,0 +1,9 @@
+{
+  "candidate": {
+    "mixed-shelf-study.html": "e80a387df243ef6cf5f3af2e7fb8f9d8cebc4eac79b0cdc8dc912ba7a78959d0",
+    "src/art/mixed-shelf.js": "e9652c323f9423b2508befcba434fdb675e83b9ead212aeb06722f19bfffbfbb",
+    "src/studies/mixed-shelf/main.js": "b8d29198847b707d1e5e67965f315a6e2e1210d9e4bc9ec3cf59859603398c41",
+    "src/studies/mixed-shelf/style.css": "080fe4885a187fc09f0cf016ae323118a47d4bb6265800ed7534957fc95d577a"
+  },
+  "patch_sha256": "cc718870e812779e9b649844536bc637b795f113cfdb42bb198fb39730824bad"
+}

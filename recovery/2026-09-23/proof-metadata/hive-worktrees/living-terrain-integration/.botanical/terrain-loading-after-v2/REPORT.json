@@ -1,0 +1,33 @@
+{
+  "proof": "cold-terrain-loading",
+  "url": "https://professor-findlaw-looks-atlas.trycloudflare.com/engine/colony-performance.html?size=256&workers=8&diagnostics=draw",
+  "mode": "after",
+  "startedAt": "2026-09-20T11:49:03.778Z",
+  "driverSha256": "4d93dd9d4124c33a587f20d4b7061c51c4890ed481961458933e92b2ce1fe227",
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "sampling": "35 terrain ray picks plus projected side-face polygon tests across visible canvas, excluding HUD footer. Useful ground means center plus at least nine hits. Complete visible means all35 samples; exact owner completeness recorded separately when exposed.",
+  "cases": [
+    {
+      "name": "stationary",
+      "milestones": {},
+      "samples": [],
+      "httpTerrain": [],
+      "wsFrames": [],
+      "wsRequests": [],
+      "browserWorkers": [],
+      "errors": [
+        "browserType.launch: Target page, context or browser has been closed\nBrowser logs:\n\n<launching> /home/levi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/tmp/playwright_chromiumdev_profile-WILsqD --remote-debugging-pipe --no-startup-window\n<launched> pid=2318383\n[pid=2318383][err] /home/levi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory\nCall log:\n\u001b[2m  - <launching> /home/levi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --no-sandbox --enable-unsafe-swiftshader --user-data-dir=/tmp/playwright_chromiumdev_profile-WILsqD --remote-debugging-pipe --no-startup-window\u001b[22m\n\u001b[2m  - <launched> pid=2318383\u001b[22m\n\u001b[2m  - [pid=2318383][err] /home/levi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell: error while loading shared libraries: libnspr4.so: cannot open shared object file: No such file or directory\u001b[22m\n\u001b[2m  - [pid=2318383] <gracefully close start>\u001b[22m\n\u001b[2m  - [pid=2318383] <kill>\u001b[22m\n\u001b[2m  - [pid=2318383] <will force kill>\u001b[22m\n\u001b[2m  - [pid=2318383] exception while trying to kill process: Error: kill ESRCH\u001b[22m\n\u001b[2m  - [pid=2318383] <process did exit: exitCode=127, signal=null>\u001b[22m\n\u001b[2m  - [pid=2318383] starting temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=2318383] finished temporary directories cleanup\u001b[22m\n\u001b[2m  - [pid=2318383] <gracefully close end>\u001b[22m\n\n    at runCase (/home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/terrain-loading-browser-proof.mjs:21:26)\n    at /home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/terrain-loading-browser-proof.mjs:85:75"
+      ],
+      "captureErrors": [],
+      "networkFailures": [],
+      "screenshots": [],
+      "success": false,
+      "finishedAt": "2026-09-20T11:49:03.800Z"
+    }
+  ],
+  "success": false,
+  "finishedAt": "2026-09-20T11:49:03.801Z"
+}

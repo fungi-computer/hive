@@ -1,0 +1,343 @@
+{
+  "mode": "local-served-mugwort-establishment",
+  "base": "http://127.0.0.1:5202",
+  "errors": [],
+  "screenshots": [],
+  "claims": {
+    "targetOnlyAdmission": {
+      "herb": "herb-2",
+      "sharedActors": null,
+      "tick": 210
+    }
+  },
+  "failure": {
+    "message": "page.waitForFunction: Timeout 45000ms exceeded.",
+    "stack": "page.waitForFunction: Timeout 45000ms exceeded.\n    at waitState (/home/levi/src/hive/scripts/prove-mugwort-establishment.mjs:84:10)\n    at /home/levi/src/hive/scripts/prove-mugwort-establishment.mjs:173:9",
+    "state": {
+      "seed": 42,
+      "tick": 723,
+      "paused": false,
+      "nextId": 4,
+      "actors": {
+        "rowan": {
+          "x": 1,
+          "z": 0,
+          "level": 0,
+          "dir": 3,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "id": "rowan",
+          "name": "Rowan",
+          "figure": "rowan",
+          "drafted": false,
+          "rest": 71.32399999999967,
+          "routine": false,
+          "allowedWork": {
+            "chop": true,
+            "haul": true,
+            "build": true,
+            "garden": true,
+            "craft": true
+          },
+          "task": null,
+          "assignment": null
+        },
+        "sedge": {
+          "x": 10,
+          "z": 12,
+          "level": 0,
+          "dir": 0,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "id": "sedge",
+          "name": "Sedge",
+          "figure": "witch-runner",
+          "drafted": false,
+          "rest": 80,
+          "routine": false,
+          "allowedWork": {
+            "chop": true,
+            "haul": true,
+            "build": true,
+            "garden": true,
+            "craft": true
+          },
+          "task": null,
+          "assignment": null
+        }
+      },
+      "parties": {
+        "home": {
+          "id": "home",
+          "members": [
+            "rowan"
+          ]
+        }
+      },
+      "cat": {
+        "x": 2,
+        "z": 0,
+        "level": 0,
+        "dir": 1,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "nextMove": 800
+      },
+      "trees": [
+        {
+          "id": "oak-1",
+          "x": 3,
+          "z": 4,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-2",
+          "x": 10,
+          "z": 3,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-3",
+          "x": 3,
+          "z": 9,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-4",
+          "x": 11,
+          "z": 10,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-5",
+          "x": 6,
+          "z": 2,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-6",
+          "x": 1,
+          "z": 6,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-7",
+          "x": 6,
+          "z": 12,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-8",
+          "x": 12,
+          "z": 6,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        }
+      ],
+      "herbs": [
+        {
+          "id": "herb-2",
+          "kind": "mugwort",
+          "x": 0,
+          "z": 0,
+          "level": 0,
+          "stage": "planted",
+          "work": 0,
+          "establishment": null,
+          "plantedAt": 143
+        }
+      ],
+      "materials": {
+        "lots": [
+          {
+            "id": "source-lot:feature:spring",
+            "material": "water",
+            "quantity": 8,
+            "location": {
+              "kind": "container",
+              "container": "source:feature:spring"
+            }
+          },
+          {
+            "id": "source-lot:feature:reclaimed-timber-cache",
+            "material": "wood",
+            "quantity": 10,
+            "location": {
+              "kind": "container",
+              "container": "source:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-pail-lot:feature:reclaimed-timber-cache",
+            "material": "pail",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "source-pail:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-malt-lot:feature:reclaimed-timber-cache",
+            "material": "malt",
+            "quantity": 4,
+            "location": {
+              "kind": "container",
+              "container": "source-supplies:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-barm-lot:feature:reclaimed-timber-cache",
+            "material": "barm",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "source-supplies:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-keg-lot:feature:reclaimed-timber-cache",
+            "material": "keg",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "source-supplies:feature:reclaimed-timber-cache"
+            }
+          }
+        ],
+        "transfers": [],
+        "bindings": [],
+        "transformations": [],
+        "consumptions": [],
+        "sinks": [],
+        "embedded": [],
+        "nextLotId": 1,
+        "consumedWood": 0
+      },
+      "sources": [
+        {
+          "id": "feature:spring",
+          "kind": "spring",
+          "access": "open",
+          "x": 13,
+          "z": 13,
+          "level": 0
+        },
+        {
+          "id": "feature:reclaimed-timber-cache",
+          "kind": "reclaimed-timber-cache",
+          "access": "sealed",
+          "repaired": false,
+          "x": 1,
+          "z": 13,
+          "level": 0
+        }
+      ],
+      "pendingSources": [],
+      "operations": [],
+      "processes": [],
+      "rocks": [
+        {
+          "x": 1,
+          "z": 1,
+          "level": 0
+        },
+        {
+          "x": 13,
+          "z": 12,
+          "level": 0
+        },
+        {
+          "x": 2,
+          "z": 13,
+          "level": 0
+        },
+        {
+          "x": 12,
+          "z": 1,
+          "level": 0
+        }
+      ],
+      "watcher": {
+        "x": 13,
+        "z": 2,
+        "level": 0
+      },
+      "sites": [],
+      "jobs": [
+        {
+          "id": "job-3",
+          "kind": "water-mugwort",
+          "target": "herb-2",
+          "scope": {
+            "party": "home",
+            "actors": null
+          },
+          "reason": "Waiting for the recoverable pail",
+          "routine": false
+        }
+      ],
+      "workDirty": false,
+      "felled": 0,
+      "finishedJobs": 1,
+      "rested": 0,
+      "harvestedHerbs": 0,
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "sow",
+          "x": 0,
+          "z": 0,
+          "level": 0,
+          "tick": 26
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "water-mugwort",
+          "herb": "herb-2",
+          "tick": 210
+        }
+      ],
+      "feed": {
+        "seed": 42,
+        "sequence": 1,
+        "nextAt": 50,
+        "last": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        }
+      },
+      "demand": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      },
+      "notice": "A borrowed axe. No home. Bramble seems optimistic."
+    }
+  }
+}

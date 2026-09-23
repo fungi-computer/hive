@@ -1,0 +1,44 @@
+{
+  "group": "work",
+  "files": [
+    "engine/src/sdk/behavior.test.ts",
+    "engine/src/sdk/work-attempt.test.ts",
+    "engine/src/games/colony-brewing.test.ts",
+    "engine/src/games/colony-dig-command.test.ts",
+    "engine/src/games/colony-excavation.test.ts",
+    "engine/src/games/colony-mugwort-command.test.ts",
+    "engine/src/games/colony-stockpile.test.ts",
+    "engine/src/games/colony-trees.test.ts",
+    "engine/src/games/colony-work.test.ts",
+    "engine/src/runtime/colony-environment-recovery.test.ts",
+    "engine/src/runtime/colony-work-contact.test.ts",
+    "engine/src/runtime/colony-work-route-recovery.test.ts",
+    "engine/src/runtime/physical-contact-query.test.ts",
+    "engine/src/runtime/work-activity.test.ts",
+    "engine/src/games/survival-behavior.test.ts",
+    "engine/src/games/formations-behavior.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/behavior.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/work-attempt.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-brewing.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-dig-command.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-excavation.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-mugwort-command.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-stockpile.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-trees.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-work.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-environment-recovery.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-work-contact.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/colony-work-route-recovery.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/physical-contact-query.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/work-activity.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/survival-behavior.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/work/formations-behavior.test.mjs"
+  ],
+  "exit": 0
+}

@@ -1,0 +1,4 @@
+{
+  "errors": [],
+  "failure": "Error: page.evaluate: Error: Vite did not resolve Pixi for art.js\n    at eval (eval at evaluate (:311:30), <anonymous>:7:28)\n    at async <anonymous>:337:30"
+}

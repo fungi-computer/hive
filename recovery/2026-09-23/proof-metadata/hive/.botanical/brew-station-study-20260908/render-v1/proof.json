@@ -1,0 +1,283 @@
+{
+  "source": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-supplies-study-20260908/props.js": "615d7b596b225a36b577e48b58f55c5045fc4b735e25a0d06f5da80f85ef8563",
+    ".botanical/brew-station-study-20260908/station.js": "fc1f582e774dad8ee2763531be82e512adad1287f18cdf7f9504b94d8319b347",
+    ".botanical/brew-station-study-20260908/study.js": "40270ee77220dd9abc43974a4fa6aa772628b3cbc37a7b810a51e3fa43dfbbde",
+    ".botanical/brew-station-study-20260908/index.html": "e4e3de042574fa521e681d885f77f7aed63e46a51615abf73b861d0b48e15f58",
+    ".botanical/brew-station-study-20260908/capture.mjs": "5fa340f7524fc1f0c4c8c0746aef24d29441a1eadb7145c4c7644ea91d0a17de"
+  },
+  "passed": true,
+  "errors": [],
+  "clicks": [
+    {
+      "id": "stakes-0",
+      "actual": "stakes-0"
+    },
+    {
+      "id": "stakes-1",
+      "actual": "stakes-1"
+    },
+    {
+      "id": "frame-0",
+      "actual": "frame-0"
+    },
+    {
+      "id": "frame-1",
+      "actual": "frame-1"
+    },
+    {
+      "id": "finished-0",
+      "actual": "finished-0"
+    },
+    {
+      "id": "finished-1",
+      "actual": "finished-1"
+    }
+  ],
+  "scope": "Original six-bake construction art only; no main gameplay, actor contact, save or hosted claim",
+  "report": {
+    "ready": true,
+    "lastPicked": null,
+    "rows": [
+      {
+        "id": "stakes-0",
+        "stage": "stakes",
+        "dir": 0,
+        "hash": "7f42cb217308fb6497b6659461fe7804f627a25936d9c268f90590fcadfc2186",
+        "bounds": {
+          "minX": 25,
+          "minY": 64,
+          "maxX": 86,
+          "maxY": 100,
+          "count": 473,
+          "clipped": false
+        }
+      },
+      {
+        "id": "stakes-1",
+        "stage": "stakes",
+        "dir": 1,
+        "hash": "be10014f905dbc287197782f76182e80f30fbf2b29447f3116408b934d1523ef",
+        "bounds": {
+          "minX": 25,
+          "minY": 64,
+          "maxX": 86,
+          "maxY": 100,
+          "count": 477,
+          "clipped": false
+        }
+      },
+      {
+        "id": "frame-0",
+        "stage": "frame",
+        "dir": 0,
+        "hash": "bcb73d28b47c6a2aafbe7c254ab31df8a509747800520905c8cc157860dec54f",
+        "bounds": {
+          "minX": 33,
+          "minY": 62,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1002,
+          "clipped": false
+        }
+      },
+      {
+        "id": "frame-1",
+        "stage": "frame",
+        "dir": 1,
+        "hash": "221996a78e35cceda22edf55e1ebb0e8f1502eaa4dbb45b2590a6299479a8327",
+        "bounds": {
+          "minX": 33,
+          "minY": 62,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1002,
+          "clipped": false
+        }
+      },
+      {
+        "id": "finished-0",
+        "stage": "finished",
+        "dir": 0,
+        "hash": "f2a18301a3c2f76e4f6d327ef28d0a35f607366990beb6439813bab550d6e4e1",
+        "bounds": {
+          "minX": 33,
+          "minY": 53,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1400,
+          "clipped": false
+        }
+      },
+      {
+        "id": "finished-1",
+        "stage": "finished",
+        "dir": 1,
+        "hash": "c49ad9346db094bd5ba1e4ce3db15b6fe5c1fcf4d7a17b4712d4a87751535bbe",
+        "bounds": {
+          "minX": 33,
+          "minY": 47,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1436,
+          "clipped": false
+        }
+      }
+    ],
+    "geometry": [
+      {
+        "stage": "stakes",
+        "dir": 0,
+        "min": [
+          -0.4334999987483025,
+          -1.490116086078075e-10,
+          -0.4334999987483025
+        ],
+        "max": [
+          1.4334999987483026,
+          0.27899999994039537,
+          1.4334999987483026
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasTray": false,
+        "hasContents": false,
+        "hasFire": false
+      },
+      {
+        "stage": "stakes",
+        "dir": 1,
+        "min": [
+          -0.4334999987483027,
+          -1.490116086078075e-10,
+          -0.4334999987483027
+        ],
+        "max": [
+          1.4334999987483026,
+          0.27899999994039537,
+          1.4334999987483026
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasTray": false,
+        "hasContents": false,
+        "hasFire": false
+      },
+      {
+        "stage": "frame",
+        "dir": 0,
+        "min": [
+          -0.20999997854232788,
+          -5.960464455334602e-9,
+          -0.1600000262260437
+        ],
+        "max": [
+          1.2099999785423279,
+          0.8400000001490117,
+          1.490000010728836
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasTray": false,
+        "hasContents": false,
+        "hasFire": false
+      },
+      {
+        "stage": "frame",
+        "dir": 1,
+        "min": [
+          -0.1600000262260438,
+          -5.960464455334602e-9,
+          -0.209999978542328
+        ],
+        "max": [
+          1.4900000107288363,
+          0.8400000001490117,
+          1.2099999785423279
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasTray": false,
+        "hasContents": false,
+        "hasFire": false
+      },
+      {
+        "stage": "finished",
+        "dir": 0,
+        "min": [
+          -0.20999997854232788,
+          -2.980232241545089e-9,
+          -0.1600000262260437
+        ],
+        "max": [
+          1.2099999785423279,
+          1.8633601164066258,
+          1.490000010728836
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasTray": true,
+        "hasContents": false,
+        "hasFire": false
+      },
+      {
+        "stage": "finished",
+        "dir": 1,
+        "min": [
+          -0.1600000262260438,
+          -2.980232241545089e-9,
+          -0.209999978542328
+        ],
+        "max": [
+          1.4900000107288363,
+          1.8633601164066258,
+          1.2099999785423279
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasTray": true,
+        "hasContents": false,
+        "hasFire": false
+      }
+    ],
+    "anchor": {
+      "x": 0.5,
+      "y": 0.6924599083615355
+    }
+  },
+  "sourceAfter": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-supplies-study-20260908/props.js": "615d7b596b225a36b577e48b58f55c5045fc4b735e25a0d06f5da80f85ef8563",
+    ".botanical/brew-station-study-20260908/station.js": "fc1f582e774dad8ee2763531be82e512adad1287f18cdf7f9504b94d8319b347",
+    ".botanical/brew-station-study-20260908/study.js": "40270ee77220dd9abc43974a4fa6aa772628b3cbc37a7b810a51e3fa43dfbbde",
+    ".botanical/brew-station-study-20260908/index.html": "e4e3de042574fa521e681d885f77f7aed63e46a51615abf73b861d0b48e15f58",
+    ".botanical/brew-station-study-20260908/capture.mjs": "5fa340f7524fc1f0c4c8c0746aef24d29441a1eadb7145c4c7644ea91d0a17de"
+  }
+}

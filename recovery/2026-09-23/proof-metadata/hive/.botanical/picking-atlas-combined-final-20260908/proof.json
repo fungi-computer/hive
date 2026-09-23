@@ -1,0 +1,50 @@
+{
+  "base": "http://127.0.0.1:5193/",
+  "sourceCommit": "24709e28cf313bf9a77f7b59d561c14cf30d1b86",
+  "pages": {
+    "worldLab": {
+      "initial": "Showing 4,096 × 4,096 cells · 8 cells/pixel",
+      "updating": "Updating to 2,048 × 2,048 cells · 4 cells/pixel; showing 4,096 × 4,096 cells · 8 cells/pixel",
+      "zoomed": "Showing 2,048 × 2,048 cells · 4 cells/pixel",
+      "restored": "Showing 4,096 × 4,096 cells · 8 cells/pixel"
+    },
+    "game": {
+      "defaultOff": true,
+      "toggledOn": true,
+      "selectedThroughDebug": {
+        "kind": "tree",
+        "id": "oak-1",
+        "point": {
+          "x": 480,
+          "y": 254
+        }
+      },
+      "toggledOff": true,
+      "targetRetained": {
+        "kind": "tree",
+        "id": "oak-1",
+        "point": {
+          "x": 480,
+          "y": 254
+        }
+      },
+      "treeId": "oak-1",
+      "clickPoint": {
+        "x": 480,
+        "y": 254
+      }
+    }
+  },
+  "screenshots": [
+    "world-lab-390.png",
+    "picking-debug-tree.png"
+  ],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "success": true,
+  "failure": null,
+  "scriptSha256": "d69c1caf0a6ec5596722c0fe2a4776e705543a01ec69b84b7994fde5b57d54a8"
+}

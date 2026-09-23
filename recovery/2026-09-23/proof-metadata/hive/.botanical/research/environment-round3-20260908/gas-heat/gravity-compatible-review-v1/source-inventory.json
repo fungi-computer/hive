@@ -1,0 +1,55 @@
+{
+  "scope": "source and mathematical review only; no numerical run",
+  "owned": {
+    "DECISION.md": {
+      "bytes": 15692,
+      "sha256": "ad5a8ce00b1df7b865ee60044e32326bfcd362c223adc92303fa8c823bc8e5af"
+    },
+    "CHECKPOINTS.md": {
+      "bytes": 6825,
+      "sha256": "691a31f4a62fb6569555f31e56a83623384637487258328222f964d49fb29613"
+    },
+    "PRIMARY-SOURCES.md": {
+      "bytes": 3084,
+      "sha256": "cfb45567d6fb162e70604e75652bf6b616869b1bfe93b1d4ce7da28a8ac69383"
+    }
+  },
+  "frozen_inputs": {
+    "finite-momentum-v1/finite-gas.mjs": {
+      "bytes": 20752,
+      "sha256": "8d24cb07f9e9b19a1f2766d34c84e30e60ad26c3e22eef150b24da9887e2ae5a"
+    },
+    "finite-momentum-v1/momentum.mjs": {
+      "bytes": 10261,
+      "sha256": "4c7af4ed79d2c64079c5d981257efee0ce31f7d7799ac2fd4a42e7820dae1674"
+    },
+    "finite-momentum-v1/projection.mjs": {
+      "bytes": 7434,
+      "sha256": "6544aaef2b5fbe6ab667a0b199bb7f385c47603dfd4f6683baa02aa44ee17d09"
+    },
+    "finite-momentum-v1/geometry-owner.mjs": {
+      "bytes": 1433,
+      "sha256": "0b63271b7c2b8961f75f5e843a1919b60c94b690590d5f3eae7be98d6fac2f77"
+    },
+    "finite-energy-diagnostic-v1/RESULTS.md": {
+      "bytes": 6205,
+      "sha256": "21154d97225873241274e307c625037ae9ee7bc8b6ce2df3f6f76f9cd6d0302a"
+    },
+    "finite-energy-diagnostic-v1/qualification-v1.json": {
+      "bytes": 169378,
+      "sha256": "9bddf3b921eda852af037a373655fe054295eb36b532bdf0061572cd78781f6e"
+    },
+    "buoyancy-energy-review-v1/AUDIT.md": {
+      "bytes": 15749,
+      "sha256": "be0c6fa3382d5308981049022127cf8b1e4d272bb2719cafbfa9fd93f658240f"
+    },
+    "buoyancy-energy-review-v1/DISCRIMINATOR.md": {
+      "bytes": 5431,
+      "sha256": "ee593b692ec1641fb4ec2f85756601dadecaa29111aaa44262ef64aef6fe01ad"
+    }
+  },
+  "root_coupling_note": {
+    "bytes": 7678,
+    "sha256": "dfa398a5993ed07ade2d3c80318d676137ee6d81a802d4638b7ee1d385fb60f6"
+  }
+}

@@ -1,0 +1,385 @@
+{
+  "status": "pass",
+  "checks": 95,
+  "errors": [
+    {
+      "label": "quadrature moment 0",
+      "error": 0
+    },
+    {
+      "label": "quadrature moment 2",
+      "error": 2.220446049250313e-16
+    },
+    {
+      "label": "quadrature moment 10",
+      "error": 2.220446049250313e-16
+    },
+    {
+      "label": "quadrature moment 22",
+      "error": 8.326672684688674e-17
+    },
+    {
+      "label": "independent box average false/0",
+      "error": 4.440892098500626e-15
+    },
+    {
+      "label": "independent box average false/1",
+      "error": 3.307190854795416e-17
+    },
+    {
+      "label": "independent box average false/2",
+      "error": 7.176685168959072e-19
+    },
+    {
+      "label": "independent box average false/3",
+      "error": 1.9180524862758093e-17
+    },
+    {
+      "label": "independent box average false/4",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/5",
+      "error": 1.1179776112572697e-18
+    },
+    {
+      "label": "independent box average false/6",
+      "error": 6.251500197430762e-20
+    },
+    {
+      "label": "independent box average false/7",
+      "error": 2.0143276447359265e-17
+    },
+    {
+      "label": "independent box average false/8",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/0",
+      "error": 1.1102230246251565e-15
+    },
+    {
+      "label": "independent box average false/1",
+      "error": 9.71445146547012e-17
+    },
+    {
+      "label": "independent box average false/2",
+      "error": 5.898059818321144e-17
+    },
+    {
+      "label": "independent box average false/3",
+      "error": 5.204170427930421e-17
+    },
+    {
+      "label": "independent box average false/4",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/5",
+      "error": 1.0408340855860843e-17
+    },
+    {
+      "label": "independent box average false/6",
+      "error": 6.938893903907228e-18
+    },
+    {
+      "label": "independent box average false/7",
+      "error": 2.42861286636753e-17
+    },
+    {
+      "label": "independent box average false/8",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/0",
+      "error": 4.218847493575595e-15
+    },
+    {
+      "label": "independent box average false/1",
+      "error": 2.42861286636753e-17
+    },
+    {
+      "label": "independent box average false/2",
+      "error": 3.8163916471489756e-17
+    },
+    {
+      "label": "independent box average false/3",
+      "error": 5.204170427930421e-18
+    },
+    {
+      "label": "independent box average false/4",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/5",
+      "error": 6.938893903907228e-18
+    },
+    {
+      "label": "independent box average false/6",
+      "error": 7.979727989493313e-17
+    },
+    {
+      "label": "independent box average false/7",
+      "error": 6.938893903907228e-18
+    },
+    {
+      "label": "independent box average false/8",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/0",
+      "error": 4.6629367034256575e-15
+    },
+    {
+      "label": "independent box average false/1",
+      "error": 1.5265566588595902e-16
+    },
+    {
+      "label": "independent box average false/2",
+      "error": 7.37257477290143e-18
+    },
+    {
+      "label": "independent box average false/3",
+      "error": 1.6653345369377348e-16
+    },
+    {
+      "label": "independent box average false/4",
+      "error": 0
+    },
+    {
+      "label": "independent box average false/5",
+      "error": 2.3852447794681098e-18
+    },
+    {
+      "label": "independent box average false/6",
+      "error": 8.673617379884035e-19
+    },
+    {
+      "label": "independent box average false/7",
+      "error": 1.249000902703301e-16
+    },
+    {
+      "label": "independent box average false/8",
+      "error": 0
+    },
+    {
+      "label": "pressure gradient false/0",
+      "error": 5.69863600752285e-13
+    },
+    {
+      "label": "pressure gradient false/1",
+      "error": 1.5474774239798705e-12
+    },
+    {
+      "label": "pressure gradient false/2",
+      "error": 0
+    },
+    {
+      "label": "solenoidal initial acceleration false",
+      "error": 0
+    },
+    {
+      "label": "pressure Poisson equation false",
+      "error": 0
+    },
+    {
+      "label": "sealed normal acceleration false/0",
+      "error": 0
+    },
+    {
+      "label": "sealed normal acceleration false/2.16",
+      "error": 5.4062349391589775e-18
+    },
+    {
+      "label": "independent box average true/0",
+      "error": 4.6629367034256575e-15
+    },
+    {
+      "label": "independent box average true/1",
+      "error": 3.6714907796533656e-19
+    },
+    {
+      "label": "independent box average true/2",
+      "error": 2.426617044985562e-20
+    },
+    {
+      "label": "independent box average true/3",
+      "error": 2.7931904052445612e-19
+    },
+    {
+      "label": "independent box average true/4",
+      "error": 1.6765296655224765e-20
+    },
+    {
+      "label": "independent box average true/5",
+      "error": 8.629148150153185e-21
+    },
+    {
+      "label": "independent box average true/6",
+      "error": 5.707877098860912e-20
+    },
+    {
+      "label": "independent box average true/7",
+      "error": 5.3963608801734456e-20
+    },
+    {
+      "label": "independent box average true/8",
+      "error": 8.711535339163466e-20
+    },
+    {
+      "label": "independent box average true/0",
+      "error": 2.220446049250313e-16
+    },
+    {
+      "label": "independent box average true/1",
+      "error": 6.938893903907228e-18
+    },
+    {
+      "label": "independent box average true/2",
+      "error": 2.6020852139652106e-18
+    },
+    {
+      "label": "independent box average true/3",
+      "error": 3.469446951953614e-18
+    },
+    {
+      "label": "independent box average true/4",
+      "error": 7.806255641895632e-18
+    },
+    {
+      "label": "independent box average true/5",
+      "error": 1.734723475976807e-18
+    },
+    {
+      "label": "independent box average true/6",
+      "error": 8.673617379884035e-18
+    },
+    {
+      "label": "independent box average true/7",
+      "error": 8.673617379884035e-19
+    },
+    {
+      "label": "independent box average true/8",
+      "error": 8.673617379884035e-19
+    },
+    {
+      "label": "independent box average true/0",
+      "error": 1.3322676295501878e-15
+    },
+    {
+      "label": "independent box average true/1",
+      "error": 3.469446951953614e-18
+    },
+    {
+      "label": "independent box average true/2",
+      "error": 1.9081958235744878e-17
+    },
+    {
+      "label": "independent box average true/3",
+      "error": 2.0816681711721685e-17
+    },
+    {
+      "label": "independent box average true/4",
+      "error": 1.6263032587282567e-18
+    },
+    {
+      "label": "independent box average true/5",
+      "error": 4.7704895589362195e-18
+    },
+    {
+      "label": "independent box average true/6",
+      "error": 1.214306433183765e-17
+    },
+    {
+      "label": "independent box average true/7",
+      "error": 3.469446951953614e-18
+    },
+    {
+      "label": "independent box average true/8",
+      "error": 1.5178830414797062e-18
+    },
+    {
+      "label": "independent box average true/0",
+      "error": 7.549516567451064e-15
+    },
+    {
+      "label": "independent box average true/1",
+      "error": 1.8041124150158794e-16
+    },
+    {
+      "label": "independent box average true/2",
+      "error": 6.071532165918825e-18
+    },
+    {
+      "label": "independent box average true/3",
+      "error": 1.457167719820518e-16
+    },
+    {
+      "label": "independent box average true/4",
+      "error": 1.3823577699190182e-18
+    },
+    {
+      "label": "independent box average true/5",
+      "error": 3.2526065174565133e-18
+    },
+    {
+      "label": "independent box average true/6",
+      "error": 5.637851296924623e-18
+    },
+    {
+      "label": "independent box average true/7",
+      "error": 4.163336342344337e-17
+    },
+    {
+      "label": "independent box average true/8",
+      "error": 1.3552527156068805e-18
+    },
+    {
+      "label": "pressure gradient true/0",
+      "error": 8.403781143195843e-14
+    },
+    {
+      "label": "pressure gradient true/1",
+      "error": 2.978728375069295e-13
+    },
+    {
+      "label": "pressure gradient true/2",
+      "error": 3.077919863425649e-13
+    },
+    {
+      "label": "solenoidal initial acceleration true",
+      "error": 8.673617379884035e-14
+    },
+    {
+      "label": "pressure Poisson equation true",
+      "error": 6.245177985864103e-14
+    },
+    {
+      "label": "sealed normal acceleration true/0",
+      "error": 0
+    },
+    {
+      "label": "sealed normal acceleration true/2.16",
+      "error": 2.066622719192619e-18
+    },
+    {
+      "label": "small-epsilon momentum remainder ratio 1",
+      "error": 0.002291665662324416
+    },
+    {
+      "label": "small-epsilon momentum remainder ratio 2",
+      "error": 0.0011471476007867132
+    }
+  ],
+  "epsilonRemainder": [
+    0.004186037457711487,
+    0.0020954197295769577,
+    0.001048311148597975
+  ],
+  "elapsedMs": 52.698964999999994,
+  "pins": {
+    "oracle.mjs": "3994179249750d872d478e16f9642019b345104211c91a611e849a53b4b7f9c8",
+    "CONTRACT.md": "f5704f7226d75203cde164fb90991b2d8cdfc77f831d7a06e7c3576fc3674ccc",
+    "check.mjs": "e7ff61c18b995052c52915259de284f444b4324c13b0cb6e78083e794064ca34"
+  }
+}

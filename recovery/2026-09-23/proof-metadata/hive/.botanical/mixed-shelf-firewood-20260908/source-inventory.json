@@ -1,0 +1,91 @@
+{
+  "target": "src/art/mixed-shelf.js",
+  "baselineSha256": "e9652c323f9423b2508befcba434fdb675e83b9ead212aeb06722f19bfffbfbb",
+  "candidateSha256": "0cec741a743c0d4bf9498eba9d85b420376f351a2af2c0e78088c88a9fc52e3e",
+  "patchSha256": "f4c8b681f681af164a5881b3ab12a6f035461d25c3a457dd150089233627f0c6",
+  "proofSha256": "6cb1579246ff53ecb00311896d129a599b55a733493cfdade7ff3e0bc5c34f21",
+  "unchangedPixels": [
+    [
+      "empty",
+      0
+    ],
+    [
+      "empty",
+      1
+    ],
+    [
+      "herb",
+      0
+    ],
+    [
+      "herb",
+      1
+    ],
+    [
+      "two-herbs",
+      0
+    ],
+    [
+      "two-herbs",
+      1
+    ],
+    [
+      "three-herbs",
+      0
+    ],
+    [
+      "three-herbs",
+      1
+    ]
+  ],
+  "changedPixels": [
+    [
+      "wood",
+      0
+    ],
+    [
+      "wood",
+      1
+    ],
+    [
+      "two-wood",
+      0
+    ],
+    [
+      "two-wood",
+      1
+    ],
+    [
+      "wood-herb",
+      0
+    ],
+    [
+      "wood-herb",
+      1
+    ],
+    [
+      "three-wood",
+      0
+    ],
+    [
+      "three-wood",
+      1
+    ],
+    [
+      "two-wood-herb",
+      0
+    ],
+    [
+      "two-wood-herb",
+      1
+    ],
+    [
+      "wood-two-herbs",
+      0
+    ],
+    [
+      "wood-two-herbs",
+      1
+    ]
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "output": ".botanical/common-transfer-v7-final-20260908/hosted-parity-final",
+  "mode": "served-byte-parity",
+  "scriptSha256": "d7bc59a61457569b79c2e265ca7413bf74ee7ef2702911f4972794c0c9e6bcac",
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "parity": {
+    "local": {
+      "index": "46b125b294201d7a84fa9ad1912e96e83984f516b2ffcc490d99907035b99a9c",
+      "assets": {
+        "assets/game-BQ9BReB0.js": "d7ee96606fce5a02d4b296b6b6054b6476733b5346b3047e5b4956d87fb2b32f",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-Ck6elWo_.js": "68f1cfd1ad6f73f0af03da1d2304238fd21e8b49e3c382a3c1525cea39025712",
+        "assets/home-GEckJ98-.js": "666fcd45fb1dd054b4877d0dde71ac14e30bc08bf2855357e4f32e4c784353ed",
+        "assets/figures-DUCwvsh6.js": "806a8a221df1000ec1b22065bce3ab0d717e11f339c64f7dd0c9d4918cc143b2",
+        "assets/construction-7X1h1jbw.js": "082a00578cebc755c400ea1e0b8f3b054f871203ed1f746b4f167eec4c9988af",
+        "assets/Geometry-jXZiBKLg.js": "71a932cb9c6e967f8f79cbc13820f5d32af1aa7b436972eb9ec37fa5550ab942",
+        "assets/getTextureBatchBindGroup-jCvT6pnK.js": "edc10dea47932f9682c8bfdc1598e84d09484e5b754f557bd53a3b1d7d2e2e56",
+        "assets/BatchableSprite-C-PuQSVq.js": "aff375cfb44a91711196ff5172db7857aa333b0e4ac07fa4e615f91e6319b37e",
+        "assets/Graphics-3QaMsxkw.js": "774bd55d2ff6fa188c554c45a98b543ab32261c25a0987d961c6b865d37cc5fd",
+        "assets/CanvasPool-BKo-6SE2.js": "df0bb38584f8a4dc6eba5f72f7fde6e9030d9f8ce341773c3587cdbf2fcf60d3",
+        "assets/canvasUtils-CnRulJrS.js": "99a3b2396de8e1deec7c7fc29323804fb75540490d4136bc2b44f0032769e0f1",
+        "assets/getPo2TextureFromSource-BBOuc2Oy.js": "cd4f3dddf002e14cc3afaeda3597624b05ed53edcf67b80b6960b922af2389b0",
+        "assets/art-tAPjra0y.js": "ab5a4c814c93a4f0cee2cc0e14be8125e50aaea83b3d3e48630226217196e1e9",
+        "assets/clearing-B3EKwxSR.js": "d37705bae679897acaa5dd2c8d0a83058fcaa7918d6ae329d474133f862aa978",
+        "assets/game-DE30T3Wi.css": "459e92676b25c97b0890e1ce7db0851a9194940b3d557f66e4d4f8a500d20c0c",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "served": {
+      "index": "46b125b294201d7a84fa9ad1912e96e83984f516b2ffcc490d99907035b99a9c",
+      "assets": {
+        "assets/game-BQ9BReB0.js": "d7ee96606fce5a02d4b296b6b6054b6476733b5346b3047e5b4956d87fb2b32f",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-Ck6elWo_.js": "68f1cfd1ad6f73f0af03da1d2304238fd21e8b49e3c382a3c1525cea39025712",
+        "assets/home-GEckJ98-.js": "666fcd45fb1dd054b4877d0dde71ac14e30bc08bf2855357e4f32e4c784353ed",
+        "assets/figures-DUCwvsh6.js": "806a8a221df1000ec1b22065bce3ab0d717e11f339c64f7dd0c9d4918cc143b2",
+        "assets/construction-7X1h1jbw.js": "082a00578cebc755c400ea1e0b8f3b054f871203ed1f746b4f167eec4c9988af",
+        "assets/Geometry-jXZiBKLg.js": "71a932cb9c6e967f8f79cbc13820f5d32af1aa7b436972eb9ec37fa5550ab942",
+        "assets/getTextureBatchBindGroup-jCvT6pnK.js": "edc10dea47932f9682c8bfdc1598e84d09484e5b754f557bd53a3b1d7d2e2e56",
+        "assets/BatchableSprite-C-PuQSVq.js": "aff375cfb44a91711196ff5172db7857aa333b0e4ac07fa4e615f91e6319b37e",
+        "assets/Graphics-3QaMsxkw.js": "774bd55d2ff6fa188c554c45a98b543ab32261c25a0987d961c6b865d37cc5fd",
+        "assets/CanvasPool-BKo-6SE2.js": "df0bb38584f8a4dc6eba5f72f7fde6e9030d9f8ce341773c3587cdbf2fcf60d3",
+        "assets/canvasUtils-CnRulJrS.js": "99a3b2396de8e1deec7c7fc29323804fb75540490d4136bc2b44f0032769e0f1",
+        "assets/getPo2TextureFromSource-BBOuc2Oy.js": "cd4f3dddf002e14cc3afaeda3597624b05ed53edcf67b80b6960b922af2389b0",
+        "assets/art-tAPjra0y.js": "ab5a4c814c93a4f0cee2cc0e14be8125e50aaea83b3d3e48630226217196e1e9",
+        "assets/clearing-B3EKwxSR.js": "d37705bae679897acaa5dd2c8d0a83058fcaa7918d6ae329d474133f862aa978",
+        "assets/game-DE30T3Wi.css": "459e92676b25c97b0890e1ce7db0851a9194940b3d557f66e4d4f8a500d20c0c",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "exact": true
+  },
+  "success": true
+}

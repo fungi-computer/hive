@@ -1,0 +1,72 @@
+{
+  "repo": "SebLague/Procedural-Landmass-Generation",
+  "commit": "e350384ce8b59286b522c9546dcd4a34475e4aec",
+  "files": [
+    {
+      "path": "Proc Gen E21/Assets/Scripts/Noise.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/Noise.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/Noise.cs",
+      "sha256": "ef30396decedc65f92817e30436a3a3feaffa3df843de0673038b649938fbbed"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/HeightMapGenerator.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/HeightMapGenerator.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/HeightMapGenerator.cs",
+      "sha256": "389ede23af6852d47ae40b88bcb30fa5e485f2567f4791606ead6f45dd277de5"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/Data/HeightMapSettings.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/Data/HeightMapSettings.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/Data-HeightMapSettings.cs",
+      "sha256": "d8407fbafa56c331228e4f31d205718040e1c37455ef28f813de120366bdb249"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/MeshGenerator.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/MeshGenerator.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/MeshGenerator.cs",
+      "sha256": "22b72fdef23a621d34c4a9021c7c469649a876fb495ae3e68ff04b8c7cc15825"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/TerrainGenerator.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/TerrainGenerator.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/TerrainGenerator.cs",
+      "sha256": "0d2c6cc3e56614dcf2a93419a5ca7887d2bc2c5202a1aba40aa65eff1c33c741"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/TerrainChunk.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/TerrainChunk.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/TerrainChunk.cs",
+      "sha256": "6c763c81c137c962ae9c348580896e6aa4a1ac764e45f9287a863a6ed6ad66d2"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/FalloffGenerator.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/FalloffGenerator.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/FalloffGenerator.cs",
+      "sha256": "e986a4b7c5289acfaf8ab0864401fc3616d6a27a94f66ca06c2d61ac7bb7a5b8"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/ThreadedDataRequester.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/ThreadedDataRequester.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/ThreadedDataRequester.cs",
+      "sha256": "ab748f4dc9b9503f11df9cc36cc0e0c7db8f4ac619359bd0b19f80d1cb7c54c4"
+    },
+    {
+      "path": "Proc Gen E21/Assets/Scripts/Data/TextureData.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E21/Assets/Scripts/Data/TextureData.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/Data-TextureData.cs",
+      "sha256": "3f526bbff25155f8cf3cab76e6f434c3d41fffcdc4e9b44421329e5f4f088f59"
+    },
+    {
+      "path": "Proc Gen E03/Assets/Scripts/MapGenerator.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E03/Assets/Scripts/MapGenerator.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/Proc-Gen-E03-MapGenerator.cs",
+      "sha256": "6d558ab664b4a4909811543547bf0d1fa6307ab2b8537d40afb1c2a2ccc5102e"
+    },
+    {
+      "path": "Proc Gen E14/Assets/Scripts/MapGenerator.cs",
+      "url": "https://raw.githubusercontent.com/SebLague/Procedural-Landmass-Generation/e350384ce8b59286b522c9546dcd4a34475e4aec/Proc%20Gen%20E14/Assets/Scripts/MapGenerator.cs",
+      "local": ".botanical/research/environment-round3-20260908/worldgen/lague-study/Proc-Gen-E14-MapGenerator.cs",
+      "sha256": "b1debafe3d68644c3046b7ba6c8575f37c1f2f71d4d59150ce204048d88e3c3a"
+    }
+  ]
+}

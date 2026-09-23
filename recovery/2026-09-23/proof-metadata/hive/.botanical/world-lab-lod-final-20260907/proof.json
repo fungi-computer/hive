@@ -1,0 +1,362 @@
+{
+  "kind": "world-lab-coherent-lod-contract-and-measurement",
+  "generatedAt": "2026-09-07T21:09:08.411Z",
+  "contract": {
+    "seed": "hive-world-lab-seed-20260907",
+    "generatorVersion": "world-lab-terrain-lod-v2",
+    "identity": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907",
+    "chunkSize": 16,
+    "globalCoordinates": "signed integer x,z; mathematical floor division",
+    "sampleIdentity": "generatorVersion:seed/sample/x,z",
+    "chunkIdentity": "generatorVersion:seed/chunk/chunkX,chunkZ",
+    "coherentRecipe": "shared smooth broad fields plus footprint-omitted fine octaves; no output resize of a fine grid",
+    "authoritativeLocal": "sampleCell uses the same footprint=1 terrain query as direct local sampling",
+    "overviewBudget": {
+      "width": 512,
+      "height": 512,
+      "samples": 262144
+    },
+    "localResidency": {
+      "windowChunks": 5,
+      "maxResidentChunks": 25
+    }
+  },
+  "measurements": {
+    "coarse512Ms": 6701.929,
+    "fineSpan512Ms": 7460.594,
+    "visibleGenerationMs": 183.995,
+    "visibleRenderPreparationMs": 0.891,
+    "totalNodeCheckMs": 14669.618,
+    "note": "Render timing is bounded buffer preparation in this source-backed check; browser canvas timing remains a separate page measurement."
+  },
+  "checks": {
+    "globalSignedCoordinates": {
+      "negative": {
+        "x": -1,
+        "chunkX": -1,
+        "localX": 15
+      },
+      "positive": {
+        "x": 16,
+        "chunkX": 1,
+        "localX": 0
+      },
+      "pass": true
+    },
+    "multiscaleGeography": {
+      "coarse": {
+        "bounds": {
+          "minX": -2048,
+          "minZ": -2048,
+          "maxX": 2047,
+          "maxZ": 2047,
+          "spanX": 4095,
+          "spanZ": 4095
+        },
+        "footprint": 7.998046875,
+        "sampleCount": 262144,
+        "checksum": "3d7cfeec",
+        "featureCounts": {
+          "coast": 777,
+          "ridge": 2821
+        },
+        "ms": 6701.929
+      },
+      "fineSpan": {
+        "bounds": {
+          "minX": -1024,
+          "minZ": -1024,
+          "maxX": 1024,
+          "maxZ": 1024,
+          "spanX": 2048,
+          "spanZ": 2048
+        },
+        "footprint": 4,
+        "sampleCount": 262144,
+        "checksum": "d74bb19a",
+        "featureCounts": {
+          "coast": 1536,
+          "ridge": 5632
+        },
+        "ms": 7460.594
+      },
+      "fixedOutputSamples": 262144,
+      "pass": true
+    },
+    "namedFeatures": {
+      "features": {
+        "coast": {
+          "name": "Northwater Coast",
+          "coordinate": {
+            "x": -720,
+            "z": -204
+          },
+          "local": {
+            "feature": "coast",
+            "terrain": "coast"
+          },
+          "coarse": {
+            "feature": "coast",
+            "terrain": "coast"
+          },
+          "fineSpan": {
+            "feature": "coast",
+            "terrain": "coast"
+          }
+        },
+        "ridge": {
+          "name": "Lantern Ridge",
+          "coordinate": {
+            "x": 420,
+            "z": 454
+          },
+          "local": {
+            "feature": "ridge",
+            "terrain": "ridge"
+          },
+          "coarse": {
+            "feature": "ridge",
+            "terrain": "ridge"
+          },
+          "fineSpan": {
+            "feature": "ridge",
+            "terrain": "ridge"
+          }
+        }
+      },
+      "pass": true
+    },
+    "authoritativeLocal": {
+      "points": [
+        {
+          "x": -719,
+          "z": -204,
+          "sampleId": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/sample/-719,-204",
+          "cellTerrain": "coast",
+          "directTerrain": "coast",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        },
+        {
+          "x": 420,
+          "z": 454,
+          "sampleId": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/sample/420,454",
+          "cellTerrain": "ridge",
+          "directTerrain": "ridge",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        },
+        {
+          "x": -1,
+          "z": 0,
+          "sampleId": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/sample/-1,0",
+          "cellTerrain": "water",
+          "directTerrain": "water",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        },
+        {
+          "x": 16,
+          "z": 0,
+          "sampleId": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/sample/16,0",
+          "cellTerrain": "water",
+          "directTerrain": "water",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        }
+      ],
+      "pass": true
+    },
+    "signedChunkSeams": {
+      "edgeMatches": [
+        {
+          "z": 0,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 1,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 2,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 3,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 4,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 5,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 6,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 7,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 8,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 9,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 10,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 11,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 12,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 13,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 14,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 15,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        }
+      ],
+      "nearBoundary": {
+        "leftX": 15.999,
+        "rightX": 16.001,
+        "elevationDelta": 8.716935526731362e-7
+      },
+      "pass": true
+    },
+    "orderIndependentChunks": {
+      "first": [
+        {
+          "key": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/chunk/-1,0",
+          "checksum": "6c677377"
+        },
+        {
+          "key": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/chunk/0,0",
+          "checksum": "c582f6b9"
+        },
+        {
+          "key": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/chunk/0,-1",
+          "checksum": "b571015b"
+        }
+      ],
+      "reverse": [
+        {
+          "key": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/chunk/0,-1",
+          "checksum": "b571015b"
+        },
+        {
+          "key": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/chunk/0,0",
+          "checksum": "c582f6b9"
+        },
+        {
+          "key": "world-lab-terrain-lod-v2:hive-world-lab-seed-20260907/chunk/-1,0",
+          "checksum": "6c677377"
+        }
+      ],
+      "pass": true
+    },
+    "boundedLocal": {
+      "visibleWindow": "5x5",
+      "generatedTerrainChunks": 25,
+      "visibleCells": 6400,
+      "renderBuffer": {
+        "width": 80,
+        "height": 80,
+        "checksum": "f4deb1c5"
+      },
+      "maxResidentChunks": 25,
+      "residentRenderChunks": 25,
+      "evictions": 26,
+      "distantWindowCells": 6400,
+      "returnedOriginChecksum": "c582f6b9",
+      "originChecksum": "c582f6b9",
+      "pass": true
+    },
+    "isolatedSource": {
+      "importsRuntimeOrSimulation": false,
+      "pass": true
+    }
+  },
+  "diagnostic1024": {
+    "executed": false,
+    "reason": "1024 is diagnostic only after measured 512; this bounded check stops at 512."
+  },
+  "claims": [
+    "deterministic terrain query",
+    "coherent named coast/ridge across two spans",
+    "signed chunk seam continuity",
+    "bounded fixed-output LOD work",
+    "bounded local render residency"
+  ],
+  "nonClaims": [
+    "generated terrain is not a Clearing chunk",
+    "render residency is not decoded-world eviction",
+    "the lab has no actors, caravan, jobs, routes, commands, or simulation",
+    "overview samples are not a playable world-size or capacity claim"
+  ]
+}

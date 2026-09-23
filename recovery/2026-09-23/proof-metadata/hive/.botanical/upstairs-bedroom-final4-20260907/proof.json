@@ -1,0 +1,79 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/upstairs-bedroom-final4-20260907",
+  "frozenTarget": {
+    "commit": "0615b7b",
+    "localAssets": {
+      "gameJs": "assets/game-BpPwMH0N.js",
+      "gameCss": "assets/game-CvQe2sTu.css",
+      "artJs": "assets/art-CdhlYy8V.js"
+    },
+    "localHashes": {
+      "index": "4dd76843fb42f14eb8c7bc1e5165a0d9a28fe7f558aa50094939e02c78943cc7",
+      "gameJs": "e9197ce4645a76167d8cfd9840ae26a07e292f6347c1b1f6f19e2430952940fc",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "4bf24a1a468d2ba795d34d3fb95ea6019cf42bc5641166ee04dc42200f8d3f95"
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-BpPwMH0N.js",
+      "gameCss": "assets/game-CvQe2sTu.css",
+      "artJs": "assets/art-CdhlYy8V.js"
+    },
+    "hashes": {
+      "index": "4dd76843fb42f14eb8c7bc1e5165a0d9a28fe7f558aa50094939e02c78943cc7",
+      "gameJs": "e9197ce4645a76167d8cfd9840ae26a07e292f6347c1b1f6f19e2430952940fc",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "4bf24a1a468d2ba795d34d3fb95ea6019cf42bc5641166ee04dc42200f8d3f95"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "a3cfb7b88f8bf6d326b85b5d0e27a6c9890585d892abfc9e64db48d75375f2c0",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused upstairs bedroom browser proof"
+  },
+  "screenshots": [
+    "normal-earned-48-oak.png"
+  ],
+  "errors": {
+    "page": [
+      "ReferenceError: interiorSupportCells is not defined"
+    ],
+    "console": [],
+    "request": []
+  },
+  "claims": {
+    "newClearing": {
+      "paused": true,
+      "tick": 0,
+      "physicalWood": 0,
+      "homeMembers": [
+        "rowan"
+      ]
+    },
+    "recruit": {
+      "visibleSedge": true,
+      "homeMembers": [
+        "rowan",
+        "sedge"
+      ]
+    },
+    "earnedOak": {
+      "felled": 8,
+      "generatedWood": 48,
+      "physicalWood": 48,
+      "freeStock": false
+    },
+    "levelSwitchCancelsStroke": {
+      "toolPersists": true,
+      "phase": "ready",
+      "straySites": 0,
+      "strayJobs": 0
+    }
+  },
+  "success": false,
+  "failure": "page.waitForFunction: ReferenceError: interiorSupportCells is not defined\n    at eval (eval at predicate (eval at evaluate (:311:30)), <anonymous>:3:5)\n    at predicate (eval at evaluate (:311:30), <anonymous>:7:27)\n    at next (eval at evaluate (:311:30), <anonymous>:29:33)\n    at eval (eval at evaluate (:311:30), <anonymous>:42:13)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at waitState (/home/levi/src/hive/scripts/prove-upstairs-bedroom.mjs:134:8)\n    at /home/levi/src/hive/scripts/prove-upstairs-bedroom.mjs:419:9"
+}

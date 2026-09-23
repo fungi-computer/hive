@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "purpose": "Ignored source copies for the published GitHub product issues linked from PROTOTYPE.md and ARCHITECTURE.md.",
+  "baseline": "016b1a02b009e798165bd4ba11653093cf4ee1c6",
+  "current_source_proof": ["typed two-person simulation checkpoint: actual-WASM 15-law pass", "evolving Jotai/XState joined UI source checkpoint; browser, dist, hosted, and art acceptance still pending"],
+  "custody": {
+    "game_cto": "Astra retains product direction, difficult architecture, and personal changed-art acceptance",
+    "delivery": "visible Sol game-delivery lead owns ordinary queue, custody, review, Git, proofs, publication, and issue/doc upkeep",
+    "execution": "bounded Luna writer; Terra/Sol review selected by risk",
+    "issue_creation_and_doc_links": "game-delivery",
+    "game_reports": "Levi directly; no routine Botanical CTO reporting",
+    "preview": "same authorized preview; /study preserved"
+  },
+  "product_anchor": {
+    "premise": "Goblin Bed & Breakfast remains a darkly comic survival colony about a stranded outsider in a hostile goblin world.",
+    "survival_target": "The later product target remains surviving five in-game days in a hostile goblin world.",
+    "limits": ["no extra persistent goals", "no management tier", "no main merge", "no backend deployment", "no purchases"]
+  },
+  "drafts": [
+    {"file": "01-two-person-home.md", "status": "active-next", "covers": ["next two-person home", "B&B premise", "five-day survival target later anchor"]},
+    {"file": "02-witch-child-study.md", "status": "active-source-pass", "covers": ["adult witch", "child study"]},
+    {"file": "03-upper-floor-views.md", "status": "future", "covers": ["upper-floor bed", "Z controls", "four-view rotation"]},
+    {"file": "04-chunks-save-caravan.md", "status": "future", "covers": ["chunk-loaded world", "save", "local caravan"]},
+    {"file": "05-homelands-ai-nations.md", "status": "future", "covers": ["multiplayer homelands", "offline AI helpers", "nations"]},
+    {"file": "06-colony-scale.md", "status": "future", "covers": ["50–100 people", "job/path batching"]},
+    {"file": "07-paperdoll-pack-belt.md", "status": "future", "covers": ["paper doll", "rotatable backpack", "belt", "hauling arms"]},
+    {"file": "08-leather-books-knowledge.md", "status": "future", "covers": ["crafting", "leather", "books"]},
+    {"file": "09-crafted-arrows-z-collision.md", "status": "future", "covers": ["crafted arrows", "swept multi-Z collision"]},
+    {"file": "10-pond-garden-excavation.md", "status": "future", "covers": ["excavation", "moving water", "Zen garden", "fishing pond", "levels/conservation"]},
+    {"file": "11-atmosphere-wind-light.md", "status": "future", "covers": ["magical palette lighting", "animated grass", "animated leaves"]},
+    {"file": "12-colony-ux-caps.md", "status": "active-ux", "covers": ["Caps", "multi-selection", "work designation", "direct and queued orders"]},
+    {"file": "13-occult-tabletop-shrines.md", "status": "future", "covers": ["occult chess", "cards", "spells", "recruiting", "shrines", "pacing"]},
+    {"file": "14-witch-gardens.md", "status": "future", "covers": ["gardens", "greenhouses", "grafting", "mint", "animal ingredients", "brewing"]},
+    {"file": "15-land-factions-roleplay.md", "status": "future", "covers": ["organizations", "offices", "land title", "permissions", "physical arrests", "roleplay history"]},
+    {"file": "16-modded-domain-capabilities.md", "status": "future", "covers": ["typed feature interfaces", "explicit short-circuit results", "modded servers", "save compatibility", "domain authority"]},
+    {"file": "17-cultural-knowledge.md", "status": "future", "covers": ["player-directed, player-delegated, and world-directed authority", "nature-oriented elven knowledge", "machine-oriented dwarven knowledge", "cross-character and cross-society knowledge provenance"]}
+  ]
+}

@@ -1,0 +1,199 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/herb-storage-final-20260907",
+  "frozenTarget": {
+    "source": "edf86ad5bda86fa05656ee91cc070bc17667fed8",
+    "assets": {
+      "gameJs": "assets/game-Bw8dvOJd.js",
+      "gameCss": "assets/game-CxFQJg3g.css",
+      "artJs": "assets/art-CdVqsH0V.js"
+    },
+    "hashes": {
+      "index": "66f02a9959a7ece661131fd22ca070d8a34620c18518758538ca0bd6344e59a8",
+      "gameJs": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+      "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+      "artJs": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99"
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-Bw8dvOJd.js",
+      "gameCss": "assets/game-CxFQJg3g.css",
+      "artJs": "assets/art-CdVqsH0V.js"
+    },
+    "hashes": {
+      "index": "66f02a9959a7ece661131fd22ca070d8a34620c18518758538ca0bd6344e59a8",
+      "gameJs": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+      "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+      "artJs": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "5ce9793416aa4d2de85619b70e27952b3d8e5b6c7c996d2bca119de22ec2ebdc",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused herb storage browser proof"
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-carried-paused.png",
+    "carried-actor-paused-a.png",
+    "carried-actor-paused-b.png",
+    "normal-shelf-filled.png",
+    "normal-deconstructed-paused.png",
+    "narrow-roster-story-bundle.png"
+  ],
+  "claims": {
+    "herbInspection": [
+      {
+        "at": {
+          "x": 640,
+          "y": 612
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": "herb-5"
+      }
+    ],
+    "harvest": {
+      "bundleId": "herb-bundle-8",
+      "amount": 1,
+      "harvestedHerbs": 1,
+      "location": {
+        "kind": "ground",
+        "x": 13,
+        "z": 13,
+        "level": 0
+      }
+    },
+    "bundleInspection": [
+      {
+        "at": {
+          "x": 640,
+          "y": 612
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": "herb-bundle-8"
+      }
+    ],
+    "pausedStoreAdmission": {
+      "tick": 969,
+      "bundleId": "herb-bundle-8",
+      "shelfId": "site-3",
+      "actors": null,
+      "frozenWorld": true,
+      "appliedCommand": true
+    },
+    "carryHerb": {
+      "bundleId": "herb-bundle-8",
+      "claim": {
+        "job": "job-9",
+        "bundle": "herb-bundle-8",
+        "shelf": "site-3"
+      },
+      "location": {
+        "kind": "carried",
+        "actor": "rowan"
+      },
+      "textureIdentity": {
+        "available": false,
+        "reason": "__GOBLIN exposes state/project only; no stable runtime texture identity hook"
+      }
+    },
+    "draftDrop": {
+      "sameBundleId": true,
+      "sameCell": true,
+      "claimReleased": true,
+      "storeJobRetained": true,
+      "tickFrozen": true
+    },
+    "draftReload": {
+      "exactPausedSnapshot": true,
+      "bundleId": "herb-bundle-8",
+      "tick": 1004,
+      "jobRetained": true
+    },
+    "shelfInspection": [
+      {
+        "at": {
+          "x": 672,
+          "y": 244
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": "site-3"
+      }
+    ],
+    "stored": {
+      "bundleId": "herb-bundle-8",
+      "shelfId": "site-3",
+      "shelfCard": "1/1",
+      "storedLocation": {
+        "kind": "stored",
+        "site": "site-3"
+      }
+    },
+    "deconstruct": {
+      "shelfGone": true,
+      "sameBundleId": true,
+      "bundleLocation": {
+        "kind": "ground",
+        "x": 2,
+        "z": 1,
+        "level": 0
+      },
+      "salvageWood": 1,
+      "consumedWoodUnchanged": true,
+      "herbConserved": true
+    },
+    "deconstructReload": {
+      "exactPausedState": true,
+      "bundleId": "herb-bundle-8",
+      "tick": 1308
+    },
+    "narrowBundleInspection": [
+      {
+        "at": {
+          "x": 227,
+          "y": 266
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": "herb-bundle-8"
+      }
+    ],
+    "narrow": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "rectangleChecks": true,
+      "readableCard": true,
+      "bodyWidth": 390,
+      "htmlWidth": 390
+    },
+    "reset": {
+      "cleanPausedState": true
+    },
+    "errors": {
+      "page": 0,
+      "console": 0,
+      "requests": 0
+    }
+  },
+  "exit": 0
+}

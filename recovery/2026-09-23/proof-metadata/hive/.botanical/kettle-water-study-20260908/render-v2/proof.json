@@ -1,0 +1,556 @@
+{
+  "source": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-station-study-20260908/station.js": "fc1f582e774dad8ee2763531be82e512adad1287f18cdf7f9504b94d8319b347",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-supplies-study-20260908/props.js": "615d7b596b225a36b577e48b58f55c5045fc4b735e25a0d06f5da80f85ef8563",
+    ".botanical/kettle-water-study-20260908/kettle.js": "89872a1f6fa4e5e8a3d2e9d78d396d5ab322cd0898ec383e8ddef8b2265760b7",
+    ".botanical/kettle-water-study-20260908/study.js": "895df0abbb28f3813bbb52be38e04035adf79cf5a0460217b92cb6e62c3ae630",
+    ".botanical/kettle-water-study-20260908/index.html": "e43a4a11ec14e3f6623dc1b47ea978f0ec7c474bff230ff9e594ae892c5fef0f",
+    ".botanical/kettle-water-study-20260908/capture.mjs": "490a1c855da1bdb417fd99cdcb58857a607af85b6a032683040c92147e961150"
+  },
+  "passed": true,
+  "errors": [],
+  "clicks": [
+    {
+      "id": "empty-0",
+      "actual": "empty-0"
+    },
+    {
+      "id": "empty-1",
+      "actual": "empty-1"
+    },
+    {
+      "id": "water-low-0",
+      "actual": "water-low-0"
+    },
+    {
+      "id": "water-low-1",
+      "actual": "water-low-1"
+    },
+    {
+      "id": "water-high-0",
+      "actual": "water-high-0"
+    },
+    {
+      "id": "water-high-1",
+      "actual": "water-high-1"
+    },
+    {
+      "id": "wort-high-0",
+      "actual": "wort-high-0"
+    },
+    {
+      "id": "wort-high-1",
+      "actual": "wort-high-1"
+    }
+  ],
+  "scope": "New clear-water appearance on accepted station. Eight displayed bakes and twenty default kettle pixel-parity pairs. No runtime, save, process, quantity, or hosted proof.",
+  "server": {
+    "ownership": "this bounded proof invocation",
+    "host": "127.0.0.1",
+    "port": 5173
+  },
+  "report": {
+    "ready": true,
+    "lastPicked": null,
+    "rows": [
+      {
+        "id": "empty-0",
+        "variant": "empty",
+        "dir": 0,
+        "hash": "f2a18301a3c2f76e4f6d327ef28d0a35f607366990beb6439813bab550d6e4e1",
+        "bounds": {
+          "minX": 33,
+          "minY": 53,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1400,
+          "clipped": false
+        }
+      },
+      {
+        "id": "empty-1",
+        "variant": "empty",
+        "dir": 1,
+        "hash": "c49ad9346db094bd5ba1e4ce3db15b6fe5c1fcf4d7a17b4712d4a87751535bbe",
+        "bounds": {
+          "minX": 33,
+          "minY": 47,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1436,
+          "clipped": false
+        }
+      },
+      {
+        "id": "water-low-0",
+        "variant": "water-low",
+        "dir": 0,
+        "hash": "a9e23b4216190f9cefd6c4c8a25980da110020482edc73144c548f4fcf68f42a",
+        "bounds": {
+          "minX": 33,
+          "minY": 53,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1400,
+          "clipped": false
+        }
+      },
+      {
+        "id": "water-low-1",
+        "variant": "water-low",
+        "dir": 1,
+        "hash": "1128caf8b7e36470d598c72f726999980aa11604a715bb25e2dda8abdfaf697f",
+        "bounds": {
+          "minX": 33,
+          "minY": 47,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1436,
+          "clipped": false
+        }
+      },
+      {
+        "id": "water-high-0",
+        "variant": "water-high",
+        "dir": 0,
+        "hash": "d6379c201de820a5bc8000309adaf4da2adc855c43ffb20a2e4e9ea31b0b199f",
+        "bounds": {
+          "minX": 33,
+          "minY": 53,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1400,
+          "clipped": false
+        }
+      },
+      {
+        "id": "water-high-1",
+        "variant": "water-high",
+        "dir": 1,
+        "hash": "a87dabb5d88b11065f1fdbd51819cc9303df8ae1a388b05a66d9444cba515290",
+        "bounds": {
+          "minX": 33,
+          "minY": 47,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1436,
+          "clipped": false
+        }
+      },
+      {
+        "id": "wort-high-0",
+        "variant": "wort-high",
+        "dir": 0,
+        "hash": "38cb4f87174eb6e3c7dd4f2ff0db091e75231586208df92ed1feb96ea52eae64",
+        "bounds": {
+          "minX": 33,
+          "minY": 53,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1400,
+          "clipped": false
+        }
+      },
+      {
+        "id": "wort-high-1",
+        "variant": "wort-high",
+        "dir": 1,
+        "hash": "65c4e01c5f7a9f4fec6917f6ce80086873bfe31777d5e703bda5b10216b4e566",
+        "bounds": {
+          "minX": 33,
+          "minY": 47,
+          "maxX": 78,
+          "maxY": 97,
+          "count": 1436,
+          "clipped": false
+        }
+      }
+    ],
+    "geometry": [
+      {
+        "variant": "empty",
+        "dir": 0,
+        "bodyMin": [
+          -0.20999997854232788,
+          -2.980232241545089e-9,
+          -0.1600000262260437
+        ],
+        "bodyMax": [
+          1.2099999785423279,
+          1.8633601164066258,
+          1.490000010728836
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "empty",
+        "dir": 1,
+        "bodyMin": [
+          -0.1600000262260438,
+          -2.980232241545089e-9,
+          -0.209999978542328
+        ],
+        "bodyMax": [
+          1.4900000107288363,
+          1.8633601164066258,
+          1.2099999785423279
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "water-low",
+        "dir": 0,
+        "bodyMin": [
+          -0.20999997854232788,
+          -2.980232241545089e-9,
+          -0.1600000262260437
+        ],
+        "bodyMax": [
+          1.2099999785423279,
+          1.8633601164066258,
+          1.490000010728836
+        ],
+        "liquidMin": [
+          0.14215201139450073,
+          0.9119999999478459,
+          0.14215201139450073
+        ],
+        "liquidMax": [
+          0.8578479886054993,
+          0.9290000000949948,
+          0.8578479886054993
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "water-low",
+        "dir": 1,
+        "bodyMin": [
+          -0.1600000262260438,
+          -2.980232241545089e-9,
+          -0.209999978542328
+        ],
+        "bodyMax": [
+          1.4900000107288363,
+          1.8633601164066258,
+          1.2099999785423279
+        ],
+        "liquidMin": [
+          0.14215201139450068,
+          0.9119999999478459,
+          0.14215201139450068
+        ],
+        "liquidMax": [
+          0.8578479886054993,
+          0.9290000000949948,
+          0.8578479886054993
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "water-high",
+        "dir": 0,
+        "bodyMin": [
+          -0.20999997854232788,
+          -2.980232241545089e-9,
+          -0.1600000262260437
+        ],
+        "bodyMax": [
+          1.2099999785423279,
+          1.8633601164066258,
+          1.490000010728836
+        ],
+        "liquidMin": [
+          0.10530400276184082,
+          1.0999999999478458,
+          0.10530400276184082
+        ],
+        "liquidMax": [
+          0.8946959972381592,
+          1.1170000000949947,
+          0.8946959972381592
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "water-high",
+        "dir": 1,
+        "bodyMin": [
+          -0.1600000262260438,
+          -2.980232241545089e-9,
+          -0.209999978542328
+        ],
+        "bodyMax": [
+          1.4900000107288363,
+          1.8633601164066258,
+          1.2099999785423279
+        ],
+        "liquidMin": [
+          0.10530400276184071,
+          1.0999999999478458,
+          0.10530400276184071
+        ],
+        "liquidMax": [
+          0.8946959972381593,
+          1.1170000000949947,
+          0.8946959972381593
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "wort-high",
+        "dir": 0,
+        "bodyMin": [
+          -0.20999997854232788,
+          -2.980232241545089e-9,
+          -0.1600000262260437
+        ],
+        "bodyMax": [
+          1.2099999785423279,
+          1.8633601164066258,
+          1.490000010728836
+        ],
+        "liquidMin": [
+          0.10530400276184082,
+          1.0999999999478458,
+          0.10530400276184082
+        ],
+        "liquidMax": [
+          0.8946959972381592,
+          1.112000000052154,
+          0.8946959972381592
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      },
+      {
+        "variant": "wort-high",
+        "dir": 1,
+        "bodyMin": [
+          -0.1600000262260438,
+          -2.980232241545089e-9,
+          -0.209999978542328
+        ],
+        "bodyMax": [
+          1.4900000107288363,
+          1.8633601164066258,
+          1.2099999785423279
+        ],
+        "liquidMin": [
+          0.10530400276184071,
+          1.0999999999478458,
+          0.10530400276184071
+        ],
+        "liquidMax": [
+          0.8946959972381593,
+          1.112000000052154,
+          0.8946959972381593
+        ],
+        "datum": [
+          0.5,
+          0,
+          0.5
+        ],
+        "hasFire": false
+      }
+    ],
+    "parity": [
+      {
+        "dir": 0,
+        "variant": "empty",
+        "phase": 0,
+        "accepted": "684142d0ddaf0ec96183440740cc57f3c13535b546161b7b4a2642d58d912c34",
+        "candidate": "684142d0ddaf0ec96183440740cc57f3c13535b546161b7b4a2642d58d912c34"
+      },
+      {
+        "dir": 0,
+        "variant": "staged",
+        "phase": 0,
+        "accepted": "17678882f4bce98431fbe26203bbf07f9ceed85a2be9ec8774b354a029bfa15d",
+        "candidate": "17678882f4bce98431fbe26203bbf07f9ceed85a2be9ec8774b354a029bfa15d"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 0,
+        "accepted": "e97ab7e5d8dcbaa2e154daaafda03533eee9640934beb89c254dc62e67a62609",
+        "candidate": "e97ab7e5d8dcbaa2e154daaafda03533eee9640934beb89c254dc62e67a62609"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 1,
+        "accepted": "8cfd60ff3dcc49539847f795f6af51cceabfd6c4e30321ebc90a843d624900b3",
+        "candidate": "8cfd60ff3dcc49539847f795f6af51cceabfd6c4e30321ebc90a843d624900b3"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 2,
+        "accepted": "ca251debf12116a7b29be4e468a56d290865ef3618fe4e88f7806acd5346d650",
+        "candidate": "ca251debf12116a7b29be4e468a56d290865ef3618fe4e88f7806acd5346d650"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 3,
+        "accepted": "9b1c165ace1ba82a265d8627ba89f7c6cf42c7784cb512e18f8e43b3af114103",
+        "candidate": "9b1c165ace1ba82a265d8627ba89f7c6cf42c7784cb512e18f8e43b3af114103"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 4,
+        "accepted": "55ffb2e25886790858510730bc64084563135fe9c099b46c912656fd10b35ad9",
+        "candidate": "55ffb2e25886790858510730bc64084563135fe9c099b46c912656fd10b35ad9"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 5,
+        "accepted": "21f5c0fe508828cdccc869e0c5aba0e594193a670fbcff6e0ef6ca4be04c2904",
+        "candidate": "21f5c0fe508828cdccc869e0c5aba0e594193a670fbcff6e0ef6ca4be04c2904"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 6,
+        "accepted": "19d4d317f921d028fd3dc7db674b352dea580ed9cf3918d315ee729aab5604d5",
+        "candidate": "19d4d317f921d028fd3dc7db674b352dea580ed9cf3918d315ee729aab5604d5"
+      },
+      {
+        "dir": 0,
+        "variant": "working",
+        "phase": 7,
+        "accepted": "5c6ec7e30b10c43640e935eff3e1059e73e84a101016c396ddf648c782ccf4a5",
+        "candidate": "5c6ec7e30b10c43640e935eff3e1059e73e84a101016c396ddf648c782ccf4a5"
+      },
+      {
+        "dir": 1,
+        "variant": "empty",
+        "phase": 0,
+        "accepted": "c80f5b4075e95a3d810f7727abf86ae5f3ffa7bfea940d5aede5b7049dc4e885",
+        "candidate": "c80f5b4075e95a3d810f7727abf86ae5f3ffa7bfea940d5aede5b7049dc4e885"
+      },
+      {
+        "dir": 1,
+        "variant": "staged",
+        "phase": 0,
+        "accepted": "518cc8f4af90c8a021b33c93059d2b60a59574c99d47a509ce933cbad5a1471d",
+        "candidate": "518cc8f4af90c8a021b33c93059d2b60a59574c99d47a509ce933cbad5a1471d"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 0,
+        "accepted": "591c9bda7506fa84dc010a902feb63eced9f8e7a8d18105bf120dd3c02fbda47",
+        "candidate": "591c9bda7506fa84dc010a902feb63eced9f8e7a8d18105bf120dd3c02fbda47"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 1,
+        "accepted": "597351e2abce4f102247fba7ee93af30d21ed23341faf1e151e5b143adf51c4e",
+        "candidate": "597351e2abce4f102247fba7ee93af30d21ed23341faf1e151e5b143adf51c4e"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 2,
+        "accepted": "143d82770d194f0be40edc840d64e46d2eb5c0ea41b0797d85d08cf543a87d13",
+        "candidate": "143d82770d194f0be40edc840d64e46d2eb5c0ea41b0797d85d08cf543a87d13"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 3,
+        "accepted": "ad446c3ea0025a283ef7eba87e1cd76decc26fafbc3ed830905678c4cc4a0523",
+        "candidate": "ad446c3ea0025a283ef7eba87e1cd76decc26fafbc3ed830905678c4cc4a0523"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 4,
+        "accepted": "264ffb7d337926df5ce6ee941dcd65a60fb25c0c9be28095b22564d3d38bdde1",
+        "candidate": "264ffb7d337926df5ce6ee941dcd65a60fb25c0c9be28095b22564d3d38bdde1"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 5,
+        "accepted": "a250063bec908573fa536dc8954db21473c89a66b32b0822f6c75af19f7505a2",
+        "candidate": "a250063bec908573fa536dc8954db21473c89a66b32b0822f6c75af19f7505a2"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 6,
+        "accepted": "574d3a5a314c918a2c92bd61b2d0f2903d13794788558443ee747c4f0c410906",
+        "candidate": "574d3a5a314c918a2c92bd61b2d0f2903d13794788558443ee747c4f0c410906"
+      },
+      {
+        "dir": 1,
+        "variant": "working",
+        "phase": 7,
+        "accepted": "4fc9f53b1144e0aa3cd4197687dea1264823759f8d94586f24f96dbbc5abe582",
+        "candidate": "4fc9f53b1144e0aa3cd4197687dea1264823759f8d94586f24f96dbbc5abe582"
+      }
+    ],
+    "anchor": {
+      "x": 0.5,
+      "y": 0.6924599083615355
+    }
+  },
+  "sourceAfter": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-station-study-20260908/station.js": "fc1f582e774dad8ee2763531be82e512adad1287f18cdf7f9504b94d8319b347",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-supplies-study-20260908/props.js": "615d7b596b225a36b577e48b58f55c5045fc4b735e25a0d06f5da80f85ef8563",
+    ".botanical/kettle-water-study-20260908/kettle.js": "89872a1f6fa4e5e8a3d2e9d78d396d5ab322cd0898ec383e8ddef8b2265760b7",
+    ".botanical/kettle-water-study-20260908/study.js": "895df0abbb28f3813bbb52be38e04035adf79cf5a0460217b92cb6e62c3ae630",
+    ".botanical/kettle-water-study-20260908/index.html": "e43a4a11ec14e3f6623dc1b47ea978f0ec7c474bff230ff9e594ae892c5fef0f",
+    ".botanical/kettle-water-study-20260908/capture.mjs": "490a1c855da1bdb417fd99cdcb58857a607af85b6a032683040c92147e961150"
+  }
+}

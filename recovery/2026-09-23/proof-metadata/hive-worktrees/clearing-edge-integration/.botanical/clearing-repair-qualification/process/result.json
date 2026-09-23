@@ -1,0 +1,16 @@
+{
+  "group": "process",
+  "files": [
+    "engine/src/games/colony-brewing.test.ts",
+    "engine/src/games/colony-work.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/process/colony-brewing.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/process/colony-work.test.mjs"
+  ],
+  "exit": 0
+}

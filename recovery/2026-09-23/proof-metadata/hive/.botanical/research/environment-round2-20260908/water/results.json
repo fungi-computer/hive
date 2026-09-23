@@ -1,0 +1,2045 @@
+{
+  "scope": "Bounded authored hydraulic experiment; no selected production solver or game integration",
+  "node": "v24.20.0",
+  "sourceSha256": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+  "disposition": {
+    "originalThetaPointSeven": "rejected: fixed-grid timestep damping, spatial and original600s behavior fail",
+    "thetaOneCorrection": "retained candidate: bulk/dt/spatial checks improve; radial bias decrease fails; rapid-flow applicability remains unqualified",
+    "fullSwe": "qualified reference for tested rest/Ritter cases and serious next candidate; no external2D calibration or arbitrary gate/steep-bed validation",
+    "groundwater": "reject total-only bucket as sufficient for reversed seepage; no Richards integration proof",
+    "productionAccepted": false
+  },
+  "balances": {
+    "originalLI": {
+      "time": 600,
+      "reservoir": 10.917146111045948,
+      "reach": 7.3428384947307395,
+      "diversion": 3.184198494343557,
+      "pond": 59.33520846588327,
+      "user": 0.6066383814625018,
+      "collected": 33.81397005253509,
+      "total": 81.38602994746599,
+      "balanceError": 9.663381206337363e-13,
+      "arrivalSeconds": 38.40000000000012,
+      "steps": 6000,
+      "minDt": 0.099999999997749,
+      "maxMassError": 1.1368683772161603e-12,
+      "maxFrAbove1cm": 19.43563007844485,
+      "wetFaceTimeFractionFrAboveHalf": 0.01133377004252616,
+      "wetFaceTimeFractionFrAboveOne": 0.0008103881943630188,
+      "maxGradient": 0.302,
+      "limitedDonors": 1504,
+      "minFactor": -1.0770580892617547e-24,
+      "minDepth": -4.0389678347315804e-28,
+      "gateBeforeOpen": 0
+    },
+    "originalSWE": {
+      "time": 600,
+      "reservoir": 6.956266896323554,
+      "reach": 3.430520162180081,
+      "diversion": 2.623384837204658,
+      "pond": 70.62852475382516,
+      "user": 0,
+      "collected": 31.561303350467696,
+      "total": 83.6386966495334,
+      "balanceError": 9.947598300641403e-13,
+      "arrivalSeconds": 32.80000000000004,
+      "steps": 6000,
+      "minDt": 0.099999999997749,
+      "maxMassError": 1.1510792319313623e-12,
+      "maxFrAbove1cm": 1.3685257264047188,
+      "wetFaceTimeFractionFrAboveHalf": 0.0021348445056532687,
+      "wetFaceTimeFractionFrAboveOne": 0.0000040034589885668384,
+      "maxGradient": 0.302,
+      "limitedDonors": 3800,
+      "minFactor": 0,
+      "minDepth": 0,
+      "gateBeforeOpen": 0
+    },
+    "correctedLI": {
+      "time": 600,
+      "reservoir": 7.448634067019736,
+      "reach": 3.6621546580274122,
+      "diversion": 2.879608262651921,
+      "pond": 73.45995641430099,
+      "user": 0.0008991696570268815,
+      "collected": 27.7487474283439,
+      "total": 87.45125257165704,
+      "balanceError": 8.384404281969182e-13,
+      "arrivalSeconds": 30.200000000000003,
+      "steps": 6000,
+      "minDt": 0.099999999997749,
+      "maxMassError": 1.0516032489249483e-12,
+      "maxFrAbove1cm": 29.630683379010215,
+      "wetFaceTimeFractionFrAboveHalf": 0.015944767195878663,
+      "wetFaceTimeFractionFrAboveOne": 0.0004750611051879395,
+      "maxGradient": 0.302,
+      "limitedDonors": 6726,
+      "minFactor": 0,
+      "minDepth": 0,
+      "gateBeforeOpen": 0
+    }
+  },
+  "checks": {
+    "originalBehavior": {
+      "pondGain": 59.33520846588327,
+      "collectionReduction": 0,
+      "sourceFractionDepleted": 0.9052331066749484,
+      "pass": false
+    },
+    "sweBehavior": {
+      "pondGain": 70.62852475382516,
+      "collectionReduction": 0.07519037477008184,
+      "sourceFractionDepleted": 0.9396157387471914,
+      "pass": false
+    },
+    "correctedBehavior": {
+      "pondGain": 73.45995641430099,
+      "collectionReduction": 0.1888164479909039,
+      "sourceFractionDepleted": 0.9353417181682314,
+      "digPondGain": 4.595438051865216,
+      "pass": true
+    },
+    "originalDt": {
+      "pondRelativeDifference": 0.45153837928054313,
+      "collectedRelativeDifference": 0.011868733349407289,
+      "arrivalSecondsDifference": 8.374999999998671,
+      "volumeTolerance": 0.05,
+      "arrivalSecondsLimit": 5.187499999999805,
+      "pass": false
+    },
+    "correctedDt": {
+      "pondRelativeDifference": 0.000019854330553466503,
+      "collectedRelativeDifference": 0.000057195283277853645,
+      "arrivalSecondsDifference": 0.025000000000723333,
+      "volumeTolerance": 0.05,
+      "arrivalSecondsLimit": 3.017499999999928,
+      "pass": true
+    },
+    "sweDt": {
+      "pondRelativeDifference": 0.00013471923232452688,
+      "collectedRelativeDifference": 0.00044397344585555393,
+      "arrivalSecondsDifference": 0.10000000000084697,
+      "volumeTolerance": 0.05,
+      "arrivalSecondsLimit": 3.2399999999999154,
+      "pass": true
+    },
+    "originalSpace": {
+      "pondRelativeDifference": 0.26180244865370605,
+      "collectedRelativeDifference": 0.06370318451750334,
+      "arrivalSecondsDifference": 5.599999999999682,
+      "volumeTolerance": 0.15,
+      "arrivalSecondsLimit": 7.579999999999939,
+      "pass": false
+    },
+    "correctedSpace": {
+      "pondRelativeDifference": 0.003638281484936655,
+      "collectedRelativeDifference": 0.011822411718436072,
+      "arrivalSecondsDifference": 0.10000000000000142,
+      "volumeTolerance": 0.15,
+      "arrivalSecondsLimit": 6.060000000000001,
+      "pass": true
+    },
+    "sweSpace": {
+      "pondRelativeDifference": 0.0009433282711141683,
+      "collectedRelativeDifference": 0.039999210912392585,
+      "arrivalSecondsDifference": 2.6499999999998494,
+      "volumeTolerance": 0.15,
+      "arrivalSecondsLimit": 7.02999999999997,
+      "pass": true
+    },
+    "originalVersusSwe": {
+      "pondRelativeDifference": 0.1598973832074874,
+      "collectedRelativeDifference": 0.07137432434437194,
+      "arrivalSecondsDifference": 5.60000000000008,
+      "volumeTolerance": 0.15,
+      "arrivalSecondsLimit": 6.5600000000000085,
+      "pass": false
+    },
+    "correctedVersusSweFineDt": {
+      "pondRelativeDifference": 0.03960204153956637,
+      "collectedRelativeDifference": 0.12181119668908102,
+      "arrivalSecondsDifference": 2.2249999999998735,
+      "volumeTolerance": 0.15,
+      "arrivalSecondsLimit": 6.479999999999831,
+      "pass": true
+    },
+    "radial": {
+      "original": {
+        "coarse": 0.09040993888079163,
+        "fine": 0.07365492645535388,
+        "initialVolumes": [
+          44.8,
+          44.80000000000012
+        ],
+        "pass": true
+      },
+      "corrected": {
+        "coarse": 0.034295796013921714,
+        "fine": 0.045825572325331555,
+        "initialVolumes": [
+          44.79999999999997,
+          44.799999999999955
+        ],
+        "pass": false
+      },
+      "swe": {
+        "coarse": 0.034295796013921714,
+        "fine": 0.021478987097378336,
+        "initialVolumes": [
+          44.79999999999989,
+          44.80000000000005
+        ],
+        "pass": true
+      }
+    },
+    "wetEdit": {
+      "li": {
+        "maxCellVolumeEditDifference": 0,
+        "geometryBefore": 1,
+        "geometryAfter": 2,
+        "pondGainAt600": 2.5738747660419534
+      },
+      "swe": {
+        "maxCellVolumeEditDifference": 0,
+        "geometryBefore": 1,
+        "geometryAfter": 2,
+        "pondGainAt600": 4.194851338783437
+      }
+    },
+    "restart": {
+      "li": {
+        "exactWithHistory": true,
+        "maxVolumeDifferenceDiscardQ": 0.011331023301382748
+      },
+      "swe": {
+        "exactWithHistory": true,
+        "maxVolumeDifferenceDiscardQ": 0
+      }
+    },
+    "rotation90": {
+      "li": {
+        "mappedVolumeMaxDifference": 4.440892098500626e-16,
+        "mappedMomentumMaxDifference": 0,
+        "mappedDischargeMaxDifference": 5.106592232406726e-17,
+        "pass": true,
+        "a": {
+          "time": 119.99999999999687,
+          "reservoir": 42.62483586815379,
+          "reach": 40.50233037648477,
+          "diversion": 12.05210758910867,
+          "pond": 9.619826657320909,
+          "user": 5.386929456393627,
+          "collected": 5.013970052538207,
+          "total": 110.18602994746185,
+          "balanceError": -4.263256414560601e-14,
+          "arrivalSeconds": 38.40000000000012,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 1.8474111129762605e-13,
+          "maxFrAbove1cm": 19.43563007844485,
+          "wetFaceTimeFractionFrAboveHalf": 0.04839895066706119,
+          "wetFaceTimeFractionFrAboveOne": 0.006736962446538048,
+          "maxGradient": 0.302,
+          "limitedDonors": 1504,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        },
+        "b": {
+          "time": 119.99999999999687,
+          "reservoir": 42.62483586815379,
+          "reach": 40.50233037648477,
+          "diversion": 12.05210758910867,
+          "pond": 9.619826657320907,
+          "user": 5.386929456393627,
+          "collected": 5.013970052538207,
+          "total": 110.18602994746185,
+          "balanceError": -4.263256414560601e-14,
+          "arrivalSeconds": 38.40000000000012,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 2.4158453015843406e-13,
+          "maxFrAbove1cm": 19.43563007844485,
+          "wetFaceTimeFractionFrAboveHalf": 0.04839895066706119,
+          "wetFaceTimeFractionFrAboveOne": 0.006736962446538048,
+          "maxGradient": 0.302,
+          "limitedDonors": 1504,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        }
+      },
+      "swe": {
+        "mappedVolumeMaxDifference": 3.3306690738754696e-16,
+        "mappedMomentumMaxDifference": 7.19910242530375e-17,
+        "mappedDischargeMaxDifference": 1.231653667943533e-16,
+        "pass": true,
+        "a": {
+          "time": 119.99999999999687,
+          "reservoir": 40.66750596791621,
+          "reach": 35.18032806118022,
+          "diversion": 11.41915521593721,
+          "pond": 17.7397978439114,
+          "user": 4.865861195155479,
+          "collected": 5.327351715899454,
+          "total": 109.87264828410053,
+          "balanceError": -1.1368683772161603e-13,
+          "arrivalSeconds": 32.80000000000004,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 1.9895196601282805e-13,
+          "maxFrAbove1cm": 1.3685257264047188,
+          "wetFaceTimeFractionFrAboveHalf": 0.01653911465723804,
+          "wetFaceTimeFractionFrAboveOne": 0.00003101568618328743,
+          "maxGradient": 0.302,
+          "limitedDonors": 1304,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        },
+        "b": {
+          "time": 119.99999999999687,
+          "reservoir": 40.667505967916235,
+          "reach": 35.18032806118022,
+          "diversion": 11.419155215937208,
+          "pond": 17.7397978439114,
+          "user": 4.865861195155479,
+          "collected": 5.327351715899454,
+          "total": 109.87264828410059,
+          "balanceError": -5.684341886080802e-14,
+          "arrivalSeconds": 32.80000000000004,
+          "steps": 1200,
+          "minDt": 0.09999999999985931,
+          "maxMassError": 2.4158453015843406e-13,
+          "maxFrAbove1cm": 1.3685257264047188,
+          "wetFaceTimeFractionFrAboveHalf": 0.01653911465723804,
+          "wetFaceTimeFractionFrAboveOne": 0.00003101568618328743,
+          "maxGradient": 0.302,
+          "limitedDonors": 1304,
+          "minFactor": 0,
+          "minDepth": 0,
+          "gateBeforeOpen": 0
+        }
+      }
+    },
+    "referenceQualification": {
+      "sweHalfMetre": 0.043236042247898857,
+      "sweQuarterMetre": 0.030329167047814257,
+      "liHalfMetre": 0.1115078157694988,
+      "liQuarterMetre": 0.13696325166300613
+    }
+  },
+  "demandCapDiagnostic": [
+    {
+      "name": "li-closed-1200s",
+      "firstTenSecondIntervalBelow99PercentDemandAfter120s": null,
+      "summary": {
+        "time": 1199.9999999998408,
+        "reservoir": 17.29394271047228,
+        "reach": 24.481391539919596,
+        "diversion": 0,
+        "pond": 0,
+        "user": 3.61069569707766,
+        "collected": 69.81397005250295,
+        "total": 45.38602994746953,
+        "balanceError": -2.7625901566352695e-11,
+        "arrivalSeconds": 38.40000000000012,
+        "steps": 12000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 2.7625901566352695e-11,
+        "maxFrAbove1cm": 19.43563007844485,
+        "wetFaceTimeFractionFrAboveHalf": 0.0030340523965793325,
+        "wetFaceTimeFractionFrAboveOne": 0.0005702297057400845,
+        "maxGradient": 0.302,
+        "limitedDonors": 1504,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0
+      }
+    },
+    {
+      "name": "li-divert-1200s",
+      "firstTenSecondIntervalBelow99PercentDemandAfter120s": {
+        "start": 620,
+        "end": 630,
+        "delivered": 0.44106780765710596,
+        "demand": 0.6
+      },
+      "summary": {
+        "time": 1199.9999999998408,
+        "reservoir": 5.055146520035266,
+        "reach": 2.238170869911043,
+        "diversion": 1.838221572273211,
+        "pond": 65.27751473033183,
+        "user": 0.0003351516911343853,
+        "collected": 40.790611155758526,
+        "total": 74.40938884424243,
+        "balanceError": 8.526512829121202e-13,
+        "arrivalSeconds": 38.40000000000012,
+        "steps": 12000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 1.3073986337985843e-12,
+        "maxFrAbove1cm": 19.43563007844485,
+        "wetFaceTimeFractionFrAboveHalf": 0.007538096324823174,
+        "wetFaceTimeFractionFrAboveOne": 0.00040584320100884517,
+        "maxGradient": 0.302,
+        "limitedDonors": 24134,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0
+      }
+    },
+    {
+      "name": "swe-closed-1200s",
+      "firstTenSecondIntervalBelow99PercentDemandAfter120s": null,
+      "summary": {
+        "time": 1199.9999999998408,
+        "reservoir": 16.801183008204095,
+        "reach": 24.529769021023796,
+        "diversion": 0,
+        "pond": 0,
+        "user": 3.7416962548801975,
+        "collected": 70.12735171586272,
+        "total": 45.07264828410806,
+        "balanceError": -2.9331204132176936e-11,
+        "arrivalSeconds": 32.80000000000004,
+        "steps": 12000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 2.9331204132176936e-11,
+        "maxFrAbove1cm": 1.3685257264047188,
+        "wetFaceTimeFractionFrAboveHalf": 0.001767096660187913,
+        "wetFaceTimeFractionFrAboveOne": 0.0000036434982684286825,
+        "maxGradient": 0.302,
+        "limitedDonors": 1304,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0
+      }
+    },
+    {
+      "name": "swe-divert-1200s",
+      "firstTenSecondIntervalBelow99PercentDemandAfter120s": {
+        "start": 520,
+        "end": 530,
+        "delivered": 0.5317915053477549,
+        "demand": 0.6
+      },
+      "summary": {
+        "time": 1199.9999999998408,
+        "reservoir": 1.9958325996347384,
+        "reach": 0.8486457091203878,
+        "diversion": 2.4490733838222005,
+        "pond": 73.77631010379224,
+        "user": 0,
+        "collected": 36.13013820363188,
+        "total": 79.06986179636957,
+        "balanceError": 1.3358203432289883e-12,
+        "arrivalSeconds": 32.80000000000004,
+        "steps": 12000,
+        "minDt": 0.099999999997749,
+        "maxMassError": 1.4210854715202004e-12,
+        "maxFrAbove1cm": 1.3685257264047188,
+        "wetFaceTimeFractionFrAboveHalf": 0.0011017453857634575,
+        "wetFaceTimeFractionFrAboveOne": 0.000002066095425716749,
+        "maxGradient": 0.302,
+        "limitedDonors": 27800,
+        "minFactor": 0,
+        "minDepth": 0,
+        "gateBeforeOpen": 0
+      }
+    }
+  ],
+  "costs": {
+    "li": {
+      "cells": 1024,
+      "faces": 2112,
+      "faceEvaluations": 12672000,
+      "persistentFieldBytes": 41472,
+      "geometryTypedBytes": 18688,
+      "scratchTypedArrayBytesPerStep": 183808,
+      "decodedJsonBytes": 314619,
+      "before": {
+        "rss": 55111680,
+        "heapTotal": 8421376,
+        "heapUsed": 6305400,
+        "external": 2362521,
+        "arrayBuffers": 203807
+      },
+      "after": {
+        "rss": 112123904,
+        "heapTotal": 43024384,
+        "heapUsed": 21785672,
+        "external": 5950657,
+        "arrayBuffers": 3791903
+      },
+      "processPeakRssKiB": 111596
+    },
+    "swe": {
+      "cells": 1024,
+      "faces": 2112,
+      "faceEvaluations": 12672000,
+      "persistentFieldBytes": 41472,
+      "geometryTypedBytes": 18688,
+      "scratchTypedArrayBytesPerStep": 183808,
+      "decodedJsonBytes": 321884,
+      "before": {
+        "rss": 55050240,
+        "heapTotal": 8421376,
+        "heapUsed": 6329512,
+        "external": 2362521,
+        "arrayBuffers": 203807
+      },
+      "after": {
+        "rss": 118312960,
+        "heapTotal": 43810816,
+        "heapUsed": 15034768,
+        "external": 3709121,
+        "arrayBuffers": 1550367
+      },
+      "processPeakRssKiB": 116308
+    },
+    "liElapsedMs": 5164.369820999999,
+    "sweElapsedMs": 6891.017576
+  },
+  "groundwater": {
+    "scope": "Exact representation-discrimination and instantaneous Darcy tendencies; no integration/convergence/infiltration-performance or Richards validation claim",
+    "params": {
+      "thetaR": 0.05,
+      "thetaS": 0.45,
+      "alpha": 2,
+      "n": 2,
+      "m": 0.5,
+      "Ks": 0.0001,
+      "Ss": 0.001,
+      "bulkVolume": 1,
+      "faceArea": 1,
+      "ell": 0.25
+    },
+    "a": {
+      "name": "dry-top-wet-bottom",
+      "pond": {
+        "bed": 0,
+        "area": 1,
+        "volume": 0.1
+      },
+      "cells": [
+        {
+          "z": -0.25,
+          "psi": -1,
+          "water": 0.2288854381999832
+        },
+        {
+          "z": -1.25,
+          "psi": 0.5,
+          "water": 0.4505
+        }
+      ],
+      "cumulativeInfiltrationLabel": 0,
+      "porousTotal": 0.6793854381999832,
+      "Hpond": 0.1,
+      "Htop": -1.25,
+      "conductivity": 7.453523980583214e-7,
+      "signedPondToSoilM3PerS": 0.000004024902949514936,
+      "direction": "infiltration",
+      "afterPointOneSeconds": {
+        "pond": 0.09999959750970505,
+        "top": 0.22888584069027815,
+        "bottom": 0.4505
+      },
+      "massError": 0
+    },
+    "b": {
+      "name": "wet-top-dry-bottom",
+      "pond": {
+        "bed": 0,
+        "area": 1,
+        "volume": 0.1
+      },
+      "cells": [
+        {
+          "z": -0.25,
+          "psi": 0.5,
+          "water": 0.4505
+        },
+        {
+          "z": -1.25,
+          "psi": -1,
+          "water": 0.2288854381999832
+        }
+      ],
+      "cumulativeInfiltrationLabel": 0,
+      "porousTotal": 0.6793854381999832,
+      "Hpond": 0.1,
+      "Htop": 0.25,
+      "conductivity": 0.0001,
+      "signedPondToSoilM3PerS": -0.00006,
+      "direction": "exfiltration",
+      "afterPointOneSeconds": {
+        "pond": 0.10000600000000001,
+        "top": 0.450494,
+        "bottom": 0.2288854381999832
+      },
+      "massError": 0
+    },
+    "stockCompression": {
+      "atZeroPressure": 0.45,
+      "atHalfMetrePressure": 0.4505,
+      "occupiedPoreVolumeBoth": 0.45,
+      "extraReferenceDensityStockFromSpecificStorage": 0.0005000000000000004
+    },
+    "checks": {
+      "equalTotal": true,
+      "oppositeRequiredDirections": true,
+      "retentionRoundtrip": true,
+      "pairedBalance": true
+    },
+    "implication": "A single soil/groundwater total or cumulative infiltration number maps both valid states to the same description yet must choose opposite surface exchange. Preserve disjoint porous distribution and retention/head, or explicitly decline reversed seepage. Saturated reference-density storage is not extra geometrical pore capacity."
+  },
+  "exactLocalCharacteristicBoundary": [
+    {
+      "Fr": 0.1,
+      "localInertialWaveSpeedsOverSqrtGH": [
+        -1,
+        1
+      ],
+      "fullSweWaveSpeedsOverSqrtGH": [
+        -0.9,
+        1.1
+      ],
+      "rightGoingRelativeSpeedError": 0.09090909090909091
+    },
+    {
+      "Fr": 0.5,
+      "localInertialWaveSpeedsOverSqrtGH": [
+        -1,
+        1
+      ],
+      "fullSweWaveSpeedsOverSqrtGH": [
+        -0.5,
+        1.5
+      ],
+      "rightGoingRelativeSpeedError": 0.3333333333333333
+    },
+    {
+      "Fr": 1,
+      "localInertialWaveSpeedsOverSqrtGH": [
+        -1,
+        1
+      ],
+      "fullSweWaveSpeedsOverSqrtGH": [
+        0,
+        2
+      ],
+      "rightGoingRelativeSpeedError": 0.5
+    },
+    {
+      "Fr": 2,
+      "localInertialWaveSpeedsOverSqrtGH": [
+        -1,
+        1
+      ],
+      "fullSweWaveSpeedsOverSqrtGH": [
+        1,
+        3
+      ],
+      "rightGoingRelativeSpeedError": 0.6666666666666666
+    }
+  ],
+  "limitations": [
+    "No calibrated gate contraction/submergence, hydraulic jump, pressure pipe, vertical waterfall or3D flow",
+    "Rusanov first-order reference has numerical diffusion; hydrostatic reconstruction can misbehave on steep shallow beds",
+    "LI Froude reconstructed on faces; SWE on cells; no directmax-velocity equivalence",
+    "LI withdrawal shares old donor budget; SWE withdrawal is a later positivity-preserving source operator; splitting differs and is checked bydt refinement",
+    "No joint mechanical/thermal energy ledger: bed excavation and friction/momentum reset have explicit unmodeled work/heat",
+    "No browser/game/population, planetary/offline/distributed or production-memory capacity claim"
+  ],
+  "runs": [
+    {
+      "directory": "bounded-cost-li",
+      "suite": "cost-li",
+      "stamp": "bounded",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:31:26.221Z",
+      "outcomes": [
+        {
+          "name": "cost-li",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 7.448634067019736,
+            "reach": 3.6621546580274122,
+            "diversion": 2.879608262651921,
+            "pond": 73.45995641430099,
+            "user": 0.0008991696570268815,
+            "collected": 27.7487474283439,
+            "total": 87.45125257165704,
+            "balanceError": 8.384404281969182e-13,
+            "arrivalSeconds": 30.200000000000003,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.0516032489249483e-12,
+            "maxFrAbove1cm": 29.630683379010215,
+            "wetFaceTimeFractionFrAboveHalf": 0.015944767195878663,
+            "wetFaceTimeFractionFrAboveOne": 0.0004750611051879395,
+            "maxGradient": 0.302,
+            "limitedDonors": 6726,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "cost": {
+              "cells": 1024,
+              "faces": 2112,
+              "faceEvaluations": 12672000,
+              "persistentFieldBytes": 41472,
+              "geometryTypedBytes": 18688,
+              "scratchTypedArrayBytesPerStep": 183808,
+              "decodedJsonBytes": 314619,
+              "before": {
+                "rss": 55111680,
+                "heapTotal": 8421376,
+                "heapUsed": 6305400,
+                "external": 2362521,
+                "arrayBuffers": 203807
+              },
+              "after": {
+                "rss": 112123904,
+                "heapTotal": 43024384,
+                "heapUsed": 21785672,
+                "external": 5950657,
+                "arrayBuffers": 3791903
+              },
+              "processPeakRssKiB": 111596
+            }
+          },
+          "elapsedMs": 5164.369820999999
+        }
+      ]
+    },
+    {
+      "directory": "bounded-cost-swe",
+      "suite": "cost-swe",
+      "stamp": "bounded",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:31:33.207Z",
+      "outcomes": [
+        {
+          "name": "cost-swe",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 6.956266896323554,
+            "reach": 3.430520162180081,
+            "diversion": 2.623384837204658,
+            "pond": 70.62852475382516,
+            "user": 0,
+            "collected": 31.561303350467696,
+            "total": 83.6386966495334,
+            "balanceError": 9.947598300641403e-13,
+            "arrivalSeconds": 32.80000000000004,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.1510792319313623e-12,
+            "maxFrAbove1cm": 1.3685257264047188,
+            "wetFaceTimeFractionFrAboveHalf": 0.0021348445056532687,
+            "wetFaceTimeFractionFrAboveOne": 0.0000040034589885668384,
+            "maxGradient": 0.302,
+            "limitedDonors": 3800,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "cost": {
+              "cells": 1024,
+              "faces": 2112,
+              "faceEvaluations": 12672000,
+              "persistentFieldBytes": 41472,
+              "geometryTypedBytes": 18688,
+              "scratchTypedArrayBytesPerStep": 183808,
+              "decodedJsonBytes": 321884,
+              "before": {
+                "rss": 55050240,
+                "heapTotal": 8421376,
+                "heapUsed": 6329512,
+                "external": 2362521,
+                "arrayBuffers": 203807
+              },
+              "after": {
+                "rss": 118312960,
+                "heapTotal": 43810816,
+                "heapUsed": 15034768,
+                "external": 3709121,
+                "arrayBuffers": 1550367
+              },
+              "processPeakRssKiB": 116308
+            }
+          },
+          "elapsedMs": 6891.017576
+        }
+      ]
+    },
+    {
+      "directory": "corrected-corrected-shape",
+      "suite": "corrected-shape",
+      "stamp": "corrected",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:31:18.445Z",
+      "outcomes": [
+        {
+          "name": "li-theta1-closed",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 34.335441564477506,
+            "reach": 41.15450269473781,
+            "diversion": 0,
+            "pond": 0,
+            "user": 5.502326356211396,
+            "collected": 34.20772938457306,
+            "total": 80.99227061542673,
+            "balanceError": -3.126388037344441e-13,
+            "arrivalSeconds": 30.200000000000003,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 3.836930773104541e-13,
+            "maxFrAbove1cm": 18.7835719218736,
+            "wetFaceTimeFractionFrAboveHalf": 0.005556724421269321,
+            "wetFaceTimeFractionFrAboveOne": 0.00037530066701164347,
+            "maxGradient": 0.302,
+            "limitedDonors": 1212,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 7371.117682
+        },
+        {
+          "name": "li-theta1-divert-no-dig",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 7.45846494249148,
+            "reach": 3.864057047870327,
+            "diversion": 7.096228123113069,
+            "pond": 68.86451836243577,
+            "user": 0.0009583290853266175,
+            "collected": 27.915773195005112,
+            "total": 87.28422680499595,
+            "balanceError": 9.663381206337363e-13,
+            "arrivalSeconds": 30.200000000000003,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.1226575225009583e-12,
+            "maxFrAbove1cm": 29.630683379010215,
+            "wetFaceTimeFractionFrAboveHalf": 0.01278117466174952,
+            "wetFaceTimeFractionFrAboveOne": 0.00047563762335906033,
+            "maxGradient": 0.302,
+            "limitedDonors": 6626,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 5785.170491
+        }
+      ]
+    },
+    {
+      "directory": "corrected-radial",
+      "suite": "radial",
+      "stamp": "corrected",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "ccb4bacdd8a2d37403277573b15228b85203babd54a094d4e99daf2259f2c8da",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:30:30.454Z",
+      "outcomes": [
+        {
+          "name": "radial-li-32",
+          "status": "completed",
+          "summary": {
+            "time": 25,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 44.8,
+            "balanceError": 9.237055564881302e-14,
+            "arrivalSeconds": null,
+            "steps": 500,
+            "minDt": 0.0499999999998586,
+            "maxMassError": 2.5579538487363607e-13,
+            "maxFrAbove1cm": 2.322893849748883,
+            "wetFaceTimeFractionFrAboveHalf": 0.048560287366258136,
+            "wetFaceTimeFractionFrAboveOne": 0.006300543613976525,
+            "maxGradient": 0.05,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "axisRadius": 17.029386365926403,
+            "diagonalRadius": 15.556349186104047,
+            "relativeRadiusBias": 0.09040993888079163,
+            "pass": true
+          },
+          "elapsedMs": 989.8207269999999
+        },
+        {
+          "name": "radial-li-64",
+          "status": "completed",
+          "summary": {
+            "time": 25,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 44.80000000000012,
+            "balanceError": -2.4868995751603507e-13,
+            "arrivalSeconds": null,
+            "steps": 500,
+            "minDt": 0.0499999999998586,
+            "maxMassError": 6.039613253960852e-13,
+            "maxFrAbove1cm": 3.324126298732333,
+            "wetFaceTimeFractionFrAboveHalf": 0.027665567933959002,
+            "wetFaceTimeFractionFrAboveOne": 0.0031592640773090847,
+            "maxGradient": 0.1,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "axisRadius": 17.507141400011598,
+            "diagonalRadius": 16.263455967290593,
+            "relativeRadiusBias": 0.07365492645535388,
+            "pass": true
+          },
+          "elapsedMs": 3304.8371159999997
+        },
+        {
+          "name": "radial-swe-32",
+          "status": "completed",
+          "summary": {
+            "time": 25,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 44.79999999999989,
+            "balanceError": -1.4210854715202004e-14,
+            "arrivalSeconds": null,
+            "steps": 500,
+            "minDt": 0.0499999999998586,
+            "maxMassError": 2.7000623958883807e-13,
+            "maxFrAbove1cm": 0.5090570349199667,
+            "wetFaceTimeFractionFrAboveHalf": 0.00015798786653185235,
+            "wetFaceTimeFractionFrAboveOne": 0,
+            "maxGradient": 0.05,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "axisRadius": 19.026297590440446,
+            "diagonalRadius": 18.38477631085024,
+            "relativeRadiusBias": 0.034295796013921714,
+            "pass": true
+          },
+          "elapsedMs": 1283.610761
+        },
+        {
+          "name": "radial-swe-64",
+          "status": "completed",
+          "summary": {
+            "time": 25,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 44.80000000000005,
+            "balanceError": -3.197442310920451e-13,
+            "arrivalSeconds": null,
+            "steps": 500,
+            "minDt": 0.0499999999998586,
+            "maxMassError": 6.536993168992922e-13,
+            "maxFrAbove1cm": 0.6190306658726973,
+            "wetFaceTimeFractionFrAboveHalf": 0.0006940905656398895,
+            "wetFaceTimeFractionFrAboveOne": 0,
+            "maxGradient": 0.1,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "axisRadius": 19.50640920313116,
+            "diagonalRadius": 19.091883092036785,
+            "relativeRadiusBias": 0.021478987097378336,
+            "pass": true
+          },
+          "elapsedMs": 5139.567242
+        }
+      ]
+    },
+    {
+      "directory": "corrected-radial-theta1",
+      "suite": "radial-theta1",
+      "stamp": "corrected",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:31:20.962Z",
+      "outcomes": [
+        {
+          "name": "radial-li-32",
+          "status": "completed",
+          "summary": {
+            "time": 25,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 44.79999999999997,
+            "balanceError": 6.394884621840902e-14,
+            "arrivalSeconds": null,
+            "steps": 500,
+            "minDt": 0.0499999999998586,
+            "maxMassError": 2.1316282072803006e-13,
+            "maxFrAbove1cm": 5.741589027530467,
+            "wetFaceTimeFractionFrAboveHalf": 0.024283171157469294,
+            "wetFaceTimeFractionFrAboveOne": 0.004044314626937944,
+            "maxGradient": 0.05,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "axisRadius": 19.026297590440446,
+            "diagonalRadius": 18.38477631085024,
+            "relativeRadiusBias": 0.034295796013921714,
+            "pass": true
+          },
+          "elapsedMs": 565.3067709999999
+        },
+        {
+          "name": "radial-li-64",
+          "status": "completed",
+          "summary": {
+            "time": 25,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 44.799999999999955,
+            "balanceError": -4.121147867408581e-13,
+            "arrivalSeconds": null,
+            "steps": 500,
+            "minDt": 0.0499999999998586,
+            "maxMassError": 6.181721801112872e-13,
+            "maxFrAbove1cm": 6.320477574186479,
+            "wetFaceTimeFractionFrAboveHalf": 0.015190039379849442,
+            "wetFaceTimeFractionFrAboveOne": 0.0017137960582690826,
+            "maxGradient": 0.1,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "axisRadius": 18.50675552332175,
+            "diagonalRadius": 17.67766952966369,
+            "relativeRadiusBias": 0.045825572325331555,
+            "pass": true
+          },
+          "elapsedMs": 1821.888834
+        }
+      ]
+    },
+    {
+      "directory": "corrected-refinement",
+      "suite": "refinement",
+      "stamp": "corrected",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "180fb83ec4619767f0310cac18f73ecf656c07217b08700022f570383fe631c3",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:31:17.437Z",
+      "outcomes": [
+        {
+          "name": "li-theta0.7-n32-dt0.05",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999999204,
+            "reservoir": 14.180289611310746,
+            "reach": 12.731794507231605,
+            "diversion": 4.124173807017147,
+            "pond": 48.776103817507256,
+            "user": 1.8232476663850528,
+            "collected": 33.56439059054076,
+            "total": 81.63560940945176,
+            "balanceError": -7.58859641791787e-12,
+            "arrivalSeconds": 43.499999999999375,
+            "steps": 12000,
+            "minDt": 0.04999999999773763,
+            "maxMassError": 7.58859641791787e-12,
+            "maxFrAbove1cm": 37.428929593373894,
+            "wetFaceTimeFractionFrAboveHalf": 0.010091240418819366,
+            "wetFaceTimeFractionFrAboveOne": 0.0010529908321228367,
+            "maxGradient": 0.302,
+            "limitedDonors": 3378,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 7173.02866
+        },
+        {
+          "name": "li-theta0.7-n32-dt0.025",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999996885,
+            "reservoir": 20.201467826109397,
+            "reach": 19.95705572963647,
+            "diversion": 5.668108855926461,
+            "pond": 33.603041100217546,
+            "user": 2.5996300485425117,
+            "collected": 33.17069643948636,
+            "total": 82.02930356043242,
+            "balanceError": -8.131451068038587e-11,
+            "arrivalSeconds": 51.874999999998046,
+            "steps": 24000,
+            "minDt": 0.024999999997731948,
+            "maxMassError": 8.138556495396188e-11,
+            "maxFrAbove1cm": 26.842656960066236,
+            "wetFaceTimeFractionFrAboveHalf": 0.010960521788101321,
+            "wetFaceTimeFractionFrAboveOne": 0.001373812577554607,
+            "maxGradient": 0.302,
+            "limitedDonors": 7976,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 23797.408650999998
+        },
+        {
+          "name": "li-theta0.7-n64-dt0.05",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999999204,
+            "reservoir": 9.441697139214204,
+            "reach": 5.165682931153072,
+            "diversion": 2.9435962579669686,
+            "pond": 66.07459443417474,
+            "user": 0.020146915885537065,
+            "collected": 31.55428232149704,
+            "total": 83.64571767839453,
+            "balanceError": -1.0804512839968083e-10,
+            "arrivalSeconds": 37.89999999999969,
+            "steps": 12000,
+            "minDt": 0.04999999999773763,
+            "maxMassError": 1.0832934549398487e-10,
+            "maxFrAbove1cm": 19.994717636280196,
+            "wetFaceTimeFractionFrAboveHalf": 0.01280733577682211,
+            "wetFaceTimeFractionFrAboveOne": 0.0007746983638936932,
+            "maxGradient": 0.602,
+            "limitedDonors": 26040,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 69953.210313
+        },
+        {
+          "name": "li-theta1-n32-dt0.1",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 7.448634067019736,
+            "reach": 3.6621546580274122,
+            "diversion": 2.879608262651921,
+            "pond": 73.45995641430099,
+            "user": 0.0008991696570268815,
+            "collected": 27.7487474283439,
+            "total": 87.45125257165704,
+            "balanceError": 8.384404281969182e-13,
+            "arrivalSeconds": 30.200000000000003,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.0516032489249483e-12,
+            "maxFrAbove1cm": 29.630683379010215,
+            "wetFaceTimeFractionFrAboveHalf": 0.015944767195878663,
+            "wetFaceTimeFractionFrAboveOne": 0.0004750611051879395,
+            "maxGradient": 0.302,
+            "limitedDonors": 6726,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 8462.086005000005
+        },
+        {
+          "name": "li-theta1-n32-dt0.05",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999999204,
+            "reservoir": 7.448980020795385,
+            "reach": 3.662223725149885,
+            "diversion": 2.8793936171176036,
+            "pond": 73.45707388985123,
+            "user": 0.00044953453804478865,
+            "collected": 27.751879212548012,
+            "total": 87.4481207874521,
+            "balanceError": 0,
+            "arrivalSeconds": 30.200000000000003,
+            "steps": 12000,
+            "minDt": 0.04999999999773763,
+            "maxMassError": 3.836930773104541e-13,
+            "maxFrAbove1cm": 36.31502386675046,
+            "wetFaceTimeFractionFrAboveHalf": 0.01589119139510647,
+            "wetFaceTimeFractionFrAboveOne": 0.00046116609746194406,
+            "maxGradient": 0.302,
+            "limitedDonors": 13434,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 16381.898220000003
+        },
+        {
+          "name": "li-theta1-n32-dt0.025",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999996885,
+            "reservoir": 7.449145297890161,
+            "reach": 3.6622537306586245,
+            "diversion": 2.8792941581739786,
+            "pond": 73.45561547778053,
+            "user": 0.0002247555189691384,
+            "collected": 27.753466579930993,
+            "total": 87.4465334200223,
+            "balanceError": -4.68105554318754e-11,
+            "arrivalSeconds": 30.17499999999928,
+            "steps": 24000,
+            "minDt": 0.024999999997731948,
+            "maxMassError": 4.7194248509185854e-11,
+            "maxFrAbove1cm": 39.06070077834485,
+            "wetFaceTimeFractionFrAboveHalf": 0.01587687016806599,
+            "wetFaceTimeFractionFrAboveOne": 0.00046040717401133813,
+            "maxGradient": 0.302,
+            "limitedDonors": 26852,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 22372.817404
+        },
+        {
+          "name": "li-theta1-n64-dt0.05",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999999204,
+            "reservoir": 7.420836753371615,
+            "reach": 3.781661019756842,
+            "diversion": 2.844119682122367,
+            "pond": 73.72530731040996,
+            "user": 0.0004566214026824416,
+            "collected": 27.42761861285065,
+            "total": 87.7723813870634,
+            "balanceError": -8.556355624023126e-11,
+            "arrivalSeconds": 30.300000000000004,
+            "steps": 12000,
+            "minDt": 0.04999999999773763,
+            "maxMassError": 8.600409273640253e-11,
+            "maxFrAbove1cm": 30.308122362319768,
+            "wetFaceTimeFractionFrAboveHalf": 0.01425898147623535,
+            "wetFaceTimeFractionFrAboveOne": 0.0003574109398481136,
+            "maxGradient": 0.602,
+            "limitedDonors": 51196,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 81931.59386200001
+        },
+        {
+          "name": "swe-theta0.7-n32-dt0.05",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999999204,
+            "reservoir": 6.925894523629558,
+            "reach": 3.416976179639549,
+            "diversion": 2.62016744541784,
+            "pond": 70.64791781755861,
+            "user": 0,
+            "collected": 31.589044033754814,
+            "total": 83.61095596624553,
+            "balanceError": 2.4158453015843406e-13,
+            "arrivalSeconds": 32.5,
+            "steps": 12000,
+            "minDt": 0.04999999999773763,
+            "maxMassError": 4.973799150320701e-13,
+            "maxFrAbove1cm": 1.784236338206465,
+            "wetFaceTimeFractionFrAboveHalf": 0.002305414371717443,
+            "wetFaceTimeFractionFrAboveOne": 0.000009005524889521303,
+            "maxGradient": 0.302,
+            "limitedDonors": 7532,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 36900.68742500001
+        },
+        {
+          "name": "swe-theta0.7-n32-dt0.025",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999996885,
+            "reservoir": 6.9107259509090415,
+            "reach": 3.410205558059984,
+            "diversion": 2.618556797925019,
+            "pond": 70.65743673319332,
+            "user": 0,
+            "collected": 31.603074959844367,
+            "total": 83.59692504008733,
+            "balanceError": -6.841105459898245e-11,
+            "arrivalSeconds": 32.39999999999915,
+            "steps": 24000,
+            "minDt": 0.024999999997731948,
+            "maxMassError": 6.855316314613447e-11,
+            "maxFrAbove1cm": 1.815365505195564,
+            "wetFaceTimeFractionFrAboveHalf": 0.002375422270890281,
+            "wetFaceTimeFractionFrAboveOne": 0.00001100543118028568,
+            "maxGradient": 0.302,
+            "limitedDonors": 14992,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 36470.42028999998
+        },
+        {
+          "name": "swe-theta0.7-n64-dt0.05",
+          "status": "completed",
+          "summary": {
+            "time": 599.9999999999204,
+            "reservoir": 7.697668984172065,
+            "reach": 3.835628623469204,
+            "diversion": 2.7062815542434926,
+            "pond": 70.58133644747468,
+            "user": 0.004980542861348807,
+            "collected": 30.37410384767668,
+            "total": 84.82589615222084,
+            "balanceError": -1.021049911287264e-10,
+            "arrivalSeconds": 35.14999999999985,
+            "steps": 12000,
+            "minDt": 0.04999999999773763,
+            "maxMassError": 1.0226131053059362e-10,
+            "maxFrAbove1cm": 1.6349637470920348,
+            "wetFaceTimeFractionFrAboveHalf": 0.005428626985615396,
+            "wetFaceTimeFractionFrAboveOne": 0.00001156390939073905,
+            "maxGradient": 0.602,
+            "limitedDonors": 32548,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 73225.61249599996
+        }
+      ]
+    },
+    {
+      "directory": "corrected-restart",
+      "suite": "restart",
+      "stamp": "corrected",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "2f16cebe3906930240d818ec3d8ec0f3390f6cf674e46d9c1dd3ca1c07221795",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:29:02.029Z",
+      "outcomes": [
+        {
+          "name": "restart-li",
+          "status": "completed",
+          "summary": {
+            "exactWithHistory": true,
+            "maxVolumeDifferenceDiscardQ": 0.011331023301382748
+          },
+          "elapsedMs": 8135.372351
+        },
+        {
+          "name": "restart-swe",
+          "status": "completed",
+          "summary": {
+            "exactWithHistory": true,
+            "maxVolumeDifferenceDiscardQ": 0
+          },
+          "elapsedMs": 9393.528240999998
+        },
+        {
+          "name": "rotation90-li",
+          "status": "completed",
+          "summary": {
+            "mappedVolumeMaxDifference": 4.440892098500626e-16,
+            "mappedMomentumMaxDifference": 0,
+            "mappedDischargeMaxDifference": 5.106592232406726e-17,
+            "pass": true,
+            "a": {
+              "time": 119.99999999999687,
+              "reservoir": 42.62483586815379,
+              "reach": 40.50233037648477,
+              "diversion": 12.05210758910867,
+              "pond": 9.619826657320909,
+              "user": 5.386929456393627,
+              "collected": 5.013970052538207,
+              "total": 110.18602994746185,
+              "balanceError": -4.263256414560601e-14,
+              "arrivalSeconds": 38.40000000000012,
+              "steps": 1200,
+              "minDt": 0.09999999999985931,
+              "maxMassError": 1.8474111129762605e-13,
+              "maxFrAbove1cm": 19.43563007844485,
+              "wetFaceTimeFractionFrAboveHalf": 0.04839895066706119,
+              "wetFaceTimeFractionFrAboveOne": 0.006736962446538048,
+              "maxGradient": 0.302,
+              "limitedDonors": 1504,
+              "minFactor": 0,
+              "minDepth": 0,
+              "gateBeforeOpen": 0
+            },
+            "b": {
+              "time": 119.99999999999687,
+              "reservoir": 42.62483586815379,
+              "reach": 40.50233037648477,
+              "diversion": 12.05210758910867,
+              "pond": 9.619826657320907,
+              "user": 5.386929456393627,
+              "collected": 5.013970052538207,
+              "total": 110.18602994746185,
+              "balanceError": -4.263256414560601e-14,
+              "arrivalSeconds": 38.40000000000012,
+              "steps": 1200,
+              "minDt": 0.09999999999985931,
+              "maxMassError": 2.4158453015843406e-13,
+              "maxFrAbove1cm": 19.43563007844485,
+              "wetFaceTimeFractionFrAboveHalf": 0.04839895066706119,
+              "wetFaceTimeFractionFrAboveOne": 0.006736962446538048,
+              "maxGradient": 0.302,
+              "limitedDonors": 1504,
+              "minFactor": 0,
+              "minDepth": 0,
+              "gateBeforeOpen": 0
+            }
+          },
+          "elapsedMs": 6996.0470300000015
+        },
+        {
+          "name": "rotation90-swe",
+          "status": "completed",
+          "summary": {
+            "mappedVolumeMaxDifference": 3.3306690738754696e-16,
+            "mappedMomentumMaxDifference": 7.19910242530375e-17,
+            "mappedDischargeMaxDifference": 1.231653667943533e-16,
+            "pass": true,
+            "a": {
+              "time": 119.99999999999687,
+              "reservoir": 40.66750596791621,
+              "reach": 35.18032806118022,
+              "diversion": 11.41915521593721,
+              "pond": 17.7397978439114,
+              "user": 4.865861195155479,
+              "collected": 5.327351715899454,
+              "total": 109.87264828410053,
+              "balanceError": -1.1368683772161603e-13,
+              "arrivalSeconds": 32.80000000000004,
+              "steps": 1200,
+              "minDt": 0.09999999999985931,
+              "maxMassError": 1.9895196601282805e-13,
+              "maxFrAbove1cm": 1.3685257264047188,
+              "wetFaceTimeFractionFrAboveHalf": 0.01653911465723804,
+              "wetFaceTimeFractionFrAboveOne": 0.00003101568618328743,
+              "maxGradient": 0.302,
+              "limitedDonors": 1304,
+              "minFactor": 0,
+              "minDepth": 0,
+              "gateBeforeOpen": 0
+            },
+            "b": {
+              "time": 119.99999999999687,
+              "reservoir": 40.667505967916235,
+              "reach": 35.18032806118022,
+              "diversion": 11.419155215937208,
+              "pond": 17.7397978439114,
+              "user": 4.865861195155479,
+              "collected": 5.327351715899454,
+              "total": 109.87264828410059,
+              "balanceError": -5.684341886080802e-14,
+              "arrivalSeconds": 32.80000000000004,
+              "steps": 1200,
+              "minDt": 0.09999999999985931,
+              "maxMassError": 2.4158453015843406e-13,
+              "maxFrAbove1cm": 1.3685257264047188,
+              "wetFaceTimeFractionFrAboveHalf": 0.01653911465723804,
+              "wetFaceTimeFractionFrAboveOne": 0.00003101568618328743,
+              "maxGradient": 0.302,
+              "limitedDonors": 1304,
+              "minFactor": 0,
+              "minDepth": 0,
+              "gateBeforeOpen": 0
+            }
+          },
+          "elapsedMs": 8576.967718
+        }
+      ]
+    },
+    {
+      "directory": "diagnostic-extended-observation",
+      "suite": "extended-observation",
+      "stamp": "diagnostic",
+      "hashes": {
+        "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+        "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:32:15.842Z",
+      "outcomes": [
+        {
+          "name": "li-closed-1200s",
+          "status": "completed",
+          "summary": {
+            "time": 1199.9999999998408,
+            "reservoir": 17.29394271047228,
+            "reach": 24.481391539919596,
+            "diversion": 0,
+            "pond": 0,
+            "user": 3.61069569707766,
+            "collected": 69.81397005250295,
+            "total": 45.38602994746953,
+            "balanceError": -2.7625901566352695e-11,
+            "arrivalSeconds": 38.40000000000012,
+            "steps": 12000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 2.7625901566352695e-11,
+            "maxFrAbove1cm": 19.43563007844485,
+            "wetFaceTimeFractionFrAboveHalf": 0.0030340523965793325,
+            "wetFaceTimeFractionFrAboveOne": 0.0005702297057400845,
+            "maxGradient": 0.302,
+            "limitedDonors": 1504,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 10738.553978
+        },
+        {
+          "name": "li-divert-1200s",
+          "status": "completed",
+          "summary": {
+            "time": 1199.9999999998408,
+            "reservoir": 5.055146520035266,
+            "reach": 2.238170869911043,
+            "diversion": 1.838221572273211,
+            "pond": 65.27751473033183,
+            "user": 0.0003351516911343853,
+            "collected": 40.790611155758526,
+            "total": 74.40938884424243,
+            "balanceError": 8.526512829121202e-13,
+            "arrivalSeconds": 38.40000000000012,
+            "steps": 12000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.3073986337985843e-12,
+            "maxFrAbove1cm": 19.43563007844485,
+            "wetFaceTimeFractionFrAboveHalf": 0.007538096324823174,
+            "wetFaceTimeFractionFrAboveOne": 0.00040584320100884517,
+            "maxGradient": 0.302,
+            "limitedDonors": 24134,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 11605.769988
+        },
+        {
+          "name": "swe-closed-1200s",
+          "status": "completed",
+          "summary": {
+            "time": 1199.9999999998408,
+            "reservoir": 16.801183008204095,
+            "reach": 24.529769021023796,
+            "diversion": 0,
+            "pond": 0,
+            "user": 3.7416962548801975,
+            "collected": 70.12735171586272,
+            "total": 45.07264828410806,
+            "balanceError": -2.9331204132176936e-11,
+            "arrivalSeconds": 32.80000000000004,
+            "steps": 12000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 2.9331204132176936e-11,
+            "maxFrAbove1cm": 1.3685257264047188,
+            "wetFaceTimeFractionFrAboveHalf": 0.001767096660187913,
+            "wetFaceTimeFractionFrAboveOne": 0.0000036434982684286825,
+            "maxGradient": 0.302,
+            "limitedDonors": 1304,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 11202.958849999995
+        },
+        {
+          "name": "swe-divert-1200s",
+          "status": "completed",
+          "summary": {
+            "time": 1199.9999999998408,
+            "reservoir": 1.9958325996347384,
+            "reach": 0.8486457091203878,
+            "diversion": 2.4490733838222005,
+            "pond": 73.77631010379224,
+            "user": 0,
+            "collected": 36.13013820363188,
+            "total": 79.06986179636957,
+            "balanceError": 1.3358203432289883e-12,
+            "arrivalSeconds": 32.80000000000004,
+            "steps": 12000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.4210854715202004e-12,
+            "maxFrAbove1cm": 1.3685257264047188,
+            "wetFaceTimeFractionFrAboveHalf": 0.0011017453857634575,
+            "wetFaceTimeFractionFrAboveOne": 0.000002066095425716749,
+            "maxGradient": 0.302,
+            "limitedDonors": 27800,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 8927.570386
+        }
+      ]
+    },
+    {
+      "directory": "first-diversion-base",
+      "suite": "base",
+      "stamp": "first-diversion",
+      "hashes": {
+        "solver.mjs": "b65e1db870a0d96a8786f9be406e949c63d7bb90bc2f3ea8064c0fb044a8961a",
+        "experiment.mjs": "180fb83ec4619767f0310cac18f73ecf656c07217b08700022f570383fe631c3",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:23:54.603Z",
+      "outcomes": [
+        {
+          "name": "li-divert-dig",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 10.917146111045948,
+            "reach": 7.3428384947307395,
+            "diversion": 3.184198494343557,
+            "pond": 59.33520846588327,
+            "user": 0.6066383814625018,
+            "collected": 33.81397005253509,
+            "total": 81.38602994746599,
+            "balanceError": 9.663381206337363e-13,
+            "arrivalSeconds": 38.40000000000012,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.1368683772161603e-12,
+            "maxFrAbove1cm": 19.43563007844485,
+            "wetFaceTimeFractionFrAboveHalf": 0.01133377004252616,
+            "wetFaceTimeFractionFrAboveOne": 0.0008103881943630188,
+            "maxGradient": 0.302,
+            "limitedDonors": 1504,
+            "minFactor": -1.0770580892617547e-24,
+            "minDepth": -4.0389678347315804e-28,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 3692.620335
+        },
+        {
+          "name": "li-closed",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 34.894961161898834,
+            "reach": 41.10075463685408,
+            "diversion": 0,
+            "pond": 0,
+            "user": 5.390314148711772,
+            "collected": 33.81397005253509,
+            "total": 81.38602994746466,
+            "balanceError": -3.410605131648481e-13,
+            "arrivalSeconds": 38.40000000000012,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 3.694822225952521e-13,
+            "maxFrAbove1cm": 19.43563007844485,
+            "wetFaceTimeFractionFrAboveHalf": 0.006102818481585067,
+            "wetFaceTimeFractionFrAboveOne": 0.0011469836153333583,
+            "maxGradient": 0.302,
+            "limitedDonors": 1504,
+            "minFactor": -1.0770580892617547e-24,
+            "minDepth": -4.0389678347315804e-28,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 5472.931414000001
+        },
+        {
+          "name": "li-divert-no-dig",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 10.936985119798234,
+            "reach": 7.569578700934361,
+            "diversion": 5.419215811390463,
+            "pond": 56.761333699841316,
+            "user": 0.6989166155016471,
+            "collected": 33.81397005253509,
+            "total": 81.38602994746604,
+            "balanceError": 1.0231815394945443e-12,
+            "arrivalSeconds": 38.40000000000012,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.1084466677857563e-12,
+            "maxFrAbove1cm": 19.43563007844485,
+            "wetFaceTimeFractionFrAboveHalf": 0.006182893564719685,
+            "wetFaceTimeFractionFrAboveOne": 0.0008103881943630188,
+            "maxGradient": 0.302,
+            "limitedDonors": 1504,
+            "minFactor": -1.0770580892617547e-24,
+            "minDepth": -4.0389678347315804e-28,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 4320.891721
+        },
+        {
+          "name": "swe-divert-dig",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 6.956266896323554,
+            "reach": 3.430520162180081,
+            "diversion": 2.623384837204658,
+            "pond": 70.62852475382516,
+            "user": 0,
+            "collected": 31.561303350467696,
+            "total": 83.6386966495334,
+            "balanceError": 9.947598300641403e-13,
+            "arrivalSeconds": 32.80000000000004,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.1510792319313623e-12,
+            "maxFrAbove1cm": 1.3685257264047188,
+            "wetFaceTimeFractionFrAboveHalf": 0.0021348445056532687,
+            "wetFaceTimeFractionFrAboveOne": 0.0000040034589885668384,
+            "maxGradient": 0.302,
+            "limitedDonors": 3800,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 6393.023793
+        },
+        {
+          "name": "swe-closed",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 34.68146912556618,
+            "reach": 40.93957790276401,
+            "diversion": 0,
+            "pond": 0,
+            "user": 5.451601255773245,
+            "collected": 34.12735171589634,
+            "total": 81.07264828410341,
+            "balanceError": -3.552713678800501e-13,
+            "arrivalSeconds": 32.80000000000004,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 3.979039320256561e-13,
+            "maxFrAbove1cm": 1.3685257264047188,
+            "wetFaceTimeFractionFrAboveHalf": 0.0035541159960875398,
+            "wetFaceTimeFractionFrAboveOne": 0.000007328074218737188,
+            "maxGradient": 0.302,
+            "limitedDonors": 1304,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 10842.395624
+        },
+        {
+          "name": "swe-divert-no-dig",
+          "status": "completed",
+          "summary": {
+            "time": 600,
+            "reservoir": 6.957307195222606,
+            "reach": 3.43208357875767,
+            "diversion": 6.807052402850781,
+            "pond": 66.43367341504172,
+            "user": 0,
+            "collected": 31.569883408128334,
+            "total": 83.63011659187283,
+            "balanceError": 1.0658141036401503e-12,
+            "arrivalSeconds": 32.80000000000004,
+            "steps": 6000,
+            "minDt": 0.099999999997749,
+            "maxMassError": 1.1368683772161603e-12,
+            "maxFrAbove1cm": 1.3685257264047188,
+            "wetFaceTimeFractionFrAboveHalf": 0.0021348274122652837,
+            "wetFaceTimeFractionFrAboveOne": 0.000004003426933455755,
+            "maxGradient": 0.302,
+            "limitedDonors": 3792,
+            "minFactor": 0,
+            "minDepth": 0,
+            "gateBeforeOpen": 0
+          },
+          "elapsedMs": 10323.942360999998
+        }
+      ]
+    },
+    {
+      "directory": "initial-qualification",
+      "suite": "qualification",
+      "stamp": "initial",
+      "hashes": {
+        "solver.mjs": "0a0b8e9cd0f0f43e896a7d93f748685ec6e35ce5648a7f2e5e69d8045b354eff",
+        "experiment.mjs": "180fb83ec4619767f0310cac18f73ecf656c07217b08700022f570383fe631c3",
+        "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+      },
+      "node": "v24.20.0",
+      "platform": "linux",
+      "arch": "x64",
+      "timestamp": "2026-09-08T06:22:47.662Z",
+      "outcomes": [
+        {
+          "name": "rest-li",
+          "status": "completed",
+          "summary": {
+            "time": 119.99999999999687,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 1747.3089773587337,
+            "balanceError": 0,
+            "arrivalSeconds": null,
+            "steps": 1200,
+            "minDt": 0.09999999999985931,
+            "maxMassError": 0,
+            "maxFrAbove1cm": 1.678726720755651e-15,
+            "wetFaceTimeFractionFrAboveHalf": 0,
+            "wetFaceTimeFractionFrAboveOne": 0,
+            "maxGradient": 1.1102230246251565e-16,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "restDepthDrift": 5.551115123125783e-17,
+            "restHistoryDrift": 6.946381832381836e-16,
+            "pass": true
+          },
+          "elapsedMs": 1258.3267170000001
+        },
+        {
+          "name": "rest-swe",
+          "status": "completed",
+          "summary": {
+            "time": 119.99999999999687,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 1747.3089773587337,
+            "balanceError": 0,
+            "arrivalSeconds": null,
+            "steps": 1200,
+            "minDt": 0.09999999999985931,
+            "maxMassError": 0,
+            "maxFrAbove1cm": 5.444236753498956e-16,
+            "wetFaceTimeFractionFrAboveHalf": 0,
+            "wetFaceTimeFractionFrAboveOne": 0,
+            "maxGradient": 1.1102230246251565e-16,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "restDepthDrift": 0,
+            "restHistoryDrift": 6.864392879752758e-16,
+            "pass": true
+          },
+          "elapsedMs": 1514.2970559999999
+        },
+        {
+          "name": "ritter-swe-64",
+          "status": "completed",
+          "summary": {
+            "time": 2,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 512.0000000000024,
+            "balanceError": 2.3874235921539366e-12,
+            "arrivalSeconds": null,
+            "steps": 100,
+            "minDt": 0.019999999999998685,
+            "maxMassError": 1.0970779840135947e-11,
+            "maxFrAbove1cm": 35.04447307579109,
+            "wetFaceTimeFractionFrAboveHalf": 0.2966856503013992,
+            "wetFaceTimeFractionFrAboveOne": 0.21474519624513652,
+            "maxGradient": 2,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "normalizedDepthL1": 0.043236042247898857,
+            "pass": true
+          },
+          "elapsedMs": 1159.5902960000003
+        },
+        {
+          "name": "ritter-li-64",
+          "status": "completed",
+          "summary": {
+            "time": 2,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 512.0000000000034,
+            "balanceError": 3.410605131648481e-12,
+            "arrivalSeconds": null,
+            "steps": 100,
+            "minDt": 0.019999999999998685,
+            "maxMassError": 9.322320693172514e-12,
+            "maxFrAbove1cm": 57.455756028542304,
+            "wetFaceTimeFractionFrAboveHalf": 0.3059778718371667,
+            "wetFaceTimeFractionFrAboveOne": 0.14359380349195466,
+            "maxGradient": 2,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "normalizedDepthL1": 0.1115078157694988,
+            "pass": false
+          },
+          "elapsedMs": 659.1784670000002
+        },
+        {
+          "name": "ritter-swe-128",
+          "status": "completed",
+          "summary": {
+            "time": 2,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 512.0000000000022,
+            "balanceError": 2.1600499167107046e-12,
+            "arrivalSeconds": null,
+            "steps": 175,
+            "minDt": 0.00212896899824222,
+            "maxMassError": 3.1946001399774104e-11,
+            "maxFrAbove1cm": 43.01591249367184,
+            "wetFaceTimeFractionFrAboveHalf": 0.28226776939291204,
+            "wetFaceTimeFractionFrAboveOne": 0.2090956746345357,
+            "maxGradient": 4,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "normalizedDepthL1": 0.030329167047814257,
+            "pass": true
+          },
+          "elapsedMs": 2728.2129399999994
+        },
+        {
+          "name": "ritter-li-128",
+          "status": "completed",
+          "summary": {
+            "time": 2,
+            "reservoir": 0,
+            "reach": 0,
+            "diversion": 0,
+            "pond": 0,
+            "user": 0,
+            "collected": 0,
+            "total": 512.000000000002,
+            "balanceError": 2.0463630789890885e-12,
+            "arrivalSeconds": null,
+            "steps": 126,
+            "minDt": 0.004528572455939184,
+            "maxMassError": 2.467004378559068e-11,
+            "maxFrAbove1cm": 23.391766208084828,
+            "wetFaceTimeFractionFrAboveHalf": 0.2775744341172545,
+            "wetFaceTimeFractionFrAboveOne": 0.05922066582653782,
+            "maxGradient": 4,
+            "limitedDonors": 0,
+            "minFactor": 1,
+            "minDepth": 0,
+            "gateBeforeOpen": 0,
+            "normalizedDepthL1": 0.13696325166300613,
+            "pass": false
+          },
+          "elapsedMs": 1947.8223799999996
+        }
+      ]
+    }
+  ]
+}

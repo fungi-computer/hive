@@ -1,0 +1,708 @@
+{
+  "kind": "world-lab-coherent-lod-contract-measurement-and-readable-view",
+  "generatedAt": "2026-09-08T02:36:31.253Z",
+  "contract": {
+    "seed": "hive-world-lab-seed-20260907",
+    "generatorVersion": "world-lab-terrain-lod-v3",
+    "identity": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907",
+    "chunkSize": 16,
+    "globalCoordinates": "signed integer x,z; mathematical floor division",
+    "overviewBounds": "explicit half-open [minX,minZ,maxXExclusive,maxZExclusive) world bounds",
+    "sampleIdentity": "generatorVersion:seed/sample/x,z",
+    "chunkIdentity": "generatorVersion:seed/chunk/chunkX,chunkZ (cache identity only; not geography)",
+    "coherentRecipe": "shared smooth broad fields plus footprint-omitted fine octaves; no output resize of a fine grid",
+    "authoritativeLocal": "sampleCell uses the same footprint=1 terrain query as direct local sampling",
+    "overviewBudget": {
+      "width": 512,
+      "height": 512,
+      "samples": 262144
+    },
+    "localResidency": {
+      "windowChunks": 5,
+      "maxResidentChunks": 25
+    },
+    "overviewVisualData": "terrain, elevation, and moisture arrays come from the same sampleTerrain query",
+    "localVisualData": "terrain, elevation, and moisture arrays come from the same generated cell arrays"
+  },
+  "measurements": {
+    "coarse512Ms": 7260.884,
+    "fineSpan512Ms": 7498.104,
+    "visibleGenerationMs": 188.461,
+    "visibleRenderPreparationMs": 9.027,
+    "totalNodeCheckMs": 15694.662,
+    "note": "Render timing is bounded buffer preparation in this source-backed check; browser canvas timing remains a separate page measurement."
+  },
+  "checks": {
+    "globalSignedCoordinates": {
+      "negative": {
+        "x": -1,
+        "chunkX": -1,
+        "localX": 15
+      },
+      "positive": {
+        "x": 16,
+        "chunkX": 1,
+        "localX": 0
+      },
+      "pass": true
+    },
+    "boundedIncrementalWorkerSampler": {
+      "rowBatches": [
+        7,
+        14,
+        21,
+        28,
+        35,
+        42,
+        49,
+        56,
+        63,
+        64
+      ],
+      "synchronousChecksum": "e64b8783",
+      "incrementalChecksum": "e64b8783",
+      "canceledRequest": {
+        "type": "canceled",
+        "requestId": 41
+      },
+      "completedRequest": {
+        "type": "result",
+        "requestId": 42,
+        "sampleCount": 1024,
+        "typedArrays": true
+      },
+      "maxDimension": 512,
+      "oversizedRejected": true,
+      "pass": true
+    },
+    "multiscaleGeography": {
+      "coarse": {
+        "bounds": {
+          "minX": -2048,
+          "minZ": -2048,
+          "maxXExclusive": 2048,
+          "maxZExclusive": 2048,
+          "spanX": 4096,
+          "spanZ": 4096
+        },
+        "footprint": 8,
+        "sampleCount": 262144,
+        "checksum": "4436e6ba",
+        "featureCounts": {
+          "coast": 757,
+          "ridge": 2818
+        },
+        "ms": 7260.884
+      },
+      "fineSpan": {
+        "bounds": {
+          "minX": -1024,
+          "minZ": -1024,
+          "maxXExclusive": 1024,
+          "maxZExclusive": 1024,
+          "spanX": 2048,
+          "spanZ": 2048
+        },
+        "footprint": 4,
+        "sampleCount": 262144,
+        "checksum": "f92355c7",
+        "featureCounts": {
+          "coast": 1536,
+          "ridge": 5632
+        },
+        "elevationSamples": 262144,
+        "moistureSamples": 262144,
+        "ms": 7498.104
+      },
+      "fixedOutputSamples": 262144,
+      "spans": {
+        "coarse": {
+          "x": 4096,
+          "z": 4096
+        },
+        "fine": {
+          "x": 2048,
+          "z": 2048
+        }
+      },
+      "pass": true
+    },
+    "namedFeatures": {
+      "features": {
+        "coast": {
+          "name": "Northwater Coast",
+          "coordinate": {
+            "x": -720,
+            "z": -234
+          },
+          "local": {
+            "feature": "coast",
+            "terrain": "coast"
+          },
+          "coarse": {
+            "feature": "coast",
+            "terrain": "coast"
+          },
+          "fineSpan": {
+            "feature": "coast",
+            "terrain": "coast"
+          },
+          "coarseOverviewPixel": {
+            "column": 166,
+            "row": 226,
+            "index": 115878,
+            "featureCode": 1
+          },
+          "fineOverviewPixel": {
+            "column": 76,
+            "row": 197,
+            "index": 100940,
+            "featureCode": 1
+          }
+        },
+        "ridge": {
+          "name": "Lantern Ridge",
+          "coordinate": {
+            "x": 420,
+            "z": 432
+          },
+          "local": {
+            "feature": "ridge",
+            "terrain": "ridge"
+          },
+          "coarse": {
+            "feature": "ridge",
+            "terrain": "ridge"
+          },
+          "fineSpan": {
+            "feature": "ridge",
+            "terrain": "ridge"
+          },
+          "coarseOverviewPixel": {
+            "column": 308,
+            "row": 310,
+            "index": 159028,
+            "featureCode": 2
+          },
+          "fineOverviewPixel": {
+            "column": 361,
+            "row": 364,
+            "index": 186729,
+            "featureCode": 2
+          }
+        }
+      },
+      "pass": true
+    },
+    "authoritativeLocal": {
+      "points": [
+        {
+          "x": -719,
+          "z": -234,
+          "sampleId": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/sample/-719,-234",
+          "cellTerrain": "coast",
+          "directTerrain": "coast",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        },
+        {
+          "x": 420,
+          "z": 432,
+          "sampleId": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/sample/420,432",
+          "cellTerrain": "ridge",
+          "directTerrain": "ridge",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        },
+        {
+          "x": -1,
+          "z": 0,
+          "sampleId": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/sample/-1,0",
+          "cellTerrain": "water",
+          "directTerrain": "water",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        },
+        {
+          "x": 16,
+          "z": 0,
+          "sampleId": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/sample/16,0",
+          "cellTerrain": "water",
+          "directTerrain": "water",
+          "elevationDelta": 0,
+          "moistureDelta": 0
+        }
+      ],
+      "pass": true
+    },
+    "localResolutionAuthority": {
+      "points": [
+        {
+          "x": -719,
+          "z": -100,
+          "unchanged": true
+        },
+        {
+          "x": 420,
+          "z": 320,
+          "unchanged": true
+        },
+        {
+          "x": -1,
+          "z": 0,
+          "unchanged": true
+        },
+        {
+          "x": 16,
+          "z": 0,
+          "unchanged": true
+        }
+      ],
+      "pass": true
+    },
+    "signedGlobalSeams": {
+      "seamSamples": [
+        {
+          "boundary": -32,
+          "x": {
+            "elevationDelta": 1.9322007416278097e-7,
+            "moistureDelta": 6.7145189741602e-8
+          },
+          "z": {
+            "elevationDelta": 1.4563273109668984e-7,
+            "moistureDelta": 1.9356647040780217e-7
+          }
+        },
+        {
+          "boundary": -16,
+          "x": {
+            "elevationDelta": 1.3422184919065216e-8,
+            "moistureDelta": 1.665306417208967e-7
+          },
+          "z": {
+            "elevationDelta": 9.755582575099453e-8,
+            "moistureDelta": 1.1257800192066014e-7
+          }
+        },
+        {
+          "boundary": 0,
+          "x": {
+            "elevationDelta": 8.585354649426336e-13,
+            "moistureDelta": 4.7992610774372224e-8
+          },
+          "z": {
+            "elevationDelta": 1.0546008510914362e-12,
+            "moistureDelta": 3.098424905534358e-8
+          }
+        },
+        {
+          "boundary": 16,
+          "x": {
+            "elevationDelta": 5.010012960049437e-8,
+            "moistureDelta": 3.2751595768765185e-8
+          },
+          "z": {
+            "elevationDelta": 1.4052520180829475e-7,
+            "moistureDelta": 1.690282279698252e-7
+          }
+        },
+        {
+          "boundary": 32,
+          "x": {
+            "elevationDelta": 2.3422417783081073e-8,
+            "moistureDelta": 3.3741113059093664e-7
+          },
+          "z": {
+            "elevationDelta": 8.795196404509653e-8,
+            "moistureDelta": 3.193601493256537e-7
+          }
+        }
+      ],
+      "seamTolerance": 0.002,
+      "pass": true
+    },
+    "cacheTileIdentity": {
+      "edgeMatches": [
+        {
+          "z": 0,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 1,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 2,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 3,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 4,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 5,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 6,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 7,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 8,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 9,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 10,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 11,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 12,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 13,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 14,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        },
+        {
+          "z": 15,
+          "left": 0,
+          "leftExpected": 0,
+          "right": 0,
+          "rightExpected": 0
+        }
+      ],
+      "nearBoundary": {
+        "leftX": 15.999,
+        "rightX": 16.001,
+        "elevationDelta": 5.01075377190574e-7
+      },
+      "pass": true
+    },
+    "orderIndependentChunks": {
+      "first": [
+        {
+          "key": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/chunk/-1,0",
+          "checksum": "737dff9f"
+        },
+        {
+          "key": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/chunk/0,0",
+          "checksum": "527cc879"
+        },
+        {
+          "key": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/chunk/0,-1",
+          "checksum": "5886746d"
+        }
+      ],
+      "reverse": [
+        {
+          "key": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/chunk/0,-1",
+          "checksum": "5886746d"
+        },
+        {
+          "key": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/chunk/0,0",
+          "checksum": "527cc879"
+        },
+        {
+          "key": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907/chunk/-1,0",
+          "checksum": "737dff9f"
+        }
+      ],
+      "pass": true
+    },
+    "boundedLocal": {
+      "visibleWindow": "5x5",
+      "generatedTerrainChunks": 25,
+      "visibleCells": 6400,
+      "renderBuffer": {
+        "width": 80,
+        "height": 80,
+        "checksum": "39231939"
+      },
+      "maxResidentChunks": 25,
+      "residentRenderChunks": 25,
+      "evictions": 26,
+      "distantWindowCells": 6400,
+      "returnedOriginChecksum": "527cc879",
+      "originChecksum": "527cc879",
+      "shuffledRenderChecksum": "39231939",
+      "shuffledRenderVisualChecksum": "7921b3c2",
+      "pass": true
+    },
+    "coordinateMapping": {
+      "edgeAndSignedSamples": [
+        {
+          "requested": {
+            "x": -2048,
+            "z": -2048
+          },
+          "pixel": {
+            "column": 0,
+            "row": 0,
+            "index": 0
+          },
+          "representativeCell": {
+            "x": -2048,
+            "z": -2048,
+            "column": 0,
+            "row": 0
+          },
+          "withinPixelFootprint": true,
+          "signed": true
+        },
+        {
+          "requested": {
+            "x": 2047,
+            "z": 2047
+          },
+          "pixel": {
+            "column": 511,
+            "row": 511,
+            "index": 262143
+          },
+          "representativeCell": {
+            "x": 2040,
+            "z": 2040,
+            "column": 511,
+            "row": 511
+          },
+          "withinPixelFootprint": true,
+          "signed": false
+        },
+        {
+          "requested": {
+            "x": -1,
+            "z": 0
+          },
+          "pixel": {
+            "column": 255,
+            "row": 256,
+            "index": 131327
+          },
+          "representativeCell": {
+            "x": -8,
+            "z": 0,
+            "column": 255,
+            "row": 256
+          },
+          "withinPixelFootprint": true,
+          "signed": true
+        },
+        {
+          "requested": {
+            "x": 0,
+            "z": 0
+          },
+          "pixel": {
+            "column": 256,
+            "row": 256,
+            "index": 131328
+          },
+          "representativeCell": {
+            "x": 0,
+            "z": 0,
+            "column": 256,
+            "row": 256
+          },
+          "withinPixelFootprint": true,
+          "signed": false
+        },
+        {
+          "requested": {
+            "x": -720,
+            "z": -234
+          },
+          "pixel": {
+            "column": 166,
+            "row": 226,
+            "index": 115878
+          },
+          "representativeCell": {
+            "x": -720,
+            "z": -240,
+            "column": 166,
+            "row": 226
+          },
+          "withinPixelFootprint": true,
+          "signed": true
+        },
+        {
+          "requested": {
+            "x": 420,
+            "z": 432
+          },
+          "pixel": {
+            "column": 308,
+            "row": 310,
+            "index": 159028
+          },
+          "representativeCell": {
+            "x": 416,
+            "z": 432,
+            "column": 308,
+            "row": 310
+          },
+          "withinPixelFootprint": true,
+          "signed": false
+        }
+      ],
+      "pass": true
+    },
+    "crossScaleSampleFacts": {
+      "selected": {
+        "x": -1,
+        "z": 0,
+        "overviewFootprint": 8,
+        "overviewElevation": 0.5082507250894209,
+        "overviewMoisture": 0.5355725112519919,
+        "localElevation": 0.5136280864489251,
+        "localMoisture": 0.5395476563701673,
+        "localRenderElevationByte": 131,
+        "localRenderMoistureByte": 138
+      },
+      "pass": true
+    },
+    "visualTerrainData": {
+      "overviewElevationValues": 171,
+      "overviewMoistureValues": 183,
+      "localElevationValues": 10,
+      "localMoistureValues": 22,
+      "pass": true
+    },
+    "isolatedSource": {
+      "importsRuntimeOrSimulation": false,
+      "pass": true
+    },
+    "footprintAwareGenerator": {
+      "sameGlobalSampler": true,
+      "frequencyOmission": true,
+      "noChunkGeographyClaim": true,
+      "pass": true
+    },
+    "userFacingLabShape": {
+      "noDiagnosticCallerOrButton": true,
+      "namedGlobalButtons": true,
+      "markerData": {
+        "viewport": {
+          "minX": -752,
+          "minZ": -272,
+          "maxXExclusive": -672,
+          "maxZExclusive": -192,
+          "width": 80,
+          "height": 80,
+          "centerX": -712.5,
+          "centerZ": -232.5,
+          "cellsPerPixel": 1,
+          "centerChunkX": -45,
+          "centerChunkZ": -15
+        },
+        "overviewRect": {
+          "left": 162,
+          "top": 222,
+          "width": 10,
+          "height": 10
+        }
+      },
+      "markerHasPositiveArea": true,
+      "markerUpdatedFromRender": true,
+      "clickMapsToCell": true,
+      "localSelectionMarker": true,
+      "sharedFactsPanel": true,
+      "fullDetailInspectorLaw": true,
+      "halfOpenBounds": true,
+      "explicitOverviewScale": true,
+      "explicitLocalScale": true,
+      "readableLegend": true,
+      "responsiveNavigation": true,
+      "visibleScaleStatus": true,
+      "zoomLimitsAndNoOp": true,
+      "workerLifecycle": true,
+      "pass": true
+    }
+  },
+  "diagnostic1024": {
+    "executed": false,
+    "reason": "1024 is diagnostic only after measured 512; this bounded check stops at 512."
+  },
+  "claims": [
+    "deterministic terrain query",
+    "coherent named coast/ridge across two spans",
+    "signed global-coordinate seam continuity",
+    "bounded fixed-output LOD work",
+    "bounded local render residency",
+    "order-independent local render buffer",
+    "readable elevation/moisture variation with named viewport marker",
+    "overview pixel to signed global cell to local one-cell trace"
+  ],
+  "nonClaims": [
+    "generated terrain is not a Clearing chunk",
+    "render residency is not decoded-world eviction",
+    "chunk keys are cache identity only; chunks do not own geography or create borders",
+    "the lab has no actors, caravan, jobs, routes, commands, or simulation",
+    "overview samples are not a playable world-size or capacity claim"
+  ]
+}

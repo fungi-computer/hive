@@ -1,0 +1,64 @@
+{
+  "scope": "static real Bender2019 map/contact consumer; fixed 540kg / 600 fluid particles, inverted complete box, no timestep",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "grids": [
+    [
+      18,
+      19,
+      18
+    ],
+    [
+      36,
+      38,
+      36
+    ]
+  ],
+  "queriesPerGrid": 18,
+  "nativeMapAuthoring": "verbatim retained volume-function leaf uses mapped SDF field0; native Gauss rule30; sparse required-node input only, full field topology",
+  "witnesses": "mapped SDF versus direct inverted mesh versus independent analytic box, each direct rule30 and query-only rule50; independent continuum GL48",
+  "controls": {
+    "meshSdfM": 1e-12,
+    "fineOffSurfaceSdfDivR": 0.01,
+    "fineVolumeInterpolationDivR3": 0.01,
+    "rule30Rule50VolumeDivR3": 0.01,
+    "contactPositionM": 1e-14,
+    "positiveState": "exact",
+    "restoration": "exact"
+  },
+  "physicalQualification": "unqualified; a passing static map/control packet is not passing hydrostatics or a port",
+  "sources": {
+    "SOURCE-FIT.md": "c84ae885409e0291237e5bc8dc22da8e40e5b9f8bee00f32fdf98cb60f8d1751",
+    "FIRST-SHAPE.md": "5e48644163371a38a7633a209e1cfd1e9eebc595750eadbfdee057d3babfdf47",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "continuum.h": "012d85f997c78d48a148b6f54d5a86bd727f2b5936725842984018de9821181e",
+    "map-input.h": "f10dc2d5808beb4b6c600309787999459e898b201436926c0be28847ac7f1340",
+    "probes.h": "e7ad028fbdbfcfbf7a3ceffda18b09bed9034f7a781868e372361f2cddbb1e86",
+    "native-volume-leaf.inc": "1ca2154acf1d3234b4dd7260841356d90371c5f1eff27a4a680ee0b429d4e2e5",
+    "leaf-provenance.json": "88e0571ba931f015b71516687e36d262c04cfc3716225a19c38a3f43280cbd4f",
+    "reference.cpp": "4e682a56460917d7206638e1ceed189e80038da9c8659af214823494d87a13f7",
+    "reference": "f73ee38063c65d4698c430f73de577c6d5258f0492337497cdc14ec483e01567",
+    "compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-command.json": "1461e39049f92200179780ceb252cbef654c329013919820d8828ec054bb17f8",
+    "run-proof.py": "9d5d30b80175a2c62760a225cdfc3de351b36d013f024360dd5e1b09d42e4fc8"
+  },
+  "frozenColdOracle": "cde1510068aa9ec58502b81f5f167829030a37d1c0683238fbd90824075401c7",
+  "frozenPhysicalFailure": "00f47dfe93ad78ebe80378d99ca0766565e476741b9177cb419aa55f318cfd96",
+  "frozenLibraries": {
+    "build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87",
+    "build/extern/install/NeighborhoodSearch/lib/libCompactNSearch.a": "1bb78be2e724e6d8da0f1a9ea04409c8bbe4e577faea8267139ce0c93623c8ad",
+    "build/extern/install/Discregrid/lib/libDiscregrid.a": "2e23c922c401dfcbf3fa8559ff8670a7d65b443064083b48e0cafe6f61d98d1b"
+  },
+  "pass": false,
+  "exit": -6,
+  "probes": [],
+  "maps": [],
+  "result": null,
+  "fluidInitializationByteEqual": true,
+  "nativeCaptureParseSeconds": 1.4941956290276721,
+  "maxChildRssKiB": 22012,
+  "evidenceSha256": {
+    "stderr": "b3a96a749cf77ea323bb649c34f894e54656510c5242354a0e228c311481fedc",
+    "stdout": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initialization.csv": "74e9f1e569189715a0b5cd51d27159d0a48db1f496f4deed8fc636c862a0c28a"
+  }
+}

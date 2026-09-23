@@ -1,0 +1,199 @@
+{
+  "source": {
+    "bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    "capture.mjs": "4c1f4f9dabed4f28f330debc5acedce28627c7560a852c7c27fbc240ff883832",
+    "composition.js": "a141b4f8a8f654e79360a13c4142343e6765a27e1b4d7e08028cb09d47e64635",
+    "index.html": "495dfb1e9ffaa34a041e2e4d8dca98d4a623835b8fcbd594421d49732fd131d4",
+    "main.js": "d4031ba2a84ed635cfa1308aa7e6ef560881e3937c26e14ec0be723db415f325",
+    "props.js": "70e53e22368af641e527cc0a17251a7275dc379ee59a23307507317d48f9c5f9",
+    "shell.js": "4151700c1588df370f7e85db2fe05debfc6a39f66ae594e48c832fb2eed6cd03",
+    "style.css": "870545d03295e6dbdfa410b51440d523dd7c31c121b0c09fb7c1891c7717630b",
+    "template.js": "bd75d79b6dd20ee40b1eacee48d018ec378df1b008d4f44f18ab94905e4736f8",
+    "world.js": "fb9cb4f6c9d76377cb636682ac80b3c7e04e2107a63e69108f470c9c864533f5"
+  },
+  "checks": {
+    "dollhouse": {
+      "minX": 97,
+      "minY": 92,
+      "maxX": 302,
+      "maxY": 286,
+      "count": 29538,
+      "margin": 73
+    },
+    "exterior": {
+      "minX": 88,
+      "minY": 66,
+      "maxX": 312,
+      "maxY": 286,
+      "count": 33342,
+      "margin": 66
+    },
+    "ground": {
+      "minX": 97,
+      "minY": 109,
+      "maxX": 302,
+      "maxY": 260,
+      "count": 21139,
+      "margin": 97
+    },
+    "upper": {
+      "minX": 97,
+      "minY": 92,
+      "maxX": 302,
+      "maxY": 286,
+      "count": 29538,
+      "margin": 73
+    },
+    "exploded": {
+      "minX": 88,
+      "minY": 23,
+      "maxX": 312,
+      "maxY": 317,
+      "count": 46505,
+      "margin": 23
+    },
+    "turn": true,
+    "narrow": true
+  },
+  "errors": [],
+  "metrics": [
+    {
+      "kind": "kettle",
+      "minX": 33,
+      "minY": 45,
+      "maxX": 78,
+      "maxY": 88,
+      "count": 1310,
+      "margin": 23
+    },
+    {
+      "kind": "fermenter",
+      "minX": 42,
+      "minY": 51,
+      "maxX": 69,
+      "maxY": 84,
+      "count": 682,
+      "margin": 27
+    },
+    {
+      "kind": "cask",
+      "minX": 46,
+      "minY": 54,
+      "maxX": 65,
+      "maxY": 80,
+      "count": 475,
+      "margin": 31
+    },
+    {
+      "kind": "workbench",
+      "minX": 35,
+      "minY": 50,
+      "maxX": 76,
+      "maxY": 87,
+      "count": 854,
+      "margin": 24
+    },
+    {
+      "kind": "bar",
+      "minX": 32,
+      "minY": 45,
+      "maxX": 78,
+      "maxY": 86,
+      "count": 1316,
+      "margin": 25
+    },
+    {
+      "kind": "stool",
+      "minX": 49,
+      "minY": 63,
+      "maxX": 63,
+      "maxY": 80,
+      "count": 175,
+      "margin": 31
+    },
+    {
+      "kind": "grainSack",
+      "minX": 49,
+      "minY": 62,
+      "maxX": 62,
+      "maxY": 79,
+      "count": 222,
+      "margin": 32
+    },
+    {
+      "kind": "bucket",
+      "minX": 49,
+      "minY": 63,
+      "maxX": 62,
+      "maxY": 79,
+      "count": 171,
+      "margin": 32
+    },
+    {
+      "kind": "dryingRack",
+      "minX": 41,
+      "minY": 35,
+      "maxX": 70,
+      "maxY": 85,
+      "count": 719,
+      "margin": 26
+    },
+    {
+      "kind": "bookcase",
+      "minX": 38,
+      "minY": 36,
+      "maxX": 73,
+      "maxY": 86,
+      "count": 1393,
+      "margin": 25
+    },
+    {
+      "kind": "lantern",
+      "minX": 51,
+      "minY": 64,
+      "maxX": 60,
+      "maxY": 79,
+      "count": 117,
+      "margin": 32
+    },
+    {
+      "kind": "sign",
+      "minX": 53,
+      "minY": 28,
+      "maxX": 72,
+      "maxY": 78,
+      "count": 625,
+      "margin": 28
+    },
+    {
+      "kind": "bottle",
+      "minX": 52,
+      "minY": 67,
+      "maxX": 59,
+      "maxY": 79,
+      "count": 73,
+      "margin": 32
+    },
+    {
+      "kind": "tankard",
+      "minX": 52,
+      "minY": 70,
+      "maxX": 60,
+      "maxY": 78,
+      "count": 57,
+      "margin": 33
+    }
+  ],
+  "sourceUnchanged": {
+    "bake.js": true,
+    "capture.mjs": true,
+    "composition.js": true,
+    "index.html": true,
+    "main.js": true,
+    "props.js": true,
+    "shell.js": true,
+    "style.css": true,
+    "template.js": true,
+    "world.js": true
+  }
+}

@@ -1,0 +1,961 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "scope": "0::/user.slice/user-1000.slice/user@1000.service/app.slice/run-u223.scope",
+  "errors": [],
+  "chopping": {
+    "seed": 42,
+    "tick": 197,
+    "paused": false,
+    "nextId": 4,
+    "pawn": {
+      "x": 4,
+      "z": 4,
+      "level": 0,
+      "dir": 3,
+      "mode": "chop",
+      "path": [],
+      "leg": 0,
+      "work": 13,
+      "task": {
+        "id": "job-3:chop:oak-1",
+        "job": "job-3",
+        "kind": "chop",
+        "target": "oak-1",
+        "duration": 80
+      },
+      "carry": 0,
+      "carryTo": null,
+      "rest": 77.63599999999991
+    },
+    "cat": {
+      "x": 7,
+      "z": 11,
+      "level": 0,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 200
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 13,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-2",
+        "kind": "build",
+        "target": "site-1",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-3",
+        "kind": "chop",
+        "target": "oak-1",
+        "reason": "Ready to chop"
+      }
+    ],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-3:chop:oak-1",
+      "cost": 134
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 96
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 130
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Work added to Rowan's orders."
+  },
+  "focusSurvivedActivityChange": true,
+  "paused": {
+    "seed": 42,
+    "tick": 289,
+    "paused": true,
+    "nextId": 5,
+    "pawn": {
+      "x": 4,
+      "z": 4,
+      "level": 0,
+      "dir": 1,
+      "mode": "walk",
+      "path": [
+        {
+          "x": 5,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 6,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 6,
+          "z": 5,
+          "level": 0
+        }
+      ],
+      "leg": 5,
+      "work": 0,
+      "task": {
+        "id": "job-2:deliver:site-1",
+        "job": "job-2",
+        "kind": "deliver",
+        "target": "site-1",
+        "duration": 8
+      },
+      "carry": 1,
+      "carryTo": "site-1",
+      "rest": 76.53199999999987
+    },
+    "cat": {
+      "x": 4,
+      "z": 3,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 300
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 264
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-4",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-2",
+        "kind": "build",
+        "target": "site-1",
+        "reason": "Ready to haul wood"
+      }
+    ],
+    "felled": 1,
+    "finishedJobs": 1,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-2:deliver:site-1",
+      "cost": 32
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 96
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 130
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "1 wood in hand. Taking it to the timber wall."
+  },
+  "pausedHudMutations": 0,
+  "finished": {
+    "seed": 42,
+    "tick": 343,
+    "paused": false,
+    "nextId": 5,
+    "pawn": {
+      "x": 6,
+      "z": 5,
+      "level": 0,
+      "dir": 1,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 75.88399999999984
+    },
+    "cat": {
+      "x": 6,
+      "z": 3,
+      "level": 0,
+      "dir": 1,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 400
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 264
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-4",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 343
+      }
+    ],
+    "jobs": [],
+    "felled": 1,
+    "finishedJobs": 2,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 96
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 130
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Timber wall finished. A little less wilderness."
+  },
+  "second": {
+    "seed": 42,
+    "tick": 579,
+    "paused": false,
+    "nextId": 7,
+    "pawn": {
+      "x": 10,
+      "z": 4,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 73.05199999999974
+    },
+    "cat": {
+      "x": 10,
+      "z": 5,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 600
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 264
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 578
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-4",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      },
+      {
+        "id": "wood-6",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 6
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 343
+      }
+    ],
+    "jobs": [],
+    "felled": 2,
+    "finishedJobs": 3,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 96
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 130
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 468
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Oak felled. Six wood on the ground, ready to carry."
+  },
+  "reset": {
+    "seed": 42,
+    "tick": 20,
+    "paused": true,
+    "nextId": 1,
+    "pawn": {
+      "x": 7,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 79.75999999999999
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "demand": null,
+    "notice": "A borrowed axe. No home. Bramble seems optimistic."
+  },
+  "nativeCheckbox": true,
+  "heapBytes": 16777216,
+  "success": true,
+  "browserClosed": true
+}

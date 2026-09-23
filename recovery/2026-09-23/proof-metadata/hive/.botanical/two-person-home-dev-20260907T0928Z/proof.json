@@ -1,0 +1,13 @@
+{
+  "url": "http://127.0.0.1:5187/",
+  "errors": [],
+  "screenshots": [
+    "01-visible-visitor.png",
+    "02-sedge-recruited.png",
+    "03-both-selected.png",
+    "04-shared-rectangle-applied.png",
+    "failure.png"
+  ],
+  "success": false,
+  "failure": "locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#chop-tool')\u001b[22m\n\n    at /home/levi/src/hive/scripts/prove-two-person.mjs:124:36"
+}

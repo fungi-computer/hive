@@ -1,0 +1,58 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/work-panel-proof-20260907",
+  "frozenTarget": {
+    "files": {
+      "dist/index.html": "79a28308e7fdc43b101829bbe3de01222a63c513b1e15dba56ffafe0f1f85626",
+      "dist/assets/game-zaw4jAQ8.js": "acd25e2f6b02dfbf855519b6b80ada8feb35bb6d09dc4545fee76ad66a44693e",
+      "dist/assets/game-DhYj3lZ2.css": "547d9dc7f256a126e7c8f8248d25ece4625fdb15dcb53b5d8a764fef4b8fd789",
+      "dist/assets/art-CCSP12DF.js": "37435e9bf8030f3ec971348825cf416d2451672b6bfbecf8834052e9e3af4211"
+    },
+    "resolvedAssets": {
+      "gameJs": "assets/game-zaw4jAQ8.js",
+      "gameCss": "assets/game-DhYj3lZ2.css",
+      "artJs": "assets/art-CCSP12DF.js"
+    }
+  },
+  "scriptSha256": "114e6193102906d3239ebaa4958c097f636f5d75d0a5259937636618b95980a2",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one bounded joined Work/Caps proof"
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-work-panel.png",
+    "normal-work-toggles.png",
+    "failure.png"
+  ],
+  "claims": {
+    "recruit": {
+      "visibleSedge": true,
+      "homeMembers": [
+        "rowan",
+        "sedge"
+      ]
+    },
+    "normalPanel": {
+      "readable": true,
+      "workBox": {
+        "x": 16,
+        "y": 351.5,
+        "width": 310,
+        "height": 340.5
+      },
+      "capsCard": true,
+      "capsButtons": 1,
+      "capsCheckboxes": 6,
+      "pausedTick": 82
+    },
+    "pausedWorkToggles": {
+      "rowanBuild": false,
+      "sedgeHaul": false,
+      "tickFrozen": true,
+      "positionsTasksWorkFeedFrozen": true
+    }
+  },
+  "success": false,
+  "failure": "page.waitForFunction: Timeout 30000ms exceeded.\n    at waitState (/home/levi/src/hive/scripts/prove-work-panel.mjs:95:8)\n    at /home/levi/src/hive/scripts/prove-work-panel.mjs:267:9"
+}

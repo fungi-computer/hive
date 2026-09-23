@@ -1,0 +1,97 @@
+{
+  "scope": "D4 bounded spill analysis; no water solver, terrain carving or cave hydrology",
+  "checks": [
+    "independent minimax oracle matches every escape elevation across 20 varied fixtures",
+    "marine connectivity rejects diagonal-only contact and exact-datum beds",
+    "enclosed unit basin has exact geometric fill capacity and no water creation",
+    "inputs and query results cannot rewrite the owned analysis",
+    "corrected generator sampled once per declared bed for coarse and exact grids; source heights unchanged",
+    "actual parent graph uses only declared faces and all contributions reach finite analysis boundary"
+  ],
+  "errors": [],
+  "actual": [
+    {
+      "fixture": "whole-world-coarse",
+      "samplingMs": 908.6616959999999,
+      "drainageMs": 42.795393000000104,
+      "samples": 16384,
+      "checksum": "319eb84cab43564da8a96e1efffd4e35244b5348e29078be1271d2c86adb1e1b",
+      "bytes": 4221229,
+      "marineRoots": 19,
+      "oceanSamples": 51,
+      "components": 190,
+      "method": "height-authoritative-d4-spill-v2",
+      "sourceIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+      "origin": [
+        -2048,
+        -2048
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "stride": 32,
+      "seaMetres": 6.48,
+      "connectivity": "D4",
+      "sampleMeaning": "coarse point samples; intervening beds unresolved",
+      "capacityMeaning": "geometric rectangular-prism fill capacity, not water stock; coarse capacity is approximate",
+      "boundary": "all perimeter beds discharge; only explicit below-datum roots are marine",
+      "cells": 16384,
+      "queuePops": 16384,
+      "outletContribution": 16384,
+      "retainedArrayBytes": 622592,
+      "scratchArrayBytes": 131072
+    },
+    {
+      "fixture": "exact-local-coast",
+      "samplingMs": 1239.248687,
+      "drainageMs": 65.59575500000028,
+      "samples": 16384,
+      "checksum": "176394d46c82246eb15afb9c5dd93181cade8fe10f002714e4d875006e239781",
+      "bytes": 4036465,
+      "marineRoots": 235,
+      "oceanSamples": 7991,
+      "components": 0,
+      "method": "height-authoritative-d4-spill-v2",
+      "sourceIdentity": "world-lab-terrain-height-sea-v5:layered-landforms-continuous-coast-height-sea-v1:hive-world-lab-seed-20260907",
+      "origin": [
+        -784,
+        -1184
+      ],
+      "size": [
+        128,
+        128
+      ],
+      "stride": 1,
+      "seaMetres": 6.48,
+      "connectivity": "D4",
+      "sampleMeaning": "exact one-metre column bed",
+      "capacityMeaning": "geometric rectangular-prism fill capacity, not water stock; coarse capacity is approximate",
+      "boundary": "all perimeter beds discharge; only explicit below-datum roots are marine",
+      "cells": 16384,
+      "queuePops": 16384,
+      "outletContribution": 16384,
+      "retainedArrayBytes": 622592,
+      "scratchArrayBytes": 131072
+    }
+  ],
+  "wallMs": 3076.077451,
+  "hashes": {
+    "./drainage.mjs": "0908179fea4059d870f8810e0c0bffae0a3e46cb5f60f88d67983debce61dd94",
+    "./qualify.mjs": "4d02955bcbdd3756db6f23a727483dd5ad21d8a28760059fd6b666b4773379a1",
+    "../height-sea/terrain.js": "530464448725cacb73836f34c2c48ddbf3e4a8c0d8a353498e7fe6da03f45bdf"
+  },
+  "limitations": [
+    "coarse points do not prove a traversable river corridor between samples",
+    "perimeter discharge is an explicit finite analysis boundary, not an implicit chunk boundary",
+    "surface-only bed analysis does not model caves, soil water, liquid quantities, rain or erosion",
+    "equal-spill connected components are not a nested depression hierarchy",
+    "typed array counts exclude JS objects and the caller-retained evidence arrays; runtime may retain scratch until owner collection"
+  ],
+  "run": {
+    "scope": "run-u2861.scope",
+    "invocation": "be9052d777b44649852bad267663cc80",
+    "nativeSession": 6172,
+    "exitCode": 0
+  }
+}

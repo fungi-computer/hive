@@ -1,0 +1,89 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/mugwort-home-local-20260907T163347Z-attempt3",
+  "frozenTarget": {
+    "source": "ec6bf609",
+    "local": {
+      "assets": {
+        "gameJs": "assets/game-B2gLd4Lj.js",
+        "gameCss": "assets/game-CxFQJg3g.css",
+        "artJs": "assets/art-BZ4FxRqi.js"
+      },
+      "hashes": {
+        "index": "a3e3f9c6a8e42ea9c369f5e30b999e3c27665d6140960f2bf3ad980f5116fa88",
+        "gameJs": "2fd49c8870c7406ce725053181c35c14afc571ddd89a45a7bf94e03b9b44c192",
+        "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+        "artJs": "3db8740af8a882feacc52979b8eaf654daed078303c5c7d5383e1f2001f4bed2"
+      }
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-B2gLd4Lj.js",
+      "gameCss": "assets/game-CxFQJg3g.css",
+      "artJs": "assets/art-BZ4FxRqi.js"
+    },
+    "hashes": {
+      "index": "a3e3f9c6a8e42ea9c369f5e30b999e3c27665d6140960f2bf3ad980f5116fa88",
+      "gameJs": "2fd49c8870c7406ce725053181c35c14afc571ddd89a45a7bf94e03b9b44c192",
+      "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+      "artJs": "3db8740af8a882feacc52979b8eaf654daed078303c5c7d5383e1f2001f4bed2"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "2f502d9bb535c5579eec3fbc602f46e74369a6d72f89573680b36cb279e6e188",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused mugwort UI/input proof"
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-ordered-plant.png",
+    "normal-garden-paused.png",
+    "normal-sow-travel.png",
+    "normal-sow-working.png",
+    "normal-stage-planted.png",
+    "normal-stage-growing.png",
+    "normal-stage-ready.png"
+  ],
+  "claims": {
+    "toolCancel": {
+      "rightClickExitsWithoutCommand": true,
+      "freshPlantStillWorks": true
+    },
+    "pausedReload": {
+      "exactFacts": true,
+      "gardenRowanAllowed": false,
+      "orderedWork": 0
+    },
+    "sow": {
+      "rowanAssigned": true,
+      "sharedJob": true,
+      "speed": 4
+    },
+    "nonReadyInspection": {
+      "stage": "planted",
+      "harvestAbsent": true
+    },
+    "fixedStages": {
+      "observed": [
+        "planted",
+        "growing",
+        "ready"
+      ],
+      "thresholds": {
+        "sowWork20": 20,
+        "growthElapsed80": 80,
+        "readyElapsed240": 240,
+        "harvestWork20": 20
+      }
+    }
+  },
+  "exit": 1,
+  "failure": {
+    "name": "TimeoutError",
+    "message": "page.waitForFunction: Timeout 45000ms exceeded.",
+    "stack": "page.waitForFunction: Timeout 45000ms exceeded.\n    at waitState (/home/levi/src/hive/scripts/prove-mugwort.mjs:110:71)\n    at /home/levi/src/hive/scripts/prove-mugwort.mjs:340:9"
+  }
+}

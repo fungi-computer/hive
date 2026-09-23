@@ -1,0 +1,46 @@
+{
+  "sourceSha256": {
+    ".botanical/props-study/props.js": "1bce62b5aa775af0bd1311822c5ae4cebed778e248d56859ec68f374f93f93ff",
+    ".botanical/props-study/main.js": "f0369b95cd8934e868a5f61a02533f9d7ac44fa38c83ad3e20ab031a84e1f8f5",
+    ".botanical/props-study/index.html": "8ab942e643aaed1c8913533b59b1b77d80aee3f86a3c56594d4bbb93637c2f99",
+    "src/art.js": "07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/figures.js": "4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b"
+  },
+  "observedFrames": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "pause": true,
+  "errors": [],
+  "frameCounts": {
+    "cauldron": 8,
+    "potions": 1,
+    "keg": 8,
+    "bookshelf": 1,
+    "chest": 1,
+    "belt": 8
+  },
+  "native": {
+    "tile": [
+      32,
+      16
+    ],
+    "sprite": [
+      80,
+      80
+    ],
+    "room": [
+      360,
+      240
+    ]
+  },
+  "scope": "original props art only; no fluid/gameplay simulation"
+}

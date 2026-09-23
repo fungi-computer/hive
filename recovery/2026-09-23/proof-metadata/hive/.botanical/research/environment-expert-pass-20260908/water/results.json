@@ -1,0 +1,155 @@
+{
+  "scope": "two-cell SI fixture; no 2D performance or production claim",
+  "dtSeconds": 0.05,
+  "steps": 2000,
+  "rest": {
+    "state": {
+      "cells": [
+        {
+          "z": 0,
+          "area": 1,
+          "v": 1
+        },
+        {
+          "z": 0.25,
+          "area": 1,
+          "v": 0.75
+        }
+      ],
+      "q": 0,
+      "sill": 0,
+      "length": 1,
+      "width": 1,
+      "n": 0.04,
+      "theta": 0.7
+    },
+    "maxLevelDifference": 0,
+    "maxMassError": 0,
+    "signFlips": 0
+  },
+  "diffusionPerturbation": {
+    "state": {
+      "cells": [
+        {
+          "z": 0,
+          "area": 1,
+          "v": 1.75
+        },
+        {
+          "z": 0.25,
+          "area": 1,
+          "v": 0
+        }
+      ],
+      "q": -35,
+      "sill": 0,
+      "length": 1,
+      "width": 1,
+      "n": 0.04,
+      "theta": 0.7
+    },
+    "maxLevelDifference": 2,
+    "maxMassError": 0,
+    "signFlips": 1999
+  },
+  "inertialPerturbation": {
+    "state": {
+      "cells": [
+        {
+          "z": 0,
+          "area": 1,
+          "v": 1.0000000000000004
+        },
+        {
+          "z": 0.25,
+          "area": 1,
+          "v": 0.7499999999999999
+        }
+      ],
+      "q": 6.807054919732998e-16,
+      "sill": 0,
+      "length": 1,
+      "width": 1,
+      "n": 0.04,
+      "theta": 0.7
+    },
+    "maxLevelDifference": 0.0000019264249019324,
+    "maxMassError": 4.440892098500626e-16,
+    "signFlips": 4
+  },
+  "sharedLimiter": {
+    "cells": [
+      {
+        "v": 0.19999999999999996
+      },
+      {
+        "v": 0.1,
+        "cap": 0.1
+      },
+      {
+        "v": 0.2,
+        "cap": 0.2
+      },
+      {
+        "v": 0.25
+      },
+      {
+        "v": 0.25
+      }
+    ],
+    "accepted": [
+      {
+        "id": "to-1",
+        "from": 0,
+        "to": 1,
+        "volume": 0.1
+      },
+      {
+        "id": "to-2",
+        "from": 0,
+        "to": 2,
+        "volume": 0.2
+      },
+      {
+        "id": "to-3",
+        "from": 0,
+        "to": 3,
+        "volume": 0.25
+      },
+      {
+        "id": "to-4",
+        "from": 0,
+        "to": 4,
+        "volume": 0.25
+      }
+    ]
+  },
+  "restart": {
+    "exactWithQ": true,
+    "finalVolumeDifferenceIfQDiscardedM3": 0.000005299040872097649
+  },
+  "dig": {
+    "beforeVolume": 1.75,
+    "afterVolume": 1.75,
+    "afterCells": [
+      {
+        "z": 0,
+        "area": 1,
+        "v": 0.8750000000000001
+      },
+      {
+        "z": 0,
+        "area": 1,
+        "v": 0.8749999999999999
+      }
+    ],
+    "transportedIntoExcavation": 0.12499999999999989
+  },
+  "execution": {
+    "node": "v24.20.0",
+    "platform": "linux",
+    "arch": "x64",
+    "elapsedMs": 87.08926299999999,
+    "timestamp": "2026-09-08T05:32:55.591Z"
+  }
+}

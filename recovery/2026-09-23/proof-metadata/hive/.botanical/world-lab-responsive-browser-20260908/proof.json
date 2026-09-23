@@ -1,0 +1,121 @@
+{
+  "revision": "5f18375dc01442bf7fd3b3a95c48b311926eaae7",
+  "url": "http://127.0.0.1:5192/world-lab",
+  "lifecycle": {
+    "status": "showing request #3",
+    "contract": {
+      "seed": "hive-world-lab-seed-20260907",
+      "generatorVersion": "world-lab-terrain-lod-v3",
+      "chunkSize": 16,
+      "bounds": {
+        "minX": -1744,
+        "minZ": -1258,
+        "maxXExclusive": 304,
+        "maxZExclusive": 790,
+        "spanX": 2048,
+        "spanZ": 2048
+      },
+      "span": {
+        "x": 2048,
+        "z": 2048
+      },
+      "overviewSamples": 262144,
+      "cellsPerPixel": 4,
+      "overviewCap": "512x512",
+      "localScale": "80x80 pixels; one pixel = one world cell",
+      "source": "same global sampleTerrain(seed, x, z, footprint)",
+      "filtering": "omit fine frequencies below the requested world-space footprint",
+      "namedFeatures": {
+        "coast": 1536,
+        "ridge": 5632
+      },
+      "visualChecksum": "b67ef5fb",
+      "generationMs": 8380.4,
+      "lifecycle": "one lazy worker; one active request; one replaceable queued intent; stale results rejected",
+      "identity": "world-lab-terrain-lod-v3:hive-world-lab-seed-20260907"
+    },
+    "claims": {
+      "generatedLocalRenderResidency": true,
+      "chunkKeysAreCacheOnly": true,
+      "displayedOverview": "2048x2048 world cells over 512x512 pixels",
+      "requestedBounds": {
+        "minX": -1744,
+        "minZ": -1258,
+        "maxXExclusive": 304,
+        "maxZExclusive": 790
+      },
+      "atlasLifecycle": "showing request #3",
+      "staleResultsRejected": 0,
+      "caravan": false,
+      "simulation": false,
+      "nonClaims": [
+        "generated terrain is not a Clearing chunk",
+        "render residency is not decoded-world eviction",
+        "chunk keys are cache identity only; chunks do not own geography or create borders",
+        "the lab has no actors, caravan, jobs, routes, commands, or simulation",
+        "overview samples are not a playable world-size or capacity claim"
+      ]
+    }
+  },
+  "selection": {
+    "focus": {
+      "label": "Overview cell",
+      "x": -724,
+      "z": -238
+    },
+    "displayedOverviewPixel": {
+      "column": 255,
+      "row": 255,
+      "index": 130815
+    },
+    "overviewSampler": {
+      "footprint": 4,
+      "elevation": 0.6328550981701085,
+      "moisture": 0.6947086917299761,
+      "terrain": "coast"
+    },
+    "sharedSampler": {
+      "footprint": 1,
+      "elevation": 0.6328550981701085,
+      "moisture": 0.6947086917299761,
+      "terrain": "coast"
+    },
+    "sharedLocalSampler": {
+      "footprint": 1,
+      "elevation": 0.6328550981701085,
+      "moisture": 0.6947086917299761,
+      "terrain": "coast"
+    },
+    "localRenderCell": {
+      "x": 44,
+      "z": 34,
+      "elevationByte": 161,
+      "moistureByte": 177,
+      "matchesSampler": true
+    }
+  },
+  "narrow": {
+    "scrollWidth": 390,
+    "clientWidth": 390,
+    "overviewWidth": 364
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "screenshots": [
+    "narrow-atlas.png"
+  ],
+  "claims": [
+    "rapid named jump plus zoom displayed only the latest request bounds",
+    "overview center click resolved to the exact signed cell and full-detail local bytes",
+    "390px page remained horizontally contained"
+  ],
+  "nonClaims": [
+    "live hosted parity",
+    "real network-delayed stale result race",
+    "Clearing simulation"
+  ],
+  "success": true
+}

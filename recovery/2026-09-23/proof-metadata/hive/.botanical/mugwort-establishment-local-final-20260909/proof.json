@@ -1,0 +1,11 @@
+{
+  "mode": "local-served-mugwort-establishment",
+  "base": "http://127.0.0.1:5201/",
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "failure": {
+    "message": "page.waitForFunction: Timeout 45000ms exceeded.",
+    "stack": "page.waitForFunction: Timeout 45000ms exceeded.\n    at waitState (/tmp/hive-ecology-release-czW95M/scripts/prove-mugwort-establishment.mjs:83:10)\n    at /tmp/hive-ecology-release-czW95M/scripts/prove-mugwort-establishment.mjs:137:9"
+  }
+}

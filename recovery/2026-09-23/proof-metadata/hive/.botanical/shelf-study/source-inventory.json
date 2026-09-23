@@ -1,0 +1,276 @@
+{
+  "status": "Astra final original-art acceptance; exact production patch awaiting Delivery integration",
+  "baseCommit": "3895bd13f0359e91394e7006755e980cd03ed7e2",
+  "artContract": {
+    "shelfKeys": [
+      "stakes",
+      "frame",
+      "finished",
+      "filled"
+    ],
+    "directions": [
+      0,
+      1
+    ],
+    "propSize": [
+      112,
+      112
+    ],
+    "propAnchor": {
+      "x": 0.5,
+      "y": 0.6924599083615355
+    },
+    "figureKinds": [
+      "rowan",
+      "witch-runner"
+    ],
+    "newPoses": [
+      "carry-herb",
+      "pickup-herb"
+    ],
+    "figureFrames": 8,
+    "figureDirections": 4,
+    "portraitSize": [
+      80,
+      80
+    ],
+    "pawnAnchor": {
+      "x": 0.5,
+      "y": 0.7522974435066674
+    },
+    "stationary": "carry-herb frame 0",
+    "runtimeContentAuthority": "actual bundle.location stored/carried; no decorative inventory flag"
+  },
+  "sourceSha256": {
+    ".botanical/shelf-study/prove.mjs": "b4aa25cee376b1461c6abc526fb0fa03a0b7ff2824622d88d32beb3a17afc9f3",
+    ".botanical/shelf-study/index.html": "a3e572955cd35b82641b9da449827da15e5e11e67b9085dfc79f6876ee035375",
+    ".botanical/shelf-study/main.js": "dcebcde512a6142716626e41da11f3e6a115ac53497f34fc1536291034b461dc",
+    ".botanical/shelf-study/figures.js": "ac8d96e0bd0e5227fdf3d95a78ed25afd4f3ef0ba567d36ee42c0d91378be8ca",
+    ".botanical/shelf-study/herbs.js": "28a1bb64b47d6ba9578c90c786e950c04888b88c844dea391ccfa799f1ae365d",
+    ".botanical/shelf-study/shelf.js": "0ce099c564d03a7a8690a3f05bd5e6c9be9bd79783d51cf146d177dec04d22df",
+    ".botanical/shelf-study/baseline-figures.js": "8bfe95851df05cc77df3815402f4d46480db757596aa4662fbf6fe4352ed105f",
+    ".botanical/shelf-study/baseline-herbs.js": "4346f2d6c81d46fc4c423c3bfa0a2ec1bd533ef6fc888b9bdff6b6dced086b71",
+    ".botanical/shelf-study/baseline/src/art.js": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+    ".botanical/shelf-study/baseline/src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4",
+    ".botanical/shelf-study/baseline/src/art/herbs.js": "94a3768dd454f54a2bfa36a0e0f2ac8401c21d0f8e862d0286fdcdbf5a718ce7",
+    ".botanical/shelf-study/baseline/src/art/home.js": "4d4af1eb23b695318c0def911e14685fc1d4b8a7bf7d48a489b1cfbcdac17eb9",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e"
+  },
+  "actualBakeSourceSha256": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+  "baseSourceSha256": {
+    "src/art.js": "a3aa8bb4f558697146c5ef890ca3dfd2cc47bf747cef19c185c2780e9df5bbe6",
+    "src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4",
+    "src/art/herbs.js": "94a3768dd454f54a2bfa36a0e0f2ac8401c21d0f8e862d0286fdcdbf5a718ce7",
+    "src/art/home.js": "4d4af1eb23b695318c0def911e14685fc1d4b8a7bf7d48a489b1cfbcdac17eb9"
+  },
+  "candidateSha256": {
+    "src/art.js": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    "src/art/home.js": "75814f7660b777b1c0c05de01236841ab32d3b7143f262cb75f5da9389f755ef",
+    "src/art/shelf.js": "0548ec13765fdee3a030b5326ca837b7fe1721a3f0fc4636558ba799df81fa03"
+  },
+  "patchSha256": "deac8b7d65b26b6545e9821f9ff44821d29596eb7a7be9d5fa35e15de6d38d7d",
+  "evidenceSha256": {
+    "proof-v2/contacts-rowan-carry-herb-native.png": "01e50e8338ab1b77f791e45f097a8bbbd7cebc5ff54b2c047029eeeeabfee798",
+    "proof-v2/contacts-rowan-pickup-herb-native.png": "31c86aa3054ed1cc63f74231f70454a1ad7f0372618d4a2f3f1f2203bddfb7fd",
+    "proof-v2/contacts-witch-runner-carry-herb-native.png": "cd19eac0f14e7bad28a67626c7c4043e59fa5222a4c1455cff69c99a19408b92",
+    "proof-v2/contacts-witch-runner-pickup-herb-native.png": "4cbb350d610bc522e330013a4d1fd89466b8a415ba37f49eed56f90708a752f7",
+    "proof-v2/field-game2x-actor-facing0-shelf-direction0.png": "1727e415120a8bf2f2d33a8a800c87c731decf271f827a159039dbf1a5e03cee",
+    "proof-v2/field-game2x-actor-facing3-shelf-direction1.png": "f42a69a7bfb9a8a3356afe37d06e745bc5337514005a5d46b67616be954b5929",
+    "proof-v2/field-game2x-direction0.png": "f42a69a7bfb9a8a3356afe37d06e745bc5337514005a5d46b67616be954b5929",
+    "proof-v2/field-game2x-direction1.png": "1727e415120a8bf2f2d33a8a800c87c731decf271f827a159039dbf1a5e03cee",
+    "proof-v2/field-native-actor-facing0-shelf-direction0.png": "de7b9c15351cbc5d01aa845b32eeca5730fa703f95ed3b851c694ff0121bdadb",
+    "proof-v2/field-native-actor-facing3-shelf-direction1.png": "ff2170339b262caa9881aa247ea03eb3460aa5c177b6d1857e5603430c8482d8",
+    "proof-v2/field-native-direction0.png": "ff2170339b262caa9881aa247ea03eb3460aa5c177b6d1857e5603430c8482d8",
+    "proof-v2/field-native-direction1.png": "de7b9c15351cbc5d01aa845b32eeca5730fa703f95ed3b851c694ff0121bdadb",
+    "proof-v2/motion-10s.webm": "96d59b5db583b1f7c1c71d092ff741ded204ca03129979a6b4ef148f724a0572",
+    "proof-v2/motion-frame-01.png": "859973fdb58a81777a56ad8407d8b368cd67a5d875e0ef15f0893876c741d2fa",
+    "proof-v2/motion-frame-02.png": "1824010741eea90cd4061cd18bf8d452e7ad85d6fb40ceafd6586e79040601cb",
+    "proof-v2/motion-frame-03.png": "9adb071d14a95c75ccc5ded6dd8493e30950dc7dff9cecbb06bba6cbdd5a19b4",
+    "proof-v2/motion-frame-04.png": "7895344fd8ea98cdfae849c44b75cf66f728d25504a164adba397c3eba2db8d3",
+    "proof-v2/motion-frame-05.png": "a1c31f3156c7ce6cd132512366e0ed1e9e192ac9206c33812ae3161b18276173",
+    "proof-v2/motion-frame-06.png": "560b00e438e1314cfa2f52e4f8bdb13688e9ef2ab0dd534eac87a8f2d9fe1041",
+    "proof-v2/motion-frame-07.png": "03476cb1e0eb9a6f095e41acc8bef2b55e8e3bc8649752709dc5ed4a5ad9a1fe",
+    "proof-v2/proof.json": "d0fa93c1e4590e9c62558285b1766837e61566b8e2e10efe84e92309f6707dfc",
+    "proof-v2/screenshot-label-erratum.json": "ce4237aaeeeab731d44382de6ec994be524a758abe7fc526f0b8203678070e31",
+    "proof-v2/shelf-strip-native.png": "0f4f69f693c7bbadb5149e6f497bc8e0e81fee813b4eea15677556e8aa2fdd17"
+  },
+  "proof": {
+    "scope": "run-u942.scope",
+    "invocation": "b9b41fe569804cf182cb620ed6082222",
+    "nativeSession": 54734,
+    "nativeExit": 0,
+    "browserErrors": [],
+    "regressions": {
+      "count": 132,
+      "equalCount": 132,
+      "failures": [],
+      "mugwortCount": 4,
+      "poseCount": 128
+    },
+    "regressionScope": "Rowan/Sedge 8 original poses x4facings x2phases (0,3/8), plus4mugwort props; not every historical phase.",
+    "minAlphaPadding": {
+      "props": 28,
+      "figures": 13
+    },
+    "measuredUniqueMotionFrames": {
+      "rowan": {
+        "carry-herb": [
+          5,
+          5,
+          5,
+          5
+        ],
+        "pickup-herb": [
+          5,
+          5,
+          5,
+          5
+        ]
+      },
+      "witch-runner": {
+        "carry-herb": [
+          8,
+          8,
+          8,
+          8
+        ],
+        "pickup-herb": [
+          8,
+          8,
+          8,
+          8
+        ]
+      }
+    }
+  },
+  "personalReview": {
+    "native": [
+      "shelf-strip-native.png",
+      "contacts-rowan-carry-herb-native.png",
+      "contacts-witch-runner-carry-herb-native.png",
+      "contacts-rowan-pickup-herb-native.png",
+      "contacts-witch-runner-pickup-herb-native.png",
+      "field-native-actor-facing0-shelf-direction0.png"
+    ],
+    "gameScale": [
+      "field-game2x-actor-facing3-shelf-direction1.png",
+      "field-game2x-actor-facing0-shelf-direction0.png"
+    ],
+    "motion": "Astra inspected7sampledframesdecodedfromtheactual10secondcanvasrecording,plusall8phases/facingscontacts; no uncut real-time playback claim.",
+    "source": "Personally authored geometry and inspected actual source/immediate bake and sprite consumers; Terra accepted final transforms/branch isolation/bake/disposal."
+  },
+  "preservedFailures": [
+    {
+      "scope": "run-u937.scope",
+      "invocation": "de58a8ca1994420885f2ef2cb3990d17",
+      "nativeSession": 33712,
+      "nativeExit": 1,
+      "reason": "proof identity checked frame0 after ticker advanced; v1 art separately rejected chairlike shelf and straight arms"
+    },
+    {
+      "scope": "run-u946.scope",
+      "nativeExit": 234,
+      "reason": "optional video-inspection extraction requested unsupported fps/tile filters in installed minimal FFmpeg; no browser rerun or source change"
+    }
+  ],
+  "inspectionExtraction": {
+    "scope": "run-u947.scope",
+    "invocation": "01097d03b3354683ab72e586e4178f21",
+    "nativeExit": 0,
+    "source": "proof-v2/motion-10s.webm",
+    "seekSeconds": 1,
+    "durationSeconds": 0.8,
+    "crop": [
+      185,
+      190,
+      170,
+      110
+    ],
+    "outputScale": 2,
+    "observedOutputFrames": 7
+  },
+  "labelCorrection": "proof-v2/screenshot-label-erratum.json preserves original misleading filename labels and records exact observed directions with byte-identical aliases; no original artifact overwritten.",
+  "limits": [
+    "Static shelf and art animation caller only; no production storage/build/claim/path/save/hosted acceptance in this study.",
+    "No new general attachment system, items, plants, recipe, or simulation owner.",
+    "Current original pose comparisons are sampled as specified, not an exhaustive legacy animation replay."
+  ],
+  "futureProofFilenamePatch": {
+    "path": "proof-filenames.patch",
+    "sha256": "a421c02920c743855ba7820f438c0416c1f75efaee43b15968e8aac881b9b0ea",
+    "status": "source-only reviewed correction, dry-run by proof worker; not applied or browser-tested. Existing v2 evidence remains accepted with erratum."
+  },
+  "deliveryHandoff": {
+    "acknowledgedAt": "2026-09-07T18:21:53.200042+00:00",
+    "owner": "game-delivery",
+    "patch": "art-integration.patch",
+    "sha256": "deac8b7d65b26b6545e9821f9ff44821d29596eb7a7be9d5fa35e15de6d38d7d",
+    "status": "Explicit patch and production caller custody acknowledged; serial integration after core/runtime-law acceptance.",
+    "runtimeContract": [
+      "Filled shelf derives solely from stored(site) bundle location.",
+      "Stationary carry-herb uses frame0.",
+      "Delivery owns joined storage gameplay proof."
+    ],
+    "artDisposition": "Unchanged accepted patch requires no second art gate or study rerun.",
+    "deploymentClaim": false,
+    "integration": {
+      "commit": "96e68fc78d7388bcd31d9ed2385d2f68334bc4f9",
+      "verifiedCommittedFiles": [
+        {
+          "path": "src/art.js",
+          "sha256": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+          "currentMatchesAccepted": true
+        },
+        {
+          "path": "src/art/figures.js",
+          "sha256": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+          "currentMatchesAccepted": true
+        },
+        {
+          "path": "src/art/herbs.js",
+          "sha256": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+          "currentMatchesAccepted": true
+        },
+        {
+          "path": "src/art/home.js",
+          "sha256": "75814f7660b777b1c0c05de01236841ab32d3b7143f262cb75f5da9389f755ef",
+          "currentMatchesAccepted": true
+        },
+        {
+          "path": "src/art/shelf.js",
+          "sha256": "0548ec13765fdee3a030b5326ca837b7fe1721a3f0fc4636558ba799df81fa03",
+          "currentMatchesAccepted": true
+        }
+      ],
+      "status": "Exact five accepted art files verified in integration commit; joined runtime caller work remains with Delivery and home-ui.",
+      "coreFreezeReportedByDelivery": "f07a589",
+      "deploymentClaim": false
+    },
+    "release": {
+      "recordedAt": "2026-09-07T19:37:04.399370+00:00",
+      "revision": "765c3282982d2ee6b07d5bea67bc21d08e4c2011",
+      "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+      "deploymentId": "e76b925a-d0db-4894-afc1-2eceddc4ff85",
+      "hostedProof": ".botanical/herb-storage-hosted-20260907/proof.json",
+      "hostedProofSha256": "8576b3fbbd5ac2b8f1a9e1eddfa2126ddd3298cc1327559edf799a561061fb9b",
+      "rootChecks": [
+        "Local HEAD and remote feature ref match release revision.",
+        "Read actual hosted JSON; index/game JS/game CSS/art JS hashes match.",
+        "Read local lifecycle proof and viewed local filled-shelf pixels during status review."
+      ],
+      "hostedScope": "Paused physical shared shelf order, frozen tick/actors/work, four-artifact parity, errors[].",
+      "localScope": "Focused lifecycle u1031 exit0 owns real pickup/carry, Draft drop, exact v5 paused reload, resumed store, full shelf, deconstruction/ejection/salvage, narrow/reset checks.",
+      "reportedHostedScopeReceipt": {
+        "unit": "run-u1034.scope",
+        "invocation": "67dfa2c3b57646c6adb9a4aaa752708b",
+        "exit": 0
+      },
+      "noFullHostedLifecycleClaim": true,
+      "artAcceptance": "Exact accepted source integrated; no second art study or browser rerun requested."
+    }
+  }
+}

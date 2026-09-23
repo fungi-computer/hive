@@ -1,0 +1,49 @@
+{
+  "base": "http://127.0.0.1:5194/",
+  "sourceCommit": "a47f3945e52174472c8aa8c04a3dc094c60c3ee1",
+  "sourceHashes": {
+    "brewhouse-study.html": "ffffe06ed31e41a8d749caca02ee714b1d7acadfae41cc4e3d2378abe03b7c0e",
+    "src/studies/brewhouse/props.js": "1526a76dc5a856c2a392fa9466885ab78da4a534fcb1a3788f50e12b4981c649",
+    "src/studies/brewhouse/shell.js": "5601de393f0b4d059d5b67733bb3e0fa344ceb646ecf8e8129d6e6b2108bc6f4",
+    "src/studies/brewhouse/cutaway.js": "f07017fd0d68311ff4cdf077b989820ca7ec58a758343b3347ec43c92648d8d7",
+    "src/studies/brewhouse/template.js": "6cca968229d070d631a7ffb518ac96547144ca916d3988e45b553011a48ec365",
+    "src/studies/brewhouse/composition.js": "d5409e441fbc4a7956cfee6a056e192a2820a6516b024ba25f84a6552bfcf11c",
+    "src/studies/brewhouse/bake.js": "098a7815028efce64892711e9a62672404a806abb044693648061a32d5a58901",
+    "src/studies/brewhouse/main.js": "53314f6ee7ca3438d758b4aacdb06a00d712e62d8aaa43f1c675b97d85e28290",
+    "src/studies/brewhouse/style.css": "870545d03295e6dbdfa410b51440d523dd7c31c121b0c09fb7c1891c7717630b"
+  },
+  "servedDevelopmentHashes": {
+    "brewhouse-study.html": "564d08b26dbf14d1bc704417eeea539870ac50547cfb686186ca52e86a566420",
+    "src/studies/brewhouse/props.js": "b2278b929c55f20ec1b61c42cb1696bed07f6d20e5811669394906b394de8f0f",
+    "src/studies/brewhouse/shell.js": "e85509da6448d6bf06ba2e99d35649317faaea91ce71864af047e0c1ef97c49d",
+    "src/studies/brewhouse/cutaway.js": "bbe2aae0e179c532a1b59fa07d3206d900128ce23cbb38f13ea3517f7fb8572d",
+    "src/studies/brewhouse/template.js": "840ba48c36c8c08a222c7c05f5fe2f08bbe5957cdfaf3ea7f9789c9ba470ff4c",
+    "src/studies/brewhouse/composition.js": "89f18ffba5644283004ad577f03f0ed69f42d70d652f12dd6b3568fe2c6f60a0",
+    "src/studies/brewhouse/bake.js": "9eed88966a632c7d7bc1a36354f128b4ca224e88b37c485bb380f39462006218",
+    "src/studies/brewhouse/main.js": "dafe5260227afc9d1cd563bd3142b168a6580b3bab593fdb7ce8246d7d4555af",
+    "src/studies/brewhouse/style.css": "3b105f81737d1d4981c52bdfaee0e46fbbc1cb49e5239e70f5b9c6d2e441126c"
+  },
+  "screenshots": [
+    "brewhouse-normal.png",
+    "brewhouse-390.png"
+  ],
+  "claims": {
+    "views": [
+      "dollhouse",
+      "exterior",
+      "ground",
+      "upper",
+      "exploded"
+    ],
+    "facing": 1,
+    "propCount": 14,
+    "status": "Cutaway · View 2 of 4"
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "success": true,
+  "failure": null
+}

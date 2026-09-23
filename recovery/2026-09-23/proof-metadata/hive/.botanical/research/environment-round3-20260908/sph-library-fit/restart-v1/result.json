@@ -1,0 +1,164 @@
+{
+  "scope": "same native binary, two fresh processes; one fixed tank, fixed dt, Z-sort disabled; no game/WASM/portable-save claim",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "captureRule": "first completed step <=500 with max(abs(density/divergence warm field)) >1e-15",
+  "targetStep": 750,
+  "tolerances": {
+    "x": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "y": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "z": {
+      "absolute": 1e-10,
+      "relative": 1e-09
+    },
+    "vx": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "vy": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "vz": {
+      "absolute": 1e-09,
+      "relative": 1e-09
+    },
+    "mass": {
+      "absolute": 0,
+      "relative": 0
+    },
+    "pressureWarm": {
+      "absolute": 1e-12,
+      "relative": 1e-09
+    },
+    "divergenceWarm": {
+      "absolute": 1e-12,
+      "relative": 1e-09
+    }
+  },
+  "sourceSha256": {
+    "reference.cpp": "b9b38fbe4f1264ff8f5d6e5741513074dc238876ee8eebce56aad091832431d7",
+    "reference-checkpoint.h": "4fd23f18769591d9ba1f2049bc1f64466748a99ab43aefddbe9505491a8dc3c0",
+    "reference": "61cfbf7fcb80674b6ec1a92f3b9e8ed24d11899cf525744ab0ccdfee7b263f5b",
+    "compile-reference.py": "0c1885037117e56475cf2423820ed786f58a021f279b7430d320ff836f520d1b",
+    "run-restart.py": "e7fb47044c2f1f669544a536e3ebb57981414f7fadad402f0c0d5d62a7bed127"
+  },
+  "results": [
+    {
+      "mode": "restart-write",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-write",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1686.545916,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.2130941152543,
+        "pointSets": 2,
+        "particles": 512
+      }
+    },
+    {
+      "mode": "restart-read",
+      "exit": 0,
+      "pidBoundary": "subprocess completed before next was launched",
+      "result": {
+        "mode": "restart-read",
+        "pass": true,
+        "checkpointStep": 172,
+        "finalStep": 750,
+        "dt": 0.001,
+        "checkpointMaxPressureWarm": 0,
+        "checkpointMaxDivergenceWarm": 8.860720779317323e-06,
+        "stepLoopIncludingCheckpointIoMs": 1361.753805,
+        "capHits": 0,
+        "massKg": 125.97119999999997,
+        "massErrorKg": 0,
+        "maxCenterPenetrationM": 0,
+        "maxSpeedMS": 6.21309411524784,
+        "pointSets": 2,
+        "particles": 512
+      }
+    }
+  ],
+  "comparison": {
+    "immediateRestoreByteExact": true,
+    "finalFileByteExact": false,
+    "finalMetadataExact": true,
+    "identityObjectStateExact": true,
+    "finalWithinDeclaredTolerance": false,
+    "byIdFields": {
+      "x": {
+        "maxAbsoluteDifference": 0.00019733123244869422,
+        "differentBitPatterns": 512,
+        "particlesOutsideTolerance": 478
+      },
+      "y": {
+        "maxAbsoluteDifference": 2.5460134764648812e-05,
+        "differentBitPatterns": 512,
+        "particlesOutsideTolerance": 473
+      },
+      "z": {
+        "maxAbsoluteDifference": 0.00019891877790145784,
+        "differentBitPatterns": 512,
+        "particlesOutsideTolerance": 477
+      },
+      "vx": {
+        "maxAbsoluteDifference": 0.006531531736292548,
+        "differentBitPatterns": 512,
+        "particlesOutsideTolerance": 482
+      },
+      "vy": {
+        "maxAbsoluteDifference": 0.00047635676555791984,
+        "differentBitPatterns": 512,
+        "particlesOutsideTolerance": 486
+      },
+      "vz": {
+        "maxAbsoluteDifference": 0.006448220613091412,
+        "differentBitPatterns": 512,
+        "particlesOutsideTolerance": 483
+      },
+      "mass": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "pressureWarm": {
+        "maxAbsoluteDifference": 0.0,
+        "differentBitPatterns": 0,
+        "particlesOutsideTolerance": 0
+      },
+      "divergenceWarm": {
+        "maxAbsoluteDifference": 0.09871521114683901,
+        "differentBitPatterns": 377,
+        "particlesOutsideTolerance": 373
+      }
+    }
+  },
+  "pass": false,
+  "wallSeconds": 3.0853516469942406,
+  "maxChildRssKiB": 18176,
+  "evidenceSha256": {
+    "checkpoint.bin": "13db93a3086ee7b5fbdd8a966ec6210c9e2c6812945b08a57de911a9b907c1f4",
+    "restart-read.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-read.stdout": "981eb334be50417d8cf4623db18f91ee09767eda91f8af6dfca29a79d65b2f3b",
+    "restart-write.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "restart-write.stdout": "66590592e495f55d0ad533f0ce76572b954329b150635d49698413f0666c465e",
+    "restarted-final.bin": "42d78013c3a57c9a4a0bf8262f9d5d9943932c9a7b07d26632a0b36de0278fe0",
+    "restored.bin": "13db93a3086ee7b5fbdd8a966ec6210c9e2c6812945b08a57de911a9b907c1f4",
+    "uninterrupted-final.bin": "e00fb45fe42054166441d19a3cba1728fc20e38349e477850ad1a3875a902cb9"
+  }
+}

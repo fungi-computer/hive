@@ -1,0 +1,50 @@
+[
+  {
+    "path": "CONTRACT.md",
+    "sha256": "660c28f8919a57f68adb3717185a19b9b001e9b8bc136744252ebc911b3bd6e2"
+  },
+  {
+    "path": "RESULTS.md",
+    "sha256": "1523ec46dba9bb3c778781ec64f76de26c43c1b845b505f1b0ba27a844a15b3f"
+  },
+  {
+    "path": "reference.mjs",
+    "sha256": "e2ea94bad8f5ae143e52f2e486aa457d7054bd78abd15b33eac74b2dd01f8e36"
+  },
+  {
+    "path": "qualify.mjs",
+    "sha256": "b7ed501a68e99326580e047f76c518b4ebecd463e4a0e8f599e545c4aa10d5eb"
+  },
+  {
+    "path": "qualification-v1.json",
+    "sha256": "783945755fb9c2b280b37c7eee8c0ce9821ff824ba259c6ea69a3081dc2755a5"
+  },
+  {
+    "path": "qualification-v2.json",
+    "sha256": "92e834f9acef016a500cff9d68c3a4b96b37a9a55b199af4689ff2a7591fb23f"
+  },
+  {
+    "path": "reference-diagnosis.mjs",
+    "sha256": "aec47f7b48f9d515c20bd65d425211e80fd96569865e822e0c2c1d8612773f56"
+  },
+  {
+    "path": "reference-diagnosis-v1.json",
+    "sha256": "32c735e82feae1c42a8b7bab9aaa4db6ddb58250e71d7e4bc77004e35813de0f"
+  },
+  {
+    "path": "v1-failed/CONTRACT.md",
+    "sha256": "15c910b45296963e5cc5a8c34c9dec6e5916030772eddf6c04280642f3c3c19a"
+  },
+  {
+    "path": "v1-failed/qualify.mjs",
+    "sha256": "62162869e7f3b6a5b9ff3de385afdf30395a6591032247d400f9d8580d7284c9"
+  },
+  {
+    "path": "v1-failed/reference.mjs",
+    "sha256": "e2ea94bad8f5ae143e52f2e486aa457d7054bd78abd15b33eac74b2dd01f8e36"
+  },
+  {
+    "path": "v1-failed/qualification-v1.json",
+    "sha256": "783945755fb9c2b280b37c7eee8c0ce9821ff824ba259c6ea69a3081dc2755a5"
+  }
+]

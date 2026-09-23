@@ -1,0 +1,220 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "errors": [],
+  "screenshots": [
+    "01-visible-visitor.png",
+    "02-sedge-recruited.png",
+    "03-both-selected.png",
+    "failure.png"
+  ],
+  "success": false,
+  "failure": "page.waitForFunction: Timeout 60000ms exceeded.\n    at wait (/home/levi/src/hive/scripts/prove-two-person.mjs:33:8)\n    at /home/levi/src/hive/scripts/prove-two-person.mjs:100:9",
+  "failureState": {
+    "seed": 42,
+    "tick": 989,
+    "paused": false,
+    "nextId": 1,
+    "actors": {
+      "rowan": {
+        "x": 7,
+        "z": 10,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 68.13199999999955,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      },
+      "sedge": {
+        "x": 10,
+        "z": 12,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 68.67199999999957,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan",
+          "sedge"
+        ]
+      }
+    },
+    "cat": {
+      "x": 7,
+      "z": 11,
+      "level": 0,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 1000
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [],
+    "claims": {},
+    "workDirty": false,
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "commands": [
+      {
+        "party": "home",
+        "kind": "recruit",
+        "actor": "sedge",
+        "tick": 46
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Sedge joined. Two pairs of hands, one very questionable plan."
+  },
+  "failureUi": {
+    "selectedIds": [
+      "rowan",
+      "sedge"
+    ],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": null,
+    "phase": "idle",
+    "gesture": null,
+    "hoverCell": null
+  }
+}

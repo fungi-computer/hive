@@ -1,0 +1,175 @@
+{
+  "url": "http://127.0.0.1:5187/.botanical/mugwort-study/index.html",
+  "invocation": "run-proof.sh node .botanical/mugwort-study/prove.mjs .botanical/mugwort-study/proof-v1 .",
+  "sourceSha256Before": {
+    ".botanical/mugwort-study/prove.mjs": "ec590e2614a5e65d60d94a312f16f92b70e8727343d6578d064ebccd224a78b9",
+    ".botanical/mugwort-study/index.html": "f27e71c05aad0818412f555ffea7846be039408068cff99067046c55582a57d5",
+    ".botanical/mugwort-study/main.js": "6befbc89f096c9e1602bd9af8fb2379e41f2a59a2d7bcc17cfee04e6e0111705",
+    ".botanical/mugwort-study/mugwort.js": "4fc844565fcd24f4406aa52cba31137511814e535ccf2b66d76def465aee64ec",
+    "src/art.js": "9951e1c7e8cf98e4a2fb03348070878588a5c869376229a9e4791fd85e33620b",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4"
+  },
+  "sourceSha256After": {
+    ".botanical/mugwort-study/prove.mjs": "ec590e2614a5e65d60d94a312f16f92b70e8727343d6578d064ebccd224a78b9",
+    ".botanical/mugwort-study/index.html": "f27e71c05aad0818412f555ffea7846be039408068cff99067046c55582a57d5",
+    ".botanical/mugwort-study/main.js": "6befbc89f096c9e1602bd9af8fb2379e41f2a59a2d7bcc17cfee04e6e0111705",
+    ".botanical/mugwort-study/mugwort.js": "4fc844565fcd24f4406aa52cba31137511814e535ccf2b66d76def465aee64ec",
+    "src/art.js": "9951e1c7e8cf98e4a2fb03348070878588a5c869376229a9e4791fd85e33620b",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/figures.js": "a5911f99b0608bc7bb41a9684886ac69fef6e9b24a727b2f99c2a387dd1fc5c4"
+  },
+  "native": {
+    "prop": [
+      112,
+      112
+    ],
+    "field": [
+      640,
+      400
+    ],
+    "tile": [
+      32,
+      16
+    ]
+  },
+  "canvasDimensions": {
+    "field": [
+      640,
+      400
+    ],
+    "strip": [
+      448,
+      142
+    ]
+  },
+  "propAnchor": {
+    "x": 0.5,
+    "y": 0.6924599083615355
+  },
+  "textures": {
+    "planted": {
+      "width": 112,
+      "height": 112,
+      "padding": [
+        48,
+        72,
+        48,
+        31
+      ],
+      "pixelHash": 40977986
+    },
+    "growing": {
+      "width": 112,
+      "height": 112,
+      "padding": [
+        48,
+        63,
+        48,
+        31
+      ],
+      "pixelHash": 1810537981
+    },
+    "ready": {
+      "width": 112,
+      "height": 112,
+      "padding": [
+        48,
+        55,
+        48,
+        31
+      ],
+      "pixelHash": 2283318919
+    },
+    "bundle": {
+      "width": 112,
+      "height": 112,
+      "padding": [
+        46,
+        72,
+        47,
+        33
+      ],
+      "pixelHash": 2029638007
+    }
+  },
+  "controls": {
+    "native": {
+      "scale": 1,
+      "css": [
+        640,
+        400
+      ]
+    },
+    "game": {
+      "scale": 2,
+      "css": [
+        1280,
+        800
+      ]
+    }
+  },
+  "screenshots": [
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/planted-native.png",
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/growing-native.png",
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/ready-native.png",
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/bundle-native.png",
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/strip-native.png",
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/field-native.png",
+    "/home/levi/src/hive/.botanical/mugwort-study/proof-v1/field-game2x.png"
+  ],
+  "assertions": {
+    "stageNames": {
+      "expected": [
+        "planted",
+        "growing",
+        "ready",
+        "bundle"
+      ],
+      "actual": [
+        "planted",
+        "growing",
+        "ready",
+        "bundle"
+      ]
+    },
+    "fourUniqueTextureImages": true,
+    "textureCount": 4,
+    "textureDimensions": true,
+    "alphaMarginsAtLeast2px": true,
+    "alphaFailures": [],
+    "samePropAnchor": true,
+    "propAnchor": {
+      "x": 0.5,
+      "y": 0.6924599083615355
+    },
+    "nativeCss": {
+      "actual": [
+        640,
+        400
+      ],
+      "expected": [
+        640,
+        400
+      ]
+    },
+    "gameCss": {
+      "actual": [
+        1280,
+        800
+      ],
+      "expected": [
+        1280,
+        800
+      ]
+    },
+    "nativeControl": true,
+    "gameControl": true,
+    "browserErrors": []
+  },
+  "errors": []
+}

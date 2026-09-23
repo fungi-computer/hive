@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "native": "workerd + Durable Object SQLite + Codemode + public Mycelium execute",
+  "beforeRevision": 0,
+  "afterRevision": 1,
+  "receipts": 1,
+  "lots": 1,
+  "events": 1,
+  "replay": {
+    "commandId": "physical-dig-1",
+    "principal": "quarry-builder",
+    "region": "controller-quarry",
+    "replayEpoch": 0,
+    "result": {
+      "at": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+      },
+      "lot": "lot-1",
+      "material": "chalk",
+      "quantity": 1
+    },
+    "revision": 1,
+    "status": "applied"
+  },
+  "distinctExecutionIds": [
+    "ndb62udftf31pdkigad9a",
+    "42t5l2ovt8cemxj3pba5h",
+    "bni8ar8r5o57gjyi3w9n2"
+  ]
+}

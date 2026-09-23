@@ -1,0 +1,126 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/work-panel-proof-20260907-final",
+  "frozenTarget": {
+    "files": {
+      "dist/index.html": "79a28308e7fdc43b101829bbe3de01222a63c513b1e15dba56ffafe0f1f85626",
+      "dist/assets/game-zaw4jAQ8.js": "acd25e2f6b02dfbf855519b6b80ada8feb35bb6d09dc4545fee76ad66a44693e",
+      "dist/assets/game-DhYj3lZ2.css": "547d9dc7f256a126e7c8f8248d25ece4625fdb15dcb53b5d8a764fef4b8fd789",
+      "dist/assets/art-CCSP12DF.js": "37435e9bf8030f3ec971348825cf416d2451672b6bfbecf8834052e9e3af4211"
+    },
+    "resolvedAssets": {
+      "gameJs": "assets/game-zaw4jAQ8.js",
+      "gameCss": "assets/game-DhYj3lZ2.css",
+      "artJs": "assets/art-CCSP12DF.js"
+    }
+  },
+  "scriptSha256": "60a6359256704091bac56688291466d0564de4d07cc6e840935c443d39eba573",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one bounded joined Work/Caps proof"
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-work-panel.png",
+    "normal-work-toggles.png",
+    "normal-shared-paused.png",
+    "normal-resumed.png",
+    "normal-reset.png",
+    "narrow-390-work.png"
+  ],
+  "claims": {
+    "recruit": {
+      "visibleSedge": true,
+      "homeMembers": [
+        "rowan",
+        "sedge"
+      ]
+    },
+    "normalPanel": {
+      "readable": true,
+      "workBox": {
+        "x": 16,
+        "y": 351.5,
+        "width": 310,
+        "height": 340.5
+      },
+      "capsCard": true,
+      "capsButtons": 1,
+      "capsCheckboxes": 6,
+      "pausedTick": 75
+    },
+    "pausedWorkToggles": {
+      "rowanBuild": false,
+      "sedgeHaul": false,
+      "tickFrozen": true,
+      "positionsTasksWorkFeedFrozen": true
+    },
+    "sharedPausedChop": {
+      "accepted": true,
+      "jobId": "job-1",
+      "target": "oak-1",
+      "scopeActors": null,
+      "commandTick": 75,
+      "pausedTick": 75,
+      "onlyRowanAllowed": true
+    },
+    "resumedAssignment": {
+      "rowanJob": "job-1",
+      "rowanActivity": "chop",
+      "sedgeTask": null,
+      "sedgeAssignment": null,
+      "onlyAllowedMemberAccepted": true
+    },
+    "reset": {
+      "allThreeSettingsEnabled": true,
+      "allowedWork": {
+        "rowan": {
+          "chop": true,
+          "haul": true,
+          "build": true
+        },
+        "sedge": {
+          "chop": true,
+          "haul": true,
+          "build": true
+        }
+      },
+      "jobs": 0,
+      "sites": 0,
+      "commands": 0
+    },
+    "narrow390": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "bar": {
+        "left": 24.1640625,
+        "top": 743,
+        "right": 365.8359375,
+        "bottom": 836,
+        "width": 341.671875,
+        "height": 93,
+        "display": "grid",
+        "rows": 2
+      },
+      "work": {
+        "visible": true,
+        "left": 104.4453125,
+        "top": 752,
+        "right": 186.9609375,
+        "bottom": 784
+      },
+      "menu": {
+        "visible": true,
+        "left": 189.9609375,
+        "top": 790,
+        "right": 229.9609375,
+        "bottom": 830
+      },
+      "workTable": true,
+      "noOverflow": true
+    }
+  },
+  "success": true
+}

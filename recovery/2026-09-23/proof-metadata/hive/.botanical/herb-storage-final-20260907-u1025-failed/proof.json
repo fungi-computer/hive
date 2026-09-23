@@ -1,0 +1,234 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/herb-storage-final-20260907",
+  "frozenTarget": {
+    "source": "edf86ad5bda86fa05656ee91cc070bc17667fed8",
+    "assets": {
+      "gameJs": "assets/game-Bw8dvOJd.js",
+      "gameCss": "assets/game-CxFQJg3g.css",
+      "artJs": "assets/art-CdVqsH0V.js"
+    },
+    "hashes": {
+      "index": "66f02a9959a7ece661131fd22ca070d8a34620c18518758538ca0bd6344e59a8",
+      "gameJs": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+      "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+      "artJs": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99"
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-Bw8dvOJd.js",
+      "gameCss": "assets/game-CxFQJg3g.css",
+      "artJs": "assets/art-CdVqsH0V.js"
+    },
+    "hashes": {
+      "index": "66f02a9959a7ece661131fd22ca070d8a34620c18518758538ca0bd6344e59a8",
+      "gameJs": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+      "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+      "artJs": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "48d8993ab5004d460ac84378369f570a29b61a9326f78b38a02326b61966ce54",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused herb storage browser proof"
+  },
+  "errors": [],
+  "screenshots": [],
+  "claims": {
+    "herbInspection": [
+      {
+        "at": {
+          "x": 736,
+          "y": 276
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": null
+      },
+      {
+        "at": {
+          "x": 736,
+          "y": 260
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": null
+      },
+      {
+        "at": {
+          "x": 712,
+          "y": 260
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": "herb-5"
+      }
+    ],
+    "harvest": {
+      "bundleId": "herb-bundle-8",
+      "amount": 1,
+      "harvestedHerbs": 1,
+      "location": {
+        "kind": "ground",
+        "x": 4,
+        "z": 1,
+        "level": 0
+      }
+    },
+    "bundleInspection": [
+      {
+        "at": {
+          "x": 736,
+          "y": 276
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": null
+      },
+      {
+        "at": {
+          "x": 736,
+          "y": 260
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": null
+      },
+      {
+        "at": {
+          "x": 712,
+          "y": 260
+        },
+        "owner": {
+          "tag": "CANVAS",
+          "id": null,
+          "className": ""
+        },
+        "selected": "herb-bundle-8"
+      }
+    ],
+    "pausedStoreAdmission": {
+      "tick": 1160,
+      "bundleId": "herb-bundle-8",
+      "shelfId": "site-3",
+      "actors": null,
+      "frozenWorld": true,
+      "appliedCommand": true
+    }
+  },
+  "exit": 1,
+  "failure": {
+    "name": "TimeoutError",
+    "message": "page.waitForFunction: Timeout 45000ms exceeded.",
+    "stack": "page.waitForFunction: Timeout 45000ms exceeded.\n    at waitState (/home/levi/src/hive/scripts/prove-herb-storage.mjs:123:8)\n    at /home/levi/src/hive/scripts/prove-herb-storage.mjs:529:9"
+  },
+  "failureSnapshot": {
+    "tick": 3564,
+    "paused": false,
+    "actor": {
+      "x": 3,
+      "z": 1,
+      "level": 0,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "id": "rowan",
+      "name": "Rowan",
+      "figure": "rowan",
+      "drafted": false,
+      "rest": 37.23199999999838,
+      "routine": false,
+      "allowedWork": {
+        "chop": true,
+        "haul": true,
+        "build": true,
+        "garden": true
+      },
+      "task": null,
+      "assignment": null,
+      "cargo": null
+    },
+    "selection": {
+      "selectedIds": [],
+      "inspectedTarget": {
+        "kind": "bundle",
+        "id": "herb-bundle-8",
+        "point": {
+          "x": 712,
+          "y": 260
+        }
+      },
+      "tree": null,
+      "herb": null,
+      "bundle": "herb-bundle-8",
+      "site": null,
+      "context": {
+        "x": 712,
+        "y": 260
+      },
+      "designationTargetIds": [],
+      "cutaway": true,
+      "panMode": false,
+      "direction": 0,
+      "tool": null,
+      "phase": "idle",
+      "gesture": null,
+      "hoverCell": null
+    },
+    "herbs": [],
+    "bundle": {
+      "id": "herb-bundle-8",
+      "kind": "mugwort",
+      "amount": 1,
+      "location": {
+        "kind": "stored",
+        "site": "site-3"
+      }
+    },
+    "jobs": [],
+    "claims": {},
+    "sites": [
+      {
+        "id": "site-3",
+        "type": "shelf",
+        "x": 2,
+        "z": 1,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 294
+      }
+    ],
+    "piles": [
+      {
+        "id": "wood-2",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "notice": "Rowan stored the mugwort bundle."
+  }
+}

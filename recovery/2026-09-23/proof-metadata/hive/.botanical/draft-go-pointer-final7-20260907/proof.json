@@ -1,0 +1,609 @@
+{
+  "proof": "draft-go-local",
+  "baseUrl": "http://127.0.0.1:5188/",
+  "wrapperInvocation": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh node scripts/prove-draft-go.mjs http://127.0.0.1:5188/ .botanical/draft-go-pointer-final7-20260907",
+  "hashes": {
+    "source": {
+      "src/model.ts": {
+        "expected": "8169176c147c5e0a2322b83bca74d9c5a12c39e1390a85fee5168323fef33862",
+        "actual": "8169176c147c5e0a2322b83bca74d9c5a12c39e1390a85fee5168323fef33862",
+        "ok": true
+      },
+      "src/actors.ts": {
+        "expected": "327d6b96e221231d3ab8e15c03740a10843924ea7cda49e1343801999abeec44",
+        "actual": "327d6b96e221231d3ab8e15c03740a10843924ea7cda49e1343801999abeec44",
+        "ok": true
+      },
+      "src/orders.ts": {
+        "expected": "a2877c5178cdba2f37e0c779239ded2f94ffb7bf4d42b6e7d03f638d1729928c",
+        "actual": "a2877c5178cdba2f37e0c779239ded2f94ffb7bf4d42b6e7d03f638d1729928c",
+        "ok": true
+      },
+      "src/jobs.ts": {
+        "expected": "bc1d83533a95500600c1c807620a02f66dcf481aa27f3c9add7be92ee5a1e53c",
+        "actual": "bc1d83533a95500600c1c807620a02f66dcf481aa27f3c9add7be92ee5a1e53c",
+        "ok": true
+      },
+      "src/routine.ts": {
+        "expected": "5a395b8f583d03590781b69e6a553e05db930dc9a6f61c3b399b6df5d1aaf4c9",
+        "actual": "5a395b8f583d03590781b69e6a553e05db930dc9a6f61c3b399b6df5d1aaf4c9",
+        "ok": true
+      },
+      "src/clearing.ts": {
+        "expected": "e003526ed6591e403813cec3dee02486fe3da007e064be92e3754f21773733a3",
+        "actual": "e003526ed6591e403813cec3dee02486fe3da007e064be92e3754f21773733a3",
+        "ok": true
+      },
+      "src/persistence.ts": {
+        "expected": "2794ce5d5f4875fadf2f8def0f817b948f1af9437f133d3a477bb5bc9034c341",
+        "actual": "2794ce5d5f4875fadf2f8def0f817b948f1af9437f133d3a477bb5bc9034c341",
+        "ok": true
+      },
+      "src/ui-actions.ts": {
+        "expected": "a1a13ac74d75cc10829255a4d490f29dcff95e0ffebc952c8665219146197ade",
+        "actual": "a1a13ac74d75cc10829255a4d490f29dcff95e0ffebc952c8665219146197ade",
+        "ok": true
+      },
+      "src/hud.jsx": {
+        "expected": "15a6ffc03bcb69f7c4a1baaea6c14407141aaec6498365ed76c1a0ea058260b5",
+        "actual": "15a6ffc03bcb69f7c4a1baaea6c14407141aaec6498365ed76c1a0ea058260b5",
+        "ok": true
+      },
+      "src/main.js": {
+        "expected": "1e5c3e71d1dd1cabe5588319c6c24b440a0d8995a53e24194a65c8cb1c048c68",
+        "actual": "1e5c3e71d1dd1cabe5588319c6c24b440a0d8995a53e24194a65c8cb1c048c68",
+        "ok": true
+      },
+      "src/view.js": {
+        "expected": "006f1bdd15357a744c8b730d42276d3c69b4bd8f1394058053587afae3499adc",
+        "actual": "006f1bdd15357a744c8b730d42276d3c69b4bd8f1394058053587afae3499adc",
+        "ok": true
+      },
+      "src/activity.ts": {
+        "expected": "520b2890b78894bd36a8606a534eb108f6e9174e5a1a014e7934773eb03efb50",
+        "actual": "520b2890b78894bd36a8606a534eb108f6e9174e5a1a014e7934773eb03efb50",
+        "ok": true
+      },
+      "src/construction-view.js": {
+        "expected": "06d7f2f0f70c8e7c24d7a230b6ede7b1f0b74421de361fe06488c5a0554df2ce",
+        "actual": "06d7f2f0f70c8e7c24d7a230b6ede7b1f0b74421de361fe06488c5a0554df2ce",
+        "ok": true
+      }
+    },
+    "dist": {
+      "dist/index.html": {
+        "expected": "dfa534a4d814ee24036d4b2bf3ab61be3d33168917c7145c2c847a4c82751051",
+        "actual": "dfa534a4d814ee24036d4b2bf3ab61be3d33168917c7145c2c847a4c82751051",
+        "ok": true
+      },
+      "dist/assets/game-BOy9EimH.js": {
+        "expected": "20f287ba7283db35c59ecfae8ba931111a8f2ed674bc221bd4d5f0ba67bf32ce",
+        "actual": "20f287ba7283db35c59ecfae8ba931111a8f2ed674bc221bd4d5f0ba67bf32ce",
+        "ok": true
+      },
+      "dist/assets/game-CbYhief5.css": {
+        "expected": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "actual": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "ok": true
+      },
+      "dist/assets/art-BfFl4vsZ.js": {
+        "expected": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "actual": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "ok": true
+      }
+    },
+    "served": {
+      "dist/index.html": {
+        "expected": "dfa534a4d814ee24036d4b2bf3ab61be3d33168917c7145c2c847a4c82751051",
+        "actual": "dfa534a4d814ee24036d4b2bf3ab61be3d33168917c7145c2c847a4c82751051",
+        "ok": true
+      },
+      "dist/assets/game-BOy9EimH.js": {
+        "expected": "20f287ba7283db35c59ecfae8ba931111a8f2ed674bc221bd4d5f0ba67bf32ce",
+        "actual": "20f287ba7283db35c59ecfae8ba931111a8f2ed674bc221bd4d5f0ba67bf32ce",
+        "status": 200,
+        "ok": true
+      },
+      "dist/assets/game-CbYhief5.css": {
+        "expected": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "actual": "044e4fed93a9b86cb9b337207471cf4eb79dad7476bfa6f4de4aa7c7fa8ceb53",
+        "status": 200,
+        "ok": true
+      },
+      "dist/assets/art-BfFl4vsZ.js": {
+        "expected": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "actual": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+        "status": 200,
+        "ok": true
+      }
+    },
+    "script": {
+      "file": "scripts/prove-draft-go.mjs",
+      "actual": "b1bb509b726872c3346e7efbe70cac06077b5a8504ca4e52f380d0f8fc7e6c23"
+    }
+  },
+  "assertions": [
+    "Pinned source, local dist, served index/game/CSS/art, and proof-script hashes recorded; source and served artifact values match the frozen candidate.",
+    "Normal viewport starts paused before any simulation advance.",
+    "Visible roster selection is exactly Rowan (Sedge remains unselected).",
+    "An armed Wall click over Rowan reaches authoritative placement validation, preserves selection, and keeps the tool armed without creating a site/job.",
+    "A personal direct Chop is admitted while paused without advancing simulation time.",
+    "Visible Draft keeps paused tick/position/world-work/jobs/material total, releases task/assignment/cargo/claim, and displays drafted holding.",
+    "Visible right-click on clear ground creates a drafted Go path/mode without paused travel or tick advance."
+  ],
+  "snapshots": {
+    "startup": {
+      "paused": true,
+      "tick": 0,
+      "persistence": {
+        "slot": "missing",
+        "phase": "unsaved",
+        "autosaveEnabled": true,
+        "revision": 0,
+        "tick": 0,
+        "paused": true,
+        "startup": true,
+        "message": "Fresh clearing ready. Continue when you are ready; no time has advanced."
+      }
+    },
+    "directClick": {
+      "button": {
+        "disabled": false,
+        "ariaDisabled": null,
+        "text": "Prioritize selected",
+        "rect": {
+          "x": 635,
+          "y": 463.5,
+          "width": 202,
+          "height": 23
+        },
+        "pointerEvents": "auto",
+        "hit": {
+          "tag": "BUTTON",
+          "id": "chop-now",
+          "className": "btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-dashed aria-disabled:outline-base-content btn-primary btn-md",
+          "text": "Prioritize selected"
+        }
+      },
+      "selection": {
+        "selectedIds": [
+          "rowan"
+        ],
+        "inspectedTarget": {
+          "kind": "tree",
+          "id": "oak-1",
+          "point": {
+            "x": 608,
+            "y": 320
+          }
+        },
+        "tree": "oak-1",
+        "site": null,
+        "context": {
+          "x": 608,
+          "y": 320
+        },
+        "designationTargetIds": [],
+        "cutaway": true,
+        "panMode": false,
+        "direction": 0,
+        "tool": null,
+        "phase": "idle",
+        "gesture": null,
+        "hoverCell": null
+      },
+      "notice": "Paused · Direct order received. Earlier unfinished orders are kept.",
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "build",
+          "type": "wall",
+          "direction": 0,
+          "x": 7,
+          "z": 11,
+          "level": 0,
+          "tick": 79
+        },
+        {
+          "party": "home",
+          "actors": [
+            "rowan"
+          ],
+          "kind": "chop",
+          "tree": "oak-1",
+          "direct": true,
+          "tick": 130
+        }
+      ],
+      "jobs": [
+        {
+          "id": "job-3",
+          "kind": "chop",
+          "target": "oak-1",
+          "scope": {
+            "party": "home",
+            "actors": [
+              "rowan"
+            ]
+          },
+          "reason": "Ordered",
+          "routine": false
+        },
+        {
+          "id": "job-2",
+          "kind": "build",
+          "target": "site-1",
+          "scope": {
+            "party": "home",
+            "actors": null
+          },
+          "reason": "Waiting for reachable wood",
+          "routine": false
+        }
+      ]
+    },
+    "beforeDraft": {
+      "tick": 279,
+      "rowan": {
+        "id": "rowan",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "mode": "walk",
+        "path": [
+          {
+            "x": 4,
+            "z": 4,
+            "level": 0
+          },
+          {
+            "x": 5,
+            "z": 4,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 4,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 5,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 6,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 7,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 8,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 9,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 10,
+            "level": 0
+          },
+          {
+            "x": 6,
+            "z": 11,
+            "level": 0
+          }
+        ],
+        "task": {
+          "job": "job-2",
+          "kind": "deliver",
+          "target": "site-1",
+          "duration": 8
+        },
+        "assignment": {
+          "character": "rowan",
+          "task": "job-2",
+          "cost": 68
+        },
+        "cargo": {
+          "job": "job-2",
+          "site": "site-1",
+          "amount": 1
+        },
+        "work": 0,
+        "drafted": false,
+        "routine": false
+      },
+      "claims": [],
+      "world": {
+        "trees": [
+          {
+            "id": "oak-1",
+            "work": 80,
+            "felledAt": 265
+          },
+          {
+            "id": "oak-2",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-4",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-5",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-6",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-7",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-8",
+            "work": 0,
+            "felledAt": null
+          }
+        ],
+        "sites": [
+          {
+            "id": "site-1",
+            "delivered": 0,
+            "work": 0,
+            "finishedAt": null
+          }
+        ],
+        "jobs": [
+          {
+            "id": "job-2",
+            "kind": "build",
+            "scope": {
+              "party": "home",
+              "actors": null
+            },
+            "target": "site-1",
+            "reason": ""
+          }
+        ]
+      },
+      "feed": {
+        "seed": 42,
+        "sequence": 1,
+        "nextAt": 50,
+        "last": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        }
+      },
+      "materialTotal": 6,
+      "material": {
+        "piles": [
+          {
+            "id": "wood-4",
+            "x": 3,
+            "z": 4,
+            "level": 0,
+            "amount": 5
+          }
+        ],
+        "sites": [
+          {
+            "id": "site-1",
+            "type": "wall",
+            "x": 7,
+            "z": 11,
+            "level": 0,
+            "direction": 0,
+            "delivered": 0,
+            "work": 0,
+            "finishedAt": null
+          }
+        ]
+      }
+    },
+    "afterDraft": {
+      "tick": 279,
+      "rowan": {
+        "id": "rowan",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "mode": "idle",
+        "path": [],
+        "task": null,
+        "assignment": null,
+        "cargo": null,
+        "work": 0,
+        "drafted": true,
+        "routine": false
+      },
+      "claims": [],
+      "world": {
+        "trees": [
+          {
+            "id": "oak-1",
+            "work": 80,
+            "felledAt": 265
+          },
+          {
+            "id": "oak-2",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-3",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-4",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-5",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-6",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-7",
+            "work": 0,
+            "felledAt": null
+          },
+          {
+            "id": "oak-8",
+            "work": 0,
+            "felledAt": null
+          }
+        ],
+        "sites": [
+          {
+            "id": "site-1",
+            "delivered": 0,
+            "work": 0,
+            "finishedAt": null
+          }
+        ],
+        "jobs": [
+          {
+            "id": "job-2",
+            "kind": "build",
+            "scope": {
+              "party": "home",
+              "actors": null
+            },
+            "target": "site-1",
+            "reason": ""
+          }
+        ]
+      },
+      "feed": {
+        "seed": 42,
+        "sequence": 1,
+        "nextAt": 50,
+        "last": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        }
+      },
+      "materialTotal": 6,
+      "notice": "Paused · Rowan is drafted and holding position.",
+      "draftButton": "Undraft"
+    },
+    "pausedGo": {
+      "target": {
+        "x": 4,
+        "z": 4,
+        "level": 0
+      },
+      "tick": 279,
+      "rowan": {
+        "id": "rowan",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "mode": "walk",
+        "path": [
+          {
+            "x": 4,
+            "z": 4,
+            "level": 0
+          }
+        ],
+        "task": null,
+        "assignment": null,
+        "cargo": null,
+        "work": 0,
+        "drafted": true,
+        "routine": false
+      },
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "build",
+          "type": "wall",
+          "direction": 0,
+          "x": 7,
+          "z": 11,
+          "level": 0,
+          "tick": 79
+        },
+        {
+          "party": "home",
+          "actors": [
+            "rowan"
+          ],
+          "kind": "chop",
+          "tree": "oak-1",
+          "direct": true,
+          "tick": 130
+        },
+        {
+          "party": "home",
+          "kind": "draft",
+          "actor": "rowan",
+          "tick": 279
+        },
+        {
+          "party": "home",
+          "kind": "go",
+          "actor": "rowan",
+          "target": {
+            "x": 4,
+            "z": 4,
+            "level": 0
+          },
+          "tick": 279
+        }
+      ]
+    }
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "success": false,
+  "failure": {
+    "name": "AssertionError",
+    "message": "Armed Wall right-click must not issue Go\n\n5 !== 4\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Armed Wall right-click must not issue Go\n\n5 !== 4\n\n    at file:///home/levi/src/hive/scripts/prove-draft-go.mjs:698:10"
+  },
+  "limits": [
+    "One fresh, local browser context against the pinned server; no test/build/source mutation.",
+    "Only Rowan is recruited and selected; Sedge remains a visible visitor while the retained shared wall job waits.",
+    "The proof observes public UI gestures plus read-only __GOBLIN state hooks; it does not inject commands or mutate save storage."
+  ]
+}

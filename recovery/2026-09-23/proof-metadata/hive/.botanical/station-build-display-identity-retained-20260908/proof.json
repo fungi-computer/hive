@@ -1,0 +1,78 @@
+{
+  "mode": "focused-real-input-station-build-display-identity",
+  "url": "http://127.0.0.1:5209/",
+  "scriptSha256": "49bf6994340aa4e62e106c1c727d41498002c61a73dd07eda3b3b46abd9ce10c",
+  "errors": [],
+  "screenshots": [
+    "station-built.png"
+  ],
+  "claims": {
+    "station": {
+      "id": "site-3",
+      "type": "brew-station",
+      "x": 2,
+      "z": 2,
+      "level": 0,
+      "direction": 0,
+      "work": 144,
+      "finishedAt": 644
+    },
+    "originalBlackCenter": [
+      {
+        "kind": "sprite",
+        "path": "world/_Container[4]/_Container[5]/Sprite[1]",
+        "label": "Sprite",
+        "bounds": {
+          "x": 566,
+          "y": 169,
+          "width": 224,
+          "height": 224
+        },
+        "zIndex": 0,
+        "order": 23,
+        "target": {
+          "kind": "tree",
+          "id": "oak-5",
+          "level": 0,
+          "action": "tree"
+        },
+        "orientation": "standing",
+        "texture": {
+          "uid": 851,
+          "width": 112,
+          "height": 112,
+          "sourceUid": 851,
+          "sourceWidth": 112,
+          "sourceHeight": 112
+        }
+      },
+      {
+        "kind": "sprite",
+        "path": "world/Sprite[0]",
+        "label": "Sprite",
+        "bounds": {
+          "x": -90,
+          "y": -20,
+          "width": 1280,
+          "height": 800
+        },
+        "zIndex": 0,
+        "order": 1,
+        "target": null,
+        "orientation": null,
+        "texture": {
+          "uid": 2,
+          "width": 640,
+          "height": 400,
+          "sourceUid": 2,
+          "sourceWidth": 640,
+          "sourceHeight": 400
+        }
+      }
+    ],
+    "stationPoint": {
+      "x": 550,
+      "y": 260
+    }
+  }
+}

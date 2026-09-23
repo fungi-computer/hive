@@ -1,0 +1,219 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "frozenTarget": {
+    "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+    "distSha256": {
+      "dist/index.html": "315cae936af6d8dd9c02b455523edba67bc258119ee2be1a9f638ed500bd511a",
+      "dist/assets/game-_NNMygzq.js": "583844ffc82343ff74dea96678186f590e4fe246fc98f9efab5880f9e04006a6",
+      "dist/assets/art-CCSP12DF.js": "37435e9bf8030f3ec971348825cf416d2451672b6bfbecf8834052e9e3af4211"
+    },
+    "servedSha256": {
+      "/": "315cae936af6d8dd9c02b455523edba67bc258119ee2be1a9f638ed500bd511a",
+      "/assets/game-_NNMygzq.js": "583844ffc82343ff74dea96678186f590e4fe246fc98f9efab5880f9e04006a6",
+      "/assets/art-CCSP12DF.js": "37435e9bf8030f3ec971348825cf416d2451672b6bfbecf8834052e9e3af4211"
+    }
+  },
+  "scriptSha256": "d6c1b007bd35ca98655a41ddf04db9a237d0b989569e5a64f9e51c73c6b1988f",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; focused paused/shared input proof only",
+    "exit": 0
+  },
+  "errors": [],
+  "screenshots": [
+    "normal-paused-oak.png",
+    "normal-paused-build.png",
+    "normal-paused-canceled.png",
+    "normal-resumed.png",
+    "narrow-390-paused-oak.png",
+    "narrow-390-paused-build.png",
+    "narrow-390-paused-canceled.png",
+    "narrow-390-resumed.png"
+  ],
+  "capsButtons": [
+    "#pause",
+    "#mark-chop",
+    "#chop-now",
+    "[data-build=\"wall\"]",
+    "#task",
+    "[data-action=\"cancel\"][data-job=\"job-3\"]",
+    "#reset"
+  ],
+  "traces": {
+    "normal": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "pausedTick": 56,
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "chop",
+          "tree": "oak-1",
+          "direct": false,
+          "tick": 56
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "build",
+          "type": "wall",
+          "direction": 0,
+          "x": 7,
+          "z": 5,
+          "level": 0,
+          "tick": 56
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "cancel",
+          "job": "job-3",
+          "tick": 56
+        }
+      ],
+      "commandTicks": [
+        56,
+        56,
+        56
+      ],
+      "sharedJobs": {
+        "mark": {
+          "kind": "chop",
+          "target": "oak-1",
+          "actors": null
+        },
+        "build": {
+          "kind": "build",
+          "type": "wall",
+          "actors": null
+        }
+      },
+      "frozenFields": [
+        "actors",
+        "cat",
+        "trees",
+        "piles",
+        "feed",
+        "demand",
+        "tick"
+      ],
+      "frozenAfterMark": true,
+      "frozenAfterBuild": true,
+      "frozenAfterCancel": true,
+      "canceled": {
+        "sites": 0,
+        "jobs": 1
+      },
+      "resumed": {
+        "tick": 65,
+        "paused": false,
+        "assignment": {
+          "character": "rowan",
+          "task": "job-1",
+          "cost": 134
+        }
+      },
+      "reset": {
+        "tick": 10,
+        "paused": false,
+        "commands": 0,
+        "jobs": 0,
+        "sites": 0,
+        "tool": null,
+        "selection": [],
+        "seeded": true
+      }
+    },
+    "narrow-390": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "pausedTick": 53,
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "chop",
+          "tree": "oak-1",
+          "direct": false,
+          "tick": 53
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "build",
+          "type": "wall",
+          "direction": 0,
+          "x": 7,
+          "z": 5,
+          "level": 0,
+          "tick": 53
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "cancel",
+          "job": "job-3",
+          "tick": 53
+        }
+      ],
+      "commandTicks": [
+        53,
+        53,
+        53
+      ],
+      "sharedJobs": {
+        "mark": {
+          "kind": "chop",
+          "target": "oak-1",
+          "actors": null
+        },
+        "build": {
+          "kind": "build",
+          "type": "wall",
+          "actors": null
+        }
+      },
+      "frozenFields": [
+        "actors",
+        "cat",
+        "trees",
+        "piles",
+        "feed",
+        "demand",
+        "tick"
+      ],
+      "frozenAfterMark": true,
+      "frozenAfterBuild": true,
+      "frozenAfterCancel": true,
+      "canceled": {
+        "sites": 0,
+        "jobs": 1
+      },
+      "resumed": {
+        "tick": 61,
+        "paused": false,
+        "assignment": {
+          "character": "rowan",
+          "task": "job-1",
+          "cost": 134
+        }
+      },
+      "reset": {
+        "tick": 5,
+        "paused": false,
+        "commands": 0,
+        "jobs": 0,
+        "sites": 0,
+        "tool": null,
+        "selection": [],
+        "seeded": true
+      }
+    }
+  },
+  "success": true
+}

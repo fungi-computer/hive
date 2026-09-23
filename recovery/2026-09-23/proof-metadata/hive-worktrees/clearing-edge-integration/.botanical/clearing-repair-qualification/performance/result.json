@@ -1,0 +1,20 @@
+{
+  "group": "performance",
+  "files": [
+    "engine/src/client/performance-page.test.js",
+    "engine/src/client/whistle-runtime.test.js",
+    "engine/src/games/colony-performance.test.ts",
+    "engine/src/runtime/whistle.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/performance/performance-page.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/performance/whistle-runtime.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/performance/colony-performance.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/performance/whistle.test.mjs"
+  ],
+  "exit": 0
+}

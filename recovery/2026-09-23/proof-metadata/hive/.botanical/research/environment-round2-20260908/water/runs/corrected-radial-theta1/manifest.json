@@ -1,0 +1,79 @@
+{
+  "suite": "radial-theta1",
+  "stamp": "corrected",
+  "hashes": {
+    "solver.mjs": "3df6b17552e9dfedbb5a75cb9768615c47466d5fccaeaafcd15d9a4ea59c299e",
+    "experiment.mjs": "11aeec4f1d51f43e8dd9552cd5f577c230b21072522e565a1185ec9a32a63915",
+    "PREDECLARED.md": "f854006236b869010c67dc08dd75ecbe5a9374ab169802eea93ba3525825a5bd"
+  },
+  "node": "v24.20.0",
+  "platform": "linux",
+  "arch": "x64",
+  "timestamp": "2026-09-08T06:31:20.962Z",
+  "outcomes": [
+    {
+      "name": "radial-li-32",
+      "status": "completed",
+      "summary": {
+        "time": 25,
+        "reservoir": 0,
+        "reach": 0,
+        "diversion": 0,
+        "pond": 0,
+        "user": 0,
+        "collected": 0,
+        "total": 44.79999999999997,
+        "balanceError": 6.394884621840902e-14,
+        "arrivalSeconds": null,
+        "steps": 500,
+        "minDt": 0.0499999999998586,
+        "maxMassError": 2.1316282072803006e-13,
+        "maxFrAbove1cm": 5.741589027530467,
+        "wetFaceTimeFractionFrAboveHalf": 0.024283171157469294,
+        "wetFaceTimeFractionFrAboveOne": 0.004044314626937944,
+        "maxGradient": 0.05,
+        "limitedDonors": 0,
+        "minFactor": 1,
+        "minDepth": 0,
+        "gateBeforeOpen": 0,
+        "axisRadius": 19.026297590440446,
+        "diagonalRadius": 18.38477631085024,
+        "relativeRadiusBias": 0.034295796013921714,
+        "pass": true
+      },
+      "elapsedMs": 565.3067709999999
+    },
+    {
+      "name": "radial-li-64",
+      "status": "completed",
+      "summary": {
+        "time": 25,
+        "reservoir": 0,
+        "reach": 0,
+        "diversion": 0,
+        "pond": 0,
+        "user": 0,
+        "collected": 0,
+        "total": 44.799999999999955,
+        "balanceError": -4.121147867408581e-13,
+        "arrivalSeconds": null,
+        "steps": 500,
+        "minDt": 0.0499999999998586,
+        "maxMassError": 6.181721801112872e-13,
+        "maxFrAbove1cm": 6.320477574186479,
+        "wetFaceTimeFractionFrAboveHalf": 0.015190039379849442,
+        "wetFaceTimeFractionFrAboveOne": 0.0017137960582690826,
+        "maxGradient": 0.1,
+        "limitedDonors": 0,
+        "minFactor": 1,
+        "minDepth": 0,
+        "gateBeforeOpen": 0,
+        "axisRadius": 18.50675552332175,
+        "diagonalRadius": 17.67766952966369,
+        "relativeRadiusBias": 0.045825572325331555,
+        "pass": true
+      },
+      "elapsedMs": 1821.888834
+    }
+  ]
+}

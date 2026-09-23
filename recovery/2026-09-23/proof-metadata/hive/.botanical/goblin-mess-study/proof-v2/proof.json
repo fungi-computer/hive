@@ -1,0 +1,283 @@
+{
+  "url": "http://127.0.0.1:5187/.botanical/goblin-mess-study/index.html",
+  "sourceHashes": {
+    ".botanical/goblin-mess-study/index.html": "fd08f90141015e51490d2eff95f8c2777fabf431d80c4e0230c255aac1313629",
+    ".botanical/goblin-mess-study/main.js": "cf69924773db62088704cfc70aaddba64d076d32e28043364786e3e3bbed5c21",
+    ".botanical/goblin-mess-study/prove.mjs": "ce085c9c98df4422cf57638f21673f0de315d94ff19b3dbe311739b64c71b97e",
+    ".botanical/goblin-mess-study/mess.js": "c6e2d40de5f2a247944876a8430488a4425be01c5e508e9bdfedccbbfd52ec70",
+    "src/art.js": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/props-study/props.js": "f0343ed7cfcc9a329ca18bf2939148d53dc0426d59fb44a05618a1794de77b13"
+  },
+  "nativeCss": [
+    360,
+    240
+  ],
+  "gameCss": [
+    720,
+    480
+  ],
+  "report": {
+    "textures": {
+      "urine": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 91,
+          "padding": [
+            46,
+            73,
+            47,
+            30
+          ],
+          "pixelHash": 471903601
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 87,
+          "padding": [
+            46,
+            74,
+            45,
+            31
+          ],
+          "pixelHash": 963555741
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 88,
+          "padding": [
+            46,
+            74,
+            46,
+            31
+          ],
+          "pixelHash": 897667600
+        }
+      ],
+      "droppings": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 57,
+          "padding": [
+            49,
+            73,
+            50,
+            33
+          ],
+          "pixelHash": 765538151
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 64,
+          "padding": [
+            48,
+            73,
+            50,
+            32
+          ],
+          "pixelHash": 3799748641
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 58,
+          "padding": [
+            49,
+            72,
+            50,
+            33
+          ],
+          "pixelHash": 2740787415
+        }
+      ],
+      "vomit": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 89,
+          "padding": [
+            46,
+            73,
+            47,
+            31
+          ],
+          "pixelHash": 1101524633
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 87,
+          "padding": [
+            46,
+            74,
+            45,
+            31
+          ],
+          "pixelHash": 3854995608
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 89,
+          "padding": [
+            47,
+            73,
+            46,
+            31
+          ],
+          "pixelHash": 3784937301
+        }
+      ],
+      "stew": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 89,
+          "padding": [
+            46,
+            73,
+            47,
+            31
+          ],
+          "pixelHash": 625687906
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 91,
+          "padding": [
+            46,
+            74,
+            45,
+            31
+          ],
+          "pixelHash": 3754539000
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 90,
+          "padding": [
+            48,
+            73,
+            46,
+            31
+          ],
+          "pixelHash": 3436082984
+        }
+      ],
+      "beer": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 87,
+          "padding": [
+            46,
+            73,
+            47,
+            31
+          ],
+          "pixelHash": 29119864
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 86,
+          "padding": [
+            46,
+            74,
+            45,
+            31
+          ],
+          "pixelHash": 3345708181
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 88,
+          "padding": [
+            46,
+            74,
+            46,
+            31
+          ],
+          "pixelHash": 90841589
+        }
+      ],
+      "tracks": [
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 15,
+          "padding": [
+            51,
+            73,
+            49,
+            31
+          ],
+          "pixelHash": 1260250931
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 18,
+          "padding": [
+            53,
+            72,
+            51,
+            30
+          ],
+          "pixelHash": 1136576417
+        },
+        {
+          "width": 112,
+          "height": 112,
+          "nonempty": 19,
+          "padding": [
+            49,
+            72,
+            50,
+            31
+          ],
+          "pixelHash": 2203410455
+        }
+      ]
+    },
+    "anchor": {
+      "x": 0.5,
+      "y": 0.6924599083615355
+    },
+    "native": {
+      "prop": [
+        112,
+        112
+      ],
+      "room": [
+        360,
+        240
+      ],
+      "tile": [
+        32,
+        16
+      ]
+    },
+    "room": {
+      "bitmap": [
+        360,
+        240
+      ],
+      "css": [
+        720,
+        480
+      ]
+    }
+  },
+  "errors": []
+}

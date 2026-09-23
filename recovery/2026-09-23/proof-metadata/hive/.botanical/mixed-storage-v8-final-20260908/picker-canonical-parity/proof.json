@@ -1,0 +1,63 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/?release=3fc20fc3",
+  "output": ".botanical/mixed-storage-v8-final-20260908/picker-canonical-parity",
+  "mode": "served-byte-parity",
+  "scriptSha256": "8e9a78f55ed0ac4facd29ea813896ea29ec9ceddbd91cea3d64ede59e326e674",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; fresh-v8 mixed storage plus reserved transfer save/reload (migration, carrying reload, and contention remain unit-law claims)"
+  },
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "parity": {
+    "local": {
+      "index": "5e94818c4954093a529f906d5097248c839806b3b5159765a8402d160b43d335",
+      "assets": {
+        "assets/game-Cj9G3TIM.js": "9418fdb5f01292ea99f0c2426008955cd057f94822d97ed71fde5c185e59ff85",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-Dr5CS--E.js": "3a3cd52951b1eca195b6a755999e99722560aeb8a5426448dedb8bafc83a20da",
+        "assets/home-027I8I5-.js": "b493e62f017242ec55f93cbe86f06aba87990705dcc1796970b7ab9cbafa308b",
+        "assets/figures-CLLfi72n.js": "8f6b6e43c50704ce348e367a9a6fe3654472128a939b1e5191753ee0c8a61575",
+        "assets/mixed-shelf-BQIySdm5.js": "23aabd19eff44bda56dc110fde742f81ead0a0bb9e72550c09877913c8164894",
+        "assets/construction-BsYLdOu4.js": "15811b5961e6d94c09285b8263393f3c402186d8746b8297471a4bb4baebef8f",
+        "assets/Geometry-DOF3DU4F.js": "d86cbcbc56b1011f3ab3d401dc57e616bb377f1e88c9eff90fb5339771b817b5",
+        "assets/getTextureBatchBindGroup-BNcjaXOC.js": "d61ff516cf2287e0ce978c6036dca2985bf94a2ad1d89041156db595d96446ba",
+        "assets/BatchableSprite-BY1ydbON.js": "ea9d2ac43c25dd9cfc938016977df8b4cbd2b9463659536f80fdea780fdeade1",
+        "assets/Graphics-CXGaDwn_.js": "6827dd8e1ff571eb2f6028dcb7e79268ce898a01602bcdc090dc435ea86e2c81",
+        "assets/CanvasPool-BEW4kBZf.js": "04dfaaf75fe03ae90810956ef0199b13d6ca5f166a0440538403fc6a84278dd4",
+        "assets/canvasUtils-Do_fy2vU.js": "0360de4d65e399bc553ac718835b0e231269e18895270529ba7f09792b709c6d",
+        "assets/getPo2TextureFromSource-8nZ4SkgP.js": "67fa99bd905000c2727b7911adf7cbf20cbda0bb35a88ac8b416d639320291e0",
+        "assets/art-Ba6NkcGj.js": "c5521e3804d30f092633cfe13a804799e59214efb18b6b15b80605a16d3daa26",
+        "assets/clearing-0pozX0fB.js": "85083f3afef0a8a7876f24e138d8352e904f7f9fbb8672121ddc751c94c9f70a",
+        "assets/game-DERSsx7I.css": "23e8319528c290dfb35e2e6c5628cf104d02130d7e806a1d4d76cd969da52300",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "served": {
+      "index": "5e94818c4954093a529f906d5097248c839806b3b5159765a8402d160b43d335",
+      "assets": {
+        "assets/game-Cj9G3TIM.js": "9418fdb5f01292ea99f0c2426008955cd057f94822d97ed71fde5c185e59ff85",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-Dr5CS--E.js": "3a3cd52951b1eca195b6a755999e99722560aeb8a5426448dedb8bafc83a20da",
+        "assets/home-027I8I5-.js": "b493e62f017242ec55f93cbe86f06aba87990705dcc1796970b7ab9cbafa308b",
+        "assets/figures-CLLfi72n.js": "8f6b6e43c50704ce348e367a9a6fe3654472128a939b1e5191753ee0c8a61575",
+        "assets/mixed-shelf-BQIySdm5.js": "23aabd19eff44bda56dc110fde742f81ead0a0bb9e72550c09877913c8164894",
+        "assets/construction-BsYLdOu4.js": "15811b5961e6d94c09285b8263393f3c402186d8746b8297471a4bb4baebef8f",
+        "assets/Geometry-DOF3DU4F.js": "d86cbcbc56b1011f3ab3d401dc57e616bb377f1e88c9eff90fb5339771b817b5",
+        "assets/getTextureBatchBindGroup-BNcjaXOC.js": "d61ff516cf2287e0ce978c6036dca2985bf94a2ad1d89041156db595d96446ba",
+        "assets/BatchableSprite-BY1ydbON.js": "ea9d2ac43c25dd9cfc938016977df8b4cbd2b9463659536f80fdea780fdeade1",
+        "assets/Graphics-CXGaDwn_.js": "6827dd8e1ff571eb2f6028dcb7e79268ce898a01602bcdc090dc435ea86e2c81",
+        "assets/CanvasPool-BEW4kBZf.js": "04dfaaf75fe03ae90810956ef0199b13d6ca5f166a0440538403fc6a84278dd4",
+        "assets/canvasUtils-Do_fy2vU.js": "0360de4d65e399bc553ac718835b0e231269e18895270529ba7f09792b709c6d",
+        "assets/getPo2TextureFromSource-8nZ4SkgP.js": "67fa99bd905000c2727b7911adf7cbf20cbda0bb35a88ac8b416d639320291e0",
+        "assets/art-Ba6NkcGj.js": "c5521e3804d30f092633cfe13a804799e59214efb18b6b15b80605a16d3daa26",
+        "assets/clearing-0pozX0fB.js": "85083f3afef0a8a7876f24e138d8352e904f7f9fbb8672121ddc751c94c9f70a",
+        "assets/game-DERSsx7I.css": "23e8319528c290dfb35e2e6c5628cf104d02130d7e806a1d4d76cd969da52300",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "exact": true
+  },
+  "success": true
+}

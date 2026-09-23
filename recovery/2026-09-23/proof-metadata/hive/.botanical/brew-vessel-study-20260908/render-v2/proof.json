@@ -1,0 +1,881 @@
+{
+  "source": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-vessel-study-20260908/index.html": "4127f738620692866bce69106a8d52beffe335bfdc55381bf216118ad9dac838",
+    ".botanical/brew-vessel-study-20260908/study.js": "df2eb1509b1e0c0fa0bbcd885e360a268fe6e8617b6e7c56254eef4fb031d902",
+    ".botanical/brew-vessel-study-20260908/capture.mjs": "2c9d5c331a2cc116a396e6bb788aa97997a223c7a2a9c1bc5d36ee0ab77c970a"
+  },
+  "errors": [],
+  "passed": true,
+  "report": {
+    "ready": true,
+    "rows": [
+      {
+        "id": "empty-0",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "684142d0ddaf0ec96183440740cc57f3c13535b546161b7b4a2642d58d912c34"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "empty-1",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 39,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1346,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "c80f5b4075e95a3d810f7727abf86ae5f3ffa7bfea940d5aede5b7049dc4e885"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "empty-2",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 34,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1322,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "77e477e37e58dc2944d467e211f4727705b7f555ed4afd3bb5a0ea02e5947dc9"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "empty-3",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 41,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1312,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "01565beb72e82fa1f43765043764f0dae21c08aab9696d840e7d8e383f079196"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "filled-0",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "17678882f4bce98431fbe26203bbf07f9ceed85a2be9ec8774b354a029bfa15d"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "filled-1",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 39,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1346,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "518cc8f4af90c8a021b33c93059d2b60a59574c99d47a509ce933cbad5a1471d"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "filled-2",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 34,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1322,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "012657dfb85f2ac9cca3617dcfc8c80fecec0af0100460c1dbed69d968cebd41"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "filled-3",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 41,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1312,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [],
+        "bodyHashes": [
+          "9c07c8be68486355395f98343f64f04f5ccc8acbee999ae3fe92be216f3a0768"
+        ],
+        "steamHashes": []
+      },
+      {
+        "id": "working-0",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1310,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 44,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1313,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1312,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 45,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1311,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [
+          {
+            "minX": 52,
+            "minY": 36,
+            "maxX": 58,
+            "maxY": 48,
+            "count": 52,
+            "clipped": false
+          },
+          {
+            "minX": 51,
+            "minY": 35,
+            "maxX": 58,
+            "maxY": 47,
+            "count": 52,
+            "clipped": false
+          },
+          {
+            "minX": 51,
+            "minY": 34,
+            "maxX": 58,
+            "maxY": 46,
+            "count": 57,
+            "clipped": false
+          },
+          {
+            "minX": 50,
+            "minY": 34,
+            "maxX": 59,
+            "maxY": 47,
+            "count": 54,
+            "clipped": false
+          },
+          {
+            "minX": 51,
+            "minY": 33,
+            "maxX": 60,
+            "maxY": 46,
+            "count": 57,
+            "clipped": false
+          },
+          {
+            "minX": 51,
+            "minY": 32,
+            "maxX": 59,
+            "maxY": 44,
+            "count": 56,
+            "clipped": false
+          },
+          {
+            "minX": 51,
+            "minY": 36,
+            "maxX": 59,
+            "maxY": 48,
+            "count": 57,
+            "clipped": false
+          },
+          {
+            "minX": 52,
+            "minY": 34,
+            "maxX": 58,
+            "maxY": 46,
+            "count": 57,
+            "clipped": false
+          }
+        ],
+        "bodyHashes": [
+          "e97ab7e5d8dcbaa2e154daaafda03533eee9640934beb89c254dc62e67a62609",
+          "8cfd60ff3dcc49539847f795f6af51cceabfd6c4e30321ebc90a843d624900b3",
+          "ca251debf12116a7b29be4e468a56d290865ef3618fe4e88f7806acd5346d650",
+          "9b1c165ace1ba82a265d8627ba89f7c6cf42c7784cb512e18f8e43b3af114103",
+          "55ffb2e25886790858510730bc64084563135fe9c099b46c912656fd10b35ad9",
+          "21f5c0fe508828cdccc869e0c5aba0e594193a670fbcff6e0ef6ca4be04c2904",
+          "19d4d317f921d028fd3dc7db674b352dea580ed9cf3918d315ee729aab5604d5",
+          "5c6ec7e30b10c43640e935eff3e1059e73e84a101016c396ddf648c782ccf4a5"
+        ],
+        "steamHashes": [
+          "15fd13b25189ebef67a3e93542ce3535092d6ea94f5f815644c9ea5620db3229",
+          "918b2e5d9bbde0437162bb87021fe81dc611874b0c99316bfac0f97ce5884ff9",
+          "ddf7410b91d7b35b14ec9b17f54dcbea89d37ffa9611eede09bfe856419efc37",
+          "b1d6da95ef1929f04e733d44a2eb66f5f48a80bbdd1e53854fa3344a5b450500",
+          "989c9510dfbdc39c2df67c3cb6cecfcc34ca8ae5090415e648f781975abdbb66",
+          "bbf0c045c18928f53de24c6bd600f3cf6c6df74e25e6dd619b68dbafb11d0d7c",
+          "746b6d5baa729629a145334337bbed72ae62074cb5ea0c46244a00920133b868",
+          "b45028efc4f289e95e4ce17630413af46e623cd96c4fa2cccc405f74789cf322"
+        ]
+      },
+      {
+        "id": "working-1",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 38,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1344,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 39,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1344,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 40,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1340,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 41,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1334,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 40,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1335,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 39,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1340,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 38,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1342,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 38,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1342,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [
+          {
+            "minX": 48,
+            "minY": 38,
+            "maxX": 54,
+            "maxY": 51,
+            "count": 56,
+            "clipped": false
+          },
+          {
+            "minX": 47,
+            "minY": 36,
+            "maxX": 55,
+            "maxY": 49,
+            "count": 55,
+            "clipped": false
+          },
+          {
+            "minX": 47,
+            "minY": 35,
+            "maxX": 55,
+            "maxY": 47,
+            "count": 53,
+            "clipped": false
+          },
+          {
+            "minX": 47,
+            "minY": 39,
+            "maxX": 55,
+            "maxY": 51,
+            "count": 52,
+            "clipped": false
+          },
+          {
+            "minX": 47,
+            "minY": 37,
+            "maxX": 56,
+            "maxY": 50,
+            "count": 59,
+            "clipped": false
+          },
+          {
+            "minX": 47,
+            "minY": 36,
+            "maxX": 56,
+            "maxY": 48,
+            "count": 55,
+            "clipped": false
+          },
+          {
+            "minX": 48,
+            "minY": 36,
+            "maxX": 55,
+            "maxY": 49,
+            "count": 56,
+            "clipped": false
+          },
+          {
+            "minX": 48,
+            "minY": 35,
+            "maxX": 54,
+            "maxY": 48,
+            "count": 56,
+            "clipped": false
+          }
+        ],
+        "bodyHashes": [
+          "591c9bda7506fa84dc010a902feb63eced9f8e7a8d18105bf120dd3c02fbda47",
+          "597351e2abce4f102247fba7ee93af30d21ed23341faf1e151e5b143adf51c4e",
+          "143d82770d194f0be40edc840d64e46d2eb5c0ea41b0797d85d08cf543a87d13",
+          "ad446c3ea0025a283ef7eba87e1cd76decc26fafbc3ed830905678c4cc4a0523",
+          "264ffb7d337926df5ce6ee941dcd65a60fb25c0c9be28095b22564d3d38bdde1",
+          "a250063bec908573fa536dc8954db21473c89a66b32b0822f6c75af19f7505a2",
+          "574d3a5a314c918a2c92bd61b2d0f2903d13794788558443ee747c4f0c410906",
+          "4fc9f53b1144e0aa3cd4197687dea1264823759f8d94586f24f96dbbc5abe582"
+        ],
+        "steamHashes": [
+          "921c3d18c7992a144f2479f01acd2685cac595ed36a0020693cac252aca88078",
+          "1e6f4c9d6aeb9cdd413ed71cf60e7e39e58ec4541a8982e55d48caec8de93dd4",
+          "c434c3c41ee64a22607f8a79af6c34e7716879753bf8454da137dd1e534ca957",
+          "5131b9dbb1e1d71eae9822421f93ce116afed68673d3f9325c3139443e33aa4e",
+          "cb193656d36fda963534fed9c21a8315b61ff05df7812f23497bf4a4319fe2e1",
+          "841614fbbbb6cabec3d33e7ec5573bcd972dbc4cf254991349fe7c4d7ef8ac28",
+          "c0a5a7812dd53f07e3c7b73141d91bd971e30c8b7d2f7adbbda60d03fddb8a8f",
+          "53b2ddd7fab5961162db229e8a006f43b590630e5d943020a9559313447c4927"
+        ]
+      },
+      {
+        "id": "working-2",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 34,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1323,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 34,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1321,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 34,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1325,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 35,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1318,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 36,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1314,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 36,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1315,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 36,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1316,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 35,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1318,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [
+          {
+            "minX": 53,
+            "minY": 40,
+            "maxX": 59,
+            "maxY": 53,
+            "count": 52,
+            "clipped": false
+          },
+          {
+            "minX": 53,
+            "minY": 38,
+            "maxX": 60,
+            "maxY": 51,
+            "count": 55,
+            "clipped": false
+          },
+          {
+            "minX": 52,
+            "minY": 36,
+            "maxX": 60,
+            "maxY": 49,
+            "count": 53,
+            "clipped": false
+          },
+          {
+            "minX": 52,
+            "minY": 41,
+            "maxX": 61,
+            "maxY": 53,
+            "count": 54,
+            "clipped": false
+          },
+          {
+            "minX": 52,
+            "minY": 39,
+            "maxX": 60,
+            "maxY": 52,
+            "count": 57,
+            "clipped": false
+          },
+          {
+            "minX": 52,
+            "minY": 38,
+            "maxX": 60,
+            "maxY": 50,
+            "count": 52,
+            "clipped": false
+          },
+          {
+            "minX": 52,
+            "minY": 38,
+            "maxX": 60,
+            "maxY": 51,
+            "count": 56,
+            "clipped": false
+          },
+          {
+            "minX": 53,
+            "minY": 37,
+            "maxX": 59,
+            "maxY": 50,
+            "count": 54,
+            "clipped": false
+          }
+        ],
+        "bodyHashes": [
+          "9a5f508029a910a3ba40b916f6a1d6088bf84bda87fd7c2a922565a86be7df4b",
+          "a4094c8459276d4e7d9161772d150d81e941139cdf5e3a2a0dcba12f414f639b",
+          "5c7c2c8f986504135f41329af02001135d9088bf16d1543615bc41b825d4846d",
+          "04837bd230fb7c6f5ffb8249f3bd24138edf5015d6d7ffe9997530406c6a7d1d",
+          "252f75ac98b5526d9bb454373136f37389cb3dc3cf3e0a172eaa806aec9dd200",
+          "ce57e70123418d0f052ab7e8e57ce76d4c032d57078d3b028472285a75da2778",
+          "b2dfae7dd0c92b9ab0d24bf59866ba3e9037a66d7f9af54cba9b9f937fb7f264",
+          "c5a9b6ac1aebd407d8549d0ad1ed68c0418933ac4efe4e3f237a4ba012d0dc3a"
+        ],
+        "steamHashes": [
+          "c7037485304de1ad861a9d5b0c4479c99598929224cf3552091328142b15e4e6",
+          "0681fd9ae3b095a7d7a60e67ee30195ea95819868460ce45ab7af141755d5cc0",
+          "3cbb97137b7e2f49181d92e026f885252d64c4938bc50569f26718806eb9f577",
+          "bb4ffa01e52d1a7d9bbb7833a5d524a0a2acff9152453f6af8d2d5009e7f1619",
+          "7997cddb049ca850eaa81b53c7025c017f897eab31a7220a9c294086ad9340d5",
+          "2b98b77cc03a5b24c0e3b056f472c51a97de59c663ffdd0ea578493cf001310c",
+          "0740e0b0a3b90f81bed9ecdd53e75475513ca7ef1ff7e583dbafe681a661af53",
+          "c9874afeca5af824c4e657731eb718c0688e25a32a3720edc4d0024e2568e479"
+        ]
+      },
+      {
+        "id": "working-3",
+        "bodyBounds": [
+          {
+            "minX": 33,
+            "minY": 42,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1307,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 41,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1311,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 40,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1314,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 40,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1311,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 40,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1307,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 41,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1303,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 42,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1300,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 42,
+            "maxX": 78,
+            "maxY": 88,
+            "count": 1302,
+            "clipped": false
+          }
+        ],
+        "steamBounds": [
+          {
+            "minX": 57,
+            "minY": 38,
+            "maxX": 63,
+            "maxY": 50,
+            "count": 44,
+            "clipped": false
+          },
+          {
+            "minX": 57,
+            "minY": 37,
+            "maxX": 64,
+            "maxY": 49,
+            "count": 54,
+            "clipped": false
+          },
+          {
+            "minX": 56,
+            "minY": 36,
+            "maxX": 64,
+            "maxY": 48,
+            "count": 52,
+            "clipped": false
+          },
+          {
+            "minX": 56,
+            "minY": 36,
+            "maxX": 64,
+            "maxY": 49,
+            "count": 54,
+            "clipped": false
+          },
+          {
+            "minX": 55,
+            "minY": 35,
+            "maxX": 64,
+            "maxY": 47,
+            "count": 57,
+            "clipped": false
+          },
+          {
+            "minX": 56,
+            "minY": 33,
+            "maxX": 64,
+            "maxY": 46,
+            "count": 55,
+            "clipped": false
+          },
+          {
+            "minX": 56,
+            "minY": 37,
+            "maxX": 63,
+            "maxY": 50,
+            "count": 54,
+            "clipped": false
+          },
+          {
+            "minX": 57,
+            "minY": 36,
+            "maxX": 63,
+            "maxY": 48,
+            "count": 56,
+            "clipped": false
+          }
+        ],
+        "bodyHashes": [
+          "85b47d544273b4b33f28c7d28c5d089c07bb0eb9bbb1bf22e2f8fb1be4dae53a",
+          "00c5f704f63629ea2a325a70cbdd1dfa0a0443ec5686feda523e6517e766c810",
+          "e56c52f5d826967f9e1829caf0c5d874618c5091935a2a1dd2b4dd4f3dcddad5",
+          "10cff60e49eba590e62f173860bf4e071e7806434010d92a0af28c18583ce847",
+          "6ba15142c778dadba59fb9183b575dad674797a4584b5a1c9e9bd784eadb7ca3",
+          "cfe01ca905ba12e871c4782f53ba65e550a437aa48f890ed1d925e4ce2b44545",
+          "ed2dc50a73d993285222b5fdc79c065971f94179c584663db20afa2519d2e277",
+          "a62716beafcd62affe518bff86ca9d8f205622b5baea489b416ba585d40a67b8"
+        ],
+        "steamHashes": [
+          "925e064bfc5259dd8a1c1f00e38a521f405c4354504902fab8009d26bddc5029",
+          "a6b836364c82a9ea68825545182df811e4743690d105e6746df47e9ff1fa5fd0",
+          "8f38cb147fa38ddd65c2125927bbe3c16495aefad35b8227fb75b9eeea9246af",
+          "599e0739d257078e666e24a1cb29c4940abe7676418490160fdb805c8c4344bd",
+          "0d84a4079b67c3c9544d174f94c50bc01c4f6d825ea8fc0ec4367ee491e0cfff",
+          "f7a3dfd09fd76023b90eb764f7634050c9e7a0899b9d82c880664ea3b9b60b88",
+          "ce7a4960f039c0de144a1a9cff22a5504d9f4209b1ced55f6aac921eddbb9574",
+          "ae3ca22e13fa85c3c113b3fa13941bf36a19541d66c06774fb808cd61f2cb8d9"
+        ]
+      }
+    ],
+    "frames": 7,
+    "playing": false,
+    "lastPicked": null,
+    "geometry": {
+      "innerFloorY": 0.6200000047683716
+    }
+  },
+  "clicks": [
+    {
+      "id": "empty-0",
+      "target": "empty-0",
+      "actual": "empty-0"
+    },
+    {
+      "id": "empty-1",
+      "target": "empty-1",
+      "actual": "empty-1"
+    },
+    {
+      "id": "empty-2",
+      "target": "empty-2",
+      "actual": "empty-2"
+    },
+    {
+      "id": "empty-3",
+      "target": "empty-3",
+      "actual": "empty-3"
+    },
+    {
+      "id": "filled-0",
+      "target": "filled-0",
+      "actual": "filled-0"
+    },
+    {
+      "id": "filled-1",
+      "target": "filled-1",
+      "actual": "filled-1"
+    },
+    {
+      "id": "filled-2",
+      "target": "filled-2",
+      "actual": "filled-2"
+    },
+    {
+      "id": "filled-3",
+      "target": "filled-3",
+      "actual": "filled-3"
+    },
+    {
+      "id": "working-0",
+      "target": "working-0",
+      "actual": "working-0"
+    },
+    {
+      "id": "working-0",
+      "target": "background",
+      "actual": "background"
+    },
+    {
+      "id": "working-1",
+      "target": "working-1",
+      "actual": "working-1"
+    },
+    {
+      "id": "working-1",
+      "target": "background",
+      "actual": "background"
+    },
+    {
+      "id": "working-2",
+      "target": "working-2",
+      "actual": "working-2"
+    },
+    {
+      "id": "working-2",
+      "target": "background",
+      "actual": "background"
+    },
+    {
+      "id": "working-3",
+      "target": "working-3",
+      "actual": "working-3"
+    },
+    {
+      "id": "working-3",
+      "target": "background",
+      "actual": "background"
+    }
+  ],
+  "sourceAfter": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-vessel-study-20260908/kettle.js": "bbb117c06416d48d81e64f6096fe62c16890934f60af3bbb54fe281d8d7bb70d",
+    ".botanical/brew-vessel-study-20260908/index.html": "4127f738620692866bce69106a8d52beffe335bfdc55381bf216118ad9dac838",
+    ".botanical/brew-vessel-study-20260908/study.js": "df2eb1509b1e0c0fa0bbcd885e360a268fe6e8617b6e7c56254eef4fb031d902",
+    ".botanical/brew-vessel-study-20260908/capture.mjs": "2c9d5c331a2cc116a396e6bb788aa97997a223c7a2a9c1bc5d36ee0ab77c970a"
+  }
+}

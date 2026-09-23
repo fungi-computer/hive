@@ -1,0 +1,224 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:5196/clearing-minimap-study.html",
+  "baseline": {
+    "clearingSha": "7a7fd5fa786475bcc86d5432907844cb8f0cc2906b84a83cdbdadbd08fa506a7"
+  },
+  "before": {
+    "tick": 0,
+    "paused": false,
+    "jobs": 0,
+    "level": 0,
+    "viewport": {
+      "kind": "quantized-camera-inverse-corner-polygon",
+      "points": [
+        {
+          "x": 4.357142857142856,
+          "z": 15
+        },
+        {
+          "x": 0,
+          "z": 10.481481481481483
+        },
+        {
+          "x": 0,
+          "z": 0
+        },
+        {
+          "x": 10.481481481481483,
+          "z": 0
+        },
+        {
+          "x": 15,
+          "z": 4.357142857142856
+        },
+        {
+          "x": 15,
+          "z": 15
+        }
+      ]
+    },
+    "requestedCenter": null
+  },
+  "afterClick": {
+    "tick": 0,
+    "paused": false,
+    "jobs": 0,
+    "level": 0,
+    "viewport": {
+      "kind": "quantized-camera-inverse-corner-polygon",
+      "points": [
+        {
+          "x": 4.357142857142856,
+          "z": 15
+        },
+        {
+          "x": 0,
+          "z": 10.481481481481483
+        },
+        {
+          "x": 0,
+          "z": 0
+        },
+        {
+          "x": 10.481481481481483,
+          "z": 0
+        },
+        {
+          "x": 15,
+          "z": 4.357142857142856
+        },
+        {
+          "x": 15,
+          "z": 15
+        }
+      ]
+    },
+    "requestedCenter": {
+      "x": 2,
+      "z": 3,
+      "level": 0
+    }
+  },
+  "keyboardRequest": {
+    "tick": 0,
+    "paused": false,
+    "jobs": 0,
+    "level": 0,
+    "viewport": {
+      "kind": "quantized-camera-inverse-corner-polygon",
+      "points": [
+        {
+          "x": 4.357142857142856,
+          "z": 15
+        },
+        {
+          "x": 0,
+          "z": 10.481481481481483
+        },
+        {
+          "x": 0,
+          "z": 0
+        },
+        {
+          "x": 10.481481481481483,
+          "z": 0
+        },
+        {
+          "x": 15,
+          "z": 4.357142857142856
+        },
+        {
+          "x": 15,
+          "z": 15
+        }
+      ]
+    },
+    "requestedCenter": {
+      "x": 3,
+      "z": 4,
+      "level": 0
+    }
+  },
+  "upper": {
+    "tick": 0,
+    "paused": false,
+    "jobs": 0,
+    "level": 1,
+    "viewport": {
+      "kind": "quantized-camera-inverse-corner-polygon",
+      "points": [
+        {
+          "x": 15,
+          "z": 15
+        },
+        {
+          "x": 4.555555555555555,
+          "z": 15
+        },
+        {
+          "x": 0,
+          "z": 10.607142857142858
+        },
+        {
+          "x": 0,
+          "z": 0
+        },
+        {
+          "x": 10.607142857142856,
+          "z": 0
+        },
+        {
+          "x": 15,
+          "z": 4.555555555555557
+        }
+      ]
+    },
+    "requestedCenter": {
+      "x": 3,
+      "z": 4,
+      "level": 0
+    }
+  },
+  "narrow": {
+    "width": 390,
+    "scrollWidth": 390,
+    "snapshot": {
+      "tick": 0,
+      "paused": false,
+      "jobs": 0,
+      "level": 1,
+      "viewport": {
+        "kind": "quantized-camera-inverse-corner-polygon",
+        "points": [
+          {
+            "x": 15,
+            "z": 15
+          },
+          {
+            "x": 3.5384615384615383,
+            "z": 15
+          },
+          {
+            "x": 0,
+            "z": 11.592592592592593
+          },
+          {
+            "x": 0,
+            "z": 1.7763568394002505e-15
+          },
+          {
+            "x": 11.592592592592593,
+            "z": 0
+          },
+          {
+            "x": 15,
+            "z": 3.5384615384615383
+          }
+        ]
+      },
+      "requestedCenter": {
+        "x": 3,
+        "z": 4,
+        "level": 0
+      }
+    }
+  },
+  "errors": {
+    "page": [],
+    "console": []
+  },
+  "screenshots": [
+    "normal-ground.png",
+    "narrow-upper.png"
+  ],
+  "claims": {
+    "standaloneLocalStudy": true,
+    "mapRequestOnly": true,
+    "cameraInverseFootprint": true,
+    "oneKeyboardFocusableMapSurface": true,
+    "frozenTickAndJobs": true,
+    "groundAndUpper": true,
+    "narrowContainment": true
+  }
+}

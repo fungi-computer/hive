@@ -1,0 +1,5422 @@
+{
+  "url": "http://127.0.0.1:5187/.botanical/woolly-study/index.html",
+  "sourceSha256Before": {
+    ".botanical/woolly-study/prove.mjs": "e2392bde5c5cf1d130bd79b5a8c2a748fce5a9215e9214141da3a704fedf6ce0",
+    ".botanical/woolly-study/index.html": "67032dc85f754578bfe738be822c4bb5eae49fc69fc03ac97537983dd5f47dcf",
+    ".botanical/woolly-study/main.js": "c2b153d741846c5f4dd72d12ace40d8eb1cde801b11e6337b3ac73c1e3ed1298",
+    ".botanical/woolly-study/woolly.js": "0b3d89b1439ef5f50b7ac5b48b8d58e92085fd1eee4ad35d16368dcabad8fbbf",
+    ".botanical/woolly-study/animals-original.js": "8c199d1b9976466be54524f15851c38b4218fae55812d76b701ddccfdab62fae",
+    ".botanical/woolly-study/animal-dispatch.js": "3a13b923324c4d053ae461a9917717fc936b6b1946877f1e54078edd868b8589",
+    ".botanical/woolly-study/bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    ".botanical/woolly-study/scale.js": "c6244d90d5e1e20c2d13d1dcc5d8eb65a26b7f8bbad76792aa7890b0925cb96a",
+    ".botanical/woolly-study/baseline/src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    ".botanical/woolly-study/baseline/src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/woolly-study/baseline/src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554"
+  },
+  "sourceSha256After": {
+    ".botanical/woolly-study/prove.mjs": "e2392bde5c5cf1d130bd79b5a8c2a748fce5a9215e9214141da3a704fedf6ce0",
+    ".botanical/woolly-study/index.html": "67032dc85f754578bfe738be822c4bb5eae49fc69fc03ac97537983dd5f47dcf",
+    ".botanical/woolly-study/main.js": "c2b153d741846c5f4dd72d12ace40d8eb1cde801b11e6337b3ac73c1e3ed1298",
+    ".botanical/woolly-study/woolly.js": "0b3d89b1439ef5f50b7ac5b48b8d58e92085fd1eee4ad35d16368dcabad8fbbf",
+    ".botanical/woolly-study/animals-original.js": "8c199d1b9976466be54524f15851c38b4218fae55812d76b701ddccfdab62fae",
+    ".botanical/woolly-study/animal-dispatch.js": "3a13b923324c4d053ae461a9917717fc936b6b1946877f1e54078edd868b8589",
+    ".botanical/woolly-study/bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    ".botanical/woolly-study/scale.js": "c6244d90d5e1e20c2d13d1dcc5d8eb65a26b7f8bbad76792aa7890b0925cb96a",
+    ".botanical/woolly-study/baseline/src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    ".botanical/woolly-study/baseline/src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/woolly-study/baseline/src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554"
+  },
+  "native": {
+    "sprite": [
+      80,
+      80
+    ],
+    "pasture": [
+      512,
+      256
+    ]
+  },
+  "initial": {
+    "pose": "idle",
+    "facing": 0,
+    "frame": 0,
+    "playing": true
+  },
+  "firstScreenshots": [
+    "pasture-native.png",
+    "lineup-native.png",
+    "pasture-game2x.png",
+    "lineup-game2x.png"
+  ],
+  "textures": {
+    "shaggy-cow": {
+      "idle": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 214,
+            "pixelHash": 1667744459
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 210,
+            "pixelHash": 3768381170
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 214,
+            "pixelHash": 3736169749
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 3841104810
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 217,
+            "pixelHash": 2439654002
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 998796298
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 215,
+            "pixelHash": 2215338928
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 206,
+            "pixelHash": 3759439126
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 2567507013
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 221,
+            "pixelHash": 3394150387
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              11
+            ],
+            "distinctPixels": 214,
+            "pixelHash": 3905478664
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 221,
+            "pixelHash": 549155543
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 225,
+            "pixelHash": 1387539630
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 1462443915
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 224,
+            "pixelHash": 2921810889
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 1928967378
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 203,
+            "pixelHash": 253011687
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 197,
+            "pixelHash": 702717062
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 204,
+            "pixelHash": 1006384763
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 200,
+            "pixelHash": 2500618620
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 204,
+            "pixelHash": 2697074173
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 209,
+            "pixelHash": 3702061859
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 205,
+            "pixelHash": 1747270129
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 206,
+            "pixelHash": 3360433346
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 206,
+            "pixelHash": 1421038892
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 840951539
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 4008401893
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 3662564150
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 214,
+            "pixelHash": 3218191876
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 210,
+            "pixelHash": 39533620
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 205,
+            "pixelHash": 3431446421
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 1520938440
+          }
+        ]
+      ],
+      "walk": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 220,
+            "pixelHash": 696678743
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              12
+            ],
+            "distinctPixels": 221,
+            "pixelHash": 2063934197
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              66
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              13
+            ],
+            "distinctPixels": 219,
+            "pixelHash": 1421201813
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              12
+            ],
+            "distinctPixels": 223,
+            "pixelHash": 316810021
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 225,
+            "pixelHash": 4109228494
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 217,
+            "pixelHash": 312300764
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 923029358
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 1822913195
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 239,
+            "pixelHash": 3136215093
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              11
+            ],
+            "distinctPixels": 224,
+            "pixelHash": 3551289955
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 192310769
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              11
+            ],
+            "distinctPixels": 225,
+            "pixelHash": 467531738
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              10,
+              11
+            ],
+            "distinctPixels": 232,
+            "pixelHash": 85121971
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              12
+            ],
+            "distinctPixels": 222,
+            "pixelHash": 3055164899
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              66
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              13
+            ],
+            "distinctPixels": 231,
+            "pixelHash": 1422529149
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              22,
+              10,
+              12
+            ],
+            "distinctPixels": 224,
+            "pixelHash": 3729931024
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              66
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              13
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 3038568800
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              66
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              13
+            ],
+            "distinctPixels": 204,
+            "pixelHash": 206366129
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              66
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              13
+            ],
+            "distinctPixels": 207,
+            "pixelHash": 3520015686
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 208,
+            "pixelHash": 2371731785
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              68
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              11
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 2953885785
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              67
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              12
+            ],
+            "distinctPixels": 210,
+            "pixelHash": 3793095760
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              66
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              13
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 2701126519
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              9,
+              69,
+              66
+            ],
+            "padding": [
+              18,
+              9,
+              10,
+              13
+            ],
+            "distinctPixels": 207,
+            "pixelHash": 3019920509
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              68
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              11
+            ],
+            "distinctPixels": 215,
+            "pixelHash": 1195156004
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 214,
+            "pixelHash": 4230292295
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              66
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              13
+            ],
+            "distinctPixels": 217,
+            "pixelHash": 1979538735
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              66
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              13
+            ],
+            "distinctPixels": 219,
+            "pixelHash": 4285812589
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              66
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              13
+            ],
+            "distinctPixels": 224,
+            "pixelHash": 1972602256
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              66
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              13
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 4008905572
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              66
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              13
+            ],
+            "distinctPixels": 222,
+            "pixelHash": 1284605503
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              10,
+              9,
+              61,
+              67
+            ],
+            "padding": [
+              10,
+              9,
+              18,
+              12
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 224024982
+          }
+        ]
+      ],
+      "graze": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 207,
+            "pixelHash": 3895704921
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 203,
+            "pixelHash": 4187769908
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 204,
+            "pixelHash": 1830861108
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              22,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              22,
+              18,
+              11
+            ],
+            "distinctPixels": 200,
+            "pixelHash": 751974625
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 210,
+            "pixelHash": 1208566308
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 207,
+            "pixelHash": 2249786975
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 201,
+            "pixelHash": 1849545100
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              23,
+              61,
+              68
+            ],
+            "padding": [
+              4,
+              23,
+              18,
+              11
+            ],
+            "distinctPixels": 200,
+            "pixelHash": 3622329367
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 220,
+            "pixelHash": 1205008724
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 3328115799
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              22,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              22,
+              4,
+              11
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 3839924743
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 295349189
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 220,
+            "pixelHash": 137248624
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 500292860
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 632653725
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              23,
+              75,
+              68
+            ],
+            "padding": [
+              18,
+              23,
+              4,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 2020797478
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 168,
+            "pixelHash": 158847371
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 157,
+            "pixelHash": 1230689210
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 161,
+            "pixelHash": 2458612632
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 155,
+            "pixelHash": 1978787399
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 170,
+            "pixelHash": 3365975062
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 174,
+            "pixelHash": 2423405430
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 172,
+            "pixelHash": 203925268
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              18,
+              24,
+              75,
+              67
+            ],
+            "padding": [
+              18,
+              24,
+              4,
+              12
+            ],
+            "distinctPixels": 173,
+            "pixelHash": 2382918237
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 179,
+            "pixelHash": 3667732028
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 170,
+            "pixelHash": 1281191267
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 176,
+            "pixelHash": 1506367993
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 170,
+            "pixelHash": 822840044
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 173,
+            "pixelHash": 2368648766
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 180,
+            "pixelHash": 3766448322
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 177,
+            "pixelHash": 2969126032
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              4,
+              24,
+              61,
+              67
+            ],
+            "padding": [
+              4,
+              24,
+              18,
+              12
+            ],
+            "distinctPixels": 183,
+            "pixelHash": 1658320161
+          }
+        ]
+      ]
+    },
+    "cloud-cow": {
+      "idle": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 174,
+            "pixelHash": 1127188888
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 550439411
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 187,
+            "pixelHash": 3513484505
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 182,
+            "pixelHash": 3495175955
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 189,
+            "pixelHash": 3100092538
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 189,
+            "pixelHash": 4278564265
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 183,
+            "pixelHash": 2728130574
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 1307918898
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 556611827
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 186,
+            "pixelHash": 2478541422
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 1015611789
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 177,
+            "pixelHash": 2411183338
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 2557884391
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 180,
+            "pixelHash": 2727248004
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 2129678661
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 176,
+            "pixelHash": 3206338340
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              12
+            ],
+            "distinctPixels": 167,
+            "pixelHash": 1096375461
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              12
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 2843302853
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              12
+            ],
+            "distinctPixels": 182,
+            "pixelHash": 373723738
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              12
+            ],
+            "distinctPixels": 168,
+            "pixelHash": 2091396024
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              12
+            ],
+            "distinctPixels": 169,
+            "pixelHash": 3690193827
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              12
+            ],
+            "distinctPixels": 172,
+            "pixelHash": 2159162671
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              12
+            ],
+            "distinctPixels": 172,
+            "pixelHash": 1145648585
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              12
+            ],
+            "distinctPixels": 167,
+            "pixelHash": 256913479
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 685088542
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 1132863887
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 177,
+            "pixelHash": 2035733062
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 177,
+            "pixelHash": 3969411268
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 174,
+            "pixelHash": 3727275786
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 174,
+            "pixelHash": 3870665558
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              12
+            ],
+            "distinctPixels": 182,
+            "pixelHash": 354266565
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              11,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              11,
+              17,
+              12
+            ],
+            "distinctPixels": 169,
+            "pixelHash": 2022929574
+          }
+        ]
+      ],
+      "walk": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 182,
+            "pixelHash": 915207775
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              12
+            ],
+            "distinctPixels": 188,
+            "pixelHash": 490743580
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              66
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              13
+            ],
+            "distinctPixels": 190,
+            "pixelHash": 285685212
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              12
+            ],
+            "distinctPixels": 188,
+            "pixelHash": 1286301877
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 199,
+            "pixelHash": 3756751982
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 192,
+            "pixelHash": 1331076184
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 198,
+            "pixelHash": 1011637442
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 186,
+            "pixelHash": 1947965099
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 192,
+            "pixelHash": 1135809776
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 191,
+            "pixelHash": 3868126473
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 194,
+            "pixelHash": 2429002303
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 2850258550
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              11
+            ],
+            "distinctPixels": 183,
+            "pixelHash": 366617384
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              12
+            ],
+            "distinctPixels": 189,
+            "pixelHash": 1584714500
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              66
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              13
+            ],
+            "distinctPixels": 183,
+            "pixelHash": 4084566680
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              21,
+              12,
+              12
+            ],
+            "distinctPixels": 189,
+            "pixelHash": 397693279
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              66
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              13
+            ],
+            "distinctPixels": 176,
+            "pixelHash": 2779735989
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              66
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              13
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 1427551038
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              66
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              13
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 3022018780
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              12
+            ],
+            "distinctPixels": 178,
+            "pixelHash": 3957785230
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              68
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              11
+            ],
+            "distinctPixels": 177,
+            "pixelHash": 2327689774
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              67
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              12
+            ],
+            "distinctPixels": 190,
+            "pixelHash": 1084395042
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              9,
+              67,
+              66
+            ],
+            "padding": [
+              17,
+              9,
+              12,
+              13
+            ],
+            "distinctPixels": 182,
+            "pixelHash": 3298363762
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              10,
+              67,
+              66
+            ],
+            "padding": [
+              17,
+              10,
+              12,
+              13
+            ],
+            "distinctPixels": 179,
+            "pixelHash": 1756187015
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              68
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              11
+            ],
+            "distinctPixels": 183,
+            "pixelHash": 1012873585
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              9,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              9,
+              17,
+              12
+            ],
+            "distinctPixels": 196,
+            "pixelHash": 111652757
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              66
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              13
+            ],
+            "distinctPixels": 179,
+            "pixelHash": 2455329982
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              11,
+              62,
+              66
+            ],
+            "padding": [
+              12,
+              11,
+              17,
+              13
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 3797787210
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              66
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              13
+            ],
+            "distinctPixels": 184,
+            "pixelHash": 3503679249
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              9,
+              62,
+              66
+            ],
+            "padding": [
+              12,
+              9,
+              17,
+              13
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 1255106641
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              10,
+              62,
+              66
+            ],
+            "padding": [
+              12,
+              10,
+              17,
+              13
+            ],
+            "distinctPixels": 190,
+            "pixelHash": 199522280
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              12,
+              11,
+              62,
+              67
+            ],
+            "padding": [
+              12,
+              11,
+              17,
+              12
+            ],
+            "distinctPixels": 180,
+            "pixelHash": 3797338227
+          }
+        ]
+      ],
+      "graze": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 332183356
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 193,
+            "pixelHash": 2004058383
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              9,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              9,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 196,
+            "pixelHash": 587216491
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 196,
+            "pixelHash": 1103540980
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 1096787178
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 187,
+            "pixelHash": 1990385981
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 186,
+            "pixelHash": 2468751551
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              21,
+              62,
+              68
+            ],
+            "padding": [
+              8,
+              21,
+              17,
+              11
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 2406677974
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 1867455156
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 179,
+            "pixelHash": 3114337341
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 184,
+            "pixelHash": 3883706658
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 184,
+            "pixelHash": 3841832275
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 177,
+            "pixelHash": 2610583861
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 4153137533
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 181,
+            "pixelHash": 4124679089
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              21,
+              71,
+              68
+            ],
+            "padding": [
+              17,
+              21,
+              8,
+              11
+            ],
+            "distinctPixels": 178,
+            "pixelHash": 2034270430
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 155,
+            "pixelHash": 2771765845
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 157,
+            "pixelHash": 2495413996
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              70,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              9,
+              12
+            ],
+            "distinctPixels": 160,
+            "pixelHash": 1849466132
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 154,
+            "pixelHash": 3402038629
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 155,
+            "pixelHash": 340376439
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 159,
+            "pixelHash": 1529735111
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 154,
+            "pixelHash": 2279787095
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              17,
+              23,
+              71,
+              67
+            ],
+            "padding": [
+              17,
+              23,
+              8,
+              12
+            ],
+            "distinctPixels": 152,
+            "pixelHash": 2887505251
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 156,
+            "pixelHash": 2450181861
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 152,
+            "pixelHash": 780656135
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 157,
+            "pixelHash": 3949551439
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 155,
+            "pixelHash": 2290811035
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 156,
+            "pixelHash": 1401583912
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 160,
+            "pixelHash": 3681178406
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 164,
+            "pixelHash": 1285500673
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              8,
+              23,
+              62,
+              67
+            ],
+            "padding": [
+              8,
+              23,
+              17,
+              12
+            ],
+            "distinctPixels": 155,
+            "pixelHash": 826739528
+          }
+        ]
+      ]
+    },
+    "woolly-yak": {
+      "idle": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 232,
+            "pixelHash": 2439602019
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 221,
+            "pixelHash": 1778197649
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 240,
+            "pixelHash": 1763892707
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 235,
+            "pixelHash": 1726990579
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 225,
+            "pixelHash": 824746459
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 200,
+            "pixelHash": 3850413557
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 224,
+            "pixelHash": 1480989124
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 232,
+            "pixelHash": 1613165727
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 232,
+            "pixelHash": 3297963516
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 208,
+            "pixelHash": 1194861989
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 229,
+            "pixelHash": 3339555861
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 232,
+            "pixelHash": 3749714544
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 233,
+            "pixelHash": 3571789272
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 2313418275
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 233,
+            "pixelHash": 1384475765
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 238,
+            "pixelHash": 3022682188
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 201,
+            "pixelHash": 2205926401
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 192,
+            "pixelHash": 693916967
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 208,
+            "pixelHash": 634921360
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 215,
+            "pixelHash": 1626989994
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 213,
+            "pixelHash": 4035866543
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 199,
+            "pixelHash": 3680856293
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 208,
+            "pixelHash": 239058984
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              66,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              13,
+              12
+            ],
+            "distinctPixels": 207,
+            "pixelHash": 788793538
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 224,
+            "pixelHash": 65717927
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 199,
+            "pixelHash": 977417978
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 221,
+            "pixelHash": 423117010
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 217,
+            "pixelHash": 1756596057
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 218,
+            "pixelHash": 4109607338
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              13,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              13,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 210,
+            "pixelHash": 2125331011
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 220,
+            "pixelHash": 2552928687
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 228,
+            "pixelHash": 262038872
+          }
+        ]
+      ],
+      "walk": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 235,
+            "pixelHash": 1037105248
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              12
+            ],
+            "distinctPixels": 227,
+            "pixelHash": 1825508282
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              66
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              13
+            ],
+            "distinctPixels": 240,
+            "pixelHash": 317331316
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              12
+            ],
+            "distinctPixels": 246,
+            "pixelHash": 2912394842
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 3201497919
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 207,
+            "pixelHash": 521769126
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 231,
+            "pixelHash": 1963621778
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              13,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              13,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 237,
+            "pixelHash": 206781714
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 238,
+            "pixelHash": 1072459907
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 216,
+            "pixelHash": 2129577635
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 4225650928
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 237,
+            "pixelHash": 1490790436
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              11
+            ],
+            "distinctPixels": 236,
+            "pixelHash": 3744075572
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              66,
+              67
+            ],
+            "padding": [
+              16,
+              22,
+              13,
+              12
+            ],
+            "distinctPixels": 222,
+            "pixelHash": 808256919
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              66
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              13
+            ],
+            "distinctPixels": 243,
+            "pixelHash": 2469008930
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              22,
+              14,
+              12
+            ],
+            "distinctPixels": 246,
+            "pixelHash": 2481803364
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              66
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              13
+            ],
+            "distinctPixels": 210,
+            "pixelHash": 45270737
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              66
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              13
+            ],
+            "distinctPixels": 195,
+            "pixelHash": 3618122995
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 206,
+            "pixelHash": 2019992447
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              11
+            ],
+            "distinctPixels": 212,
+            "pixelHash": 306575592
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              11
+            ],
+            "distinctPixels": 222,
+            "pixelHash": 3369156979
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              68
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              11
+            ],
+            "distinctPixels": 202,
+            "pixelHash": 3364453125
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              67
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              12
+            ],
+            "distinctPixels": 219,
+            "pixelHash": 2318660232
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              10,
+              65,
+              66
+            ],
+            "padding": [
+              16,
+              10,
+              14,
+              13
+            ],
+            "distinctPixels": 214,
+            "pixelHash": 4267420482
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 541158448
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              11
+            ],
+            "distinctPixels": 215,
+            "pixelHash": 480578391
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 228,
+            "pixelHash": 3347064746
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              66
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              13
+            ],
+            "distinctPixels": 226,
+            "pixelHash": 2143925591
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              66
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              13
+            ],
+            "distinctPixels": 226,
+            "pixelHash": 2633862612
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              66
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              13
+            ],
+            "distinctPixels": 217,
+            "pixelHash": 439363704
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              67
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              12
+            ],
+            "distinctPixels": 218,
+            "pixelHash": 2415663113
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              14,
+              10,
+              63,
+              68
+            ],
+            "padding": [
+              14,
+              10,
+              16,
+              11
+            ],
+            "distinctPixels": 232,
+            "pixelHash": 3482508606
+          }
+        ]
+      ],
+      "graze": [
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 223,
+            "pixelHash": 2966135607
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 208,
+            "pixelHash": 3326484071
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 229,
+            "pixelHash": 2928612077
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 221,
+            "pixelHash": 3357428524
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 217,
+            "pixelHash": 3376318330
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 199,
+            "pixelHash": 1466948404
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 211,
+            "pixelHash": 1452136964
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              22,
+              63,
+              68
+            ],
+            "padding": [
+              6,
+              22,
+              16,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 4222705262
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 218,
+            "pixelHash": 3058338647
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 204,
+            "pixelHash": 2850788501
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 223,
+            "pixelHash": 1864392613
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 228,
+            "pixelHash": 3162801750
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 222,
+            "pixelHash": 931040774
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 205,
+            "pixelHash": 1030981202
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 218,
+            "pixelHash": 2303154911
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              22,
+              73,
+              68
+            ],
+            "padding": [
+              16,
+              22,
+              6,
+              11
+            ],
+            "distinctPixels": 230,
+            "pixelHash": 1555884145
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 171,
+            "pixelHash": 2224653252
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 157,
+            "pixelHash": 3238918765
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 313424103
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 178,
+            "pixelHash": 266646567
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 174,
+            "pixelHash": 2847222873
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 162,
+            "pixelHash": 1899478034
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 176,
+            "pixelHash": 201280253
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              16,
+              21,
+              73,
+              67
+            ],
+            "padding": [
+              16,
+              21,
+              6,
+              12
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 402537532
+          }
+        ],
+        [
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 1789814912
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 163,
+            "pixelHash": 639132903
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 187,
+            "pixelHash": 3672579144
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 179,
+            "pixelHash": 3461406715
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 2393095292
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 175,
+            "pixelHash": 3630668507
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 185,
+            "pixelHash": 2605283418
+          },
+          {
+            "width": 80,
+            "height": 80,
+            "alphaBounds": [
+              6,
+              21,
+              63,
+              67
+            ],
+            "padding": [
+              6,
+              21,
+              16,
+              12
+            ],
+            "distinctPixels": 188,
+            "pixelHash": 37424240
+          }
+        ]
+      ]
+    },
+    "comparisons": {
+      "cow": {
+        "width": 80,
+        "height": 80,
+        "alphaBounds": [
+          15,
+          22,
+          59,
+          68
+        ],
+        "padding": [
+          15,
+          22,
+          20,
+          11
+        ],
+        "distinctPixels": 144,
+        "pixelHash": 2506772275
+      },
+      "rowan": {
+        "width": 80,
+        "height": 80,
+        "alphaBounds": [
+          32,
+          23,
+          47,
+          62
+        ],
+        "padding": [
+          32,
+          23,
+          32,
+          17
+        ],
+        "distinctPixels": 78,
+        "pixelHash": 1262667581
+      },
+      "cat": {
+        "width": 80,
+        "height": 80,
+        "alphaBounds": [
+          32,
+          42,
+          52,
+          63
+        ],
+        "padding": [
+          32,
+          42,
+          27,
+          16
+        ],
+        "distinctPixels": 58,
+        "pixelHash": 2084986909
+      }
+    }
+  },
+  "alphaFailures": [],
+  "distinctFailures": [],
+  "regressions": {
+    "length": 96,
+    "allTrue": true
+  },
+  "controls": {
+    "movingFrame": 3,
+    "paused": {
+      "pose": "walk",
+      "facing": 0,
+      "frame": 5,
+      "playing": false
+    },
+    "turned": {
+      "pose": "walk",
+      "facing": 1,
+      "frame": 5,
+      "playing": false
+    },
+    "pose": "graze",
+    "pausePixelsFrozen": true
+  },
+  "recording": {
+    "mimeType": "video/webm;codecs=vp8",
+    "durationMs": 3600,
+    "surface": "#pasture canvas captureStream with tracks stopped"
+  },
+  "errors": [],
+  "finalChecks": {
+    "sourceHashesMatch": true,
+    "errors": []
+  }
+}

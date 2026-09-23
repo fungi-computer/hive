@@ -1,0 +1,126 @@
+{
+  "kind": "world-lab-contract-and-measurement",
+  "generatedAt": "2026-09-07T20:53:06.519Z",
+  "contract": {
+    "seed": "hive-world-lab-seed-20260907",
+    "generatorVersion": "world-lab-terrain-v1",
+    "identity": "world-lab-terrain-v1:hive-world-lab-seed-20260907",
+    "chunkSize": 16,
+    "globalCoordinates": "signed integer x,z; mathematical floor division",
+    "sampleIdentity": "generatorVersion:seed/sample/x,z",
+    "chunkIdentity": "generatorVersion:seed/chunk/chunkX,chunkZ",
+    "overviewBudget": {
+      "width": 512,
+      "height": 512,
+      "samples": 262144
+    },
+    "localResidency": {
+      "windowChunks": 5,
+      "maxResidentChunks": 25
+    }
+  },
+  "measurements": {
+    "overview512Ms": 890.708,
+    "visibleGenerationMs": 29.931,
+    "visibleRenderPreparationMs": 3.182,
+    "totalNodeCheckMs": 965.97,
+    "note": "Render timing is bounded buffer preparation in this source-backed check; browser canvas timing belongs to the page consumer."
+  },
+  "checks": {
+    "globalSignedCoordinates": {
+      "negative": {
+        "x": -1,
+        "chunkX": -1,
+        "localX": 15
+      },
+      "positive": {
+        "x": 16,
+        "chunkX": 1,
+        "localX": 0
+      },
+      "pass": true
+    },
+    "overview512": {
+      "bounds": {
+        "minX": -256,
+        "minZ": -256,
+        "maxX": 255,
+        "maxZ": 255
+      },
+      "sampleCount": 262144,
+      "budget": 262144,
+      "checksum": "23d6cc6c",
+      "ms": 890.708,
+      "pass": true
+    },
+    "orderIndependentChunks": {
+      "first": [
+        {
+          "key": "world-lab-terrain-v1:hive-world-lab-seed-20260907/chunk/-1,0",
+          "checksum": "43d01a50"
+        },
+        {
+          "key": "world-lab-terrain-v1:hive-world-lab-seed-20260907/chunk/0,0",
+          "checksum": "432dbf1f"
+        },
+        {
+          "key": "world-lab-terrain-v1:hive-world-lab-seed-20260907/chunk/0,-1",
+          "checksum": "259fec43"
+        }
+      ],
+      "reverse": [
+        {
+          "key": "world-lab-terrain-v1:hive-world-lab-seed-20260907/chunk/0,-1",
+          "checksum": "259fec43"
+        },
+        {
+          "key": "world-lab-terrain-v1:hive-world-lab-seed-20260907/chunk/0,0",
+          "checksum": "432dbf1f"
+        },
+        {
+          "key": "world-lab-terrain-v1:hive-world-lab-seed-20260907/chunk/-1,0",
+          "checksum": "43d01a50"
+        }
+      ],
+      "pass": true
+    },
+    "boundedLocal": {
+      "visibleWindow": "5x5",
+      "generatedTerrainChunks": 25,
+      "visibleCells": 6400,
+      "renderBuffer": {
+        "width": 80,
+        "height": 80,
+        "checksum": "e6bafe09"
+      },
+      "maxResidentChunks": 25,
+      "residentRenderChunks": 25,
+      "evictions": 26,
+      "distantWindowCells": 6400,
+      "returnedOriginChecksum": "432dbf1f",
+      "originChecksum": "432dbf1f",
+      "pass": true
+    },
+    "isolatedSource": {
+      "importsRuntimeOrSimulation": false,
+      "pass": true
+    }
+  },
+  "diagnostic1024": {
+    "executed": false,
+    "reason": "1024 is diagnostic only after measured 512; this bounded check stops at 512."
+  },
+  "claims": [
+    "deterministic terrain query",
+    "signed coordinate and chunk identity",
+    "512 overview budget",
+    "bounded local render residency",
+    "measured generation and render preparation"
+  ],
+  "nonClaims": [
+    "generated terrain is not a Clearing chunk",
+    "render residency is not decoded-world eviction",
+    "the lab has no actors, caravan, jobs, routes, commands, or simulation",
+    "overview samples are not a playable world-size or capacity claim"
+  ]
+}

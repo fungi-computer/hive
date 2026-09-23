@@ -1,0 +1,811 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "errors": [],
+  "screenshots": [
+    "01-visible-visitor.png",
+    "02-sedge-recruited.png",
+    "03-both-selected.png",
+    "04-shared-rectangle-applied.png",
+    "05-narrow-two-person.png"
+  ],
+  "orderClick": {
+    "events": [
+      {
+        "type": "pointerdown",
+        "target": "chop-queued"
+      },
+      {
+        "type": "pointerup",
+        "target": "chop-queued"
+      },
+      {
+        "type": "click",
+        "target": "chop-queued"
+      }
+    ],
+    "commands": [
+      {
+        "party": "home",
+        "kind": "recruit",
+        "actor": "sedge",
+        "tick": 47
+      },
+      {
+        "party": "home",
+        "actors": [
+          "rowan",
+          "sedge"
+        ],
+        "kind": "chop",
+        "tree": "oak-8",
+        "direct": false,
+        "tick": 149
+      }
+    ],
+    "selection": {
+      "selectedIds": [
+        "rowan",
+        "sedge"
+      ],
+      "inspectedId": null,
+      "tree": "oak-8",
+      "context": {
+        "x": 912,
+        "y": 496
+      },
+      "designationTargetIds": [],
+      "cutaway": true,
+      "panMode": false,
+      "direction": 0,
+      "tool": null,
+      "phase": "idle",
+      "gesture": null,
+      "hoverCell": null
+    }
+  },
+  "disabledCapsActivationBlocked": true,
+  "initial": {
+    "seed": 42,
+    "tick": 2,
+    "paused": false,
+    "nextId": 1,
+    "actors": {
+      "rowan": {
+        "x": 7,
+        "z": 10,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 79.976,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      },
+      "sedge": {
+        "x": 10,
+        "z": 12,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 80,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan"
+        ]
+      }
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [],
+    "claims": {},
+    "workDirty": false,
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "demand": null,
+    "notice": "A borrowed axe. No home. Bramble seems optimistic."
+  },
+  "designated": {
+    "seed": 42,
+    "tick": 304,
+    "paused": false,
+    "nextId": 4,
+    "actors": {
+      "rowan": {
+        "x": 6,
+        "z": 10,
+        "level": 0,
+        "dir": 3,
+        "mode": "walk",
+        "path": [
+          {
+            "x": 5,
+            "z": 10,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 10,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 9,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 8,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 7,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 6,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 5,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 4,
+            "level": 0
+          }
+        ],
+        "leg": 5,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 76.35199999999986,
+        "routine": false,
+        "task": {
+          "job": "job-2",
+          "kind": "chop",
+          "target": "oak-1",
+          "duration": 80
+        },
+        "assignment": {
+          "character": "rowan",
+          "task": "job-2",
+          "cost": 134
+        },
+        "cargo": null
+      },
+      "sedge": {
+        "x": 11,
+        "z": 7,
+        "level": 0,
+        "dir": 2,
+        "mode": "walk",
+        "path": [
+          {
+            "x": 11,
+            "z": 6,
+            "level": 0
+          },
+          {
+            "x": 11,
+            "z": 5,
+            "level": 0
+          },
+          {
+            "x": 11,
+            "z": 4,
+            "level": 0
+          },
+          {
+            "x": 11,
+            "z": 3,
+            "level": 0
+          }
+        ],
+        "leg": 5,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 76.90399999999988,
+        "routine": false,
+        "task": {
+          "job": "job-3",
+          "kind": "chop",
+          "target": "oak-2",
+          "duration": 80
+        },
+        "assignment": {
+          "character": "sedge",
+          "task": "job-3",
+          "cost": 110
+        },
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan",
+          "sedge"
+        ]
+      }
+    },
+    "cat": {
+      "x": 6,
+      "z": 10,
+      "level": 0,
+      "dir": 2,
+      "mode": "walk",
+      "path": [
+        {
+          "x": 6,
+          "z": 9,
+          "level": 0
+        }
+      ],
+      "leg": 4,
+      "work": 0,
+      "nextMove": 400
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 1,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [
+      {
+        "id": "job-2",
+        "kind": "chop",
+        "target": "oak-1",
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ready to chop",
+        "routine": false
+      },
+      {
+        "id": "job-3",
+        "kind": "chop",
+        "target": "oak-2",
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ready to chop",
+        "routine": false
+      }
+    ],
+    "claims": {},
+    "workDirty": false,
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "commands": [
+      {
+        "party": "home",
+        "kind": "recruit",
+        "actor": "sedge",
+        "tick": 47
+      },
+      {
+        "party": "home",
+        "actors": [
+          "rowan",
+          "sedge"
+        ],
+        "kind": "chop",
+        "tree": "oak-8",
+        "direct": false,
+        "tick": 149
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "cancel",
+        "job": "job-1",
+        "tick": 193
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 293
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 293
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Work added to the orders."
+  },
+  "paused": {
+    "seed": 42,
+    "tick": 444,
+    "paused": true,
+    "nextId": 6,
+    "actors": {
+      "rowan": {
+        "x": 4,
+        "z": 4,
+        "level": 0,
+        "dir": 3,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 74.6719999999998,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      },
+      "sedge": {
+        "x": 11,
+        "z": 3,
+        "level": 0,
+        "dir": 3,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 75.22399999999982,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan",
+          "sedge"
+        ]
+      }
+    },
+    "cat": {
+      "x": 5,
+      "z": 4,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 500
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 427
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 403
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 1,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-4",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 6
+      },
+      {
+        "id": "wood-5",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 6
+      }
+    ],
+    "sites": [],
+    "jobs": [],
+    "claims": {},
+    "workDirty": false,
+    "felled": 2,
+    "finishedJobs": 2,
+    "rested": 0,
+    "commands": [
+      {
+        "party": "home",
+        "kind": "recruit",
+        "actor": "sedge",
+        "tick": 47
+      },
+      {
+        "party": "home",
+        "actors": [
+          "rowan",
+          "sedge"
+        ],
+        "kind": "chop",
+        "tree": "oak-8",
+        "direct": false,
+        "tick": 149
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "cancel",
+        "job": "job-1",
+        "tick": 193
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 293
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 293
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Rowan felled an oak. Six wood on the ground, ready to carry."
+  },
+  "success": true
+}

@@ -1,0 +1,139 @@
+{
+  "sourceSha256": {
+    ".botanical/hair-trim/figures.js": "4489f7c0e28c5301a57cb8f303cdcdf308d669ef80aa2eabde441614d7961fb6",
+    ".botanical/hair-trim/main.js": "3074bf26f88c63b2e0e216e5e04cb2a7af7d0494314ef21d8dce02ff9b0d1f41",
+    ".botanical/hair-trim/index.html": "4afd9b3166d447bcf7de827d71752589d4cbea60ec6965c5e4271942240d5502",
+    ".botanical/hair-trim/prove.mjs": "4e53654ac05c1d52560b8ed4f82a12782fd90c255e5e681d21164066c825b410",
+    ".botanical/hair-trim/before.js": "ec69c39aa75b10a227b8e6f22673f2ac248a5d44e84a14b21e217dca8fc9e380",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "src/art.js": "9951e1c7e8cf98e4a2fb03348070878588a5c869376229a9e4791fd85e33620b"
+  },
+  "frames": [
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
+  ],
+  "pauseFrameAndImage": true,
+  "hair": {
+    "minPadding": 10,
+    "uniqueFrames": {
+      "idle": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "walk": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "chop": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "build": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "carry": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "pickup": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "deliver": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "sleep": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  },
+  "errors": []
+}

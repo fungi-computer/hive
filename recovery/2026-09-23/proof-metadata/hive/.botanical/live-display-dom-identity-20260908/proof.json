@@ -1,0 +1,15 @@
+{
+  "mode": "read-only-live-display-identity",
+  "url": "http://127.0.0.1:5207/",
+  "scriptSha256": "b3326d081122231f2027a3101624cbf43a5410721b94b35e67ac1b98528fb27c",
+  "point": {
+    "x": 678,
+    "y": 194
+  },
+  "errors": [],
+  "displayCandidates": [],
+  "domCandidates": [],
+  "canvases": [],
+  "screenshots": [],
+  "failure": "page.waitForFunction: Timeout 30000ms exceeded.\n    at /home/levi/src/hive/scripts/prove-live-display-identity.mjs:69:14"
+}

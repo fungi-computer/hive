@@ -1,0 +1,15 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "output": ".botanical/mixed-storage-v8-final-20260908/hosted-parity",
+  "mode": "served-byte-parity",
+  "scriptSha256": "8e9a78f55ed0ac4facd29ea813896ea29ec9ceddbd91cea3d64ede59e326e674",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; fresh-v8 mixed storage plus reserved transfer save/reload (migration, carrying reload, and contention remain unit-law claims)"
+  },
+  "errors": [],
+  "screenshots": [],
+  "claims": {},
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: served index asset graph drifted\n+ actual - expected\n\n  [\n+   'assets/game-BQ9BReB0.js',\n-   'assets/game-Ct6v4_l_.js',\n    'assets/modulepreload-polyfill-B5Qt9EMX.js',\n+   'assets/scale-Ck6elWo_.js',\n+   'assets/home-GEckJ98-.js',\n+   'assets/figures-DUCwvsh6.js',\n+   'assets/construction-7X1h1jbw.js',\n+   'assets/Geometry-jXZiBKLg.js',\n+   'assets/getTextureBatchBindGroup-jCvT6pnK.js',\n+   'assets/BatchableSprite-C-PuQSVq.js',\n+   'assets/Graphics-3QaMsxkw.js',\n+   'assets/CanvasPool-BKo-6SE2.js',\n+   'assets/canvasUtils-CnRulJrS.js',\n+   'assets/getPo2TextureFromSource-BBOuc2Oy.js',\n+   'assets/art-tAPjra0y.js',\n+   'assets/clearing-B3EKwxSR.js',\n+   'assets/game-DE30T3Wi.css',\n-   'assets/scale-Dr5CS--E.js',\n-   'assets/home-027I8I5-.js',\n-   'assets/figures-CLLfi72n.js',\n-   'assets/mixed-shelf-BQIySdm5.js',\n-   'assets/construction-BsYLdOu4.js',\n-   'assets/Geometry-DOF3DU4F.js',\n-   'assets/getTextureBatchBindGroup-BNcjaXOC.js',\n-   'assets/BatchableSprite-BY1ydbON.js',\n-   'assets/Graphics-CXGaDwn_.js',\n-   'assets/CanvasPool-BEW4kBZf.js',\n-   'assets/canvasUtils-Do_fy2vU.js',\n-   'assets/getPo2TextureFromSource-8nZ4SkgP.js',\n-   'assets/art-Ba6NkcGj.js',\n-   'assets/clearing-0pozX0fB.js',\n-   'assets/game-DERSsx7I.css',\n    'assets/styles-BN-Rw34z.css'\n  ]\n\n    at file:///home/levi/src/hive/scripts/prove-mixed-storage-v8.mjs:64:10\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)"
+}

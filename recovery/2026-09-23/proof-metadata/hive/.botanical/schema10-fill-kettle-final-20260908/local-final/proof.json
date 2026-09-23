@@ -1,0 +1,382 @@
+{
+  "mode": "local-served-browser-interaction",
+  "url": "http://127.0.0.1:5196/",
+  "scriptSha256": "fc0e570f6a7937bc738c916b92216ba8fbd20efbeeca76547f6aadb41d37136e",
+  "errors": [],
+  "screenshots": [
+    "failure.png"
+  ],
+  "claims": {
+    "fresh": {
+      "paused": true,
+      "tick": 0,
+      "cache": {
+        "id": "feature:reclaimed-timber-cache",
+        "access": "sealed"
+      },
+      "spring": {
+        "id": "feature:spring",
+        "water": 8
+      }
+    },
+    "cacheRepair": {
+      "id": "feature:reclaimed-timber-cache",
+      "selectedAt": {
+        "x": 166,
+        "y": 408
+      },
+      "repaired": true,
+      "consumedOrdinaryWood": 2
+    }
+  },
+  "parity": {
+    "local": {
+      "index": "60fabce006d2993be59463a54978cf8b825b845b003ef9a1a1bb77d9a638bb22",
+      "assets": {
+        "assets/game-Dl53wGHI.js": "e107458941aaaf44172b8aac6b94892de87ca5aef76fc5b7e7cb7466a0555572",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-DlHb0dVg.js": "65f72acf96e350644b0b2f13f0dfb798c59574bd37531641cf04fdc3b0865371",
+        "assets/home-BMaSAgnh.js": "53eea87fed9542bc937f664943649f22523324a0a432cfac2819e86b1bce9def",
+        "assets/figures-abIQ2CqD.js": "34d74ab71bdc965040388387311c5ef2229d33e56815e9144a7da49fac60eb5c",
+        "assets/mixed-shelf-SWtWPi7A.js": "08c59c13491344232d3e1010ba1405b326fdfda02a6d2558454a0595973b9504",
+        "assets/construction-DpOf7z26.js": "40843c875a5d51771ab3b8e20a8c2f240c164dcd1978e46178f04b3ce587ed49",
+        "assets/Geometry-dEHeG1IP.js": "e559397919ce8a6a9d887c5b5ee1c17f5ad8ae196681983da07fe8836ccd01a5",
+        "assets/getTextureBatchBindGroup-C3NcJo8e.js": "9f7e4a8909ed3d4db1fe397249552988a59128806d92e5b5b90d9325d126cb54",
+        "assets/BatchableSprite-CtEE8UN5.js": "c3ca358c598c2ef313191ed8013f4039cceb6e8037ce9e84a082b4a31db435c2",
+        "assets/Graphics-CSWJcgsX.js": "ca03affdba1609d81ebf66c857cc4ae775602c235ec7b5c90cbe52a3105da38e",
+        "assets/CanvasPool-VB_YCUIP.js": "b7409a2098263e5dbee106caf51b06db143304639d8ecd58bacf2e9cf6be800e",
+        "assets/canvasUtils-BAu4yb4_.js": "7d9f15e73c193a7ece64e14f8af404f1b7ab63ca3ee11463a877dc8b206d82d3",
+        "assets/getPo2TextureFromSource-T2Q3SLuE.js": "3369030205536a1fa2fb2e4ff79242aff3cb61b4616f2e593edc0983c289f771",
+        "assets/art-prSUozhe.js": "a574679f3c4eb8db7c1df5db1064eb58caebe05d1a5eb35a00175af6801d3dc0",
+        "assets/clearing-DoMKBcH0.js": "9608883065db693095da913ddc089ef7a0236e57e783f025b3010d08bf09cedb",
+        "assets/clearing-CIHJZZDS.css": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+        "assets/game-C3KuqpTy.css": "14a9b104b6ff2a5f5ae580608248294f75671a36ba7586e57ed979e8947e0b25",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "served": {
+      "index": "60fabce006d2993be59463a54978cf8b825b845b003ef9a1a1bb77d9a638bb22",
+      "assets": {
+        "assets/game-Dl53wGHI.js": "e107458941aaaf44172b8aac6b94892de87ca5aef76fc5b7e7cb7466a0555572",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-DlHb0dVg.js": "65f72acf96e350644b0b2f13f0dfb798c59574bd37531641cf04fdc3b0865371",
+        "assets/home-BMaSAgnh.js": "53eea87fed9542bc937f664943649f22523324a0a432cfac2819e86b1bce9def",
+        "assets/figures-abIQ2CqD.js": "34d74ab71bdc965040388387311c5ef2229d33e56815e9144a7da49fac60eb5c",
+        "assets/mixed-shelf-SWtWPi7A.js": "08c59c13491344232d3e1010ba1405b326fdfda02a6d2558454a0595973b9504",
+        "assets/construction-DpOf7z26.js": "40843c875a5d51771ab3b8e20a8c2f240c164dcd1978e46178f04b3ce587ed49",
+        "assets/Geometry-dEHeG1IP.js": "e559397919ce8a6a9d887c5b5ee1c17f5ad8ae196681983da07fe8836ccd01a5",
+        "assets/getTextureBatchBindGroup-C3NcJo8e.js": "9f7e4a8909ed3d4db1fe397249552988a59128806d92e5b5b90d9325d126cb54",
+        "assets/BatchableSprite-CtEE8UN5.js": "c3ca358c598c2ef313191ed8013f4039cceb6e8037ce9e84a082b4a31db435c2",
+        "assets/Graphics-CSWJcgsX.js": "ca03affdba1609d81ebf66c857cc4ae775602c235ec7b5c90cbe52a3105da38e",
+        "assets/CanvasPool-VB_YCUIP.js": "b7409a2098263e5dbee106caf51b06db143304639d8ecd58bacf2e9cf6be800e",
+        "assets/canvasUtils-BAu4yb4_.js": "7d9f15e73c193a7ece64e14f8af404f1b7ab63ca3ee11463a877dc8b206d82d3",
+        "assets/getPo2TextureFromSource-T2Q3SLuE.js": "3369030205536a1fa2fb2e4ff79242aff3cb61b4616f2e593edc0983c289f771",
+        "assets/art-prSUozhe.js": "a574679f3c4eb8db7c1df5db1064eb58caebe05d1a5eb35a00175af6801d3dc0",
+        "assets/clearing-DoMKBcH0.js": "9608883065db693095da913ddc089ef7a0236e57e783f025b3010d08bf09cedb",
+        "assets/clearing-CIHJZZDS.css": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+        "assets/game-C3KuqpTy.css": "14a9b104b6ff2a5f5ae580608248294f75671a36ba7586e57ed979e8947e0b25",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "exact": true
+  },
+  "failure": {
+    "message": "Expected values to be strictly equal:\n\n8 !== 4\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n8 !== 4\n\n    at file:///home/levi/src/hive/scripts/prove-fill-kettle-v10.mjs:293:10",
+    "state": {
+      "seed": 42,
+      "tick": 781,
+      "paused": true,
+      "nextId": 9,
+      "actors": {
+        "rowan": {
+          "x": 3,
+          "z": 4,
+          "level": 0,
+          "dir": 3,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "id": "rowan",
+          "name": "Rowan",
+          "figure": "rowan",
+          "drafted": false,
+          "rest": 70.62799999999964,
+          "routine": false,
+          "allowedWork": {
+            "chop": true,
+            "haul": true,
+            "build": true,
+            "garden": true
+          },
+          "task": null,
+          "assignment": null
+        },
+        "sedge": {
+          "x": 10,
+          "z": 12,
+          "level": 0,
+          "dir": 0,
+          "mode": "idle",
+          "path": [],
+          "leg": 0,
+          "work": 0,
+          "id": "sedge",
+          "name": "Sedge",
+          "figure": "witch-runner",
+          "drafted": false,
+          "rest": 80,
+          "routine": false,
+          "allowedWork": {
+            "chop": true,
+            "haul": true,
+            "build": true,
+            "garden": true
+          },
+          "task": null,
+          "assignment": null
+        }
+      },
+      "parties": {
+        "home": {
+          "id": "home",
+          "members": [
+            "rowan"
+          ]
+        }
+      },
+      "cat": {
+        "x": 4,
+        "z": 4,
+        "level": 0,
+        "dir": 1,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "nextMove": 800
+      },
+      "trees": [
+        {
+          "id": "oak-1",
+          "x": 3,
+          "z": 4,
+          "level": 0,
+          "work": 80,
+          "felledAt": 224
+        },
+        {
+          "id": "oak-2",
+          "x": 10,
+          "z": 3,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-3",
+          "x": 3,
+          "z": 9,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-4",
+          "x": 11,
+          "z": 10,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-5",
+          "x": 6,
+          "z": 2,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-6",
+          "x": 1,
+          "z": 6,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-7",
+          "x": 6,
+          "z": 12,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        },
+        {
+          "id": "oak-8",
+          "x": 12,
+          "z": 6,
+          "level": 0,
+          "work": 0,
+          "felledAt": null
+        }
+      ],
+      "herbs": [],
+      "materials": {
+        "lots": [
+          {
+            "id": "source-lot:feature:spring",
+            "material": "water",
+            "quantity": 8,
+            "location": {
+              "kind": "container",
+              "container": "source:feature:spring"
+            }
+          },
+          {
+            "id": "source-lot:feature:reclaimed-timber-cache",
+            "material": "wood",
+            "quantity": 8,
+            "location": {
+              "kind": "container",
+              "container": "source:feature:reclaimed-timber-cache"
+            }
+          },
+          {
+            "id": "source-pail-lot:feature:reclaimed-timber-cache",
+            "material": "pail",
+            "quantity": 1,
+            "location": {
+              "kind": "container",
+              "container": "source-pail:feature:reclaimed-timber-cache"
+            }
+          }
+        ],
+        "transfers": [],
+        "vesselUses": [],
+        "embedded": [
+          {
+            "container": "construction-buffer:site-5",
+            "material": "wood",
+            "quantity": 6
+          }
+        ],
+        "nextLotId": 5,
+        "consumedWood": 2
+      },
+      "sources": [
+        {
+          "id": "feature:spring",
+          "kind": "spring",
+          "access": "open",
+          "x": 13,
+          "z": 13,
+          "level": 0
+        },
+        {
+          "id": "feature:reclaimed-timber-cache",
+          "kind": "reclaimed-timber-cache",
+          "access": "sealed",
+          "repaired": true,
+          "x": 1,
+          "z": 13,
+          "level": 0
+        }
+      ],
+      "pendingSources": [],
+      "operations": [],
+      "rocks": [
+        {
+          "x": 1,
+          "z": 1,
+          "level": 0
+        },
+        {
+          "x": 13,
+          "z": 12,
+          "level": 0
+        },
+        {
+          "x": 2,
+          "z": 13,
+          "level": 0
+        },
+        {
+          "x": 12,
+          "z": 1,
+          "level": 0
+        }
+      ],
+      "watcher": {
+        "x": 13,
+        "z": 2,
+        "level": 0
+      },
+      "sites": [
+        {
+          "id": "site-5",
+          "type": "brew-station",
+          "x": 2,
+          "z": 2,
+          "level": 0,
+          "direction": 0,
+          "work": 144,
+          "finishedAt": 707
+        }
+      ],
+      "jobs": [],
+      "workDirty": false,
+      "felled": 1,
+      "finishedJobs": 3,
+      "rested": 0,
+      "harvestedHerbs": 0,
+      "commands": [
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "chop",
+          "tree": "oak-1",
+          "direct": false,
+          "tick": 89
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "repair-cache",
+          "tick": 289
+        },
+        {
+          "party": "home",
+          "actors": null,
+          "kind": "build",
+          "type": "brew-station",
+          "direction": 0,
+          "x": 2,
+          "z": 2,
+          "level": 0,
+          "tick": 449
+        }
+      ],
+      "feed": {
+        "seed": 42,
+        "sequence": 1,
+        "nextAt": 50,
+        "last": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        }
+      },
+      "demand": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      },
+      "notice": "Brew station finished."
+    }
+  }
+}

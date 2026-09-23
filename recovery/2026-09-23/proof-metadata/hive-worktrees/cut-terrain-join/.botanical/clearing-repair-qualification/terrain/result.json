@@ -1,0 +1,19 @@
+{
+  "group": "terrain",
+  "files": [
+    "engine/src/client/cut-terrain-layer.test.js",
+    "engine/src/client/cut-terrain.test.js",
+    "engine/src/client/terrain-chunk-cache.test.js",
+    "engine/src/client/terrain-face-appearance.test.js",
+    "engine/src/runtime/terrain-presentation.test.ts"
+  ],
+  "artifacts": [],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/cut-terrain-join/.botanical/clearing-repair-qualification/terrain/cut-terrain-layer.test.mjs",
+    "/home/levi/src/hive-worktrees/cut-terrain-join/.botanical/clearing-repair-qualification/terrain/cut-terrain.test.mjs",
+    "/home/levi/src/hive-worktrees/cut-terrain-join/.botanical/clearing-repair-qualification/terrain/terrain-chunk-cache.test.mjs",
+    "/home/levi/src/hive-worktrees/cut-terrain-join/.botanical/clearing-repair-qualification/terrain/terrain-face-appearance.test.mjs",
+    "/home/levi/src/hive-worktrees/cut-terrain-join/.botanical/clearing-repair-qualification/terrain/terrain-presentation.test.mjs"
+  ],
+  "exit": 0
+}

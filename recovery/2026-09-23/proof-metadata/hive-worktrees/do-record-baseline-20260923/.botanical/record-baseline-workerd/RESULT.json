@@ -1,0 +1,920 @@
+{
+  "source": "7f3fbb47fa7f719f4610d8943b70c29cee49cf34",
+  "dirtySource": "M tools/public-engine-host/framework-driver-proof.mjs",
+  "implementationHash": "4bc16ad8e34b962b13163e59f27da4eb0a82adc867830d6bf40b990f75d62afe",
+  "inventory": [
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "021f4a1acade397ade6dab4c4586ddebed1472106e62377ec3793f376a23bead"
+    },
+    {
+      "path": "tools/public-engine-host/pack-registration.ts",
+      "sha256": "d3c336f12b524872fbf9823cdaa336c23557b8e0aade215db78331f9364ff897"
+    },
+    {
+      "path": "engine/src/runtime/occurrence-driver.ts",
+      "sha256": "3b76aa9c31c1a2fee3037bae424d030cf63d41dbb71487e75314a2f632e1db54"
+    },
+    {
+      "path": "engine/src/runtime/region-program.ts",
+      "sha256": "f145a097b8edc8f11ef51fb9444d7a9535033a46a056fc9a4f3d4c2ae6fc518c"
+    },
+    {
+      "path": "src/engine/region/index.ts",
+      "sha256": "c13cbc6e1aec175581533d5d5f3e16a5d55a87d33a61863543fb1704f9172390"
+    },
+    {
+      "path": "engine/src/games/colony-framework-proof-v2-driver.ts",
+      "sha256": "d7fb0b3e60189ca565098736e43472673a749539b997ae15e962a48ff8791802"
+    },
+    {
+      "path": "engine/src/games/colony-performance-config.ts",
+      "sha256": "2f39b6e6ff3aa4fcea4bebe3bd0f275e2442ec539caf164b1ddf5bc9b5d89d31"
+    },
+    {
+      "path": "engine/src/games/colony-framework-proof-v3.ts",
+      "sha256": "8dd364c40caabe096a9b66e0b15f0cfc3d2276f1d84559bf90be50eccba4d8e0"
+    },
+    {
+      "path": "src/engine/region/records.ts",
+      "sha256": "854234e702fb5e2b6ea709ed28f795ebe7bd2b394063a3f82180088c4960e91a"
+    },
+    {
+      "path": "engine/generated/hive_kernel_bg.wasm",
+      "sha256": "5c7e1d4dfef0ea996e1ba8336398121c32182f592baa853a842bf5a40d36bb89"
+    }
+  ],
+  "game": "colony-framework-proof-256-100-v3",
+  "checkpoints": [
+    {
+      "stage": "paused",
+      "sequence": 20,
+      "revision": 21,
+      "clockResult": {
+        "paused": false,
+        "results": {
+          "actions": {
+            "accepted": 0,
+            "attempted": 0,
+            "rejected": 0
+          },
+          "commands": [],
+          "driver": "colony-framework-command-ledger-v2",
+          "notes": [],
+          "step": 20,
+          "version": 1
+        },
+        "tick": 21
+      },
+      "stockpiles": [
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": -70,
+              "y": 10.530000000000001,
+              "z": 88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.-70.19.88.-70.88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 20,
+              "nextReviewTick": 28
+            }
+          },
+          "id": "stockpile.33:colony.stockpile.-70.19.88.-70.88.-70.19.88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": 106,
+              "y": 9.99,
+              "z": 88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.106.18.88.106.88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 20,
+              "nextReviewTick": 28
+            }
+          },
+          "id": "stockpile.33:colony.stockpile.106.18.88.106.88.106.18.88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": -70,
+              "y": 7.83,
+              "z": -88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.-70.14.-88.-70.-88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 20,
+              "nextReviewTick": 28
+            }
+          },
+          "id": "stockpile.35:colony.stockpile.-70.14.-88.-70.-88.-70.14.-88"
+        },
+        {
+          "components": {
+            "hive.owned-by-party": {
+              "party": "party:1"
+            },
+            "hive.position": {
+              "facing": 0,
+              "x": 106,
+              "y": 7.83,
+              "z": -88
+            },
+            "hive.stockpile-cell": {
+              "filterProfile": "wood",
+              "priority": 50,
+              "zone": "colony.stockpile.106.14.-88.106.-88"
+            },
+            "hive.work-execution": {
+              "initiatingPlayer": "player:1",
+              "policyId": "stockpile",
+              "pool": "party:1"
+            },
+            "hive.work-policy": {
+              "enabled": true,
+              "pool": "party:1",
+              "priority": 0
+            },
+            "hive.work-schedule": {
+              "lastConsidered": 20,
+              "nextReviewTick": 28
+            }
+          },
+          "id": "stockpile.35:colony.stockpile.106.14.-88.106.-88.106.14.-88"
+        }
+      ]
+    },
+    {
+      "stage": "autonomous-restart",
+      "beforeSequence": 20,
+      "sequence": 21,
+      "revision": 23
+    }
+  ],
+  "ledger": [
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "4bc16ad8e34b962b13163e59f27da4eb0a82adc867830d6bf40b990f75d62afe",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "scheduled-commands",
+      "sequence": 1,
+      "revision": 2,
+      "result": {
+        "driver": "colony-framework-command-ledger-v2",
+        "version": 1,
+        "step": 2,
+        "commands": [
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  -70,
+                  14,
+                  -88
+                ],
+                "start": [
+                  -70,
+                  14,
+                  -88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          },
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  -70,
+                  19,
+                  88
+                ],
+                "start": [
+                  -70,
+                  19,
+                  88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          },
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  106,
+                  14,
+                  -88
+                ],
+                "start": [
+                  106,
+                  14,
+                  -88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          },
+          {
+            "name": "designateStockpile",
+            "input": {
+              "area": {
+                "end": [
+                  106,
+                  18,
+                  88
+                ],
+                "start": [
+                  106,
+                  18,
+                  88
+                ]
+              },
+              "filterProfile": "wood",
+              "priority": 50
+            }
+          }
+        ],
+        "notes": [
+          "designate four finite-capacity storage destinations"
+        ],
+        "actions": {
+          "attempted": 4,
+          "accepted": 4,
+          "rejected": 0
+        }
+      }
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "4bc16ad8e34b962b13163e59f27da4eb0a82adc867830d6bf40b990f75d62afe",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "committed-steps",
+      "count": 20,
+      "firstSequence": 0,
+      "lastSequence": 19,
+      "firstRevision": 1,
+      "lastRevision": 20,
+      "costs": {
+        "advanceWallMs": {
+          "p50": 39,
+          "p95": 85,
+          "p99": 572,
+          "max": 572,
+          "total": 1409
+        },
+        "captureWallMs": {
+          "p50": 11,
+          "p95": 22,
+          "p99": 34,
+          "max": 34,
+          "total": 270
+        },
+        "changedRecordBytes": {
+          "p50": 157746,
+          "p95": 253864,
+          "p99": 453262,
+          "max": 453262,
+          "total": 3726928
+        },
+        "recordPuts": {
+          "p50": 149,
+          "p95": 169,
+          "p99": 796,
+          "max": 796,
+          "total": 3318
+        },
+        "recordRemoves": {
+          "p50": 0,
+          "p95": 16,
+          "p99": 47,
+          "max": 47,
+          "total": 66
+        },
+        "sqlWallMs": {
+          "p50": 3,
+          "p95": 5,
+          "p99": 10,
+          "max": 10,
+          "total": 65
+        },
+        "rowsRead": {
+          "p50": 246,
+          "p95": 332,
+          "p99": 392,
+          "max": 392,
+          "total": 4932
+        },
+        "rowsWritten": {
+          "p50": 307,
+          "p95": 388,
+          "p99": 1595,
+          "max": 1595,
+          "total": 6762
+        },
+        "statements": {
+          "p50": 316,
+          "p95": 444,
+          "p99": 1604,
+          "max": 1604,
+          "total": 7008
+        },
+        "alarmLatenessMs": {
+          "p50": 1,
+          "p95": 1,
+          "p99": 300,
+          "max": 300,
+          "total": 313
+        },
+        "dispatchWallMs": {
+          "p50": 60,
+          "p95": 110,
+          "p99": 639,
+          "max": 639,
+          "total": 1896
+        },
+        "transactionWallMs": {
+          "p50": 73,
+          "p95": 122,
+          "p99": 664,
+          "max": 664,
+          "total": 2166
+        }
+      },
+      "samples": [
+        {
+          "sequence": 0,
+          "revision": 1,
+          "alarmLatenessMs": 300,
+          "dispatchWallMs": 639,
+          "transactionWallMs": 664,
+          "advanceWallMs": 572,
+          "captureWallMs": 34,
+          "recordPuts": 796,
+          "recordRemoves": 0,
+          "changedRecordBytes": 453262,
+          "sqlWallMs": 10,
+          "rowsRead": 36,
+          "rowsWritten": 1595,
+          "statements": 1604
+        },
+        {
+          "sequence": 1,
+          "revision": 2,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 62,
+          "transactionWallMs": 77,
+          "advanceWallMs": 38,
+          "captureWallMs": 10,
+          "recordPuts": 72,
+          "recordRemoves": 0,
+          "changedRecordBytes": 152148,
+          "sqlWallMs": 1,
+          "rowsRead": 116,
+          "rowsWritten": 147,
+          "statements": 156
+        },
+        {
+          "sequence": 2,
+          "revision": 3,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 63,
+          "transactionWallMs": 80,
+          "advanceWallMs": 42,
+          "captureWallMs": 12,
+          "recordPuts": 76,
+          "recordRemoves": 0,
+          "changedRecordBytes": 145667,
+          "sqlWallMs": 3,
+          "rowsRead": 132,
+          "rowsWritten": 155,
+          "statements": 164
+        },
+        {
+          "sequence": 3,
+          "revision": 4,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 60,
+          "transactionWallMs": 73,
+          "advanceWallMs": 41,
+          "captureWallMs": 11,
+          "recordPuts": 84,
+          "recordRemoves": 0,
+          "changedRecordBytes": 138028,
+          "sqlWallMs": 3,
+          "rowsRead": 148,
+          "rowsWritten": 171,
+          "statements": 180
+        },
+        {
+          "sequence": 4,
+          "revision": 5,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 45,
+          "transactionWallMs": 56,
+          "advanceWallMs": 28,
+          "captureWallMs": 10,
+          "recordPuts": 92,
+          "recordRemoves": 0,
+          "changedRecordBytes": 139017,
+          "sqlWallMs": 1,
+          "rowsRead": 164,
+          "rowsWritten": 187,
+          "statements": 196
+        },
+        {
+          "sequence": 5,
+          "revision": 6,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 52,
+          "transactionWallMs": 64,
+          "advanceWallMs": 29,
+          "captureWallMs": 11,
+          "recordPuts": 108,
+          "recordRemoves": 0,
+          "changedRecordBytes": 138730,
+          "sqlWallMs": 1,
+          "rowsRead": 196,
+          "rowsWritten": 219,
+          "statements": 228
+        },
+        {
+          "sequence": 6,
+          "revision": 7,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 62,
+          "transactionWallMs": 74,
+          "advanceWallMs": 45,
+          "captureWallMs": 11,
+          "recordPuts": 116,
+          "recordRemoves": 0,
+          "changedRecordBytes": 146251,
+          "sqlWallMs": 2,
+          "rowsRead": 212,
+          "rowsWritten": 235,
+          "statements": 244
+        },
+        {
+          "sequence": 7,
+          "revision": 8,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 53,
+          "transactionWallMs": 66,
+          "advanceWallMs": 34,
+          "captureWallMs": 10,
+          "recordPuts": 124,
+          "recordRemoves": 0,
+          "changedRecordBytes": 144214,
+          "sqlWallMs": 4,
+          "rowsRead": 228,
+          "rowsWritten": 251,
+          "statements": 260
+        },
+        {
+          "sequence": 8,
+          "revision": 9,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 55,
+          "transactionWallMs": 70,
+          "advanceWallMs": 39,
+          "captureWallMs": 8,
+          "recordPuts": 132,
+          "recordRemoves": 0,
+          "changedRecordBytes": 112399,
+          "sqlWallMs": 3,
+          "rowsRead": 244,
+          "rowsWritten": 267,
+          "statements": 276
+        },
+        {
+          "sequence": 9,
+          "revision": 10,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 97,
+          "transactionWallMs": 109,
+          "advanceWallMs": 77,
+          "captureWallMs": 14,
+          "recordPuts": 141,
+          "recordRemoves": 0,
+          "changedRecordBytes": 253864,
+          "sqlWallMs": 2,
+          "rowsRead": 246,
+          "rowsWritten": 285,
+          "statements": 294
+        },
+        {
+          "sequence": 10,
+          "revision": 11,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 108,
+          "transactionWallMs": 120,
+          "advanceWallMs": 85,
+          "captureWallMs": 14,
+          "recordPuts": 161,
+          "recordRemoves": 0,
+          "changedRecordBytes": 228577,
+          "sqlWallMs": 4,
+          "rowsRead": 274,
+          "rowsWritten": 325,
+          "statements": 334
+        },
+        {
+          "sequence": 11,
+          "revision": 12,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 107,
+          "transactionWallMs": 117,
+          "advanceWallMs": 78,
+          "captureWallMs": 22,
+          "recordPuts": 159,
+          "recordRemoves": 0,
+          "changedRecordBytes": 218325,
+          "sqlWallMs": 3,
+          "rowsRead": 288,
+          "rowsWritten": 321,
+          "statements": 330
+        },
+        {
+          "sequence": 12,
+          "revision": 13,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 110,
+          "transactionWallMs": 122,
+          "advanceWallMs": 82,
+          "captureWallMs": 16,
+          "recordPuts": 169,
+          "recordRemoves": 47,
+          "changedRecordBytes": 239246,
+          "sqlWallMs": 5,
+          "rowsRead": 392,
+          "rowsWritten": 388,
+          "statements": 444
+        },
+        {
+          "sequence": 13,
+          "revision": 14,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 94,
+          "transactionWallMs": 104,
+          "advanceWallMs": 74,
+          "captureWallMs": 12,
+          "recordPuts": 149,
+          "recordRemoves": 16,
+          "changedRecordBytes": 169176,
+          "sqlWallMs": 3,
+          "rowsRead": 332,
+          "rowsWritten": 317,
+          "statements": 342
+        },
+        {
+          "sequence": 14,
+          "revision": 15,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 77,
+          "transactionWallMs": 89,
+          "advanceWallMs": 50,
+          "captureWallMs": 17,
+          "recordPuts": 158,
+          "recordRemoves": 3,
+          "changedRecordBytes": 154405,
+          "sqlWallMs": 3,
+          "rowsRead": 306,
+          "rowsWritten": 322,
+          "statements": 334
+        },
+        {
+          "sequence": 15,
+          "revision": 16,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 28,
+          "transactionWallMs": 35,
+          "advanceWallMs": 11,
+          "captureWallMs": 11,
+          "recordPuts": 160,
+          "recordRemoves": 0,
+          "changedRecordBytes": 157746,
+          "sqlWallMs": 3,
+          "rowsRead": 328,
+          "rowsWritten": 323,
+          "statements": 332
+        },
+        {
+          "sequence": 16,
+          "revision": 17,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 44,
+          "transactionWallMs": 60,
+          "advanceWallMs": 19,
+          "captureWallMs": 13,
+          "recordPuts": 159,
+          "recordRemoves": 0,
+          "changedRecordBytes": 217308,
+          "sqlWallMs": 4,
+          "rowsRead": 330,
+          "rowsWritten": 321,
+          "statements": 330
+        },
+        {
+          "sequence": 17,
+          "revision": 18,
+          "alarmLatenessMs": 1,
+          "dispatchWallMs": 51,
+          "transactionWallMs": 66,
+          "advanceWallMs": 18,
+          "captureWallMs": 11,
+          "recordPuts": 157,
+          "recordRemoves": 0,
+          "changedRecordBytes": 170688,
+          "sqlWallMs": 4,
+          "rowsRead": 326,
+          "rowsWritten": 317,
+          "statements": 326
+        },
+        {
+          "sequence": 18,
+          "revision": 19,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 48,
+          "transactionWallMs": 62,
+          "advanceWallMs": 28,
+          "captureWallMs": 11,
+          "recordPuts": 153,
+          "recordRemoves": 0,
+          "changedRecordBytes": 175623,
+          "sqlWallMs": 3,
+          "rowsRead": 318,
+          "rowsWritten": 309,
+          "statements": 318
+        },
+        {
+          "sequence": 19,
+          "revision": 20,
+          "alarmLatenessMs": 0,
+          "dispatchWallMs": 41,
+          "transactionWallMs": 58,
+          "advanceWallMs": 19,
+          "captureWallMs": 12,
+          "recordPuts": 152,
+          "recordRemoves": 0,
+          "changedRecordBytes": 172254,
+          "sqlWallMs": 3,
+          "rowsRead": 316,
+          "rowsWritten": 307,
+          "statements": 316
+        }
+      ]
+    },
+    {
+      "proof": "framework-host-cost-v1",
+      "implementationHash": "4bc16ad8e34b962b13163e59f27da4eb0a82adc867830d6bf40b990f75d62afe",
+      "workload": "colony-framework-proof-256-100-v3",
+      "kind": "publications",
+      "count": 20,
+      "firstRevision": 1,
+      "lastRevision": 20,
+      "costs": {
+        "recipients": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "buildWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "sendWallMs": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        },
+        "encodedBytes": {
+          "p50": 0,
+          "p95": 0,
+          "p99": 0,
+          "max": 0,
+          "total": 0
+        }
+      },
+      "samples": [
+        {
+          "revision": 1,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 2,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 3,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 4,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 5,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 6,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 7,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 8,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 9,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 10,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 11,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 12,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 13,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 14,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 15,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 16,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 17,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 18,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 19,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        },
+        {
+          "revision": 20,
+          "recipients": 0,
+          "buildWallMs": 0,
+          "sendWallMs": 0,
+          "encodedBytes": 0
+        }
+      ]
+    }
+  ],
+  "elapsedWallMs": 7804.128804,
+  "minimumSequence": 20,
+  "finalSequence": 21,
+  "limits": [
+    "Short actual-workerd host law, not capacity or 10-minute qualification",
+    "Proof-only RPC replays the last actual Region occurrence; production routes are unchanged",
+    "Exhaustive schedule parity and real native command rollback are covered by occurrence-driver.test.ts"
+  ]
+}

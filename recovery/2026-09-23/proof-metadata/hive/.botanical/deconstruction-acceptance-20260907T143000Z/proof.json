@@ -1,0 +1,123 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/deconstruction-acceptance-20260907T143000Z",
+  "scriptSha256": "cf0a8592372fcc7c22ee957fe70538dde6c7b3c23ae7e8e13c595673b29116ac",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "one short real-UI deconstruction trace; normal viewport plus 390px containment capture; behavior waits <=44s"
+  },
+  "target": {
+    "expectedIndexSha256": "e89e73f35f3c8a1b006f0af6de0e063855af9646f15a6c47c0fa1713266cc580",
+    "local": {
+      "dist/index.html": "e89e73f35f3c8a1b006f0af6de0e063855af9646f15a6c47c0fa1713266cc580",
+      "dist/assets/game-QthgV4PS.js": "9607a2f063cd9b3b4d604f20c8e74353bb173e0de6bac98dc0bc7cdf85d1afe8",
+      "dist/assets/art-BfFl4vsZ.js": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+      "dist/assets/Geometry-DcgjAlly.js": "3ae2385b32d88cfa6d0062399541b903c339f50f716feb8b736e4035b3e3de15",
+      "dist/assets/getTextureBatchBindGroup-cnDgtrnA.js": "7cd4f9db20f6c44ed5c3c94db72e3f329807167d096645d7e999c27ace7b09aa",
+      "dist/assets/colorToUniform-VJskxzDg.js": "7fb118a22b21e22478ecfc7c4166e29c14484dd99b9c0bca44e89ca72a3b51cc",
+      "dist/assets/Graphics-BHdkAuP0.js": "32ab0b20ef792626fc249693032cc258a1a2646298285d2dc0df4a5d5acfa835",
+      "dist/assets/CanvasPool-BefKID4s.js": "d85d287177c93bcdc2577cea9a26ab7e757616a6bb298f3a7b74acd03858dd48",
+      "dist/assets/canvasUtils-D4fSbsQF.js": "fdf381b3802623f40abe9598c3387a3278c7e861121da3fd3ab4520ff00f77fc",
+      "dist/assets/BatchableSprite-qOYjpB38.js": "4dae68984da6e35e8638285cc9367bb0990289ea713297efcaea7041a2afaee3",
+      "dist/assets/getPo2TextureFromSource-DCLIvq66.js": "eaf1a67f0887fd1e3cf910a79c3fdc06370446871646a41780deef87e51f282d",
+      "dist/assets/game-DJu4f5_8.css": "11271f4488e8b25beafbe032ed0954e4a7485a9ea46f593d9936c615dfdbf3dd",
+      "dist/assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+    },
+    "served": {
+      "/": "e89e73f35f3c8a1b006f0af6de0e063855af9646f15a6c47c0fa1713266cc580",
+      "/assets/game-QthgV4PS.js": "9607a2f063cd9b3b4d604f20c8e74353bb173e0de6bac98dc0bc7cdf85d1afe8",
+      "/assets/art-BfFl4vsZ.js": "9572e073cb45803ef87a694a3d1a14cbd44412528705b1987ee44cae144c12e7",
+      "/assets/Geometry-DcgjAlly.js": "3ae2385b32d88cfa6d0062399541b903c339f50f716feb8b736e4035b3e3de15",
+      "/assets/getTextureBatchBindGroup-cnDgtrnA.js": "7cd4f9db20f6c44ed5c3c94db72e3f329807167d096645d7e999c27ace7b09aa",
+      "/assets/colorToUniform-VJskxzDg.js": "7fb118a22b21e22478ecfc7c4166e29c14484dd99b9c0bca44e89ca72a3b51cc",
+      "/assets/Graphics-BHdkAuP0.js": "32ab0b20ef792626fc249693032cc258a1a2646298285d2dc0df4a5d5acfa835",
+      "/assets/CanvasPool-BefKID4s.js": "d85d287177c93bcdc2577cea9a26ab7e757616a6bb298f3a7b74acd03858dd48",
+      "/assets/canvasUtils-D4fSbsQF.js": "fdf381b3802623f40abe9598c3387a3278c7e861121da3fd3ab4520ff00f77fc",
+      "/assets/BatchableSprite-qOYjpB38.js": "4dae68984da6e35e8638285cc9367bb0990289ea713297efcaea7041a2afaee3",
+      "/assets/getPo2TextureFromSource-DCLIvq66.js": "eaf1a67f0887fd1e3cf910a79c3fdc06370446871646a41780deef87e51f282d",
+      "/assets/game-DJu4f5_8.css": "11271f4488e8b25beafbe032ed0954e4a7485a9ea46f593d9936c615dfdbf3dd",
+      "/assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+    },
+    "assetRefs": [
+      "assets/game-QthgV4PS.js",
+      "assets/art-BfFl4vsZ.js",
+      "assets/Geometry-DcgjAlly.js",
+      "assets/getTextureBatchBindGroup-cnDgtrnA.js",
+      "assets/colorToUniform-VJskxzDg.js",
+      "assets/Graphics-BHdkAuP0.js",
+      "assets/CanvasPool-BefKID4s.js",
+      "assets/canvasUtils-D4fSbsQF.js",
+      "assets/BatchableSprite-qOYjpB38.js",
+      "assets/getPo2TextureFromSource-DCLIvq66.js",
+      "assets/game-DJu4f5_8.css",
+      "assets/styles-BN-Rw34z.css"
+    ]
+  },
+  "screenshots": [
+    "normal-finished-wall.png",
+    "normal-deconstruct-ordered.png",
+    "normal-deconstruct-work.png",
+    "normal-reloaded-paused.png",
+    "narrow-deconstruction-complete.png"
+  ],
+  "errors": [],
+  "claims": {
+    "recruit": {
+      "homeMembers": [
+        "rowan",
+        "sedge"
+      ],
+      "visibleSedge": true
+    },
+    "sharedChop": {
+      "target": "oak-1",
+      "actors": null,
+      "felled": 1,
+      "looseWood": 6
+    },
+    "midwork": {
+      "actor": "rowan",
+      "mode": "deconstruct",
+      "work": 27,
+      "sitePresent": true,
+      "woodUnchanged": true,
+      "sinkUnchanged": true,
+      "jobId": "job-5"
+    },
+    "pausedSaved": {
+      "tick": 494,
+      "revision": 20,
+      "exactBeforeReload": true
+    },
+    "reloadExact": {
+      "tick": 494,
+      "paused": true,
+      "activeJob": "deconstruct",
+      "exactState": true
+    },
+    "completed": {
+      "siteRemoved": true,
+      "salvage": 1,
+      "sinkDelta": 0,
+      "looseWoodDelta": 1,
+      "conservation": {
+        "totalWood": 6,
+        "expected": 6
+      },
+      "resumedOnce": true
+    },
+    "narrow": {
+      "innerWidth": 390,
+      "scrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "commandBox": {
+        "x": 24.1640625,
+        "y": 743,
+        "width": 341.671875,
+        "height": 93
+      }
+    }
+  },
+  "success": true,
+  "errorCount": 0
+}

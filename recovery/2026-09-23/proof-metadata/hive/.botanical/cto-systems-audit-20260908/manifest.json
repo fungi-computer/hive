@@ -1,0 +1,37 @@
+{
+  "sourceBaseline": "32cd4235e22a6f7d456c3100d87fa8abd89475cd",
+  "auditBase": "765c3282982d2ee6b07d5bea67bc21d08e4c2011",
+  "tool": "Fallow3.20.0 from Botanical-next node_modules/.bin, explicit Hive root, no-cache",
+  "scope": "audit included preserved untracked proof/WorldLab source; read fresh JSON for discovery counts; source changed under Delivery after audit",
+  "commands": [
+    {
+      "unit": "run-u1354.scope",
+      "invocation": "56de2f15c9164d29be38b257f405077d",
+      "exit": 1,
+      "meaning": "normal findings exit",
+      "file": "audit.json"
+    },
+    {
+      "unit": "run-u1355.scope",
+      "invocation": "fd3823ba8ba2444e8b65a0baa0c85100",
+      "exit": 1,
+      "meaning": "normal findings exit",
+      "file": "health.json"
+    },
+    {
+      "unit": "run-u1356.scope",
+      "invocation": "03c63443e45a4abe96e4c44b94cdd8cf",
+      "exit": 0,
+      "meaning": "confirmed current Go rejects an actual valid stair route",
+      "file": "route-probe.json"
+    }
+  ],
+  "ownedScopesCollected": true,
+  "files": {
+    "audit.json": "288fbd2bc8c9955603a7449155f7361fb185f3aa5fbd68b0716c35750107fa60",
+    "health.json": "2a3d2945a88caa871cd0e96179ccde72d54df55b1a6f5eb219a66a342a803111",
+    "route-probe.json": "7f7d66a99e348c16e3666603ae108123377d504e3df98bca11dc4420bd3b7804",
+    "route-probe.mjs": "724939a7eba7a81c6bfa018c364b1f875bfb479bcb01f23ee0e8aafdd30c2e77"
+  },
+  "limits": "No browser/full suite/WASM performance run by root; source probe uses validated existing constructed fixture."
+}

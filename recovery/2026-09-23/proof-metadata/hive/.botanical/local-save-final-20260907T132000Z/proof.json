@@ -1,0 +1,192 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/local-save-final-20260907T132000Z",
+  "frozenTarget": {
+    "expectedIndexSha256": "60018c2c3c74b805515b049f935d9c3c0d350e91fa928f9222f4755d0a8bc262",
+    "resolvedAssets": {
+      "gameJs": "assets/game-1UishKV1.js",
+      "gameCss": "assets/game-DJu4f5_8.css",
+      "artJs": "assets/art-Dz7afVf6.js"
+    },
+    "hashes": {
+      "dist/index.html": "60018c2c3c74b805515b049f935d9c3c0d350e91fa928f9222f4755d0a8bc262",
+      "dist/assets/game-1UishKV1.js": "9723548b86d4f3499c55024fa47175c2c8f99afc7e7a544d9412e678c8ba095f",
+      "dist/assets/game-DJu4f5_8.css": "11271f4488e8b25beafbe032ed0954e4a7485a9ea46f593d9936c615dfdbf3dd",
+      "dist/assets/art-Dz7afVf6.js": "a491f26e9c37e8292427ce6563bb36d4095a6e919a02b1b4a16210324573b372"
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "resolvedAssets": {
+      "gameJs": "assets/game-1UishKV1.js",
+      "gameCss": "assets/game-DJu4f5_8.css",
+      "artJs": "assets/art-Dz7afVf6.js"
+    },
+    "files": {
+      "index": {
+        "url": "http://127.0.0.1:5188/",
+        "sha256": "60018c2c3c74b805515b049f935d9c3c0d350e91fa928f9222f4755d0a8bc262"
+      },
+      "gameJs": {
+        "url": "http://127.0.0.1:5188/assets/game-1UishKV1.js",
+        "sha256": "9723548b86d4f3499c55024fa47175c2c8f99afc7e7a544d9412e678c8ba095f"
+      },
+      "gameCss": {
+        "url": "http://127.0.0.1:5188/assets/game-DJu4f5_8.css",
+        "sha256": "11271f4488e8b25beafbe032ed0954e4a7485a9ea46f593d9936c615dfdbf3dd"
+      },
+      "artJs": {
+        "url": "http://127.0.0.1:5188/assets/art-Dz7afVf6.js",
+        "sha256": "a491f26e9c37e8292427ce6563bb36d4095a6e919a02b1b4a16210324573b372"
+      }
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "6b4e0e7029336dba09c3dc043cee050deffb7ffcbb4491cd239bbc3dac91985e",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; bounded local-save persistence proof"
+  },
+  "errors": [],
+  "screenshots": [
+    "fresh-missing-menu.png",
+    "work-shared-queued.png",
+    "paused-committed.png",
+    "reloaded-paused.png",
+    "corrupt-fallback.png",
+    "explicit-new.png",
+    "narrow-390-menu.png"
+  ],
+  "claims": {
+    "staleNewTwoPage": "not included; separate CAS unit coverage owns multi-tab stale-New behavior",
+    "freshMissing": {
+      "menuVisiblePaused": true,
+      "tick": 0,
+      "frozenAfterObservation": true,
+      "positionsWorkFeedFrozen": true
+    },
+    "continue": {
+      "started": true,
+      "tick": 13
+    },
+    "workSetup": {
+      "recruitedSedge": true,
+      "workPrefs": {
+        "rowanBuild": false,
+        "sedgeHaul": false
+      },
+      "sharedChop": true,
+      "sharedBuild": true,
+      "jobs": [
+        {
+          "id": "job-1",
+          "kind": "chop",
+          "target": "oak-1",
+          "scope": {
+            "party": "home",
+            "actors": null
+          },
+          "reason": "Ordered",
+          "routine": false
+        },
+        {
+          "id": "job-3",
+          "kind": "build",
+          "target": "site-2",
+          "scope": {
+            "party": "home",
+            "actors": null
+          },
+          "reason": "Waiting for reachable wood",
+          "routine": false
+        }
+      ]
+    },
+    "pausedCommitted": {
+      "claimOrCargoObserved": true,
+      "claimSnapshot": true,
+      "savedRevision": 23,
+      "savedTick": 329,
+      "pausedTick": 329,
+      "frozenAfterPause": true
+    },
+    "reloadRestores": {
+      "paused": true,
+      "commands": 0,
+      "revision": 23,
+      "tick": 329,
+      "workPrefs": {
+        "rowanBuild": false,
+        "sedgeHaul": false
+      },
+      "jobs": 1,
+      "claims": 0,
+      "cargo": 1,
+      "nextId": 5,
+      "feed": {
+        "seed": 42,
+        "sequence": 1,
+        "nextAt": 50,
+        "last": {
+          "kind": "demand",
+          "name": "Mallow",
+          "tick": 50,
+          "text": "A roof before supper, human. Or you're supper."
+        }
+      }
+    },
+    "resumeCompletes": {
+      "tick": 446,
+      "felled": 1,
+      "finishedJobs": 2,
+      "jobs": 0,
+      "claims": 0,
+      "cargo": 0,
+      "physicalWood": 6,
+      "conservedWood": true
+    },
+    "backup": {
+      "filename": "hive-local-world.json",
+      "kind": "hive-local-world",
+      "schema": 1,
+      "revision": 30,
+      "commandsOmitted": true
+    },
+    "corruptFallback": {
+      "paused": true,
+      "autosaveDisabled": true,
+      "rawAvailable": true,
+      "fallbackFrozen": true,
+      "rawDownloadFilename": "hive-local-world-corrupt.json",
+      "rawPreserved": true
+    },
+    "explicitNew": {
+      "cleanPausedClearing": true,
+      "revision": 1,
+      "commands": 0,
+      "jobs": 0,
+      "sites": 0,
+      "rawAvailable": false
+    },
+    "narrow390": {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "menu": {
+        "left": 10,
+        "right": 380,
+        "top": 97,
+        "bottom": 696
+      },
+      "command": {
+        "left": 24.1640625,
+        "right": 365.8359375,
+        "top": 743,
+        "bottom": 836
+      },
+      "noOverflow": true
+    }
+  },
+  "success": true
+}

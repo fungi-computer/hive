@@ -1,0 +1,864 @@
+{
+  "source": {
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/floor.js": "6001f1ee34744845f8fb92e38b8300cea821821a2dc0edb982e86e61559d81cc",
+    "src/art/stair.js": "bf3ae8dc52d16ab4d76c2d6f16d4063d0176c1a5f4ba3863ba548d4a8c341741",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/world.js": "066a61373ba2782f9099f278ddcf133b1807a43847a225dcec9a81997e5c68ec",
+    ".botanical/render-depth-study-20260908/oracle.html": "aa610b052c262080b6f9b235d5efa65253101011320b762e6c9f87fcc856126f",
+    ".botanical/render-depth-study-20260908/oracle.js": "272b70a149325e88a98b79dd7899147053e8efd02736b06dde8529d4e48eee48",
+    ".botanical/render-depth-study-20260908/oracle-capture.mjs": "8b209ffe74b00818b9ae2ad554420714159ee7bda32681b50d3895fd7ab6dbea",
+    ".botanical/render-depth-study-20260908/fixtures.js": "e56aadc2a81dd5759dc8fb550f421a4b07b462ef58db82e2943c4976eab60365"
+  },
+  "passed": true,
+  "errors": [],
+  "scope": {
+    "originalGeometry": true,
+    "commonOrthographicCamera": true,
+    "unlitInteriorIDs": true,
+    "renderedSpriteOutlineOrRounding": false,
+    "gameplayIntegration": false
+  },
+  "fixtures": [
+    {
+      "id": "bed-floor-0",
+      "colors": [
+        {
+          "id": "head-floor",
+          "rgb": 16711680
+        },
+        {
+          "id": "foot-floor",
+          "rgb": 65280
+        },
+        {
+          "id": "bed",
+          "rgb": 255
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "head-floor",
+            "foot-floor"
+          ],
+          "common": 32,
+          "aWins": 0,
+          "bWins": 7,
+          "thirdWins": 25,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 157,
+              "y": 99
+            },
+            {
+              "x": 158,
+              "y": 99
+            },
+            {
+              "x": 159,
+              "y": 99
+            },
+            {
+              "x": 157,
+              "y": 100
+            }
+          ]
+        },
+        {
+          "ids": [
+            "head-floor",
+            "bed"
+          ],
+          "common": 248,
+          "aWins": 0,
+          "bWins": 248,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 158,
+              "y": 84
+            },
+            {
+              "x": 159,
+              "y": 84
+            },
+            {
+              "x": 160,
+              "y": 84
+            },
+            {
+              "x": 161,
+              "y": 84
+            }
+          ]
+        },
+        {
+          "ids": [
+            "foot-floor",
+            "bed"
+          ],
+          "common": 210,
+          "aWins": 1,
+          "bWins": 209,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 130,
+              "y": 99
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 142,
+              "y": 92
+            },
+            {
+              "x": 143,
+              "y": 92
+            },
+            {
+              "x": 144,
+              "y": 92
+            },
+            {
+              "x": 145,
+              "y": 92
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bed-floor-1",
+      "colors": [
+        {
+          "id": "head-floor",
+          "rgb": 16711680
+        },
+        {
+          "id": "foot-floor",
+          "rgb": 65280
+        },
+        {
+          "id": "bed",
+          "rgb": 255
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "head-floor",
+            "foot-floor"
+          ],
+          "common": 29,
+          "aWins": 0,
+          "bWins": 5,
+          "thirdWins": 24,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 160,
+              "y": 99
+            },
+            {
+              "x": 161,
+              "y": 99
+            },
+            {
+              "x": 162,
+              "y": 99
+            },
+            {
+              "x": 163,
+              "y": 99
+            }
+          ]
+        },
+        {
+          "ids": [
+            "head-floor",
+            "bed"
+          ],
+          "common": 248,
+          "aWins": 0,
+          "bWins": 248,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 158,
+              "y": 84
+            },
+            {
+              "x": 159,
+              "y": 84
+            },
+            {
+              "x": 160,
+              "y": 84
+            },
+            {
+              "x": 161,
+              "y": 84
+            }
+          ]
+        },
+        {
+          "ids": [
+            "foot-floor",
+            "bed"
+          ],
+          "common": 208,
+          "aWins": 1,
+          "bWins": 207,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 185,
+              "y": 101
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 174,
+              "y": 92
+            },
+            {
+              "x": 175,
+              "y": 92
+            },
+            {
+              "x": 176,
+              "y": 92
+            },
+            {
+              "x": 177,
+              "y": 92
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "between-storeys",
+      "colors": [
+        {
+          "id": "below",
+          "rgb": 16711680
+        },
+        {
+          "id": "floor",
+          "rgb": 65280
+        },
+        {
+          "id": "above",
+          "rgb": 255
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "below",
+            "floor"
+          ],
+          "common": 19,
+          "aWins": 0,
+          "bWins": 19,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 158,
+              "y": 98
+            },
+            {
+              "x": 159,
+              "y": 98
+            },
+            {
+              "x": 160,
+              "y": 98
+            },
+            {
+              "x": 161,
+              "y": 98
+            }
+          ]
+        },
+        {
+          "ids": [
+            "below",
+            "above"
+          ],
+          "common": 0,
+          "aWins": 0,
+          "bWins": 0,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": []
+        },
+        {
+          "ids": [
+            "floor",
+            "above"
+          ],
+          "common": 60,
+          "aWins": 0,
+          "bWins": 60,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 158,
+              "y": 84
+            },
+            {
+              "x": 159,
+              "y": 84
+            },
+            {
+              "x": 160,
+              "y": 84
+            },
+            {
+              "x": 161,
+              "y": 84
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bed-sleeper-0",
+      "colors": [
+        {
+          "id": "bed",
+          "rgb": 16711680
+        },
+        {
+          "id": "sleeper",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "bed",
+            "sleeper"
+          ],
+          "common": 291,
+          "aWins": 89,
+          "bWins": 202,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 151,
+              "y": 84
+            },
+            {
+              "x": 165,
+              "y": 84
+            },
+            {
+              "x": 162,
+              "y": 85
+            },
+            {
+              "x": 163,
+              "y": 85
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 161,
+              "y": 81
+            },
+            {
+              "x": 162,
+              "y": 81
+            },
+            {
+              "x": 163,
+              "y": 81
+            },
+            {
+              "x": 156,
+              "y": 82
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bed-sleeper-1",
+      "colors": [
+        {
+          "id": "bed",
+          "rgb": 16711680
+        },
+        {
+          "id": "sleeper",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "bed",
+            "sleeper"
+          ],
+          "common": 280,
+          "aWins": 85,
+          "bWins": 195,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 154,
+              "y": 84
+            },
+            {
+              "x": 164,
+              "y": 84
+            },
+            {
+              "x": 165,
+              "y": 84
+            },
+            {
+              "x": 166,
+              "y": 84
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 158,
+              "y": 80
+            },
+            {
+              "x": 156,
+              "y": 81
+            },
+            {
+              "x": 157,
+              "y": 81
+            },
+            {
+              "x": 158,
+              "y": 81
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bed-side--1",
+      "colors": [
+        {
+          "id": "bed",
+          "rgb": 16711680
+        },
+        {
+          "id": "walker",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "bed",
+            "walker"
+          ],
+          "common": 0,
+          "aWins": 0,
+          "bWins": 0,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": []
+        }
+      ]
+    },
+    {
+      "id": "bed-side-1",
+      "colors": [
+        {
+          "id": "bed",
+          "rgb": 16711680
+        },
+        {
+          "id": "walker",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "bed",
+            "walker"
+          ],
+          "common": 99,
+          "aWins": 0,
+          "bWins": 99,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 162,
+              "y": 123
+            },
+            {
+              "x": 162,
+              "y": 124
+            },
+            {
+              "x": 163,
+              "y": 124
+            },
+            {
+              "x": 164,
+              "y": 124
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "foreground-tree",
+      "colors": [
+        {
+          "id": "walker",
+          "rgb": 16711680
+        },
+        {
+          "id": "tree",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "walker",
+            "tree"
+          ],
+          "common": 336,
+          "aWins": 0,
+          "bWins": 336,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [],
+          "witnessB": [
+            {
+              "x": 158,
+              "y": 98
+            },
+            {
+              "x": 159,
+              "y": 98
+            },
+            {
+              "x": 160,
+              "y": 98
+            },
+            {
+              "x": 161,
+              "y": 98
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stair-0",
+      "colors": [
+        {
+          "id": "stair",
+          "rgb": 16711680
+        },
+        {
+          "id": "walker",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "stair",
+            "walker"
+          ],
+          "common": 80,
+          "aWins": 52,
+          "bWins": 28,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 154,
+              "y": 114
+            },
+            {
+              "x": 154,
+              "y": 115
+            },
+            {
+              "x": 155,
+              "y": 115
+            },
+            {
+              "x": 154,
+              "y": 116
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 159,
+              "y": 127
+            },
+            {
+              "x": 160,
+              "y": 127
+            },
+            {
+              "x": 161,
+              "y": 127
+            },
+            {
+              "x": 162,
+              "y": 127
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stair-0.5",
+      "colors": [
+        {
+          "id": "stair",
+          "rgb": 16711680
+        },
+        {
+          "id": "walker",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "stair",
+            "walker"
+          ],
+          "common": 80,
+          "aWins": 53,
+          "bWins": 27,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 138,
+              "y": 101
+            },
+            {
+              "x": 138,
+              "y": 102
+            },
+            {
+              "x": 139,
+              "y": 102
+            },
+            {
+              "x": 138,
+              "y": 103
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 138,
+              "y": 104
+            },
+            {
+              "x": 138,
+              "y": 105
+            },
+            {
+              "x": 138,
+              "y": 106
+            },
+            {
+              "x": 138,
+              "y": 107
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stair-1",
+      "colors": [
+        {
+          "id": "stair",
+          "rgb": 16711680
+        },
+        {
+          "id": "walker",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "stair",
+            "walker"
+          ],
+          "common": 47,
+          "aWins": 16,
+          "bWins": 31,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": true,
+          "witnessA": [
+            {
+              "x": 130,
+              "y": 99
+            },
+            {
+              "x": 129,
+              "y": 100
+            },
+            {
+              "x": 130,
+              "y": 100
+            },
+            {
+              "x": 131,
+              "y": 100
+            }
+          ],
+          "witnessB": [
+            {
+              "x": 122,
+              "y": 92
+            },
+            {
+              "x": 122,
+              "y": 93
+            },
+            {
+              "x": 122,
+              "y": 94
+            },
+            {
+              "x": 123,
+              "y": 94
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wall-corner",
+      "colors": [
+        {
+          "id": "corner",
+          "rgb": 16711680
+        },
+        {
+          "id": "walker",
+          "rgb": 65280
+        }
+      ],
+      "clipped": false,
+      "pairs": [
+        {
+          "ids": [
+            "corner",
+            "walker"
+          ],
+          "common": 277,
+          "aWins": 277,
+          "bWins": 0,
+          "thirdWins": 0,
+          "insertionSensitivePixels": 0,
+          "opposingStableWinners": false,
+          "witnessA": [
+            {
+              "x": 157,
+              "y": 89
+            },
+            {
+              "x": 157,
+              "y": 90
+            },
+            {
+              "x": 158,
+              "y": 90
+            },
+            {
+              "x": 159,
+              "y": 90
+            }
+          ],
+          "witnessB": []
+        }
+      ]
+    }
+  ],
+  "sourceAfter": {
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/floor.js": "6001f1ee34744845f8fb92e38b8300cea821821a2dc0edb982e86e61559d81cc",
+    "src/art/stair.js": "bf3ae8dc52d16ab4d76c2d6f16d4063d0176c1a5f4ba3863ba548d4a8c341741",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/world.js": "066a61373ba2782f9099f278ddcf133b1807a43847a225dcec9a81997e5c68ec",
+    ".botanical/render-depth-study-20260908/oracle.html": "aa610b052c262080b6f9b235d5efa65253101011320b762e6c9f87fcc856126f",
+    ".botanical/render-depth-study-20260908/oracle.js": "272b70a149325e88a98b79dd7899147053e8efd02736b06dde8529d4e48eee48",
+    ".botanical/render-depth-study-20260908/oracle-capture.mjs": "8b209ffe74b00818b9ae2ad554420714159ee7bda32681b50d3895fd7ab6dbea",
+    ".botanical/render-depth-study-20260908/fixtures.js": "e56aadc2a81dd5759dc8fb550f421a4b07b462ef58db82e2943c4976eab60365"
+  }
+}

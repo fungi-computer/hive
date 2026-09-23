@@ -1,0 +1,245 @@
+{
+  "passed": true,
+  "base": "http://127.0.0.1:5195/",
+  "ridge": {
+    "selection": {
+      "focus": {
+        "label": "Lantern Ridge",
+        "x": 420,
+        "z": 464
+      },
+      "displayedOverviewPixel": {
+        "column": 256,
+        "row": 256,
+        "index": 131328
+      },
+      "overviewSampler": {
+        "footprint": 8,
+        "elevation": 0.9351712947042314,
+        "moisture": 0.4005666029762803,
+        "terrain": "ridge"
+      },
+      "sharedSampler": {
+        "footprint": 1,
+        "elevation": 0.9388060209823603,
+        "surfaceLevel": 30,
+        "moisture": 0.4053857250769819,
+        "terrain": "ridge",
+        "feature": "ridge",
+        "baseElevation": 0.6388514341605854,
+        "ridgeLift": 0.29995458682177495,
+        "canyonCarve": 0,
+        "coastDistance": 214.29860048047848,
+        "ridgeDistance": 0.4628927105513867,
+        "canyonDistance": -239.44210573729708
+      },
+      "sharedLocalSampler": {
+        "footprint": 1,
+        "elevation": 0.9388060209823603,
+        "surfaceLevel": 30,
+        "moisture": 0.4053857250769819,
+        "terrain": "ridge"
+      },
+      "localRenderCell": {
+        "x": 36,
+        "z": 32,
+        "elevationByte": 239,
+        "surfaceLevel": 30,
+        "moistureByte": 103,
+        "matchesSampler": true
+      }
+    },
+    "section": {
+      "focus": {
+        "x": 420,
+        "z": 464
+      },
+      "surfaceOnly": true,
+      "bounds": {
+        "minX": 408,
+        "minZ": 456,
+        "maxXExclusive": 432,
+        "maxZExclusive": 472
+      },
+      "visibleCells": 384,
+      "halo": 1,
+      "sampledCells": 468,
+      "sampleBudget": "24x16 visible cells + one-cell halo",
+      "focusSurfaceLevel": 30,
+      "voxelPixelHeight": 4,
+      "exposedStepFaces": 2,
+      "preparedPixels": {
+        "width": 376,
+        "height": 196
+      },
+      "timings": {
+        "sampleMs": 8.1,
+        "assemblyMs": 1.1,
+        "drawPreparationMs": 2.5,
+        "canvasDrawMs": 0.7
+      },
+      "nonClaims": [
+        "no caves",
+        "no voxel volume",
+        "no live gameplay terrain"
+      ]
+    },
+    "atlasStatus": "Showing 4,096 × 4,096 cells · 8 cells/pixel",
+    "width": 1280,
+    "scrollWidth": 1280,
+    "sectionPixels": {
+      "width": 720,
+      "height": 360,
+      "opaque": 105707
+    }
+  },
+  "canyon": {
+    "selection": {
+      "focus": {
+        "label": "Mallowcut Canyon",
+        "x": -240,
+        "z": 434
+      },
+      "displayedOverviewPixel": {
+        "column": 256,
+        "row": 256,
+        "index": 131328
+      },
+      "overviewSampler": {
+        "footprint": 8,
+        "elevation": 0.3326596983868013,
+        "moisture": 0.8423517088069149,
+        "terrain": "canyon"
+      },
+      "sharedSampler": {
+        "footprint": 1,
+        "elevation": 0.3378926931798636,
+        "surfaceLevel": 11,
+        "moisture": 0.8498011222937125,
+        "terrain": "canyon",
+        "feature": "canyon",
+        "baseElevation": 0.6778507673679101,
+        "ridgeLift": 0,
+        "canyonCarve": 0.33995807418804647,
+        "coastDistance": 383.506162087337,
+        "ridgeDistance": 195.58443420463374,
+        "canyonDistance": -0.3723098154277409
+      },
+      "sharedLocalSampler": {
+        "footprint": 1,
+        "elevation": 0.3378926931798636,
+        "surfaceLevel": 11,
+        "moisture": 0.8498011222937125,
+        "terrain": "canyon"
+      },
+      "localRenderCell": {
+        "x": 32,
+        "z": 34,
+        "elevationByte": 86,
+        "surfaceLevel": 11,
+        "moistureByte": 217,
+        "matchesSampler": true
+      }
+    },
+    "section": {
+      "focus": {
+        "x": -240,
+        "z": 434
+      },
+      "surfaceOnly": true,
+      "bounds": {
+        "minX": -252,
+        "minZ": 426,
+        "maxXExclusive": -228,
+        "maxZExclusive": 442
+      },
+      "visibleCells": 384,
+      "halo": 1,
+      "sampledCells": 468,
+      "sampleBudget": "24x16 visible cells + one-cell halo",
+      "focusSurfaceLevel": 11,
+      "voxelPixelHeight": 4,
+      "exposedStepFaces": 16,
+      "preparedPixels": {
+        "width": 376,
+        "height": 196
+      },
+      "timings": {
+        "sampleMs": 9.6,
+        "assemblyMs": 0.4,
+        "drawPreparationMs": 3.9,
+        "canvasDrawMs": 0.8
+      },
+      "nonClaims": [
+        "no caves",
+        "no voxel volume",
+        "no live gameplay terrain"
+      ]
+    },
+    "atlasStatus": "Showing 4,096 × 4,096 cells · 8 cells/pixel",
+    "width": 1280,
+    "scrollWidth": 1280,
+    "sectionPixels": {
+      "width": 720,
+      "height": 360,
+      "opaque": 106725
+    }
+  },
+  "narrow": {
+    "width": 390,
+    "scrollWidth": 390,
+    "section": {
+      "focus": {
+        "x": -240,
+        "z": 434
+      },
+      "surfaceOnly": true,
+      "bounds": {
+        "minX": -252,
+        "minZ": 426,
+        "maxXExclusive": -228,
+        "maxZExclusive": 442
+      },
+      "visibleCells": 384,
+      "halo": 1,
+      "sampledCells": 468,
+      "sampleBudget": "24x16 visible cells + one-cell halo",
+      "focusSurfaceLevel": 11,
+      "voxelPixelHeight": 4,
+      "exposedStepFaces": 16,
+      "preparedPixels": {
+        "width": 376,
+        "height": 196
+      },
+      "timings": {
+        "sampleMs": 9.6,
+        "assemblyMs": 0.4,
+        "drawPreparationMs": 3.9,
+        "canvasDrawMs": 0.8
+      },
+      "nonClaims": [
+        "no caves",
+        "no voxel volume",
+        "no live gameplay terrain"
+      ]
+    }
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "screenshots": [
+    "normal-ridge.png",
+    "normal-canyon.png",
+    "narrow-canyon.png"
+  ],
+  "claims": {
+    "realRenderedBrowser": true,
+    "wholeSurfaceLevels": true,
+    "sourceLocalCacheAgreement": true,
+    "steppedFacesForNamedRidgeAndCanyon": true,
+    "narrowContainment": true,
+    "fullHomeSuite": false
+  }
+}

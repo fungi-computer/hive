@@ -1,0 +1,66 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": "/home/levi/src/hive/.botanical/structure-hit-go-final2-20260908",
+  "frozenTarget": {
+    "sourceCommit": "32cd423",
+    "expectedNames": {
+      "gameJs": "game-Da9L3nkd.js",
+      "gameCss": "game-CvQe2sTu.css",
+      "artJs": "art-Nx9QtN6s.js"
+    },
+    "expectedHashes": {
+      "index": "7e663e596bce790a4d1f0a4975a5bcbf4220e2e2840051e718f7f1d79f9841fb",
+      "gameJs": "ccb6dd72dd1034d01256c7d33eeff835cb7b2e9cd426930e2c3332868440ece0",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "4b1fd019e9478a70544c935cdd241ab74e92c00dd002164bb1d897d0b768e9a0"
+    }
+  },
+  "localHashes": {
+    "index": "7e663e596bce790a4d1f0a4975a5bcbf4220e2e2840051e718f7f1d79f9841fb",
+    "gameJs": "ccb6dd72dd1034d01256c7d33eeff835cb7b2e9cd426930e2c3332868440ece0",
+    "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+    "artJs": "4b1fd019e9478a70544c935cdd241ab74e92c00dd002164bb1d897d0b768e9a0"
+  },
+  "servedHashes": {
+    "index": "7e663e596bce790a4d1f0a4975a5bcbf4220e2e2840051e718f7f1d79f9841fb",
+    "gameJs": "ccb6dd72dd1034d01256c7d33eeff835cb7b2e9cd426930e2c3332868440ece0",
+    "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+    "artJs": "4b1fd019e9478a70544c935cdd241ab74e92c00dd002164bb1d897d0b768e9a0"
+  },
+  "scriptSha256": "8b7efa61aab65df4b8a104461e675821b3b66a802264495a1d9b2660d32a0878",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "expectedDuration": "short focused run; no upstairs fixture",
+    "scope": "one ground wall silhouette/padding proof plus armed right-click cancellation"
+  },
+  "screenshots": [
+    "01-visible-wall-body-selected.png"
+  ],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "claims": {
+    "visibleWall": {
+      "site": {
+        "id": "site-3",
+        "type": "wall",
+        "x": 5,
+        "z": 4,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      "point": {
+        "x": 544,
+        "y": 302
+      },
+      "selectedSite": "site-3"
+    }
+  },
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: the empty-ground click must lie inside the wall sprite's old 112px bounds\n    at file:///home/levi/src/hive/scripts/prove-structure-hit-go.mjs:366:10"
+}

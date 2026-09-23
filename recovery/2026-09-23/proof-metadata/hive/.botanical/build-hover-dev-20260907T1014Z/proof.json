@@ -1,0 +1,6 @@
+{
+  "url": "http://127.0.0.1:5187/",
+  "errors": [],
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n  {\n    level: 0,\n+   x: -3,\n+   z: 19\n-   x: 4,\n-   z: 5\n  }\n\n    at file:///home/levi/src/hive/scripts/prove-build-hover.mjs:39:10"
+}

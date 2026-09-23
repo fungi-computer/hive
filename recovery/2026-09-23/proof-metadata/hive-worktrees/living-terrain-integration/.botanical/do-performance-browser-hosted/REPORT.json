@@ -1,0 +1,114 @@
+{
+  "proof": "colony-performance-browser",
+  "url": "https://professor-findlaw-looks-atlas.trycloudflare.com/engine/colony-performance.html?size=256&workers=8&diagnostics=draw",
+  "selectedPreset": {
+    "size": 256,
+    "workers": 8
+  },
+  "workload": {
+    "kind": "finite-tree-felling",
+    "trees": 50,
+    "woodPerTree": 6,
+    "description": "The Colony performance page queues 50 finite trees for the selected party; observed wood output proves that this workload is live."
+  },
+  "output": "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/do-performance-browser-hosted",
+  "sourceHashes": [
+    {
+      "path": "engine/colony-performance.html",
+      "sha256": "13b45c51825d2ad2011f4773ca76befa03cd3b51ae8d6458f051d477406bd496"
+    },
+    {
+      "path": "engine/src/client/performance-observer.js",
+      "sha256": "f8f03c8da2a026696bb159e179ba9ab1b15f4defce4411aa461347f74ec51468"
+    },
+    {
+      "path": "engine/src/client/performance-page.js",
+      "sha256": "7a22ae107ca9420d1ecda74663e6602675d363c4b612a02e106049f429ccde80"
+    },
+    {
+      "path": "engine/src/games/colony-performance.ts",
+      "sha256": "410f7274660286bb58400bf6b808b5d09b027dae21fd0e2536cf07cd01990606"
+    },
+    {
+      "path": "engine/src/runtime/remote-client.ts",
+      "sha256": "579dd6c5eea097c9c6c36c8372079a22a45610a5b5c898457a2d47eb32764c15"
+    },
+    {
+      "path": "tools/public-engine-host/performance-browser-proof.mjs",
+      "sha256": "59ce5b31b23bdf9a81a0c3a10239937ef859e0d325bc15a297c4d39cc6269c44"
+    },
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "1c60a06af9dac43714c4095285d5d5df530d8d870fb0cf86e2d355043fb52ee1"
+    }
+  ],
+  "screenshot": "performance-browser.png",
+  "assertions": [
+    {
+      "name": "pixi-canvas",
+      "width": 846,
+      "height": 866,
+      "clientWidth": 846,
+      "clientHeight": 866
+    },
+    {
+      "name": "server-owned-finite-workload",
+      "felledTrees": 1,
+      "woodInventory": 0,
+      "browserWorkers": [],
+      "socketOrigins": [
+        "wss://hive-performance-engine-preview.levi-fe0.workers.dev"
+      ]
+    },
+    {
+      "name": "pause-requested"
+    },
+    {
+      "name": "pause-acknowledged"
+    },
+    {
+      "name": "resume-requested"
+    },
+    {
+      "name": "remote-pause-resume"
+    }
+  ],
+  "errors": [],
+  "measurements": {
+    "source": "durable-object",
+    "frames": 120,
+    "sequence": 119,
+    "simulationTime": 11.899999999999974,
+    "paused": false,
+    "simulationRate": 1.029955253196044,
+    "observationGap": {
+      "samples": 119,
+      "median": 82.5,
+      "p95": 195.40000009536743
+    },
+    "httpRoundTrip": {
+      "samples": 48,
+      "median": 236.79999995231628,
+      "p95": 470.2999999523163
+    },
+    "terrainRoundTrip": {
+      "samples": 47,
+      "median": 236.79999995231628,
+      "p95": 399.40000009536743
+    },
+    "receivedBytes": 6655249,
+    "requests": 48,
+    "failedRequests": 0,
+    "observedWorkers": 8,
+    "movingWorkers": 6,
+    "wood": 0,
+    "stumps": 1,
+    "retainedSamples": {
+      "observations": 119,
+      "progression": 119,
+      "http": 48,
+      "terrain": 47
+    }
+  },
+  "success": true
+}

@@ -1,0 +1,434 @@
+{
+  "source": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/covered-bed-study-20260908/bed.js": "3080be2ba98eaa27c71870e2cd3cddfeb70e57049bc4b98a690bcc470581bc7f",
+    ".botanical/covered-bed-study-20260908/figures.candidate.js": "eceba055282fc601b9bf5dc74b65db7ae1ff7b440cdf405c2985e73938c0667f",
+    ".botanical/covered-bed-study-20260908/index.html": "7efff34658ccdc3b611b2ca6850900926eb3de103a15af4bcb8ccf03767515f9",
+    ".botanical/covered-bed-study-20260908/study.js": "d8558d7e58caed8817f5fceb9a1a83d65915d55e4b847c41aa9295622e51e73f",
+    ".botanical/covered-bed-study-20260908/capture.mjs": "a9c41664c59eb0707e409bf73a627c6aded6b861af0437943a432f7135d64558"
+  },
+  "errors": [],
+  "passed": true,
+  "report": {
+    "ready": true,
+    "emptyParity": [
+      {
+        "direction": 0,
+        "stage": "stakes",
+        "before": "e705abee6b09f9ec2a71a5072c6ca317bb89c69f755602f459c7bcc53a32d0b0",
+        "after": "e705abee6b09f9ec2a71a5072c6ca317bb89c69f755602f459c7bcc53a32d0b0",
+        "equal": true
+      },
+      {
+        "direction": 0,
+        "stage": "frame",
+        "before": "95a48c600c560d3b156183c3649c78f5eb5a36b422d0e6408cebd9d8878c3a62",
+        "after": "95a48c600c560d3b156183c3649c78f5eb5a36b422d0e6408cebd9d8878c3a62",
+        "equal": true
+      },
+      {
+        "direction": 0,
+        "stage": "finished",
+        "before": "b9a6a93e836099aec865a162793b53e5e25b33594461296f98a9138a563ebee2",
+        "after": "b9a6a93e836099aec865a162793b53e5e25b33594461296f98a9138a563ebee2",
+        "equal": true
+      },
+      {
+        "direction": 1,
+        "stage": "stakes",
+        "before": "3764b1747285dd5605235595767e2e5efea6b8b342b7bd50973944187d08d855",
+        "after": "3764b1747285dd5605235595767e2e5efea6b8b342b7bd50973944187d08d855",
+        "equal": true
+      },
+      {
+        "direction": 1,
+        "stage": "frame",
+        "before": "68aa2b3e5785bd092dc2be69c460bdc1d3648720443107e9a7e411419bd43fd8",
+        "after": "68aa2b3e5785bd092dc2be69c460bdc1d3648720443107e9a7e411419bd43fd8",
+        "equal": true
+      },
+      {
+        "direction": 1,
+        "stage": "finished",
+        "before": "96bf1e512a670b07c2ca03c501980f6771181993500c154c50913da8e1f20597",
+        "after": "96bf1e512a670b07c2ca03c501980f6771181993500c154c50913da8e1f20597",
+        "equal": true
+      }
+    ],
+    "poseParity": [
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "pose": "idle",
+        "equal": true,
+        "before": "7da76796b678a1bfdf038073e3ead32921bffecf7873650972a964b399f83f1f",
+        "after": "7da76796b678a1bfdf038073e3ead32921bffecf7873650972a964b399f83f1f"
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "pose": "sleep",
+        "equal": true,
+        "before": "c5b8d940a9ac127f3edaade21d79757ea017c2de3875af7b79488f0982b0d5c1",
+        "after": "c5b8d940a9ac127f3edaade21d79757ea017c2de3875af7b79488f0982b0d5c1"
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "pose": "build",
+        "equal": true,
+        "before": "b350f7ae4a70b47b38021e7331d92cd8e7ee219e63f6881ede9e3d5271c169d4",
+        "after": "b350f7ae4a70b47b38021e7331d92cd8e7ee219e63f6881ede9e3d5271c169d4"
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "pose": "carry-herb",
+        "equal": true,
+        "before": "e41d54f8016c36c34b16eaa9a14a80cb90c3b111e40f781d96f35a3e2a2f4c41",
+        "after": "e41d54f8016c36c34b16eaa9a14a80cb90c3b111e40f781d96f35a3e2a2f4c41"
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "pose": "idle",
+        "equal": true,
+        "before": "309ad030f38a6e140c257caacf8f06290a642624504afb610d32ac0dfc738d11",
+        "after": "309ad030f38a6e140c257caacf8f06290a642624504afb610d32ac0dfc738d11"
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "pose": "sleep",
+        "equal": true,
+        "before": "bc8e4ddbcb622445f3594753e4f7bec4cf4918d8935eb4b863e750f32c8201ba",
+        "after": "bc8e4ddbcb622445f3594753e4f7bec4cf4918d8935eb4b863e750f32c8201ba"
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "pose": "build",
+        "equal": true,
+        "before": "9ef97e2be857def259d7fb4139f26098cab8e12c61889384cd7be365adde8d36",
+        "after": "9ef97e2be857def259d7fb4139f26098cab8e12c61889384cd7be365adde8d36"
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "pose": "carry-herb",
+        "equal": true,
+        "before": "051c33b000130197b245243b78692da2b0200b47446ba644131b9d8b3a73fb15",
+        "after": "051c33b000130197b245243b78692da2b0200b47446ba644131b9d8b3a73fb15"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "pose": "idle",
+        "equal": true,
+        "before": "b088ba7293e240ecbc60927d76c61723333b0dac7cca269bf476ebc400f90157",
+        "after": "b088ba7293e240ecbc60927d76c61723333b0dac7cca269bf476ebc400f90157"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "pose": "sleep",
+        "equal": true,
+        "before": "e6c647df8a55bc973e5ba40aceaea1e4d2c40e5ca0b6ba29c00976f83260cdf3",
+        "after": "e6c647df8a55bc973e5ba40aceaea1e4d2c40e5ca0b6ba29c00976f83260cdf3"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "pose": "build",
+        "equal": true,
+        "before": "4b707bdbb9fab4996a1825e882db2dfd61df52920367320e8e78766b991e36e5",
+        "after": "4b707bdbb9fab4996a1825e882db2dfd61df52920367320e8e78766b991e36e5"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "pose": "carry-herb",
+        "equal": true,
+        "before": "6a96d6319bd5f4c6d6db6dcfcba21312b7834e4bd3560dae9560dfe6bd5d273b",
+        "after": "6a96d6319bd5f4c6d6db6dcfcba21312b7834e4bd3560dae9560dfe6bd5d273b"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "pose": "idle",
+        "equal": true,
+        "before": "c0271ac31134bf90d170ceef0e5e40dcf9a774c5360f77edaa603661c141be59",
+        "after": "c0271ac31134bf90d170ceef0e5e40dcf9a774c5360f77edaa603661c141be59"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "pose": "sleep",
+        "equal": true,
+        "before": "d9cf2b32c6b23b61c1f0bea266e2787270cefb1aad241c03f5555ce206b7017a",
+        "after": "d9cf2b32c6b23b61c1f0bea266e2787270cefb1aad241c03f5555ce206b7017a"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "pose": "build",
+        "equal": true,
+        "before": "4be2aae1cad11dfd08feb5ebe0acddf642067a8e54165ee4a76e42691a0e7573",
+        "after": "4be2aae1cad11dfd08feb5ebe0acddf642067a8e54165ee4a76e42691a0e7573"
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "pose": "carry-herb",
+        "equal": true,
+        "before": "279c364104ce06dc6bd5e71d6c70e1be3aecb27beb80f6c1ed94efcdf3ee06cd",
+        "after": "279c364104ce06dc6bd5e71d6c70e1be3aecb27beb80f6c1ed94efcdf3ee06cd"
+      }
+    ],
+    "rows": [
+      {
+        "id": "rowan-0",
+        "bounds": {
+          "back": {
+            "minX": 25,
+            "minY": 65,
+            "maxX": 69,
+            "maxY": 92,
+            "count": 631,
+            "clipped": false
+          },
+          "sleeper": {
+            "minX": 53,
+            "minY": 61,
+            "maxX": 63,
+            "maxY": 70,
+            "count": 85,
+            "clipped": false
+          },
+          "cover": {
+            "minX": 27,
+            "minY": 67,
+            "maxX": 62,
+            "maxY": 89,
+            "count": 417,
+            "clipped": false
+          }
+        },
+        "actorPoint": {
+          "x": 340,
+          "y": 104.88898052701606
+        },
+        "bedPoint": {
+          "x": 322,
+          "y": 116.88898052701606
+        },
+        "coverHashes": [
+          "0b0fd375407b7efe0f1946a180ce5100ff508ffa715f7d8072e9602a47b11956",
+          "b5ec27ebeea98d270c8ce77c101531289021477d909a9c7c0e708de6c252463d",
+          "5ceccea3042575d05b7d21071ee46fbd8de5f658479eecf67792011ea755947e",
+          "b5ec27ebeea98d270c8ce77c101531289021477d909a9c7c0e708de6c252463d",
+          "0b0fd375407b7efe0f1946a180ce5100ff508ffa715f7d8072e9602a47b11956",
+          "2f253c63febcbeb064318b2b570247052c3b4983dc88143f3edb039f5c65030c",
+          "1a6eec9e75e595f61c353f9db872c834d035a92279dde40b5c3c5c21024b75a5",
+          "2f253c63febcbeb064318b2b570247052c3b4983dc88143f3edb039f5c65030c"
+        ]
+      },
+      {
+        "id": "rowan-1",
+        "bounds": {
+          "back": {
+            "minX": 41,
+            "minY": 65,
+            "maxX": 85,
+            "maxY": 92,
+            "count": 631,
+            "clipped": false
+          },
+          "sleeper": {
+            "minX": 48,
+            "minY": 60,
+            "maxX": 58,
+            "maxY": 71,
+            "count": 89,
+            "clipped": false
+          },
+          "cover": {
+            "minX": 48,
+            "minY": 67,
+            "maxX": 84,
+            "maxY": 89,
+            "count": 432,
+            "clipped": false
+          }
+        },
+        "actorPoint": {
+          "x": 328,
+          "y": 242.88898052701606
+        },
+        "bedPoint": {
+          "x": 344,
+          "y": 256.8889805270161
+        },
+        "coverHashes": [
+          "ad5895af1a0e73131934ea1fae1881a29f736df34d4a167bdd806c0dec33c674",
+          "2f3b36d2fa6311e962f6ef9f5ea385be8197747c950523ac876966e0789bd45c",
+          "d30b5b7339c471d13fcd68d484d48d12576c21b50cb728510530fd3d7bc9c12b",
+          "2f3b36d2fa6311e962f6ef9f5ea385be8197747c950523ac876966e0789bd45c",
+          "ad5895af1a0e73131934ea1fae1881a29f736df34d4a167bdd806c0dec33c674",
+          "a2b31d700887b440574645b55ba72ff4400e4da9637c8a96b20b40bb939133de",
+          "dd7d49aa837127ad482b6bf81173d38e0ca26e4d9f90a815bdfd7a3addf64fc0",
+          "a2b31d700887b440574645b55ba72ff4400e4da9637c8a96b20b40bb939133de"
+        ]
+      },
+      {
+        "id": "witch-runner-0",
+        "bounds": {
+          "back": {
+            "minX": 25,
+            "minY": 65,
+            "maxX": 69,
+            "maxY": 92,
+            "count": 631,
+            "clipped": false
+          },
+          "sleeper": {
+            "minX": 40,
+            "minY": 61,
+            "maxX": 63,
+            "maxY": 75,
+            "count": 224,
+            "clipped": false
+          },
+          "cover": {
+            "minX": 27,
+            "minY": 67,
+            "maxX": 62,
+            "maxY": 89,
+            "count": 417,
+            "clipped": false
+          }
+        },
+        "actorPoint": {
+          "x": 344,
+          "y": 384.8889805270161
+        },
+        "bedPoint": {
+          "x": 322,
+          "y": 396.8889805270161
+        },
+        "coverHashes": [
+          "0b0fd375407b7efe0f1946a180ce5100ff508ffa715f7d8072e9602a47b11956",
+          "b5ec27ebeea98d270c8ce77c101531289021477d909a9c7c0e708de6c252463d",
+          "5ceccea3042575d05b7d21071ee46fbd8de5f658479eecf67792011ea755947e",
+          "b5ec27ebeea98d270c8ce77c101531289021477d909a9c7c0e708de6c252463d",
+          "0b0fd375407b7efe0f1946a180ce5100ff508ffa715f7d8072e9602a47b11956",
+          "2f253c63febcbeb064318b2b570247052c3b4983dc88143f3edb039f5c65030c",
+          "1a6eec9e75e595f61c353f9db872c834d035a92279dde40b5c3c5c21024b75a5",
+          "2f253c63febcbeb064318b2b570247052c3b4983dc88143f3edb039f5c65030c"
+        ]
+      },
+      {
+        "id": "witch-runner-1",
+        "bounds": {
+          "back": {
+            "minX": 41,
+            "minY": 65,
+            "maxX": 85,
+            "maxY": 92,
+            "count": 631,
+            "clipped": false
+          },
+          "sleeper": {
+            "minX": 48,
+            "minY": 60,
+            "maxX": 70,
+            "maxY": 75,
+            "count": 219,
+            "clipped": false
+          },
+          "cover": {
+            "minX": 48,
+            "minY": 67,
+            "maxX": 84,
+            "maxY": 89,
+            "count": 432,
+            "clipped": false
+          }
+        },
+        "actorPoint": {
+          "x": 330,
+          "y": 522.8889805270161
+        },
+        "bedPoint": {
+          "x": 344,
+          "y": 536.8889805270161
+        },
+        "coverHashes": [
+          "ad5895af1a0e73131934ea1fae1881a29f736df34d4a167bdd806c0dec33c674",
+          "2f3b36d2fa6311e962f6ef9f5ea385be8197747c950523ac876966e0789bd45c",
+          "d30b5b7339c471d13fcd68d484d48d12576c21b50cb728510530fd3d7bc9c12b",
+          "2f3b36d2fa6311e962f6ef9f5ea385be8197747c950523ac876966e0789bd45c",
+          "ad5895af1a0e73131934ea1fae1881a29f736df34d4a167bdd806c0dec33c674",
+          "a2b31d700887b440574645b55ba72ff4400e4da9637c8a96b20b40bb939133de",
+          "dd7d49aa837127ad482b6bf81173d38e0ca26e4d9f90a815bdfd7a3addf64fc0",
+          "a2b31d700887b440574645b55ba72ff4400e4da9637c8a96b20b40bb939133de"
+        ]
+      }
+    ],
+    "lastPicked": null,
+    "frames": 1,
+    "playing": true
+  },
+  "clicks": [
+    {
+      "target": "rowan-0:actor",
+      "actual": "rowan-0:actor"
+    },
+    {
+      "target": "rowan-0:bed",
+      "actual": "rowan-0:bed"
+    },
+    {
+      "target": "rowan-1:actor",
+      "actual": "rowan-1:actor"
+    },
+    {
+      "target": "rowan-1:bed",
+      "actual": "rowan-1:bed"
+    },
+    {
+      "target": "witch-runner-0:actor",
+      "actual": "witch-runner-0:actor"
+    },
+    {
+      "target": "witch-runner-0:bed",
+      "actual": "witch-runner-0:bed"
+    },
+    {
+      "target": "witch-runner-1:actor",
+      "actual": "witch-runner-1:actor"
+    },
+    {
+      "target": "witch-runner-1:bed",
+      "actual": "witch-runner-1:bed"
+    }
+  ],
+  "sourceAfter": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/covered-bed-study-20260908/bed.js": "3080be2ba98eaa27c71870e2cd3cddfeb70e57049bc4b98a690bcc470581bc7f",
+    ".botanical/covered-bed-study-20260908/figures.candidate.js": "eceba055282fc601b9bf5dc74b65db7ae1ff7b440cdf405c2985e73938c0667f",
+    ".botanical/covered-bed-study-20260908/index.html": "7efff34658ccdc3b611b2ca6850900926eb3de103a15af4bcb8ccf03767515f9",
+    ".botanical/covered-bed-study-20260908/study.js": "d8558d7e58caed8817f5fceb9a1a83d65915d55e4b847c41aa9295622e51e73f",
+    ".botanical/covered-bed-study-20260908/capture.mjs": "a9c41664c59eb0707e409bf73a627c6aded6b861af0437943a432f7135d64558"
+  }
+}

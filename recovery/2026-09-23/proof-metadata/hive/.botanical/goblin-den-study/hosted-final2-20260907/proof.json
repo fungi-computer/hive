@@ -1,0 +1,98 @@
+{
+  "base": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "revision": "ab270bfd874a80d782263d98645b651fea15bbeb",
+  "local": {
+    "index": "66f02a9959a7ece661131fd22ca070d8a34620c18518758538ca0bd6344e59a8",
+    "page": "1eadde644f14894c1458eec6ee6576f64f94a465379cdac69f03e571f5e90ceb",
+    "image": "652e6e7dfd3f5d38854a84790ebe50603625fe9bae8954cb715aff224c6d30a6"
+  },
+  "hosted": {
+    "index": "66f02a9959a7ece661131fd22ca070d8a34620c18518758538ca0bd6344e59a8",
+    "page": "1eadde644f14894c1458eec6ee6576f64f94a465379cdac69f03e571f5e90ceb",
+    "image": "652e6e7dfd3f5d38854a84790ebe50603625fe9bae8954cb715aff224c6d30a6",
+    "mainAssets": {
+      "assets/game-Bw8dvOJd.js": {
+        "local": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+        "hosted": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+        "equal": true
+      },
+      "assets/art-CdVqsH0V.js": {
+        "local": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99",
+        "hosted": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99",
+        "equal": true
+      },
+      "assets/Geometry-C-KAI-lg.js": {
+        "local": "b9653cdf9c6b4ac522d0c5ddd925be3112865a88733af477641b3d7a143fcd35",
+        "hosted": "b9653cdf9c6b4ac522d0c5ddd925be3112865a88733af477641b3d7a143fcd35",
+        "equal": true
+      },
+      "assets/getTextureBatchBindGroup-pihDAS_4.js": {
+        "local": "b61835076ba2c1b16bbfba08fbcbdcfd2e1c9fc1d466de4f068fbe4d989b582a",
+        "hosted": "b61835076ba2c1b16bbfba08fbcbdcfd2e1c9fc1d466de4f068fbe4d989b582a",
+        "equal": true
+      },
+      "assets/colorToUniform-DL41jEn5.js": {
+        "local": "cf9c217961c0b218578d3f4f3f5bc1f470f75cb0c99a1c706bf5edf267c8cee9",
+        "hosted": "cf9c217961c0b218578d3f4f3f5bc1f470f75cb0c99a1c706bf5edf267c8cee9",
+        "equal": true
+      },
+      "assets/Graphics-CsW9cg1p.js": {
+        "local": "232eb6629ea38145b203ff66d4b697d88a5cb09853839ada52a66a65549997a3",
+        "hosted": "232eb6629ea38145b203ff66d4b697d88a5cb09853839ada52a66a65549997a3",
+        "equal": true
+      },
+      "assets/CanvasPool-By0Eloan.js": {
+        "local": "5da0869b6bb8d517fd061d7d187f08d1fc112fe4154e9e6e91a8e29e52c81415",
+        "hosted": "5da0869b6bb8d517fd061d7d187f08d1fc112fe4154e9e6e91a8e29e52c81415",
+        "equal": true
+      },
+      "assets/canvasUtils-CZUMlFnL.js": {
+        "local": "059e41f45feed7b1c1af72a535039bbda3272d94d2475114009e8bd816cf685d",
+        "hosted": "059e41f45feed7b1c1af72a535039bbda3272d94d2475114009e8bd816cf685d",
+        "equal": true
+      },
+      "assets/BatchableSprite-qOYjpB38.js": {
+        "local": "4dae68984da6e35e8638285cc9367bb0990289ea713297efcaea7041a2afaee3",
+        "hosted": "4dae68984da6e35e8638285cc9367bb0990289ea713297efcaea7041a2afaee3",
+        "equal": true
+      },
+      "assets/getPo2TextureFromSource-Bd14zXZG.js": {
+        "local": "1ee4b766aeeb0fe05b5fb907624041a71bcb32eb3969d45362846ba389389f61",
+        "hosted": "1ee4b766aeeb0fe05b5fb907624041a71bcb32eb3969d45362846ba389389f61",
+        "equal": true
+      },
+      "assets/game-CxFQJg3g.css": {
+        "local": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+        "hosted": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+        "equal": true
+      },
+      "assets/styles-BN-Rw34z.css": {
+        "local": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc",
+        "hosted": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc",
+        "equal": true
+      }
+    }
+  },
+  "normal": {
+    "title": "Goblin hospitality",
+    "caption": "“Especially up to his ankles.”",
+    "conceptLabel": "\n        A standalone AI-generated concept illustration for Levi's goblin-den\n        direction. Fictional satire, rather than an in-game screenshot.\n      ",
+    "naturalWidth": 1536,
+    "naturalHeight": 1024,
+    "scrollWidth": 1024,
+    "viewport": 1024
+  },
+  "narrow": {
+    "viewport": 390,
+    "scrollWidth": 390,
+    "imageLeft": 16,
+    "imageRight": 374,
+    "imageWidth": 358
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "success": true
+}

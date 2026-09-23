@@ -1,0 +1,131 @@
+{
+  "url": "http://127.0.0.1:5188/study.html",
+  "silhouettes": {
+    "rowan": {
+      "minHeight": 38,
+      "maxHeight": 41
+    },
+    "knight": {
+      "minHeight": 39,
+      "maxHeight": 42
+    },
+    "wizard": {
+      "minHeight": 45,
+      "maxHeight": 51
+    },
+    "goblin": {
+      "minHeight": 33,
+      "maxHeight": 36
+    },
+    "cat": {
+      "minHeight": 20,
+      "maxHeight": 25
+    }
+  },
+  "facing": [
+    {
+      "direction": 0,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    },
+    {
+      "direction": 1,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    },
+    {
+      "direction": 2,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    },
+    {
+      "direction": 3,
+      "pose": "idle",
+      "playing": false,
+      "frame": 0
+    }
+  ],
+  "paused": {
+    "direction": 0,
+    "pose": "walk",
+    "playing": false,
+    "frame": 7
+  },
+  "assignment": {
+    "character": "rowan",
+    "task": "chop-oak-1",
+    "cost": 112
+  },
+  "game": {
+    "tick": 135,
+    "paused": false,
+    "pawn": {
+      "x": 2,
+      "z": 1,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 80,
+      "task": null,
+      "from": {
+        "x": 2,
+        "z": 2
+      }
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 1,
+        "z": 1,
+        "felledAt": 135
+      },
+      {
+        "id": "oak-2",
+        "x": 5,
+        "z": 1,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 1,
+        "z": 4,
+        "felledAt": null
+      }
+    ],
+    "wood": 6,
+    "felled": 1,
+    "shelters": [],
+    "completed": 0,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 24
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Tree felled · +6 wood. Enough for a small shelter."
+  },
+  "errors": []
+}

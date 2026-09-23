@@ -1,0 +1,187 @@
+{
+  "proof": "colony-performance-browser",
+  "url": "https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance.html?size=256&workers=8&diagnostics=draw",
+  "selectedPreset": {
+    "size": 256,
+    "workers": 8
+  },
+  "workload": {
+    "kind": "finite-tree-felling",
+    "trees": 50,
+    "woodPerTree": 6,
+    "description": "The Colony performance page queues 50 finite trees for the selected party; observed wood output proves that this workload is live."
+  },
+  "output": "/home/levi/src/hive-worktrees/event-driven-scheduler-audit-20260923/.botanical/framework-preview-0c4ba551/browser-standard-8",
+  "sourceHashes": [
+    {
+      "path": "engine/colony-performance.html",
+      "sha256": "13b45c51825d2ad2011f4773ca76befa03cd3b51ae8d6458f051d477406bd496"
+    },
+    {
+      "path": "engine/src/client/performance-observer.js",
+      "sha256": "2c4bd4b9e85e3eb52925a7bec5b379f170671376d80c8a1bba71e663bf65386c"
+    },
+    {
+      "path": "engine/src/client/performance-page.js",
+      "sha256": "035094af3b99dca62fb7c1740b24092d070b3e4526e7cfa29b4dd8b13dfa19a6"
+    },
+    {
+      "path": "engine/src/games/colony-performance.ts",
+      "sha256": "960a12c1b00c9b5468a7af61a85980f421de3b371160143d4ce72cfc4ae3451c"
+    },
+    {
+      "path": "engine/src/runtime/remote-client.ts",
+      "sha256": "15d6ca1373a95e73ddc95af22857ba5d3b963dc1b86ab76cdac0d25f212090e4"
+    },
+    {
+      "path": "tools/public-engine-host/performance-browser-proof.mjs",
+      "sha256": "d68f5280f0d6819f5dc201283142004a3cd25cafadfde54654b98c1f780a217f"
+    },
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "021f4a1acade397ade6dab4c4586ddebed1472106e62377ec3793f376a23bead"
+    }
+  ],
+  "screenshot": "performance-browser.png",
+  "assertions": [
+    {
+      "name": "pixi-canvas",
+      "width": 846,
+      "height": 866,
+      "clientWidth": 846,
+      "clientHeight": 866
+    },
+    {
+      "name": "server-owned-finite-workload",
+      "felledTrees": 1,
+      "woodInventory": 0,
+      "browserWorkers": [],
+      "socketOrigins": [
+        "wss://hive-performance-engine-preview.levi-fe0.workers.dev"
+      ]
+    },
+    {
+      "name": "pause-requested"
+    },
+    {
+      "name": "pause-acknowledged"
+    },
+    {
+      "name": "resume-requested"
+    },
+    {
+      "name": "remote-pause-resume"
+    }
+  ],
+  "errors": [
+    "console: Failed to load resource: the server responded with a status of 404 ()",
+    "page/request errors: console: Failed to load resource: the server responded with a status of 404 ()\n\n1 !== 0\n",
+    "console: [state-listener-error] [Keymap] Error in state listener: Error: Minified React error #409; visit https://reactjs.org/docs/error-decoder.html?invariant=409 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.\n    at Zb.fl.render.qu.render (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:52638)\n    at ot (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:222839)\n    at Object.emit (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:99667)\n    at l (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:158747)\n    at Object.runWithStateChangeBatch (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:158923)\n    at #E (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:166196)\n    at R1.#k (https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:162208)\n    at https://framework-0c4ba551-fungi-goblin-bnb.levi-fe0.workers.dev/engine/assets/colony-RKt0axwS.js:13:175724"
+  ],
+  "measurements": {
+    "source": "durable-object",
+    "frames": 47,
+    "sequence": 119,
+    "simulationTime": 11.899999999999974,
+    "paused": false,
+    "simulationRate": 0.948547287872143,
+    "observationGap": {
+      "samples": 46,
+      "median": 251.79999995231628,
+      "p95": 357.39999985694885
+    },
+    "httpRoundTrip": {
+      "samples": 1,
+      "median": 1177.2000000476837,
+      "p95": 1177.2000000476837
+    },
+    "terrainStream": {
+      "requests": 1,
+      "cancelled": 0,
+      "receivedPatches": 102,
+      "receivedBytes": 1680797,
+      "retries": 0,
+      "retryAt": null,
+      "firstPatchMs": 232.20000004768372,
+      "pending": false,
+      "visibleComplete": true,
+      "demandComplete": true,
+      "visibleRegions": 60,
+      "readyVisibleRegions": 60,
+      "requestedRegions": 102,
+      "readyRegions": 102,
+      "cachedRegions": 102,
+      "capacity": 256,
+      "retainedBytes": 1680797,
+      "maxBytes": 33554432,
+      "error": null
+    },
+    "receivedBytes": 3888243,
+    "requests": 1,
+    "failedRequests": 0,
+    "observedWorkers": 8,
+    "movingWorkers": 6,
+    "wood": 0,
+    "stumps": 1,
+    "retainedSamples": {
+      "observations": 46,
+      "progression": 46,
+      "http": 1
+    }
+  },
+  "success": false,
+  "failureState": {
+    "body": "Build\nOrders / Work\nZones\nHIVE / COLONY PERFORMANCE\nDurable Object workload\n\nServer-owned Colony simulation, durable transactions and the shared game renderer. Each preset has its own private world.\n\n256×256 / 100-worker finite-water fixture · Historical distributed fixture\n\nWorld bounds\n64 × 64\n128 × 128\n256 × 256\n512 × 512\nWorkers\n8\n64×64\n128×128\n256×256\n512×512\nSimulation / real time\n0.9 simulated seconds / real second\nObserved server revision\n159\nObservation interval\n263.1 ms median · 464.9 ms p95 (58 samples)\nHTTP round trip\n337.3 ms median · 1177.2 ms p95 (3 samples)\nTerrain stream\n232.2 ms to first patch · 102 patches · 1,680,797 B patch payload · 1 streams\nReceived payload\n4,411,790 B · 3 HTTP requests · 0 failed\nWorkers observed / moving\n8 / 6\nFelled trees observed\n2\nObserved wood inventory\n6\nClient draw-order work\n44 structural publications · 527.7 ms total preparation · 51 local sparse candidates · 0 dense pair checks\nClient retained scene\n15746 records · 15685 dense slots · 102/256 cached regions · 60/60 visible · 102/102 with padding · 1,680,797/33,554,432 B retained payload\nDO CPU time\nNot available from the page; requires Cloudflare platform telemetry.\n\nThe finite workload has 50 trees in the central 64×64 area. Terrain and grass load around your camera across the selected world bounds. This tests the real DO workload and exploration; it does not establish sustained capacity at the selected worker count.\n\nHIVE / colony-performance-256-8\n256×256 Colony · DO\n\nThe server runs the world. Your browser draws it.\n\nOrder queued\n\nVoxel layer 19LowerHigherCutaway↶ ViewView ↷\nPause\nNew world\nInvite a friend\nOnline · server saved\nSelect a person or object to see its actions\nSelect a worker, choose Draft, then right-click to move. Pause isolates camera work from simulation.\nQ / E rotate camera\nView TypeScript source ↗\nHub\nColony\nSurvival\nFormations\nOld game",
+    "performance": {
+      "source": "durable-object",
+      "frames": 61,
+      "sequence": 159,
+      "simulationTime": 15.69999999999996,
+      "paused": false,
+      "simulationRate": 0.9275088204296961,
+      "observationGap": {
+        "samples": 58,
+        "median": 263.09999990463257,
+        "p95": 464.90000009536743
+      },
+      "httpRoundTrip": {
+        "samples": 3,
+        "median": 337.2999999523163,
+        "p95": 1177.2000000476837
+      },
+      "terrainStream": {
+        "requests": 1,
+        "cancelled": 0,
+        "receivedPatches": 102,
+        "receivedBytes": 1680797,
+        "retries": 0,
+        "retryAt": null,
+        "firstPatchMs": 232.20000004768372,
+        "pending": false,
+        "visibleComplete": true,
+        "demandComplete": true,
+        "visibleRegions": 60,
+        "readyVisibleRegions": 60,
+        "requestedRegions": 102,
+        "readyRegions": 102,
+        "cachedRegions": 102,
+        "capacity": 256,
+        "retainedBytes": 1680797,
+        "maxBytes": 33554432,
+        "error": null
+      },
+      "receivedBytes": 4411790,
+      "requests": 3,
+      "failedRequests": 0,
+      "observedWorkers": 8,
+      "movingWorkers": 6,
+      "wood": 6,
+      "stumps": 2,
+      "retainedSamples": {
+        "observations": 58,
+        "progression": 58,
+        "http": 3
+      }
+    }
+  }
+}

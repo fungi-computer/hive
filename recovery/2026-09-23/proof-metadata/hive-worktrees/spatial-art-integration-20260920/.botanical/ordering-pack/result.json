@@ -1,0 +1,79 @@
+{
+  "priorRevision": "1ded98e6e97df2b15dcd85b7d49e13b349ac1af4",
+  "allOriginalPngBytesIdentical": true,
+  "entryDataChangesOnlyOrderingAndCorrectedStairDatum": true,
+  "hashes": {
+    "ground.png": "6de2c2365c0ac20d0c6c4c3734b21d7589b67dbe4e3ddc4c3012f748f2ab234f",
+    "atlas-0.png": "dcc219f527e8687e84acd757dc90d8c9d11ab2b81864b0a47afb5db0e3eae758",
+    "atlas-1.png": "f04fe3e113df9859f406080f60df442cf1cdf554e37057a3a143ebb2965608f4",
+    "atlas-2.png": "0aece91f4872f59e3eb778160e4768ed638cda28417530f2b5f12e1b62953e1e",
+    "atlas-3.png": "b9936f94cb27efcec48186c5aceda8434c61b985ad9981d0d9a1df633eb5176d"
+  },
+  "loaded": {
+    "textures": 1957,
+    "parts": 36,
+    "bed": {
+      "kind": "volume",
+      "min": {
+        "x": -0.4050000011920929,
+        "y": 2.980232241545089e-10,
+        "z": -0.4399999976158142
+      },
+      "max": {
+        "x": 0.4050000011920929,
+        "y": 0.3275000000745058,
+        "z": 1.4399999976158142
+      }
+    },
+    "stair": [
+      {
+        "id": "rail.left",
+        "ordering": {
+          "kind": "volume",
+          "min": {
+            "x": -0.4899999986588955,
+            "y": -0.11549938684521832,
+            "z": -2.0429562930246448e-8
+          },
+          "max": {
+            "x": -0.3700000013411045,
+            "y": 2.82250000089407,
+            "z": 2.4000000029802324
+          }
+        }
+      },
+      {
+        "id": "rail.right",
+        "ordering": {
+          "kind": "volume",
+          "min": {
+            "x": 0.3700000013411045,
+            "y": -0.11549938684521832,
+            "z": -2.0429562930246448e-8
+          },
+          "max": {
+            "x": 0.4899999986588955,
+            "y": 2.82250000089407,
+            "z": 2.4000000029802324
+          }
+        }
+      },
+      {
+        "id": "surface",
+        "ordering": {
+          "kind": "volume",
+          "min": {
+            "x": -0.4225000032782555,
+            "y": -0.07999999910593034,
+            "z": -0.4600000041723251
+          },
+          "max": {
+            "x": 0.4225000032782555,
+            "y": 2.160000021895465,
+            "z": 2.460000004172325
+          }
+        }
+      }
+    ]
+  }
+}

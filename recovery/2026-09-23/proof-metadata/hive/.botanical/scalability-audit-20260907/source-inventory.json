@@ -1,0 +1,183 @@
+{
+  "timeUtc": "2026-09-07T08:49:56.855272+00:00",
+  "head": "016b1a02b009e798165bd4ba11653093cf4ee1c6",
+  "files": [
+    {
+      "path": "src/activity.ts",
+      "sha256": "405809fcca7ab30f6373b934d5f2fff2a02b14db4f2e21cd319d72f0da35679c",
+      "bytes": 4861
+    },
+    {
+      "path": "src/actors.ts",
+      "sha256": "5a615356603ca504a3dccbe4ceb5f9c8974476bb0a9ce42f49bf0ad68ee25e8c",
+      "bytes": 1196
+    },
+    {
+      "path": "src/art/clearing.js",
+      "sha256": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+      "bytes": 4739
+    },
+    {
+      "path": "src/art/figures.js",
+      "sha256": "4620917b83f6967836045645d228fcac358ca9a3368f98945e8c90c4d0bf222b",
+      "bytes": 15603
+    },
+    {
+      "path": "src/art/geometry.js",
+      "sha256": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+      "bytes": 2120
+    },
+    {
+      "path": "src/art/home.js",
+      "sha256": "4d4af1eb23b695318c0def911e14685fc1d4b8a7bf7d48a489b1cfbcdac17eb9",
+      "bytes": 3919
+    },
+    {
+      "path": "src/art/scale.js",
+      "sha256": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+      "bytes": 1188
+    },
+    {
+      "path": "src/art.js",
+      "sha256": "07ca6653ae4d5095d3f6b2d6b6e49b622026b6e47ab769ca273c864f5fbcb785",
+      "bytes": 3770
+    },
+    {
+      "path": "src/camera.js",
+      "sha256": "67e9aed79db159bf73209a2acb002f6fa2f3fb63ffee8d2a89be1f06b16a79a8",
+      "bytes": 1916
+    },
+    {
+      "path": "src/clearing.test.js",
+      "sha256": "36c1438a416daa8783d62c592f0b0d021ad45ecb49cc8db6fa6de7156e51aaf2",
+      "bytes": 20903
+    },
+    {
+      "path": "src/clearing.ts",
+      "sha256": "c22c99e2abb61a489c781acb8bb9a226b76577234a8c2a8617772512f276f919",
+      "bytes": 2928
+    },
+    {
+      "path": "src/colony.js",
+      "sha256": "5b3e28cd03c90833e6587f6002e2b37d2719fadd813f4252b1a00ceee5e7ebf7",
+      "bytes": 734
+    },
+    {
+      "path": "src/construction-view.js",
+      "sha256": "c4f6f174bdd97eb849f16321536867b896e7cd866e3940f9c97da7967bf2204a",
+      "bytes": 5711
+    },
+    {
+      "path": "src/construction.js",
+      "sha256": "1d7145d623fded0b2637b93e2dfbd4e4004739ba6769d6973acb23d27d73f794",
+      "bytes": 4034
+    },
+    {
+      "path": "src/feed.js",
+      "sha256": "d8158d73ebb28b29d9be80abc6ecc71542e595c2c7f14b10374fcab753a09718",
+      "bytes": 1290
+    },
+    {
+      "path": "src/hud.jsx",
+      "sha256": "2c161806cab43876976cbc170a907e9bad68bb64dd951ae8ca66a33bf565289f",
+      "bytes": 22385
+    },
+    {
+      "path": "src/jobs.ts",
+      "sha256": "cb7a0c290f1fe68a7d51dbc79f61e93e07ce6b9777d932f5693681e7bbf27700",
+      "bytes": 8468
+    },
+    {
+      "path": "src/keys.js",
+      "sha256": "46fd871fb46293f634452dd5ad8f82004e69928c5271f754391b7192c9917323",
+      "bytes": 3856
+    },
+    {
+      "path": "src/main.js",
+      "sha256": "0886d74b0c46fb954e83b493aeff293772bd543fc527d03e40be73557c257416",
+      "bytes": 15247
+    },
+    {
+      "path": "src/matching.ts",
+      "sha256": "47d925684260d12435edee4d1f6a3328fcb2c1ead0b56f7109059839654c1092",
+      "bytes": 1316
+    },
+    {
+      "path": "src/model.ts",
+      "sha256": "2e7d24835701d64c9820aa62191ed8b6b8a730f3341d7a60171f22d83eb55360",
+      "bytes": 3194
+    },
+    {
+      "path": "src/movement.js",
+      "sha256": "0fdba8ae06d9f14a9e0d9bb6ed9e54f796a1283836e809c0d91cdf94a006d370",
+      "bytes": 2061
+    },
+    {
+      "path": "src/orders.ts",
+      "sha256": "54dfd6368c2d6ec122cc5397f0d4fd7880b3e94f6c45595f8f329d2458deaf74",
+      "bytes": 6321
+    },
+    {
+      "path": "src/resources.ts",
+      "sha256": "62f046c2e6850ae6645de71e0b7e9bb313f1ec59907dacedec97be7442ca0e2e",
+      "bytes": 2910
+    },
+    {
+      "path": "src/routine.ts",
+      "sha256": "94ae44d570f41b31d2840d91077b6fb084a91237b4ae30a0957bf871073b8174",
+      "bytes": 1775
+    },
+    {
+      "path": "src/study.css",
+      "sha256": "721f40b0edc7fdc6e457291d35d42df21993fe4febfeb1ba1ad6e5e8ba287089",
+      "bytes": 5389
+    },
+    {
+      "path": "src/study.js",
+      "sha256": "d7178adc5b22984dc2710bdd757b91793b464db26fbdc0c6a06b960eb9b31d26",
+      "bytes": 16671
+    },
+    {
+      "path": "src/style.css",
+      "sha256": "e9a9422f5360a193b40b35098180f74d0cc5fcd4dfabd856f394e995d01be9da",
+      "bytes": 11496
+    },
+    {
+      "path": "src/ticker.js",
+      "sha256": "8d51c213581a150884b5ef9b2cea0ec87ea8b98eec78e9ae1b8e19b3901df0bb",
+      "bytes": 591
+    },
+    {
+      "path": "src/view.js",
+      "sha256": "3992b971ed427e4e02ef52605df2c5f2a29d73b155279d5e58f7773799c5b992",
+      "bytes": 10808
+    },
+    {
+      "path": "src/world.js",
+      "sha256": "d96f036caee3a63f463116ba8844978305f2c0778da60bf30bfcc01c2b4507be",
+      "bytes": 1226
+    },
+    {
+      "path": "package.json",
+      "sha256": "7e76dc77cc61aad0ec4adc62b2841f1e7f990bf3afaa207fcfca50456d78c27c",
+      "bytes": 1070
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "6c7329aba892cb3052f456b5061512fa055a378df6a010f4705359a14fdb8a4f",
+      "bytes": 292
+    },
+    {
+      "path": "PROTOTYPE.md",
+      "sha256": "156ebda0cce4d54ac4f86d0f09aca7b1ee4e2b7a4e64e1eee71f9810d927aee2",
+      "bytes": 34319
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "987d5e43747986c99e261496ff6fa1ef3f500f7556f67409b741b26db9c52073",
+      "bytes": 47825
+    }
+  ],
+  "changedDuringCapture": [],
+  "scope": "Read-only review snapshot of dirty candidate; not committed, released, or assumed atomic across live edits."
+}

@@ -1,0 +1,31 @@
+{
+  "status": "unavailable-no-rows",
+  "service": "hive-performance-engine-preview",
+  "version": "115f5b72-8972-448c-9f95-578999d1be0c",
+  "namespace": "bd5b2f67d9ed4de99db679ee85322921",
+  "window": {
+    "start": "2026-09-20T09:32:00Z",
+    "end": "2026-09-20T09:36:58Z"
+  },
+  "apiServerDate": "Sun, 20 Sep 2026 09:36:59 GMT",
+  "httpStatus": 200,
+  "graphqlErrors": null,
+  "invocationRows": 0,
+  "periodicRows": 0,
+  "scope": "Only new service namespace; invocation query also restricts script name. Would group per DO object and invocation type/status/version, not per request.",
+  "meaning": "Credentials permit namespace inspection and GraphQL query; both analytics datasets returned no rows. No CPU, wall, memory, or zero-cost claim is justified. The API gives no explicit reason for the empty result; ingestion delay is possible but unverified.",
+  "unitsFromIntrospection": {
+    "invocationCpuQuantiles": "microseconds",
+    "invocationWallQuantiles": "microseconds",
+    "periodicCpuSum": "microseconds",
+    "periodicMemoryQuantiles": "bytes, whole isolate"
+  },
+  "caveats": [
+    "Adaptive invocation aggregates are not simulation-step phase timings.",
+    "WebSocket connection invocations may appear only after closure.",
+    "Periodic CPU totals cannot be divided by HTTP requests to obtain tick CPU time."
+  ],
+  "source": "https://developers.cloudflare.com/durable-objects/observability/metrics-and-analytics/",
+  "proofScope": "run-u2735.scope",
+  "invocationId": "7d3f2f04672d43739bace7417d865f05"
+}

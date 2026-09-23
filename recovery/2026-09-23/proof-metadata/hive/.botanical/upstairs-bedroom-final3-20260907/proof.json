@@ -1,0 +1,71 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "output": ".botanical/upstairs-bedroom-final3-20260907",
+  "frozenTarget": {
+    "commit": "0615b7b",
+    "localAssets": {
+      "gameJs": "assets/game-oXUxTpMi.js",
+      "gameCss": "assets/game-CvQe2sTu.css",
+      "artJs": "assets/art-CdhlYy8V.js"
+    },
+    "localHashes": {
+      "index": "887252c3b6ee7796a66ce129e31ae1aa12b3ccc2b82111ce2c9f88dae88b29eb",
+      "gameJs": "4de3b51863bb32a0781b434b31f3d55dd52984fc452db0e05f4006502827bd08",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "4bf24a1a468d2ba795d34d3fb95ea6019cf42bc5641166ee04dc42200f8d3f95"
+    }
+  },
+  "servedParity": {
+    "indexUrl": "http://127.0.0.1:5188/",
+    "assets": {
+      "gameJs": "assets/game-oXUxTpMi.js",
+      "gameCss": "assets/game-CvQe2sTu.css",
+      "artJs": "assets/art-CdhlYy8V.js"
+    },
+    "hashes": {
+      "index": "887252c3b6ee7796a66ce129e31ae1aa12b3ccc2b82111ce2c9f88dae88b29eb",
+      "gameJs": "4de3b51863bb32a0781b434b31f3d55dd52984fc452db0e05f4006502827bd08",
+      "gameCss": "1321c9548f927b8ee60b36a6168e35b61a89f6b9e753362987bd7676ecc9a175",
+      "artJs": "4bf24a1a468d2ba795d34d3fb95ea6019cf42bc5641166ee04dc42200f8d3f95"
+    },
+    "matchesLocalDist": true
+  },
+  "scriptSha256": "12db7cfc6b45b1ed5b03927068a945424364741ad927df44323453f00281b0fe",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; one focused upstairs bedroom browser proof"
+  },
+  "screenshots": [
+    "normal-earned-48-oak.png"
+  ],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "claims": {
+    "newClearing": {
+      "paused": true,
+      "tick": 0,
+      "physicalWood": 0,
+      "homeMembers": [
+        "rowan"
+      ]
+    },
+    "recruit": {
+      "visibleSedge": true,
+      "homeMembers": [
+        "rowan",
+        "sedge"
+      ]
+    },
+    "earnedOak": {
+      "felled": 8,
+      "generatedWood": 48,
+      "physicalWood": 48,
+      "freeStock": false
+    }
+  },
+  "success": false,
+  "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nnull !== 'wall'\n\n    at file:///home/levi/src/hive/scripts/prove-upstairs-bedroom.mjs:405:10"
+}

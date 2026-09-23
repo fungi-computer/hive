@@ -1,0 +1,539 @@
+{
+  "scope": "600-particle closed 1m x 1.08m x 1m metric basin, 0.54m initial water; unmodified frozen DFSPH equations with accepted stable neighbor ordering; no game, portability, hydrostatic convergence or ledge claim",
+  "upstream": "f3f677140761db7637b5443beb54f19f1f835ed4",
+  "fixture": {
+    "waterMassKg": 540,
+    "waterVolumeM3": 0.54,
+    "waterHeightM": 0.54,
+    "innerBoxM": [
+      1,
+      1.08,
+      1
+    ],
+    "fluidGrid": [
+      10,
+      6,
+      10
+    ],
+    "boundarySubdivisions": [
+      20,
+      24,
+      20
+    ],
+    "dt": 0.001,
+    "steps": 1000
+  },
+  "criteria": {
+    "massDriftKg": 1e-09,
+    "centerIntrusionM": 1e-06,
+    "capHits": 0,
+    "impulseClosureRelativeMgDt": 1e-07,
+    "supportRelativeMg": 0.05,
+    "horizontalForceRelativeMg": 0.02,
+    "lateRmsSpeedMS": 0.05,
+    "lateComYErrorM": 0.027,
+    "lateComXZErrorM": 0.01,
+    "energyGrowthRelativeInitial": 0.02,
+    "bulkDensityMeanAbsoluteError": 0.03
+  },
+  "sources": {
+    "PROPOSAL.md": "426219c789354de50ff5382cebc9435da717b0f57f5e64609c120d6803bc0740",
+    "geometry.h": "7e5e8181d94e54e7fed574c53fa582a89feae7a9ab485eb01b33ce48ada18396",
+    "reference.cpp": "8d82d875e241443a42be938f7b43dcac9af38318282cf056553d49676df039be",
+    "reference": "42b913c712e1ee853e2fd09c2bca8e57325012e74dac8e74174f1f338c8074e6",
+    "compile-reference.py": "d468096f115bf3a14cf6ecd41a6b537885c9df7192a6a1a272fb30ddcd358f6f",
+    "compile-command.json": "eeafdbf0bf37bec83aa878d4239ab68e878e9db804f85c55ee00e0ba4379e84f",
+    "run-proof.py": "c491131a357bd43a23865a27b7e3609648d898c541739ae85bc10885eac94caa"
+  },
+  "frozenLibrarySha256": {
+    "build/lib/libSPlisHSPlasH.a": "68cb48d6331e3a86c695ee69edd8ccc6e8023fad30b4faa2bf017897e11d4d87",
+    "build/extern/install/NeighborhoodSearch/lib/libCompactNSearch.a": "1bb78be2e724e6d8da0f1a9ea04409c8bbe4e577faea8267139ce0c93623c8ad",
+    "stable-neighbor-order.patch": "374013b8a0033ca754f620107382e58aa5a9010b06010ab34ab7faeeeea38b14"
+  },
+  "pass": false,
+  "exit": 1,
+  "initial": {
+    "kind": "initial",
+    "state": {
+      "massKg": 539.999999999994,
+      "comM": [
+        0.5000000000000041,
+        0.27000000000000307,
+        0.5000000000000051
+      ],
+      "momentumKgMS": [
+        0,
+        0,
+        0
+      ],
+      "kineticJ": 0,
+      "potentialJ": 1430.2980000000027,
+      "maxSpeedMS": 0,
+      "minCenterClearanceM": 0.045000000000000005,
+      "nominalRadiusIntrusionM": 0.0070020955762976,
+      "equivalentVolumeSphereIntrusionM": 0.014894181369826204
+    },
+    "density": {
+      "all": {
+        "count": 600,
+        "minRatio": 0.8048921789110666,
+        "maxRatio": 1.7808772765948226,
+        "meanAbsoluteError": 0.30032845168702255
+      },
+      "bulk": {
+        "count": 72,
+        "minRatio": 1.0031451312754813,
+        "maxRatio": 1.0031451312754813,
+        "meanAbsoluteError": 0.0031451312754813276
+      },
+      "wall": {
+        "count": 456,
+        "minRatio": 0.8317336254823865,
+        "maxRatio": 1.7808772765948226,
+        "meanAbsoluteError": 0.37911921789934727
+      },
+      "surface": {
+        "count": 200,
+        "minRatio": 0.8048921789110666,
+        "maxRatio": 1.7425113744548095,
+        "meanAbsoluteError": 0.24004245632949414
+      }
+    }
+  },
+  "frames": [
+    {
+      "kind": "frame",
+      "step": 1,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.5000000000000058,
+          0.3155404777121814,
+          0.5000000000000057
+        ],
+        "momentumKgMS": [
+          -1.0372651018283675e-11,
+          24591.857964575887,
+          -1.0231785920919236e-11
+        ],
+        "kineticJ": 2159400.7350543784,
+        "potentialJ": 1671.5441266324908,
+        "maxSpeedMS": 215.24320629386915,
+        "minCenterClearanceM": -0.09527472772127706,
+        "nominalRadiusIntrusionM": 0.14727682329757466,
+        "equivalentVolumeSphereIntrusionM": 0.15516890909110326
+      },
+      "wallForceN": [
+        -1.0078434837056795e-08,
+        24597155.36457591,
+        -8.349176689293253e-09
+      ],
+      "impulseClosureKgMS": 2.5118936283180487e-11
+    },
+    {
+      "kind": "frame",
+      "step": 100,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.49984167854906225,
+          0.6378886605965541,
+          0.4997103720300916
+        ],
+        "momentumKgMS": [
+          -2.9034667851234355,
+          753.1651391727819,
+          -13.65936660101895
+        ],
+        "kineticJ": 1362539.571814353,
+        "potentialJ": 3379.1513906441483,
+        "maxSpeedMS": 275.95657526731503,
+        "minCenterClearanceM": -21.22900979344113,
+        "nominalRadiusIntrusionM": 21.281011889017428,
+        "equivalentVolumeSphereIntrusionM": 21.288903974810957
+      },
+      "wallForceN": [
+        64.4868540682377,
+        21756.88995628191,
+        -5872.107845185323
+      ],
+      "impulseClosureKgMS": 5.570222539420633e-12
+    },
+    {
+      "kind": "frame",
+      "step": 200,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.49894452789011123,
+          0.7699281045383339,
+          0.49838106991257763
+        ],
+        "momentumKgMS": [
+          -11.338026034364198,
+          537.6058772648706,
+          3.2609730822257696
+        ],
+        "kineticJ": 1357387.1144581314,
+        "potentialJ": 4078.617140981324,
+        "maxSpeedMS": 275.18187088265955,
+        "minCenterClearanceM": -42.99046479727148,
+        "nominalRadiusIntrusionM": 43.04246689284778,
+        "equivalentVolumeSphereIntrusionM": 43.050358978641306
+      },
+      "wallForceN": [
+        2664.2126307722883,
+        2408.745344251691,
+        -437.57642037335063
+      ],
+      "impulseClosureKgMS": 2.1237839917563575e-12
+    },
+    {
+      "kind": "frame",
+      "step": 300,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.4994361115765725,
+          0.8642636325215449,
+          0.49823264026549496
+        ],
+        "momentumKgMS": [
+          1.3179733641880411,
+          519.5771866839134,
+          7.3801287138629394
+        ],
+        "kineticJ": 1355799.7924530564,
+        "potentialJ": 4578.350166919585,
+        "maxSpeedMS": 274.4084864097612,
+        "minCenterClearanceM": -64.65381980110195,
+        "nominalRadiusIntrusionM": 64.70582189667824,
+        "equivalentVolumeSphereIntrusionM": 64.71371398247177
+      },
+      "wallForceN": [
+        -76.48429232341581,
+        5821.267646462485,
+        -274.5471971885226
+      ],
+      "impulseClosureKgMS": 1.4391312174020806e-12
+    },
+    {
+      "kind": "frame",
+      "step": 400,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.5032582083697217,
+          0.9518655997829627,
+          0.4996497285548893
+        ],
+        "momentumKgMS": [
+          -4.781322746808109,
+          396.5884369249807,
+          2.02336044290224
+        ],
+        "kineticJ": 1354853.0969623958,
+        "potentialJ": 5042.412828290205,
+        "maxSpeedMS": 273.6364330401043,
+        "minCenterClearanceM": -86.21907480493256,
+        "nominalRadiusIntrusionM": 86.27107690050886,
+        "equivalentVolumeSphereIntrusionM": 86.27896898630239
+      },
+      "wallForceN": [
+        -797.9226854226209,
+        4171.499757517576,
+        771.6722931221914
+      ],
+      "impulseClosureKgMS": 3.854596356164833e-12
+    },
+    {
+      "kind": "frame",
+      "step": 500,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.5024723277691938,
+          1.0233286676363638,
+          0.49817170539301947
+        ],
+        "momentumKgMS": [
+          8.323147625068522,
+          356.825238581087,
+          -9.145948242111734
+        ],
+        "kineticJ": 1354210.2159714526,
+        "potentialJ": 5420.981283936819,
+        "maxSpeedMS": 272.8657220724635,
+        "minCenterClearanceM": -107.68622980876329,
+        "nominalRadiusIntrusionM": 107.73823190433959,
+        "equivalentVolumeSphereIntrusionM": 107.74612399013311
+      },
+      "wallForceN": [
+        397.02786298176557,
+        4061.975022969249,
+        1050.4391211998832
+      ],
+      "impulseClosureKgMS": 8.20802631955132e-12
+    },
+    {
+      "kind": "frame",
+      "step": 600,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.5011543850265625,
+          1.076380472543893,
+          0.5008482584598247
+        ],
+        "momentumKgMS": [
+          -34.57187652702387,
+          242.15635345722623,
+          27.803953406405878
+        ],
+        "kineticJ": 1353776.424760591,
+        "potentialJ": 5702.017915253955,
+        "maxSpeedMS": 272.0963649138706,
+        "minCenterClearanceM": -129.05528481259415,
+        "nominalRadiusIntrusionM": 129.10728690817044,
+        "equivalentVolumeSphereIntrusionM": 129.11517899396398
+      },
+      "wallForceN": [
+        43.25662321267697,
+        4887.386502072536,
+        205.49702406676647
+      ],
+      "impulseClosureKgMS": 4.721333683608114e-12
+    },
+    {
+      "kind": "frame",
+      "step": 700,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.49915171589485186,
+          1.1103806401417073,
+          0.5021814545907908
+        ],
+        "momentumKgMS": [
+          4.863918609428274,
+          123.24299712300825,
+          2.8024704984360747
+        ],
+        "kineticJ": 1353482.4169239723,
+        "potentialJ": 5882.130403086607,
+        "maxSpeedMS": 271.32837308058595,
+        "minCenterClearanceM": -150.32623981642513,
+        "nominalRadiusIntrusionM": 150.3782419120014,
+        "equivalentVolumeSphereIntrusionM": 150.38613399779496
+      },
+      "wallForceN": [
+        262.83799409973994,
+        5002.823982763457,
+        245.93199015571707
+      ],
+      "impulseClosureKgMS": 5.141851084157816e-13
+    },
+    {
+      "kind": "frame",
+      "step": 800,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.4985332455790987,
+          1.1257060042003435,
+          0.5013407919566963
+        ],
+        "momentumKgMS": [
+          -8.929473613912457,
+          38.00306182077898,
+          -8.974963339221068
+        ],
+        "kineticJ": 1353309.1345271857,
+        "potentialJ": 5963.314986650838,
+        "maxSpeedMS": 270.5617581990718,
+        "minCenterClearanceM": -171.49909482025626,
+        "nominalRadiusIntrusionM": 171.55109691583255,
+        "equivalentVolumeSphereIntrusionM": 171.5589890016261
+      },
+      "wallForceN": [
+        -28.45703314492323,
+        4227.773286944386,
+        523.8276857197854
+      ],
+      "impulseClosureKgMS": 8.716135278729016e-13
+    },
+    {
+      "kind": "frame",
+      "step": 900,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.4974784153059256,
+          1.1205334058429037,
+          0.5020330757922558
+        ],
+        "momentumKgMS": [
+          -13.292700612052663,
+          -86.8416121695588,
+          0.9156878305018047
+        ],
+        "kineticJ": 1353273.3002987048,
+        "potentialJ": 5935.913664112135,
+        "maxSpeedMS": 269.79653200697066,
+        "minCenterClearanceM": -192.5738498240875,
+        "nominalRadiusIntrusionM": 192.62585191966377,
+        "equivalentVolumeSphereIntrusionM": 192.63374400545732
+      },
+      "wallForceN": [
+        81.39241158054224,
+        4551.922994325341,
+        -139.55872814859356
+      ],
+      "impulseClosureKgMS": 3.021768381156027e-12
+    },
+    {
+      "kind": "frame",
+      "step": 1000,
+      "state": {
+        "massKg": 539.999999999994,
+        "comM": [
+          0.4974868579371635,
+          1.0962950961392917,
+          0.5029930000368344
+        ],
+        "momentumKgMS": [
+          13.629515340255885,
+          -189.50157713559958,
+          16.896859259251297
+        ],
+        "kineticJ": 1353342.8164074018,
+        "potentialJ": 5807.51364228821,
+        "maxSpeedMS": 269.0327063540857,
+        "minCenterClearanceM": -213.55050482791887,
+        "nominalRadiusIntrusionM": 213.60250692349516,
+        "equivalentVolumeSphereIntrusionM": 213.6103990092887
+      },
+      "wallForceN": [
+        302.14642712779414,
+        3739.8621046213057,
+        29.563601683342085
+      ],
+      "impulseClosureKgMS": 5.1841037947405206e-12
+    }
+  ],
+  "result": {
+    "kind": "result",
+    "pass": false,
+    "criteria": {
+      "stockBoundaryCaps": false,
+      "impulseClosure": true,
+      "support": false,
+      "rest": false,
+      "energy": false,
+      "bulkDensity": false
+    },
+    "particles": 600,
+    "boundaryParticles": 2722,
+    "radiusM": 0.052002095576297605,
+    "supportRadiusM": 0.20800838230519042,
+    "particleVolumeM3": 0.0009000000000000002,
+    "particleMassKg": 0.9000000000000002,
+    "dtS": 0.001,
+    "steps": 1000,
+    "simulatedS": 1.0000000000000007,
+    "initializationMs": 5.201155,
+    "stepMs": 9349.151725,
+    "observationMs": 259.0977799999986,
+    "densityObservationMs": 15.463063,
+    "periodicOutputMs": 0.594066,
+    "sortMs": 513.436346,
+    "queryIncludingSortMs": 4367.711834000005,
+    "pressureSolveMs": 1876.420467000001,
+    "divergenceSolveMs": 2127.262581000004,
+    "sortLists": 1200000,
+    "sortEntries": 23333652,
+    "sortComparisons": 140086576,
+    "pressureCapHits": 1,
+    "divergenceCapHits": 0,
+    "maxPressureIterations": 100,
+    "maxDivergenceIterations": 20,
+    "maxMassDriftKg": 0,
+    "maxCenterIntrusionM": 213.55050482791887,
+    "maxSpeedMS": 276.7092891439702,
+    "worstImpulseClosureKgMS": 6.619482404847804e-11,
+    "worstImpulseClosureNormalized": 1.2495719418673079e-11,
+    "worstImpulseClosureStep": 3,
+    "lateDensityWallForceN": [
+      120.57032340726332,
+      2529.4969175775386,
+      92.98299298480507
+    ],
+    "lateDivergenceWallForceN": [
+      -48.438006433818686,
+      1685.1499856715045,
+      -4.774494362319212
+    ],
+    "supportRelativeError": 0.20439330553685908,
+    "horizontalForceRelativeMg": 0.021509896216491534,
+    "lateRmsSpeedMS": 70.7970443141517,
+    "lateMaxComYErrorM": 0.8567502795524251,
+    "lateMaxComXZErrorM": 0.0039081878471343996,
+    "maxEnergyGrowthRelative": 1693.7686007677685,
+    "lateKineticJ": 1353299.8005773737,
+    "lateKineticOverInitialPotential": 946.166323785233,
+    "maxDensityWarmRaw": 0.11344431083154644,
+    "maxDivergenceWarmRaw": 246.012138622105,
+    "finalState": {
+      "massKg": 539.999999999994,
+      "comM": [
+        0.4974868579371635,
+        1.0962950961392917,
+        0.5029930000368344
+      ],
+      "momentumKgMS": [
+        13.629515340255885,
+        -189.50157713559958,
+        16.896859259251297
+      ],
+      "kineticJ": 1353342.8164074018,
+      "potentialJ": 5807.51364228821,
+      "maxSpeedMS": 269.0327063540857,
+      "minCenterClearanceM": -213.55050482791887,
+      "nominalRadiusIntrusionM": 213.60250692349516,
+      "equivalentVolumeSphereIntrusionM": 213.6103990092887
+    },
+    "finalDensity": {
+      "all": {
+        "count": 600,
+        "minRatio": 0.25464790130683135,
+        "maxRatio": 1.0002410951189529,
+        "meanAbsoluteError": 0.3527793330515806
+      },
+      "bulk": {
+        "count": 38,
+        "minRatio": 0.6642653874884715,
+        "maxRatio": 0.8881035599352926,
+        "meanAbsoluteError": 0.20561855176986174
+      },
+      "wall": {
+        "count": 441,
+        "minRatio": 0.25464790130683135,
+        "maxRatio": 1.0002410951189529,
+        "meanAbsoluteError": 0.36240672224036424
+      },
+      "surface": {
+        "count": 348,
+        "minRatio": 0.25464790130683135,
+        "maxRatio": 1.000117821577638,
+        "meanAbsoluteError": 0.4345546117345613
+      }
+    }
+  },
+  "wallSeconds": 9.641795272997115,
+  "maxChildRssKiB": 21952,
+  "evidenceSha256": {
+    "final-particles.csv": "4a4bc763d871ac324e018565fb66719d635d9993b9c3392ce27f755250398a8d",
+    "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout": "d2020325584605b7e9aa3e0484a4adc4ca83a6b1946c8fdfcee9114f4e820983"
+  }
+}

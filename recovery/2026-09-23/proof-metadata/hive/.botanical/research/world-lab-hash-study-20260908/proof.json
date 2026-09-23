@@ -1,0 +1,69 @@
+{
+  "passed": true,
+  "scope": "scalar full sampleTerrain descriptor; same-process loaded-host comparison, not browser/worker/world-capacity proof",
+  "source": {
+    "source": "src/world-lab/terrain.js",
+    "source_sha256": "bcb6d5cb48579821715cd369af96a5b287ce2cdbbcc75723cdc4505ffd0b1452",
+    "candidate_sha256": "d5e5d3b6548eb341143b725ef5375bfb532ff9cd48b78290027dc2b36e7542b8",
+    "scope": "isolated source-preserving identity-prefix experiment; no tracked writes"
+  },
+  "samplesPerSeed": 3076,
+  "seeds": 2,
+  "equality": {
+    "exactFullDescriptors": true,
+    "namedFeatures": true,
+    "baseline": "3b5c3485e44e596f09ef7473fb5f5bc23d44fd3cecf1e9b486a733a618c473ee",
+    "candidate": "3b5c3485e44e596f09ef7473fb5f5bc23d44fd3cecf1e9b486a733a618c473ee",
+    "changedIdentityRevalidated": true
+  },
+  "rounds": [
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "milliseconds": 302.50880499999994,
+        "sink": 3446.0905570706673
+      },
+      "candidate": {
+        "milliseconds": 121.35979300000008,
+        "sink": 3446.0905570706673
+      },
+      "ratio": 2.4926608518523077
+    },
+    {
+      "order": "candidate-first",
+      "candidate": {
+        "milliseconds": 111.09318900000017,
+        "sink": 3393.848555225391
+      },
+      "baseline": {
+        "milliseconds": 228.5425969999999,
+        "sink": 3393.848555225391
+      },
+      "ratio": 2.057215199754501
+    },
+    {
+      "order": "baseline-first",
+      "baseline": {
+        "milliseconds": 186.70816100000002,
+        "sink": 3446.0905570706673
+      },
+      "candidate": {
+        "milliseconds": 207.03573099999994,
+        "sink": 3446.0905570706673
+      },
+      "ratio": 0.9018161266086001
+    },
+    {
+      "order": "candidate-first",
+      "candidate": {
+        "milliseconds": 133.4867320000003,
+        "sink": 3393.848555225391
+      },
+      "baseline": {
+        "milliseconds": 137.51005600000008,
+        "sink": 3393.848555225391
+      },
+      "ratio": 1.0301402539392437
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "path": "engine/src/client/action-bar.js",
+    "sha256": "2852d6c38c807d313314fc31161b7a43feb9d107f05a13d3084d44c53b986bfc"
+  },
+  {
+    "path": "engine/src/client/art-placement.js",
+    "sha256": "45a42bad43c90cca8355517627bb5ec0f67f10b880b097816d3e78387b09b224"
+  },
+  {
+    "path": "engine/src/client/build-placement.js",
+    "sha256": "9a6d8576b9b470cd108627508ea47a9c1878c4509c2684c83db8fb79159e7362"
+  },
+  {
+    "path": "engine/src/client/client.js",
+    "sha256": "81fc493c777354f9ddfbab9679b8f9b8a2e6ffb3c3a975a360c61fd255f94f3c"
+  },
+  {
+    "path": "engine/src/client/controls.js",
+    "sha256": "c5aba45dfad9914588d819d0fa8f5ff47b84d91df329fb1a0844b15d1b710ab4"
+  },
+  {
+    "path": "engine/src/client/cut-terrain-layer.js",
+    "sha256": "89acecc7ffdcb37925ebebf49d5cd5efd603986be3f5b6149d57f126c41ccabb"
+  },
+  {
+    "path": "engine/src/client/edge-gesture.js",
+    "sha256": "6e30104ff4ce479898894770aee21599454557accbdb586ee4b8ee365a7e1318"
+  },
+  {
+    "path": "engine/src/client/isometric-sorter.js",
+    "sha256": "3798d43e8fd964aba02207b1a46a4b6c468acd866e6ff3fbd527790afe302c85"
+  },
+  {
+    "path": "engine/src/client/terrain-chunk-cache.js",
+    "sha256": "62869810647dd557298140804c437bf0fea2ad183c914f21e6c11857e3f37397"
+  },
+  {
+    "path": "engine/src/client/terrain-face-batches.js",
+    "sha256": "d24bf810c7dc4473bad649db064067980872204355a092cb913b64d12dc9f321"
+  },
+  {
+    "path": "engine/src/client/terrain-visibility.js",
+    "sha256": "ead391fd87206e5cbec342f6fc9be648ff7600fc119271771f6801dcd38c307b"
+  },
+  {
+    "path": "engine/src/client/whistle-command.js",
+    "sha256": "5c72ad0aaf7eccc8a3acb4de641c08eecd29b913ba6fea2a9397e1c4c51c576a"
+  },
+  {
+    "path": "engine/src/games/colony-building.ts",
+    "sha256": "54f961ab6e5e697be69c5473d5f0b0c03c2a1194e4aa2850147e638efdd6b9fa"
+  },
+  {
+    "path": "engine/src/games/colony-party.ts",
+    "sha256": "a5d52259114e0d130cf232e43054f8bdd190575d91ea56f6cf28e867c02de8bf"
+  },
+  {
+    "path": "engine/src/games/colony.ts",
+    "sha256": "27318c56e600cafd863f9c7ef82d1e96458962f3a2acc932c3426987e2e847fd"
+  },
+  {
+    "path": "engine/src/runtime/remote-client.ts",
+    "sha256": "b50f2f3669cf7c400aa116356518f003a3311000aedd63d3e9914a77f86f267b"
+  },
+  {
+    "path": "public/generated-art/goblin-static-art-v6/manifest.json",
+    "sha256": "3fd7cd234ad305f1aa695e5ffa7818aa307719ad0f61d81f01e5677fbeecf56a"
+  },
+  {
+    "path": "src/art/terrain-faces.js",
+    "sha256": "1919f13e909fba459cdd1f59678d8fb666778d08aa006767ecab4e3b514233aa"
+  },
+  {
+    "path": "tools/public-engine-host/playable-browser-proof.mjs",
+    "sha256": "b7f34273f87424a8b3037002fa77b346c3f528e8b940d8ba7b46a815e8d64356"
+  },
+  {
+    "path": "tools/public-engine-host/protocol.ts",
+    "sha256": "ef6fc3294d531b0b67adab67ef720ba4ca1678841606517a802593a83dfb94aa"
+  },
+  {
+    "path": "tools/public-engine-host/worker.ts",
+    "sha256": "bf09d4610a328d4d6c310f3f68573037bcdd9212d4443ca619a5ace822c74487"
+  }
+]

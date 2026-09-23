@@ -1,0 +1,135 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "output": ".botanical/hosted-save-studies-smoke-20260907T133000Z",
+  "screenshots": [
+    "main-normal.png",
+    "devil-intended-scale.png",
+    "animal-intended-scale.png"
+  ],
+  "errors": [],
+  "redirects": [
+    {
+      "requested": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+      "final": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+      "status": 200
+    },
+    {
+      "requested": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study",
+      "final": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study",
+      "status": 200
+    },
+    {
+      "requested": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/devil-study.html",
+      "final": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/devil-study",
+      "status": 200
+    },
+    {
+      "requested": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/animal-study.html",
+      "final": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/animal-study",
+      "status": 200
+    }
+  ],
+  "claims": {
+    "mainStart": {
+      "finalUrl": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+      "menu": true,
+      "paused": true,
+      "tick": 0
+    },
+    "pausedSharedChop": {
+      "applied": true,
+      "tick": 29,
+      "job": {
+        "id": "job-1",
+        "kind": "chop",
+        "target": "oak-1",
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ordered",
+        "routine": false
+      }
+    },
+    "reloadSaved": {
+      "continueSavedClearing": true,
+      "paused": true,
+      "tick": 29,
+      "jobs": 1,
+      "revision": 3
+    },
+    "study": {
+      "finalUrl": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/study",
+      "canvases": [
+        {
+          "id": "",
+          "width": 640,
+          "height": 140,
+          "cssWidth": 1230,
+          "cssHeight": 269.0625,
+          "nonempty": true
+        },
+        {
+          "id": "",
+          "width": 360,
+          "height": 220,
+          "cssWidth": 357.96875,
+          "cssHeight": 218.765625,
+          "nonempty": true
+        }
+      ],
+      "pausedFrameHeld": true,
+      "turned": true,
+      "pose": "idle"
+    },
+    "devilStudy": {
+      "finalUrl": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/devil-study",
+      "canvases": [
+        {
+          "id": "court",
+          "width": 480,
+          "height": 260,
+          "cssWidth": 960,
+          "cssHeight": 520,
+          "nonempty": false
+        },
+        {
+          "id": "lineup",
+          "width": 480,
+          "height": 120,
+          "cssWidth": 960,
+          "cssHeight": 240,
+          "nonempty": true
+        }
+      ],
+      "pausedFrameHeld": true,
+      "pose": "walk",
+      "turned": true
+    },
+    "animalStudy": {
+      "finalUrl": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/animal-study",
+      "canvases": [
+        {
+          "id": "pasture",
+          "width": 512,
+          "height": 256,
+          "cssWidth": 1024,
+          "cssHeight": 512,
+          "nonempty": false
+        },
+        {
+          "id": "lineup",
+          "width": 512,
+          "height": 112,
+          "cssWidth": 1024,
+          "cssHeight": 224,
+          "nonempty": true
+        }
+      ],
+      "pausedFrameHeld": true,
+      "pose": "graze",
+      "turned": true
+    }
+  },
+  "success": true
+}

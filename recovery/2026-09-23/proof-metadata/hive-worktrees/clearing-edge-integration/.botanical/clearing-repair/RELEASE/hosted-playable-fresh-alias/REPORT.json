@@ -1,0 +1,1251 @@
+{
+  "proof": "clearing-playable-browser",
+  "frontend": "https://clearing-4692-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony?game=colony#world=[invite]",
+  "output": "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair/RELEASE/hosted-playable-fresh-alias",
+  "sourceInventory": [
+    {
+      "path": "engine/src/client/action-bar.js",
+      "sha256": "45568de5323bfbf290bc5e39ad4fa93aa2ddfc11ff87d98f7d07b0ee4cb4b527"
+    },
+    {
+      "path": "engine/src/client/art-placement.js",
+      "sha256": "45a42bad43c90cca8355517627bb5ec0f67f10b880b097816d3e78387b09b224"
+    },
+    {
+      "path": "engine/src/client/build-placement.js",
+      "sha256": "9a6d8576b9b470cd108627508ea47a9c1878c4509c2684c83db8fb79159e7362"
+    },
+    {
+      "path": "engine/src/client/client.js",
+      "sha256": "ca9b30d2db28aa5dfb5019269478e186fca886275c3622cc5deac04efd384bdb"
+    },
+    {
+      "path": "engine/src/client/controls.js",
+      "sha256": "612a14beae8971f99b963d7379579426015cf3789267246d6e979079b588f1e6"
+    },
+    {
+      "path": "engine/src/client/edge-gesture.js",
+      "sha256": "6e30104ff4ce479898894770aee21599454557accbdb586ee4b8ee365a7e1318"
+    },
+    {
+      "path": "engine/src/client/isometric-sorter.js",
+      "sha256": "baff4e001dcf1656fa0f124052ed8958c0644fdca5b433349ff2c995da2fe10c"
+    },
+    {
+      "path": "engine/src/client/terrain-band-plan.js",
+      "sha256": "4eb1b83bcdabf678f8474f17d02148593efa9f5c280847025e51972e9d21b041"
+    },
+    {
+      "path": "engine/src/client/terrain-layer.js",
+      "sha256": "f8fdbde420effd2baefc612ba87bf189f91beeee18294eda2ddddd242f462e1e"
+    },
+    {
+      "path": "engine/src/client/whistle-command.js",
+      "sha256": "5c72ad0aaf7eccc8a3acb4de641c08eecd29b913ba6fea2a9397e1c4c51c576a"
+    },
+    {
+      "path": "engine/src/games/colony-building.ts",
+      "sha256": "77942870246c3d6ed19b67f582ec0d1f61be2e2ee45c47c8b218744f35468137"
+    },
+    {
+      "path": "engine/src/games/colony-party.ts",
+      "sha256": "7adb9db1291c03355774e7b2530be0f03540643667870ba20ccf29476967145f"
+    },
+    {
+      "path": "engine/src/games/colony.ts",
+      "sha256": "fa6b9f5179eb39bf5482843bd87c927fd429b959deb546a64db48856b36d77e6"
+    },
+    {
+      "path": "engine/src/runtime/remote-client.ts",
+      "sha256": "ee87124881b0ed64006059688eb5208fbcb1000188dabb9606317ccd1adcb674"
+    },
+    {
+      "path": "public/generated-art/goblin-static-art-v6/manifest.json",
+      "sha256": "bc03df2f43dd8b7652b69a0647ff65f0986660c905e19e837a939544f8045761"
+    },
+    {
+      "path": "src/art/terrain-faces.js",
+      "sha256": "1919f13e909fba459cdd1f59678d8fb666778d08aa006767ecab4e3b514233aa"
+    },
+    {
+      "path": "tools/public-engine-host/playable-browser-proof.mjs",
+      "sha256": "d2c89e4e1eb77d04e6c47e27ae807de9b8467bb0eb84893a5a4ed1a0ec30c8a7"
+    },
+    {
+      "path": "tools/public-engine-host/protocol.ts",
+      "sha256": "5b28ec7326ea587216eb81771c43395ccd44efaa4204d8f44ac37580b27e2935"
+    },
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "437b8613e4f873bc90fc284a45ad4e7f4de277ed90681fa1520b779ab0655ff5"
+    }
+  ],
+  "limits": [
+    "One fresh browser context and one fresh invited world.",
+    "Public UI controls and HTTP receipts only; no page command injection or save mutation.",
+    "The driver does not start, build, deploy, or repair the frontend/backend.",
+    "Placement uses the visible-world gesture owner; if the built artifact cannot expose a target, the evidence records that limit."
+  ],
+  "assertions": [
+    {
+      "name": "fresh world joins one party with two people",
+      "party": "party:1",
+      "people": [
+        "party:1.person.0",
+        "party:1.person.1"
+      ]
+    },
+    {
+      "name": "camera reset follows an ordinary viewport resize",
+      "canvas": {
+        "width": 846.703125,
+        "height": 866
+      }
+    },
+    {
+      "name": "selection has no side effect",
+      "commandsAfterSelection": 0
+    },
+    {
+      "name": "Go is rejected before Draft",
+      "command": "go"
+    },
+    {
+      "name": "Draft appears in the persistent action dock"
+    },
+    {
+      "name": "Go submits after Draft"
+    },
+    {
+      "name": "dragging Dig area submits one area order",
+      "digCommands": 1
+    },
+    {
+      "name": "work state is observable after Undraft without locking the selected worker",
+      "stateExcerpt": "Order queued"
+    },
+    {
+      "name": "wall/door edge strokes plus floor/furniture placement use the shared visible-surface tool",
+      "builds": 10,
+      "wallEdges": [
+        {
+          "cell": [
+            2,
+            13,
+            0
+          ],
+          "axis": "z"
+        },
+        {
+          "cell": [
+            3,
+            13,
+            0
+          ],
+          "axis": "z"
+        }
+      ],
+      "doorEdges": [
+        {
+          "cell": [
+            3,
+            13,
+            2
+          ],
+          "axis": "x"
+        }
+      ]
+    },
+    {
+      "name": "floor replacement is attempted through the same Build floor command",
+      "replacementAccepted": true,
+      "floorIdentity": "colony.build.timber-floor.-1.13.1.north",
+      "bedReplacementTarget": [
+        1,
+        13,
+        1
+      ],
+      "brewerReplacementTarget": [
+        -1,
+        13,
+        1
+      ],
+      "bedArtHit": {
+        "path": [
+          "buildings",
+          "bed",
+          "finished",
+          0
+        ],
+        "pixel": {
+          "x": 48,
+          "y": 78,
+          "width": 41
+        },
+        "offset": [
+          0,
+          0
+        ],
+        "base": {
+          "x": 440.35156250000045,
+          "y": 236.6591073628368
+        },
+        "shifted": {
+          "x": 440.35156250000045,
+          "y": 236.6591073628368
+        }
+      },
+      "brewerArtHit": {
+        "path": [
+          "buildings",
+          "brew-station",
+          "profiles",
+          "empty",
+          0,
+          0
+        ],
+        "pixel": {
+          "x": 55,
+          "y": 82,
+          "width": 46
+        },
+        "offset": [
+          0,
+          0
+        ],
+        "base": {
+          "x": 376.35156250000034,
+          "y": 204.6591073628368
+        },
+        "shifted": {
+          "x": 376.35156250000034,
+          "y": 204.6591073628368
+        }
+      },
+      "limit": "The bounded browser proof observes command admission and identity; native completion remains covered by the joined construction laws."
+    },
+    {
+      "name": "stair and level picking controls are reachable",
+      "stair": true,
+      "levelUpDown": true
+    },
+    {
+      "name": "same build captured at 390px",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "name": "reload preserves credential, party, people, structures, and world revision",
+      "player": "player:1",
+      "party": "party:1",
+      "people": [
+        "party:1.person.0",
+        "party:1.person.1"
+      ],
+      "structureCount": 11,
+      "revision": 2440
+    },
+    {
+      "name": "second fresh context observes the first world and joins a distinct two-person party",
+      "firstParty": "party:1",
+      "firstPeople": [
+        "party:1.person.0",
+        "party:1.person.1"
+      ],
+      "secondParty": "party:2",
+      "secondPeople": [
+        "party:2.person.0",
+        "party:2.person.1"
+      ],
+      "revision": 2599
+    }
+  ],
+  "screenshots": [
+    "desktop-01-joined.png",
+    "desktop-02-drafted.png",
+    "desktop-03-dig-area.png",
+    "desktop-04-structures.png",
+    "desktop-05-stair-level.png",
+    "mobile-390.png"
+  ],
+  "join": {
+    "status": 200,
+    "player": "player:1",
+    "party": "party:1",
+    "people": [
+      "party:1.person.0",
+      "party:1.person.1"
+    ]
+  },
+  "commands": [
+    {
+      "name": "go",
+      "id": "a6b928e3-6d5c-4b71-8295-0a978ac9e43e",
+      "command": {
+        "kind": "command",
+        "name": "go",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ],
+          "destination": {
+            "x": -1,
+            "y": 7.290000000000001,
+            "z": 0,
+            "frame": null
+          }
+        }
+      },
+      "response": {
+        "status": 400,
+        "value": {
+          "error": "bad-request"
+        }
+      }
+    },
+    {
+      "name": "draft",
+      "id": "af5fa7f5-3d8e-4d76-81b2-36bb0f8385cf",
+      "command": {
+        "kind": "command",
+        "name": "draft",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "af5fa7f5-3d8e-4d76-81b2-36bb0f8385cf",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 221
+          },
+          "revision": 222,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "go",
+      "id": "4c3d5275-4809-4458-8a97-9b337b195ed3",
+      "command": {
+        "kind": "command",
+        "name": "go",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ],
+          "destination": {
+            "x": -1,
+            "y": 7.290000000000001,
+            "z": -1,
+            "frame": null
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "4c3d5275-4809-4458-8a97-9b337b195ed3",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 258
+          },
+          "revision": 260,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "dig",
+      "id": "1eebd50a-c3cf-4797-b681-69603156bac5",
+      "command": {
+        "kind": "command",
+        "name": "dig",
+        "input": {
+          "area": {
+            "start": [
+              0,
+              13,
+              -2
+            ],
+            "end": [
+              0,
+              13,
+              -1
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "1eebd50a-c3cf-4797-b681-69603156bac5",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 373
+          },
+          "revision": 376,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "undraft",
+      "id": "c71390cf-5a4f-4170-9c03-4a9316bf465a",
+      "command": {
+        "kind": "command",
+        "name": "undraft",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "c71390cf-5a4f-4170-9c03-4a9316bf465a",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 412
+          },
+          "revision": 416,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "0192b64c-4b50-4680-b141-e5f24904ae39",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                -1,
+                13,
+                1
+              ],
+              "end": [
+                -1,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "0192b64c-4b50-4680-b141-e5f24904ae39",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 550
+          },
+          "revision": 555,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "cf044adb-5d08-4ca1-832a-4c0510b3a775",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                0,
+                13,
+                1
+              ],
+              "end": [
+                0,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "cf044adb-5d08-4ca1-832a-4c0510b3a775",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 649
+          },
+          "revision": 655,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "1b890dbe-081a-4fb5-9a22-b15f4bac2fc3",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                1,
+                13,
+                1
+              ],
+              "end": [
+                1,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "1b890dbe-081a-4fb5-9a22-b15f4bac2fc3",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 761
+          },
+          "revision": 768,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "3d306fe8-411d-4fae-be7b-f2300c03b744",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                -1,
+                13,
+                2
+              ],
+              "end": [
+                -1,
+                13,
+                2
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "3d306fe8-411d-4fae-be7b-f2300c03b744",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 871
+          },
+          "revision": 879,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "c706ce58-a2f1-4cf6-a79f-def5653185fe",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                0,
+                13,
+                2
+              ],
+              "end": [
+                0,
+                13,
+                2
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "c706ce58-a2f1-4cf6-a79f-def5653185fe",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 986
+          },
+          "revision": 995,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "d9e27231-d7e7-4ff8-9793-b7059dd5e431",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                1,
+                13,
+                2
+              ],
+              "end": [
+                1,
+                13,
+                2
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "d9e27231-d7e7-4ff8-9793-b7059dd5e431",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 1097
+          },
+          "revision": 1107,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "b88bcf51-cf12-4772-ae07-9941b8874e3b",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "brew-station",
+          "orientation": "north",
+          "target": {
+            "cell": [
+              -1,
+              13,
+              1
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "b88bcf51-cf12-4772-ae07-9941b8874e3b",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 1242
+          },
+          "revision": 1253,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "a0e9ba39-d133-4059-a1e3-d63585a9bf2a",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-bed",
+          "orientation": "north",
+          "target": {
+            "cell": [
+              1,
+              13,
+              1
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "a0e9ba39-d133-4059-a1e3-d63585a9bf2a",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 1354
+          },
+          "revision": 1366,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "7859166f-1f1f-453c-9d75-d8ec69c6712d",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-wall",
+          "target": {
+            "edges": [
+              {
+                "cell": [
+                  2,
+                  13,
+                  0
+                ],
+                "axis": "z"
+              },
+              {
+                "cell": [
+                  3,
+                  13,
+                  0
+                ],
+                "axis": "z"
+              }
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "7859166f-1f1f-453c-9d75-d8ec69c6712d",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 1590
+          },
+          "revision": 1603,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "956d44da-0683-4694-bf12-87e081821a55",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-door",
+          "target": {
+            "edges": [
+              {
+                "cell": [
+                  3,
+                  13,
+                  2
+                ],
+                "axis": "x"
+              }
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "956d44da-0683-4694-bf12-87e081821a55",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 1741
+          },
+          "revision": 1755,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "d08599fb-b152-49aa-a7fd-0b878d5fa08a",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                1,
+                13,
+                1
+              ],
+              "end": [
+                1,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "d08599fb-b152-49aa-a7fd-0b878d5fa08a",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 1923
+          },
+          "revision": 1938,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "8ac3f2a6-f6dc-4b3a-a670-2533927b0e25",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                -1,
+                13,
+                1
+              ],
+              "end": [
+                -1,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "8ac3f2a6-f6dc-4b3a-a670-2533927b0e25",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 2042
+          },
+          "revision": 2058,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "c3924c57-7811-49d5-a0ae-07b6c1ed0b6b",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-stair",
+          "orientation": "north",
+          "target": {
+            "cell": [
+              3,
+              13,
+              3
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "c3924c57-7811-49d5-a0ae-07b6c1ed0b6b",
+          "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+          "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 2189
+          },
+          "revision": 2206,
+          "status": "applied"
+        }
+      }
+    }
+  ],
+  "commandResponses": [
+    {
+      "id": "a6b928e3-6d5c-4b71-8295-0a978ac9e43e",
+      "name": "go",
+      "status": 400,
+      "value": {
+        "error": "bad-request"
+      }
+    },
+    {
+      "id": "af5fa7f5-3d8e-4d76-81b2-36bb0f8385cf",
+      "name": "draft",
+      "status": 200,
+      "value": {
+        "commandId": "af5fa7f5-3d8e-4d76-81b2-36bb0f8385cf",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 221
+        },
+        "revision": 222,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "4c3d5275-4809-4458-8a97-9b337b195ed3",
+      "name": "go",
+      "status": 200,
+      "value": {
+        "commandId": "4c3d5275-4809-4458-8a97-9b337b195ed3",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 258
+        },
+        "revision": 260,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "1eebd50a-c3cf-4797-b681-69603156bac5",
+      "name": "dig",
+      "status": 200,
+      "value": {
+        "commandId": "1eebd50a-c3cf-4797-b681-69603156bac5",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 373
+        },
+        "revision": 376,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "c71390cf-5a4f-4170-9c03-4a9316bf465a",
+      "name": "undraft",
+      "status": 200,
+      "value": {
+        "commandId": "c71390cf-5a4f-4170-9c03-4a9316bf465a",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 412
+        },
+        "revision": 416,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "0192b64c-4b50-4680-b141-e5f24904ae39",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "0192b64c-4b50-4680-b141-e5f24904ae39",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 550
+        },
+        "revision": 555,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "cf044adb-5d08-4ca1-832a-4c0510b3a775",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "cf044adb-5d08-4ca1-832a-4c0510b3a775",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 649
+        },
+        "revision": 655,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "1b890dbe-081a-4fb5-9a22-b15f4bac2fc3",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "1b890dbe-081a-4fb5-9a22-b15f4bac2fc3",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 761
+        },
+        "revision": 768,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "3d306fe8-411d-4fae-be7b-f2300c03b744",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "3d306fe8-411d-4fae-be7b-f2300c03b744",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 871
+        },
+        "revision": 879,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "c706ce58-a2f1-4cf6-a79f-def5653185fe",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "c706ce58-a2f1-4cf6-a79f-def5653185fe",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 986
+        },
+        "revision": 995,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "d9e27231-d7e7-4ff8-9793-b7059dd5e431",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "d9e27231-d7e7-4ff8-9793-b7059dd5e431",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 1097
+        },
+        "revision": 1107,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "b88bcf51-cf12-4772-ae07-9941b8874e3b",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "b88bcf51-cf12-4772-ae07-9941b8874e3b",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 1242
+        },
+        "revision": 1253,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "a0e9ba39-d133-4059-a1e3-d63585a9bf2a",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "a0e9ba39-d133-4059-a1e3-d63585a9bf2a",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 1354
+        },
+        "revision": 1366,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "7859166f-1f1f-453c-9d75-d8ec69c6712d",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "7859166f-1f1f-453c-9d75-d8ec69c6712d",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 1590
+        },
+        "revision": 1603,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "956d44da-0683-4694-bf12-87e081821a55",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "956d44da-0683-4694-bf12-87e081821a55",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 1741
+        },
+        "revision": 1755,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "d08599fb-b152-49aa-a7fd-0b878d5fa08a",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "d08599fb-b152-49aa-a7fd-0b878d5fa08a",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 1923
+        },
+        "revision": 1938,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "8ac3f2a6-f6dc-4b3a-a670-2533927b0e25",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "8ac3f2a6-f6dc-4b3a-a670-2533927b0e25",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 2042
+        },
+        "revision": 2058,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "c3924c57-7811-49d5-a0ae-07b6c1ed0b6b",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "c3924c57-7811-49d5-a0ae-07b6c1ed0b6b",
+        "principal": "participant:fbee84e41cefccc8a77ba4b827c84a2ef79541d6403fb0ec2ca74aeb51230242",
+        "region": "public-v1-colony-d81d03dc2d3c940ab5cf49a9bd522738",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 2189
+        },
+        "revision": 2206,
+        "status": "applied"
+      }
+    }
+  ],
+  "errors": [],
+  "success": true
+}

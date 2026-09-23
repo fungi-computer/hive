@@ -1,0 +1,691 @@
+{
+  "proof": "clearing-playable-browser",
+  "frontend": "https://clearing-80e39fd9-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony.html?game=colony#world=[invite]",
+  "output": "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/clearing-releases/20260919T224751Z-6a56ac37-client-only/hosted-browser",
+  "sourceInventory": [
+    {
+      "path": "engine/src/client/action-bar.js",
+      "sha256": "2852d6c38c807d313314fc31161b7a43feb9d107f05a13d3084d44c53b986bfc"
+    },
+    {
+      "path": "engine/src/client/art-placement.js",
+      "sha256": "45a42bad43c90cca8355517627bb5ec0f67f10b880b097816d3e78387b09b224"
+    },
+    {
+      "path": "engine/src/client/build-placement.js",
+      "sha256": "9a6d8576b9b470cd108627508ea47a9c1878c4509c2684c83db8fb79159e7362"
+    },
+    {
+      "path": "engine/src/client/client.js",
+      "sha256": "81fc493c777354f9ddfbab9679b8f9b8a2e6ffb3c3a975a360c61fd255f94f3c"
+    },
+    {
+      "path": "engine/src/client/controls.js",
+      "sha256": "c5aba45dfad9914588d819d0fa8f5ff47b84d91df329fb1a0844b15d1b710ab4"
+    },
+    {
+      "path": "engine/src/client/cut-terrain-layer.js",
+      "sha256": "89acecc7ffdcb37925ebebf49d5cd5efd603986be3f5b6149d57f126c41ccabb"
+    },
+    {
+      "path": "engine/src/client/edge-gesture.js",
+      "sha256": "6e30104ff4ce479898894770aee21599454557accbdb586ee4b8ee365a7e1318"
+    },
+    {
+      "path": "engine/src/client/isometric-sorter.js",
+      "sha256": "3798d43e8fd964aba02207b1a46a4b6c468acd866e6ff3fbd527790afe302c85"
+    },
+    {
+      "path": "engine/src/client/terrain-chunk-cache.js",
+      "sha256": "62869810647dd557298140804c437bf0fea2ad183c914f21e6c11857e3f37397"
+    },
+    {
+      "path": "engine/src/client/terrain-face-batches.js",
+      "sha256": "d24bf810c7dc4473bad649db064067980872204355a092cb913b64d12dc9f321"
+    },
+    {
+      "path": "engine/src/client/terrain-visibility.js",
+      "sha256": "ead391fd87206e5cbec342f6fc9be648ff7600fc119271771f6801dcd38c307b"
+    },
+    {
+      "path": "engine/src/client/whistle-command.js",
+      "sha256": "5c72ad0aaf7eccc8a3acb4de641c08eecd29b913ba6fea2a9397e1c4c51c576a"
+    },
+    {
+      "path": "engine/src/games/colony-building.ts",
+      "sha256": "54f961ab6e5e697be69c5473d5f0b0c03c2a1194e4aa2850147e638efdd6b9fa"
+    },
+    {
+      "path": "engine/src/games/colony-party.ts",
+      "sha256": "a5d52259114e0d130cf232e43054f8bdd190575d91ea56f6cf28e867c02de8bf"
+    },
+    {
+      "path": "engine/src/games/colony.ts",
+      "sha256": "27318c56e600cafd863f9c7ef82d1e96458962f3a2acc932c3426987e2e847fd"
+    },
+    {
+      "path": "engine/src/runtime/remote-client.ts",
+      "sha256": "b50f2f3669cf7c400aa116356518f003a3311000aedd63d3e9914a77f86f267b"
+    },
+    {
+      "path": "public/generated-art/goblin-static-art-v6/manifest.json",
+      "sha256": "3fd7cd234ad305f1aa695e5ffa7818aa307719ad0f61d81f01e5677fbeecf56a"
+    },
+    {
+      "path": "src/art/terrain-faces.js",
+      "sha256": "1919f13e909fba459cdd1f59678d8fb666778d08aa006767ecab4e3b514233aa"
+    },
+    {
+      "path": "tools/public-engine-host/playable-browser-proof.mjs",
+      "sha256": "44fed03bc678b766bb6031fd5e308f8d2c596ae2a32ef62d5e8bc58d8591bfce"
+    },
+    {
+      "path": "tools/public-engine-host/protocol.ts",
+      "sha256": "ef6fc3294d531b0b67adab67ef720ba4ca1678841606517a802593a83dfb94aa"
+    },
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "bf09d4610a328d4d6c310f3f68573037bcdd9212d4443ca619a5ace822c74487"
+    }
+  ],
+  "limits": [
+    "One fresh browser context and one fresh invited world.",
+    "Public UI controls and HTTP receipts only; no page command injection or save mutation.",
+    "The driver does not start, build, deploy, or repair the frontend/backend.",
+    "Placement uses the visible-world gesture owner; if the built artifact cannot expose a target, the evidence records that limit."
+  ],
+  "assertions": [
+    {
+      "name": "fresh world joins one party with two people",
+      "party": "party:1",
+      "people": [
+        "party:1.person.0",
+        "party:1.person.1"
+      ]
+    },
+    {
+      "name": "camera reset follows an ordinary viewport resize",
+      "canvas": {
+        "width": 846.703125,
+        "height": 866
+      }
+    },
+    {
+      "name": "selection has no side effect",
+      "commandsAfterSelection": 0
+    },
+    {
+      "name": "Go is rejected before Draft",
+      "command": "go"
+    },
+    {
+      "name": "Draft appears in the persistent action dock"
+    },
+    {
+      "name": "Go submits after Draft"
+    },
+    {
+      "name": "dragging Dig area submits one area order",
+      "digCommands": 1
+    },
+    {
+      "name": "work state is observable after Undraft without locking the selected worker",
+      "stateExcerpt": "Order queued"
+    }
+  ],
+  "screenshots": [
+    "desktop-01-joined.png",
+    "desktop-02-drafted.png",
+    "desktop-03-dig-area.png",
+    "failure.png"
+  ],
+  "join": {
+    "status": 200,
+    "player": "player:1",
+    "party": "party:1",
+    "people": [
+      "party:1.person.0",
+      "party:1.person.1"
+    ]
+  },
+  "commands": [
+    {
+      "name": "go",
+      "id": "b72ccfc3-8386-4c96-b33d-2f59ec916b12",
+      "command": {
+        "kind": "command",
+        "name": "go",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ],
+          "destination": {
+            "x": -1,
+            "y": 7.290000000000001,
+            "z": 0,
+            "frame": null
+          }
+        }
+      },
+      "response": {
+        "status": 400,
+        "value": {
+          "error": "bad-request"
+        }
+      }
+    },
+    {
+      "name": "draft",
+      "id": "2fa89268-22d8-445f-a12e-8a2e51c02475",
+      "command": {
+        "kind": "command",
+        "name": "draft",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "2fa89268-22d8-445f-a12e-8a2e51c02475",
+          "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+          "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 59
+          },
+          "revision": 60,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "go",
+      "id": "6fb2918a-591f-4481-804c-031d53f1338c",
+      "command": {
+        "kind": "command",
+        "name": "go",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ],
+          "destination": {
+            "x": -1,
+            "y": 7.290000000000001,
+            "z": -1,
+            "frame": null
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "6fb2918a-591f-4481-804c-031d53f1338c",
+          "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+          "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 73
+          },
+          "revision": 75,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "dig",
+      "id": "790c152a-cd59-4779-a3a1-fb5c280cf885",
+      "command": {
+        "kind": "command",
+        "name": "dig",
+        "input": {
+          "area": {
+            "start": [
+              0,
+              13,
+              -2
+            ],
+            "end": [
+              0,
+              13,
+              -1
+            ]
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "790c152a-cd59-4779-a3a1-fb5c280cf885",
+          "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+          "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 359
+          },
+          "revision": 362,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "undraft",
+      "id": "1de438bc-cb11-4e37-9378-656628a1965c",
+      "command": {
+        "kind": "command",
+        "name": "undraft",
+        "input": {
+          "entities": [
+            "party:1.person.0"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "1de438bc-cb11-4e37-9378-656628a1965c",
+          "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+          "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 434
+          },
+          "revision": 438,
+          "status": "applied"
+        }
+      }
+    },
+    {
+      "name": "build",
+      "id": "08a9b9ff-285d-4996-ad8a-2698cb33f5cc",
+      "command": {
+        "kind": "command",
+        "name": "build",
+        "input": {
+          "catalog": "timber-floor",
+          "orientation": "north",
+          "target": {
+            "area": {
+              "start": [
+                -1,
+                13,
+                1
+              ],
+              "end": [
+                -1,
+                13,
+                1
+              ]
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "value": {
+          "commandId": "08a9b9ff-285d-4996-ad8a-2698cb33f5cc",
+          "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+          "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+          "result": {
+            "paused": false,
+            "results": [],
+            "tick": 726
+          },
+          "revision": 731,
+          "status": "applied"
+        }
+      }
+    }
+  ],
+  "commandResponses": [
+    {
+      "id": "b72ccfc3-8386-4c96-b33d-2f59ec916b12",
+      "name": "go",
+      "status": 400,
+      "value": {
+        "error": "bad-request"
+      }
+    },
+    {
+      "id": "2fa89268-22d8-445f-a12e-8a2e51c02475",
+      "name": "draft",
+      "status": 200,
+      "value": {
+        "commandId": "2fa89268-22d8-445f-a12e-8a2e51c02475",
+        "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+        "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 59
+        },
+        "revision": 60,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "6fb2918a-591f-4481-804c-031d53f1338c",
+      "name": "go",
+      "status": 200,
+      "value": {
+        "commandId": "6fb2918a-591f-4481-804c-031d53f1338c",
+        "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+        "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 73
+        },
+        "revision": 75,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "790c152a-cd59-4779-a3a1-fb5c280cf885",
+      "name": "dig",
+      "status": 200,
+      "value": {
+        "commandId": "790c152a-cd59-4779-a3a1-fb5c280cf885",
+        "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+        "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 359
+        },
+        "revision": 362,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "1de438bc-cb11-4e37-9378-656628a1965c",
+      "name": "undraft",
+      "status": 200,
+      "value": {
+        "commandId": "1de438bc-cb11-4e37-9378-656628a1965c",
+        "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+        "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 434
+        },
+        "revision": 438,
+        "status": "applied"
+      }
+    },
+    {
+      "id": "08a9b9ff-285d-4996-ad8a-2698cb33f5cc",
+      "name": "build",
+      "status": 200,
+      "value": {
+        "commandId": "08a9b9ff-285d-4996-ad8a-2698cb33f5cc",
+        "principal": "participant:048bddaf5fc6d4a85d015dd7c6c1e2e75a2f002d2db69801586b26075a966b8b",
+        "region": "public-v1-colony-915cddbc8a70a54394dde9c00ad0b0db",
+        "result": {
+          "paused": false,
+          "results": [],
+          "tick": 726
+        },
+        "revision": 731,
+        "status": "applied"
+      }
+    }
+  ],
+  "errors": [],
+  "success": false,
+  "failure": "locator.click: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Build floor', exact: true })\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" aria-pressed=\"true\" title=\"2 wood · floor · drag rectangle · north\" class=\"btn transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:border-base-300 disabled:bg-base-200 disabled:text-base-content disabled:outline-1 disabled:outline-dashed disabled:outline-base-content aria-disabled:border-base-300 aria-disabled:bg-base-200 aria-disabled:text-base-content aria-disabled:outline-1 aria-disabled:outline-…>Build floor</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    - waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m    - element is visible, enabled and stable\u001b[22m\n\u001b[2m    - scrolling into view if needed\u001b[22m\n\u001b[2m    - done scrolling\u001b[22m\n\n    at buildPoint (/home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/playable-browser-proof.mjs:468:47)\n    at async file:///home/levi/src/hive-worktrees/living-terrain-integration/tools/public-engine-host/playable-browser-proof.mjs:529:56",
+  "finalObservation": {
+    "revision": 22,
+    "time": 2.1000000000000005,
+    "facts": [
+      {
+        "id": "colony.guest.1",
+        "visual": "goblin.guest",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 3,
+            "y": 7.290000000000001,
+            "z": 1
+          }
+        }
+      },
+      {
+        "id": "colony.tree.oak",
+        "visual": "colony.tree",
+        "pose": {
+          "position": {
+            "x": 2,
+            "y": 7.290000000000001,
+            "z": 2
+          },
+          "facing": 0
+        }
+      },
+      {
+        "id": "colony.tree.pine",
+        "visual": "colony.tree",
+        "pose": {
+          "position": {
+            "x": -5,
+            "y": 7.290000000000001,
+            "z": 4
+          },
+          "facing": 0
+        }
+      },
+      {
+        "id": "colony.tree.willow",
+        "visual": "colony.tree",
+        "pose": {
+          "position": {
+            "x": 4,
+            "y": 6.75,
+            "z": -5
+          },
+          "facing": 0
+        }
+      },
+      {
+        "id": "party:1.person.0",
+        "visual": "colony.rowan",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 0,
+            "y": 7.290000000000001,
+            "z": 0
+          }
+        },
+        "inventory": {
+          "items": [
+            {
+              "kind": "pail",
+              "quantity": 1,
+              "id": "lot.1",
+              "container": {
+                "capacity": 7,
+                "contents": {
+                  "items": []
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "party:1.person.1",
+        "visual": "colony.sedge",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 2,
+            "y": 7.290000000000001,
+            "z": 0
+          }
+        },
+        "inventory": {
+          "items": [
+            {
+              "kind": "pail",
+              "quantity": 1,
+              "id": "lot.2",
+              "container": {
+                "capacity": 7,
+                "contents": {
+                  "items": []
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "party:1.starter-store",
+        "visual": "crate",
+        "pose": {
+          "facing": 0,
+          "position": {
+            "x": 4,
+            "y": 7.290000000000001,
+            "z": 0
+          }
+        },
+        "inventory": {
+          "items": [
+            {
+              "kind": "bread",
+              "quantity": 6
+            },
+            {
+              "kind": "malt",
+              "quantity": 4
+            },
+            {
+              "kind": "wood",
+              "quantity": 48
+            },
+            {
+              "kind": "barm",
+              "quantity": 1,
+              "id": "lot.6",
+              "container": {
+                "capacity": 1,
+                "contents": {
+                  "items": []
+                }
+              }
+            },
+            {
+              "kind": "keg",
+              "quantity": 1,
+              "id": "lot.7",
+              "container": {
+                "capacity": 4,
+                "contents": {
+                  "items": []
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "presentationFacts": [
+      {
+        "id": "party-store-party:1",
+        "label": "Party store",
+        "value": 62
+      },
+      {
+        "id": "worker-carried",
+        "label": "Workers carry",
+        "value": 2
+      },
+      {
+        "id": "worker-party:1.person.0-control",
+        "label": "Party worker",
+        "value": "automatic",
+        "subjects": [
+          "party:1.person.0"
+        ]
+      },
+      {
+        "id": "worker-party:1.person.1-control",
+        "label": "Party worker",
+        "value": "automatic",
+        "subjects": [
+          "party:1.person.1"
+        ]
+      },
+      {
+        "id": "worker-party:1.person.0-pail",
+        "label": "Pail",
+        "value": "Carried · in this worker's custody",
+        "subjects": [
+          "party:1.person.0"
+        ]
+      },
+      {
+        "id": "worker-party:1.person.1-pail",
+        "label": "Pail",
+        "value": "Carried · in this worker's custody",
+        "subjects": [
+          "party:1.person.1"
+        ]
+      },
+      {
+        "id": "guest-quantity",
+        "label": "Guest meal",
+        "value": 0,
+        "subjects": [
+          "colony.guest.1"
+        ]
+      },
+      {
+        "id": "dig-progress-party:1.person.0",
+        "label": "Worker digging",
+        "value": 0,
+        "subjects": [
+          "party:1.person.0"
+        ]
+      },
+      {
+        "id": "dig-progress-party:1.person.1",
+        "label": "Worker digging",
+        "value": 0,
+        "subjects": [
+          "party:1.person.1"
+        ]
+      },
+      {
+        "id": "spoil-carried",
+        "label": "Spoil carried",
+        "value": 0
+      },
+      {
+        "id": "spoil-ground",
+        "label": "Loose spoil",
+        "value": 0
+      },
+      {
+        "id": "dig-orders",
+        "label": "Dig orders",
+        "value": 0
+      },
+      {
+        "id": "dig-blocked",
+        "label": "Dig blocked",
+        "value": "none"
+      }
+    ],
+    "terrainMarks": []
+  }
+}

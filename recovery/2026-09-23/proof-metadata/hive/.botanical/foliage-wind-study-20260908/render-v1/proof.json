@@ -1,0 +1,413 @@
+{
+  "source": {
+    "src/art.js": "675c7abd86ad4f6d4222cd811db59b7e7eeaf03cffaf9108aad2f5c5d9e245ef",
+    "src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/world.js": "8fc6f6e7a2684c69092be35d436b7f547220cfc460de4e7bbd23054291c9ee8e",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/foliage-wind-study-20260908/wind.js": "2cd29ab6d62693a214385b53ed5358a3b0ddc278ad484470e4670e3198e0ac3d",
+    ".botanical/foliage-wind-study-20260908/study.js": "690095b28f92261cb4332ed16ef64a11d02df5c84876fd05bfd3c0d2f3a50f3c",
+    ".botanical/foliage-wind-study-20260908/index.html": "250a8b12833579ec29f2694ba2cffaa596adae2401d96113bd5dfae15d83524c",
+    ".botanical/foliage-wind-study-20260908/capture.mjs": "ad23ea43ad2a7d0f888f684adb48d0252ebea4106638eb69cad497849b783764"
+  },
+  "errors": [],
+  "passed": false,
+  "report": {
+    "ready": true,
+    "frames": 4,
+    "playing": false,
+    "phase": 3,
+    "lastPicked": null,
+    "rows": [
+      {
+        "id": "standing",
+        "hashes": [
+          "49aed7ba1a96a9e77e31106183e97352286c0423ccfe409ceba839c3c503cc2f",
+          "5dde867dd2f4de718ee950d0c02eab294a85e18d95ddc52ce95c180665270718",
+          "4fc8fc0e3b05b138749a7d5e1baa7ef49d0addfb5625fa3323f8315d11e0fa56",
+          "4b857d04cf3b7909ea8a63e460faa0e362eceafbac2e2cba8b952db47f434333",
+          "49aed7ba1a96a9e77e31106183e97352286c0423ccfe409ceba839c3c503cc2f",
+          "2e2a20450e43b127815466c090fb43da0de37312367d2be1d3dadebf6a1a9ed6",
+          "fb861200b9ff3f29dbab12e4229d68058ebdede74e2b414b9d839a454fcfdf66",
+          "5e4fb2800db5628db9dd86e260f99770ac814a0df3bd0ba47266f14e6b6f1972"
+        ],
+        "bounds": [
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1943,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1942,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1935,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1936,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1943,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 82,
+            "maxY": 83,
+            "count": 1958,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 82,
+            "maxY": 83,
+            "count": 1955,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 82,
+            "maxY": 83,
+            "count": 1950,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "notched",
+        "hashes": [
+          "91c2fd79b775246237d44ee4cc28f7ab64ea8e10648a9b31b209ac97b2670da5",
+          "01630665b6fc43670106562f6ede79ca02ad1a42ae7302f1215ac9cd352f4149",
+          "cf89958f20fc7c5726a1f76559167ba84c9a9569e788053da72bc7a9ec2bd871",
+          "46948a3cfa87e6f4e8a91ad833fe8a68a78f65683f61f2b3028b40afa0f0da72",
+          "91c2fd79b775246237d44ee4cc28f7ab64ea8e10648a9b31b209ac97b2670da5",
+          "2b17e4ff73c6799f6b610b46b25aa1834114aa8483f64c5e098d64fb6f053161",
+          "555698f1ad66fa8ea4429cff807026e3c79d62f3828106c671e54927c3f41a2f",
+          "37988f844ccc1f7cd3911d921ef294509bbeb59c09fe920b22e45c83b4091336"
+        ],
+        "bounds": [
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1948,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1947,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1940,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1941,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 14,
+            "maxX": 83,
+            "maxY": 83,
+            "count": 1948,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 82,
+            "maxY": 83,
+            "count": 1963,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 82,
+            "maxY": 83,
+            "count": 1960,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 82,
+            "maxY": 83,
+            "count": 1955,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "stump",
+        "hashes": [
+          "dba97abbdb65a00d0fbec1129323d207923b791e98951d13199dac27beef0879"
+        ],
+        "bounds": [
+          {
+            "minX": 43,
+            "minY": 67,
+            "maxX": 67,
+            "maxY": 83,
+            "count": 280,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "grass",
+        "hashes": [
+          "cc6aee949bb731a19c83f31514cb6feb5152e230998d89b6be14f963aef59931",
+          "e9202e8a2009d954591ef75ccd0f9c731c41703666e1ddb9cf5234674e842d29",
+          "2104a1ba2155a73f16dcc43d29f978d2d904cfa7e931881a06700fc23fab1e39",
+          "2283ef7c9f8c7e172eef99bbaac77fa365a1f3a575fff647504b58b2b711ca60",
+          "cc6aee949bb731a19c83f31514cb6feb5152e230998d89b6be14f963aef59931",
+          "6db6ea8026887a9d09ff4260b583bfccf7f71443b6910d1b23e057e428dca5b6",
+          "a77a95e23e434f00ca5c9cc4756b43533d12d43bd2b41305f0df41ce2cfc32e9",
+          "aa9b5ab5cec565417e9260ff68054df03c02818eba4a7aea408d9941e54c217b"
+        ],
+        "bounds": [
+          {
+            "minX": 10,
+            "minY": 9,
+            "maxX": 19,
+            "maxY": 23,
+            "count": 94,
+            "clipped": false
+          },
+          {
+            "minX": 11,
+            "minY": 9,
+            "maxX": 20,
+            "maxY": 23,
+            "count": 87,
+            "clipped": false
+          },
+          {
+            "minX": 11,
+            "minY": 10,
+            "maxX": 20,
+            "maxY": 23,
+            "count": 90,
+            "clipped": false
+          },
+          {
+            "minX": 10,
+            "minY": 9,
+            "maxX": 20,
+            "maxY": 23,
+            "count": 91,
+            "clipped": false
+          },
+          {
+            "minX": 10,
+            "minY": 9,
+            "maxX": 19,
+            "maxY": 23,
+            "count": 94,
+            "clipped": false
+          },
+          {
+            "minX": 9,
+            "minY": 8,
+            "maxX": 19,
+            "maxY": 23,
+            "count": 106,
+            "clipped": false
+          },
+          {
+            "minX": 10,
+            "minY": 8,
+            "maxX": 19,
+            "maxY": 23,
+            "count": 100,
+            "clipped": false
+          },
+          {
+            "minX": 8,
+            "minY": 10,
+            "maxX": 19,
+            "maxY": 23,
+            "count": 107,
+            "clipped": false
+          }
+        ]
+      }
+    ],
+    "neutralParity": {
+      "standing": true,
+      "notched": true,
+      "stump": true
+    },
+    "fixedWood": {
+      "standing": true,
+      "notched": true,
+      "stump": true
+    },
+    "textureCount": 29,
+    "rgbaBytes": 2060288
+  },
+  "clicks": [
+    {
+      "frame": 0,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 0,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 0,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 1,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 1,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 1,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 2,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 2,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 2,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 3,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 3,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 3,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 4,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 4,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 4,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 5,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 5,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 5,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 6,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 6,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 6,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    },
+    {
+      "frame": 7,
+      "id": "tree-standing",
+      "actual": "tree-standing"
+    },
+    {
+      "frame": 7,
+      "id": "tree-notched",
+      "actual": "tree-notched"
+    },
+    {
+      "frame": 7,
+      "id": "tree-stump",
+      "actual": "tree-stump"
+    }
+  ],
+  "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'tree-stump'\n- 'background'\n\n    at file:///home/levi/src/hive/.botanical/foliage-wind-study-20260908/capture.mjs:45:10"
+}

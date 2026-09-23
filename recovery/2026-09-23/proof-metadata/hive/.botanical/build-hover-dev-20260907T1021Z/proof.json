@@ -1,0 +1,42 @@
+{
+  "url": "http://127.0.0.1:5187/",
+  "errors": [],
+  "first": {
+    "x": 688,
+    "y": 410
+  },
+  "beforeHover": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": "wall",
+    "phase": "ready",
+    "gesture": null,
+    "hoverCell": null
+  },
+  "afterHover": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": "wall",
+    "phase": "ready",
+    "gesture": null,
+    "hoverCell": {
+      "x": 4,
+      "z": 5,
+      "level": 0
+    }
+  },
+  "success": false,
+  "failure": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-build=\"wall\"]')\u001b[22m\n\n    at /home/levi/src/hive/scripts/prove-build-hover.mjs:73:45"
+}

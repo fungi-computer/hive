@@ -1,0 +1,5429 @@
+{
+  "url": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "initial": {
+    "seed": 42,
+    "tick": 50,
+    "paused": false,
+    "nextId": 1,
+    "pawn": {
+      "x": 7,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 79.39999999999998
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "A borrowed axe. No home. Bramble seems optimistic."
+  },
+  "waiting": {
+    "seed": 42,
+    "tick": 164,
+    "paused": false,
+    "nextId": 3,
+    "pawn": {
+      "x": 7,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 78.03199999999993
+    },
+    "cat": {
+      "x": 7,
+      "z": 11,
+      "level": 0,
+      "dir": 3,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 200
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-2",
+        "kind": "build",
+        "target": "site-1",
+        "reason": "Waiting for reachable wood"
+      }
+    ],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 137
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Blueprint placed. Rowan will bring wood when it is available."
+  },
+  "chopping": {
+    "seed": 42,
+    "tick": 386,
+    "paused": false,
+    "nextId": 6,
+    "pawn": {
+      "x": 4,
+      "z": 4,
+      "level": 0,
+      "dir": 3,
+      "mode": "chop",
+      "path": [],
+      "leg": 0,
+      "work": 13,
+      "task": {
+        "id": "job-5:chop:oak-1",
+        "job": "job-5",
+        "kind": "chop",
+        "target": "oak-1",
+        "duration": 80
+      },
+      "carry": 0,
+      "carryTo": null,
+      "rest": 75.36799999999982
+    },
+    "cat": {
+      "x": 7,
+      "z": 9,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 400
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 13,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-4",
+        "kind": "build",
+        "target": "site-3",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-5",
+        "kind": "chop",
+        "target": "oak-1",
+        "reason": "Ready to chop"
+      }
+    ],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-5:chop:oak-1",
+      "cost": 134
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 137
+      },
+      {
+        "kind": "cancel",
+        "job": "job-2",
+        "tick": 219
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 277
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 319
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Work added to Rowan's orders."
+  },
+  "carrying": {
+    "seed": 42,
+    "tick": 468,
+    "paused": false,
+    "nextId": 7,
+    "pawn": {
+      "x": 3,
+      "z": 4,
+      "level": 0,
+      "dir": 1,
+      "mode": "walk",
+      "path": [
+        {
+          "x": 4,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 5,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 6,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 6,
+          "z": 5,
+          "level": 0
+        }
+      ],
+      "leg": 1,
+      "work": 0,
+      "task": {
+        "id": "job-4:deliver:site-3",
+        "job": "job-4",
+        "kind": "deliver",
+        "target": "site-3",
+        "duration": 8
+      },
+      "carry": 1,
+      "carryTo": "site-3",
+      "rest": 74.38399999999979
+    },
+    "cat": {
+      "x": 5,
+      "z": 4,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 500
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 453
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-6",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-4",
+        "kind": "build",
+        "target": "site-3",
+        "reason": "Ready to haul wood"
+      }
+    ],
+    "felled": 1,
+    "finishedJobs": 1,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-4:deliver:site-3",
+      "cost": 32
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 137
+      },
+      {
+        "kind": "cancel",
+        "job": "job-2",
+        "tick": 219
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 277
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 319
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "1 wood in hand. Taking it to the timber wall."
+  },
+  "building": {
+    "seed": 42,
+    "tick": 510,
+    "paused": false,
+    "nextId": 7,
+    "pawn": {
+      "x": 6,
+      "z": 5,
+      "level": 0,
+      "dir": 1,
+      "mode": "build",
+      "path": [],
+      "leg": 0,
+      "work": 10,
+      "task": {
+        "id": "job-4:build:site-3",
+        "job": "job-4",
+        "kind": "build",
+        "target": "site-3",
+        "duration": 32
+      },
+      "carry": 0,
+      "carryTo": null,
+      "rest": 73.87999999999977
+    },
+    "cat": {
+      "x": 6,
+      "z": 4,
+      "level": 0,
+      "dir": 0,
+      "mode": "walk",
+      "path": [
+        {
+          "x": 6,
+          "z": 5,
+          "level": 0
+        },
+        {
+          "x": 6,
+          "z": 6,
+          "level": 0
+        }
+      ],
+      "leg": 4,
+      "work": 0,
+      "task": null,
+      "nextMove": 600
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 453
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-6",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 10,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-4",
+        "kind": "build",
+        "target": "site-3",
+        "reason": "Ready to build"
+      }
+    ],
+    "felled": 1,
+    "finishedJobs": 1,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-4:build:site-3",
+      "cost": 32
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 137
+      },
+      {
+        "kind": "cancel",
+        "job": "job-2",
+        "tick": 219
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 277
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 319
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Wood delivered. Now the building can take shape."
+  },
+  "finished": {
+    "seed": 42,
+    "tick": 532,
+    "paused": false,
+    "nextId": 7,
+    "pawn": {
+      "x": 6,
+      "z": 5,
+      "level": 0,
+      "dir": 1,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 73.61599999999976
+    },
+    "cat": {
+      "x": 6,
+      "z": 6,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 600
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 453
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-6",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 532
+      }
+    ],
+    "jobs": [],
+    "felled": 1,
+    "finishedJobs": 2,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 137
+      },
+      {
+        "kind": "cancel",
+        "job": "job-2",
+        "tick": 219
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 277
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 319
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Timber wall finished. A little less wilderness."
+  },
+  "plan": {
+    "seed": 42,
+    "tick": 3290,
+    "paused": false,
+    "nextId": 35,
+    "pawn": {
+      "x": 7,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 40.519999999998504
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 3300
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-2",
+        "kind": "build",
+        "target": "site-1",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-4",
+        "kind": "build",
+        "target": "site-3",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-6",
+        "kind": "build",
+        "target": "site-5",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-8",
+        "kind": "build",
+        "target": "site-7",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-10",
+        "kind": "build",
+        "target": "site-9",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-12",
+        "kind": "build",
+        "target": "site-11",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-14",
+        "kind": "build",
+        "target": "site-13",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-16",
+        "kind": "build",
+        "target": "site-15",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-18",
+        "kind": "build",
+        "target": "site-17",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-20",
+        "kind": "build",
+        "target": "site-19",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-22",
+        "kind": "build",
+        "target": "site-21",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-24",
+        "kind": "build",
+        "target": "site-23",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-26",
+        "kind": "build",
+        "target": "site-25",
+        "reason": "Waiting for reachable wood"
+      },
+      {
+        "id": "job-28",
+        "kind": "build",
+        "target": "site-27",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-30",
+        "kind": "build",
+        "target": "site-29",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-32",
+        "kind": "build",
+        "target": "site-31",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-34",
+        "kind": "build",
+        "target": "site-33",
+        "reason": "Waiting for enclosing walls and a doorway"
+      }
+    ],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Blueprint placed. Rowan will bring wood when it is available."
+  },
+  "inProgress": {
+    "seed": 42,
+    "tick": 3834,
+    "paused": false,
+    "nextId": 40,
+    "pawn": {
+      "x": 7,
+      "z": 4,
+      "level": 0,
+      "dir": 3,
+      "mode": "walk",
+      "path": [
+        {
+          "x": 6,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 5,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 4,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 3,
+          "z": 4,
+          "level": 0
+        }
+      ],
+      "leg": 0,
+      "work": 0,
+      "task": {
+        "id": "job-8:pickup:wood-37",
+        "job": "job-8",
+        "kind": "pickup",
+        "target": "wood-37",
+        "duration": 8,
+        "site": "site-7",
+        "deliveryDistance": 6
+      },
+      "carry": 0,
+      "carryTo": null,
+      "rest": 33.99199999999826
+    },
+    "cat": {
+      "x": 7,
+      "z": 4,
+      "level": 0,
+      "dir": 1,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 3900
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 3561
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-37",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 3
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3634
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3725
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3828
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 0,
+        "work": 0,
+        "finishedAt": null
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-8",
+        "kind": "build",
+        "target": "site-7",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-10",
+        "kind": "build",
+        "target": "site-9",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-12",
+        "kind": "build",
+        "target": "site-11",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-14",
+        "kind": "build",
+        "target": "site-13",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-16",
+        "kind": "build",
+        "target": "site-15",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-18",
+        "kind": "build",
+        "target": "site-17",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-20",
+        "kind": "build",
+        "target": "site-19",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-22",
+        "kind": "build",
+        "target": "site-21",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-24",
+        "kind": "build",
+        "target": "site-23",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-26",
+        "kind": "build",
+        "target": "site-25",
+        "reason": "Ready to haul wood"
+      },
+      {
+        "id": "job-28",
+        "kind": "build",
+        "target": "site-27",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-30",
+        "kind": "build",
+        "target": "site-29",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-32",
+        "kind": "build",
+        "target": "site-31",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-34",
+        "kind": "build",
+        "target": "site-33",
+        "reason": "Waiting for enclosing walls and a doorway"
+      },
+      {
+        "id": "job-36",
+        "kind": "chop",
+        "target": "oak-2",
+        "reason": "Ready to chop"
+      },
+      {
+        "id": "job-38",
+        "kind": "chop",
+        "target": "oak-3",
+        "reason": "Ready to chop"
+      },
+      {
+        "id": "job-39",
+        "kind": "chop",
+        "target": "oak-4",
+        "reason": "Ready to chop"
+      }
+    ],
+    "felled": 1,
+    "finishedJobs": 4,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-8:pickup:wood-37",
+      "cost": 74
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 3427
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 3531
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-3",
+        "tick": 3635
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-4",
+        "tick": 3739
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Timber wall finished. A little less wilderness."
+  },
+  "home": {
+    "seed": 42,
+    "tick": 5866,
+    "paused": false,
+    "nextId": 43,
+    "pawn": {
+      "x": 7,
+      "z": 7,
+      "level": 0,
+      "dir": 1,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 9.607999999997332
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 5900
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 3561
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 4331
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5098
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5773
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-37",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-40",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-41",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-42",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3634
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3725
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3828
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3943
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4064
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4209
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4416
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4543
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4694
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4815
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4906
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5193
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5318
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5431
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5550
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5663
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5862
+      }
+    ],
+    "jobs": [],
+    "felled": 4,
+    "finishedJobs": 21,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 3427
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 3531
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-3",
+        "tick": 3635
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-4",
+        "tick": 3739
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 50,
+      "last": {
+        "kind": "approval",
+        "name": "Mallow",
+        "tick": 5663,
+        "text": "A roof! Fine. You may remain inconveniently alive."
+      }
+    },
+    "demand": {
+      "kind": "approval",
+      "name": "Mallow",
+      "tick": 5663,
+      "text": "A roof! Fine. You may remain inconveniently alive."
+    },
+    "notice": "Thatch roof finished. A little less wilderness."
+  },
+  "sleeping": {
+    "seed": 42,
+    "tick": 6410,
+    "paused": true,
+    "nextId": 44,
+    "pawn": {
+      "x": 7,
+      "z": 6,
+      "level": 0,
+      "dir": 0,
+      "mode": "sleep",
+      "path": [],
+      "leg": 0,
+      "work": 97,
+      "task": {
+        "id": "job-43:sleep:site-25",
+        "job": "job-43",
+        "kind": "sleep",
+        "target": "site-25",
+        "duration": 80
+      },
+      "carry": 0,
+      "carryTo": null,
+      "rest": 33.34399999999745
+    },
+    "cat": {
+      "x": 7,
+      "z": 6,
+      "level": 0,
+      "dir": 2,
+      "mode": "sleep",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 6500
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 3561
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 4331
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5098
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5773
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-37",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-40",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-41",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-42",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3634
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3725
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3828
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3943
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4064
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4209
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4416
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4543
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4694
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4815
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4906
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5193
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5318
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5431
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5550
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5663
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5862
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-43",
+        "kind": "rest",
+        "target": "rowan",
+        "reason": "Ready to rest"
+      }
+    ],
+    "felled": 4,
+    "finishedJobs": 21,
+    "rested": 0,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-43:sleep:site-25",
+      "cost": 86
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 3427
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 3531
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-3",
+        "tick": 3635
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-4",
+        "tick": 3739
+      },
+      {
+        "kind": "rest",
+        "tick": 6307
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 50,
+      "last": {
+        "kind": "approval",
+        "name": "Mallow",
+        "tick": 5663,
+        "text": "A roof! Fine. You may remain inconveniently alive."
+      }
+    },
+    "demand": {
+      "kind": "approval",
+      "name": "Mallow",
+      "tick": 5663,
+      "text": "A roof! Fine. You may remain inconveniently alive."
+    },
+    "notice": "Work added to Rowan's orders."
+  },
+  "resumed": {
+    "seed": 42,
+    "tick": 6690,
+    "paused": false,
+    "nextId": 45,
+    "pawn": {
+      "x": 6,
+      "z": 3,
+      "level": 0,
+      "dir": 2,
+      "mode": "chop",
+      "path": [],
+      "leg": 0,
+      "work": 2,
+      "task": {
+        "id": "job-44:chop:oak-5",
+        "job": "job-44",
+        "kind": "chop",
+        "target": "oak-5",
+        "duration": 80
+      },
+      "carry": 0,
+      "carryTo": null,
+      "rest": 94.25599999999683
+    },
+    "cat": {
+      "x": 7,
+      "z": 6,
+      "level": 0,
+      "dir": 2,
+      "mode": "sleep",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 6700
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 3561
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 4331
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5098
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5773
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 2,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-37",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-40",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-41",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-42",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "amount": 5
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3634
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3725
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3828
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3943
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4064
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4209
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4416
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4543
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4694
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4815
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4906
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5193
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5318
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5431
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5550
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5663
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5862
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-44",
+        "kind": "chop",
+        "target": "oak-5",
+        "reason": "Ready to chop"
+      }
+    ],
+    "felled": 4,
+    "finishedJobs": 22,
+    "rested": 1,
+    "routine": false,
+    "assignment": {
+      "character": "rowan",
+      "task": "job-44:chop:oak-5",
+      "cost": 152
+    },
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 3427
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 3531
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-3",
+        "tick": 3635
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-4",
+        "tick": 3739
+      },
+      {
+        "kind": "rest",
+        "tick": 6307
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-5",
+        "tick": 6515
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 50,
+      "last": {
+        "kind": "approval",
+        "name": "Mallow",
+        "tick": 5663,
+        "text": "A roof! Fine. You may remain inconveniently alive."
+      }
+    },
+    "demand": {
+      "kind": "approval",
+      "name": "Mallow",
+      "tick": 5663,
+      "text": "A roof! Fine. You may remain inconveniently alive."
+    },
+    "notice": "Rested. Rowan is ready to pick up the next order."
+  },
+  "used": {
+    "seed": 42,
+    "tick": 6770,
+    "paused": false,
+    "nextId": 46,
+    "pawn": {
+      "x": 6,
+      "z": 3,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 93.2959999999968
+    },
+    "cat": {
+      "x": 6,
+      "z": 4,
+      "level": 0,
+      "dir": 1,
+      "mode": "walk",
+      "path": [
+        {
+          "x": 7,
+          "z": 4,
+          "level": 0
+        },
+        {
+          "x": 7,
+          "z": 3,
+          "level": 0
+        }
+      ],
+      "leg": 4,
+      "work": 0,
+      "task": null,
+      "nextMove": 6800
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 3561
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 4331
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5098
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5773
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 80,
+        "felledAt": 6768
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-37",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-40",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-41",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-42",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "amount": 5
+      },
+      {
+        "id": "wood-45",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "amount": 6
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3634
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3725
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3828
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3943
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4064
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4209
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4416
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4543
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4694
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4815
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4906
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5193
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5318
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5431
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5550
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5663
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5862
+      }
+    ],
+    "jobs": [],
+    "felled": 5,
+    "finishedJobs": 23,
+    "rested": 1,
+    "routine": false,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 3427
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 3531
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-3",
+        "tick": 3635
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-4",
+        "tick": 3739
+      },
+      {
+        "kind": "rest",
+        "tick": 6307
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-5",
+        "tick": 6515
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 50,
+      "last": {
+        "kind": "approval",
+        "name": "Mallow",
+        "tick": 5663,
+        "text": "A roof! Fine. You may remain inconveniently alive."
+      }
+    },
+    "demand": {
+      "kind": "approval",
+      "name": "Mallow",
+      "tick": 5663,
+      "text": "A roof! Fine. You may remain inconveniently alive."
+    },
+    "notice": "Oak felled. Six wood on the ground, ready to carry."
+  },
+  "morning": {
+    "seed": 42,
+    "tick": 8802,
+    "paused": false,
+    "nextId": 47,
+    "pawn": {
+      "x": 7,
+      "z": 6,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 99.976
+    },
+    "cat": {
+      "x": 8,
+      "z": 6,
+      "level": 0,
+      "dir": 2,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 8900
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 80,
+        "felledAt": 3561
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 80,
+        "felledAt": 4331
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5098
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 80,
+        "felledAt": 5773
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 80,
+        "felledAt": 6768
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [
+      {
+        "id": "wood-37",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-40",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-41",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "amount": 0
+      },
+      {
+        "id": "wood-42",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "amount": 5
+      },
+      {
+        "id": "wood-45",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "amount": 6
+      }
+    ],
+    "sites": [
+      {
+        "id": "site-1",
+        "type": "wall",
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3634
+      },
+      {
+        "id": "site-3",
+        "type": "wall",
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3725
+      },
+      {
+        "id": "site-5",
+        "type": "wall",
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3828
+      },
+      {
+        "id": "site-7",
+        "type": "wall",
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 3943
+      },
+      {
+        "id": "site-9",
+        "type": "wall",
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4064
+      },
+      {
+        "id": "site-11",
+        "type": "wall",
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4209
+      },
+      {
+        "id": "site-13",
+        "type": "wall",
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4416
+      },
+      {
+        "id": "site-15",
+        "type": "wall",
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4543
+      },
+      {
+        "id": "site-17",
+        "type": "wall",
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4694
+      },
+      {
+        "id": "site-19",
+        "type": "wall",
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4815
+      },
+      {
+        "id": "site-21",
+        "type": "wall",
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "direction": 1,
+        "delivered": 1,
+        "work": 32,
+        "finishedAt": 4906
+      },
+      {
+        "id": "site-23",
+        "type": "door",
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5193
+      },
+      {
+        "id": "site-25",
+        "type": "bed",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 2,
+        "work": 48,
+        "finishedAt": 5318
+      },
+      {
+        "id": "site-27",
+        "type": "roof",
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5431
+      },
+      {
+        "id": "site-29",
+        "type": "roof",
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5550
+      },
+      {
+        "id": "site-31",
+        "type": "roof",
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5663
+      },
+      {
+        "id": "site-33",
+        "type": "roof",
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "direction": 0,
+        "delivered": 1,
+        "work": 24,
+        "finishedAt": 5862
+      }
+    ],
+    "jobs": [],
+    "felled": 5,
+    "finishedJobs": 23,
+    "rested": 2,
+    "routine": true,
+    "assignment": null,
+    "commands": [
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 5,
+        "level": 0,
+        "tick": 443
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 6,
+        "z": 8,
+        "level": 0,
+        "tick": 763
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 8,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 9,
+        "z": 8,
+        "level": 0,
+        "tick": 1083
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 6,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 6,
+        "z": 7,
+        "level": 0,
+        "tick": 1491
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 6,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "wall",
+        "direction": 1,
+        "x": 9,
+        "z": 7,
+        "level": 0,
+        "tick": 1811
+      },
+      {
+        "kind": "build",
+        "type": "door",
+        "direction": 0,
+        "x": 7,
+        "z": 8,
+        "level": 0,
+        "tick": 2219
+      },
+      {
+        "kind": "build",
+        "type": "bed",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2539
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 6,
+        "level": 0,
+        "tick": 2859
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 7,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "build",
+        "type": "roof",
+        "direction": 0,
+        "x": 8,
+        "z": 7,
+        "level": 0,
+        "tick": 3179
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-1",
+        "tick": 3427
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-2",
+        "tick": 3531
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-3",
+        "tick": 3635
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-4",
+        "tick": 3739
+      },
+      {
+        "kind": "rest",
+        "tick": 6307
+      },
+      {
+        "kind": "chop",
+        "tree": "oak-5",
+        "tick": 6515
+      },
+      {
+        "kind": "routine",
+        "enabled": true,
+        "tick": 6947
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 2,
+      "nextAt": 50,
+      "last": {
+        "kind": "approval",
+        "name": "Mallow",
+        "tick": 5663,
+        "text": "A roof! Fine. You may remain inconveniently alive."
+      }
+    },
+    "demand": {
+      "kind": "approval",
+      "name": "Mallow",
+      "tick": 5663,
+      "text": "A roof! Fine. You may remain inconveniently alive."
+    },
+    "notice": "Morning. Time to pick up the next order."
+  },
+  "reset": {
+    "seed": 42,
+    "tick": 22,
+    "paused": true,
+    "nextId": 1,
+    "pawn": {
+      "x": 7,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "carry": 0,
+      "carryTo": null,
+      "rest": 79.73599999999999
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "task": null,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [],
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "routine": false,
+    "assignment": null,
+    "commands": [],
+    "feed": {
+      "seed": 42,
+      "sequence": 0,
+      "nextAt": 50,
+      "last": null
+    },
+    "demand": null,
+    "notice": "A borrowed axe. No home. Bramble seems optimistic."
+  },
+  "errors": []
+}

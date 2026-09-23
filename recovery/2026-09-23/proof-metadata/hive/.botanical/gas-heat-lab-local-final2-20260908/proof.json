@@ -1,0 +1,51 @@
+{
+  "mode": "local-served-recorded-playback",
+  "base": "http://127.0.0.1:5198/",
+  "errors": [],
+  "screenshots": [
+    "gas-heat-narrow-top.png",
+    "gas-heat-narrow-controls.png"
+  ],
+  "claims": {
+    "sealed": {
+      "cells": 80,
+      "firstSeconds": 0,
+      "finalSeconds": 45,
+      "changedDisplay": true
+    },
+    "ports": {
+      "resetOnSelection": true,
+      "keyboardFrame": 1,
+      "playbackAdvanced": true,
+      "pauseHeld": true
+    },
+    "narrow": {
+      "clientWidth": 390,
+      "scrollWidth": 390,
+      "skipLink": {
+        "top": -52,
+        "bottom": -12
+      },
+      "slider": {
+        "left": 36,
+        "right": 354,
+        "width": 318
+      }
+    }
+  },
+  "parity": {
+    "local": {
+      "gas-heat-lab.html": "e3356192bd4929a9588aa028526898880af248f2e4151608fa05ac13f71d89f6",
+      "study-evidence/gas-heat/manifest.json": "df4a451d9ce9e3f6cd57fc2e8378fbf92f8b91b0c0f52e1b319593b2bb3285ca",
+      "study-evidence/gas-heat/sealed.json": "6c57ce852695bcdfc9f5263ee1b350fe988a29d8459ff20f13fe091bee1d892e",
+      "study-evidence/gas-heat/ports.json": "eb0af363f13b4524a5797dbe3b368a8b17ec43766928b710c067c01c547ae174"
+    },
+    "served": {
+      "gas-heat-lab.html": "e3356192bd4929a9588aa028526898880af248f2e4151608fa05ac13f71d89f6",
+      "study-evidence/gas-heat/manifest.json": "df4a451d9ce9e3f6cd57fc2e8378fbf92f8b91b0c0f52e1b319593b2bb3285ca",
+      "study-evidence/gas-heat/sealed.json": "6c57ce852695bcdfc9f5263ee1b350fe988a29d8459ff20f13fe091bee1d892e",
+      "study-evidence/gas-heat/ports.json": "eb0af363f13b4524a5797dbe3b368a8b17ec43766928b710c067c01c547ae174"
+    },
+    "exact": true
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:5191/world-lab.html",
+  "facts": {
+    "lifecycle": "showing request #1",
+    "localMatchesSampler": true,
+    "opaquePixels": 262144
+  },
+  "moduleRequests": [
+    "/world-lab.html",
+    "/src/world-lab/main.js",
+    "/src/world-lab/terrain.js",
+    "/src/world-lab/section.js",
+    "/src/world-lab/control-state.js",
+    "/src/world-lab/controls.jsx",
+    "/src/world-lab/styles.css",
+    "/src/world-lab/lattice-hash.mjs",
+    "/src/world-lab/worker.js"
+  ],
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  },
+  "claims": {
+    "sourceWorkerLoaded": true,
+    "coordinateHashHelperLoaded": true,
+    "localSamplerAgreement": true,
+    "browserSolverOrGameplay": false
+  }
+}

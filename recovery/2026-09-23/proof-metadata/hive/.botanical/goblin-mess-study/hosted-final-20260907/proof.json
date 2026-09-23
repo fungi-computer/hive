@@ -1,0 +1,72 @@
+{
+  "base": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/",
+  "canonicalUrl": "https://goblin-mvp-fungi-goblin-bnb.levi-fe0.workers.dev/goblin-mess-study",
+  "deploymentCommit": "008793c8e44eb2aa017e75c7a0ea8e2548c16a77",
+  "scriptSha256": "1b9b15920d34001b08fdfce355008f6c3df6a50109046a912c4159c328a91c17",
+  "hashes": {
+    "page": "8d64705c1b73fc0597de4cf882099b4caa2b5fbe197d3d91ff6c43b57be1d90b",
+    "room": "a5f58953d891cc9e26361d1ba354a45a804aff010534c16890b6606091d99cc9",
+    "native": "b235593f920f7a35387c72257a2894f9d62818baba4c47851d26d17cc9854f67",
+    "detail": "0e9b44a278bc1bb780d2fc26612bff54273755165266ed84f1e181c3957ca4bb",
+    "gameJs": "568125734189a30f7379359469081d65772f72b49d64d7ec8508f967c1e0fd6e",
+    "gameCss": "45cbaed4bacf64b93ca69702f0330eab7e15ba41d67f7132c810e79ce96ab87c",
+    "artJs": "2c1a4b8112e7cd7eee8a627d34c20dc43923e02933e2440aafec9ce423dc6a99"
+  },
+  "gameAssets": {
+    "gameJs": "assets/game-Bw8dvOJd.js",
+    "gameCss": "assets/game-CxFQJg3g.css",
+    "artJs": "assets/art-CdVqsH0V.js",
+    "unchangedFromAb270bf": true
+  },
+  "views": {
+    "normal": {
+      "width": 1024,
+      "scrollWidth": 1024,
+      "title": "A room that has seen things · Floor details study",
+      "h1": "A room that has seen things.",
+      "images": [
+        {
+          "src": "/studies/goblin-mess/room-game2x.png",
+          "complete": true,
+          "naturalWidth": 720,
+          "naturalHeight": 480,
+          "renderedWidth": 720
+        },
+        {
+          "src": "/studies/goblin-mess/gallery-detail2x.png",
+          "complete": true,
+          "naturalWidth": 960,
+          "naturalHeight": 384,
+          "renderedWidth": 960
+        }
+      ]
+    },
+    "narrow": {
+      "width": 390,
+      "scrollWidth": 390,
+      "title": "A room that has seen things · Floor details study",
+      "h1": "A room that has seen things.",
+      "images": [
+        {
+          "src": "/studies/goblin-mess/room-game2x.png",
+          "complete": true,
+          "naturalWidth": 720,
+          "naturalHeight": 480,
+          "renderedWidth": 358
+        },
+        {
+          "src": "/studies/goblin-mess/gallery-detail2x.png",
+          "complete": true,
+          "naturalWidth": 960,
+          "naturalHeight": 384,
+          "renderedWidth": 358
+        }
+      ]
+    }
+  },
+  "errors": {
+    "page": [],
+    "console": [],
+    "request": []
+  }
+}

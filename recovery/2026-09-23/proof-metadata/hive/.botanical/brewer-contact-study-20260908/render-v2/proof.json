@@ -1,0 +1,1416 @@
+{
+  "passed": false,
+  "source": {
+    "bake.study.js": "098a7815028efce64892711e9a62672404a806abb044693648061a32d5a58901",
+    "brew-station.baseline.js": "72ca3b77e32bf1bea720de1ae52582a0ac74e42180308407a1e7b233339fe0c2",
+    "brew-station.study.js": "a89b2c90ba8db93151a61fa95061b54ed862caf97d2a1e6982028d3afe912fca",
+    "brew-supplies.baseline.js": "b3aeec1ae21548831e874d3d6194daa5d7d7b675f0712cd10ce15c90b5f3d5c6",
+    "brew-supplies.study.js": "336449548fbb527764c15cde86029d006ca3ac679f1e6cfb984c54e7f8984964",
+    "brew-vessel.baseline.js": "37101d3793954f6b52c80c815a82cd6ecbd0f77a9b3bebf65d8bc79eaefe2270",
+    "brew-vessel.study.js": "67a93548a75ca63b64f06a254cdadf179e23cc28781d03b7cb21a8207062202d",
+    "capture.mjs": "7abad0843290992124a881fa40ef4e3c0c83a8960a8584150569c6481fb152da",
+    "contact.js": "1539ae41dd53911031eef9cad0cd75ae239d12ced285547fda653ad034e9df28",
+    "figures.baseline.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "figures.study.js": "478b3772ae5798659a47837c43fbf97f78303c5d047dd55497fe6c39b42371d0",
+    "geometry.baseline.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "geometry.study.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "herbs.baseline.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    "herbs.study.js": "8aff537e476ee7ced892637729c7cd6a275b881c70fa19d453959acbc1ae14ea",
+    "index.html": "f87e605a4afede7ccb0aa3ce603e865dae2a2d2de90c178144881048026a3b53",
+    "scale.study.js": "202498fe98ee71d6d60af2ba732077d90c1b73763c40620efd86595f7182300a",
+    "study.js": "9586d0703f1245ba19767554c1d5741fa40ab606d8472cbdbd8145b4a9ff87ef"
+  },
+  "errors": [],
+  "scope": "Study-only 32 actual Three contact bakes, legal feet, fixed limb lengths, alpha bounds and Pixi frame playback. Not gameplay or production separate-sprite occlusion.",
+  "server": {
+    "ownership": "this proof invocation",
+    "port": 5173
+  },
+  "report": {
+    "ready": true,
+    "rows": [
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 0,
+        "hash": "cd29600cabfc314623fc8655efd972b1c5963e0fc8f26d5a3d19826ba68f2792",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 1,
+        "hash": "0dd27333a100626fad82b1aa899b30f8f3b8482aa86897571de01237708abd0b",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 2,
+        "hash": "4f53a15ca79f866ae77d96eefeb77f94a683c09bf9c810171956383e40c77a88",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 3,
+        "hash": "90b035ee3aa1bafa070ce1ad5dbe8d73ad246e97c3b40dce56a4fab293b844b6",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 4,
+        "hash": "30f55a64045f1f22a929502d28bb3ce5004c836fbd273211895c0d68f722a570",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 5,
+        "hash": "0410b841821db390e68d1e0c87c7f8082a6c20c661e94f0db7d9cfeda7a34b4f",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 6,
+        "hash": "5a5715cb32dbfce55c0dd446e5d1ddc92b0616bab1ce0f73a82914b9acc3045a",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 0,
+        "frame": 7,
+        "hash": "f46dce6dd4f8f005dc0955233f0f1f6582e39bf800e1a46c4b1a70e4f2f6aabb",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2066,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 0,
+        "hash": "61b84ca52a9d9ba82930c1f50a3917c23d9cffb627c49f4d1e4387b5f76c11df",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2359,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 1,
+        "hash": "610a2b2b823ce6ce9c86415428eef39260d189497f5f88f9afa597fdd5959053",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2360,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 2,
+        "hash": "edae19dd770ea7408a4ba67e348be91a0e71f546c695fb90df71661c62f4cd1e",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2361,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 3,
+        "hash": "13c1e51aeaa73b53a3c246d8a6642b735fe88d4443c897d8cf60dd4a4e5b99af",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2360,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 4,
+        "hash": "7368d8c671c8763eeaa52d0560886baf2798424406b39a178bcc7602d821df54",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2361,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 5,
+        "hash": "07e779be5540e98df9ec183628c792022d50e4fba000c1e3bf368079ac6599e8",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2361,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 6,
+        "hash": "8935b1395828006c566a646db5deab929057e178239e5a51b73d7eaef4699e7c",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2360,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "rowan",
+        "dir": 1,
+        "frame": 7,
+        "hash": "cc942de0f6941a68b9cca6bca25996a84c9bdc24efa68980ef0d71f026ad92ea",
+        "bounds": {
+          "minX": 47,
+          "minY": 49,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2361,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 0,
+        "hash": "82ca883ac6df4a2ad8eaef6550e1823e3028d97685c8eddcaeba26613a36fbfc",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2201,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 1,
+        "hash": "4290c44a4e8c7a810e68572cb1b7b5b4f3f587e187663ba57da8376c2712f907",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2201,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 2,
+        "hash": "440e5c7ee177c122ba4aecd7cb3fb995221999fab26a00e6c71c32176dccbf7e",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2202,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 3,
+        "hash": "aad976053c857c22e5af187528d9a9307284f2615ca97168cbdce2b50cbb1119",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2202,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 4,
+        "hash": "82d2a1f48745e6ae98917b87a3d968fb25876d10dbba3558218c2aab27cec1fa",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2201,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 5,
+        "hash": "949c1a74829949bea319fb3bd9d978ccbe60d1e3bb6364aa2392c7720156c44a",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2201,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 6,
+        "hash": "e6e99814b3e9ef13582cdc639b2cb8c5526c811e4a2ce8dd7f60a622a6938737",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2202,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 0,
+        "frame": 7,
+        "hash": "aca821cc1a2a90c0b2a6966c14e14b6db0bd10ea3eac49eaa0b8a4cf2cb5b763",
+        "bounds": {
+          "minX": 47,
+          "minY": 61,
+          "maxX": 111,
+          "maxY": 118,
+          "count": 2201,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 0,
+        "hash": "ecd148cc925db03d6a242cde7c1e9bdb8fcfb11caacb34d22f6237a14b8dfb43",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2516,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 1,
+        "hash": "4a95cdc575bf0ff90a643d02f97bad2cefde1d694b7ad783f8eb87268e62527c",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2532,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 2,
+        "hash": "4fcbbf817814fb959e0d170e9468fa791ca404f82346b3f5bcaae7df40d26167",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2552,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 3,
+        "hash": "9001d14e27a87977f8b7b47933b331f882ea6563f5308dad6c9d783ae37a996c",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2561,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 4,
+        "hash": "895f65d5a644fe84cf63e5c5352b681eb1e1924abe79e1ca5360d6f14d289d8a",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2560,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 5,
+        "hash": "28bb386d4fb63be791fd5ba99a4f9b32a234b65ad99e0877cf4e2bfd6164d6dc",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2544,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 6,
+        "hash": "62432fc6b9afdb5cd6ee1bf3e04ded03ca89b77543ff4ea6fd15f73d387bb1f0",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2526,
+          "clipped": false
+        }
+      },
+      {
+        "kind": "witch-runner",
+        "dir": 1,
+        "frame": 7,
+        "hash": "37b66d3f8bd6acb2db866556c4975e42db9f6de47944dd1d97e5104faa7796c3",
+        "bounds": {
+          "minX": 47,
+          "minY": 39,
+          "maxX": 127,
+          "maxY": 110,
+          "count": 2517,
+          "clipped": false
+        }
+      }
+    ],
+    "contacts": [
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4253731589796035,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4125396950597602,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.913367294159042
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.125,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4361410599550274,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4185576466893532,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9166040911827014
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.25,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.44283428207154635,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.42163135557024206,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9319104933373887
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.375,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4416041687026417,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.41990698309509916,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9501454352412149
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.5,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4332248063539896,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.41447436591422626,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.96070957913319
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.625,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.42253374481256706,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4085725105753817,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9575856636934452
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.75,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.41573597674727736,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.40557736623238716,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9425256289650743
+      },
+      {
+        "kind": "rowan",
+        "direction": 0,
+        "phase": 0.875,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.41688923478948714,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4071856155956052,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9241778351147825
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0,
+        "errors": [
+          0,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4253731589796035,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4125396950597602,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.913367294159042
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.125,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4361410599550274,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4185576466893532,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9166040911827014
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.25,
+        "errors": [
+          0,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.44283428207154635,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.42163135557024206,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9319104933373887
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.375,
+        "errors": [
+          2.220446049250313e-16,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4416041687026417,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.41990698309509916,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9501454352412149
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.5,
+        "errors": [
+          0,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4332248063539896,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.41447436591422626,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.96070957913319
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.625,
+        "errors": [
+          1.1102230246251565e-16,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.42253374481256706,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4085725105753817,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9575856636934452
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.75,
+        "errors": [
+          1.1102230246251565e-16,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.41573597674727736,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.40557736623238716,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9425256289650743
+      },
+      {
+        "kind": "rowan",
+        "direction": 1,
+        "phase": 0.875,
+        "errors": [
+          1.1102230246251565e-16,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.41688923478948714,
+            "upper": 0.245,
+            "lower": 0.2205
+          },
+          {
+            "distance": 0.4071856155956052,
+            "upper": 0.245,
+            "lower": 0.2205
+          }
+        ],
+        "shaftLength": 1.9241778351147825
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.42524656685066897,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.40934581957069,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.913367294159042
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.125,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4360780084591372,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.4150013160788287,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9166040911827014
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.25,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4428001967423547,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.41793300898588986,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9319104933373887
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.375,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4415505151005768,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.41636217791372254,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9501454352412149
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.5,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.43311435213209537,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.41129551419873267,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.96070957913319
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.625,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4223595279431431,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.4057658285918615,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9575856636934452
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.75,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.4155284107348247,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.4029243105100509,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9425256289650743
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 0,
+        "phase": 0.875,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          2,
+          0,
+          1
+        ],
+        "heading": -1.5707963267948966,
+        "reach": [
+          {
+            "distance": 0.41670145936094705,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.40436930744424887,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9241778351147825
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0,
+        "errors": [
+          0,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.42524656685066897,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.40934581957069,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.913367294159042
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.125,
+        "errors": [
+          0,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4360780084591372,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.4150013160788287,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9166040911827014
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.25,
+        "errors": [
+          0,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4428001967423547,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.41793300898588986,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9319104933373887
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.375,
+        "errors": [
+          2.220446049250313e-16,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4415505151005768,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.41636217791372254,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9501454352412149
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.5,
+        "errors": [
+          0,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.43311435213209537,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.41129551419873267,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.96070957913319
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.625,
+        "errors": [
+          1.1102230246251565e-16,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4223595279431431,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.4057658285918615,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9575856636934452
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.75,
+        "errors": [
+          1.1102230246251565e-16,
+          2.220446049250313e-16
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.4155284107348247,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.4029243105100509,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9425256289650743
+      },
+      {
+        "kind": "witch-runner",
+        "direction": 1,
+        "phase": 0.875,
+        "errors": [
+          1.1102230246251565e-16,
+          0
+        ],
+        "shaftBodyHits": 3,
+        "actor": [
+          1.0000000000000004,
+          0,
+          -0.9999999999999999
+        ],
+        "heading": 0,
+        "reach": [
+          {
+            "distance": 0.41670145936094705,
+            "upper": 0.24,
+            "lower": 0.216
+          },
+          {
+            "distance": 0.40436930744424887,
+            "upper": 0.24,
+            "lower": 0.216
+          }
+        ],
+        "shaftLength": 1.9241778351147825
+      }
+    ],
+    "frame": 3,
+    "paused": true,
+    "scope": "Original stirring contact at exact legal work cells. Combined Three bake displayed in Pixi; not production sprite ordering, gameplay, chemistry or a clock."
+  },
+  "failure": "AssertionError [ERR_ASSERTION]: Paddle shaft clears real kettle body and rim\n\n3 !== 0\n\n    at file:///home/levi/src/hive/.botanical/brewer-contact-study-20260908/capture.mjs:29:12"
+}

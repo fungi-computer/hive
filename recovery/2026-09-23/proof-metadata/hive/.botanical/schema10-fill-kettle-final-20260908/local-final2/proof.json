@@ -1,0 +1,147 @@
+{
+  "mode": "local-served-browser-interaction",
+  "url": "http://127.0.0.1:5196/",
+  "scriptSha256": "9efd3eeb9ab36cc647caf30426287ff25dcfac3c1d9d108aa2ad36836c24894a",
+  "errors": [],
+  "screenshots": [
+    "filled-pail-to-kettle.png",
+    "filled-kettle-settled.png"
+  ],
+  "claims": {
+    "fresh": {
+      "paused": true,
+      "tick": 0,
+      "cache": {
+        "id": "feature:reclaimed-timber-cache",
+        "access": "sealed"
+      },
+      "spring": {
+        "id": "feature:spring",
+        "water": 8
+      }
+    },
+    "cacheRepair": {
+      "id": "feature:reclaimed-timber-cache",
+      "selectedAt": {
+        "x": 166,
+        "y": 408
+      },
+      "repaired": true,
+      "consumedOrdinaryWood": 2
+    },
+    "station": {
+      "id": "site-5",
+      "anchor": {
+        "x": 2,
+        "z": 2,
+        "level": 0
+      },
+      "footprint": [
+        {
+          "x": 2,
+          "z": 2,
+          "level": 0
+        },
+        {
+          "x": 3,
+          "z": 2,
+          "level": 0
+        },
+        {
+          "x": 2,
+          "z": 3,
+          "level": 0
+        },
+        {
+          "x": 3,
+          "z": 3,
+          "level": 0
+        }
+      ],
+      "finished": true,
+      "wood": {
+        "embedded": 6,
+        "groundUsed": 4,
+        "cacheUsed": 2,
+        "cacheRemaining": 8
+      }
+    },
+    "carrying": {
+      "operation": "brew-water-10",
+      "actor": "rowan",
+      "pail": "source-pail-lot:feature:reclaimed-timber-cache",
+      "water": "lot-5",
+      "quantity": 2,
+      "phase": "pour"
+    },
+    "settlement": {
+      "station": "site-5",
+      "selectedAt": {
+        "x": 550,
+        "y": 248
+      },
+      "kettleWater": 2,
+      "springWater": 6,
+      "operationCount": 0,
+      "vesselUseCount": 0,
+      "operationTransferCount": 0,
+      "pailLocation": {
+        "kind": "ground",
+        "x": 3,
+        "z": 4,
+        "level": 0
+      }
+    }
+  },
+  "parity": {
+    "local": {
+      "index": "60fabce006d2993be59463a54978cf8b825b845b003ef9a1a1bb77d9a638bb22",
+      "assets": {
+        "assets/game-Dl53wGHI.js": "e107458941aaaf44172b8aac6b94892de87ca5aef76fc5b7e7cb7466a0555572",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-DlHb0dVg.js": "65f72acf96e350644b0b2f13f0dfb798c59574bd37531641cf04fdc3b0865371",
+        "assets/home-BMaSAgnh.js": "53eea87fed9542bc937f664943649f22523324a0a432cfac2819e86b1bce9def",
+        "assets/figures-abIQ2CqD.js": "34d74ab71bdc965040388387311c5ef2229d33e56815e9144a7da49fac60eb5c",
+        "assets/mixed-shelf-SWtWPi7A.js": "08c59c13491344232d3e1010ba1405b326fdfda02a6d2558454a0595973b9504",
+        "assets/construction-DpOf7z26.js": "40843c875a5d51771ab3b8e20a8c2f240c164dcd1978e46178f04b3ce587ed49",
+        "assets/Geometry-dEHeG1IP.js": "e559397919ce8a6a9d887c5b5ee1c17f5ad8ae196681983da07fe8836ccd01a5",
+        "assets/getTextureBatchBindGroup-C3NcJo8e.js": "9f7e4a8909ed3d4db1fe397249552988a59128806d92e5b5b90d9325d126cb54",
+        "assets/BatchableSprite-CtEE8UN5.js": "c3ca358c598c2ef313191ed8013f4039cceb6e8037ce9e84a082b4a31db435c2",
+        "assets/Graphics-CSWJcgsX.js": "ca03affdba1609d81ebf66c857cc4ae775602c235ec7b5c90cbe52a3105da38e",
+        "assets/CanvasPool-VB_YCUIP.js": "b7409a2098263e5dbee106caf51b06db143304639d8ecd58bacf2e9cf6be800e",
+        "assets/canvasUtils-BAu4yb4_.js": "7d9f15e73c193a7ece64e14f8af404f1b7ab63ca3ee11463a877dc8b206d82d3",
+        "assets/getPo2TextureFromSource-T2Q3SLuE.js": "3369030205536a1fa2fb2e4ff79242aff3cb61b4616f2e593edc0983c289f771",
+        "assets/art-prSUozhe.js": "a574679f3c4eb8db7c1df5db1064eb58caebe05d1a5eb35a00175af6801d3dc0",
+        "assets/clearing-DoMKBcH0.js": "9608883065db693095da913ddc089ef7a0236e57e783f025b3010d08bf09cedb",
+        "assets/clearing-CIHJZZDS.css": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+        "assets/game-C3KuqpTy.css": "14a9b104b6ff2a5f5ae580608248294f75671a36ba7586e57ed979e8947e0b25",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "served": {
+      "index": "60fabce006d2993be59463a54978cf8b825b845b003ef9a1a1bb77d9a638bb22",
+      "assets": {
+        "assets/game-Dl53wGHI.js": "e107458941aaaf44172b8aac6b94892de87ca5aef76fc5b7e7cb7466a0555572",
+        "assets/modulepreload-polyfill-B5Qt9EMX.js": "d2a32840421496e872ade591618d2fa5c33797605d1aec04301717e5a90757d0",
+        "assets/scale-DlHb0dVg.js": "65f72acf96e350644b0b2f13f0dfb798c59574bd37531641cf04fdc3b0865371",
+        "assets/home-BMaSAgnh.js": "53eea87fed9542bc937f664943649f22523324a0a432cfac2819e86b1bce9def",
+        "assets/figures-abIQ2CqD.js": "34d74ab71bdc965040388387311c5ef2229d33e56815e9144a7da49fac60eb5c",
+        "assets/mixed-shelf-SWtWPi7A.js": "08c59c13491344232d3e1010ba1405b326fdfda02a6d2558454a0595973b9504",
+        "assets/construction-DpOf7z26.js": "40843c875a5d51771ab3b8e20a8c2f240c164dcd1978e46178f04b3ce587ed49",
+        "assets/Geometry-dEHeG1IP.js": "e559397919ce8a6a9d887c5b5ee1c17f5ad8ae196681983da07fe8836ccd01a5",
+        "assets/getTextureBatchBindGroup-C3NcJo8e.js": "9f7e4a8909ed3d4db1fe397249552988a59128806d92e5b5b90d9325d126cb54",
+        "assets/BatchableSprite-CtEE8UN5.js": "c3ca358c598c2ef313191ed8013f4039cceb6e8037ce9e84a082b4a31db435c2",
+        "assets/Graphics-CSWJcgsX.js": "ca03affdba1609d81ebf66c857cc4ae775602c235ec7b5c90cbe52a3105da38e",
+        "assets/CanvasPool-VB_YCUIP.js": "b7409a2098263e5dbee106caf51b06db143304639d8ecd58bacf2e9cf6be800e",
+        "assets/canvasUtils-BAu4yb4_.js": "7d9f15e73c193a7ece64e14f8af404f1b7ab63ca3ee11463a877dc8b206d82d3",
+        "assets/getPo2TextureFromSource-T2Q3SLuE.js": "3369030205536a1fa2fb2e4ff79242aff3cb61b4616f2e593edc0983c289f771",
+        "assets/art-prSUozhe.js": "a574679f3c4eb8db7c1df5db1064eb58caebe05d1a5eb35a00175af6801d3dc0",
+        "assets/clearing-DoMKBcH0.js": "9608883065db693095da913ddc089ef7a0236e57e783f025b3010d08bf09cedb",
+        "assets/clearing-CIHJZZDS.css": "e6f4fcd81a59013d7404876b38cca8a3ecd5caceae6b113876aa92b6bf55b7ba",
+        "assets/game-C3KuqpTy.css": "14a9b104b6ff2a5f5ae580608248294f75671a36ba7586e57ed979e8947e0b25",
+        "assets/styles-BN-Rw34z.css": "85d1c81e6f4c0900c84b6627c56148ca1a7f847fb473925b42e3467627132bfc"
+      }
+    },
+    "exact": true
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "status": "Accepted original floor/ramp geometry and sampled art motion by Astra; Delivery owns joined runtime/picking/headroom/layout/save proof.",
+  "baseRevision": "765c3282982d2ee6b07d5bea67bc21d08e4c2011",
+  "owner": "Astra ignored-only art; game-delivery tracked integration and runtime",
+  "contract": {
+    "storeyHeight": 2.16,
+    "run": 2,
+    "footprintCells": 3,
+    "traversalTicks": 18,
+    "tickMilliseconds": 50,
+    "directions": {
+      "0": "+z",
+      "1": "+x"
+    },
+    "floorTop": 0
+  },
+  "candidate": {
+    "src/art/floor.js": "6001f1ee34744845f8fb92e38b8300cea821821a2dc0edb982e86e61559d81cc",
+    "src/art/home.js": "2ec1527ff1c167aaa948a16efc33cbcba15fd1621ce59495d1674e89479b3378",
+    "src/art/stair.js": "bf3ae8dc52d16ab4d76c2d6f16d4063d0176c1a5f4ba3863ba548d4a8c341741"
+  },
+  "baselines": {
+    "baseline/src/art/clearing.js": "6ba42dbfc4de7d5cc0bdc85f8a01c04e7a602bcdaebe658267b126bd2cdfee2e",
+    "baseline/src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "baseline/src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "baseline/src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    "baseline/src/art/home.js": "75814f7660b777b1c0c05de01236841ab32d3b7143f262cb75f5da9389f755ef",
+    "baseline/src/art/scale.js": "2de8ee96e89614e02c1c55bf5bfe34fb22cfb67143a88c650b9a7e8c5e128552",
+    "baseline/src/art/shelf.js": "0548ec13765fdee3a030b5326ca837b7fe1721a3f0fc4636558ba799df81fa03",
+    "baseline/src/art.js": "66fbbc4ea2cc32d5e61140276bfeb5ce388dc83e38a7342fb306104b1681bc5b",
+    "baseline/src/world.js": "8c2f7756ac524c128257ede5773a297a84ffcf1be9f299dc587c78861583d18b"
+  },
+  "study": {
+    "bake.js": "696e28b55a69e92dd4c772f94e41753b2f10b5b6e56f37b15b38a8f4a9675563",
+    "baseline-home.js": "af15f17f6dda6f9c3f8860a6eea9a4a9426eb9b457b99b08fc757a30c771b70a",
+    "datum.js": "7e39120c702da7d2a0cbe97f6feaa318e4e8265498f0aef1773132010e742600",
+    "floor.js": "18f4b73dfabfb7426e908153edd9329287b4a3dee5c37184e99cfbfa876b32ad",
+    "home.js": "84b708d9ba10f0a33b41c8aa428cb489c3da615622f323d16afdcbc2d81cbd93",
+    "index.html": "16c5dfbcef65a8ca767af39d758467fc2422c7acfcc385ec9fa05e75fdb1ea50",
+    "main.js": "19c2436f409cfa5a3c5149eb3d80e19f9b346dda65eabbda9ca3d36e1e53cc66",
+    "scale.js": "baf51194fb8709f80ad767a0a0d8dda5259eb21022673f25b910a13a4c9dd632",
+    "stair.js": "16ff70c0cf82807989905e17321e0e42b9a9a07ff5950d8925855d72bfe7609b"
+  },
+  "patch": {
+    "path": "art-integration.patch",
+    "sha256": "7ca8ad56ec5697e3b88b5c4b7e020e6bf5aa7b178c82a4941940b697dcc61a18",
+    "applyCheck": true,
+    "applied": false
+  },
+  "sourceReview": "Independent Terra accepted surface/endpoints/rotation/facing math; no geometry or caller blocker.",
+  "helperIdentity": "Exact retained outline/bake/anchor block verified against 765c328 src/art.js.",
+  "scope": "Art vignette and visual traversal; production support/path/resource/save behavior not proved here.",
+  "sharedDatumOwner": "Delivery must export STOREY_HEIGHT from src/art/scale.js; study datum.js is not included in production patch.",
+  "proofs": {
+    "v1": {
+      "scope": "run-u1063.scope",
+      "invocation": "68b7ca25430443ed9eb6fd2c29bf4c22",
+      "exit": 0,
+      "path": "proof-v1/proof.json",
+      "scopeNote": "Pinned v1 caller, 12 texture alpha bounds (minimum padding 9 pixels), 12 retained building pixel regressions, endpoint/facing/pose/anchor/control checks. V1 evidence preserved; cutaway caller superseded in v2."
+    },
+    "v2": {
+      "scope": "run-u1085.scope",
+      "invocation": "a8a4f458f8cf43c2b395ba7a7b9ed5ac",
+      "exit": 0,
+      "path": "proof-v2/proof.json",
+      "scopeNote": "Inspected current v2 visual capture script and complete assertion/result fields; sampled both axes/endpoints, Rowan/Sedge carry, native/game size, retained bakes, immutable source hashes; errors empty."
+    },
+    "motionDecode": {
+      "scope": "run-u1101.scope",
+      "invocation": "91de35c34cae4061a24557bf28327366",
+      "exit": 0,
+      "path": "proof-v2/motion-frames/receipt.json"
+    }
+  },
+  "personalReview": {
+    "accepted": true,
+    "by": "Astra",
+    "viewed": [
+      "proof-v1 native prop strip",
+      "proof-v2 axis0 upper endpoint 2x",
+      "proof-v2 axis1 upper endpoint 2x",
+      "proof-v2 Sedge carry midpoint native",
+      "proof-v2/motion-frames/frame-01.png through frame-08.png"
+    ],
+    "motionScope": "Personally viewed eight decoded 1 fps samples from actual recorded WebM, not uncut playback. Figure pose geometry is retained. Vignette does not establish runtime traversal/support or all-room headroom."
+  },
+  "bakeAPI": {
+    "dimensions": [
+      112,
+      112
+    ],
+    "propAnchor": {
+      "x": 0.5,
+      "y": 0.6924599083615355
+    },
+    "stages": [
+      "stakes",
+      "frame",
+      "finished"
+    ],
+    "directions": [
+      0,
+      1
+    ]
+  },
+  "headroom": {
+    "source": "clearance.json",
+    "disposition": "Require upper headroom over the ramp run; upper landing is supplied by stair. Production source now has stairHeadroom for all three cells. Delivery must prove actual supported enclosed bedroom/layout within earned material and distinguish decorative hat extents from body clearance."
+  }
+}

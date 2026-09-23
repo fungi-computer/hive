@@ -1,0 +1,60 @@
+{
+  "proof": "colony-performance-browser",
+  "url": "http://127.0.0.1:5199/engine/colony-performance.html?size=256&workers=8&diagnostics=draw",
+  "selectedPreset": {
+    "size": 256,
+    "workers": 8
+  },
+  "workload": {
+    "kind": "finite-tree-felling",
+    "trees": 50,
+    "woodPerTree": 6,
+    "description": "The Colony performance page queues 50 finite trees for the selected party; observed wood output proves that this workload is live."
+  },
+  "output": "/home/levi/src/hive-worktrees/living-terrain-integration/.botanical/do-performance-browser-local",
+  "sourceHashes": [
+    {
+      "path": "engine/colony-performance.html",
+      "sha256": "13b45c51825d2ad2011f4773ca76befa03cd3b51ae8d6458f051d477406bd496"
+    },
+    {
+      "path": "engine/src/client/performance-observer.js",
+      "sha256": "7e386eba3c0f7ef91bc15ae24cf268bd1c0e27b20e39696d5d2473c8733b65ab"
+    },
+    {
+      "path": "engine/src/client/performance-page.js",
+      "sha256": "0b2895fd78af29c2e279cefe585660992187e53924d7fb39469f7922e773256e"
+    },
+    {
+      "path": "engine/src/games/colony-performance.ts",
+      "sha256": "410f7274660286bb58400bf6b808b5d09b027dae21fd0e2536cf07cd01990606"
+    },
+    {
+      "path": "engine/src/runtime/remote-client.ts",
+      "sha256": "0c3be0e2344ac6f6d566112a1c039fea8f1a86c5b26a81fcf6aef3d1608d4796"
+    },
+    {
+      "path": "tools/public-engine-host/performance-browser-proof.mjs",
+      "sha256": "483b4c83a4aa402b08a76f18af262b2d43597a3cb0d14f7df0a104b0cd0fb23e"
+    },
+    {
+      "path": "tools/public-engine-host/worker.ts",
+      "sha256": "1c60a06af9dac43714c4095285d5d5df530d8d870fb0cf86e2d355043fb52ee1"
+    }
+  ],
+  "screenshot": "performance-browser.png",
+  "assertions": [
+    {
+      "name": "pixi-canvas",
+      "width": 846,
+      "height": 866,
+      "clientWidth": 846,
+      "clientHeight": 866
+    }
+  ],
+  "errors": [
+    "locator.waitFor: Error: strict mode violation: getByText('Online · server saved', { exact: true }) resolved to 2 elements:\n    1) <p class=\"hive-status\">Online · server saved</p> aka getByRole('paragraph').filter({ hasText: 'Online · server saved' })\n    2) <span class=\"hive-status\">Online · server saved</span> aka locator('span').filter({ hasText: 'Online · server saved' })\n\nCall log:\n\u001b[2m  - waiting for getByText('Online · server saved', { exact: true }) to be visible\u001b[22m\n"
+  ],
+  "measurements": null,
+  "success": false
+}

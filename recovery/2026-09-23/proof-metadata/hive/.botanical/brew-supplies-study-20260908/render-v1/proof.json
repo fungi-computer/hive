@@ -1,0 +1,481 @@
+{
+  "source": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-supplies-study-20260908/props.js": "ddc5548c53ccef65773a45c00e01388600c0ad76ae6ffd92e419629e85c3740a",
+    ".botanical/brew-supplies-study-20260908/study.js": "e05ab8eaffea8188e37656c3c4a9153c77e4a9b8681ac7aaad4b281a6b815bbe",
+    ".botanical/brew-supplies-study-20260908/index.html": "c8bf37777977c073659d4e400a6238cceceb796437be6dfa6cdb138c481ad1e9",
+    ".botanical/brew-supplies-study-20260908/capture.mjs": "f08aab29c0bd3f792ffaa61241e5a97ed103a5ae59ae14a01e5b4c202d54afd3"
+  },
+  "passed": true,
+  "errors": [],
+  "clicks": [
+    {
+      "id": "barm-0",
+      "actual": "barm-0"
+    },
+    {
+      "id": "barm-1",
+      "actual": "barm-1"
+    },
+    {
+      "id": "barm-2",
+      "actual": "barm-2"
+    },
+    {
+      "id": "barm-3",
+      "actual": "barm-3"
+    },
+    {
+      "id": "tray-empty-0",
+      "actual": "tray-empty-0"
+    },
+    {
+      "id": "tray-empty-1",
+      "actual": "tray-empty-1"
+    },
+    {
+      "id": "tray-empty-2",
+      "actual": "tray-empty-2"
+    },
+    {
+      "id": "tray-empty-3",
+      "actual": "tray-empty-3"
+    },
+    {
+      "id": "tray-spent-0",
+      "actual": "tray-spent-0"
+    },
+    {
+      "id": "tray-spent-1",
+      "actual": "tray-spent-1"
+    },
+    {
+      "id": "tray-spent-2",
+      "actual": "tray-spent-2"
+    },
+    {
+      "id": "tray-spent-3",
+      "actual": "tray-spent-3"
+    },
+    {
+      "id": "cache-sealed-0",
+      "actual": "cache-sealed-0"
+    },
+    {
+      "id": "cache-sealed-1",
+      "actual": "cache-sealed-1"
+    },
+    {
+      "id": "cache-sealed-2",
+      "actual": "cache-sealed-2"
+    },
+    {
+      "id": "cache-sealed-3",
+      "actual": "cache-sealed-3"
+    },
+    {
+      "id": "cache-repaired-0",
+      "actual": "cache-repaired-0"
+    },
+    {
+      "id": "cache-repaired-1",
+      "actual": "cache-repaired-1"
+    },
+    {
+      "id": "cache-repaired-2",
+      "actual": "cache-repaired-2"
+    },
+    {
+      "id": "cache-repaired-3",
+      "actual": "cache-repaired-3"
+    }
+  ],
+  "report": {
+    "ready": true,
+    "lastPicked": null,
+    "rows": [
+      {
+        "id": "barm-0",
+        "fill": "barm",
+        "dir": 0,
+        "hash": "78e501ff161f6dd304cffe98c495ce561c85d381c618c6199fa790c9297ce213",
+        "bounds": {
+          "minX": 49,
+          "minY": 64,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 179,
+          "clipped": false
+        }
+      },
+      {
+        "id": "barm-1",
+        "fill": "barm",
+        "dir": 1,
+        "hash": "2a0b40d46c8e81fe853f6016f97264a974100da2b75f5bd17f182232a03bdff1",
+        "bounds": {
+          "minX": 49,
+          "minY": 64,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 177,
+          "clipped": false
+        }
+      },
+      {
+        "id": "barm-2",
+        "fill": "barm",
+        "dir": 2,
+        "hash": "65e770b8e61328ebdf63705924e8e7a952aec698d107a35aff02685032c1ebbc",
+        "bounds": {
+          "minX": 49,
+          "minY": 64,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 177,
+          "clipped": false
+        }
+      },
+      {
+        "id": "barm-3",
+        "fill": "barm",
+        "dir": 3,
+        "hash": "98dc168d2435a28ac82ed9fc8145b2f03269973c60d74534a4c32d97fd5f3aec",
+        "bounds": {
+          "minX": 49,
+          "minY": 64,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 179,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-empty-0",
+        "fill": "tray-empty",
+        "dir": 0,
+        "hash": "9c84d3e8b9ddcd05e61d70888b6205589b6a60f072f637a5ec040c62b827b525",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-empty-1",
+        "fill": "tray-empty",
+        "dir": 1,
+        "hash": "9c8821157f2dc09064587852335c06b4ed314320e5e7b1e82db680cb2b172777",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-empty-2",
+        "fill": "tray-empty",
+        "dir": 2,
+        "hash": "a8dab4a3013854993cb6118b7501dd44f128edc1c53558aff067080d0ccea46f",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-empty-3",
+        "fill": "tray-empty",
+        "dir": 3,
+        "hash": "9d7f46cbb0d0172d2b5a2868223ce54e5b40cd602706e188be15d20b7f25c84d",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-spent-0",
+        "fill": "tray-spent",
+        "dir": 0,
+        "hash": "37d965b32112686e1b6c3ec6cc968b0cd68f74eeae158b9f9e64d608b9488c6f",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-spent-1",
+        "fill": "tray-spent",
+        "dir": 1,
+        "hash": "c228f96a351e3b7ef31c0b059965875292016a75706c0d3cf299538020914c1b",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-spent-2",
+        "fill": "tray-spent",
+        "dir": 2,
+        "hash": "9362506b208071519ff81b2f25cda3900276ee7b3f9b0d4e15b9ec22f2c33a92",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "tray-spent-3",
+        "fill": "tray-spent",
+        "dir": 3,
+        "hash": "7e7c6b33c17fdc3611895f389b66b461f9c31eb131be56adb9256d2e7da1a05b",
+        "bounds": {
+          "minX": 45,
+          "minY": 68,
+          "maxX": 66,
+          "maxY": 82,
+          "count": 203,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-sealed-0",
+        "fill": "cache-sealed",
+        "dir": 0,
+        "hash": "108cf68ca8d39d379da986721a97e49af7ae56127f546cb62b63cd67f49155c3",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 650,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-sealed-1",
+        "fill": "cache-sealed",
+        "dir": 1,
+        "hash": "e3766ec7e552fb70479ddf91b0f2589d61b00a2a3b61875e8975807653cd4482",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 650,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-sealed-2",
+        "fill": "cache-sealed",
+        "dir": 2,
+        "hash": "48adfca1453085845e0b5f4127b1aff3f0daca74c98f6605046b3a3f0e5fd0af",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 654,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-sealed-3",
+        "fill": "cache-sealed",
+        "dir": 3,
+        "hash": "6e2411ed112e43cd8e6d06beed5e3f3966fe69e619e5311c3812b8ae09c94b76",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 654,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-repaired-0",
+        "fill": "cache-repaired",
+        "dir": 0,
+        "hash": "4b90d1b02a91a7211128f56e256ac26c2c0780cc3f6b6f29c8589268703de830",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 650,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-repaired-1",
+        "fill": "cache-repaired",
+        "dir": 1,
+        "hash": "16540fa2debc53a8ff03a5d5980c0c9c286eb1f74f83e69d2e3025c301c79ea7",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 650,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-repaired-2",
+        "fill": "cache-repaired",
+        "dir": 2,
+        "hash": "0c5700199ff2e6e182d93ef49287968e1e6f3fd121899f5cdb8460c1ef4d9f1b",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 650,
+          "clipped": false
+        }
+      },
+      {
+        "id": "cache-repaired-3",
+        "fill": "cache-repaired",
+        "dir": 3,
+        "hash": "104fa2406af9a2ca4f9aecf773152307515db03ea39fb000dc526062ab331557",
+        "bounds": {
+          "minX": 41,
+          "minY": 54,
+          "maxX": 70,
+          "maxY": 83,
+          "count": 650,
+          "clipped": false
+        }
+      }
+    ],
+    "geometry": [
+      {
+        "fill": "barm",
+        "bounds": {
+          "min": [
+            -0.25999999046325684,
+            0.02500000037252903,
+            -0.25999999046325684
+          ],
+          "max": [
+            0.25999999046325684,
+            0.535,
+            0.279
+          ]
+        },
+        "trayFloor": null,
+        "hasContents": false
+      },
+      {
+        "fill": "tray-empty",
+        "bounds": {
+          "min": [
+            -0.3725000023841858,
+            -5.364418041720054e-10,
+            -0.2675000000745058
+          ],
+          "max": [
+            0.3725000023841858,
+            0.17000000029802323,
+            0.2675000000745058
+          ]
+        },
+        "trayFloor": 0.06850000035017728,
+        "hasContents": false
+      },
+      {
+        "fill": "tray-spent",
+        "bounds": {
+          "min": [
+            -0.3725000023841858,
+            -5.364418041720054e-10,
+            -0.2675000000745058
+          ],
+          "max": [
+            0.3725000023841858,
+            0.20143478260869568,
+            0.2675000000745058
+          ]
+        },
+        "trayFloor": 0.06850000035017728,
+        "hasContents": true
+      },
+      {
+        "fill": "cache-sealed",
+        "bounds": {
+          "min": [
+            -0.49250000089406964,
+            1.341104505225843e-9,
+            -0.4025000035762787
+          ],
+          "max": [
+            0.49250000089406964,
+            0.8635000008940696,
+            0.459
+          ]
+        },
+        "trayFloor": null,
+        "hasContents": false
+      },
+      {
+        "fill": "cache-repaired",
+        "bounds": {
+          "min": [
+            -0.49250000089406964,
+            1.341104505225843e-9,
+            -0.4025000035762787
+          ],
+          "max": [
+            0.49250000089406964,
+            0.8265000001862645,
+            0.4315000000745058
+          ]
+        },
+        "trayFloor": null,
+        "hasContents": false
+      }
+    ],
+    "bakeSource": "function bake(renderer, s, c, w, h, ink = true) {\n  renderer.setSize(w, h, false);\n  renderer.render(s, c);\n  const canvas = document.createElement(\"canvas\");\n  canvas.width = w;\n  canvas.height = h;\n  const ctx = canvas.getContext(\"2d\");\n  ctx.drawImage(renderer.domElement, 0, 0);\n  if (ink) outline(ctx, w, h);\n  s.traverse((o) => {\n    if (o.geometry) o.geometry.dispose();\n  });\n  const texture = Texture.from(canvas);\n  texture.source.scaleMode = \"nearest\";\n  registerVisibleTexture(texture, ctx.getImageData(0, 0, w, h).data, w, h);\n  return texture;\n}",
+    "anchorSource": "function anchor(c) {\n  const foot = new THREE.Vector3(0, 0, 0).project(c);\n  return { x: 0.5, y: (1 - foot.y) / 2 };\n}"
+  },
+  "sourceAfter": {
+    "src/art.js": "5ca52d418077515e59d409cc86d4e683accfad8932d4887bc4bfbb9311ec627c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/brew-supplies-study-20260908/props.js": "ddc5548c53ccef65773a45c00e01388600c0ad76ae6ffd92e419629e85c3740a",
+    ".botanical/brew-supplies-study-20260908/study.js": "e05ab8eaffea8188e37656c3c4a9153c77e4a9b8681ac7aaad4b281a6b815bbe",
+    ".botanical/brew-supplies-study-20260908/index.html": "c8bf37777977c073659d4e400a6238cceceb796437be6dfa6cdb138c481ad1e9",
+    ".botanical/brew-supplies-study-20260908/capture.mjs": "f08aab29c0bd3f792ffaa61241e5a97ed103a5ae59ae14a01e5b4c202d54afd3"
+  }
+}

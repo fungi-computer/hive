@@ -1,0 +1,2427 @@
+{
+  "source": {
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/pail-study-20260908/pail.js": "fd66ef82fadff4f4768ad0cfbdfcc98a7389a368296a21c6b24903b2e2cd07b6",
+    ".botanical/pail-study-20260908/figures.study.js": "be2933dde621bf8de3a80ec7a419540a46a848441c65415cc06b97b4774c84ba",
+    ".botanical/pail-study-20260908/figures.baseline.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/pail-study-20260908/figures.baseline-study.js": "e3b19a82f8940fa05b4721bbe877f8ef44612388dbd6d0849c93016629866165",
+    ".botanical/pail-study-20260908/index.html": "222d0913b1afb0ecad5d548d887fc062e9db35b57b5bc47a81c15e499fe6d409",
+    ".botanical/pail-study-20260908/study.js": "39d51c892a540cd17830317d0a75740bd6cb5d54ac9151f7eb60039633dc455c",
+    ".botanical/pail-study-20260908/capture.mjs": "efc04d3566075c816743bf088ad41bcf55261d29b8e6e16ebfaeb9b4ca91faed"
+  },
+  "errors": [],
+  "passed": true,
+  "report": {
+    "ready": true,
+    "playing": false,
+    "frames": 14,
+    "phase": 0,
+    "lastPicked": null,
+    "ground": [
+      {
+        "id": "ground-0-0",
+        "hash": "ab3504378635a456ffbcc79bb823c4cd73237ae9b3bed6c28e2aa0fc0d5c22bf",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-0-1",
+        "hash": "5743c36f00ee04b70ec98fd122e549d08aef2d4d09aeb1d1d6b0d740657bada4",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-0-2",
+        "hash": "f90d8f7e1cdf5711c43bc25b51498fd0b0bbbdd122b8a9b1a7fd5ab996aee177",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-0-3",
+        "hash": "e582a17bf5cc3d14332881f744e597909cd78cce9b34e2bf6f18259649740e03",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-1-0",
+        "hash": "52a4429a6f2f5f8dfedc7ad80408136b8c3513eb78fc8615656edcad1010f176",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-1-1",
+        "hash": "824e87b8243d2ad63a892bd51b24c16fd4f3bb67203f3d4e83a55792f784be75",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-1-2",
+        "hash": "e046dcf33184b0ee0df4d0a10b2e3078d9398329e62f89e4c7e60f843e557e95",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-1-3",
+        "hash": "c0c027707b3429a67df99f07192576687dbb2f6f9d51a31a41a4d2f74bf68b32",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-2-0",
+        "hash": "66630a4291765fd5cc72b3ae66fd58b2b8703b463645d0c0195b465dd1977488",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-2-1",
+        "hash": "ae2b494a61e166ae17b088b835a87a251e515498103d66c2e57722aa2f67ed77",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-2-2",
+        "hash": "b58abb2e804b3a46bb544e2a97f81bce88a02386a326532ce549c21aedef4d5d",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      },
+      {
+        "id": "ground-2-3",
+        "hash": "2c33490d76a3c046519404869de0fc234ab07f159f0feaf7f0a80bffa308febd",
+        "bounds": {
+          "minX": 49,
+          "minY": 63,
+          "maxX": 62,
+          "maxY": 79,
+          "count": 173,
+          "clipped": false
+        }
+      }
+    ],
+    "carried": [
+      {
+        "id": "carry-rowan-0-0",
+        "hashes": [
+          "728014f8e2080227b2b727f99588368322834f685ae1154a9a0889e1873caab0",
+          "99105b7cc70f06e3c590fd7128e8e48dbe68768378fbf701a134f02fb17bf333",
+          "b8707b08f02a7e94c14ed652a96a9ad23b9d8b6d108370f3291c6f392b68c261",
+          "99105b7cc70f06e3c590fd7128e8e48dbe68768378fbf701a134f02fb17bf333",
+          "728014f8e2080227b2b727f99588368322834f685ae1154a9a0889e1873caab0",
+          "91dd08f97ccfd70df658a190ba76f0fb423255de90b2574d4df0bd2e7abba896",
+          "ccb3aea299fefc8c7e82368c4bcbd19dfdf8a67e4e83dd3e67da7f89285b720a",
+          "91dd08f97ccfd70df658a190ba76f0fb423255de90b2574d4df0bd2e7abba896"
+        ],
+        "bounds": [
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 509,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 507,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 60,
+            "count": 511,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 507,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 509,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 490,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 500,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 490,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-0-1",
+        "hashes": [
+          "737746f2e308a8285f39471414926449893785b98a07085f6be5479a2c428d34",
+          "a281c8cd53a1e3b0e72d8c9d849cff0144d5381ba97f8b2d36c310890cee3272",
+          "b38be5a4eb0a3034a4e066c927bd157b57420f6dd7c5fc198df93fc5a9862345",
+          "a281c8cd53a1e3b0e72d8c9d849cff0144d5381ba97f8b2d36c310890cee3272",
+          "737746f2e308a8285f39471414926449893785b98a07085f6be5479a2c428d34",
+          "d0079c7144c494c7773e6b4127506527d9f9b1ad6dd07bc47ecfcd73bcbd63d6",
+          "90a0d664b2cf99af7ada35c8698d7f14baa7ea8b4f29d7efaf4f8d3d8d7e1353",
+          "d0079c7144c494c7773e6b4127506527d9f9b1ad6dd07bc47ecfcd73bcbd63d6"
+        ],
+        "bounds": [
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 552,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 563,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 552,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 582,
+            "clipped": false
+          },
+          {
+            "minX": 29,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 574,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 582,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-0-2",
+        "hashes": [
+          "04e95f6d78a1bf108271fe72800b6fc34bba8bb2e597537d0176274501bbc108",
+          "ba1b5ad83bb7dae36d5871d245d5dab37d0284e3b99906f4a38e946d4b17175b",
+          "0a39143488d9c7de93c78bcb620d8da2c77a48cd7f7914e010278e465acf6e40",
+          "ba1b5ad83bb7dae36d5871d245d5dab37d0284e3b99906f4a38e946d4b17175b",
+          "04e95f6d78a1bf108271fe72800b6fc34bba8bb2e597537d0176274501bbc108",
+          "c98d1635a9ff6c5818db47cd49a9d8f293461498f7d7f6989e6fdac48d38d777",
+          "ff4ad729412a83bcea0a23044226832c850a6ed8f02f2bbde6794df84cb2021a",
+          "c98d1635a9ff6c5818db47cd49a9d8f293461498f7d7f6989e6fdac48d38d777"
+        ],
+        "bounds": [
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 504,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 60,
+            "count": 523,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 22,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 524,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 60,
+            "count": 523,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 504,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 489,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 22,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 495,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 489,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-0-3",
+        "hashes": [
+          "522a6ba92e2e615c681a0c1b802e7ee47913007d4a7e1bdab978e83308b3400f",
+          "4af333105fae3232fc6d8c312f7b9002f9a2aa6e269f80c00d1d0afe644380f8",
+          "ddcf3f1d504b4866fd4782ba2367abcfc3515d74b27fb215fd2fd5ee207680bf",
+          "4af333105fae3232fc6d8c312f7b9002f9a2aa6e269f80c00d1d0afe644380f8",
+          "522a6ba92e2e615c681a0c1b802e7ee47913007d4a7e1bdab978e83308b3400f",
+          "3d3cb28289d0ef99add5a30db9acccb5fc22a6a20cef363a18e9a791ea6f9d1c",
+          "8c33a2577d44dbad2f7639d7b6924419b3e3a7cc735e8153c2542e0fd3a18935",
+          "3d3cb28289d0ef99add5a30db9acccb5fc22a6a20cef363a18e9a791ea6f9d1c"
+        ],
+        "bounds": [
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 576,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 60,
+            "count": 580,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 23,
+            "maxX": 50,
+            "maxY": 60,
+            "count": 579,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 60,
+            "count": 580,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-1-0",
+        "hashes": [
+          "728014f8e2080227b2b727f99588368322834f685ae1154a9a0889e1873caab0",
+          "ba15c2e34b37e3f77e072e95092bda54b305c8c375f7a1d483d7b4c6d7d42072",
+          "43ce46f65bc213520e58114539e1b7f157544a1521a939e8e537d0f8c622d6cb",
+          "ba15c2e34b37e3f77e072e95092bda54b305c8c375f7a1d483d7b4c6d7d42072",
+          "728014f8e2080227b2b727f99588368322834f685ae1154a9a0889e1873caab0",
+          "bb97b639e10476bf980f7c955aaaf31dcd70c8ce77a0a305d101de125d7414cd",
+          "e134e164255eaae17cf2eb4a675a0c599fef8af83a7d37f6b6ef90348d64ec5b",
+          "bb97b639e10476bf980f7c955aaaf31dcd70c8ce77a0a305d101de125d7414cd"
+        ],
+        "bounds": [
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 509,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 507,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 60,
+            "count": 511,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 507,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 509,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 490,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 500,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 490,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-1-1",
+        "hashes": [
+          "737746f2e308a8285f39471414926449893785b98a07085f6be5479a2c428d34",
+          "3ea7c59810a4b3ef0039bc22b4185d09c41bfc49fd306b43e806f14d08fe3b49",
+          "33690bacf833a7f5db9f56a6c8ec5a7aed321245d45571937148fab9cf7c4801",
+          "3ea7c59810a4b3ef0039bc22b4185d09c41bfc49fd306b43e806f14d08fe3b49",
+          "737746f2e308a8285f39471414926449893785b98a07085f6be5479a2c428d34",
+          "ebb2aaa7e60c1b84e8a9ffab47a7495df9da9aaf78fba1d60b678ce38ae4c912",
+          "c723639b7f31095fe6d46cfb2328398f86097e9076bd878982d0cb90513b9d6d",
+          "ebb2aaa7e60c1b84e8a9ffab47a7495df9da9aaf78fba1d60b678ce38ae4c912"
+        ],
+        "bounds": [
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 552,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 563,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 552,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 582,
+            "clipped": false
+          },
+          {
+            "minX": 29,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 574,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 582,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-1-2",
+        "hashes": [
+          "fa2d34cbf1e53a0585173251c2c279f7d78fe9f15de701ec7edf093abf6b59d2",
+          "ecc056e889635b629cd39e2c7db3635ab0a76993f8e982afc377e6fdc9d481de",
+          "857ca72f16960a2ab4b9cf2ede2b9f833d89d8e559d7e10f9f6329d97890bbb3",
+          "ecc056e889635b629cd39e2c7db3635ab0a76993f8e982afc377e6fdc9d481de",
+          "fa2d34cbf1e53a0585173251c2c279f7d78fe9f15de701ec7edf093abf6b59d2",
+          "c98d1635a9ff6c5818db47cd49a9d8f293461498f7d7f6989e6fdac48d38d777",
+          "ff4ad729412a83bcea0a23044226832c850a6ed8f02f2bbde6794df84cb2021a",
+          "c98d1635a9ff6c5818db47cd49a9d8f293461498f7d7f6989e6fdac48d38d777"
+        ],
+        "bounds": [
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 504,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 60,
+            "count": 523,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 22,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 524,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 60,
+            "count": 523,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 504,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 489,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 22,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 495,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 489,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-1-3",
+        "hashes": [
+          "4d37d14a8ff56fe3d8c0635bb9826e06a9d251ce916d10f697d174ada0f5b3e5",
+          "606c0b7ab0e0caef2760dcaf332018c47180903d6df605c9b83b574602cbcd28",
+          "70381984c56eeebf36f87d89bf93b9b2d513353cafeab228a23f824f5e320936",
+          "606c0b7ab0e0caef2760dcaf332018c47180903d6df605c9b83b574602cbcd28",
+          "4d37d14a8ff56fe3d8c0635bb9826e06a9d251ce916d10f697d174ada0f5b3e5",
+          "3d3cb28289d0ef99add5a30db9acccb5fc22a6a20cef363a18e9a791ea6f9d1c",
+          "3fc111c3c4bda8e09d331a0842e855d752430d099cb1fb237805da7c1363579a",
+          "3d3cb28289d0ef99add5a30db9acccb5fc22a6a20cef363a18e9a791ea6f9d1c"
+        ],
+        "bounds": [
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 576,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 60,
+            "count": 580,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 23,
+            "maxX": 50,
+            "maxY": 60,
+            "count": 579,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 60,
+            "count": 580,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-2-0",
+        "hashes": [
+          "4159eb776cc841a437968ae3d4ccad58834bd7051680fffda2b567d1ca22bf35",
+          "4f781b1af0d6fa1de158a5dd4638fd3eac99e0f658ed55926d9f2b0aae367546",
+          "9ae3dc32283804a2ef759a9f5db859b5e412bf3907ea608e450e760e47bfc2b7",
+          "4f781b1af0d6fa1de158a5dd4638fd3eac99e0f658ed55926d9f2b0aae367546",
+          "4159eb776cc841a437968ae3d4ccad58834bd7051680fffda2b567d1ca22bf35",
+          "4236b31b40c9c6d3b12bc8df339cb98e23af39febfebcd32d5b691448c9c7d71",
+          "b481cc94e14fd55447546392155921b102a6db57a7d1bae2d6951d6f3243cf65",
+          "4236b31b40c9c6d3b12bc8df339cb98e23af39febfebcd32d5b691448c9c7d71"
+        ],
+        "bounds": [
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 509,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 507,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 60,
+            "count": 511,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 507,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 509,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 490,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 500,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 490,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-2-1",
+        "hashes": [
+          "5d5baa2e12b26364e48277dbba49aece742b7b83b3aa85ca57730f848c910603",
+          "8613612f1b5f492cb5f010d303cca9a1d8d4da046ad45e84d1c94f475910fdf9",
+          "c6e9478b81ab0aa3f6fc3687b7dd5e7659272d827db38ebcafa468d63c13a2b2",
+          "8613612f1b5f492cb5f010d303cca9a1d8d4da046ad45e84d1c94f475910fdf9",
+          "5d5baa2e12b26364e48277dbba49aece742b7b83b3aa85ca57730f848c910603",
+          "1f1d573364167ebab8c3f69355ef73e690299b48c47819c87ccc71259f34ce14",
+          "7444776b8802a0bdcb8e51d15f549ba5062acbe2dbd2b481ffc3bd6f64cc5c51",
+          "1f1d573364167ebab8c3f69355ef73e690299b48c47819c87ccc71259f34ce14"
+        ],
+        "bounds": [
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 552,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 563,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 552,
+            "clipped": false
+          },
+          {
+            "minX": 33,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 582,
+            "clipped": false
+          },
+          {
+            "minX": 29,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 574,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 23,
+            "maxX": 54,
+            "maxY": 60,
+            "count": 582,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-2-2",
+        "hashes": [
+          "16eb46a7b43b27234bab135c9985d8ab75c038bcbf746a0ce1d3cb073ca2ce6a",
+          "52443318bac3f11d895d1d0d72426c9e6082916f003a9cde4b9a50989a00ad35",
+          "4a987e86291d8d6a640b8b2c2b6498b27f1ca11e0de3648227d1dfeff3f2d850",
+          "52443318bac3f11d895d1d0d72426c9e6082916f003a9cde4b9a50989a00ad35",
+          "16eb46a7b43b27234bab135c9985d8ab75c038bcbf746a0ce1d3cb073ca2ce6a",
+          "60f07153b17be94e160b5c5c00e26ced92ffd0910d4129bf30ea779526f27b50",
+          "7fb07b97618865823e04b8cbbe8e86def5192d9f91340d5229110f7cd5bfcbdc",
+          "60f07153b17be94e160b5c5c00e26ced92ffd0910d4129bf30ea779526f27b50"
+        ],
+        "bounds": [
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 504,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 60,
+            "count": 523,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 22,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 524,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 60,
+            "count": 523,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 504,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 489,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 22,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 495,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 489,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-rowan-2-3",
+        "hashes": [
+          "638fbc20c943ab8fd1ac58a4c09b4f1a917c20fd7f903e1501cd3caf62efca45",
+          "a7f252764865d1328259d8c8d19a749fc0dedb93e503f6c5453010e8e365a9c2",
+          "98a7b15e27a9964d0ae29997c2e3e12a0fde7c9ad5cae3b539aa78275c2cc6f9",
+          "a7f252764865d1328259d8c8d19a749fc0dedb93e503f6c5453010e8e365a9c2",
+          "638fbc20c943ab8fd1ac58a4c09b4f1a917c20fd7f903e1501cd3caf62efca45",
+          "e05ddbc180aec41f98aebac038cd44505b9ea6edb674e2500286e6acd8b2dd77",
+          "58ab81b21baae51dc6762849a2a174de99e7ed8fdbe620c7c98176fb10e8a327",
+          "e05ddbc180aec41f98aebac038cd44505b9ea6edb674e2500286e6acd8b2dd77"
+        ],
+        "bounds": [
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 576,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 47,
+            "maxY": 62,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 46,
+            "maxY": 61,
+            "count": 562,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 60,
+            "count": 580,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 23,
+            "maxX": 50,
+            "maxY": 60,
+            "count": 579,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 23,
+            "maxX": 48,
+            "maxY": 60,
+            "count": 580,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-0-0",
+        "hashes": [
+          "e74de659dd913694f325edd59ef60babd22adaabe44d6ade6ab7ed86bca6558d",
+          "f60baa3ee94ee2814ca2985eece71da127df02adb821b3f5335227969844b863",
+          "7f8e5cc4df22c46a898b67a5a3549f33ebe0c7468bda73d657bc13bc6ffc0622",
+          "8bc306d467d59b891bff25b7fb1212d12eabb0a3526e4dc184e3a7e9ea2c63d0",
+          "73241684bbe6e8fe64467320728bee2d5c3a3e3eb68f3491a97e6139727b86ef",
+          "228eef4cd2248dabb8035dd11b6c889d44c6b331e492b3a026534a1ab4c415ee",
+          "a2d4997c36b67062a2484213c14515dc601a510de884dd2d1f6206e006a5bc64",
+          "be94c7d017794b499a7a459ce3a976502feac21ba8b1239665fd4253fd1b59d0"
+        ],
+        "bounds": [
+          {
+            "minX": 32,
+            "minY": 14,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 653,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 671,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 695,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 56,
+            "maxY": 60,
+            "count": 711,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 14,
+            "maxX": 56,
+            "maxY": 62,
+            "count": 717,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 673,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 636,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 621,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-0-1",
+        "hashes": [
+          "27a5b9bb786efd064d90a9bfba99a0e22c530fd2d9a8ef71859442f81880c83a",
+          "9cf10cc18f5eb055b8f89863c99e7c2b9d56b368e0865a18100e20995c4269a6",
+          "3cbd53ee300b9e38f78e6a0294c14bb915e9f85b6edbc79c669e0641b8762051",
+          "9358f23c8e850c4d90d50cc8f7e3f677273d71072f4ae12f33df1e00413032db",
+          "1dd2461d9ee2448aaf1ed9b70602a71c878af5afc8178c41e40f0b4656d00662",
+          "3014d93c0983bf0915750c3b7ae67d6a44352d78793b6fe8d3f3cce14235a725",
+          "3f5a4d78b43829eb78cf5767a46a7ab8652c31d01d572a3c6d9b3ce07c321cbf",
+          "1c57a19f0cca513610f7f005d327adc06872077a78a1b52e03eba13007698f39"
+        ],
+        "bounds": [
+          {
+            "minX": 27,
+            "minY": 15,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 766,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 722,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 61,
+            "count": 711,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 695,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 15,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 733,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 736,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 59,
+            "count": 749,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 760,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-0-2",
+        "hashes": [
+          "e37a169f1c7d4f920a7b64de1530d714a72d2375e8d215a7f44fd7c3a3c8653f",
+          "9436271dd1519c9833d2baac45ac6150bb58f62ae85e905892d8519af464237d",
+          "6aab2c449fcdb952b2d0082d891ac351a5def69bcf2c8f9f62bcd749e1f9c611",
+          "60139513e31a6aff8f496014363e42b633df5dc0921995dd2579ff7d2fd63dd4",
+          "3b1cbdf6799255be0b618ae4c4fb2910b86c72b24898bf3b33002be35aab6e4a",
+          "ce1504c3a9d207b7ba0b2816c06dbb39cff0901e5a6251fb8a31572f15f92d2d",
+          "f62a82e0f03c8ce62f75513458ffdef18709a9a4fbc18a0347736b5a58aca2be",
+          "bc86eafdd71335804d8eef1aaab5dca023936e2eb7920d1035aaa798e15494b7"
+        ],
+        "bounds": [
+          {
+            "minX": 28,
+            "minY": 15,
+            "maxX": 47,
+            "maxY": 61,
+            "count": 611,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 628,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 673,
+            "clipped": false
+          },
+          {
+            "minX": 23,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 705,
+            "clipped": false
+          },
+          {
+            "minX": 23,
+            "minY": 15,
+            "maxX": 47,
+            "maxY": 61,
+            "count": 699,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 638,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 14,
+            "maxX": 49,
+            "maxY": 62,
+            "count": 592,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 14,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 587,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-0-3",
+        "hashes": [
+          "bda25e98f060b632f54951b5a8594beb19ecfb05343c2c356cf8ea0d2d43edde",
+          "83a580fec6d0443964b7044efeeebb5501d6c8f1763f0861c101517cb5e9fd74",
+          "487b232a3c840c175f70b1b85e9ca87025abf3ad8e8ae74322bf5370ce907d27",
+          "776c2157c58f671ae337bd7f0d39f95905dbb1360508a904e33a92b23b777a5e",
+          "5d2855b15737b806048820c34806829f87a74d4f49dd7d2920c40b0cf8461db6",
+          "98821a66937309c1324ecf4142d2e4921c86e3baf6aee5dd239846adc40beee7",
+          "26162a298f8d59b3667187cd4328c449ce3c4176cfe9ecd0ac58e970fe0c8f8c",
+          "5f6ada6be754bb61b1f8fbcd3e62d8117d197a2d9e92150a84501f200127dc62"
+        ],
+        "bounds": [
+          {
+            "minX": 25,
+            "minY": 14,
+            "maxX": 52,
+            "maxY": 61,
+            "count": 782,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 783,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 791,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 62,
+            "count": 785,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 14,
+            "maxX": 52,
+            "maxY": 61,
+            "count": 791,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 787,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 770,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 779,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-1-0",
+        "hashes": [
+          "65070681b901be744161e60dff88535c4fb020f5fa889ff954e587011f60ba00",
+          "0c1e7b0f9b86cee3173008a8b59755715641424cd7a68dcf8daee2eb4f062370",
+          "3c8823bb6426f87ddb5e5fc094687b83f7aac2020f1b5dda408dbbb01fe145f2",
+          "9a325340b6a8198e6e62b6f6d817f43afdbaf9091332a1c01296eb2c4e90bcec",
+          "3d94f2a55213a984414d2cdd0c73a307e1c4588b3e89fd7cd08205619e24202f",
+          "fabfb33d8badc00a34abec6f04f395cdaf509bfcc3e21b773ca56525af2221db",
+          "7d66e9fcd99bab2b9be0e2702d38d33c1087835b3e299ca80efdf2b9f3f19049",
+          "d0c1437bff25df596da0a28bb37f9d1bbb27d14ab2dc5519a05c89ea6c9206b3"
+        ],
+        "bounds": [
+          {
+            "minX": 32,
+            "minY": 14,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 653,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 671,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 695,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 56,
+            "maxY": 60,
+            "count": 711,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 14,
+            "maxX": 56,
+            "maxY": 62,
+            "count": 717,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 673,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 636,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 621,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-1-1",
+        "hashes": [
+          "35391a004a10b09779d9f5346dd2e806e1f4c12850793518d85945b4a2eafd94",
+          "a30b47c24891217771a2661e89e7b42f2d48a66d699125d1c94fea272da8d2d2",
+          "3cbd53ee300b9e38f78e6a0294c14bb915e9f85b6edbc79c669e0641b8762051",
+          "db20d0d185448996632a1ff63107fdab71ebcf39447750074235258130606f66",
+          "7d8b44dbde567b440084e32bd7ab03b9ea284dffd34d35391d3a93bc2483f82a",
+          "613ba069d2bbeb615c517c30f3c30c4f538a91ae6843f8d934ab48ba9f5a6658",
+          "dcd3d27ffdf7c5dc96e979ea946de4461afb6ce1a392ad351fa83cf606460d87",
+          "8e33b1f2ff617e349a0fc39a9e62d0469b3918a9e416a40ce3f2107f12eee1b3"
+        ],
+        "bounds": [
+          {
+            "minX": 27,
+            "minY": 15,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 766,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 722,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 61,
+            "count": 711,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 695,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 15,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 733,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 736,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 59,
+            "count": 749,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 760,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-1-2",
+        "hashes": [
+          "e37a169f1c7d4f920a7b64de1530d714a72d2375e8d215a7f44fd7c3a3c8653f",
+          "9436271dd1519c9833d2baac45ac6150bb58f62ae85e905892d8519af464237d",
+          "6aab2c449fcdb952b2d0082d891ac351a5def69bcf2c8f9f62bcd749e1f9c611",
+          "60139513e31a6aff8f496014363e42b633df5dc0921995dd2579ff7d2fd63dd4",
+          "3b1cbdf6799255be0b618ae4c4fb2910b86c72b24898bf3b33002be35aab6e4a",
+          "ce1504c3a9d207b7ba0b2816c06dbb39cff0901e5a6251fb8a31572f15f92d2d",
+          "f62a82e0f03c8ce62f75513458ffdef18709a9a4fbc18a0347736b5a58aca2be",
+          "bc86eafdd71335804d8eef1aaab5dca023936e2eb7920d1035aaa798e15494b7"
+        ],
+        "bounds": [
+          {
+            "minX": 28,
+            "minY": 15,
+            "maxX": 47,
+            "maxY": 61,
+            "count": 611,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 628,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 673,
+            "clipped": false
+          },
+          {
+            "minX": 23,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 705,
+            "clipped": false
+          },
+          {
+            "minX": 23,
+            "minY": 15,
+            "maxX": 47,
+            "maxY": 61,
+            "count": 699,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 638,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 14,
+            "maxX": 49,
+            "maxY": 62,
+            "count": 592,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 14,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 587,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-1-3",
+        "hashes": [
+          "74fe09dad5c32e37376fcc596fe11d8c64ce8b1916aedb9633a1bc4b7e679063",
+          "83a580fec6d0443964b7044efeeebb5501d6c8f1763f0861c101517cb5e9fd74",
+          "487b232a3c840c175f70b1b85e9ca87025abf3ad8e8ae74322bf5370ce907d27",
+          "776c2157c58f671ae337bd7f0d39f95905dbb1360508a904e33a92b23b777a5e",
+          "2d53b4e60c5af75e6cabdc4104340236e22b2cbab7a42559c9fe6706fbe1f5fb",
+          "52f9b6536fe6928bb13983956e227e5c1a104946f61121287d7c8c634328bbfe",
+          "5677638a63b6a93122ef09cf69e520a085647ed1bdf2ba8e60c24e0f33330092",
+          "3bd44a2654f56e2a59f6f0404626de31002f464ba2388f96fb97ce6122aeadbc"
+        ],
+        "bounds": [
+          {
+            "minX": 25,
+            "minY": 14,
+            "maxX": 52,
+            "maxY": 61,
+            "count": 782,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 783,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 791,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 62,
+            "count": 785,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 14,
+            "maxX": 52,
+            "maxY": 61,
+            "count": 791,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 787,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 770,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 779,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-2-0",
+        "hashes": [
+          "fbda10d005d9baaa3a0b0d90a5b156c39fc39d0d48ba434d4742b4aa0d8bb90c",
+          "e90a4e07a6d7d37f5191f7102c48e5ff04900f98dd754325ba26319da82740aa",
+          "ed77eae918e547a333a815f883909653ee3f5f3b359d987b931381f1217ec550",
+          "ff726aabf9a8723a04c047f5c124e3eef099b6ee3b13338775b0f575795d5d03",
+          "781ba6227f8659a54d459b023e1b53bcf47ca6f1348bd60a33dede8107a23024",
+          "fb4d8cf983b4dd123469b2c5fd540638b61daa45d44784b5aee4eb94561c1c7d",
+          "e91130ed848494c32c50e459b0d1ce8aface845f2ff92c3e6251fa8dcdee9c39",
+          "fe54842fafe01055ba35fd471d1d807a521d2cb6572c07d878e5466e336f113f"
+        ],
+        "bounds": [
+          {
+            "minX": 32,
+            "minY": 14,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 653,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 671,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 695,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 13,
+            "maxX": 56,
+            "maxY": 60,
+            "count": 711,
+            "clipped": false
+          },
+          {
+            "minX": 32,
+            "minY": 14,
+            "maxX": 56,
+            "maxY": 62,
+            "count": 717,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 673,
+            "clipped": false
+          },
+          {
+            "minX": 30,
+            "minY": 13,
+            "maxX": 51,
+            "maxY": 61,
+            "count": 636,
+            "clipped": false
+          },
+          {
+            "minX": 31,
+            "minY": 13,
+            "maxX": 51,
+            "maxY": 62,
+            "count": 621,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-2-1",
+        "hashes": [
+          "032a461e3263e0504909ae9afaa3c4e564780c072dd47228c428ea79f9856241",
+          "f3449be8c9d0e11396703f26e57c1c57d6cced8703ae50444c6af8c74b1a8f22",
+          "3daf781ac1135ef42e43be1f8d3e3d04acac559d26856a3e14754dc28136a38b",
+          "164f71a9bf6e7a54cd6e909e812e63ad384e843335eda9f281d3c570e9031a5d",
+          "129049fb99582099ff5721f0c747987aa62f577da2bf1568d51a67e69d0e48f7",
+          "b30767a4d159f941a794a50a007a1fa37fc9148c089fb7386d02090714c90119",
+          "17b1c0b50083a2cbb51ef4b3b887ca790b833e0dc280ba29fe48af5c316433bb",
+          "7872d0aba8393fa11d43ca95348932510c3622b2e71a771f0e63d5f894e51f5c"
+        ],
+        "bounds": [
+          {
+            "minX": 27,
+            "minY": 15,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 766,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 722,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 61,
+            "count": 711,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 695,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 15,
+            "maxX": 54,
+            "maxY": 62,
+            "count": 733,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 736,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 59,
+            "count": 749,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 55,
+            "maxY": 60,
+            "count": 760,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-2-2",
+        "hashes": [
+          "4d0a722da18ff0e08ea30a40ad69b76a90af6d37f19046b1f67b4c359cc68b24",
+          "9436271dd1519c9833d2baac45ac6150bb58f62ae85e905892d8519af464237d",
+          "6aab2c449fcdb952b2d0082d891ac351a5def69bcf2c8f9f62bcd749e1f9c611",
+          "60139513e31a6aff8f496014363e42b633df5dc0921995dd2579ff7d2fd63dd4",
+          "3b1cbdf6799255be0b618ae4c4fb2910b86c72b24898bf3b33002be35aab6e4a",
+          "ce1504c3a9d207b7ba0b2816c06dbb39cff0901e5a6251fb8a31572f15f92d2d",
+          "f62a82e0f03c8ce62f75513458ffdef18709a9a4fbc18a0347736b5a58aca2be",
+          "65097c98ee7bf9621cdd574453ff14aeeff67e01458b2b77b5e14ad8310dc2cb"
+        ],
+        "bounds": [
+          {
+            "minX": 28,
+            "minY": 15,
+            "maxX": 47,
+            "maxY": 61,
+            "count": 611,
+            "clipped": false
+          },
+          {
+            "minX": 27,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 628,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 673,
+            "clipped": false
+          },
+          {
+            "minX": 23,
+            "minY": 14,
+            "maxX": 47,
+            "maxY": 60,
+            "count": 705,
+            "clipped": false
+          },
+          {
+            "minX": 23,
+            "minY": 15,
+            "maxX": 47,
+            "maxY": 61,
+            "count": 699,
+            "clipped": false
+          },
+          {
+            "minX": 26,
+            "minY": 14,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 638,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 14,
+            "maxX": 49,
+            "maxY": 62,
+            "count": 592,
+            "clipped": false
+          },
+          {
+            "minX": 28,
+            "minY": 14,
+            "maxX": 48,
+            "maxY": 62,
+            "count": 587,
+            "clipped": false
+          }
+        ]
+      },
+      {
+        "id": "carry-witch-runner-2-3",
+        "hashes": [
+          "d8ff4d39f07fdbaaf38f2385c1be0007d7900d09ed40a48ec34065565752873f",
+          "f561ee0557ddd8bb10bb06f2cf6b4c7feaeeb7caefc069de8a1661583ae16d01",
+          "1308dec0846dd99f2698f3aab77803826a24bcaf94bd17fc0d6ef908eab56df1",
+          "957eca4ab0874895b1b6226f9aee7b0af3e60c9b46029bd3336b434f5e0084d7",
+          "c5724da049b040164c559cff8edb8b7feb6caaeb76c0a7b686fe60243cb99f7e",
+          "580c370c2b59ccd6e963d306c75e1ce22d27583793eb4967ccf0364d71403628",
+          "69f0f32f67239c48d8c11a23933d0344cb76aa78cd458a5ead734af1df5a6e47",
+          "4ecfc803955053f44009eb7e9506575b8f575d2c15b2d94d1626414812e5c85e"
+        ],
+        "bounds": [
+          {
+            "minX": 25,
+            "minY": 14,
+            "maxX": 52,
+            "maxY": 61,
+            "count": 782,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 783,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 53,
+            "maxY": 62,
+            "count": 791,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 62,
+            "count": 785,
+            "clipped": false
+          },
+          {
+            "minX": 25,
+            "minY": 14,
+            "maxX": 52,
+            "maxY": 61,
+            "count": 791,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 787,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 770,
+            "clipped": false
+          },
+          {
+            "minX": 24,
+            "minY": 13,
+            "maxX": 52,
+            "maxY": 60,
+            "count": 779,
+            "clipped": false
+          }
+        ]
+      }
+    ],
+    "parity": [
+      {
+        "kind": "rowan",
+        "pose": "idle",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "walk",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "chop",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "build",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "carry",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "carry-herb",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "pickup-herb",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "pickup",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "deliver",
+        "same": true
+      },
+      {
+        "kind": "rowan",
+        "pose": "sleep",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "idle",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "walk",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "chop",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "build",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "carry",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "carry-herb",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "pickup-herb",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "pickup",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "deliver",
+        "same": true
+      },
+      {
+        "kind": "witch-runner",
+        "pose": "sleep",
+        "same": true
+      }
+    ],
+    "grips": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1.1102230246251565e-16,
+      0,
+      1.1102230246251565e-16,
+      0,
+      0,
+      0,
+      0
+    ],
+    "geometry": {
+      "bodyFloor0": 0.08299999684095383,
+      "liquid0": null,
+      "bodyFloor1": 0.08299999684095383,
+      "liquid1": 0.235,
+      "bodyFloor2": 0.08299999684095383,
+      "liquid2": 0.382
+    },
+    "bakeSource": "function bake(renderer, s, c, w, h, ink = true) {\n  renderer.setSize(w, h, false);\n  renderer.render(s, c);\n  const canvas = document.createElement(\"canvas\");\n  canvas.width = w;\n  canvas.height = h;\n  const ctx = canvas.getContext(\"2d\");\n  ctx.drawImage(renderer.domElement, 0, 0);\n  if (ink) outline(ctx, w, h);\n  s.traverse((o) => {\n    if (o.geometry) o.geometry.dispose();\n  });\n  const texture = Texture.from(canvas);\n  texture.source.scaleMode = \"nearest\";\n  registerVisibleTexture(texture, ctx.getImageData(0, 0, w, h).data, w, h);\n  return texture;\n}",
+    "anchorSource": "function anchor(c) {\n  const foot = new THREE.Vector3(0, 0, 0).project(c);\n  return { x: 0.5, y: (1 - foot.y) / 2 };\n}"
+  },
+  "clicks": [
+    {
+      "id": "ground-0-0",
+      "actual": "ground-0-0"
+    },
+    {
+      "id": "ground-1-0",
+      "actual": "ground-1-0"
+    },
+    {
+      "id": "ground-2-0",
+      "actual": "ground-2-0"
+    },
+    {
+      "id": "carry-rowan-0-0",
+      "actual": "carry-rowan-0-0"
+    },
+    {
+      "id": "carry-rowan-1-0",
+      "actual": "carry-rowan-1-0"
+    },
+    {
+      "id": "carry-rowan-2-0",
+      "actual": "carry-rowan-2-0"
+    },
+    {
+      "id": "carry-witch-runner-0-0",
+      "actual": "carry-witch-runner-0-0"
+    },
+    {
+      "id": "carry-witch-runner-1-0",
+      "actual": "carry-witch-runner-1-0"
+    },
+    {
+      "id": "carry-witch-runner-2-0",
+      "actual": "carry-witch-runner-2-0"
+    }
+  ],
+  "sourceAfter": {
+    "src/art/scale.js": "f57c6b6db255863da9fb6a8e8840e234dd021a22f540905fb023c2cc24e9701c",
+    "src/art/geometry.js": "3f435fed1c9414281c79e54ada5eb6cc6788d33cab8bd83e95a24da0a2008264",
+    "src/art/herbs.js": "9175039466acea17c5e7ed282308780b195ccb264b8644a0432ac5ab4d84b554",
+    "src/art/figures.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    "src/visual-hit-geometry.js": "60788ed8660fe19cfb23ea1118b1c89672dd627f9a376cb4baf635d3b96b911a",
+    ".botanical/pail-study-20260908/pail.js": "fd66ef82fadff4f4768ad0cfbdfcc98a7389a368296a21c6b24903b2e2cd07b6",
+    ".botanical/pail-study-20260908/figures.study.js": "be2933dde621bf8de3a80ec7a419540a46a848441c65415cc06b97b4774c84ba",
+    ".botanical/pail-study-20260908/figures.baseline.js": "f6e9743dad6aec1b166e6482d775d5e0a83583c84ed1ce5a3914af6014fac0f1",
+    ".botanical/pail-study-20260908/figures.baseline-study.js": "e3b19a82f8940fa05b4721bbe877f8ef44612388dbd6d0849c93016629866165",
+    ".botanical/pail-study-20260908/index.html": "222d0913b1afb0ecad5d548d887fc062e9db35b57b5bc47a81c15e499fe6d409",
+    ".botanical/pail-study-20260908/study.js": "39d51c892a540cd17830317d0a75740bd6cb5d54ac9151f7eb60039633dc455c",
+    ".botanical/pail-study-20260908/capture.mjs": "efc04d3566075c816743bf088ad41bcf55261d29b8e6e16ebfaeb9b4ca91faed"
+  }
+}

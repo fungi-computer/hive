@@ -1,0 +1,323 @@
+{
+  "url": "http://127.0.0.1:5188/",
+  "frozenTarget": {
+    "url": "http://127.0.0.1:5188/",
+    "distSha256": {
+      "dist/index.html": "caaa8f74c77d9ff4b3e5e737fefea8c101eb3f1c0b31e24e66dbfe1fffe90638",
+      "dist/assets/game-E5IO99WR.js": "009c85d3dc426a1a42002e2eddf5a9ac70cdd53c44b1ca4d19e4af1fd7777064",
+      "dist/assets/art-CCSP12DF.js": "37435e9bf8030f3ec971348825cf416d2451672b6bfbecf8834052e9e3af4211"
+    }
+  },
+  "scriptSha256": "6f738100e19ada3d838018388c8cf1bc49100357bf246d1858ea95f074e70090",
+  "wrapper": {
+    "runner": "/home/levi/src/Botanical-next/.agents/skills/orchestrate-multi-lane-work/scripts/run-proof.sh",
+    "scope": "RuntimeMaxSec=10min; focused paused/shared input proof only",
+    "exit": 0
+  },
+  "errors": [
+    "ReferenceError: paused is not defined"
+  ],
+  "screenshots": [
+    "normal-paused-oak.png",
+    "normal-paused-build.png",
+    "normal-paused-canceled.png",
+    "failure.png"
+  ],
+  "capsButtons": [
+    "#pause",
+    "#mark-chop",
+    "#chop-now",
+    "[data-build=\"wall\"]",
+    "#task",
+    "[data-action=\"cancel\"][data-job=\"job-3\"]"
+  ],
+  "traces": {},
+  "success": false,
+  "failure": "page.waitForFunction: ReferenceError: paused is not defined\n    at eval (eval at predicate (eval at evaluate (:311:30)), <anonymous>:3:36)\n    at predicate (eval at evaluate (:311:30), <anonymous>:7:27)\n    at next (eval at evaluate (:311:30), <anonymous>:29:33)\n    at eval (eval at evaluate (:311:30), <anonymous>:42:13)\n    at UtilityScript.evaluate (<anonymous>:313:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at wait (/home/levi/src/hive/scripts/prove-paused-work.mjs:68:8)\n    at runPausedScenario (/home/levi/src/hive/scripts/prove-paused-work.mjs:219:9)\n    at async file:///home/levi/src/hive/scripts/prove-paused-work.mjs:276:3",
+  "failureState": {
+    "seed": 42,
+    "tick": 67,
+    "paused": false,
+    "nextId": 4,
+    "actors": {
+      "rowan": {
+        "x": 6,
+        "z": 10,
+        "level": 0,
+        "dir": 3,
+        "mode": "walk",
+        "path": [
+          {
+            "x": 5,
+            "z": 10,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 10,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 9,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 8,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 7,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 6,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 5,
+            "level": 0
+          },
+          {
+            "x": 4,
+            "z": 4,
+            "level": 0
+          }
+        ],
+        "leg": 4,
+        "work": 0,
+        "id": "rowan",
+        "name": "Rowan",
+        "figure": "rowan",
+        "rest": 79.19599999999997,
+        "routine": false,
+        "task": {
+          "job": "job-1",
+          "kind": "chop",
+          "target": "oak-1",
+          "duration": 80
+        },
+        "assignment": {
+          "character": "rowan",
+          "task": "job-1",
+          "cost": 134
+        },
+        "cargo": null
+      },
+      "sedge": {
+        "x": 10,
+        "z": 12,
+        "level": 0,
+        "dir": 0,
+        "mode": "idle",
+        "path": [],
+        "leg": 0,
+        "work": 0,
+        "id": "sedge",
+        "name": "Sedge",
+        "figure": "witch-runner",
+        "rest": 80,
+        "routine": false,
+        "task": null,
+        "assignment": null,
+        "cargo": null
+      }
+    },
+    "parties": {
+      "home": {
+        "id": "home",
+        "members": [
+          "rowan"
+        ]
+      }
+    },
+    "cat": {
+      "x": 8,
+      "z": 10,
+      "level": 0,
+      "dir": 0,
+      "mode": "idle",
+      "path": [],
+      "leg": 0,
+      "work": 0,
+      "nextMove": 100
+    },
+    "trees": [
+      {
+        "id": "oak-1",
+        "x": 3,
+        "z": 4,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-2",
+        "x": 10,
+        "z": 3,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-3",
+        "x": 3,
+        "z": 9,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-4",
+        "x": 11,
+        "z": 10,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-5",
+        "x": 6,
+        "z": 2,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-6",
+        "x": 1,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-7",
+        "x": 6,
+        "z": 12,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      },
+      {
+        "id": "oak-8",
+        "x": 12,
+        "z": 6,
+        "level": 0,
+        "work": 0,
+        "felledAt": null
+      }
+    ],
+    "rocks": [
+      {
+        "x": 1,
+        "z": 1,
+        "level": 0
+      },
+      {
+        "x": 13,
+        "z": 12,
+        "level": 0
+      },
+      {
+        "x": 2,
+        "z": 13,
+        "level": 0
+      },
+      {
+        "x": 12,
+        "z": 1,
+        "level": 0
+      }
+    ],
+    "watcher": {
+      "x": 13,
+      "z": 2,
+      "level": 0
+    },
+    "piles": [],
+    "sites": [],
+    "jobs": [
+      {
+        "id": "job-1",
+        "kind": "chop",
+        "target": "oak-1",
+        "scope": {
+          "party": "home",
+          "actors": null
+        },
+        "reason": "Ready to chop",
+        "routine": false
+      }
+    ],
+    "claims": {},
+    "workDirty": false,
+    "felled": 0,
+    "finishedJobs": 0,
+    "rested": 0,
+    "commands": [
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "chop",
+        "tree": "oak-1",
+        "direct": false,
+        "tick": 56
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "build",
+        "type": "wall",
+        "direction": 0,
+        "x": 7,
+        "z": 5,
+        "level": 0,
+        "tick": 56
+      },
+      {
+        "party": "home",
+        "actors": null,
+        "kind": "cancel",
+        "job": "job-3",
+        "tick": 56
+      }
+    ],
+    "feed": {
+      "seed": 42,
+      "sequence": 1,
+      "nextAt": 50,
+      "last": {
+        "kind": "demand",
+        "name": "Mallow",
+        "tick": 50,
+        "text": "A roof before supper, human. Or you're supper."
+      }
+    },
+    "demand": {
+      "kind": "demand",
+      "name": "Mallow",
+      "tick": 50,
+      "text": "A roof before supper, human. Or you're supper."
+    },
+    "notice": "Order canceled. All wood kept; completed work stays completed."
+  },
+  "failureUi": {
+    "selectedIds": [],
+    "inspectedId": null,
+    "tree": null,
+    "context": null,
+    "designationTargetIds": [],
+    "cutaway": true,
+    "panMode": false,
+    "direction": 0,
+    "tool": null,
+    "phase": "idle",
+    "gesture": null,
+    "hoverCell": null
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "scope": "Source-only maintained reduced-gravity fit. No numerical run, compile, upstream edit or applied caller change.",
+  "originalWaveSha256": "8358ae268ec83b239d4ddeffbbea14828582dddc9d263be67142858749a85426",
+  "proposedWaveSha256": "628e4d7e73750d79d9d521b444ac16703d3a7bf7f94e7478ec93a58545e6b538",
+  "patchSha256": "1ffef939905fd3d4956ac593a29123090bb411765636bc2ad746d0c5b3b89fea",
+  "files": [
+    {
+      "path": "basilisk/src/reduced.h",
+      "bytes": 1254,
+      "sha256": "38772156f798495fd8e9edecfda7a60a27073f580371a550ed8fe0d3d6333af9"
+    },
+    {
+      "path": "basilisk/src/iforce.h",
+      "bytes": 3516,
+      "sha256": "03b39ceb148c1f472181b7c1ee0f8b71af32c7428d054f4a41c6b0d8e25e789d"
+    },
+    {
+      "path": "basilisk/src/curvature.h",
+      "bytes": 20267,
+      "sha256": "ed9e1f14de37b171b6643086a60ee3a0d7d20014949506033bb17333c15cc3bb"
+    },
+    {
+      "path": "basilisk/src/navier-stokes/centered.h",
+      "bytes": 12031,
+      "sha256": "98f132f6902ad4642ab1b431491dc97855b839b9a725d07d5afc5c5dee8b01bd"
+    },
+    {
+      "path": "basilisk/src/navier-stokes/conserving.h",
+      "bytes": 5025,
+      "sha256": "fd1d666c6f605418429514e586d3b5b577d8314b11aa023bf55c2d8bf732f099"
+    },
+    {
+      "path": "basilisk/src/two-phase-generic.h",
+      "bytes": 2117,
+      "sha256": "df2526e39501bdbd8f9e84d7cf63894327101d0c3dc57c7419a101cfbd430f63"
+    },
+    {
+      "path": "basilisk/src/test/gravity.c",
+      "bytes": 3329,
+      "sha256": "ceb079648c8b331c00f61f2c9e433ca064f7a8ac63ef15936acfd42cd2ce9c31"
+    },
+    {
+      "path": "basilisk/src/test/large-ns.c",
+      "bytes": 523,
+      "sha256": "1c07e08329c399665437bc43de87b80771f456287da194f848702fc1c41b724a"
+    },
+    {
+      "path": "basilisk/src/test/stokes-ns.c",
+      "bytes": 3186,
+      "sha256": "b354fa9cbda498b8a814432faed9792a830d00b55c7b0fd489e905d2ac970c01"
+    },
+    {
+      "path": "basilisk/src/examples/gaussian-ns.c",
+      "bytes": 2587,
+      "sha256": "6f6b7632659bd2fd11484b6a519233487b912b940de13c20dc4f583f8f1441aa"
+    }
+  ]
+}

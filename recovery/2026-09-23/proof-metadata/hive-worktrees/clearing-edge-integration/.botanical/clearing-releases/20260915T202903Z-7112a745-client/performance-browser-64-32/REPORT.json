@@ -1,0 +1,63 @@
+{
+  "proof": "colony-performance-browser",
+  "url": "https://clearing-2512-fungi-goblin-bnb.levi-fe0.workers.dev/engine/colony-performance.html?size=64&workers=32",
+  "selectedPreset": {
+    "size": 64,
+    "workers": 32
+  },
+  "workload": {
+    "kind": "finite-tree-felling",
+    "trees": 50,
+    "woodPerTree": 6,
+    "description": "The Colony performance page queues 50 finite trees for the selected party; observed wood output proves that this workload is live."
+  },
+  "output": "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-releases/20260915T202903Z-7112a745-client/performance-browser-64-32",
+  "sourceHashes": [
+    {
+      "path": "engine/colony-performance.html",
+      "sha256": "13b45c51825d2ad2011f4773ca76befa03cd3b51ae8d6458f051d477406bd496"
+    },
+    {
+      "path": "engine/src/client/performance-page.js",
+      "sha256": "8fce1fae58d3c9cc64ce933278eb5def18c75da3c92ee3d0cd2083d023aa594a"
+    },
+    {
+      "path": "engine/src/games/colony-performance.ts",
+      "sha256": "f2dfa348f68d2a935eb77aed83898d75dda37a8b10bfcbca6dcbd876f2ff2c69"
+    },
+    {
+      "path": "engine/src/runtime/performance-worker-entry.ts",
+      "sha256": "ad38b15414353aec4146bcd6036756214ee6ec312e7082052a61cca3e55fb506"
+    },
+    {
+      "path": "tools/public-engine-host/performance-browser-proof.mjs",
+      "sha256": "77640a6aab3ac65c1a520732bcc1b2a76a9f139c121ffd36eac1918d648f76ed"
+    }
+  ],
+  "screenshot": "performance-browser.png",
+  "assertions": [
+    {
+      "name": "pixi-canvas",
+      "width": 846,
+      "height": 866,
+      "clientWidth": 846,
+      "clientHeight": 866
+    },
+    {
+      "name": "live-finite-tree-workload",
+      "woodOutput": 48
+    },
+    {
+      "name": "finite-tick-timing",
+      "tickCpuMs": 356
+    }
+  ],
+  "errors": [],
+  "measurements": {
+    "woodOutput": 48,
+    "tickCpuMs": 356,
+    "assignmentCost": "Unavailable",
+    "routeRequests": "0.00"
+  },
+  "success": true
+}

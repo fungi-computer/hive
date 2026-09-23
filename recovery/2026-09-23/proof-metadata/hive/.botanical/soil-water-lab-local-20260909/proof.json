@@ -1,0 +1,10 @@
+{
+  "mode": "local-served-recorded-playback",
+  "base": "http://127.0.0.1:5199/",
+  "errors": [],
+  "claims": {},
+  "failure": {
+    "message": "locator.getAttribute: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('link', { name: /Water Lab/ })\u001b[22m\n",
+    "stack": "locator.getAttribute: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('link', { name: /Water Lab/ })\u001b[22m\n\n    at /tmp/hive-soil-release-cUwcuv/[eval1]:6:2703"
+  }
+}

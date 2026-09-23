@@ -1,0 +1,16 @@
+{
+  "group": "stockpile",
+  "files": [
+    "engine/src/games/colony-stockpile.test.ts",
+    "engine/src/games/colony-trees.test.ts"
+  ],
+  "artifacts": [
+    "engine/generated/hive_kernel.js",
+    "engine/generated/hive_kernel_bg.wasm"
+  ],
+  "bundles": [
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/stockpile/colony-stockpile.test.mjs",
+    "/home/levi/src/hive-worktrees/clearing-edge-integration/.botanical/clearing-repair-qualification/stockpile/colony-trees.test.mjs"
+  ],
+  "exit": 0
+}

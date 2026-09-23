@@ -1,0 +1,36 @@
+{
+  "scope": "Linear two-layer standing-wave oracle identities and quadrature only; no fluid solver run.",
+  "invocationId": "3683c58385364b3f944f869af4ac44df",
+  "passed": true,
+  "checks": 326,
+  "pins": {
+    "oracle.mjs": "1b9ae075cc53816831945a0f9f8f023f6bf395da53352ac4dfe8ceeb02076c84",
+    "CONTRACT.md": "db3d6c758b963126ca53b43544d3d2cf3e4054fcd71371fff33b91331b1c3755",
+    "check.mjs": "5719db7119bf64c81aa443cc87be87fdb5fdecc1d0c354c295264257ec572737"
+  },
+  "omegaPerS": 5.361495919223879,
+  "periodS": 1.171908997384657,
+  "energyQuadrature": [
+    {
+      "n": 16,
+      "kineticEnergyJPerM": 0.009798337488729348,
+      "relativeError": 0.00001117433982433802
+    },
+    {
+      "n": 32,
+      "kineticEnergyJPerM": 0.00979823487050558,
+      "relativeError": 7.011987863680957e-7
+    },
+    {
+      "n": 64,
+      "kineticEnergyJPerM": 0.009798228429837562,
+      "relativeError": 4.3868908061739376e-8
+    }
+  ],
+  "residuals": {
+    "divergencePerS": 5.290906601729262e-12,
+    "momentumAccelerationMS2": 4.697138511478016e-12,
+    "interfacePressurePa": 7.105427357601002e-15
+  },
+  "wallMilliseconds": 8.295599999999997
+}
