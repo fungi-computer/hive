@@ -1,9 +1,7 @@
 import type { GamePack } from "../contracts";
 import { createColonyFrameworkProofV2Pack } from "./colony-performance";
+import { colonyFrameworkProofV3GameId } from "./colony-performance-config";
 
-/** New qualification fixture. V2 remains an immutable, dry-region baseline. */
-export const colonyFrameworkProofV3GameId =
-  "colony-framework-proof-256-100-v3" as const;
 export const colonyFrameworkProofV3WaterCells = [
   [-89, 14, -102],
   [75, 14, -92],

@@ -15,6 +15,9 @@ export const colonyFrameworkProofGameId = "colony-framework-proof-256-100-v1" as
 
 /** V1 remains the frozen record-change baseline. V2 has its own command ledger. */
 export const colonyFrameworkProofV2GameId = "colony-framework-proof-256-100-v2" as const;
+/** V3 preserves v2 terrain geometry and adds finite, reachable open water. */
+export const colonyFrameworkProofV3GameId = "colony-framework-proof-256-100-v3" as const;
+
 export const colonyFrameworkProofV2Schedule = Object.freeze({
   stepSeconds: 0.1,
   steps: 1800,
