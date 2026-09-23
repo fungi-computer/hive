@@ -31,6 +31,7 @@ mod world;
 mod supply_allocation;
 mod record_bundle;
 mod stable_entity_records;
+mod search_records;
 mod record_changes;
 mod party_binding;
 mod relations;
@@ -257,8 +258,8 @@ impl WasmKernel {
         let (revision, time) = self.0.record_frontier();
         let mut cursor = self.1.borrow_mut();
         let (changed, manifest) = if cursor.current(since) {
-            let (puts, removes) = self.0.changed_records().map_err(js_error)?;
-            cursor.capture_changed(puts, removes, since.unwrap(), revision, time, self.0.record_state_weight()).map_err(js_error)?
+            let delta = self.0.changed_records().map_err(js_error)?;
+            cursor.capture_changed(delta, since.unwrap(), revision, time, self.0.record_state_weight()).map_err(js_error)?
         } else {
             let records = self.0.save_records().map_err(js_error)?;
             let bundle = record_bundle::RecordBundle::from_records(records).map_err(js_error)?;

@@ -15,18 +15,20 @@ type Records = BTreeMap<String, Vec<u8>>;
 
 pub(crate) fn validate_key(key: &str) -> Result<(), String> {
     if key == ROOT { return Ok(()); }
+    if let Some(suffix) = key.strip_prefix(crate::search_records::PREFIX) { return if crate::search_records::valid_suffix(suffix) { Ok(()) } else { Err("invalid search record identity".into()) }; }
     let suffix = key.strip_prefix("kernel/state/").ok_or("invalid state key")?;
     let (family, id) = suffix.split_once('/').ok_or("invalid state key")?;
     if !FAMILIES.contains(&family) || !crate::components::valid_id(id) { return Err("invalid state identity".into()); }
     Ok(())
 }
 
-pub(crate) fn counts(records: &Records) -> [u32; 9] { counts_keys(records.keys()) }
+pub(crate) fn counts(records: &Records) -> [u32; 10] { counts_keys(records.keys()) }
 
-pub(crate) fn counts_keys<'a>(keys: impl Iterator<Item = &'a String>) -> [u32; 9] {
-    let mut counts = [0; 9];
+pub(crate) fn counts_keys<'a>(keys: impl Iterator<Item = &'a String>) -> [u32; 10] {
+    let mut counts = [0; 10];
     for key in keys {
         if key == ROOT { counts[0] += 1; }
+        else if key.starts_with(crate::search_records::PREFIX) { counts[9] += 1; }
         else if let Some(suffix) = key.strip_prefix("kernel/state/") {
             if let Some((family, _)) = suffix.split_once('/') {
                 if let Some(index) = FAMILIES.iter().position(|candidate| *candidate == family) { counts[index + 1] += 1; }
@@ -55,6 +57,7 @@ pub(crate) fn encode(snapshot: &str) -> Result<Records, String> {
             if records.insert(key, bytes(&row)?).is_some() { return Err("duplicate state identity".into()); }
         }
     }
+    records.extend(crate::search_records::extract(&mut root)?);
     records.insert(ROOT.into(), bytes(&root)?);
     if records.values().map(Vec::len).sum::<usize>() > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
     Ok(records)
@@ -68,7 +71,7 @@ pub(crate) fn decode(records: &Records) -> Result<String, String> {
     }
     for (key, value) in records {
         validate_key(key)?;
-        if key == ROOT { continue; }
+        if key == ROOT || key.starts_with(crate::search_records::PREFIX) { continue; }
         if value.len() > RECORD_BYTES { return Err("state record exceeds 256KiB".into()); }
         let suffix = key.strip_prefix("kernel/state/").unwrap();
         let (family, id) = suffix.split_once('/').unwrap();
@@ -77,6 +80,7 @@ pub(crate) fn decode(records: &Records) -> Result<String, String> {
         if row.pointer(IDENTITIES[index]).and_then(Value::as_str) != Some(id) { return Err("state record identity mismatch".into()); }
         root.pointer_mut(POINTERS[index]).and_then(Value::as_array_mut).unwrap().push(row);
     }
+    crate::search_records::restore(&mut root, records)?;
     let result = serde_json::to_string(&root).map_err(|error| error.to_string())?;
     if result.len() > ENTITY_BYTES { return Err("entity records exceed 8MiB".into()); }
     Ok(result)

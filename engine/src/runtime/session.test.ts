@@ -69,7 +69,7 @@ class TestPort implements KernelPort {
   dispose(): void {}
   private entityJson = JSON.stringify({
     format: "hive-kernel",
-    version: 19,
+    version: 20,
     revision: 0,
     time: 0,
     scene: {
@@ -222,11 +222,12 @@ class TestPort implements KernelPort {
     const root = JSON.parse(this.entityJson);
     const rows = root.scene.initial;
     root.scene.initial = [];
+    root.planner ??= { routeSearches: { entries: {}, occurrence: null, spent: 0 } };
     for (const key of ["routes", "direct", "projectile_contacts", "party_bindings", "work_attempts", "jobs", "tasks"]) root[key] ??= [];
     const bytes = new TextEncoder().encode(JSON.stringify(root));
     return {
       format: "hive-kernel-records",
-      version: 2,
+      version: 3,
       revision: this.revision,
       time: state.time,
       records: [

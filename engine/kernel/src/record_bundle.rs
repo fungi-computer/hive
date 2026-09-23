@@ -24,7 +24,7 @@ const MAX_ATMOSPHERE_CHUNKS: usize = 9;
 #[derive(Serialize, Deserialize)]
 struct Header {
     version: u16,
-    entity_counts: [u32; 9],
+    entity_counts: [u32; 10],
     environment: bool,
     atmosphere_bytes: Option<u64>,
 }
@@ -33,6 +33,8 @@ pub struct RecordBundle {
     total_bytes: usize,
     records: BTreeMap<String, Vec<u8>>,
 }
+
+pub(crate) struct RecordDelta { pub puts: RecordBundle, pub removes: Vec<String>, pub searches: Vec<String> }
 
 /// Disposable exact-byte baseline. The Region receipt still owns commitment;
 /// dropping a failed resident drops this cursor with it.
@@ -60,13 +62,19 @@ impl RecordCapture {
         if sequence != self.sequence { return Err("stale record acknowledgement".into()); }
         self.journal.take().ok_or_else(|| "record capture is not awaiting acknowledgement".into())
     }
-    pub(crate) fn capture_changed(&mut self, delta: RecordBundle, removes: Vec<String>, since: u32, revision: u64, time: f64, state_weight: usize) -> Result<(RecordBundle, CaptureManifest), String> {
+    pub(crate) fn capture_changed(&mut self, delta: RecordDelta, since: u32, revision: u64, time: f64, state_weight: usize) -> Result<(RecordBundle, CaptureManifest), String> {
         if !self.current(Some(since)) { return Err("record capture frontier mismatch".into()); }
         let sequence = self.sequence.checked_add(1).ok_or("record capture sequence exhausted")?;
         // Take the disposable baseline: a rejected patch forces a complete
         // resync, never leaves a partly patched baseline available for reuse.
         let mut baseline = self.baseline.take().unwrap();
         let old_header = baseline.read(HEADER_KEY)?;
+        let RecordDelta { puts: delta, removes, searches } = delta;
+        for id in searches {
+            let prefix = format!("{}{id}.", crate::search_records::PREFIX);
+            let absent: Vec<_> = baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned().collect();
+            for key in absent { baseline.remove(&key); }
+        }
         let mut changed = RecordBundle::new();
         for key in removes { baseline.remove(&key); }
         for (key, bytes) in delta.records {
@@ -134,9 +142,11 @@ impl RecordBundle {
         for (array, count) in arrays.iter_mut().zip(counts) { *array += count.saturating_sub(1); }
         let root: serde_json::Value = serde_json::from_slice(self.records.get("kernel/state/root").ok_or("missing state root")?).map_err(|error| error.to_string())?;
         let planner_bytes = serde_json::to_vec(root.get("planner").ok_or("missing planner state")?).map_err(|error| error.to_string())?.len();
-        // Same route/direct and (jobs,tasks,parties,planner) tuple accounting as
-        // the full checkpoint oracle, using cached encoded row sizes.
-        let owned = arrays.iter().sum::<usize>() + planner_bytes + 5;
+        // Same route/direct tuple accounting as the checkpoint oracle. Paged
+        // search wrappers plus identity allowance conservatively bound the
+        // reconstructed planner size without decoding all frontier rows.
+        let search_bytes: usize = self.records.iter().filter(|(key, _)| key.starts_with(crate::search_records::PREFIX)).map(|(_, bytes)| bytes.len() + 128).sum();
+        let owned = arrays.iter().sum::<usize>() + planner_bytes + search_bytes + 5;
         if state_weight.saturating_add(owned) > ENTITY_BYTES { return Err("job state exceeds canonical capacity".into()); }
         Ok(())
     }
@@ -233,7 +243,7 @@ impl RecordBundle {
         for (key, bytes) in entity { bundle.insert(&key, &bytes)?; }
         let environment_present = records.environment.is_some();
         let header = postcard::to_allocvec(&Header {
-            version: 4,
+            version: 5,
             entity_counts,
             environment: environment_present,
             atmosphere_bytes: atmosphere.as_ref().map(|bytes| bytes.len() as u64),
@@ -275,7 +285,7 @@ impl RecordBundle {
         }
         let (header, remainder): (Header, &[u8]) =
             take_from_bytes(header_bytes).map_err(|_| "invalid record header")?;
-        if !remainder.is_empty() || header.version != 4
+        if !remainder.is_empty() || header.version != 5
         {
             return Err("invalid record header binding".into());
         }
@@ -492,7 +502,7 @@ fn collect_chunks(
 mod tests {
     use super::*;
     fn fixture_snapshot(value: &str) -> String {
-        serde_json::json!({"format":"hive-kernel", "version":19, "scene":{"initial":[{"id":"subject", "components":{"value":value}}]}, "routes":[], "direct":[], "projectile_contacts":[], "party_bindings":[], "work_attempts":[], "jobs":[], "tasks":[]}).to_string()
+        serde_json::json!({"format":"hive-kernel", "version":20, "scene":{"initial":[{"id":"subject", "components":{"value":value}}]}, "routes":[], "direct":[], "projectile_contacts":[], "party_bindings":[], "work_attempts":[], "jobs":[], "tasks":[], "planner":{"routeSearches":{"entries":{},"occurrence":null,"spent":0}}}).to_string()
     }
     fn capture_bundle(entity: &str) -> RecordBundle {
         RecordBundle::from_records(KernelRecords { entities: fixture_snapshot(entity), environment: None, atmosphere: None }).unwrap()
@@ -589,7 +599,7 @@ mod tests {
             atmosphere: None,
         };
         let mut bundle = RecordBundle::from_records(records).unwrap();
-        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 3;
+        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 4;
         assert!(bundle.decode().is_err());
     }
 

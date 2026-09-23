@@ -288,7 +288,7 @@ function fakePort(
     capture: () => { throw new Error("unexpected resident capture in terrain fixture"); },
     snapshot: () => ({
       format: "hive-kernel-records",
-      version: 2,
+      version: 3,
       time: 0,
       revision: 0,
       records: [],
