@@ -47,6 +47,7 @@ try {
   const initialEnvironment = session.environmentFacts();
   const emissionCells = (initialEnvironment as { emissions: { cell: [number, number, number] }[] }).emissions.map(emission => emission.cell);
   session.captureForCommit();
+  session.acceptCapture();
   previousPositions = new Map(session.query(query(Worker, Position)).map(row => [row.id, row.get(Position)]));
   for (let step = 1; step <= steps; step++) {
     try {
@@ -65,6 +66,8 @@ try {
         if (bytes > 1024 * 1024) overHostChangeLimit++;
         if (issued.length || step === 1) commands.push({ step, issued: step === 1 ? ["128 initial chains; four finite fuel emissions admitted at bootstrap"] : issued, outcomes: capture.snapshot.outcomes.map(outcome => ({ kind: outcome.action.kind, accepted: outcome.result.accepted, reason: outcome.result.reason ?? null })) });
       });
+      // The local driver treats each captured candidate as a committed step.
+      session.acceptCapture();
       completedSteps = step;
       if (step % 10 !== 0 && step !== steps) continue;
       const sampledAt = performance.now();
