@@ -12,12 +12,13 @@ import { colonyPlacement } from "../games/colony-placement.ts";
 import { colonyPlacementCandidates } from "../games/colony-building.ts";
 import { COLONY_VISUAL_BINDINGS } from "./visual-bindings.js";
 import { colonyPack } from "../games/colony.ts";
-import { colonyFrameworkProofGameId, colonyPerformanceGameId, colonyPerformanceSizes, colonyPerformanceWorkerCounts } from "../games/colony-performance-config.ts";
+import { colonyFrameworkProofGameId, colonyFrameworkProofV3GameId, colonyPerformanceGameId, colonyPerformanceSizes, colonyPerformanceWorkerCounts } from "../games/colony-performance-config.ts";
 
 
 const sizes = colonyPerformanceSizes, workerCounts = colonyPerformanceWorkerCounts;
 const params = new URLSearchParams(location.search);
-const frameworkProof = params.get("workload") === "framework-v1";
+const frameworkWorkload = params.get("workload");
+const frameworkProof = frameworkWorkload === "framework-v1" || frameworkWorkload === "framework-v3";
 const size = frameworkProof ? 256 : sizes.includes(Number(params.get("size"))) ? Number(params.get("size")) : 64;
 const workers = frameworkProof ? 100 : workerCounts.includes(Number(params.get("workers"))) ? Number(params.get("workers")) : 8;
 const root = document.querySelector("#hive-app");
@@ -34,7 +35,7 @@ function panel(hud) {
   const wrap = document.createElement("section");
   wrap.className = "colony-performance-panel";
   wrap.innerHTML = `<div class="hive-kicker">HIVE / COLONY PERFORMANCE</div><h2>Durable Object workload</h2><p>Server-owned Colony simulation, durable transactions and the shared game renderer. Each preset has its own private world.</p>
-    <p><a href="?workload=framework-v1">256×256 / 100-worker distributed framework fixture</a>${frameworkProof ? ' · <a href="?size=256&workers=100">Standard preset</a>' : ''}</p>
+    <p><a href="?workload=framework-v3">256×256 / 100-worker finite-water fixture</a> · <a href="?workload=framework-v1">Historical distributed fixture</a>${frameworkProof ? ' · <a href="?size=256&workers=100">Standard preset</a>' : ''}</p>
     <label>World bounds <select id="perf-size">${sizes.map(value => `<option value="${value}" ${value === size ? "selected" : ""}>${value} × ${value}</option>`).join("")}</select></label>
     <label>Workers <span id="perf-workers-slider"></span><output>${workers}</output></label>
     <div class="perf-links">${sizes.map(value => `<a href="?size=${value}&workers=${workers}">${value}×${value}</a>`).join("")}</div>
@@ -52,7 +53,7 @@ function panel(hud) {
       <dt>Client retained scene</dt><dd id="perf-retained">Waiting for data</dd>
       <dt>DO CPU time</dt><dd>Not available from the page; requires Cloudflare platform telemetry.</dd>
     </dl>
-    <p class="perf-boundary">${frameworkProof ? "The versioned fixture starts 100 workers and 128 finite tree chains across the 256×256 Region. This page alone does not prove sustained useful labor or hosted capacity." : "The finite workload has 50 trees in the central 64×64 area. Terrain and grass load around your camera across the selected world bounds. This tests the real DO workload and exploration; it does not establish sustained capacity at the selected worker count."}</p>`;
+    <p class="perf-boundary">${frameworkProof ? "The versioned fixture starts 100 workers and 128 finite tree chains across the 256×256 Region. The water-capable fixture schedules later cohorts and finite water orders. This page shows the real DO, but does not by itself prove sustained labor or hosted capacity." : "The finite workload has 50 trees in the central 64×64 area. Terrain and grass load around your camera across the selected world bounds. This tests the real DO workload and exploration; it does not establish sustained capacity at the selected worker count."}</p>`;
   hud.prepend(wrap);
   wrap.querySelector("#perf-size").addEventListener("change", event => setPreset(Number(event.target.value), workers));
   const output = wrap.querySelector("output");
@@ -83,7 +84,9 @@ function update(wrap, client) {
   wrap.querySelector("#perf-retained").textContent = `${render.retained.records} records · ${render.retained.denseLayout} dense slots · ${terrain.cachedRegions}/${terrain.capacity} cached regions · ${terrain.readyVisibleRegions}/${terrain.visibleRegions} visible · ${terrain.readyRegions}/${terrain.requestedRegions} with padding · ${terrain.retainedBytes.toLocaleString()}/${terrain.maxBytes.toLocaleString()} B retained payload`;
 }
 function mount() {
-  const gameId = frameworkProof ? colonyFrameworkProofGameId : colonyPerformanceGameId(size, workers);
+  const gameId = frameworkProof
+    ? (frameworkWorkload === "framework-v3" ? colonyFrameworkProofV3GameId : colonyFrameworkProofGameId)
+    : colonyPerformanceGameId(size, workers);
   if (params.get("runtime") === "local") throw new Error("This performance page tests Durable Objects. Remove runtime=local.");
   const connection = createConnectionChoice({ mode: gameId, runtime: "remote",
     publicHost: import.meta.env.VITE_HIVE_PUBLIC_HOST,
