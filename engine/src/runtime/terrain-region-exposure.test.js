@@ -72,6 +72,23 @@ test("exposure rejects unsupported work or face budgets instead of truncating", 
   assert.deepEqual(exposeTerrainFaces({ bounds, core, level: -1, sample }), []);
 });
 
+test("visible shell hides buried cave art until the cut opens it", async () => {
+  const { materialPatch } = await import("./terrain-region-fixture.js");
+  const { exposeTerrainPatch } = await import("./terrain-region-exposure.js");
+  const world = { minX: 0, maxX: 3, minY: 0, maxY: 5, minZ: 0, maxZ: 3 };
+  const baseline = { protocolVersion: 5, bounds: world,
+    materials: [{ slot: 0, solid: false }, { slot: 1, solid: true }] };
+  const patch = materialPatch([0, 0, 0], world, ([, y]) => y === 0 || y === 3 ? 1 : 0);
+  const all = exposeTerrainPatch({ patch, baseline, level: 4 });
+  assert(all.some(face => face.cell[1] === 0), "complete material still describes the cave floor");
+  const exterior = exposeTerrainPatch({ patch, baseline, level: 4, surfaceOnly: true });
+  assert(exterior.length > 0 && exterior.every(face => face.cell[1] === 3),
+    "the uncut picture contains only the exterior roof");
+  const cut = exposeTerrainPatch({ patch, baseline, level: 2, surfaceOnly: true });
+  assert(cut.length > 0 && cut.every(face => face.cell[1] === 0),
+    "lower material becomes visible when the roof is cut away");
+});
+
 test("material slabs preserve caves and overhangs across horizontal/vertical seams at every cut",async()=>{
  const {materialPatch}=await import('./terrain-region-fixture.js');
  const {exposeTerrainPatch,terrainPatchExposureSteps}=await import('./terrain-region-exposure.js');

@@ -1,4 +1,4 @@
-import { pickVoxelDrawRecord } from "./voxel-draw-picking.js";
+import { retainPaintOrder, reversePaintRecords, flattenPaintOrder } from "./retained-paint-order.js";
 
 const EPSILON = 1e-7;
 
@@ -262,8 +262,9 @@ function* addToIndex(index, entry, maxLocalCells, work) {
   const range = gridRange(entry.worldBounds, maxLocalCells);
   for (let x = range.minX; x <= range.maxX; x++) for (let z = range.minZ; z <= range.maxZ; z++) {
     const key = `${x},${z}`, bucket = index.get(key) ?? [];
-    bucket.push(entry); index.set(key, bucket); work.indexWrites++; yield "index-write";
+    bucket.push(entry); index.set(key, bucket); work.indexWrites++;
   }
+  yield "index-entry";
 }
 
 function pointOnContact(point, surface) {
@@ -360,6 +361,45 @@ function sameDisplay(left, right) {
   return left?.display === right?.display;
 }
 
+function describePaintChange(next, previous, work) {
+  let physicalOrderChanged = !previous || next.count !== previous.count;
+  let displayOrderChanged = physicalOrderChanged, paintRequired = physicalOrderChanged;
+  const recordChanges = [];
+  const previousByKey = new Map(previous?.chunks.map(chunk => [chunk.key, chunk]) ?? []);
+  for (const current of next.chunks) {
+    const old = previousByKey.get(current.key);
+    if (current === old || current.leaves === old?.leaves) continue;
+    const currentRecords = current.leaves.flatMap(leaf => leaf.records);
+    const oldRecords = old?.leaves.flatMap(leaf => leaf.records) ?? [];
+    work.paintRecordsInspected += currentRecords.length + oldRecords.length;
+    if (currentRecords.length !== oldRecords.length) physicalOrderChanged = true;
+    for (let at = 0; at < Math.max(currentRecords.length, oldRecords.length); at++) {
+      const now = currentRecords[at], before = oldRecords[at];
+      if (now === before) continue;
+      if (!now || !before || identityOf(now) !== identityOf(before)) physicalOrderChanged = true;
+      if (!sameDisplay(now, before)) displayOrderChanged = true;
+      if ([now?.role, before?.role].some(role => role === "terrain" || role === "terrain-cover" || role === "water"))
+        paintRequired = true;
+      if (now && before && identityOf(now) === identityOf(before))
+        recordChanges.push(Object.freeze({ previous: before, current: now }));
+    }
+  }
+  displayOrderChanged ||= physicalOrderChanged;
+  paintRequired ||= physicalOrderChanged || displayOrderChanged;
+  return { physicalOrderChanged, displayOrderChanged, paintRequired,
+    applyOrderRequired: physicalOrderChanged || displayOrderChanged, recordChanges: Object.freeze(recordChanges) };
+}
+
+function paintResult(order, previous, work) {
+  const change = describePaintChange(order, previous, work);
+  let flat;
+  return Object.freeze({
+    get records() { return flat ??= flattenPaintOrder(order); },
+    get stagedRecords() { return flat ??= flattenPaintOrder(order); },
+    paintLeaves: order.leaves, ...change, metrics: Object.freeze({ ...work }),
+  });
+}
+
 /**
  * Structural ordering owner for dense grid pictures and bounded sparse images.
  * It owns classification, support resolution, revision admission, candidate
@@ -370,30 +410,97 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
   const signs = checkedDirection(direction);
   if (!Number.isSafeInteger(maxLocalCells) || maxLocalCells < 4)
     throw new Error("structural local cell budget must be a positive safe integer");
-  let pending, disposed = false, terrainRevision, denseLayout = null, staticState = null;
-  let records = Object.freeze([]), latest = null;
+  let pending, disposed = false, terrainRevision, denseLayout = null, staticState = null, baseState = null, regionCache = new Map();
+  let paintOrder = retainPaintOrder(Object.freeze([]), [], null, { paintLeafReuses: 0, paintLeafBuilds: 0 });
+  let publishedResult, latest = null;
   const taskStates = new WeakMap();
   const totals = { started: 0, ready: 0, published: 0, cancelled: 0, failed: 0, advances: 0, operations: 0,
     preparationMs: 0, maxAdvanceMs: 0, publicationMs: 0, densePairComparisons: 0, alphaComparisons: 0, topologyWork: 0 };
 
-  function prepare({ terrainRevision: nextRevision, terrainRecords, subjectRecords } = {}) {
+  function prepare({ terrainRevision: nextRevision, terrainRegions, waterRecords = [], subjectRecords } = {}) {
     if (disposed) throw new Error("structural draw owner is disposed");
-    if (nextRevision === undefined || nextRevision === null || !Array.isArray(terrainRecords) || !Array.isArray(subjectRecords))
-      throw new Error("structural preparation requires a terrain revision and record arrays");
+    if (nextRevision === undefined || nextRevision === null || !Array.isArray(terrainRegions) ||
+        !Array.isArray(waterRecords) || !Array.isArray(subjectRecords))
+      throw new Error("structural preparation requires a terrain revision, region pictures, water and subject records");
     pending?.cancel(); totals.started++;
     let status = "pending", prepared, iterator;
     const work = { keyPreparations: 0, keySearches: 0, mergeComparisons: 0, mergeWrites: 0, indexWrites: 0,
-      denseRecords: 0, denseRebuilds: 0, denseReuses: 0, sparseRecords: 0, sparseQueries: 0, sparseCandidates: 0,
+      denseRecords: 0, denseRebuilds: 0, denseReuses: 0, regionPreparations: 0, regionReuses: 0,
+      paintLeafReuses: 0, paintLeafBuilds: 0, paintChunksVisited: 0, paintRecordsInspected: 0, baseRecordsVisited: 0,
+      sparseRecords: 0, sparseQueries: 0, sparseCandidates: 0,
       sparsePlacements: 0, staticRebuilds: 0, staticReuses: 0, staticIndexReuses: 0,
       ambiguousRelations: 0, conflicts: 0, supportResolutions: 0, supportBoundaryClassifications: 0,
       densePairComparisons: 0, alphaComparisons: 0, topologyWork: 0 };
 
     function* build() {
-      const seen = new Set(), denseInput = [], staticInput = [], movingInput = [];
-      for (const record of terrainRecords) {
-        const entry = denseEntry(record, signs);
-        if (seen.has(entry.id)) throw new Error(`duplicate structural record: ${entry.id}`);
-        seen.add(entry.id); denseInput.push(entry); work.keyPreparations++; yield "key-preparation";
+      const sameRegions = Boolean(baseState && nextRevision === terrainRevision &&
+        regionCache.size === terrainRegions.length + 1 &&
+        terrainRegions.every(region => regionCache.get(region.id)?.picture === region) &&
+        regionCache.get("\u0000water")?.records === waterRecords);
+      if (sameRegions) {
+        const staticInput = [], movingInput = [], seen = new Set();
+        for (const record of subjectRecords) {
+          const entry = sparseEntry(record, signs);
+          if (seen.has(entry.id) || baseState.denseIds.has(entry.id)) throw new Error(`duplicate structural record: ${entry.id}`);
+          seen.add(entry.id); (entry.moving ? movingInput : staticInput).push(entry);
+          work.keyPreparations++; work.sparseRecords++; yield "subject-entry";
+        }
+        const staticCanonical = yield* mergeSort(staticInput, (a, b) => a.id.localeCompare(b.id), work);
+        if (staticCanonical.length === staticState.signatures.length &&
+            staticCanonical.every((entry, index) => entry.id === staticState.signatures[index].id &&
+              entry.signature === staticState.signatures[index].signature &&
+              baseState.statics.some(retained => retained.id === entry.id && retained.record === entry.record))) {
+          const contactsByIdentity = new Map(), contactsByOwner = new Map();
+          for (const entry of baseState.statics) if (entry.record.contactSurface) {
+            contactsByIdentity.set(entry.id, entry);
+            const owner = String(entry.record.id), list = contactsByOwner.get(owner) ?? [];
+            list.push(entry); contactsByOwner.set(owner, list);
+          }
+          const movingCanonical = yield* mergeSort(movingInput, (a, b) => a.id.localeCompare(b.id), work);
+          for (const entry of movingCanonical) {
+            const support = resolveSupport(entry.record, contactsByIdentity, contactsByOwner, work);
+            yield* placeAgainstBase(entry, baseState.dense, baseState.denseBoundaryToBase,
+              baseState.base.length, baseState.baseIndex, support, signs, maxLocalCells, work);
+          }
+          const movers = yield* mergeSort(movingCanonical, comparePlaced, work);
+          work.regionReuses = terrainRegions.length + 1;
+          work.staticReuses = staticCanonical.length;
+          work.staticIndexReuses = 1;
+          work.denseRecords = baseState.dense.length;
+          const order = retainPaintOrder(baseState.base, movers, paintOrder, work, baseState.bands);
+          return { result: paintResult(order, paintOrder, work), order, layout: denseLayout,
+            staticState, baseState, regionCache };
+        }
+      }
+      const seen = new Set(), seenRegions = new Set(), denseInput = [], staticInput = [], movingInput = [];
+      const nextRegionCache = new Map();
+      for (const region of [...terrainRegions, { id: "\u0000water", records: waterRecords }]) {
+        if (!region || typeof region.id !== "string" || !Array.isArray(region.records) || seenRegions.has(region.id))
+          throw new Error("structural terrain regions require unique identities and record arrays");
+        seenRegions.add(region.id);
+        const retained = regionCache.get(region.id);
+        let templates;
+        if (retained?.picture === region || (region.id === "\u0000water" && retained?.records === waterRecords)) {
+          templates = retained.entries;
+          work.regionReuses++;
+        } else {
+          templates = [];
+          for (const record of region.records) {
+            templates.push(denseEntry(record, signs));
+            work.keyPreparations++;
+            yield "key-preparation";
+          }
+          work.regionPreparations++;
+        }
+        nextRegionCache.set(region.id, { picture: region, records: region.records, entries: templates });
+        for (const template of templates) {
+          if (seen.has(template.id)) throw new Error(`duplicate structural record: ${template.id}`);
+          seen.add(template.id);
+          // Placement indices belong to this candidate, never to a retained
+          // region template that may still serve the published picture.
+          denseInput.push({ ...template });
+          yield "region-entry";
+        }
       }
       for (const record of subjectRecords) {
         const entry = sparseEntry(record, signs);
@@ -415,7 +522,15 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
         }
         if (byIdentity.size) throw new Error("terrain structural facts changed without a terrain revision");
       } else {
-        dense = yield* mergeSort(denseInput, (a, b) => compareStructuralTuple(a.key, b.key), work);
+        // Dense terrain has one lawful tuple and no relation graph. Native sort
+        // avoids turning each comparison and copy into a resumable generator
+        // step; the owner still prepares and validates every record above.
+        dense = denseInput.slice().sort((a, b) => {
+          work.mergeComparisons++;
+          return compareStructuralTuple(a.key, b.key);
+        });
+        work.mergeWrites += dense.length;
+        yield "dense-sort";
         work.denseRebuilds++;
       }
       work.denseRecords = dense.length;
@@ -459,14 +574,15 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
         statics = yield* mergeSort(staticCanonical, comparePlaced, work); work.staticRebuilds++;
       }
       const staticBuckets = bucketByBoundary(statics);
-      const base = [], baseEntries = [], denseBoundaryToBase = new Array(dense.length + 1);
+      const base = [], baseBands = [], baseEntries = [], denseBoundaryToBase = new Array(dense.length + 1);
       for (let boundary = 0; boundary <= dense.length; boundary++) {
         denseBoundaryToBase[boundary] = base.length;
+        const band = Math.floor((dense[boundary]?.key[0] ?? dense[dense.length - 1]?.key[0] ?? 0) / 16);
         for (const entry of staticBuckets.get(boundary) ?? []) {
-          entry.baseIndex = base.length; base.push(entry.record); baseEntries.push(entry); yield "base-merge";
+          entry.baseIndex = base.length; base.push(entry.record); baseBands.push(band); baseEntries.push(entry); work.baseRecordsVisited++; yield "base-merge";
         }
         if (boundary < dense.length) {
-          dense[boundary].baseIndex = base.length; base.push(dense[boundary].record); baseEntries.push(dense[boundary]); yield "base-merge";
+          dense[boundary].baseIndex = base.length; base.push(dense[boundary].record); baseBands.push(band); baseEntries.push(dense[boundary]); work.baseRecordsVisited++; yield "base-merge";
         }
       }
       attachCompoundBoundaries(statics, contactsByIdentity, signs, work);
@@ -488,33 +604,15 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
         yield* placeAgainstBase(entry, dense, denseBoundaryToBase, base.length, baseIndex, support, signs, maxLocalCells, work);
       }
       const movers = yield* mergeSort(movingCanonical, comparePlaced, work);
-      const moverBuckets = bucketByBoundary(movers), candidate = [];
-      for (let boundary = 0; boundary <= base.length; boundary++) {
-        for (const entry of moverBuckets.get(boundary) ?? []) { candidate.push(entry.record); yield "candidate-merge"; }
-        if (boundary < base.length) { candidate.push(base[boundary]); yield "candidate-merge"; }
-      }
-
-      let physicalOrderChanged = candidate.length !== records.length, displayOrderChanged = physicalOrderChanged;
-      const recordChanges = [];
-      for (let index = 0; index < candidate.length && !physicalOrderChanged; index++) {
-        if (identityOf(candidate[index]) !== identityOf(records[index])) physicalOrderChanged = true;
-        if (!sameDisplay(candidate[index], records[index])) displayOrderChanged = true;
-        if (candidate[index] !== records[index]) recordChanges.push(Object.freeze({ previous: records[index], current: candidate[index] }));
-        yield "publication-check";
-      }
-      displayOrderChanged ||= physicalOrderChanged;
-      const paintRequired = physicalOrderChanged || recordChanges.some(({previous,current}) =>
-        [previous?.role,current?.role].some(role => role === "terrain" || role === "terrain-cover" || role === "water"));
-      const frozenRecords = Object.freeze(candidate);
-      const result = Object.freeze({ records: frozenRecords, stagedRecords: frozenRecords,
-        physicalOrderChanged, displayOrderChanged, paintRequired,
-        applyOrderRequired: physicalOrderChanged || displayOrderChanged,
-        recordChanges: Object.freeze(recordChanges), metrics: Object.freeze({ ...work }) });
+      const order = retainPaintOrder(base, movers, paintOrder, work, baseBands);
+      const result = paintResult(order, paintOrder, work);
       const nextStaticState = reuseStatics ? staticState : Object.freeze({
         signatures: Object.freeze(staticCanonical.map(entry => Object.freeze({id:entry.id,signature:entry.signature}))),
         placements: Object.freeze(statics.map(entry => Object.freeze({id:entry.id,boundary:entry.boundary}))), baseIndex });
-      return { result, layout: Object.freeze(dense.map(entry => Object.freeze({ id: entry.id, key: entry.key,
-        signature: entry.signature }))), staticState: nextStaticState };
+      return { result, order, layout: Object.freeze(dense.map(entry => Object.freeze({ id: entry.id, key: entry.key,
+        signature: entry.signature }))), staticState: nextStaticState,
+        baseState: { dense, base, bands: baseBands, denseBoundaryToBase, baseIndex, statics,
+          denseIds: new Set(dense.map(entry => entry.id)) }, regionCache: nextRegionCache };
     }
 
     function release() { iterator?.return(); iterator = undefined; if (pending === task) pending = undefined; }
@@ -527,7 +625,11 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
         if (status !== "pending") return Object.freeze({ status, operations: 0, result: prepared?.result ?? null });
         const started = clock(); let operations = 0;
         try {
-          while (operations < maxOperations && clock() < deadline) {
+          while (operations < maxOperations) {
+            // The structural iterator yields at very fine-grained bookkeeping
+            // points. Sampling the clock for every map write and comparison was
+            // more expensive than the ordering work itself.
+            if ((operations & 63) === 0 && clock() >= deadline) break;
             const step = iterator.next();
             if (step.done) { prepared = step.value; iterator = undefined; status = "ready"; totals.ready++; break; }
             operations++;
@@ -554,10 +656,10 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
     const state = taskStates.get(task), staged = state?.prepared();
     if (!staged) throw new Error("structural preparation does not belong to this owner");
     const started = clock(), candidate = staged.result;
-    // Candidate arrays and records were completed before this turn. Publication
-    // is only a coherent pointer/state swap; it does no sorting or copying.
-    records = candidate.records; latest = candidate.metrics;
+    // Immutable paint spans are the publication; no flat scene is copied here.
+    paintOrder = staged.order; publishedResult = candidate; latest = candidate.metrics;
     terrainRevision = state.revision; denseLayout = staged.layout; staticState = staged.staticState;
+    baseState = staged.baseState; regionCache = staged.regionCache;
     state.publish(); totals.published++; totals.publicationMs += Math.max(0, clock() - started);
     return candidate;
   }
@@ -565,12 +667,23 @@ export function createStructuralDrawOrderOwner({ direction, clock = () => perfor
   return Object.freeze({
     prepare,
     publish,
-    pick(point) { return pickVoxelDrawRecord(records, point); },
-    get records() { return records; },
+    pick(point) {
+      if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y))
+        throw new Error("voxel draw picking requires a finite screen point");
+      for (const record of reversePaintRecords(paintOrder)) {
+        if (record.visible === false || record.contains?.(point) !== true) continue;
+        return Object.freeze({ record, target: record.pickable === false ? null : record.target ?? record.id,
+          occluded: record.pickable === false });
+      }
+      return Object.freeze({ record: null, target: null, occluded: false });
+    },
+    get records() { return publishedResult?.records ?? Object.freeze([]); },
+    get paintLeaves() { return paintOrder.leaves; },
+    get recordOrder() { return paintOrder; },
     metrics: () => Object.freeze({ ...totals, latest,
-      retained: Object.freeze({ records: records.length, denseLayout: denseLayout?.length ?? 0, pending: Boolean(pending) }) }),
-    reset() { pending?.cancel(); pending = undefined; terrainRevision = undefined; denseLayout = null; staticState = null; records = Object.freeze([]); latest = null; },
-    dispose() { if (!disposed) { pending?.cancel(); pending = undefined; records = Object.freeze([]); denseLayout = null; staticState = null; disposed = true; } },
+      retained: Object.freeze({ records: paintOrder.count, paintLeaves: paintOrder.leaves.length, denseLayout: denseLayout?.length ?? 0, pending: Boolean(pending) }) }),
+    reset() { pending?.cancel(); pending = undefined; terrainRevision = undefined; denseLayout = null; staticState = null; baseState = null; regionCache = new Map(); paintOrder = retainPaintOrder(Object.freeze([]), [], null, { paintLeafReuses: 0, paintLeafBuilds: 0 }); publishedResult = undefined; latest = null; },
+    dispose() { if (!disposed) { pending?.cancel(); pending = undefined; paintOrder = retainPaintOrder(Object.freeze([]), [], null, { paintLeafReuses: 0, paintLeafBuilds: 0 }); publishedResult = undefined; denseLayout = null; staticState = null; baseState = null; regionCache = new Map(); disposed = true; } },
   });
 }
 

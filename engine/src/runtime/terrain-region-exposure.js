@@ -20,6 +20,7 @@ export function* terrainExposureSteps({
   level,
   sample,
   columnTop,
+  surfaceOnly = false,
   maxFaces = 32768,
 }) {
   const lowest = Math.max(core.minY ?? bounds.minY, bounds.minY);
@@ -37,6 +38,8 @@ export function* terrainExposureSteps({
       MAX_TERRAIN_REGION_SAMPLES
   )
     throw new RangeError("terrain region exceeds exposure work budget");
+  if (surfaceOnly && !columnTop)
+    throw new Error("visible terrain shell requires authoritative column tops");
   let faceCount = 0;
   const inside = ([x, y, z]) =>
     x >= bounds.minX &&
@@ -49,11 +52,22 @@ export function* terrainExposureSteps({
     for (let z = core.minZ; z < core.maxZ; z++) {
       const top = columnTop ? columnTop(x, z) : highest;
       const faces = [];
-      for (let y = lowest; top !== null && y <= Math.min(highest, top); y++) {
+      // A camera above the cut sees the first solid shell. Buried cave faces
+      // remain material facts for a later cut, but are not paint candidates.
+      const adjacentTops = surfaceOnly ? [[x+1,z],[x-1,z],[x,z+1],[x,z-1]]
+        .filter(([nx,nz]) => nx >= bounds.minX && nx < bounds.maxX && nz >= bounds.minZ && nz < bounds.maxZ)
+        .map(([nx,nz]) => columnTop(nx,nz) ?? lowest - 1) : [];
+      const first = surfaceOnly && top !== null
+        ? Math.max(lowest, Math.min(top, ...adjacentTops.map(value => value + 1))) : lowest;
+      for (let y = first; top !== null && y <= Math.min(highest, top); y++) {
         const cell = [x, y, z],
           material = sample(cell);
         if (material.kind !== "known" || !material.solid) continue;
         for (const [face, offset] of DIRECTIONS) {
+          if (surfaceOnly) {
+            if (face === "bottom" || (face === "top" && y !== top)) continue;
+            if (face !== "top" && (columnTop(x + offset[0], z + offset[2]) ?? lowest - 1) >= y) continue;
+          }
           const adjacent = cell.map((value, index) => value + offset[index]);
           const neighbor = inside(adjacent)
             ? sample(adjacent)
@@ -82,13 +96,25 @@ export function exposeTerrainFaces(input) {
 /** One bounded core column (at most 128 cells) per step. These reads only derive
  * faces from known resident material; neither camera nor simulation advances.
  * Setup validates at most 100 columns / 13,000 runs and builds no dense volume. */
-export function* terrainPatchExposureSteps({ patch, baseline, level }) {
+export function* terrainPatchExposureSteps({ patch, baseline, level, surfaceOnly = false }) {
   validateTerrainMaterialPatch(patch, baseline);
   const palette = new Map(
     baseline.materials.map((material) => [material.slot, material.solid]),
   );
   const c = patch.coverage,
     depth = c.maxZ - c.minZ;
+  const tops = surfaceOnly ? patch.columns.map(column => {
+    let start = c.minY, top = null;
+    for (const [end, slot] of column.runs) {
+      if (start > level) break;
+      if (palette.get(slot)) top = Math.min(level, end - 1);
+      start = end;
+    }
+    return top;
+  }) : null;
+  const columnTop = surfaceOnly ? (x, z) =>
+    x >= c.minX && x < c.maxX && z >= c.minZ && z < c.maxZ
+      ? tops[(x - c.minX) * depth + z - c.minZ] : null : undefined;
   const sample = ([x, y, z]) => {
     if (
       x < c.minX ||
@@ -117,6 +143,8 @@ export function* terrainPatchExposureSteps({ patch, baseline, level }) {
     core: patch.bounds,
     level,
     sample,
+    columnTop,
+    surfaceOnly,
   });
 }
 

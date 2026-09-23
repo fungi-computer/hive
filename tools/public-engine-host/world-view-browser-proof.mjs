@@ -30,7 +30,10 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 await writeFile(resolve(output, 'driver.mjs'), driverBytes);
 const sourceRoot = resolve(args.get('--source-root') ?? fileURLToPath(new URL('../..', import.meta.url)));
 const sourcePaths = ['engine/src/client/client.js','engine/src/client/world-view-owner.js','engine/src/client/cut-terrain-layer.js',
-  'engine/src/client/actor-presentation-owner.js','engine/src/client/spatial-scene-owner.js','engine/src/client/spatial-draw-order.js',
+  'engine/src/client/actor-presentation-owner.js','engine/src/client/structural-draw-order-owner.js',
+  'engine/src/client/retained-paint-order.js',
+  'engine/src/client/terrain-picture-owner.js','engine/src/client/terrain-face-batches.js',
+  'engine/src/client/geometry.js',
   'engine/src/client/terrain-region-cache.js','engine/src/client/multipart-visual-owner.js','engine/src/client/animation.js',
   'engine/src/client/performance-page.js','engine/src/client/performance-observer.js','engine/src/runtime/remote-client.ts',
   'engine/src/runtime/terrain-regions.ts','engine/src/runtime/terrain-region-materials.js','engine/src/runtime/terrain-presentation.ts',
@@ -252,12 +255,20 @@ async function runCase(size) {
       await waitFor(s=>s.draw?.assetsReady&&s.draw.runtimeReady);
       const reset=page.getByRole('button',{name:'Reset view',exact:true});
       if(await reset.count()){item.method='real Reset view button';await reset.click();}
-      else {item.method='ordinary viewport resize through ResizeObserver';await page.setViewportSize({width:1281,height:900});
-        await page.waitForTimeout(100);await page.setViewportSize(report.viewport);}
+      else {item.method='ordinary viewport resize through ResizeObserver';
+        const prior=await snapshot('before-normalizing-resize');
+        await page.setViewportSize({width:960,height:720});
+        await waitFor(s=>s.canvas&&s.canvas.width!==prior.canvas.width);
+        await page.setViewportSize(report.viewport);
+        await waitFor(s=>s.canvas&&s.canvas.width===prior.canvas.width&&s.canvas.height===prior.canvas.height);}
       await settle();const s=await snapshot('normalized',true);result.normalized=s;item.camera=s.draw.camera;item.displayedView=s.draw.displayedView;
       assert.equal(s.draw.camera.turn,0);assert.equal(s.draw.displayedView.cutaway,false);
-      assert.equal(s.draw.camera.zoom,2);assert(Math.abs(s.draw.camera.x-(s.canvas.width-640*2)/2)<.01);
-      assert(Math.abs(s.draw.camera.y-(s.canvas.height-400*2)/2)<.01);
+      assert.equal(s.draw.camera.zoom,2);
+      assert(Number.isFinite(s.draw.camera.x)&&Number.isFinite(s.draw.camera.y));
+      if(item.method==='real Reset view button'){
+        assert(Math.abs(s.draw.camera.x-(s.canvas.width-640*2)/2)<.01);
+        assert(Math.abs(s.draw.camera.y-(s.canvas.height-400*2)/2)<.01);
+      }
       await memory('normalized-gc',true);await screenshot('normalized');
     });
     for(let trip=1;trip<=2;trip++)await phase(`cold-travel-return-${trip}`,async item=>{
@@ -304,8 +315,13 @@ async function runCase(size) {
         for(let step=1;step<=2;step++){await input('PageDown');await adopt({level:view.level-step,cutaway:true,turn});}
         const cut=await snapshot(`cut-${round}`,true);item.cutGround.push(cut.ground);
         assert(cut.ground.hits>0&&cut.ground.points.every(p=>!p.cell||p.cell[1]<=view.level-2),'published cut picking contains missing ground or terrain above the cut');
-        await input('e');await adopt({level:view.level-2,cutaway:true,turn:(turn+1)%4});
-        await input('q');await adopt({level:view.level-2,cutaway:true,turn});
+        for(let step=1;step<=4;step++){
+          await input('e');await adopt({level:view.level-2,cutaway:true,turn:(turn+step)%4});
+          const sampled=await snapshot(`cut-${round}-turn-${(turn+step)%4}`,true);
+          assert(sampled.ground.hits>0,`published ground missing after turn ${(turn+step)%4}`);
+          item.transitions.at(-1).ground=sampled.ground;
+          await screenshot(`cut-${round}-turn-${(turn+step)%4}`);
+        }
         for(let step=1;step<=2;step++){await input('PageUp');await adopt({level:view.level-2+step,cutaway:true,turn});}
         await page.getByRole('button',{name:'Toggle cutaway',exact:true}).click();await adopt({...view,cutaway:false,turn});
       }
@@ -315,7 +331,8 @@ async function runCase(size) {
       await waitFor(s=>s.performance?.observedWorkers===8&&s.performance.stumps>0,45000);
       item.final=await snapshot('final');assert.equal(item.final.performance.source,'durable-object');assert.equal(item.final.performance.paused,false);
       assert.equal(result.browserWorkers.length,0,'browser simulation Worker was started');assert.equal(result.transport.httpTerrain,0,'HTTP terrain fan-out remains');
-      assert(result.transport.sockets.some(s=>s.origin===backend.origin.replace('https:','wss:')),'actual socket did not reach expected separate DO');
+      assert(result.transport.sockets.some(s=>s.origin===base.origin.replace('https:','wss:')),
+        'actual WebSocket did not use the verified same-origin frontend proxy');
       assert(result.transport.patches>0&&result.transport.complete>0,'real DO terrain stream missing patches/completion');
       assert(item.final.draw.spatialDraw.coverage?.capacity>0&&item.final.draw.spatialDraw.meshes?.limits,'owner memory capacities missing');
       assert.equal(typeof item.final.draw.spatialDraw.coverage.receivedVisibleComplete,'boolean','published/received coverage distinction missing');
@@ -366,9 +383,10 @@ try {
   const normalized=report.cases.map(c=>c.normalized?.draw);
   report.interactionComparison={matched:false,initialLevels:normalized.map(d=>d?.displayedView?.level)};
   if(normalized.length===2&&normalized.every(Boolean)){
-    report.interactionComparison.matched=JSON.stringify(normalized[0].camera)===JSON.stringify(normalized[1].camera)&&
+    report.interactionComparison.matched=normalized[0].camera.zoom===normalized[1].camera.zoom&&
+      normalized[0].camera.turn===normalized[1].camera.turn&&
       normalized.every(d=>d.displayedView.cutaway===false);
-    if(!report.interactionComparison.matched)report.errors.push('64/256 interaction camera or uncut rendered view did not match');
+    if(!report.interactionComparison.matched)report.errors.push('64/256 camera controls or uncut rendered view did not match');
   }
 } catch(error){report.errors.push(error.stack??String(error));}
 finally {

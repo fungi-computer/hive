@@ -16,8 +16,8 @@ import { edgeWallJunctionSubjects } from "./edge-wall-presentation.js";
 export function createWorldViewOwner({ runtime, bindings, root, effectClock, onCoverage, initialView,
   onViewPublished, screenLayers = [], viewport = () => ({ width: 640, height: 400 }), clock = () => performance.now() }) {
   let geometry = createCameraGeometryOwner(), view = createWorldView(initialView), wantedTurn = 0;
-  let sourceFrame, sourceEpoch, displayedEpoch, disposed = false, pending;
-  let subjects = Object.freeze([]), records = [], terrainRevision, previousProduced;
+  let sourceFrame, sourceEpoch, displayedEpoch, disposed = false, pending, continuation, backgroundError, latestInput;
+  let subjects = Object.freeze([]), terrainRevision, previousProduced;
   let paintedCamera;
   const cameraState = { x: 0, y: 0, zoom: 1 };
   const project = (x, y, z) => geometry.project(x, y, z);
@@ -79,25 +79,29 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
     if (job.ordering !== ordering) job.ordering.dispose();
     if (job.geometry !== geometry) job.geometry.dispose();
   }
-  function start(input, nextGeometry) {
+  function start(input, nextGeometry, terrainTask = terrain.prepare()) {
     const job = { epoch: sourceEpoch, view: createWorldView(input.view), turn: wantedTurn, geometry: nextGeometry,
+      deadline: Infinity, screen: Object.freeze({ width: input.screen.width, height: input.screen.height }),
       ordering: nextGeometry === geometry ? ordering : createStructuralDrawOrderOwner({ direction: nextGeometry.projection.direction, clock }),
-      terrain: terrain.prepare(), done: false };
+      terrain: terrainTask, phase: "terrain", preparedSubjects: 0, done: false };
     function* prepare() {
-      while (!job.terrain.terrainReady) { job.terrain.advance({ maxOperations: 128 }); yield; }
+      while (!job.terrain.terrainReady) { job.terrain.advance({ maxOperations: 8192, deadline: job.deadline }); yield; }
+      job.phase = "subjects";
       const terrainResult = job.terrain.result;
       const preparedSubjects = [];
       for (const fact of input.facts ?? []) {
-        const policy = projectWorldFact(fact, job.view);
+        const policy = projectWorldFact(fact, job.view, terrainResult.terrainFrame?.verticalMetres);
         if (policy.visible && fact.pose?.position && fact.visual) preparedSubjects.push({
           id: fact.id, name: fact.label || fact.id, ...fact.pose.position, facing: fact.pose.facing,
           visual: fact.visual, motion: bindings[fact.visual]?.motion, local: fact.local, support: fact.support,
           surface: fact.surface, projectile: fact.projectile, inventory: fact.inventory, activity: fact.activity,
           pose: fact.pose, placement: fact.placement, pickable: policy.pickable, hitZoom: cameraState.zoom,
         });
+        job.preparedSubjects = preparedSubjects.length;
         yield;
       }
       if (terrainResult.terrainFrame) preparedSubjects.push(...edgeWallJunctionSubjects(preparedSubjects, bindings, terrainResult.terrainFrame.verticalMetres));
+      job.phase = "actors";
       job.actor = actors.prepare({ subjects: preparedSubjects, selectedIds: input.selectedIds ?? [], art: input.art,
         terrainFrame: terrainResult.terrainFrame, paused: input.paused, frameSequence: input.frameSequence,
         cameraTurn: job.turn, projection: job.geometry.projection, project: job.geometry.project });
@@ -105,25 +109,69 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
       const produced = job.actor.records;
       if (job.ordering === ordering && terrainRevision === terrainResult.revision && produced === previousProduced) {
         job.orderUnchanged = true;
+        job.phase = "paint";
         job.terrain.stagePaint(null);
         return;
       }
+      job.phase = "order";
       job.order = job.ordering.prepare({ terrainRevision: terrainResult.revision,
-        terrainRecords: terrainResult.records, subjectRecords: produced });
-      while (job.order.status === "pending") { job.order.advance({ maxOperations: 256 }); yield; }
+        terrainRegions: terrainResult.terrainRegions, waterRecords: terrainResult.waterRecords,
+        subjectRecords: produced });
+      while (job.order.status === "pending") { job.order.advance({ maxOperations: 32768, deadline: job.deadline }); yield; }
+      job.phase = "paint";
       if (job.order.result.paintRequired) {
-        job.terrain.stagePaint(job.order.result.stagedRecords);
+        job.terrain.stagePaint(job.order.result.paintLeaves);
       } else job.terrain.stagePaint(null);
-      while (!job.terrain.ready) { job.terrain.advance({ batchRecords: 512, batchMeshes: 2 }); yield; }
+      while (!job.terrain.ready) { job.terrain.advance({ batchRecords: 8192, batchMeshes: 64, deadline: job.deadline }); yield; }
     }
     job.iterator = prepare(); pending = job; work.started++;
+  }
+  function startTerrainSuccessor() {
+    if (pending || backgroundError || !latestInput?.art || geometry.turn !== wantedTurn) return false;
+    const successor = terrain.prepareSuccessor();
+    if (!successor) return false;
+    start(latestInput, geometry, successor);
+    return true;
+  }
+  function advancePending(deadline) {
+    const job = pending;
+    if (!job) return;
+    const started = clock(), publicationBefore = work.publicationMs;
+    job.deadline = deadline;
+    try {
+      while (pending === job && clock() < deadline) {
+        const step = job.iterator.next();
+        if (step.done) { publish(job, job.screen); break; }
+      }
+    } catch (error) {
+      if (pending === job) cancelPending();
+      throw error;
+    } finally {
+      const elapsed = Math.max(0, clock() - started);
+      work.preparationMs += Math.max(0, elapsed - (work.publicationMs - publicationBefore));
+      work.maxFrameWorkMs = Math.max(work.maxFrameWorkMs, elapsed);
+    }
+  }
+  function scheduleContinuation() {
+    if (disposed || !pending || continuation !== undefined || typeof window === "undefined") return;
+    continuation = globalThis.setTimeout(() => {
+      continuation = undefined;
+      if (disposed || !pending) return;
+      if (pending.epoch !== sourceEpoch || pending.turn !== wantedTurn ||
+          pending.view.level !== latestInput?.view.level || pending.view.cutaway !== latestInput?.view.cutaway)
+        cancelPending();
+      try { advancePending(clock() + 6); }
+      catch (error) { backgroundError = error; }
+      startTerrainSuccessor();
+      if (pending && !backgroundError) scheduleContinuation();
+    }, 0);
   }
   function publish(job, screen) {
     const started = clock(), nextCamera = cameraFor(job.geometry, screen);
     const viewChanged = view.level !== job.view.level || view.cutaway !== job.view.cutaway || geometry.turn !== job.turn;
     job.actor.publish(); job.terrain.publish();
     if (job.order) {
-      records = job.ordering.publish(job.order).records;
+      job.ordering.publish(job.order);
     }
     if (job.ordering !== ordering) {
       const old = ordering.metrics();
@@ -141,38 +189,41 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
   }
   function frame(input) {
     if (disposed) return;
+    latestInput = input;
+    if (backgroundError) { const error = backgroundError; backgroundError = undefined; throw error; }
     const budget = input.budgetMs ?? 6;
     if (!(budget > 0) || !Number.isFinite(budget)) throw new Error("invalid world view frame budget");
-    const started = clock(), publicationBefore = work.publicationMs, deadline = started + budget; work.frames++;
+    const started = clock(), deadline = started + budget; work.frames++;
     if (pending && (pending.epoch !== sourceEpoch || pending.turn !== wantedTurn ||
       pending.view.level !== input.view.level || pending.view.cutaway !== input.view.cutaway)) cancelPending();
     let nextGeometry = pending?.geometry ?? geometry;
     if (!pending && geometry.turn !== wantedTurn) { nextGeometry = createCameraGeometryOwner(); nextGeometry.rotate(wantedTurn); }
     terrain.request({ frame: sourceFrame, epoch: sourceEpoch, camera: cameraFor(nextGeometry, input.screen),
       view: input.view, screen: input.screen, projection: nextGeometry.projection, turn: wantedTurn });
+    if (pending?.terrain.superseded) {
+      cancelPending();
+      nextGeometry = geometry.turn === wantedTurn ? geometry : createCameraGeometryOwner();
+      if (nextGeometry !== geometry) nextGeometry.rotate(wantedTurn);
+    }
     if (!input.art) { if (nextGeometry !== geometry && !pending) nextGeometry.dispose(); return; }
     try {
       if (!pending) start(input, nextGeometry);
-      const job = pending;
-      while (clock() < deadline) {
-        const step = job.iterator.next();
-        if (step.done) { publish(job, input.screen); break; }
-      }
+      advancePending(deadline);
+      startTerrainSuccessor();
     } catch (error) {
       if (pending) cancelPending();
       else if (nextGeometry !== geometry) nextGeometry.dispose();
       throw error;
-    } finally {
-      const elapsed = Math.max(0, clock() - started); work.preparationMs += Math.max(0, elapsed - (work.publicationMs - publicationBefore));
-      work.maxFrameWorkMs = Math.max(work.maxFrameWorkMs, elapsed);
     }
+    scheduleContinuation();
     // Client UI geometry is painted against the displayed camera after frame().
     for (const layer of screenLayers) { layer.scale.set(1); layer.position.set(0, 0); }
     paintedCamera = { ...cameraState };
   }
   return Object.freeze({
     container: terrain.container, camera, project, frame,
-    get view() { return view; }, get subjects() { return subjects; }, get records() { return records; },
+    get view() { return view; }, get subjects() { return subjects; },
+    get records() { return ordering.records; }, get recordOrder() { return ordering.recordOrder; },
     updateTerrain(next, epoch) { sourceFrame = next; sourceEpoch = epoch; },
     groundPoint: (...args) => geometry.groundPoint(...args), surfacePoint: (...args) => geometry.surfacePoint(...args),
     terrainPlaneCell: (...args) => geometry.terrainPlaneCell(...args),
@@ -188,7 +239,7 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
       cancelPending(); sourceFrame = undefined; sourceEpoch = displayedEpoch = undefined;
       wantedTurn = geometry.turn;
       terrain.clear(); actors.clear(); guides.clear(); ghosts.clear(); ordering.reset();
-      geometry.reset(); records = []; subjects = Object.freeze([]); previousProduced = terrainRevision = undefined;
+      geometry.reset(); subjects = Object.freeze([]); previousProduced = terrainRevision = undefined;
     },
     resetTimeline() { cancelPending(); actors.resetTimeline(); }, react: actors.react,
     pick: point => ordering.pick(point),
@@ -198,7 +249,11 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
       const accumulated = Object.fromEntries(Object.entries(current).map(([key, value]) => [key,
         typeof value !== "number" ? value : key === "maxAdvanceMs" ? Math.max(value, retiredOrdering[key] ?? 0) : value + (retiredOrdering[key] ?? 0)]));
       return { ...accumulated,
-        meshes: terrain.meshMetrics, preparation: { ...work, pending: Boolean(pending) },
+        meshes: terrain.meshMetrics, pictures: terrain.pictureMetrics,
+        preparation: { ...work, pending: Boolean(pending), phase: pending?.phase ?? null,
+          preparedSubjects: pending?.preparedSubjects ?? 0,
+          orderStatus: pending?.order?.status ?? null,
+          terrainStatus: pending?.terrain?.status ?? null },
         cameraCoverage: terrain.cameraCoverage,
         coverage: { capacity:coverage.capacity, maxBytes:coverage.maxBytes, retainedBytes:coverage.retainedBytes,
           epoch:coverage.epoch, terrainRevision:coverage.terrainRevision, level:coverage.level,
@@ -207,13 +262,15 @@ export function createWorldViewOwner({ runtime, bindings, root, effectClock, onC
           visibleRegions:coverage.coverage.filter(item=>item.visible).length,
           readyVisibleRegions:coverage.coverage.filter(item=>item.visible && item.status==="ready").length,
           requestedRegions:coverage.coverage.length, readyRegions:coverage.patches.length,
-          cachedRegions:coverage.cachedRegions, pending:coverage.pending, loading:coverage.loading }, primitives: records.length };
+          cachedRegions:coverage.cachedRegions, pending:coverage.pending, loading:coverage.loading }, primitives: ordering.recordOrder.count };
     },
-    snapshot: () => records.map(({ id, part, screenBounds, orderGeometry, support, cell, pickable, role }) =>
+    snapshot: () => ordering.records.map(({ id, part, screenBounds, orderGeometry, support, cell, pickable, role }) =>
       ({ id, part, screenBounds, orderGeometry, support, cell, pickable, role })),
     dispose() {
-      if (disposed) return; disposed = true; cancelPending(); geometry.dispose(); actors.dispose(); guides.dispose(); ghosts.dispose();
-      previewLayer.destroy(); terrain.dispose(); ordering.dispose(); records = []; subjects = Object.freeze([]); sourceFrame = undefined;
+      if (disposed) return; disposed = true;
+      if (continuation !== undefined) globalThis.clearTimeout(continuation);
+      continuation = undefined; cancelPending(); geometry.dispose(); actors.dispose(); guides.dispose(); ghosts.dispose();
+      previewLayer.destroy(); terrain.dispose(); ordering.dispose(); subjects = Object.freeze([]); sourceFrame = latestInput = undefined;
     },
   });
 }

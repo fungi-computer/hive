@@ -8,11 +8,10 @@ export function stableKey(record) {
  * Geometry admission is separate from alpha picking: a deck's transparent
  * art can still expose its declared walkable surface. */
 export function surfaceSubjectFromOrdered(order, subjects, pointValue, resolveSurface) {
-  if (!Array.isArray(order) || !Array.isArray(subjects) || !pointValue || typeof resolveSurface !== "function") return null;
+  if (!(Array.isArray(order) || order?.leaves) || !Array.isArray(subjects) || !pointValue || typeof resolveSurface !== "function") return null;
   const byId = new Map(subjects.filter(subject => subject?.id !== undefined && subject?.id !== null)
     .map(subject => [String(subject.id), subject]));
-  for (let index = order.length - 1; index >= 0; index--) {
-    const node = order[index];
+  for (const node of reverseOrderedRecords(order)) {
     if (node?.visible === false || node?.pickable === false) continue;
     const subject = byId.get(String(node?.target ?? node?.id));
     if (!subject || subject.pickable === false || !subject.surface) continue;
@@ -41,4 +40,5 @@ export function subjectSortFootprint(subject, resolvedPlacement) {
     return resolvedPlacement.endpoints.map(([x, z]) => ({ x: origin.x + x, y: origin.y, z: origin.z + z }));
   return [origin];
 }
+import { reverseOrderedRecords } from "./retained-paint-order.js";
 

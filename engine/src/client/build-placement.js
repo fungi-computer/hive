@@ -1,4 +1,5 @@
 import { rotatePlacementPoint } from "./art-placement.js";
+import { reverseOrderedRecords } from "./retained-paint-order.js";
 
 /** Resolve an ordered structure sprite to its canonical physical support face. */
 export function structureSurfaceFromSprite(node, subject, point, displayed, project) {
@@ -39,8 +40,7 @@ export function structureSurfaceFromOrderedSprites(orderedSprites, subjects, hit
   const byId = subjects instanceof Map
     ? subjects
     : new Map((subjects ?? []).filter(subject => subject?.id !== undefined).map(subject => [subject.id, subject]));
-  for (let index = (orderedSprites?.length ?? 0) - 1; index >= 0; index -= 1) {
-    const node = orderedSprites[index];
+  for (const node of reverseOrderedRecords(orderedSprites)) {
     if (node?.visible === false || node?.role !== "structure" || node.contains?.(hitPoint) !== true) continue;
     const surface = structureSurfaceFromSprite(node, byId.get(node.target ?? node.id), projectedPoint, displayed, project);
     if (surface) return surface;

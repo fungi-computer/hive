@@ -71,6 +71,21 @@ test("one-operation preparation keeps old terrain visible through ready and publ
   owner.dispose();
 });
 
+test("published picture omits cave floor under intact roof and reveals it after a cut", () => {
+  const bounds = { minX: 0, maxX: 3, minY: 0, maxY: 5, minZ: 0, maxZ: 3 };
+  const baseline = { protocolVersion: 5, bounds, verticalMetres: .54,
+    materials: [{ slot: 0, solid: false }, { slot: 1, solid: true, art: "earth" }] };
+  const source = { snapshot: { baseline, patches: [materialPatch([0, 0, 0], bounds,
+    ([, y]) => y === 0 || y === 3 ? 1 : 0)] }, surfaces: [], level: 4,
+    projection: createOrderingProjection(), appearance: { body() {} } };
+  const owner = createTerrainPictureOwner();
+  const roof = publish(owner, source);
+  assert(roof.exposedFaces.length > 0 && roof.exposedFaces.every(record => record.cell[1] === 3));
+  const cut = publish(owner, { ...source, level: 2 });
+  assert(cut.exposedFaces.length > 0 && cut.exposedFaces.every(record => record.cell[1] === 0));
+  owner.dispose();
+});
+
 test("unchanged terrain retains complete picture identity, cancelled and superseded cuts do not publish", () => {
   const owner = createTerrainPictureOwner(), source = input();
   const initial = owner.prepare(source); finish(initial); const shown = initial.publish();
@@ -132,11 +147,16 @@ test("view membership return reuses entries while inactive derivatives own zero 
   const { source, patches } = coveredInput(), owner = createTerrainPictureOwner();
   const first = publish(owner, { ...source, snapshot: { ...source.snapshot, patches: [patches[0]] } });
   const both = publish(owner, source), built = owner.metrics();
+  assert.strictEqual(both.regions[0], first.regions[0], "an arriving region does not rebuild its neighbor's picture");
+  assert.equal(both.regions[0].id, patches[0].key.join(","));
+  assert.strictEqual(both.regions[0].exposedFaces, first.regions[0].exposedFaces);
   assert(first.records.every(record => both.records.includes(record)), "adding a patch preserves the first derivative");
   const secondRecords = both.records.filter(record => !first.records.includes(record));
   const onlySecond = publish(owner, { ...source, snapshot: { ...source.snapshot, patches: [patches[1]] } });
   assert(secondRecords.every(record => onlySecond.records.includes(record)), "leaving hides without rebuilding the remaining patch");
   const returned = publish(owner, source);
+  assert.strictEqual(returned.regions[0], first.regions[0]);
+  assert.strictEqual(returned.regions[1], both.regions[1]);
   assert(both.records.every(record => returned.records.includes(record)), "return reuses recently-left records by identity");
   assert.equal(owner.metrics().bodyBuilds, built.bodyBuilds);
   assert.equal(owner.metrics().coverBuilds, built.coverBuilds);
@@ -220,6 +240,8 @@ test("one mown cell rebuilds four local mask roots while earth and unrelated cov
   const before = owner.metrics();
   const mown = publish(owner, { ...source, surfaces: [{ cell: [2, 0, 2], material: 1, generatedTop: 0,
     cover: { kind: "grass", condition: "green", height: "short" } }] });
+  assert.notStrictEqual(mown.regions[0], initial.regions[0]);
+  assert.strictEqual(mown.regions[1], initial.regions[1], "mowing cannot invalidate the neighboring region picture");
   const after = owner.metrics();
   assert(body.every(record => mown.records.includes(record)), "cover mutation never rebuilds earth body");
   assert(unaffected.every(record => mown.records.includes(record)), "unaffected mask roots retain record identity");

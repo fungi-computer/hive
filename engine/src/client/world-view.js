@@ -29,8 +29,9 @@ export function toggleWorldCutaway(view, cutaway) {
 
 export function terrainLevelRange(frame) {
   const levels = [...(frame?.surfaces ?? []), ...(frame?.structureSurfaces ?? [])].map(({ cell }) => cell[1]).filter(integer);
-  if (!levels.length) return { min: 0, max: 0 };
-  return { min: Math.min(...levels), max: Math.max(...levels) };
+  const worldFloor = frame?.baseline?.bounds?.minY;
+  if (!levels.length) return integer(worldFloor) ? { min: worldFloor, max: worldFloor } : { min: 0, max: 0 };
+  return { min: integer(worldFloor) ? Math.min(worldFloor, ...levels) : Math.min(...levels), max: Math.max(...levels) };
 }
 
 function filterTerrain(frame, view) {
@@ -103,8 +104,15 @@ function metadata(fact) {
   return fact?.view && typeof fact.view === "object" ? fact.view : null;
 }
 
-export function projectWorldFact(fact, view) {
+export function projectWorldFact(fact, view, verticalMetres) {
   const info = metadata(fact);
+  // An ordinary body or object without authored cut geometry follows its
+  // physical support level. Authored cutawayTop remains authoritative for
+  // structures that span several levels.
+  if (view.cutaway && info?.cutawayTop === undefined &&
+      Number.isFinite(verticalMetres) && verticalMetres > 0 && Number.isFinite(fact?.pose?.position?.y) &&
+      Math.round(fact.pose.position.y / verticalMetres - .5) > view.level)
+    return { visible: false, pickable: false };
   if (!info) return { visible: true, pickable: true };
   if (info.cutawayTop !== undefined && (!integer(info.cutawayTop) || (view.cutaway && info.cutawayTop > view.level)))
     return { visible: false, pickable: false };
@@ -119,6 +127,6 @@ export function projectWorldFact(fact, view) {
   };
 }
 
-export function visibleWorldFacts(facts, view) {
-  return facts.filter((fact) => projectWorldFact(fact, view).visible);
+export function visibleWorldFacts(facts, view, verticalMetres) {
+  return facts.filter((fact) => projectWorldFact(fact, view, verticalMetres).visible);
 }

@@ -10,6 +10,15 @@ test("world view honors its supplied signed range", () => {
   assert.equal(setWorldViewLevel(view, 4), view);
 });
 
+test("a visible surface does not cap how deeply the camera can cut", () => {
+  const frame = { baseline: { bounds: { minY: -32, maxY: 40 } },
+    surfaces: [{ cell: [0, 18, 0] }], structureSurfaces: [] };
+  const range = terrainLevelRange(frame);
+  assert.deepEqual(range, { min: -32, max: 18 });
+  const view = setTerrainLevelRange(createWorldView(), range, 18);
+  assert.equal(setWorldViewLevel(view, 16).level, 16);
+});
+
 test("untagged facts remain visible and covered facts need presented cutaway data", () => {
   const view = createWorldView({ range: { min: 0, max: 1 }, level: 1, presentedSurfaces: ["roof"] });
   assert.deepEqual(projectWorldFact({}, view), { visible: true, pickable: true });
@@ -113,6 +122,18 @@ test("construction cutaway hides upper art without changing lower storeys", () =
   assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:17}},view).visible,true);
   assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:21}},view).visible,false);
   assert.equal(projectWorldFact({view:{pickable:false,cutawayTop:21}},toggleWorldCutaway(view,false)).visible,true);
+});
+
+test("a lowered cut hides ordinary physical objects above it", () => {
+  const view = createWorldView({ range: { min: 0, max: 20 }, level: 16, cutaway: true });
+  const at = level => ({ pose: { position: { x: 0, y: (level + .5) * .54, z: 0 } },
+    view: { pickable: true } });
+  assert.deepEqual(projectWorldFact(at(18), view, .54), { visible: false, pickable: false });
+  assert.deepEqual(projectWorldFact(at(16), view, .54), { visible: true, pickable: true });
+  assert.equal(projectWorldFact(at(18), toggleWorldCutaway(view, false), .54).visible, true);
+  const authored = { ...at(14), view: { pickable: true, cutawayTop: 18 } };
+  assert.equal(projectWorldFact(authored, view, .54).visible, false,
+    "a tall authored object uses its declared upper extent");
 });
 
 

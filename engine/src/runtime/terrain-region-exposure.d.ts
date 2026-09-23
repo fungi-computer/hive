@@ -29,6 +29,7 @@ type ExposureInput = {
   level: number;
   sample: (cell: [number, number, number]) => Sample;
   columnTop?: (x: number, z: number) => number | null;
+  surfaceOnly?: boolean;
   maxFaces?: number;
 };
 export function exposeTerrainFaces(input: ExposureInput): TerrainFace[];
@@ -39,6 +40,7 @@ type PatchInput = {
   patch: TerrainRegionPatch;
   baseline: TerrainBaseline;
   level: number;
+  surfaceOnly?: boolean;
 };
 export function terrainPatchExposureSteps(
   input: PatchInput,

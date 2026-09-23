@@ -1,7 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Container, Texture, MeshGeometry } from "pixi.js";
-import { createTerrainBatchMeshes } from "./terrain-face-batches.js";
+import { createTerrainBatchMeshes as createPaintBatchMeshes } from "./terrain-face-batches.js";
+
+// Existing resource-lifecycle fixtures vary the records inside one paint leaf.
+// Production callers supply the structural owner's immutable leaves directly.
+function createTerrainBatchMeshes(options) {
+  const owner = createPaintBatchMeshes(options);
+  const leaf = records => [Object.freeze({ band: 0, records: Object.freeze(records) })];
+  return {
+    prepare: records => owner.prepare(leaf(records)),
+    update: records => owner.update(leaf(records)),
+    get size() { return owner.size; },
+    metrics: owner.metrics,
+    dispose: owner.dispose,
+  };
+}
 
 const BYTES_PER_QUAD = 8 * 4 * 2 + 6 * 2;
 function view(region, runs, quads) {
@@ -454,4 +468,78 @@ test("indexing retained active runs also consumes preparation credit, including 
  for(let i=0;i<3;i++)assert.equal(task.advance({records:1,meshes:0}),false);
  assert.equal(task.advance({records:1,meshes:0}),true);assert.equal(owner.size,4);
  task.cancel();assert.equal(owner.size,4);owner.dispose();
+});
+
+test("batch preparation owns its deadline and reports the work that caused it", () => {
+  let now = 0;
+  const owner = createTerrainBatchMeshes({ clock: () => now++ });
+  const records = view(0, 1, 96);
+  const task = owner.prepare(records);
+  const afterPrepare = owner.metrics();
+  assert.equal(afterPrepare.started, 1);
+  assert.equal(afterPrepare.planRecords, 1);
+  assert.equal(
+    task.advance({ records: 1000, meshes: 10, deadline: now }),
+    false,
+  );
+  assert.equal(
+    owner.metrics().planRecords,
+    afterPrepare.planRecords,
+    "an expired deadline admits no hidden batch work",
+  );
+  finish(task, { records: 1000, meshes: 10, deadline: Infinity });
+  const prepared = owner.metrics();
+  assert.equal(prepared.planRecords, records.length);
+  assert.equal(prepared.packedQuads, 96);
+  assert.equal(prepared.meshesCreated, 1);
+  assert.equal(prepared.bufferBytesAllocated, 96 * BYTES_PER_QUAD);
+  assert(prepared.preparationMs >= 4);
+  task.publish();
+  assert.equal(owner.metrics().published, 1);
+  owner.dispose();
+});
+
+test("moving actor in one retained paint leaf leaves distant Pixi buffer untouched", () => {
+  const owner = createPaintBatchMeshes();
+  const leaf = (band, records) => Object.freeze({ band, records: Object.freeze(records) });
+  const near = leaf(0, view(0, 1, 128));
+  const far = leaf(2, view(16, 1, 128));
+  const initial = owner.update([near, far]);
+  const farMesh = initial.find(item => item.kind === "terrain" && item.records[0] === far.records[0]).display;
+  const farPositions = farMesh.geometry.positions;
+  const before = owner.metrics();
+  const actor = new Container();
+  const changed = leaf(0, [...near.records.slice(0, 64), { id: "moved-actor", display: actor }, ...near.records.slice(64)]);
+  const next = owner.update([changed, far]);
+  const retained = next.find(item => item.kind === "terrain" && item.records[0] === far.records[0]).display;
+  const after = owner.metrics();
+  assert.strictEqual(retained, farMesh);
+  assert.strictEqual(retained.geometry.positions, farPositions);
+  assert.equal(after.plannedLeaves - before.plannedLeaves, 1);
+  assert.equal(after.reusedLeaves - before.reusedLeaves, 1);
+  assert.equal(after.planRecords - before.planRecords, changed.records.length,
+    "the unaffected leaf is not visited record by record");
+  assert(after.packedQuads - before.packedQuads <= 128,
+    "actor insertion cannot repack the distant leaf");
+  owner.dispose();
+  actor.destroy();
+});
+
+test("a neighboring region arrival keeps a distant retained depth-band buffer", () => {
+  const owner = createPaintBatchMeshes();
+  const leaf = records => Object.freeze({ records: Object.freeze(records) });
+  const far = leaf(view(16, 1, 128));
+  const first = owner.update([far]);
+  const farMesh = first.find(item => item.kind === "terrain").display;
+  const positions = farMesh.geometry.positions;
+  const before = owner.metrics();
+  const near = leaf(view(0, 1, 128));
+  const second = owner.update([near, far]);
+  const retained = second.find(item => item.kind === "terrain" && item.records[0] === far.records[0]).display;
+  const after = owner.metrics();
+  assert.strictEqual(retained, farMesh);
+  assert.strictEqual(retained.geometry.positions, positions);
+  assert.equal(after.planRecords - before.planRecords, near.records.length);
+  assert.equal(after.packedQuads - before.packedQuads, 128);
+  owner.dispose();
 });

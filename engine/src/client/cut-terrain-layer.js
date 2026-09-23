@@ -102,6 +102,7 @@ export function waterDrawRecord(
 
 const EMPTY = Object.freeze([]);
 const EMPTY_PICTURE = Object.freeze({
+  regions: EMPTY,
   records: EMPTY,
   surfaces: EMPTY,
   exposedFaces: EMPTY,
@@ -136,7 +137,7 @@ export function createCutTerrainLayer({
   const appearances = new Map(),
     cameraCoverage = createCameraCoverageOwner(),
     pictures = createTerrainPictureOwner({ clock });
-  const batches = createTerrainBatchMeshes({ parent: container }),
+  const batches = createTerrainBatchMeshes({ parent: container, clock }),
     waterTexture = createWaterSurfaceTexture();
   const cache = createTerrainRegionCache({
     runtime,
@@ -153,6 +154,14 @@ export function createCutTerrainLayer({
       else queueMicrotask(notify);
     },
   });
+  const recordQueries = new WeakMap();
+  const recordsFor = (regions, water) => {
+    let byWater = recordQueries.get(regions);
+    if (!byWater) { byWater = new WeakMap(); recordQueries.set(regions, byWater); }
+    let query = byWater.get(water);
+    if (!query) { query = { records: regions === EMPTY && water === EMPTY ? EMPTY : undefined }; byWater.set(water, query); }
+    return query;
+  };
   let published = {
     records: EMPTY,
     revision: 0,
@@ -440,25 +449,15 @@ export function createCutTerrainLayer({
             ? frame.structureSurfaces
             : Object.freeze(shown);
       }
-      let records = published.records;
-      if (
-        pictureProduct.records !== published.picture.records ||
-        waterRecords !== published.waterRecords
-      ) {
-        const next = [];
-        for (const list of [pictureProduct.records, waterRecords])
-          for (const record of list) {
-            yield;
-            next.push(record);
-          }
-        records = next.length ? Object.freeze(next) : EMPTY;
-      }
+      const sameVisual = pictureProduct.regions === published.picture.regions &&
+        waterRecords === published.waterRecords;
+      const queryCache = recordsFor(pictureProduct.regions, waterRecords);
       let terrainFrame;
       if (frame) {
         if (
           published.input?.frame === frame &&
           published.picture.surfaces === pictureProduct.surfaces &&
-          published.picture.exposedFaces === pictureProduct.exposedFaces &&
+          published.picture.regions === pictureProduct.regions &&
           published.structureSurfaces === structureSurfaces &&
           published.input.level === level &&
           published.input.view.cutaway === view.cutaway
@@ -472,21 +471,26 @@ export function createCutTerrainLayer({
               if (cell.liquidVolumeM3 > 0 && cell.at[1] <= level)
                 water.push(cell);
             }
-          terrainFrame = Object.freeze({
+          const nextFrame = {
             ...frame,
             surfaces: pictureProduct.surfaces,
-            exposedFaces: pictureProduct.exposedFaces,
+            terrainRegions: pictureProduct.regions,
             structureSurfaces,
             water:
               water.length === frame.water.length
                 ? frame.water
                 : Object.freeze(water),
+          };
+          Object.defineProperty(nextFrame, "exposedFaces", {
+            get: () => pictureProduct.exposedFaces,
           });
+          terrainFrame = Object.freeze(nextFrame);
         }
       }
-      return Object.freeze({
-        records,
-        revision: published.revision + Number(records !== published.records),
+      const output = {
+        terrainRegions: pictureProduct.regions,
+        waterRecords,
+        revision: published.revision + Number(!sameVisual),
         terrainFrame,
         view,
         projection,
@@ -496,7 +500,10 @@ export function createCutTerrainLayer({
         prepared: input.prepared,
         paintable,
         viewBudget: input.plan.kind === "view-budget" || snapshot.viewBudget,
-      });
+      };
+      Object.defineProperty(output, "records", { get: () => queryCache.records ??=
+        Object.freeze([...pictureProduct.regions.flatMap(region => region.records), ...waterRecords]) });
+      return Object.freeze(output);
     }
     function release() {
       iterator?.return();
@@ -524,6 +531,20 @@ export function createCutTerrainLayer({
       get terrainReady() {
         return result !== undefined;
       },
+      get superseded() {
+        if (!["pending", "awaiting-paint", "painting", "ready"].includes(status) || !input)
+          return false;
+        // Once a candidate contains usable terrain, finish and publish it. A
+        // later candidate can add newly arrived regions without returning the
+        // screen to the empty bootstrap picture.
+        if (input.snapshot.patches.length > 0) return false;
+        const latest = cache.snapshot();
+        return (
+          latest.epoch !== input.snapshot.epoch ||
+          latest.terrainRevision !== input.snapshot.terrainRevision ||
+          latest.publication !== input.snapshot.publication
+        );
+      },
       get result() {
         return result;
       },
@@ -540,7 +561,15 @@ export function createCutTerrainLayer({
           throw new Error("invalid terrain preparation budget");
         if (status === "painting") {
           try {
-            if (clock() < deadline && meshTask.advance({ records: batchRecords, meshes: batchMeshes })) status = "ready";
+            if (
+              clock() < deadline &&
+              meshTask.advance({
+                records: batchRecords,
+                meshes: batchMeshes,
+                deadline,
+              })
+            )
+              status = "ready";
             return status;
           } catch (error) {
             cancel();
@@ -579,7 +608,7 @@ export function createCutTerrainLayer({
         if (status !== "awaiting-paint" || pending !== task)
           throw new Error("terrain preparation is not ready or is stale");
         if (ordered == null) {
-          if (result.records !== published.records)
+          if (result.revision !== published.revision)
             throw new Error("changed terrain requires a prepared paint plan");
           status = "ready";
           return;
@@ -596,7 +625,7 @@ export function createCutTerrainLayer({
             entry.sprite.destroy();
         meshTask?.publish();
         ownedWater.clear();
-        published = {
+        const nextPublished = {
           ...result,
           input,
           picture: pictureProduct,
@@ -604,6 +633,8 @@ export function createCutTerrainLayer({
           waterRecords,
           structureSurfaces,
         };
+        Object.defineProperty(nextPublished, "records", { get: () => result.records });
+        published = nextPublished;
         status = "published";
         release();
         return result;
@@ -612,6 +643,18 @@ export function createCutTerrainLayer({
     });
     pending = task;
     return task;
+  }
+  function prepareSuccessor() {
+    if (!desired) return null;
+    const latest = cache.snapshot();
+    const current = published.input &&
+      published.input.epoch === desired.epoch &&
+      published.input.level === desired.level &&
+      published.input.turn === desired.turn &&
+      published.input.projection === desired.projection &&
+      published.input.plan === desired.plan &&
+      published.input.snapshot.publication === latest.publication;
+    return current ? null : prepare();
   }
   function coverage() {
     const received = cache.snapshot(),
@@ -670,7 +713,7 @@ export function createCutTerrainLayer({
     pictures.clear();
     batches.update([]);
     for (const entry of published.waterEntries.values()) entry.sprite.destroy();
-    const revision = published.revision + Number(published.records !== EMPTY);
+    const revision = published.revision + Number(published.picture.regions.length > 0 || published.waterRecords.length > 0);
     published = {
       records: EMPTY,
       revision,
@@ -687,6 +730,7 @@ export function createCutTerrainLayer({
     installArt,
     request,
     prepare,
+    prepareSuccessor,
     transform,
     clear,
     get sortableItems() {

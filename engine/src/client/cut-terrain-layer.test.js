@@ -177,6 +177,41 @@ test("live regions paint incrementally, retain body identity and never require a
   layer.dispose();
 });
 
+test("arriving terrain supersedes an empty candidate but lets usable partial terrain publish", () => {
+  const { layer, requests, install } = setup({ auto: false });
+  install();
+  setFrame(layer, frame(), 2);
+  layer.request({ ...inputs.get(layer), camera, view, screen });
+  const empty = layer.prepare();
+  const [first, second] = requests[0].request.regions;
+  requests[0].send({ kind: "patch", patch: patch(first) });
+  assert.equal(empty.superseded, true);
+  empty.cancel();
+  layer.request({ ...inputs.get(layer), camera, view, screen });
+  const partial = layer.prepare();
+  requests[0].send({ kind: "patch", patch: patch(second) });
+  assert.equal(partial.superseded, false);
+  partial.cancel();
+  layer.dispose();
+});
+
+test("terrain owner claims its own newer published-picture successor", () => {
+  const { layer, requests, install } = setup({ auto: false });
+  install();
+  setFrame(layer, frame(), 2);
+  show(layer, camera, view, screen);
+  const [first, second] = requests[0].request.regions;
+  requests[0].send({ kind: "patch", patch: patch(first) });
+  show(layer, camera, view, screen);
+  assert.equal(layer.prepareSuccessor(), null);
+  requests[0].send({ kind: "patch", patch: patch(second) });
+  const successor = layer.prepareSuccessor();
+  assert(successor);
+  publish(layer, successor);
+  assert.equal(layer.prepareSuccessor(), null);
+  layer.dispose();
+});
+
 test("camera pan transform and unchanged padded demand do not rebuild terrain", async () => {
   const { layer, requests, install, maxDepth } = setup({
     onCoverage: (_, owner) => show(owner, camera, view, screen),
@@ -645,9 +680,10 @@ function drain(task, maxOperations = 128) {
   }
   return task.result;
 }
+const paint = records => [Object.freeze({ band: 0, records: Object.freeze(records) })];
 function publish(layer, task) {
   const result = drain(task);
-  task.stagePaint(result.records !== layer.retainedRecords.records ? result.records : null);
+  task.stagePaint(result.records !== layer.retainedRecords.records ? paint(result.records) : null);
   while (!task.ready) task.advance({ batchRecords: 128, batchMeshes: 2 });
   task.publish();
   assert.strictEqual(
@@ -742,7 +778,7 @@ test("cut and projection requests preserve published pictures, water, meshes and
   assert.strictEqual(layer.presentedTerrain, terrainFrame);
   const task = layer.prepare();
   drain(task, 1);
-  task.stagePaint(task.result.records);
+  task.stagePaint(paint(task.result.records));
   while (!task.ready) task.advance({ batchRecords: 1, batchMeshes: 1 });
   assert.deepEqual(layer.container.children, children);
   assert.equal(water.destroyed, false);
@@ -949,7 +985,7 @@ test("clear cancels ready pictures and detached water once without retiring borr
     destroyed++;
     original(...args);
   };
-  task.stagePaint(task.result.records);
+  task.stagePaint(paint(task.result.records));
   while (!task.ready) task.advance({ batchRecords: 128, batchMeshes: 2 });
   layer.clear();
   assert.equal(task.status, "cancelled");
@@ -974,9 +1010,7 @@ test("absent terrain never hides actors on the shared world parent or overrides 
   drain(task);
   assert.equal(task.result.terrainFrame, undefined);
   assert.equal(task.result.records.length, 0);
-  task.stagePaint([
-    { id: "actor", part: "body", display: actor },
-  ]);
+  task.stagePaint(paint([{ id: "actor", part: "body", display: actor }]));
   while (!task.ready) task.advance({ batchRecords: 8, batchMeshes: 1 });
   task.publish();
   assert.strictEqual(actor.parent, layer.container);

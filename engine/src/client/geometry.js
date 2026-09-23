@@ -74,7 +74,10 @@ export function surfacePoint(x, y, fact) {
 
 /** Authored floors are faces, never earth columns or invented side walls. */
 function* pickingFaces(terrain) {
-  for (const face of terrain.exposedFaces ?? [])
+  const faceLists = terrain.terrainRegions
+    ? terrain.terrainRegions.map(region => region.exposedFaces)
+    : [terrain.exposedFaces ?? []];
+  for (const faces of faceLists) for (const face of faces)
     yield {
       surface: { cell: face.cell, material: face.material },
       source: "terrain",
@@ -165,7 +168,7 @@ function rayFor(x, y, origin, far, ray, cameraView) {
   ray.direction.copy(far).sub(origin).normalize();
 }
 
-function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, cameraView) {
+function hitPickerState(x, y, terrain, state, origin, ray, hit, a, b, c) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
   const candidates = new Set();
   const bucketX = Math.floor(x / PICK_BUCKET_SIZE),
@@ -179,7 +182,6 @@ function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, ca
   const ordered = [...candidates].sort(
     (left, right) => left.order - right.order,
   );
-  rayFor(x, y, origin, far, ray, cameraView);
   let picked = null,
     nearest = Infinity;
   for (const triangle of ordered) {
@@ -208,14 +210,16 @@ function hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, ca
         : null,
     };
   }
-  return picked;
+  return { picked, distance: nearest };
 }
 
 /** Retained per-client terrain picker; never shared across worlds or clients. */
 export function createTerrainPicker(cameraView = view) {
   if (!cameraView?.isOrthographicCamera) throw new Error("terrain picker requires an orthographic camera");
   cameraView.updateMatrixWorld();
-  let exposedFaces, structureSurfaces, verticalMetres, epoch, state;
+  let terrainFaces, structureSurfaces, verticalMetres, epoch, state;
+  let regionStates = new WeakMap(), structureState;
+  const work = { regionBuilds: 0, regionReuses: 0, structureBuilds: 0 };
   const origin = new Vector3(),
     far = new Vector3(),
     hit = new Vector3();
@@ -224,11 +228,13 @@ export function createTerrainPicker(cameraView = view) {
     b = new Vector3(),
     c = new Vector3();
   function reset() {
-    exposedFaces = undefined;
+    terrainFaces = undefined;
     structureSurfaces = undefined;
     verticalMetres = undefined;
     epoch = undefined;
     state = undefined;
+    regionStates = new WeakMap();
+    structureState = undefined;
   }
   function ensure(terrain, nextEpoch) {
     if (!terrain) {
@@ -237,15 +243,37 @@ export function createTerrainPicker(cameraView = view) {
     }
     if (
       state !== undefined &&
-      terrain.exposedFaces === exposedFaces &&
+      (terrain.terrainRegions ?? terrain.exposedFaces) === terrainFaces &&
       terrain.structureSurfaces === structureSurfaces &&
       terrain.verticalMetres === verticalMetres &&
       nextEpoch === epoch
     )
       return true;
-    reset();
-    const nextState = makePickerState(terrain, cameraView);
-    exposedFaces = terrain.exposedFaces;
+    if (nextEpoch !== epoch) {
+      regionStates = new WeakMap();
+      structureState = undefined;
+    }
+    let nextState;
+    if (terrain.terrainRegions) {
+      const pieces = [];
+      for (const region of terrain.terrainRegions) {
+        let part = regionStates.get(region);
+        if (!part) {
+          part = makePickerState({ terrainRegions: [region], structureSurfaces: [] }, cameraView);
+          regionStates.set(region, part);
+          work.regionBuilds++;
+        } else work.regionReuses++;
+        pieces.push(part);
+      }
+      if (terrain.structureSurfaces !== structureSurfaces || !structureState) {
+        structureState = makePickerState({ exposedFaces: [], structureSurfaces: terrain.structureSurfaces,
+          verticalMetres: terrain.verticalMetres }, cameraView);
+        work.structureBuilds++;
+      }
+      pieces.push(structureState);
+      nextState = pieces;
+    } else nextState = [makePickerState(terrain, cameraView)];
+    terrainFaces = terrain.terrainRegions ?? terrain.exposedFaces;
     structureSurfaces = terrain.structureSurfaces;
     verticalMetres = terrain.verticalMetres;
     epoch = nextEpoch;
@@ -254,7 +282,14 @@ export function createTerrainPicker(cameraView = view) {
   }
   function hitTerrain(x, y, terrain, nextEpoch) {
     if (!ensure(terrain, nextEpoch)) return null;
-    return hitPickerState(x, y, terrain, state, origin, far, ray, hit, a, b, c, cameraView);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    rayFor(x, y, origin, far, ray, cameraView);
+    let nearest = Infinity, picked = null;
+    for (const part of state) {
+      const result = hitPickerState(x, y, terrain, part, origin, ray, hit, a, b, c);
+      if (result.distance < nearest) { nearest = result.distance; picked = result.picked; }
+    }
+    return picked;
   }
   return {
     hit: hitTerrain,
@@ -266,5 +301,6 @@ export function createTerrainPicker(cameraView = view) {
     },
     reset,
     dispose: reset,
+    metrics: () => Object.freeze({ ...work }),
   };
 }

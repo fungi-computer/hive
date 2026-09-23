@@ -149,6 +149,23 @@ test('cached picker matches exhaustive face ownership at triangle boundaries and
   picker.dispose();
 });
 
+test('a neighboring region reuses the published picker triangles and never asks for a flat face list', () => {
+  const owner = createTerrainPicker();
+  const first = Object.freeze({ exposedFaces: Object.freeze(withFaces({ verticalMetres: .54,
+    surfaces: [{ cell: [0, 0, 0], material: 1 }], structureSurfaces: [] }).exposedFaces) });
+  const second = Object.freeze({ exposedFaces: Object.freeze(withFaces({ verticalMetres: .54,
+    surfaces: [{ cell: [20, 0, 20], material: 1 }], structureSurfaces: [] }).exposedFaces) });
+  const structureSurfaces = [];
+  const frame = regions => ({ verticalMetres: .54, terrainRegions: regions, structureSurfaces,
+    get exposedFaces() { throw new Error('flat face query is forbidden on the picking path'); } });
+  const at = project(0, .27, 0);
+  assert.equal(owner.hit(at.x, at.y, frame([first]), 1)?.kind, 'terrain-top');
+  assert.deepEqual(owner.metrics(), { regionBuilds: 1, regionReuses: 0, structureBuilds: 1 });
+  assert.equal(owner.hit(at.x, at.y, frame([first, second]), 1)?.kind, 'terrain-top');
+  assert.deepEqual(owner.metrics(), { regionBuilds: 2, regionReuses: 1, structureBuilds: 1 });
+  owner.dispose();
+});
+
 test('picker rebuilds when an epoch changes reused projection references and retries failed builds', () => {
   const picker = createTerrainPicker();
   const surfaces = [{ cell: [0, 0, 0], material: 1 }];

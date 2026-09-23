@@ -93,6 +93,7 @@ await mock.module(new URL("./cut-terrain-layer.js", import.meta.url).href, { exp
       prepare() {
         const input = requested;
         const task = { ready: false, terrainReady: !f.holdTerrain, cancelled: 0, published: 0,
+          get superseded() { return Boolean(f.supersedeTerrain); },
           result: { terrainFrame: input.frame, records: [], revision: 0 },
           advance() { if (!f.holdTerrain) task.terrainReady = true; },
           stagePaint() { assert(task.terrainReady); task.ready = true; },
@@ -100,6 +101,7 @@ await mock.module(new URL("./cut-terrain-layer.js", import.meta.url).href, { exp
         f.terrainTasks.push(task);
         return task;
       },
+      prepareSuccessor() { return null; },
       clear() { frame = requested = undefined; },
       get presentedTerrain() { return frame; },
       transform(camera) { assert(!disposed); f.transforms.push({ x: camera.x, y: camera.y, zoom: camera.zoom }); },
@@ -130,8 +132,9 @@ for (const [file, name] of [["placement-guide-owner", "createPlacementGuideOwner
 await mock.module(new URL("./structural-draw-order-owner.js", import.meta.url).href, { exports: {
   createStructuralDrawOrderOwner: ({ direction }) => {
     const f = active;
-    return { prepare: () => ({ status: "ready", result: { stagedRecords: [], paintRequired: false }, cancel() {} }),
+    return { prepare: () => ({ status: "ready", result: { paintLeaves: [], paintRequired: false }, cancel() {} }),
       publish: () => ({ records: [] }),
+      recordOrder: { count: 0, length: 0, leaves: [] }, records: [],
       reset() {}, dispose() {}, metrics: () => ({}), pick() { f.picks.push(direction); return {}; } };
   },
 } });
@@ -428,5 +431,25 @@ test("superseded cut cancels its pending task and disposal cancels the successor
     assert.equal(f.client.diagnostics().displayedView.level, 0);
     f.client.dispose();
     assert.equal(second.cancelled, 1); assert.equal(second.published, 0);
+  } finally { f.client.dispose(); }
+});
+
+test("new terrain coverage cancels obsolete empty preparation", async () => {
+  const f = fixture();
+  try {
+    f.graphics.resolve(); f.terrain.resolve(f.terrainPack); f.statics.resolve(f.staticPack);
+    await flush();
+    const draw = () => { for (const callback of f.app.draws) callback(); };
+    f.receive(f.frame(1)); draw();
+    f.holdTerrain = true;
+    f.keymap.commands.find(command => command.name === "camera.turn.right").run();
+    draw();
+    const partial = f.terrainTasks.at(-1), count = f.terrainTasks.length;
+    f.supersedeTerrain = true;
+    draw();
+    f.supersedeTerrain = false;
+    assert.equal(partial.cancelled, 1);
+    assert.equal(partial.published, 0);
+    assert.equal(f.terrainTasks.length, count + 1);
   } finally { f.client.dispose(); }
 });

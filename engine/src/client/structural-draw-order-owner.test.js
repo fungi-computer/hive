@@ -37,13 +37,17 @@ function subject(id, { role = "structure", moving = role === "actor", min = { x:
 }
 
 function finish(owner, input, maxOperations = 13) {
-  const task = owner.prepare(input);
+  const task = prepareFixture(owner, input);
   while (task.status === "pending") {
     const result = task.advance({ maxOperations });
     assert(result.operations <= maxOperations);
   }
   assert.equal(task.status, "ready");
   return { task, result: owner.publish(task) };
+}
+
+function prepareFixture(owner, { terrainRecords, ...input }) {
+  return owner.prepare({ ...input, terrainRegions: [{ id: "fixture", records: terrainRecords }], waterRecords: [] });
 }
 
 function normalized(vector) {
@@ -184,7 +188,7 @@ test("owner rejects ambiguous owner-only support and accepts exact multipart sup
     subject("stairs",{part:"right",contactSurface:contact,min:{x:0,y:0,z:0},max:{x:1,y:.1,z:1}})];
   const ambiguous=subject("actor",{role:"actor",min:{x:.2,y:0,z:.2},max:{x:.4,y:1,z:.4},support:"stairs"});
   const owner=createStructuralDrawOrderOwner({direction:directions[0]});
-  const task=owner.prepare({terrainRevision:1,terrainRecords:[],subjectRecords:[...parts,ambiguous]});
+  const task=prepareFixture(owner,{terrainRevision:1,terrainRecords:[],subjectRecords:[...parts,ambiguous]});
   assert.throws(()=>{while(task.status==="pending")task.advance({maxOperations:100});},/ambiguous/);
   const exact={...ambiguous,attachment:{...ambiguous.attachment,support:{id:"stairs",part:"left"}}};
   const accepted=finish(owner,{terrainRevision:1,terrainRecords:[],subjectRecords:[...parts,exact]}).result;
@@ -197,12 +201,12 @@ test("candidate preparation and cancellation preserve the published draw and pic
   finish(owner,{terrainRevision:1,terrainRecords:[old],subjectRecords:[]});
   assert.equal(owner.pick({x:0,y:0}).target,"old");
   const next=terrain("next",[1,0,0],"top",{contains:()=>true,target:"next"});
-  const pending=owner.prepare({terrainRevision:2,terrainRecords:Array.from({length:30},(_,index)=>
+  const pending=prepareFixture(owner,{terrainRevision:2,terrainRecords:Array.from({length:30},(_,index)=>
     terrain(index?`filler:${index}`:"next",[index,0,0],"top",index?{}:{contains:()=>true,target:"next"})),subjectRecords:[]});
   pending.advance({maxOperations:1});
   assert.equal(owner.pick({x:0,y:0}).target,"old");
   assert.equal(pending.cancel(),true); assert.equal(owner.pick({x:0,y:0}).target,"old");
-  const ready=owner.prepare({terrainRevision:2,terrainRecords:[next],subjectRecords:[]});
+  const ready=prepareFixture(owner,{terrainRevision:2,terrainRecords:[next],subjectRecords:[]});
   while(ready.status==="pending")ready.advance({maxOperations:1});
   assert.equal(owner.pick({x:0,y:0}).target,"old","ready candidates remain unpublished");
   const published=owner.publish(ready);
@@ -219,11 +223,11 @@ test("same-revision terrain reuses layout, refreshes records, and rejects struct
   const reused=finish(owner,{terrainRevision:"r1",terrainRecords:[refreshed],subjectRecords:[]}).result;
   assert.equal(reused.metrics.denseRebuilds,0); assert.equal(reused.metrics.denseReuses,1);
   assert.equal(reused.applyOrderRequired,false); assert.equal(owner.pick({x:0,y:0}).target,"new");
-  const invalid=owner.prepare({terrainRevision:"r1",terrainRecords:[{...refreshed,cell:[-1,0,-3]}],subjectRecords:[]});
+  const invalid=prepareFixture(owner,{terrainRevision:"r1",terrainRecords:[{...refreshed,cell:[-1,0,-3]}],subjectRecords:[]});
   assert.throws(()=>{while(invalid.status==="pending")invalid.advance({maxOperations:100});},/without a terrain revision/);
   const coverOwner=createStructuralDrawOrderOwner({direction:directions[0]});
   finish(coverOwner,{terrainRevision:"cover",terrainRecords:[cover("grass",[0,0],0,15)],subjectRecords:[]});
-  const staleMow=coverOwner.prepare({terrainRevision:"cover",terrainRecords:[cover("grass",[0,0],0,7)],subjectRecords:[]});
+  const staleMow=prepareFixture(coverOwner,{terrainRevision:"cover",terrainRecords:[cover("grass",[0,0],0,7)],subjectRecords:[]});
   assert.throws(()=>{while(staleMow.status==="pending")staleMow.advance({maxOperations:100});},/without a terrain revision/);
 });
 
@@ -243,6 +247,11 @@ test("terrain record refresh requests paint without making actor-only refreshes 
   const actorOnly=finish(owner,{terrainRevision:3,terrainRecords:[changed],subjectRecords:[refreshedActor]}).result;
   assert.equal(actorOnly.paintRequired,false); assert.equal(actorOnly.applyOrderRequired,false);
   assert.equal(owner.records.find(record=>record.id==="actor"),refreshedActor);
+  const newDisplay = {...refreshedActor, display: {}};
+  const replacement = finish(owner,{terrainRevision:3,terrainRecords:[changed],subjectRecords:[newDisplay]}).result;
+  assert.equal(replacement.physicalOrderChanged,false);
+  assert.equal(replacement.displayOrderChanged,true);
+  assert.equal(replacement.paintRequired,true,"replacing an ordinary display updates the batch publication");
 });
 
 test("sloped support requires coplanarity and dominant-plane containment", () => {
@@ -253,7 +262,7 @@ test("sloped support requires coplanarity and dominant-plane containment", () =>
   const accepted=finish(owner,{terrainRevision:1,terrainRecords:[],subjectRecords:[rider,deck]}).result;
   assert(accepted.records.indexOf(deck)<accepted.records.indexOf(rider));
   const floating={...rider,attachment:{...rider.attachment,feet:{...rider.attachment.feet,y:.6}}};
-  const invalid=owner.prepare({terrainRevision:1,terrainRecords:[],subjectRecords:[deck,floating]});
+  const invalid=prepareFixture(owner,{terrainRevision:1,terrainRecords:[],subjectRecords:[deck,floating]});
   assert.throws(()=>{while(invalid.status==="pending")invalid.advance({maxOperations:100});},/outside/);
 });
 
@@ -280,6 +289,132 @@ test("64 by 64 terrain and eight movers perform no dense pair, alpha, topology, 
   const invalidated=finish(owner,{terrainRevision:"64x64",terrainRecords,subjectRecords:[changedStation,...moved]},1000).result;
   assert.equal(invalidated.metrics.staticRebuilds,1); assert.equal(invalidated.metrics.staticReuses,0);
   assert(invalidated.metrics.indexWrites>0,"the owner rebuilds its static/base index only after a static fact changes");
+});
+
+test("retained region pictures skip structural key preparation on actor movement and neighboring arrival", () => {
+  const owner = createStructuralDrawOrderOwner({ direction: directions[0] });
+  const first = Object.freeze({ id: "0,0,0", records: Object.freeze([
+    terrain("a:0", [0, 0, 0]), terrain("a:1", [1, 0, 0]),
+  ]) });
+  const second = Object.freeze({ id: "1,0,0", records: Object.freeze([
+    terrain("b:0", [16, 0, 0]), terrain("b:1", [17, 0, 0]),
+  ]) });
+  const actor = subject("mover", { role: "actor", min: { x: .1, y: .5, z: .1 }, max: { x: .3, y: 1.5, z: .3 } });
+  const waterRecords = Object.freeze([]);
+  const prepare = (terrainRevision, terrainRegions, subjectRecords) => {
+    const task = owner.prepare({ terrainRevision, terrainRegions, waterRecords, subjectRecords });
+    while (task.status === "pending") task.advance({ maxOperations: 32 });
+    return owner.publish(task);
+  };
+  prepare(1, [first], [actor]);
+  const moved = subject("mover", { role: "actor", min: { x: .2, y: .5, z: .1 }, max: { x: .4, y: 1.5, z: .3 } });
+  const movement = prepare(1, [first], [moved]);
+  assert.equal(movement.metrics.keyPreparations, 1, "only the changed actor is classified");
+  assert.equal(movement.metrics.regionReuses, 2, "terrain and empty water reuse their pictures");
+  const arrival = prepare(2, [first, second], [moved]);
+  assert.equal(arrival.metrics.keyPreparations, second.records.length + 1);
+  assert.equal(arrival.metrics.regionReuses, 2);
+  assert.deepEqual(arrival.records.filter(record => record.role === "terrain").map(record => record.id),
+    ["a:0", "a:1", "b:0", "b:1"]);
+  const farLeaf = arrival.paintLeaves.find(leaf => leaf.records.some(record => record.id === "b:0"));
+  const nearer = subject("mover", { role: "actor", min: { x: .3, y: .5, z: .1 }, max: { x: .5, y: 1.5, z: .3 } });
+  const secondMove = prepare(2, [first, second], [nearer]);
+  assert.strictEqual(secondMove.paintLeaves.find(leaf => leaf.records.some(record => record.id === "b:0")), farLeaf,
+    "a moving actor keeps the distant published paint leaf by identity");
+  owner.dispose();
+});
+
+test("adjacent region pictures interleave lawfully in all four rotations and either arrival order", () => {
+  const left = Object.freeze({ id: "left", records: Object.freeze(Array.from({ length: 8 }, (_, x) =>
+    terrain(`left:${x}`, [x, 0, 0]))) });
+  const right = Object.freeze({ id: "right", records: Object.freeze(Array.from({ length: 8 }, (_, x) =>
+    terrain(`right:${x}`, [x + 8, 0, -8]))) });
+  for (const direction of directions) {
+    const expected = [...left.records, ...right.records];
+    const fresh = createStructuralDrawOrderOwner({ direction });
+    const authoritative = fresh.prepare({ terrainRevision: 1,
+      terrainRegions: [{ id: "full", records: expected }], waterRecords: [], subjectRecords: [] });
+    while (authoritative.status === "pending") authoritative.advance();
+    const oracle = fresh.publish(authoritative).records.map(record => record.id);
+    fresh.dispose();
+    for (const regions of [[left, right], [right, left]]) {
+      const owner = createStructuralDrawOrderOwner({ direction });
+      const arrival = owner.prepare({ terrainRevision: 1, terrainRegions: [regions[0]], waterRecords: [], subjectRecords: [] });
+      while (arrival.status === "pending") arrival.advance();
+      owner.publish(arrival);
+      const combined = owner.prepare({ terrainRevision: 2, terrainRegions: regions, waterRecords: [], subjectRecords: [] });
+      while (combined.status === "pending") combined.advance();
+      assert.deepEqual(owner.publish(combined).records.map(record => record.id), oracle);
+      owner.dispose();
+    }
+  }
+});
+
+test("a moving actor cannot invalidate a distant part of one long depth diagonal", () => {
+  const owner = createStructuralDrawOrderOwner({ direction: directions[0] });
+  const region = Object.freeze({ id: "long-diagonal", records: Object.freeze(
+    Array.from({ length: 640 }, (_, index) => terrain(`diagonal:${index}`, [index, 0, -index]))
+  ) });
+  const firstActor = subject("mover", { role: "actor", min: { x: .1, y: .5, z: -.1 },
+    max: { x: .3, y: 1.5, z: .1 } });
+  const publish = (revision, actor) => {
+    const task = owner.prepare({ terrainRevision: revision, terrainRegions: [region],
+      waterRecords: [], subjectRecords: [actor] });
+    while (task.status === "pending") task.advance({ maxOperations: 1024 });
+    return owner.publish(task);
+  };
+  const initial = publish(1, firstActor);
+  const farLeaf = initial.paintLeaves.find(leaf => leaf.records.some(record => record.id === "diagonal:100"));
+  assert(farLeaf);
+  assert(initial.paintLeaves.every(leaf => leaf.records.length <= 256));
+  const moved = subject("mover", { role: "actor", min: { x: .2, y: .5, z: -.1 },
+    max: { x: .4, y: 1.5, z: .1 } });
+  const next = publish(1, moved);
+  assert.strictEqual(next.paintLeaves.find(leaf => leaf.records.some(record => record.id === "diagonal:100")), farLeaf);
+  owner.dispose();
+});
+
+test("actor movement publishes local spans without revisiting the retained terrain base", () => {
+  const owner = createStructuralDrawOrderOwner({ direction: directions[0] });
+  const region = Object.freeze({ id: "large", records: Object.freeze(Array.from({ length: 4096 }, (_, index) =>
+    terrain(`ground:${index}`, [index % 64, 0, Math.floor(index / 64)]))) });
+  const waterRecords = Object.freeze([]);
+  const publish = actor => {
+    const task = owner.prepare({ terrainRevision: 1, terrainRegions: [region], waterRecords,
+      subjectRecords: [actor] });
+    while (task.status === "pending") task.advance({ maxOperations: 1024 });
+    return owner.publish(task);
+  };
+  const first = publish(subject("mover", { role: "actor", min: { x: 1, y: .5, z: 1 }, max: { x: 1.4, y: 1.5, z: 1.4 } }));
+  const distant = first.paintLeaves.find(leaf => leaf.records.some(record => record.id === "ground:4095"));
+  const second = publish(subject("mover", { role: "actor", min: { x: 1.2, y: .5, z: 1 }, max: { x: 1.6, y: 1.5, z: 1.4 } }));
+  assert.equal(second.metrics.baseRecordsVisited, 0);
+  assert.equal(second.metrics.denseReuses, 0);
+  assert.equal(second.metrics.indexWrites, 0);
+  assert(second.metrics.paintRecordsInspected < 1024, "only local paint records are compared");
+  assert.strictEqual(second.paintLeaves.find(leaf => leaf.records.some(record => record.id === "ground:4095")), distant);
+  owner.dispose();
+});
+
+test("a region arrival retains distant depth-band leaves even when positions shift", () => {
+  const owner = createStructuralDrawOrderOwner({ direction: directions[0] });
+  const far = Object.freeze({ id: "far", records: Object.freeze(Array.from({ length: 300 }, (_, index) =>
+    terrain(`far:${index}`, [30 + index % 15, 0, 30 + Math.floor(index / 15)]))) });
+  const near = Object.freeze({ id: "near", records: Object.freeze(Array.from({ length: 64 }, (_, index) =>
+    terrain(`near:${index}`, [index % 8, 0, Math.floor(index / 8)]))) });
+  const waterRecords = Object.freeze([]);
+  const publish = (revision, regions) => {
+    const task = owner.prepare({ terrainRevision: revision, terrainRegions: regions, waterRecords, subjectRecords: [] });
+    while (task.status === "pending") task.advance({ maxOperations: 2048 });
+    return owner.publish(task);
+  };
+  const first = publish(1, [far]);
+  const distant = first.paintLeaves.find(leaf => leaf.records.some(record => record.id === "far:299"));
+  assert(distant);
+  const second = publish(2, [far, near]);
+  assert.strictEqual(second.paintLeaves.find(leaf => leaf.records.some(record => record.id === "far:299")), distant);
+  assert(second.metrics.paintRecordsInspected < 500, "arrival compares only touched depth bands");
+  owner.dispose();
 });
 
 test("conservative sparse relation records ambiguity instead of inventing geometry", () => {

@@ -386,7 +386,7 @@ export function createHiveClient({
   }
   function selectedLauncher() {
     if (!aiming?.launcherId) return null;
-    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id) && projectWorldFact(fact, worldScene.view).pickable);
+    return latestFacts.find((fact) => fact.id === aiming.launcherId && state.selectedIds.includes(fact.id) && projectWorldFact(fact, worldScene.view, terrainFrame?.verticalMetres).pickable);
   }
   function toggleAim() {
     if (isAiming()) {
@@ -502,7 +502,7 @@ export function createHiveClient({
       selectedIds: state.selectedIds,
       latestFacts,
       currentIds: [
-        ...latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, worldScene.view).pickable).map((fact) => fact.id),
+        ...latestFacts.filter((fact) => fact.pose?.position && fact.visual && projectWorldFact(fact, worldScene.view, terrainFrame?.verticalMetres).pickable).map((fact) => fact.id),
         ...state.terrainMarks.flatMap((mark) => mark.subjects ?? []),
       ],
     });
@@ -666,7 +666,7 @@ export function createHiveClient({
               { key: id, size: "sm", variant: "outline",
                 // Eligibility follows the accepted world, even before the next drawing frame.
                 disabled: !latestFacts.some((fact) => fact.id === id && fact.pose?.position &&
-                  fact.visual && projectWorldFact(fact, worldScene.view).pickable),
+                  fact.visual && projectWorldFact(fact, worldScene.view, terrainFrame?.verticalMetres).pickable),
                 onClick: () => selectEntities([id]) },
               label,
             )),
@@ -817,7 +817,7 @@ export function createHiveClient({
       view: state.view, screen: app.screen, selectedIds: state.selectedIds,
       art, paused: state.paused, frameSequence });
     state.subjects = worldScene.subjects;
-    orderedSprites = worldScene.records;
+    orderedSprites = worldScene.recordOrder;
     for (const cue of motionCues.sample(state.subjects, { now: presentedTime, paused: state.paused, sequence: frameSequence })) playMotionCue(cue);
     if (!groundSprite) {
       if (environment === "water") {
@@ -1519,7 +1519,7 @@ export function createHiveClient({
             state.view = setTerrainLevelRange(state.view, range, newEpoch ? (preferred ?? range.max) : undefined);
           }
           if (terrainFrame && (newEpoch || !previousTerrain)) {
-            const visibleFacts = event.facts.filter((fact) => projectWorldFact(fact, state.view).visible);
+            const visibleFacts = event.facts.filter((fact) => projectWorldFact(fact, state.view, terrainFrame?.verticalMetres).visible);
             camera.focus(terrainCameraFocus(visibleFacts, displayedTerrain(terrainFrame, state.view)));
           }
           if (frameEpoch === undefined || frameEpoch !== event.epoch) {

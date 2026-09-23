@@ -2,7 +2,7 @@ import { terrainPatchExposureSteps } from "../runtime/terrain-region-exposure.js
 import { terrainFaceRecordSteps, terrainCoverRecordSteps } from "./terrain-visibility.js";
 
 const EMPTY = Object.freeze([]);
-const emptyPicture = () => Object.freeze({ records: EMPTY, exposedFaces: EMPTY, surfaces: EMPTY });
+const emptyPicture = () => Object.freeze({ regions: EMPTY, records: EMPTY, exposedFaces: EMPTY, surfaces: EMPTY });
 const columnKey = cell => `${cell[0]},${cell[2]}`;
 const rootKey = point => `${point.x - .5},${point.z - .5}`;
 const coverFact = (surface, level) => surface.cover && surface.cell[1] <= level
@@ -24,6 +24,7 @@ export function createTerrainPictureOwner({
     ["retained terrain record", maxRetainedRecords]])
     if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${name} budget must be a positive safe integer`);
   let entries = new Map(), pending, disposed = false, published = emptyPicture();
+  const queryCaches = new WeakMap([[EMPTY, { records: EMPTY, faces: EMPTY }]]);
   const patchTokens = new WeakMap();
   let nextPatchToken = 0;
   const patchToken = patch => {
@@ -47,7 +48,11 @@ export function createTerrainPictureOwner({
       const { snapshot, surfaces: observations, level, projection, appearance } = input;
       const baseline = snapshot.baseline;
       const overrides = new Map();
-      for (const surface of observations) { overrides.set(columnKey(surface.cell), surface); yield; }
+      let batchedWork = 0;
+      for (const surface of observations) {
+        overrides.set(columnKey(surface.cell), surface);
+        if ((++batchedWork & 63) === 0) yield;
+      }
       const paletteSignature = JSON.stringify(baseline.materials);
       // Clone before touching LRU order so cancellation cannot mutate the
       // published derivative cache.
@@ -61,9 +66,10 @@ export function createTerrainPictureOwner({
             entry.variantSeed === baseline.variantSeed) continue;
         nextEntries.delete(id);
         evicted++;
-        yield;
+        if ((++batchedWork & 63) === 0) yield;
       }
-      const records = [], exposedFaces = [], surfaces = [];
+      const regions = [], surfaces = [];
+      let visibleRecords = 0;
       for (const patch of snapshot.patches) {
         const id = patch.key.join(","), materialToken = patchToken(patch), previous = nextEntries.get(id);
         activeIds.add(id);
@@ -74,7 +80,7 @@ export function createTerrainPictureOwner({
           tops.set(column, source.generatedTop);
           coverSurfaces.push(surface);
           coverFacts.set(column, coverFact(surface, level));
-          yield;
+          if ((++batchedWork & 63) === 0) yield;
         }
         const sameBody = previous?.materialToken === materialToken && previous.level === level && previous.projection === projection &&
           previous.paletteSignature === paletteSignature && previous.verticalMetres === baseline.verticalMetres &&
@@ -88,8 +94,8 @@ export function createTerrainPictureOwner({
           metrics.bodyBuilds++;
           body = [];
           bodySurfaces = [];
-          for (const faces of terrainPatchExposureSteps({ patch, baseline, level })) {
-            yield; // Empty columns are also bounded work.
+          for (const faces of terrainPatchExposureSteps({ patch, baseline, level, surfaceOnly: true })) {
+            if ((++batchedWork & 63) === 0) yield; // Empty columns are also bounded work.
             for (const record of terrainFaceRecordSteps({ faces, palette: baseline.materials,
               verticalMetres: baseline.verticalMetres, variantSeed: baseline.variantSeed },
             { projection, appearance, generatedTops: tops })) {
@@ -99,7 +105,7 @@ export function createTerrainPictureOwner({
                 if (record.face === "top") bodySurfaces.push({ cell: record.cell, material: record.material,
                   generatedTop: tops.get(columnKey(record.cell)) });
               }
-              yield;
+              if ((++batchedWork & 63) === 0) yield;
             }
           }
           body = Object.freeze(body);
@@ -155,24 +161,27 @@ export function createTerrainPictureOwner({
                 nextCover.set(record.id, old?.mask === record.mask && old.terrainBatch === record.terrainBatch ? old : record);
               }
             }
-            yield;
+            if ((++batchedWork & 63) === 0) yield;
           }
           cover = Object.freeze([...nextCover.values()].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
         }
         // Keep only the weak identity token and derived picture facts. The raw
         // material patch remains exclusively resident in terrain-region-cache.
-        const entry = { materialToken, level, projection, appearance, body, bodySurfaces, cover, coverFacts, paletteSignature,
+        const picture = previous?.body === body && previous?.cover === cover ? previous.picture : Object.freeze({
+          id,
+          records: Object.freeze([...body, ...cover]),
+          exposedFaces: body,
+          surfaces: bodySurfaces,
+        });
+        const entry = { materialToken, level, projection, appearance, body, bodySurfaces, cover, coverFacts, picture, paletteSignature,
           verticalMetres: baseline.verticalMetres, variantSeed: baseline.variantSeed };
         nextEntries.set(id, entry);
-        for (const record of body) {
-          if (records.length === maxRecords) throw new RangeError("terrain picture record budget exceeded");
-          records.push(record); exposedFaces.push(record); yield;
-        }
-        for (const record of cover) {
-          if (records.length === maxRecords) throw new RangeError("terrain picture record budget exceeded");
-          records.push(record); yield;
-        }
-        for (const surface of bodySurfaces) { surfaces.push(surface); yield; }
+        if (body.length || cover.length) regions.push(picture);
+        visibleRecords += body.length + cover.length;
+        if (visibleRecords > maxRecords)
+          throw new RangeError("terrain picture record budget exceeded");
+        surfaces.push(...bodySurfaces);
+        yield;
       }
 
       let retainedRecords = [...nextEntries.values()].reduce((total, entry) => total + entryRecordCount(entry), 0);
@@ -187,16 +196,23 @@ export function createTerrainPictureOwner({
       if (nextEntries.size > maxRetainedEntries || retainedRecords > maxRetainedRecords)
         throw new RangeError("retained terrain picture budget exceeded");
 
-      let sameRecords = records.length === published.records.length, sameFaces = exposedFaces.length === published.exposedFaces.length;
+      let sameRegions = regions.length === published.regions.length;
+      for (let i = 0; i < regions.length && sameRegions; i++) sameRegions = regions[i] === published.regions[i];
       let sameSurfaces = surfaces.length === published.surfaces.length;
-      for (let i = 0; i < records.length && sameRecords; i++) { sameRecords = records[i] === published.records[i]; yield; }
-      for (let i = 0; i < exposedFaces.length && sameFaces; i++) { sameFaces = exposedFaces[i] === published.exposedFaces[i]; yield; }
-      for (let i = 0; i < surfaces.length && sameSurfaces; i++) { sameSurfaces = surfaces[i] === published.surfaces[i]; yield; }
-      return { entries: nextEntries, evicted, result: Object.freeze({
-        records: sameRecords ? published.records : Object.freeze(records),
-        exposedFaces: sameFaces ? published.exposedFaces : Object.freeze(exposedFaces),
+      for (let i = 0; i < surfaces.length && sameSurfaces; i++) {
+        sameSurfaces = surfaces[i] === published.surfaces[i];
+        if ((i & 255) === 255) yield;
+      }
+      const retainedRegions = sameRegions ? published.regions : Object.freeze(regions);
+      let queryCache = queryCaches.get(retainedRegions);
+      if (!queryCache) { queryCache = { records: undefined, faces: undefined }; queryCaches.set(retainedRegions, queryCache); }
+      const result = sameRegions && sameSurfaces ? published : Object.freeze({
+        regions: retainedRegions,
+        get records() { return queryCache.records ??= Object.freeze(retainedRegions.flatMap(region => region.records)); },
+        get exposedFaces() { return queryCache.faces ??= Object.freeze(retainedRegions.flatMap(region => region.exposedFaces)); },
         surfaces: sameSurfaces ? published.surfaces : Object.freeze(surfaces),
-      }) };
+      });
+      return { entries: nextEntries, evicted, result };
     }
     function release() { iterator?.return(); iterator = undefined; input = undefined; if (pending === task) pending = undefined; }
     const task = Object.freeze({
