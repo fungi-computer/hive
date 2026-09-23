@@ -33,6 +33,8 @@ mod record_bundle;
 mod air_records;
 mod stable_entity_records;
 mod search_records;
+mod route_records;
+mod motion_records;
 mod record_changes;
 mod party_binding;
 mod relations;

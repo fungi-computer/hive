@@ -713,6 +713,7 @@ pub type DirectSnapshot = DirectState;
 #[serde(deny_unknown_fields)]
 pub struct RouteSnapshot {
     pub entity: String,
+    pub cursor: usize,
     pub path: Vec<Point>,
     pub terrain_path: Option<Vec<crate::generation::Cell>>,
     pub terrain_waiting: bool,

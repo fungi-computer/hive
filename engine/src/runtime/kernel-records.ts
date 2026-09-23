@@ -18,7 +18,7 @@ export interface NativeRecordBinding {
 
 export interface KernelEntitySnapshot {
   readonly format: "hive-kernel";
-  readonly version: 20;
+  readonly version: 21;
   readonly revision: number;
   readonly time: number;
   readonly scene: {
@@ -34,7 +34,7 @@ export interface KernelEntitySnapshot {
 
 export interface KernelRecordSnapshot {
   readonly format: "hive-kernel-records";
-  readonly version: 3;
+  readonly version: 4;
   readonly revision: number;
   readonly time: number;
   readonly records: readonly { readonly key: string; readonly bytes: Uint8Array }[];
@@ -56,7 +56,7 @@ const TOTAL_BYTES = 9 * 1024 * 1024;
 export const MAX_KERNEL_RECORDS = 65_536;
 const MAX_KEY_BYTES = 160;
 const ENTITY_PREFIX = "kernel/state/";
-const STATE_FAMILIES = { entities: ["scene", "initial", "id"], routes: ["routes", "entity"], direct: ["direct", "entity"], contacts: ["projectile_contacts", "projectile_id"], parties: ["party_bindings", "bindingId"], attempts: ["work_attempts", "key", "task"], jobs: ["jobs", "id"], tasks: ["tasks", "id"] } as const;
+const STATE_FAMILIES = { entities: ["scene", "initial", "id"], routes: ["routes", "entity"], direct: ["direct", "entity"], contacts: ["projectile_contacts", "projectile_id"], parties: ["party_bindings", "bindingId"], attempts: ["work_attempts", "key", "task"] } as const;
 const ATMOSPHERE_PREFIX = "kernel/atmosphere/";
 const ENVIRONMENT_KEYS = [
   "kernel/environment/definition",
@@ -77,13 +77,15 @@ function keyAllowed(key: string): boolean {
   if (key.startsWith(SEARCH_RECORD_PREFIX)) return isSearchRecordKey(key);
   if (key.startsWith(ENTITY_PREFIX)) {
     const suffix = key.slice(ENTITY_PREFIX.length);
-    if (suffix === "root") return true;
+    if (suffix === "root" || suffix === "definition") return true;
+    if (/^motion\/[a-f0-9]{1,64}$/.test(suffix)) return true;
+    if (/^paths\/[A-Za-z0-9._:-]{1,128}\/[pt]\/\d{4}$/.test(suffix)) return Number(suffix.slice(-4)) < 64;
     const [family, id, extra] = suffix.split("/");
     return Object.hasOwn(STATE_FAMILIES, family) && !extra && /^[A-Za-z0-9._:-]{1,128}$/.test(id ?? "");
   }
   if (key.startsWith(ATMOSPHERE_PREFIX)) {
     const suffix = key.slice(ATMOSPHERE_PREFIX.length);
-    return /^\d{4}$/.test(suffix) && Number(suffix) < 9;
+    return suffix === "header" || suffix === "emissions" || /^tiles\/(?:0|-?[1-9]\d*),(?:0|-?[1-9]\d*),(?:0|-?[1-9]\d*)$/.test(suffix);
   }
   return key === "kernel/header" || (ENVIRONMENT_KEYS as readonly string[]).includes(key);
 }
@@ -95,11 +97,11 @@ function validateKeyList(keys: readonly unknown[]): asserts keys is readonly str
     seen.add(key);
   }
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
-  if (!seen.has(`${ENTITY_PREFIX}root`)) throw new Error("missing state root");
+  if (!seen.has(`${ENTITY_PREFIX}root`) || !seen.has(`${ENTITY_PREFIX}definition`)) throw new Error("missing state root or definition");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
   const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
-  if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
+  if (airKeys.length && (!environment || !seen.has(`${ATMOSPHERE_PREFIX}header`) || !seen.has(`${ATMOSPHERE_PREFIX}emissions`)))
     throw new Error("atmosphere record set is incomplete");
 }
 function decodeEntities(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
@@ -110,7 +112,21 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const parsed = JSON.parse(decoder.decode(root.bytes));
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid state root");
-  if (parsed.format !== "hive-kernel" || parsed.version !== 20) throw new Error("unsupported kernel entity snapshot");
+  if (parsed.format !== "hive-kernel" || parsed.version !== 21) throw new Error("unsupported kernel entity snapshot");
+  const definition = stateRecords.find(({ key }) => key === `${ENTITY_PREFIX}definition`);
+  if (!definition || parsed.scene !== null) throw new Error("missing or inline state definition");
+  parsed.scene = JSON.parse(decoder.decode(definition.bytes));
+  if (!Array.isArray(parsed.jobs) || parsed.jobs.length || !Array.isArray(parsed.tasks) || parsed.tasks.length) throw new Error("inline private facts");
+  const positions = new Map<string, unknown>();
+  for (const record of stateRecords.filter(({ key }) => key.startsWith(`${ENTITY_PREFIX}motion/`))) {
+    const rows = JSON.parse(decoder.decode(record.bytes));
+    if (!rows || typeof rows !== "object" || Array.isArray(rows)) throw new Error("invalid motion cohort");
+    for (const [id, value] of Object.entries(rows)) {
+      if (positions.has(id)) throw new Error("duplicate motion member");
+      positions.set(id, value);
+    }
+  }
+  const geometry = new Map(stateRecords.filter(({ key }) => key.startsWith(`${ENTITY_PREFIX}paths/`)).map(record => [record.key, record]));
   for (const [family, path] of Object.entries(STATE_FAMILIES)) {
     const rows = family === "entities" ? parsed.scene?.initial : parsed[path[0]];
     if (!Array.isArray(rows) || rows.length) throw new Error("state root contains inline rows");
@@ -120,14 +136,38 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
       const row = JSON.parse(decoder.decode(record.bytes));
       const id = family === "attempts" ? row?.key?.task : row?.[path[path.length - 1]];
       if (id !== record.key.slice(prefix.length)) throw new Error("state record identity mismatch");
+      if (family === "entities") {
+        for (const [field, collection] of [["job", "jobs"], ["task", "tasks"]]) {
+          if (Object.hasOwn(row, field)) { parsed[collection].push({ id, [field]: row[field] }); delete row[field]; }
+        }
+        if (positions.has(id)) {
+          if (!row.components?.["hive.body"] || Object.hasOwn(row.components, "hive.position")) throw new Error("invalid motion ownership");
+          row.components["hive.position"] = positions.get(id); positions.delete(id);
+        }
+      } else if (family === "routes") {
+        for (const [field, kind] of [["path", "p"], ["terrain_path", "t"]]) {
+          const count = row[`${field}_count`]; delete row[`${field}_count`];
+          if (count === null && field === "terrain_path" && row[field] === null) continue;
+          if (!Number.isInteger(count) || count < 0 || count > 8192 || !Array.isArray(row[field]) || row[field].length) throw new Error("invalid route geometry count");
+          for (let page = 0; page < Math.ceil(count / 128); page++) {
+            const key = `${ENTITY_PREFIX}paths/${id}/${kind}/${String(page).padStart(4, "0")}`;
+            const record = geometry.get(key);
+            if (!record) throw new Error("missing route geometry page");
+            const points = JSON.parse(decoder.decode(record.bytes));
+            if (!Array.isArray(points) || points.length !== Math.min(128, count - page * 128)) throw new Error("invalid route page");
+            row[field].push(...points); geometry.delete(key);
+          }
+        }
+      }
       rows.push(row);
     }
   }
+  if (positions.size || geometry.size) throw new Error("orphan motion or route geometry");
   restoreSearchRecords(parsed, stateRecords);
   const value = parsed as Partial<KernelEntitySnapshot>;
   if (
     value.format !== "hive-kernel" ||
-    value.version !== 20 ||
+    value.version !== 21 ||
     !isSafeRevision(value.revision) ||
     !isFiniteTime(value.time) ||
     !value.scene ||
@@ -151,11 +191,11 @@ function validateRecordEnvelope(records: readonly { readonly key: string; readon
   }
   if (total > TOTAL_BYTES) throw new Error("kernel record bytes exceed 9MiB");
   if (!seen.has("kernel/header")) throw new Error("missing native record header");
-  if (!seen.has(`${ENTITY_PREFIX}root`)) throw new Error("missing state root");
+  if (!seen.has(`${ENTITY_PREFIX}root`) || !seen.has(`${ENTITY_PREFIX}definition`)) throw new Error("missing state root or definition");
   const environment = ENVIRONMENT_KEYS.some(key => seen.has(key));
   if (environment !== ENVIRONMENT_KEYS.every(key => seen.has(key))) throw new Error("environment record set is incomplete");
   const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
-  if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
+  if (airKeys.length && (!environment || !seen.has(`${ATMOSPHERE_PREFIX}header`) || !seen.has(`${ATMOSPHERE_PREFIX}emissions`)))
     throw new Error("atmosphere record set is incomplete");
 }
 function preflightRecords(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
@@ -214,7 +254,7 @@ export class KernelRecordCapture {
       validateRecordEnvelope(records);
       const removes = this.priorKeys.filter(key => !nextKeys.has(key));
       const snapshot: KernelRecordSnapshot = {
-        format: "hive-kernel-records", version: 3, revision: manifest.revision, time: manifest.time, records,
+        format: "hive-kernel-records", version: 4, revision: manifest.revision, time: manifest.time, records,
       };
       this.records = new Map(records.map(record => [record.key, record]));
       this.priorKeys = manifest.keys;
@@ -224,7 +264,7 @@ export class KernelRecordCapture {
   }
 }
 function validateSnapshot(snapshot: KernelRecordSnapshot): { entities: KernelEntitySnapshot } {
-  if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 3 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
+  if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 4 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
   const entities = preflightRecords(snapshot.records);
   if (entities.revision !== snapshot.revision || entities.time !== snapshot.time) throw new Error("record metadata does not match entity snapshot");
   return { entities };
@@ -238,7 +278,7 @@ export function captureKernelRecords(binding: NativeRecordBinding): KernelRecord
     if (!Array.isArray(keys)) throw new Error("native record keys are not an array");
     validateKeyList(keys);
     const records = keys.map(key => ({ key, bytes: handle.read(key) }));
-    const provisional = { format: "hive-kernel-records" as const, version: 3 as const, revision: 0, time: 0, records };
+    const provisional = { format: "hive-kernel-records" as const, version: 4 as const, revision: 0, time: 0, records };
     const entities = preflightRecords(records);
     const snapshot = { ...provisional, revision: entities.revision, time: entities.time };
     return snapshot;

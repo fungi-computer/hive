@@ -2528,11 +2528,11 @@ fn segment_intersects_cell(start: &Point, end: &Point, cell: navigation::Cell) -
 
 /// Check only the segments this movement budget could consume. This avoids
 /// both tunnelling through a later corner and scanning an entire future route.
-fn terrain_motion_blocked(position: Position, path: &VecDeque<Point>, mut budget: f64,
+fn terrain_motion_blocked(position: Position, path: &navigation::RouteProgress, mut budget: f64,
     blocked: &BTreeSet<navigation::Cell>) -> bool {
     if blocked.is_empty() || budget <= 0.0 { return false; }
     let mut from = navigation::point(position);
-    for target in path {
+    for target in path.iter() {
         if budget <= 0.0 { break; }
         let distance = ((target.x-from.x).powi(2)+(target.y-from.y).powi(2)+(target.z-from.z).powi(2)).sqrt();
         let fraction = if distance == 0.0 { 1.0 } else { (budget/distance).min(1.0) };
@@ -2601,7 +2601,7 @@ pub struct Kernel {
     blocked_by_frame: BTreeMap<Option<String>, BTreeSet<navigation::Cell>>,
     assignment_topology: [u8; 32],
     route_cost_failures: route_query::FailureCache,
-    routes: crate::record_changes::RecordMap<Entity, VecDeque<Point>>,
+    routes: crate::record_changes::RecordMap<Entity, navigation::RouteProgress>,
     terrain_routes: crate::record_changes::RecordMap<Entity, TerrainRouteState>,
     direct: crate::record_changes::RecordMap<Entity, DirectState>,
     game: String,
@@ -3501,7 +3501,7 @@ impl Kernel {
     fn pending_terrain_route(&self, entity: Entity, start: Position) -> Result<PreparedRoute> {
         if let Some(previous) = self.terrain_routes.get(&entity) {
             return Ok(PreparedRoute {
-                points: self.routes.get(&entity).ok_or("pending route lost contact")?.clone(),
+                points: self.routes.get(&entity).ok_or("pending route lost contact")?.iter().cloned().collect(),
                 terrain: Some(TerrainRouteState { waiting: true, pending: true, suspended: false, revision: None, ..previous.clone() }),
             });
         }
@@ -3527,7 +3527,7 @@ impl Kernel {
         if !prepared.terrain.as_ref().is_some_and(|state| state.pending) {
             if let Some(id) = self.ecs.get::<ExternalId>(entity) { self.planner.route_searches.cancel_actor(&id.0); }
         }
-        self.routes.insert(entity, prepared.points);
+        self.routes.insert(entity, prepared.points.into());
         match prepared.terrain {
             Some(state) => { self.terrain_routes.insert(entity, state); }
             None => { self.terrain_routes.remove(&entity); }
@@ -3536,12 +3536,13 @@ impl Kernel {
     fn route_snapshot_for(
         &self,
         entity: Entity,
-        path: &VecDeque<Point>,
+        path: &navigation::RouteProgress,
         terrain: Option<&TerrainRouteState>,
     ) -> RouteSnapshot {
         RouteSnapshot {
             entity: self.ecs.get::<ExternalId>(entity).unwrap().0.clone(),
-            path: path.iter().cloned().collect(),
+            path: path.geometry().to_vec(),
+            cursor: path.cursor(),
             terrain_path: terrain.map(|state| state.path.clone()),
             terrain_waiting: terrain.is_some_and(|state| state.waiting),
             terrain_pending: terrain.is_some_and(|state| state.pending),
@@ -3562,7 +3563,7 @@ impl Kernel {
                 return Err("saved route exceeds bound".into());
             }
             let entity = self.entity(&route.entity)?;
-            if restored.insert(entity, VecDeque::from(route.path.clone())).is_some() {
+            if restored.insert(entity, navigation::RouteProgress::restore(route.path.clone(), route.cursor)?).is_some() {
                 return Err("duplicate saved route".into());
             }
             let destination = self.ecs.get::<Destination>(entity);
@@ -3593,7 +3594,7 @@ impl Kernel {
                 }
                 navigation::validate_saved_path(
                     navigation::point(start),
-                    &route.path,
+                    &route.path[route.cursor..],
                     Point {
                         x: destination.x,
                         y: destination.y,
@@ -3608,12 +3609,12 @@ impl Kernel {
                 if self.ecs.get::<Support>(entity).is_some()
                     || self.ecs.get::<Traversal>(entity).is_none()
                     || path.is_empty() || path.len() > 4097
-                    || route.path.is_empty()
+                    || route.cursor == route.path.len()
                     || route.terrain_origin.is_none() || route.terrain_target.is_none()
                 {
                     return Err("invalid saved terrain route capability".into());
                 }
-                if route.terrain_target.as_ref() != route.path.first() {
+                if route.terrain_target.as_ref() != route.path.get(route.cursor) {
                     return Err("saved terrain route target witness mismatch".into());
                 }
                 // Entity snapshots are restored before the environment record
@@ -3636,7 +3637,7 @@ impl Kernel {
                     pending: route.terrain_pending,
                     suspended: route.terrain_suspended,
                     origin: route.terrain_origin.unwrap_or_else(|| navigation::point(start)),
-                    target: route.terrain_target.or_else(|| route.path.first().cloned()),
+                    target: route.terrain_target.or_else(|| route.path.get(route.cursor).cloned()),
                 });
             } else if self.ecs.get::<Traversal>(entity).is_some() && self.ecs.get::<Support>(entity).is_none() && !route.terrain_waiting {
                 return Err("terrain route is missing saved support witness".into());
@@ -4389,7 +4390,7 @@ impl Kernel {
     fn snapshot_metadata_with_planner(&self, planner: PlannerState) -> Snapshot {
         Snapshot {
             format: "hive-kernel".into(),
-            version: 20,
+            version: 21,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4427,7 +4428,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 20
+            || state.version != 21
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0
@@ -7219,7 +7220,7 @@ impl Kernel {
         self.arrived_routes.clear();
         self.invalidate_terrain_routes_bounded(8)?;
         self.recover_invalidated_terrain_routes()?;
-        self.routes.retain(|entity, path| {
+        self.routes.retain_changed(|entity, path| {
             if self.terrain_routes.get(entity).is_some_and(|state| state.suspended) { return true; }
             let speed = self.ecs.get::<Body>(*entity).expect("route body").speed;
             let target = self
@@ -7242,9 +7243,11 @@ impl Kernel {
                 }
             }
             let last_reached = navigation::advance(&mut p, path, speed * delta);
-            if let Some(state) = self.terrain_routes.get_mut(entity) {
-                if let Some(point) = last_reached { state.origin = point; }
-                state.target = path.front().cloned();
+            if let Some(point) = last_reached {
+                if let Some(state) = self.terrain_routes.get_mut(entity) {
+                    state.origin = point;
+                    state.target = path.front().cloned();
+                }
             }
             p.facing = target.facing;
             self.ecs.entity_mut(*entity).insert(p);

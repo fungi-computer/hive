@@ -3,6 +3,41 @@ use glam::DVec3;
 use pathfinding::prelude::bfs;
 use std::collections::{BTreeSet, VecDeque};
 
+/// An admitted route owns immutable geometry and a monotonically advancing
+/// cursor. Movement changes the cursor, never rewrites the remaining suffix.
+#[derive(Clone, Debug)]
+pub(crate) struct RouteProgress {
+    points: std::sync::Arc<Vec<Point>>,
+    next: usize,
+}
+impl PartialEq for RouteProgress {
+    fn eq(&self, other: &Self) -> bool {
+        self.next == other.next && (std::sync::Arc::ptr_eq(&self.points, &other.points) || self.points == other.points)
+    }
+}
+impl RouteProgress {
+    pub(crate) fn restore(points: Vec<Point>, next: usize) -> Result<Self> {
+        if next > points.len() { return Err("saved route cursor exceeds geometry".into()); }
+        Ok(Self { points: std::sync::Arc::new(points), next })
+    }
+    pub(crate) fn geometry(&self) -> &[Point] { &self.points }
+    pub(crate) fn cursor(&self) -> usize { self.next }
+    pub(crate) fn iter(&self) -> std::slice::Iter<'_, Point> { self.points[self.next..].iter() }
+    pub(crate) fn front(&self) -> Option<&Point> { self.points.get(self.next) }
+    pub(crate) fn len(&self) -> usize { self.points.len() - self.next }
+    pub(crate) fn is_empty(&self) -> bool { self.next == self.points.len() }
+    fn pop_front(&mut self) -> Option<Point> {
+        let point = self.front()?.clone();
+        self.next += 1;
+        Some(point)
+    }
+}
+impl From<VecDeque<Point>> for RouteProgress {
+    fn from(points: VecDeque<Point>) -> Self {
+        Self { points: std::sync::Arc::new(points.into_iter().collect()), next: 0 }
+    }
+}
+
 pub type Cell = (i32, i32, i32);
 #[derive(Clone, Copy)]
 pub struct Bounds {
@@ -253,7 +288,7 @@ pub fn validate_saved_path(
     Ok(())
 }
 
-pub fn advance(position: &mut Position, path: &mut VecDeque<Point>, mut budget: f64) -> Option<Point> {
+pub fn advance(position: &mut Position, path: &mut RouteProgress, mut budget: f64) -> Option<Point> {
     let mut last_reached = None;
     while let Some(target) = path.front().cloned() {
         let current = DVec3::new(position.x, position.y, position.z);

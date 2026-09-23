@@ -37,20 +37,34 @@ impl Kernel {
         let mut puts = RecordBundle::from_records(KernelRecords { entities: metadata, environment, atmosphere })?;
         let mut removes = Vec::new();
         let mut changed: BTreeSet<_> = self.ecs.resource::<EntityChanges>().ids().cloned().collect();
-        for entity in self.routes.changed().chain(self.terrain_routes.changed()).chain(self.direct.changed()) {
-            if let Some(id) = self.ecs.get::<ExternalId>(*entity) { changed.insert(id.0.clone()); }
+        let mut route_ids = BTreeSet::new();
+        for entity in self.routes.changed().chain(self.terrain_routes.changed()) {
+            if let Some(id) = self.ecs.get::<ExternalId>(*entity) { route_ids.insert(id.0.clone()); }
         }
+        for entity in self.direct.changed() { if let Some(id) = self.ecs.get::<ExternalId>(*entity) { changed.insert(id.0.clone()); } }
         changed.extend(self.projectile_contacts.changed().cloned());
+        let mut motion = BTreeMap::new();
         for id in changed {
             let entity = self.ids.get(&id).copied();
-            let row = entity.map(|entity| EntityRecord { id: id.clone(), components: self.registry.schemas.keys().filter_map(|name| self.registry.read(&self.ecs, entity, name).map(|value| (name.clone(), value))).collect() });
+            let mut row = entity.map(|entity| EntityRecord { id: id.clone(), components: self.registry.schemas.keys().filter_map(|name| self.registry.read(&self.ecs, entity, name).map(|value| (name.clone(), value))).collect() })
+                .map(serde_json::to_value).transpose().map_err(|error| error.to_string())?;
+            if let Some(row) = &mut row {
+                let entity = entity.unwrap();
+                if let Some(job) = self.ecs.get::<crate::job::Job>(entity) { row["job"] = serde_json::to_value(job).map_err(|error| error.to_string())?; }
+                if let Some(task) = self.ecs.get::<crate::job::Task>(entity) { row["task"] = serde_json::to_value(task).map_err(|error| error.to_string())?; }
+            } else { route_ids.insert(id.clone()); }
+            motion.insert(id.clone(), row.as_mut().and_then(crate::motion_records::extract));
             record(&mut puts, &mut removes, "entities", &id, row)?;
-            record(&mut puts, &mut removes, "jobs", &id, entity.and_then(|entity| self.ecs.get::<crate::job::Job>(entity)).cloned().map(|job| JobSnapshot { id: id.clone(), job }))?;
-            record(&mut puts, &mut removes, "tasks", &id, entity.and_then(|entity| self.ecs.get::<crate::job::Task>(entity)).cloned().map(|task| TaskSnapshot { id: id.clone(), task }))?;
             record(&mut puts, &mut removes, "attempts", &id, entity.and_then(|entity| self.ecs.get::<WorkAttempt>(entity)).cloned())?;
-            record(&mut puts, &mut removes, "routes", &id, entity.and_then(|entity| self.routes.get(&entity).map(|path| self.route_snapshot_for(entity, path, self.terrain_routes.get(&entity)))))?;
             record(&mut puts, &mut removes, "direct", &id, entity.and_then(|entity| self.direct.get(&entity)))?;
             record(&mut puts, &mut removes, "contacts", &id, self.projectile_contacts.get(&id).map(|targets| ProjectileContactsSnapshot { projectile_id: id.clone(), targets: targets.iter().cloned().collect() }))?;
+        }
+        for id in &route_ids {
+            let entity = self.ids.get(id).copied();
+            let route = entity.and_then(|entity| self.routes.get(&entity).map(|path| self.route_snapshot_for(entity, path, self.terrain_routes.get(&entity))));
+            if let Some(route) = route {
+                for (key, bytes) in crate::route_records::encode(id, serde_json::to_value(route).map_err(|error| error.to_string())?)? { puts.insert(&key, &bytes)?; }
+            } else { removes.push(format!("kernel/state/routes/{id}")); }
         }
         for id in self.party_bindings.changed() { record(&mut puts, &mut removes, "parties", id, self.party_bindings.get(id))?; }
         let searches: Vec<_> = self.planner.route_searches.changed.keys().cloned().collect();
@@ -60,7 +74,7 @@ impl Kernel {
                 for (key, bytes) in crate::search_records::encode(id, request)? { puts.insert(&key, &bytes)?; }
             }
         }
-        Ok(RecordDelta { puts, removes, searches })
+        Ok(RecordDelta { puts, removes, searches, routes: route_ids.into_iter().collect(), motion })
     }
 }
 
@@ -132,6 +146,55 @@ mod tests {
         let token = kernel.record_journal_token();
         kernel.accept_record_journal(token);
         assert!(kernel.planner.route_searches.changed.is_empty());
+    }
+
+    #[test]
+    fn moving_cohorts_keep_geometry_and_definition_stable_and_restore_cursor() {
+        use crate::record_bundle::RecordCapture;
+        let initial: Vec<_> = (0..100).map(|index| serde_json::json!({"id":format!("worker-{index:03}"),"components":{
+            "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}, "hive.body":{"speed":1.0}
+        }})).collect();
+        let mut kernel = Kernel::new();
+        kernel.load(&serde_json::json!({"format":"hive-game","version":3,"game":"cohorts","components":[],"materialCatalog":[],"initial":initial}).to_string()).unwrap();
+        let actions: Vec<_> = (0..100).map(|index| serde_json::json!({"scope":{"kind":"host"},"request":{
+            "kind":"move","entity":format!("worker-{index:03}"),"destination":{"x":20.0,"y":0.0,"z":0.0,"frame":null}
+        }})).collect();
+        kernel.advance_json(&serde_json::json!({"delta":0,"writes":[],"actions":actions}).to_string()).unwrap();
+        assert_eq!(kernel.routes.len(), 100);
+        let mut cursor = RecordCapture::default();
+        let (_, mut manifest) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(0), kernel.revision, kernel.time).unwrap();
+        kernel.accept_record_journal(kernel.record_journal_token());
+        for _ in 0..12 {
+            kernel.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap();
+            let token = kernel.record_journal_token();
+            let (changes, next) = cursor.capture_changed(kernel.changed_records().unwrap(), manifest.sequence, kernel.revision, kernel.time, kernel.record_state_weight()).unwrap();
+            assert!(changes.keys().iter().all(|key| !key.starts_with("kernel/state/paths/") && !key.starts_with("kernel/state/entities/") && key != "kernel/state/definition"), "moving a body changes only its cohort and route progress");
+            assert!(changes.keys().iter().filter(|key| key.starts_with("kernel/state/motion/")).count() <= 16);
+            kernel.accept_record_journal(token);
+            let (difference, next) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(next.sequence), kernel.revision, kernel.time).unwrap();
+            assert!(difference.keys().is_empty(), "incremental projection must match canonical checkpoint");
+            manifest = next;
+        }
+        assert!(kernel.routes.values().all(|route| route.cursor() > 0));
+        let saved = RecordBundle::from_records(kernel.save_records().unwrap()).unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved.decode().unwrap()).unwrap();
+        assert_eq!(restored.snapshot_json().unwrap(), kernel.snapshot_json().unwrap());
+        for _ in 0..10 {
+            for world in [&mut kernel, &mut restored] { world.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap(); }
+            assert_eq!(restored.snapshot_json().unwrap(), kernel.snapshot_json().unwrap());
+        }
+        // Capability removal moves the same Position back to the entity row;
+        // deleting a body removes its cohort membership as well.
+        let first = kernel.entity("worker-000").unwrap();
+        kernel.clear_destination(first);
+        kernel.ecs.entity_mut(first).remove::<Body>();
+        let removed = kernel.entity("worker-001").unwrap();
+        kernel.clear_destination(removed);
+        kernel.ecs.entity_mut(removed).remove::<Position>();
+        let (_, next) = cursor.capture_changed(kernel.changed_records().unwrap(), manifest.sequence, kernel.revision, kernel.time, kernel.record_state_weight()).unwrap();
+        let (difference, _) = cursor.capture(RecordBundle::from_records(kernel.save_records().unwrap()).unwrap(), Some(next.sequence), kernel.revision, kernel.time).unwrap();
+        assert!(difference.keys().is_empty(), "component removal cannot leave stale cohort facts");
     }
 
 }

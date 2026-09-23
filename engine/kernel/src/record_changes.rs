@@ -76,10 +76,15 @@ impl<K: Ord + Clone, V> RecordMap<K, V> {
         let owned = self.rows.get_key_value(key).map(|(key, _)| key.clone())?;
         self.mark(owned); self.rows.get_mut(key)
     }
-    pub(crate) fn retain(&mut self, mut keep: impl FnMut(&K, &mut V) -> bool) {
-        let keys: BTreeSet<_> = self.rows.keys().cloned().collect();
-        for key in keys { self.mark(key); }
-        self.rows.retain(|key, value| keep(key, value));
+    pub(crate) fn retain_changed(&mut self, mut keep: impl FnMut(&K, &mut V) -> bool) where V: Clone + PartialEq {
+        let mut changed = Vec::new();
+        self.rows.retain(|key, value| {
+            let prior = value.clone();
+            let retained = keep(key, value);
+            if !retained || *value != prior { changed.push(key.clone()); }
+            retained
+        });
+        for key in changed { self.mark(key); }
     }
     pub(crate) fn clear(&mut self) { for key in self.rows.keys().cloned().collect::<Vec<_>>() { self.mark(key); } self.rows.clear(); }
     pub(crate) fn changed(&self) -> impl Iterator<Item = &K> { self.changes.keys() }

@@ -19,12 +19,11 @@ const STRUCTURES_KEY: &str = "kernel/environment/structures";
 const ENTITY_PREFIX: &str = "kernel/state/";
 const ATMOSPHERE_PREFIX: &str = "kernel/atmosphere/";
 const ATMOSPHERE_BYTES: usize = 2 * 1024 * 1024 + 64 * 1024;
-const MAX_ATMOSPHERE_CHUNKS: usize = 9;
 
 #[derive(Serialize, Deserialize)]
 struct Header {
     version: u16,
-    entity_counts: [u32; 10],
+    entity_counts: [u32; 11],
     environment: bool,
     atmosphere_bytes: Option<u64>,
 }
@@ -32,9 +31,10 @@ struct Header {
 pub struct RecordBundle {
     total_bytes: usize,
     records: BTreeMap<String, Vec<u8>>,
+    private_entity_bytes: usize,
 }
 
-pub(crate) struct RecordDelta { pub puts: RecordBundle, pub removes: Vec<String>, pub searches: Vec<String> }
+pub(crate) struct RecordDelta { pub puts: RecordBundle, pub removes: Vec<String>, pub searches: Vec<String>, pub routes: Vec<String>, pub motion: BTreeMap<String, Option<serde_json::Value>> }
 
 /// Disposable exact-byte baseline. The Region receipt still owns commitment;
 /// dropping a failed resident drops this cursor with it.
@@ -69,7 +69,15 @@ impl RecordCapture {
         // resync, never leaves a partly patched baseline available for reuse.
         let mut baseline = self.baseline.take().unwrap();
         let old_header = baseline.read(HEADER_KEY)?;
-        let RecordDelta { puts: delta, removes, searches } = delta;
+        let RecordDelta { puts: mut delta, mut removes, searches, routes, motion } = delta;
+        let (cohorts, retired) = crate::motion_records::patch(&baseline.records, motion)?;
+        removes.extend(retired);
+        for (key, bytes) in cohorts { delta.insert(&key, &bytes)?; }
+        for id in routes {
+            let prefix = format!("{}{id}/", crate::route_records::PREFIX);
+            removes.extend(baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned());
+        }
+        removes.extend(baseline.records.keys().filter(|key| key.starts_with(ATMOSPHERE_PREFIX) && !delta.records.contains_key(*key)).cloned());
         for id in searches {
             let prefix = format!("{}{id}.", crate::search_records::PREFIX);
             let absent: Vec<_> = baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned().collect();
@@ -125,7 +133,7 @@ impl RecordCapture {
         self.sequence = sequence;
         self.baseline = Some(next);
         let total_bytes = records.values().map(Vec::len).sum();
-        Ok((RecordBundle { records, total_bytes }, manifest))
+        Ok((RecordBundle { records, total_bytes, private_entity_bytes: 0 }, manifest))
     }
 }
 
@@ -146,12 +154,16 @@ impl RecordBundle {
         // search wrappers plus identity allowance conservatively bound the
         // reconstructed planner size without decoding all frontier rows.
         let search_bytes: usize = self.records.iter().filter(|(key, _)| key.starts_with(crate::search_records::PREFIX)).map(|(_, bytes)| bytes.len() + 128).sum();
-        let owned = arrays.iter().sum::<usize>() + planner_bytes + search_bytes + 5;
+        let geometry_bytes: usize = self.records.iter().filter(|(key, _)| key.starts_with(crate::route_records::PREFIX)).map(|(_, bytes)| bytes.len()).sum();
+        let owned = arrays.iter().sum::<usize>() + planner_bytes + search_bytes + geometry_bytes + self.private_entity_bytes + 5;
         if state_weight.saturating_add(owned) > ENTITY_BYTES { return Err("job state exceeds canonical capacity".into()); }
         Ok(())
     }
     fn remove(&mut self, key: &str) {
-        if let Some(bytes) = self.records.remove(key) { self.total_bytes -= bytes.len(); }
+        if let Some(bytes) = self.records.remove(key) {
+            self.total_bytes -= bytes.len();
+            self.private_entity_bytes -= crate::stable_entity_records::private_entity_bytes(key, &bytes).expect("validated record private facts");
+        }
     }
     fn replace(&mut self, key: &str, bytes: Vec<u8>) -> Result<(), String> {
         self.remove(key);
@@ -160,6 +172,7 @@ impl RecordBundle {
     pub fn new() -> Self {
         Self {
             records: BTreeMap::new(),
+            private_entity_bytes: 0,
             total_bytes: 0,
         }
     }
@@ -182,6 +195,7 @@ impl RecordBundle {
         if next > TOTAL_BYTES {
             return Err("record bytes exceed 9MiB".into());
         }
+        self.private_entity_bytes += crate::stable_entity_records::private_entity_bytes(key, bytes)?;
         self.records.insert(key.to_owned(), bytes.to_vec());
         self.total_bytes = next;
         Ok(())
@@ -229,12 +243,8 @@ impl RecordBundle {
             return Err("atmosphere records require environment".into());
         }
         let entity_chunks = entity.len();
-        let atmosphere_chunks = atmosphere
-            .as_ref()
-            .map_or(0, |bytes| bytes.len().div_ceil(RECORD_BYTES).max(1));
-        if atmosphere_chunks > MAX_ATMOSPHERE_CHUNKS {
-            return Err("atmosphere chunk count exceeds bound".into());
-        }
+        let atmosphere_records = atmosphere.as_ref().map(|bytes| crate::air_records::encode(bytes)).transpose()?.unwrap_or_default();
+        let atmosphere_chunks = atmosphere_records.len();
         let environment_records = usize::from(records.environment.is_some()) * 5;
         if entity_chunks + environment_records + atmosphere_chunks + 1 > MAX_RECORDS {
             return Err("record count exceeds bound".into());
@@ -243,7 +253,7 @@ impl RecordBundle {
         for (key, bytes) in entity { bundle.insert(&key, &bytes)?; }
         let environment_present = records.environment.is_some();
         let header = postcard::to_allocvec(&Header {
-            version: 5,
+            version: 6,
             entity_counts,
             environment: environment_present,
             atmosphere_bytes: atmosphere.as_ref().map(|bytes| bytes.len() as u64),
@@ -263,15 +273,7 @@ impl RecordBundle {
             bundle.insert(WATER_KEY, &environment.water)?;
             bundle.insert(STRUCTURES_KEY, &environment.structures)?;
         }
-        if let Some(atmosphere) = atmosphere {
-            insert_chunks(
-                &mut bundle,
-                ATMOSPHERE_PREFIX,
-                &atmosphere,
-                MAX_ATMOSPHERE_CHUNKS,
-                ATMOSPHERE_BYTES,
-            )?;
-        }
+        for (key, bytes) in atmosphere_records { bundle.insert(&key, &bytes)?; }
         Ok(bundle)
     }
 
@@ -285,7 +287,7 @@ impl RecordBundle {
         }
         let (header, remainder): (Header, &[u8]) =
             take_from_bytes(header_bytes).map_err(|_| "invalid record header")?;
-        if !remainder.is_empty() || header.version != 5
+        if !remainder.is_empty() || header.version != 6
         {
             return Err("invalid record header binding".into());
         }
@@ -307,13 +309,8 @@ impl RecordBundle {
                 return Err("environment record set is incomplete or unexpected".into());
             }
         }
-        let atmosphere_chunks = collect_chunks(
-            &self.records,
-            ATMOSPHERE_PREFIX,
-            header.atmosphere_bytes,
-            MAX_ATMOSPHERE_CHUNKS,
-            ATMOSPHERE_BYTES,
-        )?;
+        let atmosphere_chunks = crate::air_records::decode(&self.records)?;
+        if atmosphere_chunks.as_ref().map(|bytes| bytes.len() as u64) != header.atmosphere_bytes { return Err("atmosphere length does not match header".into()); }
         if header.atmosphere_bytes.is_some() && !header.environment {
             return Err("atmosphere record requires environment".into());
         }
@@ -398,17 +395,8 @@ fn validate_key(key: &str) -> Result<(), String> {
     }
     if key.starts_with(ENTITY_PREFIX) {
         crate::stable_entity_records::validate_key(key)?;
-    } else if key.strip_prefix(ATMOSPHERE_PREFIX).is_some() {
-        let suffix = key.strip_prefix(ATMOSPHERE_PREFIX).unwrap();
-        if suffix.len() != 4
-            || !suffix.bytes().all(|byte| byte.is_ascii_digit())
-            || suffix
-                .parse::<usize>()
-                .map_err(|_| "invalid atmosphere chunk")?
-                >= MAX_ATMOSPHERE_CHUNKS
-        {
-            return Err("invalid atmosphere chunk key".into());
-        }
+    } else if key.starts_with(ATMOSPHERE_PREFIX) {
+        crate::air_records::validate_key(key)?;
     } else if !matches!(
         key,
         HEADER_KEY | DEFINITION_KEY | ENV_HEADER_KEY | TERRAIN_KEY | WATER_KEY | STRUCTURES_KEY
@@ -418,91 +406,11 @@ fn validate_key(key: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn insert_chunks(
-    bundle: &mut RecordBundle,
-    prefix: &str,
-    bytes: &[u8],
-    max_chunks: usize,
-    max_bytes: usize,
-) -> Result<(), String> {
-    if bytes.len() > max_bytes {
-        return Err("chunked record exceeds bound".into());
-    }
-    let count = bytes.len().div_ceil(RECORD_BYTES).max(1);
-    if count > max_chunks {
-        return Err("chunk count exceeds bound".into());
-    }
-    for index in 0..count {
-        let start = index * RECORD_BYTES;
-        let end = (start + RECORD_BYTES).min(bytes.len());
-        bundle.insert(&format!("{prefix}{index:04}"), &bytes[start..end])?;
-    }
-    Ok(())
-}
-
-fn collect_chunks(
-    records: &BTreeMap<String, Vec<u8>>,
-    prefix: &str,
-    expected: Option<u64>,
-    max_chunks: usize,
-    max_bytes: usize,
-) -> Result<Option<Vec<u8>>, String> {
-    let mut chunks = Vec::new();
-    for (key, bytes) in records {
-        if let Some(suffix) = key.strip_prefix(prefix) {
-            if suffix.len() != 4
-                || !suffix.bytes().all(|byte| byte.is_ascii_digit())
-                || bytes.len() > RECORD_BYTES
-            {
-                return Err("invalid chunk".into());
-            }
-            chunks.push((suffix.parse::<usize>().map_err(|_| "invalid chunk")?, bytes));
-        }
-    }
-    let Some(expected) = expected else {
-        if !chunks.is_empty() {
-            return Err("unexpected atmosphere records".into());
-        }
-        return Ok(None);
-    };
-    if expected > max_bytes as u64 {
-        return Err("chunked record exceeds bound".into());
-    }
-    let count = (expected as usize).div_ceil(RECORD_BYTES).max(1);
-    if count > max_chunks || chunks.len() != count {
-        return Err("atmosphere chunks are incomplete".into());
-    }
-    chunks.sort_by_key(|(index, _)| *index);
-    if chunks
-        .iter()
-        .enumerate()
-        .any(|(position, (index, _))| *index != position)
-    {
-        return Err("atmosphere chunks are out of order".into());
-    }
-    if chunks
-        .iter()
-        .take(count.saturating_sub(1))
-        .any(|(_, bytes)| bytes.len() != RECORD_BYTES)
-    {
-        return Err("atmosphere chunk has invalid length".into());
-    }
-    let final_len = expected as usize - RECORD_BYTES * count.saturating_sub(1);
-    if chunks.last().map_or(0, |(_, bytes)| bytes.len()) != final_len {
-        return Err("atmosphere length does not match header".into());
-    }
-    let mut result = Vec::with_capacity(expected as usize);
-    for (_, bytes) in chunks {
-        result.extend_from_slice(bytes);
-    }
-    Ok(Some(result))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     fn fixture_snapshot(value: &str) -> String {
-        serde_json::json!({"format":"hive-kernel", "version":20, "scene":{"initial":[{"id":"subject", "components":{"value":value}}]}, "routes":[], "direct":[], "projectile_contacts":[], "party_bindings":[], "work_attempts":[], "jobs":[], "tasks":[], "planner":{"routeSearches":{"entries":{},"occurrence":null,"spent":0}}}).to_string()
+        serde_json::json!({"format":"hive-kernel", "version":21, "scene":{"initial":[{"id":"subject", "components":{"value":value}}]}, "routes":[], "direct":[], "projectile_contacts":[], "party_bindings":[], "work_attempts":[], "jobs":[], "tasks":[], "planner":{"routeSearches":{"entries":{},"occurrence":null,"spent":0}}}).to_string()
     }
     fn capture_bundle(entity: &str) -> RecordBundle {
         RecordBundle::from_records(KernelRecords { entities: fixture_snapshot(entity), environment: None, atmosphere: None }).unwrap()
@@ -634,8 +542,9 @@ mod tests {
         assert!(bundle.insert("kernel/extra", &[]).is_err());
         let oversized = vec![0; RECORD_BYTES + 1];
         assert!(bundle.insert("kernel/state/entities/subject", &oversized).is_err());
-        assert!(bundle.insert("kernel/state/entities/subject", &[]).is_ok());
-        assert!(bundle.insert("kernel/state/entities/subject", &[]).is_err());
+        let entity = br#"{"id":"subject","components":{}}"#;
+        assert!(bundle.insert("kernel/state/entities/subject", entity).is_ok());
+        assert!(bundle.insert("kernel/state/entities/subject", entity).is_err());
     }
 
     fn atmosphere_records(atmosphere: Option<Vec<u8>>) -> KernelRecords {
@@ -655,45 +564,13 @@ mod tests {
     }
 
     #[test]
-    fn atmosphere_zero_and_cross_chunk_roundtrip_preserves_exact_option() {
-        for source in [
-            Some(Vec::new()),
-            Some(
-                (0..(RECORD_BYTES + 17))
-                    .map(|value| (value % 251) as u8)
-                    .collect(),
-            ),
-        ] {
-            let bundle = RecordBundle::from_records(atmosphere_records(source.clone())).unwrap();
-            assert_eq!(bundle.decode().unwrap().atmosphere, source);
-        }
-        assert_eq!(
-            RecordBundle::from_records(atmosphere_records(None))
-                .unwrap()
-                .decode()
-                .unwrap()
-                .atmosphere,
-            None
-        );
-    }
-
-    #[test]
-    fn atmosphere_chunks_require_complete_current_environment_binding() {
-        let mut bundle =
-            RecordBundle::from_records(atmosphere_records(Some(vec![7; RECORD_BYTES + 1])))
-                .unwrap();
-        bundle.records.remove("kernel/atmosphere/0001");
-        assert!(bundle.decode().is_err());
-
+    fn atmosphere_current_records_require_complete_environment_binding() {
+        assert_eq!(RecordBundle::from_records(atmosphere_records(None)).unwrap().decode().unwrap().atmosphere, None);
+        assert!(RecordBundle::from_records(atmosphere_records(Some(vec![7; RECORD_BYTES + 1]))).is_err(), "opaque old air chunks are not the current format");
         let mut no_environment = RecordBundle::from_records(KernelRecords {
-            entities: fixture_snapshot(""),
-            environment: None,
-            atmosphere: None,
-        })
-        .unwrap();
-        no_environment
-            .records
-            .insert("kernel/atmosphere/0000".into(), vec![]);
+            entities: fixture_snapshot(""), environment: None, atmosphere: None,
+        }).unwrap();
+        no_environment.records.insert("kernel/atmosphere/header".into(), vec![]);
         assert!(no_environment.decode().is_err());
     }
 }
