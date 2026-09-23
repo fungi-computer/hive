@@ -256,7 +256,7 @@ impl Kernel {
                 item.worker_entity,
                 self.route_snapshot_for(
                     item.worker_entity,
-                    &item.route.points,
+                    &crate::navigation::RouteProgress::from(item.route.points.clone()),
                     item.route.terrain.as_ref(),
                 ),
             );

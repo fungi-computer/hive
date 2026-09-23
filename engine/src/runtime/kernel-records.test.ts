@@ -2,13 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { captureKernelRecords, restoreKernelRecords, KernelRecordCapture, type NativeRecordHandle } from "./kernel-records";
 
-const entity = JSON.stringify({ format: "hive-kernel", version: 20, revision: 7, time: 1.5, scene: { format: "hive-game", version: 3, game: "colony", components: [], materialCatalog: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, party_bindings: [], work_attempts: [], routes: [], direct: [], projectile_contacts: [], jobs: [], tasks: [], planner: { routeSearches: { entries: {}, occurrence: null, spent: 0 } } });
+const entity = JSON.stringify({ format: "hive-kernel", version: 21, revision: 7, time: 1.5, scene: { format: "hive-game", version: 3, game: "colony", components: [], materialCatalog: [], initial: [] }, next_work_generation: 1, next_party_sequence: 1, party_bindings: [], work_attempts: [], routes: [], direct: [], projectile_contacts: [], jobs: [], tasks: [], planner: { routeSearches: { entries: {}, occurrence: null, spent: 0 } } });
 function handle(seed: readonly { key: string; bytes: Uint8Array }[], fail = false): NativeRecordHandle & { freed: boolean; reads: number; inserts: number } {
   const records = new Map<string, Uint8Array>(seed.map(record => [record.key, Uint8Array.from(record.bytes)]));
   const result = { freed: false, reads: 0, inserts: 0, free() { this.freed = true; }, manifest() { throw new Error("unexpected incremental capture"); }, keys() { return JSON.stringify([...records.keys()]); }, read(key: string) { this.reads += 1; return records.get(key)!; }, insert(key: string, bytes: Uint8Array) { this.inserts += 1; if (fail) throw new Error("insert failed"); records.set(key, bytes); } };
   return result;
 }
-function entityRecords(): { key: string; bytes: Uint8Array }[] { return [{ key: "kernel/state/root", bytes: new TextEncoder().encode(entity) }, { key: "kernel/header", bytes: new Uint8Array([1]) }]; }
+function entityRecords(): { key: string; bytes: Uint8Array }[] {
+  const root = JSON.parse(entity); const scene = root.scene; root.scene = null;
+  return [{ key: "kernel/state/root", bytes: new TextEncoder().encode(JSON.stringify(root)) },
+    { key: "kernel/state/definition", bytes: new TextEncoder().encode(JSON.stringify(scene)) },
+    { key: "kernel/header", bytes: new Uint8Array([1]) }];
+}
 
 test("capture retains owned bytes and always frees the native handle", () => {
   const native = handle(entityRecords());
@@ -38,11 +43,11 @@ test("invalid native keys are rejected before any read and metadata before inser
   assert.equal(target.freed, false);
 });
 
-test("current native entity version round trips and version 19 is rejected", () => {
+test("current native entity version round trips and version 20 is rejected", () => {
   const current = captureKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } });
-  assert.equal(readEntityVersion(current), 20);
-  const old = { ...current, records: current.records.map((record) => record.key.startsWith("kernel/state/")
-    ? { ...record, bytes: new TextEncoder().encode(entity.replace('"version":20', '"version":19')) }
+  assert.equal(readEntityVersion(current), 21);
+  const old = { ...current, records: current.records.map((record) => record.key === "kernel/state/root"
+    ? { ...record, bytes: new TextEncoder().encode(new TextDecoder().decode(record.bytes).replace('"version":21', '"version":20')) }
     : record) };
   assert.throws(() => restoreKernelRecords({ capture_records: () => handle(entityRecords()), accept_records() {}, restore_records() { return 1; } }, () => handle([]), old), /unsupported kernel entity snapshot/);
 });
@@ -60,7 +65,7 @@ test("resident capture reuses unchanged bytes and removes deleted records withou
   first.manifest = () => JSON.stringify({ sequence: 1, base: null, revision: 7, time: 1.5, keys: fullKeys });
   const unchanged = handle([]);
   unchanged.manifest = () => JSON.stringify({ sequence: 2, base: 1, revision: 7, time: 1.5, keys: fullKeys });
-  const changed = handle([{ key: "kernel/state/root", bytes: new TextEncoder().encode(entity.replace('"revision":7', '"revision":8')) }]);
+  const changed = handle([{ key: "kernel/state/root", bytes: new TextEncoder().encode(new TextDecoder().decode(records[0].bytes).replace('"revision":7', '"revision":8')) }]);
   changed.manifest = () => JSON.stringify({ sequence: 3, base: 2, revision: 8, time: 1.5, keys: fullKeys });
   const queue = [first, unchanged, changed];
   const sequences: (number | undefined)[] = [];

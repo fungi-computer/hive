@@ -28,7 +28,7 @@ const steps = Number(
   process.argv.find((arg: string) => arg.startsWith("--steps="))?.slice(8) ??
     schedule.steps,
 );
-assert(Number.isSafeInteger(steps) && steps >= 0 && steps <= schedule.steps);
+assert(Number.isSafeInteger(steps) && steps >= 0 && steps <= 2400);
 const nativeSource =
   process.argv
     .find((arg: string) => arg.startsWith("--native-source="))
@@ -148,6 +148,7 @@ try {
 
 const { port, session } = makeSession(),
   recovered = makeSession();
+const recordCosts: { step: number; bytes: number; puts: number; live?: Record<string, {bytes:number; records:number}>; families: Record<string, {bytes: number; puts: number}>; largest: {key: string; bytes: number; fields?: Record<string, number>}[] }[] = [];
 const samples: unknown[] = [],
   commands: unknown[] = [];
 let firstWaterStep: number | null = null,
@@ -172,6 +173,28 @@ try {
       session.runDisposableCandidate(() => {
         session.step(schedule.stepSeconds);
         const capture = session.captureForCommit();
+        const families: Record<string, {bytes: number; puts: number}> = {};
+        let total = 0;
+        for (const row of capture.changes.puts) {
+          const family = row.key.startsWith("kernel/state/") ? row.key.split("/").slice(0, 3).join("/") : row.key.split("/").slice(0, 2).join("/");
+          const group = families[family] ??= { bytes: 0, puts: 0 };
+          group.bytes += row.bytes.length; group.puts++; total += row.bytes.length;
+        }
+        const largest = (step % 50 === 0 ? [...capture.changes.puts].sort((a,b)=>b.bytes.length-a.bytes.length).slice(0, 8) : []).map(row => {
+          let fields: Record<string, number> | undefined;
+          try { fields = Object.fromEntries(Object.entries(JSON.parse(new TextDecoder().decode(row.bytes))).map(([key,value])=>[key,JSON.stringify(value).length])); } catch {}
+          return {key:row.key, bytes:row.bytes.length, fields};
+        });
+        let live: Record<string, {bytes:number; records:number}> | undefined;
+        if (step % 50 === 0 || step === steps) {
+          live = {};
+          for (const row of capture.snapshot.kernel.records) {
+            const family = row.key.startsWith("kernel/state/") ? row.key.split("/").slice(0,3).join("/") : row.key.split("/").slice(0,2).join("/");
+            const group = live[family] ??= { bytes:0, records:0 };
+            group.bytes += row.bytes.length; group.records++;
+          }
+        }
+        recordCosts.push({ step, bytes:total, puts:capture.changes.puts.length, families, largest, live });
         maxChangedBytes = Math.max(
           maxChangedBytes,
           capture.changes.puts.reduce(
@@ -315,6 +338,7 @@ try {
   console.log(
     JSON.stringify(
       {
+        recordCosts,
         fixture: pack.id,
         nativeSource,
         source: execFileSync("git", ["rev-parse", "HEAD"], {
