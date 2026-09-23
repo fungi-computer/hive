@@ -186,3 +186,35 @@ persisted metadata may cause platform retries, but cannot re-execute a terminal
 world or forget its durable attempt count. The production-only type diagnostic
 reports the existing SDK/game errors and placement string/EntityId mismatch;
 no new host/fault-contract error was reported.
+
+## Cadence owner checkpoint — September 23, 2026
+
+`host-cadence.ts` now owns the public-host row format, validation, demand,
+occurrence admission/completion, retry status, alarm selection and full cadence
+row persistence. The DO still supplies Region state and commits that row through
+the same transaction as the native clock and receipt. The old split
+`clock-schedule.ts` / `wake-policy.ts` paths are removed. An admitted step keeps
+its exact request through retry; after completion, a successor deadline is at
+least 100 ms in the future, so slow work does not create a replay chain of missed
+physical steps.
+
+Actual local workerd evidence on host source `4107a496` ran 25+ occurrences with
+two clients (one slow), replayed the last clock receipt, paused/resumed through
+the public command path and advanced from sequence 26 to 27 after process restart
+without a Region request. A separate fault proof preserved the old Region on an
+injected failed candidate and autonomously recovered a transient failure from
+sequence 1 to 2. The workerd ledger showed Node-observed sequence intervals at
+p50 345 ms / p95 997 ms, alarm lateness p50 40 ms / p95 268 ms / maximum 3,265
+ms, and transaction elapsed p50 194 ms / p95 858 ms. These vary materially under
+shared-host load and do not pass a 100 ms end-to-end throughput target. Timings
+are elapsed wall measurements, not CPU. The proof reused generated WASM SHA-256
+`f454c8c5d7c86e83c8a5fa04e7bc9e7e4a8ec7bae567233ca91bc4ea75499e4f` from the
+scheduler-audit worktree at `dceba216`; it validates the host transaction and
+wake boundary, not a matching native build or the full capacity gate.
+
+The retained actual-workerd ledgers are
+`.botanical/host-cadence-workerd-proof-transaction-owner/RESULT.json` (SHA-256
+`53b4fa467d73615da3c671f1b89b7f38648aef7e43407fc364a2018e885aed36`) and
+`.botanical/host-cadence-fault-proof-transaction-owner/RESULT.json` (SHA-256
+`b775c01e6b8b52f6565d10e378e4c4efb382c17a30f5ad56653c5105d82cbccc`). Both
+use the standard `run-proof.sh` wrapper. No hosted deployment was performed.

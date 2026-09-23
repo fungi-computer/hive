@@ -1,4 +1,4 @@
-import { hostStatusSchema, RUNNING_HOST, type HostStatus } from "../../engine/src/runtime/host-status";
+import { RUNNING_HOST, type HostStatus } from "../../engine/src/runtime/host-status";
 import { DurableObject } from "cloudflare:workers";
 import { terrainRegionRequestSchema } from "../../engine/src/runtime/terrain-regions";
 import { startTerrainRegionStream } from "../../engine/src/runtime/terrain-region-stream";
@@ -32,8 +32,7 @@ import {
 } from "./protocol";
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
-import { advanceClockOccurrence } from "./clock-schedule";
-import { sessionClockDemand, occurrenceWakeDeadline, withRecoveryWake, failedHostAttempt, clockWakeAt } from "./wake-policy";
+import { hostCadence, withRecoveryWake, type HostCadenceRow } from "./host-cadence";
 import { canSendObservation, acknowledgeObservation, type ObservationDelivery } from "./observation-delivery";
 import { createFrameworkCostLedger, type SqlCost } from "./framework-cost-ledger";
 import { readOccurrenceDriverResult, type OccurrenceDriverResult } from "../../engine/src/runtime/occurrence-driver";
@@ -46,19 +45,7 @@ type Environment = {
   TEST_FAILURE_AFTER_JOIN?: string;
   TEST_DROP_JOIN_RESPONSE?: string;
 };
-type HostRow = {
-  singleton: number;
-  format_version: number;
-  pack: string;
-  token_hash: string;
-  paused: number;
-  next_sequence: number;
-  lease_until_ms: number | null;
-  due_sequence: number | null;
-  due_request_json: string | null;
-  due_deadline_ms: number | null;
-  wake_json: string;
-};
+type HostRow = HostCadenceRow;
 type ParticipantRow = { credential_hash: string; principal: string; player_id: string; party_id: import("../../engine/src/contracts").EntityId };
 type PartyJoinResult = { player: string; party: ParticipantRow["party_id"]; people: string[] };
 function participantRow(value: unknown): ParticipantRow {
@@ -128,73 +115,6 @@ function commandKind(input: { command: unknown }): string | undefined {
     ? (command as { kind: string }).kind
     : undefined;
 }
-function validateHostRow(row: HostRow): void {
-  const wake = hostStatusSchema.parse(JSON.parse(row.wake_json));
-  if (wake.state !== "running" && (wake.sequence !== row.due_sequence || row.due_request_json === null)) throw new Error("public-host-retry-identity");
-  if (
-    row.format_version !== 2 ||
-    (row.paused !== 0 && row.paused !== 1) ||
-    !Number.isSafeInteger(row.next_sequence) ||
-    row.next_sequence < 0 ||
-    (row.lease_until_ms !== null &&
-      (!Number.isSafeInteger(row.lease_until_ms) || row.lease_until_ms < 0))
-  )
-    throw new Error("public-host-format");
-  const dueValues = [
-    row.due_sequence,
-    row.due_request_json,
-    row.due_deadline_ms,
-  ];
-  const allNull = dueValues.every((value) => value === null);
-  const allPresent = dueValues.every((value) => value !== null);
-  if (!allNull && !allPresent) throw new Error("public-host-format");
-  if (row.paused === 1 && allPresent) throw new Error("public-host-format");
-  if (allNull) {
-    if (row.paused !== 1 && row.lease_until_ms === null) return;
-    return;
-  }
-  if (
-    row.due_sequence === null ||
-    row.due_deadline_ms === null ||
-    typeof row.due_request_json !== "string"
-  )
-    throw new Error("public-host-format");
-  const dueSequence = row.due_sequence;
-  const dueDeadline = row.due_deadline_ms;
-  const dueRequest = row.due_request_json;
-  if (
-    !Number.isSafeInteger(dueSequence) ||
-    dueSequence < 0 ||
-    dueSequence !== row.next_sequence ||
-    !Number.isSafeInteger(dueDeadline) ||
-    dueDeadline < 0 ||
-    new TextEncoder().encode(dueRequest).byteLength > 8192
-  )
-    throw new Error("public-host-format");
-  try {
-    const request = JSON.parse(dueRequest) as Record<string, unknown>;
-    const command = request.command;
-    const id = request.id;
-    if (
-      typeof id !== "string" ||
-      id.length < 1 ||
-      id.length > 160 ||
-      request.expectedRevision !== undefined ||
-      !command ||
-      typeof command !== "object" ||
-      Array.isArray(command) ||
-      (command as { kind?: unknown }).kind !== "step" ||
-      typeof (command as { delta?: unknown }).delta !== "number" ||
-      !Number.isFinite((command as { delta: number }).delta) ||
-      (command as { delta: number }).delta < 0 ||
-      (command as { delta: number }).delta > 1
-    )
-      throw new Error("invalid");
-  } catch {
-    throw new Error("public-host-format");
-  }
-}
-
 export class PublicEngineRegion extends DurableObject<Environment> {
   private region!: ReturnType<typeof openRegion<SessionRegionState, unknown>>;
   private resident!: SessionResident;
@@ -396,7 +316,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         due_deadline_ms: null,
         wake_json: JSON.stringify(RUNNING_HOST),
       };
-      validateHostRow(stored);
+      hostCadence.validate(stored);
       const clock = this.owner.sql
         .exec<{ next_sequence: number }>(
           "SELECT next_sequence FROM hive_region_clock WHERE singleton=1",
@@ -422,7 +342,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private hostStatus(row = this.hostRow()): HostStatus {
-    return row ? hostStatusSchema.parse(JSON.parse(row.wake_json)) : RUNNING_HOST;
+    return row ? hostCadence.status(row) : RUNNING_HOST;
   }
 
   private publishHostStatus(): void {
@@ -478,36 +398,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return Date.now();
   }
 
-  private nextDue(row: HostRow, now: number) {
-    if (this.hostStatus(row).state !== "running") return row;
-    const deadline = occurrenceWakeDeadline(
-      row.due_deadline_ms,
-      sessionClockDemand(this.region.readCommitted().state.session, row.lease_until_ms, now),
-      now,
-    );
-    if (deadline === null) return null;
-    if (row.due_sequence !== null) return row;
-    const sequence = row.next_sequence;
-    const request = JSON.stringify(clockRequest(sequence));
-    this.owner.sql.exec(
-      "UPDATE hive_public_host SET due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
-      sequence,
-      request,
-      deadline,
-    );
-    return {
-      ...row,
-      due_sequence: sequence,
-      due_request_json: request,
-      due_deadline_ms: deadline,
-    };
-  }
-
   private alarmAt(row: HostRow): number | null {
-    const socketDeadline = this.socketAlarmAt();
-    const clockDeadline = clockWakeAt(this.hostStatus(row), row.due_deadline_ms);
-    const values = [socketDeadline, clockDeadline].filter((value): value is number => value !== null);
-    return values.length === 0 ? null : Math.min(...values);
+    return hostCadence.alarmAt(row, this.socketAlarmAt());
   }
 
   private socketAlarmAt(): number | null {
@@ -551,16 +443,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     await this.inTransaction(async () => {
       const current = this.hostRow();
       if (!current) throw new Error("public-host-state");
-      validateHostRow(current);
-      const lease = now + LEASE_MS;
-      this.owner.sql.exec(
-        "UPDATE hive_public_host SET lease_until_ms=? WHERE singleton=1",
-        lease,
-      );
-      const renewed = { ...current, lease_until_ms: lease };
-      const next =
-        this.nextDue(renewed, now) ??
-        renewed;
+      hostCadence.validate(current);
+      const next = hostCadence.renew(current, now, LEASE_MS, this.region.readCommitted().state.session.paused);
+      hostCadence.persist(this.owner.sql, next);
       await this.arm(next);
     });
   }
@@ -740,35 +625,17 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const receipt = this.region.dispatch(principal, input);
         const current = this.hostRow();
         if (!current) throw new Error("public-host-state");
-        validateHostRow(current);
+        hostCadence.validate(current);
         if (this.hostStatus(current).state !== "running") return { receipt, row: current };
         let next = { ...current, lease_until_ms: now + LEASE_MS };
         const paused = this.region.readCommitted().state.session.paused;
         if (receipt.status === "applied" && paused) {
-          this.owner.sql.exec(
-            "UPDATE hive_public_host SET paused=1,lease_until_ms=?,due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL WHERE singleton=1",
-            now + LEASE_MS,
-          );
-          next = {
-            ...next,
-            paused: 1,
-            due_sequence: null,
-            due_request_json: null,
-            due_deadline_ms: null,
-          };
+          next = hostCadence.pause(next, now + LEASE_MS);
         } else if (receipt.status === "applied" && !paused) {
-          this.owner.sql.exec(
-            "UPDATE hive_public_host SET paused=0,lease_until_ms=? WHERE singleton=1",
-            now + LEASE_MS,
-          );
-          next = { ...next, paused: 0 };
-        } else {
-          this.owner.sql.exec(
-            "UPDATE hive_public_host SET lease_until_ms=? WHERE singleton=1",
-            now + LEASE_MS,
-          );
+          next = hostCadence.resume(next, now + LEASE_MS, now);
         }
-        const armed = this.nextDue(next, now) ?? next;
+        const armed = hostCadence.admit(next, paused, now) ?? next;
+        hostCadence.persist(this.owner.sql, armed);
         await this.arm(armed);
         return { receipt, row: armed };
       };
@@ -884,8 +751,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     return this.serial(async () => {
       const row = this.hostRow();
       if (!row) throw new Error("public-host-state");
-      const wake = this.hostStatus(row);
-      const at = clockWakeAt(wake, row.due_deadline_ms);
+      const at = hostCadence.dueWake(row);
       if (at === null || at > now) { await this.arm(row); return; }
       await withRecoveryWake(this.state.storage, now, async () => {
         try { await this.runDueExclusive(now); }
@@ -899,10 +765,10 @@ export class PublicEngineRegion extends DurableObject<Environment> {
             if (current.next_sequence > row.next_sequence) return current;
             if (current.next_sequence !== row.next_sequence || current.due_sequence !== row.due_sequence || current.due_request_json !== row.due_request_json)
               throw new Error("public-host-retry-identity");
-            const status = failedHostAttempt(this.hostStatus(current), current.due_sequence!, error, now);
-            const wake_json = JSON.stringify(status);
-            this.owner.sql.exec("UPDATE hive_public_host SET wake_json=? WHERE singleton=1", wake_json);
-            return { ...current, wake_json };
+            const status = hostCadence.failed(this.hostStatus(current), current.due_sequence!, error, now);
+            const failed = hostCadence.withStatus(current, status);
+            hostCadence.persist(this.owner.sql, failed);
+            return failed;
           });
           // Persist the attempt before rearming: another alarm-storage failure
           // must not erase the retry budget. The separate rescue wake remains.
@@ -928,7 +794,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       const stored = this.hostRow();
       if (!stored) throw new Error("public-host-state");
       let row: HostRow = stored;
-      validateHostRow(row);
+      hostCadence.validate(row);
       const committed = this.region.readCommitted();
       this.resident.begin(committed.revision, committed.state, this.residentRecords(committed.revision));
       acceptedRevision = committed.revision;
@@ -938,15 +804,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         row.due_request_json === null ||
         row.due_deadline_ms === null
       ) {
-        this.owner.sql.exec(
-          "UPDATE hive_public_host SET due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL WHERE singleton=1",
-        );
-        const cleared = {
-          ...row,
-          due_sequence: null,
-          due_request_json: null,
-          due_deadline_ms: null,
-        };
+        const cleared = { ...row, due_sequence: null, due_request_json: null, due_deadline_ms: null };
+        hostCadence.persist(this.owner.sql, cleared);
         await this.arm(cleared);
         return cleared;
       }
@@ -979,24 +838,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       // Wall time includes queue and transaction work; dispatch duration alone
       // would let a slow transaction arm an already-overdue next occurrence.
       const completedAt = Math.max(now, this.wallNow());
-      const advancedClock = advanceClockOccurrence(row.due_sequence, dueDeadline, completedAt);
-      const advanced: HostRow = {
-        ...row,
-        next_sequence: advancedClock.sequence,
-        due_sequence: null,
-        due_request_json: null,
-        due_deadline_ms: null,
-        wake_json: JSON.stringify(RUNNING_HOST),
-      };
-      this.owner.sql.exec(
-        "UPDATE hive_public_host SET next_sequence=?,due_sequence=NULL,due_request_json=NULL,due_deadline_ms=NULL,wake_json=? WHERE singleton=1",
-        advanced.next_sequence,
-        advanced.wake_json,
-      );
-      // The current occurrence is committed before this decision. An expired
-      // lease suppresses only the next recurring clock; it cannot erase this
-      // sequence or turn its retry into a fresh step.
-      row = this.nextDue(advanced, completedAt) ?? advanced;
+      const advanced = hostCadence.complete(row, completedAt, this.region.readCommitted().state.session.paused);
+      // World result, clock frontier, command receipt and next wake obligation
+      // share this Region transaction.
+      hostCadence.persist(this.owner.sql, advanced);
+      row = advanced;
       await this.arm(row);
       acceptedRevision = this.region.readCommitted().revision;
       return row;
