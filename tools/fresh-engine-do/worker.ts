@@ -75,13 +75,20 @@ export class FreshRegion extends DurableObject<Environment> {
       initSync({ module: wasmBytes });
       const pack = packFor(this.env.PROOF_PACK);
       const principalPrefix = pack.id;
+      const playerPrincipal = `${principalPrefix}-player`;
+      const hostPrincipal = `${principalPrefix}-host`;
       const runtime = createSessionRegionRuntime({
         pack,
         createKernel: () => wasmKernelPort(new WasmKernel()),
         implementationHash: env.IMPLEMENTATION_HASH,
-        ownerPrincipal: `${principalPrefix}-player`,
-        hostPrincipal: `${principalPrefix}-host`,
+        ownerPrincipal: playerPrincipal,
+        hostPrincipal,
         seed: 17,
+        scopeForPrincipal: (principal) => {
+          if (principal === hostPrincipal) return { kind: "host" };
+          if (principal === playerPrincipal) return pack.localScope ?? null;
+          return null;
+        },
       });
       this.resident = runtime.resident;
       const program = runtime.program;
