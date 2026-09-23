@@ -1,0 +1,3753 @@
+{
+  "purpose": "exact local Hive branch-tip preservation, not acceptance or a merge",
+  "createdUtc": "2026-09-23T15:31:30.342043+00:00",
+  "archiveBefore": "50514d4aed79f471025d83234452e2bc6b953bfe",
+  "allLocalHeads": [
+    {
+      "ref": "refs/heads/archive/hive-preservation-20260923",
+      "head": "50514d4aed79f471025d83234452e2bc6b953bfe"
+    },
+    {
+      "ref": "refs/heads/archive/hive-study-release-20260908",
+      "head": "e1c9c6b3aad77585606426d5349973b8f514f7bf"
+    },
+    {
+      "ref": "refs/heads/archive/legacy-root-working-20260923",
+      "head": "2cd5c5fd8acb9a3c05a0d15a8740e8cf7a1870a6"
+    },
+    {
+      "ref": "refs/heads/art/cannon-juice-20260911",
+      "head": "c1b8eda313ffdb475ebc3b63460326e498d73e7d"
+    },
+    {
+      "ref": "refs/heads/art/clearing-tree-art-20260912",
+      "head": "3234f313d2905fe9176d970d62a3af1d0a4c988f"
+    },
+    {
+      "ref": "refs/heads/art/excavation-materials-20260910",
+      "head": "d0186c69bd13d06245b861716b29904c9767ff0c"
+    },
+    {
+      "ref": "refs/heads/art/terrain-cover-20260917",
+      "head": "1621fcfa23501cbdc0bff9bd30caf7f1ace9ce0f"
+    },
+    {
+      "ref": "refs/heads/art/terrain-dual-grid-20260914",
+      "head": "8155866a65a226cc9973f4b189bdabf524bced2c"
+    },
+    {
+      "ref": "refs/heads/asset/editor-20260909",
+      "head": "2a7618b9a8ad20c1f3f30e9d381834fb544be251"
+    },
+    {
+      "ref": "refs/heads/asset/editor-shell-20260909",
+      "head": "8518cc5da7c00dfef565df1586cb0d782a3610f7"
+    },
+    {
+      "ref": "refs/heads/backup/clearing-pre-construction-c503220",
+      "head": "c503220cf828aff649557526ce27fe513dad7a0a"
+    },
+    {
+      "ref": "refs/heads/backup/engine-material-world-20260909T074542Z",
+      "head": "b8b9a011502e56f47b98f7a102526e145e5a89c1"
+    },
+    {
+      "ref": "refs/heads/backup/needs-engine-20260909T053519Z",
+      "head": "e0ba9b0acd2c32322f63f0367d271c945ff13957"
+    },
+    {
+      "ref": "refs/heads/brewing-material-binding",
+      "head": "ffbae85515bbf39a34791c3b6c71d9d8894ff3ac"
+    },
+    {
+      "ref": "refs/heads/brewing-process-supply",
+      "head": "d791a868dc0503439c2d6b3c13d35ae17b407e49"
+    },
+    {
+      "ref": "refs/heads/clearing-party-host-preserved",
+      "head": "bf973d2084a2d529aceecb1f486396deb61c67a3"
+    },
+    {
+      "ref": "refs/heads/client/game-cost-20260910",
+      "head": "f47b8d84c34638c58027fd0f108ffb3a8d796856"
+    },
+    {
+      "ref": "refs/heads/client/performance-page-repair-20260915",
+      "head": "7ab32dd0bf85ac75138efe9a39ed772811e452f7"
+    },
+    {
+      "ref": "refs/heads/client/performance-page-repair-v2-20260915",
+      "head": "80f74b0b1d8b48667211662eff62902e05171648"
+    },
+    {
+      "ref": "refs/heads/colony-pail-work",
+      "head": "1cc15fa71a77600006e72fbcf1164ea6422d353b"
+    },
+    {
+      "ref": "refs/heads/colony-shared-host",
+      "head": "aecfce4a0e09aa4b399438dc5c30402bbd61735e"
+    },
+    {
+      "ref": "refs/heads/construction-failure-recut",
+      "head": "b9d5f783d0552a27d6ee5dc239351ab28d04e62a"
+    },
+    {
+      "ref": "refs/heads/docs/clearing-performance-audit-20260913",
+      "head": "fef3d1cf62d967754da7bd402ac6eba84796cf67"
+    },
+    {
+      "ref": "refs/heads/docs/colyseus-sleeping-world-20260910",
+      "head": "20ef4d7b19756666e9327dec67443396b2e085ce"
+    },
+    {
+      "ref": "refs/heads/docs/cross-game-engine-contract-20260910",
+      "head": "815eb9dcc392ac4279eee7e36caa32e48dc8938d"
+    },
+    {
+      "ref": "refs/heads/docs/ecs-runtime-research-20260910",
+      "head": "73db054f05d007005d5ebd26a4ff0e40a17a186e"
+    },
+    {
+      "ref": "refs/heads/docs/engine-implementation-guide-20260910",
+      "head": "c0a4143eac2f12820dd1dd12da6277549a38e4bd"
+    },
+    {
+      "ref": "refs/heads/docs/network-play-study-20260910",
+      "head": "a6bba8c2b8d53b8f46f70508decfb615d35b4fdf"
+    },
+    {
+      "ref": "refs/heads/docs/playable-environment-recut-20260910",
+      "head": "4ad22b08d6407410203a2b4af141b2568624fe68"
+    },
+    {
+      "ref": "refs/heads/docs/screeps-programmed-world-20260910",
+      "head": "bb6b58ff2fef7d72e937c4e4ae36c88f0b8ab4bb"
+    },
+    {
+      "ref": "refs/heads/engine/actor-display-staging-20260922",
+      "head": "3c8b43ac4c05c17e1062bee8a9507e1b53361662"
+    },
+    {
+      "ref": "refs/heads/engine/actor-retention-20260921",
+      "head": "8803712e508d38e9ca60ae7140a5e4adef4ce4df"
+    },
+    {
+      "ref": "refs/heads/engine/actual-face-picking-20260921",
+      "head": "8215f7e8d5f535e870d66babdc9dfc50262e7e79"
+    },
+    {
+      "ref": "refs/heads/engine/air-20260909",
+      "head": "e43630795578eb17a394b50d72520193cbb29f33"
+    },
+    {
+      "ref": "refs/heads/engine/air-boundary-stencils-20260909",
+      "head": "1cea60bec9a6b49822ab98d53eb8b8f44358def8"
+    },
+    {
+      "ref": "refs/heads/engine/air-candidate-20260911",
+      "head": "f5b7dae0478c43c5281801b9c5f338e3d045550d"
+    },
+    {
+      "ref": "refs/heads/engine/air-capture-locality-20260923",
+      "head": "813dd24e474309ab669497920c3655d72bfa6750"
+    },
+    {
+      "ref": "refs/heads/engine/air-displacement-20260909",
+      "head": "5052b46fc052399c5a3463df87534365336d5e5a"
+    },
+    {
+      "ref": "refs/heads/engine/air-events-20260909",
+      "head": "eddff44a6af8d6a06fdc86b48984f2dba1c5ebff"
+    },
+    {
+      "ref": "refs/heads/engine/air-exterior-20260911",
+      "head": "fcc435f4bdfc253332bb63282a3ce115a9c0645f"
+    },
+    {
+      "ref": "refs/heads/engine/air-geometry-20260911",
+      "head": "21c4eefc7892f746b4ea74e9f184440d61b8cf8e"
+    },
+    {
+      "ref": "refs/heads/engine/air-observation-sdk-20260911",
+      "head": "f44ee4501581fe5261f96f8d9c230ced778b6cd2"
+    },
+    {
+      "ref": "refs/heads/engine/air-partition-20260911",
+      "head": "59b3e43347605b695571031934900342c3e31297"
+    },
+    {
+      "ref": "refs/heads/engine/air-rebind-20260911",
+      "head": "08d7292486df7d8013a5dcca7cd22e39fb174e10"
+    },
+    {
+      "ref": "refs/heads/engine/air-records-20260911",
+      "head": "a70cfd06ffa7fa806f8eda8a6879ea4cfc8224f4"
+    },
+    {
+      "ref": "refs/heads/engine/air-runtime-20260911",
+      "head": "69c66f251c3f310bc7b105a2f179cf9a8ad86a29"
+    },
+    {
+      "ref": "refs/heads/engine/area-dig-client-20260911",
+      "head": "b5b983f6c1aee1925a7f7299aadd7704369aa061"
+    },
+    {
+      "ref": "refs/heads/engine/assignment-bridge-cleanup-20260916",
+      "head": "983670932ef3b859d7a62e859d398a1e90393f81"
+    },
+    {
+      "ref": "refs/heads/engine/atmosphere-admission-20260910",
+      "head": "f98f7a3c9ac45ac6c094bfb82966105e51de8948"
+    },
+    {
+      "ref": "refs/heads/engine/atmosphere-state-20260910",
+      "head": "16e265eb11e292dc478732a1a9fb3b6f6fa09d49"
+    },
+    {
+      "ref": "refs/heads/engine/atmosphere-world-20260910",
+      "head": "dc8a8ac84dda833ed2422f7e278bc83318bdf2a0"
+    },
+    {
+      "ref": "refs/heads/engine/authored-orders-20260911",
+      "head": "e3a3545a8bb17caf0059a00f5ca509b78bae8a8f"
+    },
+    {
+      "ref": "refs/heads/engine/baked-depth-export-20260917",
+      "head": "6b45999054e062391093ea0bf80661af12854ee3"
+    },
+    {
+      "ref": "refs/heads/engine/bounded-navigation-20260923",
+      "head": "37487cfee1b7342364ef162456f5dd83bd9d8546"
+    },
+    {
+      "ref": "refs/heads/engine/brew-station-art-20260913",
+      "head": "d0a58cc90a789fa3fbd2ebe74c0a7a7e976ff4ed"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-attendance-20260913",
+      "head": "68642bfaf06e4855f4c67b6a4ab2da5a04a8e2d3"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-compiler-repair-20260913",
+      "head": "b24a233d456d3d0df389f8cbee89515b9cb4d2d5"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-input-join-20260913",
+      "head": "a3e60f4e8a08da147ab1c6f981b9be4f63132b14"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-input-join-clean-20260913",
+      "head": "816a1d2d930c7b3079b2048bd46aad08ef0a1ffc"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-native-core-20260913",
+      "head": "0ce7176afbfcbbb17b742cb1f601d50179562fd9"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-presentation-v2-20260913",
+      "head": "8f811d699ecd8146c55fccfa7764edc229b53ecc"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-vessel-presentation-20260913",
+      "head": "96a75d6fbef6cf5fdb7ef67dd55aaf62509d6a0f"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-water-join-20260913",
+      "head": "f4b77efd1e176e818b863c0df9332dad7c9a59d7"
+    },
+    {
+      "ref": "refs/heads/engine/browser-record-save-20260911",
+      "head": "e80cbcc54a8b37c92580bd47de747a51bcb1814b"
+    },
+    {
+      "ref": "refs/heads/engine/camera-hosted-proof-20260920",
+      "head": "39bf7e912178ea631fe58a1408e39d7096109043"
+    },
+    {
+      "ref": "refs/heads/engine/camera-terrain-surfaces-20260921",
+      "head": "4a61fc6dd9548f9e1a81ea66876ada184b38cb32"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-art-20260910",
+      "head": "a5fd669f9cf9651b93f20a2948be20f92ac1e4fb"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-client-20260911",
+      "head": "4ff41e83f73bb452e9c14aa52f0a8937fbab0dd5"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-kernel-20260910",
+      "head": "1fdc055410df8bd28da5d752e64e72c1350ff286"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-physics-20260911",
+      "head": "9e65a0aa8b17b8edd2ec6019a57f89eced675dc0"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-recovery-20260910",
+      "head": "3219ed7cadc2d5b55e74c8a6ba9cc37b779a5a54"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-session-20260910",
+      "head": "562b09b93e388ce2a86ee3e6805fce141c2044d8"
+    },
+    {
+      "ref": "refs/heads/engine/canonical-record-churn-20260923",
+      "head": "b710f20774a13a730a11f22db781948f3bd94a6d"
+    },
+    {
+      "ref": "refs/heads/engine/carry-animation-20260913",
+      "head": "7a7d1f7b59520849deba49796c45dcdd4828f862"
+    },
+    {
+      "ref": "refs/heads/engine/carry-transients-20260913",
+      "head": "e34111d7ea756df98f0e129814b4e31591a61e41"
+    },
+    {
+      "ref": "refs/heads/engine/cave-observation-20260910",
+      "head": "4e6ea4746db41b04763b29f260e19ec246f6005c"
+    },
+    {
+      "ref": "refs/heads/engine/clear-depth-packet-cleanbreak-20260914",
+      "head": "0f409d2b4a6b8945d0fcb273360d02413ef01b3c"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-air-view-20260910",
+      "head": "73cbed68de28ba0e9c45728fd37a6831ec2ee177"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-art-parts-20260914",
+      "head": "bf38d2bfa833eed24a70d2b25e8b114118888747"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-construction-20260914",
+      "head": "865bbd88cad9c69741c91432cabed44c09a9376b"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-controls-20260914",
+      "head": "93118138196309e9426af506765512bfef71d610"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-depth-feasibility-20260914",
+      "head": "661b60bb633c081324ae7250af29a9d38900d639"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-depth-runtime-20260914",
+      "head": "193ab6e96689d8ac7ccfa1bd84302295fc6db363"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-consumer-finish-20260914",
+      "head": "792369278cc9238e382686d271d04e273110c746"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-gesture-20260914",
+      "head": "8f8abb2c42ed1b74d364c5d214b366ba094d8ab9"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-gesture-owner-20260914",
+      "head": "3cc09d44659c9e4dd521f2197c2f3c0c9eae7340"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-integration-20260914",
+      "head": "3f884ff43e088d4b7b3a3e2978215810d8c8a68b"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-kernel-20260914",
+      "head": "1410a1c9288d4b90a6303e861983c1a4ae3122b6"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-wasm-pair-20260914",
+      "head": "e815338cfd9a25f69073c5c352d49fdc5fca8930"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-groundwater-20260912",
+      "head": "8f8ed72715b5d7144a298a6edc48afb38769ad67"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-parties-20260914",
+      "head": "c3250e90c39388d91ad297bc80aa67d0ce5d8b72"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-party-join-20260914",
+      "head": "7126cfeeab699a88ab1717b82ae1136e4d862153"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-party-proof-20260914",
+      "head": "aba0cf539431b61b10030c6111fe78303fbe7324"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-placement-preview-20260913",
+      "head": "f62854382f58315ec1724da07a8e6cebe48fcb62"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-placement-ui-20260913",
+      "head": "a760eb500ac1ac408b394d8c7edeac36948c7c31"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-playable-prep-20260914",
+      "head": "2ec70cd67926d84547aadd5347e978787e2dbcc6"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-repair-acceptance-20260914",
+      "head": "7e72482b1f149e9f3ad88e7fddc8c461b523b9f8"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-repair-qualification-20260914",
+      "head": "174c9a0edf4e2749158c2a5b329981d719d8da3d"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-work-attempt-20260914",
+      "head": "f09c2bc897d025008a757b1ed0665116422854a8"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-work-attempts-20260914",
+      "head": "fd22b517430aa0ae8050139ea280f22a728c2935"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-world-depth-20260914",
+      "head": "d52a65fd25193aebdde0ceaf92f95825080f6e97"
+    },
+    {
+      "ref": "refs/heads/engine/client-startup-overlap-20260922",
+      "head": "fe1fa71447cd7925a0679ffbc9f5640bab3230cf"
+    },
+    {
+      "ref": "refs/heads/engine/client-terrain-regions-20260921",
+      "head": "d49e5b4c28edeb27bbdf4dc4feb330ededfddc67"
+    },
+    {
+      "ref": "refs/heads/engine/colony-area-work-20260911",
+      "head": "a9c1c055c1155f75c4997c5f04fdcac6f5f1ad0b"
+    },
+    {
+      "ref": "refs/heads/engine/colony-cargo-deposit-20260911",
+      "head": "84bdc3c2e5fdfc217c6435b67da9dc53629e191f"
+    },
+    {
+      "ref": "refs/heads/engine/colony-delivery-owner-20260913",
+      "head": "e79eb166ca4bdc9f9c0d00eee7300ba2c5190b1f"
+    },
+    {
+      "ref": "refs/heads/engine/colony-dig-command-20260911",
+      "head": "71b1d87d2abe8657ecdd99b5ab4521bac68f27f2"
+    },
+    {
+      "ref": "refs/heads/engine/colony-excavation-consumer-20260911",
+      "head": "b32f6c24e7d8e6a954ad79328368451ff7136e96"
+    },
+    {
+      "ref": "refs/heads/engine/colony-groundwater-consumer-20260911",
+      "head": "366a97f62859a01d354934003b4e2cd425d1d087"
+    },
+    {
+      "ref": "refs/heads/engine/colony-hearth-proof-20260911",
+      "head": "23e5dfcfb29861d8ccb3edffeccabd1b843a3087"
+    },
+    {
+      "ref": "refs/heads/engine/colony-needs-20260913",
+      "head": "05c74d7a13741471437209fb16479b12e9e5ad0c"
+    },
+    {
+      "ref": "refs/heads/engine/colony-party-host-20260914",
+      "head": "c613743af95b8302f3ab401a9df0d5b6c1b11c2a"
+    },
+    {
+      "ref": "refs/heads/engine/colony-party-protocol-20260914",
+      "head": "a795d0a1cef75ecc16df7c2963041318920b5333"
+    },
+    {
+      "ref": "refs/heads/engine/colony-presentation-20260911",
+      "head": "4667fb22876e16da6aed6cb2b43d00aa56db6d36"
+    },
+    {
+      "ref": "refs/heads/engine/colony-proof-area-20260911",
+      "head": "b0094a652bafab190c7166afd8380f8493910c5b"
+    },
+    {
+      "ref": "refs/heads/engine/colony-supply-batches-20260911",
+      "head": "cda4b6799097670143c0608369440f7d7bd9c129"
+    },
+    {
+      "ref": "refs/heads/engine/colony-terrain-consumer-20260911",
+      "head": "15495262076fec0a961afa7b75ffb2baaa2beea7"
+    },
+    {
+      "ref": "refs/heads/engine/colony-v2-host-recut-20260914",
+      "head": "0d78cba86e8c8f03136f2918556988b4f083facd"
+    },
+    {
+      "ref": "refs/heads/engine/colony-wet-host-proof-20260911",
+      "head": "2fa0669a567081c3f386e95cf47c1aac5628ff1c"
+    },
+    {
+      "ref": "refs/heads/engine/consolidated-gameplay-law-20260915",
+      "head": "ce63070adccbac125c0676d6f48969d39004cd9d"
+    },
+    {
+      "ref": "refs/heads/engine/construction-access-20260913",
+      "head": "fe877f1aa83ba364116a5aa4492f9b6ed679381b"
+    },
+    {
+      "ref": "refs/heads/engine/construction-capabilities-20260913",
+      "head": "5678c0fc5c5eea665c7478b854cf831f76fc2abe"
+    },
+    {
+      "ref": "refs/heads/engine/construction-cascade-repair-20260915",
+      "head": "f086f508dc3d2b650f0c22b04c674b6c35419771"
+    },
+    {
+      "ref": "refs/heads/engine/construction-geometry-laws-20260915",
+      "head": "13da30b6cdd6b8e808c961e130456770c4f1f062"
+    },
+    {
+      "ref": "refs/heads/engine/construction-gesture-cutover-20260913",
+      "head": "baddd808cf55d6fd95c9841a2ea28e954c86736c"
+    },
+    {
+      "ref": "refs/heads/engine/construction-law-repair-20260915",
+      "head": "d0f5ec69d74c36a4b9305b48886a8dac1f4ae5df"
+    },
+    {
+      "ref": "refs/heads/engine/construction-lifecycle-20260913",
+      "head": "62f70ba12b75da51e6d43271c95bb8fb07852194"
+    },
+    {
+      "ref": "refs/heads/engine/construction-readiness-20260913",
+      "head": "60a8a85e2a4942fa26108679ec81fd0b7789a29b"
+    },
+    {
+      "ref": "refs/heads/engine/construction-shapes-20260913",
+      "head": "11427e8618cf5064f34f8e0f43bca1c8c6b75bbd"
+    },
+    {
+      "ref": "refs/heads/engine/construction-sites-20260911",
+      "head": "812ff914ab671416a192f67ba52127806cfa84b9"
+    },
+    {
+      "ref": "refs/heads/engine/construction-supply-recovery-20260915",
+      "head": "31905a671872e2832d33dc5a236118e513b05405"
+    },
+    {
+      "ref": "refs/heads/engine/construction-work-attempt-20260914",
+      "head": "93652d79a2c3914a345fcf9b64ffe6555492ebfc"
+    },
+    {
+      "ref": "refs/heads/engine/contained-consumption-20260913",
+      "head": "6366a4e34a96e01b81106d095da8a197997c2e39"
+    },
+    {
+      "ref": "refs/heads/engine/controllers-20260909",
+      "head": "70cc373f58038dba158a3210b18ee67ee8047743"
+    },
+    {
+      "ref": "refs/heads/engine/coplanar-membership-order-20260921",
+      "head": "a21e152a6beb615cd53c51df31b60eb3659343f6"
+    },
+    {
+      "ref": "refs/heads/engine/cut-layer-staging-20260922",
+      "head": "7fa61ce6e57d7ec5296051d89e3b0944f81e1e35"
+    },
+    {
+      "ref": "refs/heads/engine/cut-terrain-join-20260916",
+      "head": "48cb9153cccdcc78ff320aed9aa88970eb9937c7"
+    },
+    {
+      "ref": "refs/heads/engine/cut-terrain-r1-20260916",
+      "head": "11b78e61c2904fbf49fc8bfaef975fbac83a1895"
+    },
+    {
+      "ref": "refs/heads/engine/cut-terrain-r2-20260916",
+      "head": "ab58fefdec4faeca6521bc3b98b9826cc1a03e19"
+    },
+    {
+      "ref": "refs/heads/engine/declarative-policy-controls-20260912",
+      "head": "39cd9756bb82be400c953853ab54a94a21b0fbd8"
+    },
+    {
+      "ref": "refs/heads/engine/deconstruction-work-20260913",
+      "head": "c4642c9daaf604d56a0c7772fb3710550f2dbeb6"
+    },
+    {
+      "ref": "refs/heads/engine/deconstruction-workattempt-recut-20260914",
+      "head": "10a463a7226b02792af2aa2f1d2d5f73656696b5"
+    },
+    {
+      "ref": "refs/heads/engine/deep-water-20260909",
+      "head": "cfd8456dca645a5162d4569288755e8a1ff78f6e"
+    },
+    {
+      "ref": "refs/heads/engine/delivery-fix-20260910",
+      "head": "052a04f1ad1e4fd6d45f414a540a4b7d30d10b5a"
+    },
+    {
+      "ref": "refs/heads/engine/demo-motion-20260911",
+      "head": "1ba538417453cfa3bedd397ac768418eb9f10a43"
+    },
+    {
+      "ref": "refs/heads/engine/depth-acceptance-prep-20260914",
+      "head": "7519e3205ebb37e685141e72124ebf698ee58a9d"
+    },
+    {
+      "ref": "refs/heads/engine/dig-cancellation-boundary-20260914",
+      "head": "594f155c2e6471600e6567b9f083010e4758e8ef"
+    },
+    {
+      "ref": "refs/heads/engine/dig-delivery-claims-20260911",
+      "head": "b1d636043e952889050f2cde00cda9125237a9d8"
+    },
+    {
+      "ref": "refs/heads/engine/dig-playability-20260911",
+      "head": "39b65eb210dcd37837d57e3033d7f1af1ce98480"
+    },
+    {
+      "ref": "refs/heads/engine/discrete-water-20260912",
+      "head": "c4df9f3cc744ef6f0b6252619a3b1e463cdbccc4"
+    },
+    {
+      "ref": "refs/heads/engine/discrete-water-exchange-20260913",
+      "head": "6d0f1f852886a8ced276a505d2f44bada7a1dde8"
+    },
+    {
+      "ref": "refs/heads/engine/disposable-candidate-fast-path-20260923",
+      "head": "3f3312c65a1c1e99282ad834d8082cca104d4554"
+    },
+    {
+      "ref": "refs/heads/engine/do-framework-driver-20260923",
+      "head": "7f3fbb47fa7f719f4610d8943b70c29cee49cf34"
+    },
+    {
+      "ref": "refs/heads/engine/do-record-batches-20260923",
+      "head": "08806b771d1d5a75282b029460f31459c18cb0e3"
+    },
+    {
+      "ref": "refs/heads/engine/do-terminal-fault-20260923",
+      "head": "66a023db065683f4fead127b59dc8d61dbba5eed"
+    },
+    {
+      "ref": "refs/heads/engine/do-wake-publication-20260923",
+      "head": "503cb31dcae230bc88cb96f3adae50fcc781e63c"
+    },
+    {
+      "ref": "refs/heads/engine/draft-provider-reconciliation-20260914",
+      "head": "23ce3694269355bc4b0171398ac72a6ad5fc2200"
+    },
+    {
+      "ref": "refs/heads/engine/draw-record-extraction-20260917",
+      "head": "984a361123235bbe32491b78d38e81e8200d2d83"
+    },
+    {
+      "ref": "refs/heads/engine/ecs-work-phase-20260913",
+      "head": "1cc26df5844e2af1da4eabb49f2eb4940e0f5408"
+    },
+    {
+      "ref": "refs/heads/engine/emission-definition-20260911",
+      "head": "46d2efaa5bce0b8fc5b4488f82a0ccace46570b5"
+    },
+    {
+      "ref": "refs/heads/engine/emitter-capability-20260911",
+      "head": "ca7def82ad60e8139dc6aedd17bf3fbe6e794c71"
+    },
+    {
+      "ref": "refs/heads/engine/entity-membership-20260911",
+      "head": "9d916c1ee003e89c6e1e6de99eaf1cc96f6996c1"
+    },
+    {
+      "ref": "refs/heads/engine/environment-20260909",
+      "head": "f4a2b657b74eb3a5794c755df06ea400fcb74bf1"
+    },
+    {
+      "ref": "refs/heads/engine/environment-definition-20260911",
+      "head": "ad08c426f0a9f7388c3adf1b43490eecd4ebcf7d"
+    },
+    {
+      "ref": "refs/heads/engine/environment-next-20260909",
+      "head": "33b397f703ab5fd0d7ad361d651bdb23207aa312"
+    },
+    {
+      "ref": "refs/heads/engine/environment-policy-20260911",
+      "head": "db6ec491d8be71844d688d4133e382e842c2b481"
+    },
+    {
+      "ref": "refs/heads/engine/environment-visuals-20260911",
+      "head": "65d0c85d6358c81fa5666cf302cc4d9d28709166"
+    },
+    {
+      "ref": "refs/heads/engine/event-driven-scheduler-audit-20260923",
+      "head": "d18855cf21084b19de52e5567291e48c0bc69c7e"
+    },
+    {
+      "ref": "refs/heads/engine/exterior-cutaway-20260911",
+      "head": "0c0e771949898e986cd5076b58e255e53cf8c6d0"
+    },
+    {
+      "ref": "refs/heads/engine/field-inspection-20260909",
+      "head": "0ad8400c01107f4b60c0796c8a141fb0dba1cf89"
+    },
+    {
+      "ref": "refs/heads/engine/field-region-host-20260909",
+      "head": "6bfa2dd8c045d8f34eeeb6118cec37292c2f44c5"
+    },
+    {
+      "ref": "refs/heads/engine/field-supply-20260909",
+      "head": "b40213cc37caf8215fe871616022f92147fe7712"
+    },
+    {
+      "ref": "refs/heads/engine/field-voxel-consumer-20260910",
+      "head": "58e31f88556354b07b4f8d7b6087a83a091c1183"
+    },
+    {
+      "ref": "refs/heads/engine/field-withdrawal-20260911",
+      "head": "25d121cc4e14c45adfc7ebf595a0588aeb9869fb"
+    },
+    {
+      "ref": "refs/heads/engine/finite-emissions-20260909",
+      "head": "a8d8335a0a47db3ab3cc54ad65957533e86be809"
+    },
+    {
+      "ref": "refs/heads/engine/finite-release-20260911",
+      "head": "d321f2759db713aeec29dcd709bae86cec361488"
+    },
+    {
+      "ref": "refs/heads/engine/finite-resource-output-20260912",
+      "head": "46d4ec8894e22662ab3d0f85c478aff94a664fd3"
+    },
+    {
+      "ref": "refs/heads/engine/floor-acceptance-20260914",
+      "head": "a2f24a6853bad925d7acbbcebc107e7873cc75e0"
+    },
+    {
+      "ref": "refs/heads/engine/floor-colony-consumer-20260914",
+      "head": "c656c891ee1d75bb272db766f31a8aa222a1cfba"
+    },
+    {
+      "ref": "refs/heads/engine/floor-replacement-20260914",
+      "head": "a15577a9533f3829489246c8580fd1c7a1eb34f3"
+    },
+    {
+      "ref": "refs/heads/engine/floor-replacement-acceptance-20260914",
+      "head": "a8c9080ea5cb527cee6774ba63b1cd2d96f09e0c"
+    },
+    {
+      "ref": "refs/heads/engine/framework-controller-reuse-20260923",
+      "head": "eb811ccfe3ac553c7ff3c45c9f7f5f82821f1456"
+    },
+    {
+      "ref": "refs/heads/engine/framework-host-lease-20260923",
+      "head": "dc207c21962f62038305a66bfe96e94bdf7d6b05"
+    },
+    {
+      "ref": "refs/heads/engine/framework-pack-reuse-20260923",
+      "head": "7378fccb65f99c55177442f2d0069658f1288770"
+    },
+    {
+      "ref": "refs/heads/engine/framework-reuse-witness-20260923",
+      "head": "1ce7aaa868f2fb85b5ddd43b228429eeb453136f"
+    },
+    {
+      "ref": "refs/heads/engine/framework-visual-projection-20260923",
+      "head": "de0aa815b60cc95ebc8febfbe3975902a953f6c0"
+    },
+    {
+      "ref": "refs/heads/engine/framework-workload-proof-20260923",
+      "head": "fc69775f6f9ee2f0b376351e38e3aae3f89ace4c"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-animation-20260910",
+      "head": "fe23aab9350a19c2ea721867acdbff4602195061"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-assignment-door-20260910",
+      "head": "722532c89d0fe6138b59614c782efdbf811cf1aa"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-author-exercise-20260910",
+      "head": "cd5ad33e2c9e00a737b5b92d24c45c0533ad619b"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-authored-intents-20260910",
+      "head": "a56740781580df26622981fe057bd0174a8ac2ed"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-client-20260910",
+      "head": "ea5b9431dfd9e1c5ae075ffc33a672e3f603c1e1"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-clock-frontier-20260910",
+      "head": "1268930f4e05c4f754b9a55bb1d381d047562830"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-colony-orders-20260910",
+      "head": "c8d07662f23b6586ab5235087d4d74b9ab14a6dd"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-core-20260910",
+      "head": "fd6d78e46510d0ce86eb220841d27017e1681c64"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-do-host-20260910",
+      "head": "929d2782197e841f57108268a981fc2f46af4b13"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-float-roundtrip-20260910",
+      "head": "0acc88ef56ebb8e219891678559def4d5566ec19"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-game-presentation-20260910",
+      "head": "45ff619ff0e9f84a49d1a6506227770edcfd5eba"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-game-rules-20260910",
+      "head": "baa3484c5d7f4a460882b4835380088d2079b3d5"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-interpolation-20260910",
+      "head": "da4a30de835eb9f1d1afdd617e21798d2c0b141a"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-kernel-20260910",
+      "head": "8610520adf1253c1eaef3edc92cdaf50f6d49c1d"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-moving-supports-20260910",
+      "head": "140e12cbb51c4971d2b5fd8bff91bf78cffb3db8"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-network-proof-20260910",
+      "head": "0a4ceefc28fbba88c8c179743a6452f3dc57b8d7"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-observation-20260910",
+      "head": "04e968104852ee5d07f7b48bcb328802a43a62e3"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-online-pages-20260910",
+      "head": "1ff29bec3875cf64423cb0aea4fc01b881ce89aa"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-pack-recovery-20260910",
+      "head": "2371a8579422a711d03b4af88e3f2c5b1fbde889"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-pirate-client-20260910",
+      "head": "5a089aa63c8f0132465e10b2f4706aa57e8e690f"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-pirate-recovery-20260910",
+      "head": "e668f9f7ab53e69a7a6e4a08ed777c3c9957bc54"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-playable-polish-20260910",
+      "head": "a7fcc435add8e7b386b67f89f57a9d94de735ec6"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-public-host-20260910",
+      "head": "938fcdf4791c459290b5cec528af9f287bca0bf9"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-public-proof-20260910",
+      "head": "fa3865874a5205fd80a0e808ea867817a9d574d8"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-remote-client-20260910",
+      "head": "f77d344cf9be5ee96f70094b9e3eace42cc05ed7"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-sdk-20260910",
+      "head": "8a749683a508e29dbc95c18c26e44a5a346044f0"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-session-laws-20260910",
+      "head": "49812833079c6f40b2518dfb15ff871aa37c8194"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-ship-art-20260910",
+      "head": "30b1479669dbf252fe149af3ad2bd01be5c05c9e"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-support-callers-20260910",
+      "head": "bf2ca1eb3322b207a2bc66e16b1ffd39271f2bec"
+    },
+    {
+      "ref": "refs/heads/engine/gas-performance-r3-20260916",
+      "head": "d38a9973c4c16bdac3c11227401c481e6dc658b7"
+    },
+    {
+      "ref": "refs/heads/engine/generated-room-20260909",
+      "head": "fad06572a0f40eec60d718fc0c67d3abc66d975d"
+    },
+    {
+      "ref": "refs/heads/engine/goblin-environment-20260910",
+      "head": "77c367f77ea96052ec9c743cb534bf04346cdd46"
+    },
+    {
+      "ref": "refs/heads/engine/goblin-wet-20260909",
+      "head": "696bd2a7d7f3db1967f0cce155bcf83e712259a5"
+    },
+    {
+      "ref": "refs/heads/engine/ground-item-presentation-20260916",
+      "head": "0f65a992c059cfe76124726558de133d76db48b8"
+    },
+    {
+      "ref": "refs/heads/engine/host-cadence-owner-20260923",
+      "head": "ec4013547d5f9654adc14e2d5b76e57fa9fa96fa"
+    },
+    {
+      "ref": "refs/heads/engine/host-command-recovery-20260911",
+      "head": "69a3fb16c33653456b4c65d04f200c9d3cbb86b3"
+    },
+    {
+      "ref": "refs/heads/engine/host-contract-repair-20260915",
+      "head": "98352a154b60c2aae42fbab015509b0b8ae1a88c"
+    },
+    {
+      "ref": "refs/heads/engine/hosted-reload-second-party-proof-20260914",
+      "head": "b4330e5e124c7df0245a9bdd66299ef521028ca7"
+    },
+    {
+      "ref": "refs/heads/engine/immutable-order-signatures-20260921",
+      "head": "0d46adfbb073b9f89a3af6bedc311d28f35e225b"
+    },
+    {
+      "ref": "refs/heads/engine/iso-sorter-buckets-20260914",
+      "head": "468622ef270d3556966273bb36c8c5cc42fbd73f"
+    },
+    {
+      "ref": "refs/heads/engine/iso-sprite-sorter-20260914",
+      "head": "4a8c1aee0bc8edc8146c11b70cace4f9322fe972"
+    },
+    {
+      "ref": "refs/heads/engine/kernel-record-bundle-20260911",
+      "head": "98d9d1cf2a38cd55ac0031624ba83259a633cd2a"
+    },
+    {
+      "ref": "refs/heads/engine/lawful-floor-stockpile-20260915",
+      "head": "407d169d14146b34b7a99a5a49fceea1f2079875"
+    },
+    {
+      "ref": "refs/heads/engine/living-terrain-integration-20260917",
+      "head": "4184ab859aae4b492a85821b68ed1c4f08864cb4"
+    },
+    {
+      "ref": "refs/heads/engine/local-terrain-wire-20260911",
+      "head": "b3c1cdca1124f538d274fed9badcffc39d96ed51"
+    },
+    {
+      "ref": "refs/heads/engine/lot-contents-20260911",
+      "head": "d098c70d5bfa7efae5a093eb35a39c914b4b22a8"
+    },
+    {
+      "ref": "refs/heads/engine/manual-hearth-cleanup-20260913",
+      "head": "b6faf3fd3fdb04a379ec2a16e1e519593e971021"
+    },
+    {
+      "ref": "refs/heads/engine/material-consumption-20260911",
+      "head": "ad4e5baee8bd28d373685adff6c862af146f42ce"
+    },
+    {
+      "ref": "refs/heads/engine/material-law-repair-20260915",
+      "head": "1534939c68548f6290cec7b9212be399ac56608c"
+    },
+    {
+      "ref": "refs/heads/engine/material-output-20260911",
+      "head": "7f6635c1a8ed42244393df3993f78480b52815e8"
+    },
+    {
+      "ref": "refs/heads/engine/mixed-fixture-real-art-20260917",
+      "head": "ea729a89ae37ee9555e2c85cf4980d108c5c6beb"
+    },
+    {
+      "ref": "refs/heads/engine/mugwort-admission-20260913",
+      "head": "cc7d9aa54a140df6db168923817163077a54dd25"
+    },
+    {
+      "ref": "refs/heads/engine/mugwort-growth-20260913",
+      "head": "e7a025bfb1c23e467fc16c98df88aa72e08fddb9"
+    },
+    {
+      "ref": "refs/heads/engine/native-atmosphere-20260911",
+      "head": "a3cbb5630cd63c0078b8e72601911051ab94d324"
+    },
+    {
+      "ref": "refs/heads/engine/native-delivery-consumer-cutover-20260915",
+      "head": "80f47db1e6ad4e899b03d4a9512c2d1567ace06b"
+    },
+    {
+      "ref": "refs/heads/engine/native-field-work-requirements-20260915",
+      "head": "ca025c01e579458a3f6ee0b4149e194378a2e355"
+    },
+    {
+      "ref": "refs/heads/engine/native-job-foundation-20260915",
+      "head": "986d4b06d62fc26e5b4d161850ddae13e1117afc"
+    },
+    {
+      "ref": "refs/heads/engine/native-job-task-core-20260915",
+      "head": "0e00fa20b5cf106e94133f4736a6b2bd855bbf30"
+    },
+    {
+      "ref": "refs/heads/engine/native-job-task-core-current-20260915",
+      "head": "f1096d488eba43cd38c74f0f8de8ac8a52382a1c"
+    },
+    {
+      "ref": "refs/heads/engine/native-labor-requirements-20260915",
+      "head": "6958f09e4c2f1ba42651515ac32ad8901b6a17f8"
+    },
+    {
+      "ref": "refs/heads/engine/native-party-spawn-20260914",
+      "head": "45e9575bd4ff343c6aae1d9e42e176fa6a466832"
+    },
+    {
+      "ref": "refs/heads/engine/native-placement-admission-20260914",
+      "head": "70c2ef12010fe4bd7d35eebabacb8fc42869c9a4"
+    },
+    {
+      "ref": "refs/heads/engine/native-planner-index-owner-20260915",
+      "head": "1e29ee33008fda6c4f87770705e8ad9925366f6d"
+    },
+    {
+      "ref": "refs/heads/engine/native-planner-tick-20260915",
+      "head": "a837dc0127289fbe37328a189a5de8b1bdefc5f4"
+    },
+    {
+      "ref": "refs/heads/engine/native-process-supply-20260915",
+      "head": "19966b73c68c69900985fbefbe572ddaeb2bc059"
+    },
+    {
+      "ref": "refs/heads/engine/native-process-water-20260915",
+      "head": "04141bd119cddcbca899b9388c51f5037a7c16a2"
+    },
+    {
+      "ref": "refs/heads/engine/native-production-construction-cutover-20260915",
+      "head": "5cc1b3e339f54c425db9e370d59379ca0324e118"
+    },
+    {
+      "ref": "refs/heads/engine/native-resource-cutover-20260915",
+      "head": "16a1757c00439a2418c826cae472313ea4f4c690"
+    },
+    {
+      "ref": "refs/heads/engine/native-resource-job-20260915",
+      "head": "5f8dd3ce479522a10596391aa4de6b304447f927"
+    },
+    {
+      "ref": "refs/heads/engine/native-route-results-20260915",
+      "head": "1ae5728eb333fe0345b7011f7afc110e22890a4f"
+    },
+    {
+      "ref": "refs/heads/engine/native-sight-20260911",
+      "head": "c9dba38d455ae0aaa023082a69416517a24dac29"
+    },
+    {
+      "ref": "refs/heads/engine/native-stockpile-20260912",
+      "head": "f56b390c93999c44c1801aaecda5c666c5b0b2e8"
+    },
+    {
+      "ref": "refs/heads/engine/native-stockpile-consumer-20260915",
+      "head": "5d40909aa204332a65afbe7facc44e8968d4131c"
+    },
+    {
+      "ref": "refs/heads/engine/native-stockpile-v2",
+      "head": "7fc9ecb2226eb1c3448830a3716bcfc2ff6921a0"
+    },
+    {
+      "ref": "refs/heads/engine/native-supply-allocation-20260915",
+      "head": "cd963d45b418f95fcc8cde907aa4a8fc3dadac1e"
+    },
+    {
+      "ref": "refs/heads/engine/native-supply-lifecycle-20260915",
+      "head": "7ab32dd0bf85ac75138efe9a39ed772811e452f7"
+    },
+    {
+      "ref": "refs/heads/engine/native-tree-consumer-20260915",
+      "head": "6d36319c82494fb21359cbb810a739b7fc8e5327"
+    },
+    {
+      "ref": "refs/heads/engine/native-water-20260911",
+      "head": "847ff3cae4a6ce224d8c66e549e6bd7eedf2b975"
+    },
+    {
+      "ref": "refs/heads/engine/native-water-consumer-20260915",
+      "head": "ba1988e5cf845b555b1c356b55967c71222ca382"
+    },
+    {
+      "ref": "refs/heads/engine/native-work-planner-foundation-20260915",
+      "head": "bea8b3f1a7263a40bb764c5eef50c35d3484c6dd"
+    },
+    {
+      "ref": "refs/heads/engine/native-worldgen-20260911",
+      "head": "9ca76575c013106a2641421e57ecb369e733cde4"
+    },
+    {
+      "ref": "refs/heads/engine/navigation-productivity-20260923",
+      "head": "8014934497a240c59d7271f353978c758fa6822f"
+    },
+    {
+      "ref": "refs/heads/engine/network-library-qualification-20260911",
+      "head": "80cf92fc2c90508b16684e84c15029065ee820ec"
+    },
+    {
+      "ref": "refs/heads/engine/online-motion-20260911",
+      "head": "baed6a8578770c131a4eccf35e44b89d2c392f23"
+    },
+    {
+      "ref": "refs/heads/engine/online-transport-20260911",
+      "head": "75066c9cd50924fad08579762cacf0cf8f48c528"
+    },
+    {
+      "ref": "refs/heads/engine/paid-atmosphere-20260910",
+      "head": "b83ae937a83807440b78bc6f521f2d1b9bbdf15b"
+    },
+    {
+      "ref": "refs/heads/engine/paid-fire-laws-20260911",
+      "head": "d367445f54bb3e0d76f5623097a2fc383aeb10a3"
+    },
+    {
+      "ref": "refs/heads/engine/paired-depth-repair-20260914",
+      "head": "cae1aaa2db6db67e0bc901c33b9bff33db36cd53"
+    },
+    {
+      "ref": "refs/heads/engine/paired-water-vessel-20260913",
+      "head": "8908a19482a8f32549cdff33b0293dfb4f9a1d30"
+    },
+    {
+      "ref": "refs/heads/engine/parallel-site-supplies",
+      "head": "f0d50e30c817e6b913d4ec2c7681e739416f9f01"
+    },
+    {
+      "ref": "refs/heads/engine/party-offline-proof-recut-20260914",
+      "head": "739b76186c8f8cfdab0e623d73085afb352f833a"
+    },
+    {
+      "ref": "refs/heads/engine/party-release-prep-20260914",
+      "head": "0bf6e354b1f3c3af71859c83e53d6cd0b8d9af91"
+    },
+    {
+      "ref": "refs/heads/engine/path-edge-metric-20260913",
+      "head": "71a95b2efd3bcf024a0b5e52593c68fe19e87357"
+    },
+    {
+      "ref": "refs/heads/engine/path-hungarian-20260913",
+      "head": "aba8a7c62c4c13e974a294b96cbc6c96063475a6"
+    },
+    {
+      "ref": "refs/heads/engine/pathfinding-clean-20260913",
+      "head": "a69c0b0f45fe23d551e693003ffb9fc16ed1e3c0"
+    },
+    {
+      "ref": "refs/heads/engine/performance-page-repair-20260915",
+      "head": "1255ad5a734a3a1415b99d6f9cb128076db0a83c"
+    },
+    {
+      "ref": "refs/heads/engine/physical-completion-20260909",
+      "head": "d6982ac30b9334718c4b922237d8b8d12202862e"
+    },
+    {
+      "ref": "refs/heads/engine/physical-completion-join-20260909",
+      "head": "a10bf191dc64208f0ce20884c5ee15f664219c8e"
+    },
+    {
+      "ref": "refs/heads/engine/physical-geometry-query-20260909",
+      "head": "c951b0aa8af5165fa962bd98ddc090ac6c766746"
+    },
+    {
+      "ref": "refs/heads/engine/physical-navigation-20260909",
+      "head": "917f72353157bc4c35db8f789971abbb20fdc710"
+    },
+    {
+      "ref": "refs/heads/engine/placement-preview-admission-20260915",
+      "head": "6ba929922748a04a16acf11bd050856ce559f3ba"
+    },
+    {
+      "ref": "refs/heads/engine/playable-art-20260910",
+      "head": "b3ae668a057e4a60dd77fa47d47758852e473f93"
+    },
+    {
+      "ref": "refs/heads/engine/playable-environment-admission-20260910",
+      "head": "341b7725d01047b3a78b33b4a4e3b1fc6dd53bb2"
+    },
+    {
+      "ref": "refs/heads/engine/playable-environment-qualification-20260910",
+      "head": "ce7b4e6691e5c5bbce4d5bc1fa67ba2526a835ec"
+    },
+    {
+      "ref": "refs/heads/engine/playable-environment-recut-20260910",
+      "head": "18df871a4295d8dd8e908497d110d8615a0a5e85"
+    },
+    {
+      "ref": "refs/heads/engine/prepared-terrain-culling-20260921",
+      "head": "2683edde0bc455870c603a31e84880fd65180407"
+    },
+    {
+      "ref": "refs/heads/engine/principal-scope-tests-20260916",
+      "head": "8f0e6794420bfc4751b97f5e4d24b79350b8755b"
+    },
+    {
+      "ref": "refs/heads/engine/process-attempt-owner-20260914",
+      "head": "fbeaf1d5807c16ae0b6c82382637286cfd1616c5"
+    },
+    {
+      "ref": "refs/heads/engine/production-voxel-cutover-20260917",
+      "head": "bcc1b0ba4c1e53eedc0bd5fe79a55e470a436c1f"
+    },
+    {
+      "ref": "refs/heads/engine/publication-cost-owner-20260923",
+      "head": "196cd7f4cfb4358b5f76a6f05ffce91cca41f8c4"
+    },
+    {
+      "ref": "refs/heads/engine/publication-owner-20260923",
+      "head": "3f18b65cdad7f0a2a88f9af60b3bf37faf13e7e0"
+    },
+    {
+      "ref": "refs/heads/engine/qualify-clearing-repair-groups-20260914",
+      "head": "ed08abe7fa34348d02efb5065cee57959e5dc715"
+    },
+    {
+      "ref": "refs/heads/engine/real-render-fixture-20260917",
+      "head": "482585a1404a5182f1c81387a65b2a9c7aa3b2d3"
+    },
+    {
+      "ref": "refs/heads/engine/record-encoding-owner-20260923",
+      "head": "c6b0c84e4e2dc52d1b35cfab0b27953e2951603a"
+    },
+    {
+      "ref": "refs/heads/engine/record-residual-locality-20260923",
+      "head": "653968226c723b0f79ca581a59bdc7b48b592062"
+    },
+    {
+      "ref": "refs/heads/engine/region-performance-diagnostics-20260921",
+      "head": "8bb18609ca103e65d6b9704e7daa7530dee9efeb"
+    },
+    {
+      "ref": "refs/heads/engine/region-record-cursor-20260923",
+      "head": "5dff7005b99acd197b19db5d77ff9cd7c7db7c09"
+    },
+    {
+      "ref": "refs/heads/engine/region-records-20260911",
+      "head": "1178037b54c8f4dbc9138812606a0cc1024c1d59"
+    },
+    {
+      "ref": "refs/heads/engine/remote-stale-intent-20260910",
+      "head": "762902eec1627137d2bdf7b918e7cea0dd21c3f6"
+    },
+    {
+      "ref": "refs/heads/engine/render-pickability-20260914",
+      "head": "9b7d659fd2a04922b4d188133e63e46936c46fe5"
+    },
+    {
+      "ref": "refs/heads/engine/render-placement-wire-20260914",
+      "head": "444431973c3bd6e4a2752c1a7104839fb25abb44"
+    },
+    {
+      "ref": "refs/heads/engine/replay-consumer-adoption-20260923",
+      "head": "37d950f12398155cc8c421f844827dba82cf9da5"
+    },
+    {
+      "ref": "refs/heads/engine/resident-region-20260911",
+      "head": "685ec5c0816f4fe44bd8bed4b7d769eaedf5a5bb"
+    },
+    {
+      "ref": "refs/heads/engine/retained-assignment-20260923",
+      "head": "d98ce130026824beeecfea9760d72dc5404b2e45"
+    },
+    {
+      "ref": "refs/heads/engine/retained-stair-restore",
+      "head": "13613fdcd424ed50947fd557e89f58dd413513da"
+    },
+    {
+      "ref": "refs/heads/engine/retained-voxel-stream-20260917",
+      "head": "f7f23468340da1da4386aaa6f5010693556ef3f9"
+    },
+    {
+      "ref": "refs/heads/engine/reuse-witness-owner-20260923",
+      "head": "8171052c986609347cd6d22a6588aa2dd043d0e8"
+    },
+    {
+      "ref": "refs/heads/engine/room-gas-20260910",
+      "head": "1a871423563bdf3a630dd9f5c1bff8c96349dc3c"
+    },
+    {
+      "ref": "refs/heads/engine/route-cost-query-20260911",
+      "head": "e54cb8a3f0d94943f8c472540a465247796dced2"
+    },
+    {
+      "ref": "refs/heads/engine/route-crash-repair-20260911",
+      "head": "08662d400ccb973b9d02b19aba2b084e5a1b3e15"
+    },
+    {
+      "ref": "refs/heads/engine/route-recovery-20260910",
+      "head": "bf7a1a414796fb3d97150827c48c97727aef7d3e"
+    },
+    {
+      "ref": "refs/heads/engine/route-save-consumer-20260911",
+      "head": "1fe2563f7771ad40c266f3b22adca9aed8c6efe7"
+    },
+    {
+      "ref": "refs/heads/engine/scoped-authored-removal-20260914",
+      "head": "b3f1a3bcee7771886d27bf3bbf032de4c193e885"
+    },
+    {
+      "ref": "refs/heads/engine/scoped-sort-invalidation-20260915",
+      "head": "eda3561df7378f75afe28dd132e2d139be764dbb"
+    },
+    {
+      "ref": "refs/heads/engine/sdk-records-20260911",
+      "head": "538380068847e9c6de3074af43778d1d7e6ab9e8"
+    },
+    {
+      "ref": "refs/heads/engine/sealed-container-20260911",
+      "head": "308f500fd53ac7848978cdf75920a4c425e6a665"
+    },
+    {
+      "ref": "refs/heads/engine/sealed-floor-20260909",
+      "head": "e6646d61d73865fa393376f6223f1e07951419a0"
+    },
+    {
+      "ref": "refs/heads/engine/server-record-capture-20260923",
+      "head": "078d96fc61d1d066a5bcc89c927a0f032171d82c"
+    },
+    {
+      "ref": "refs/heads/engine/session-attempts-20260911",
+      "head": "2ebae0a098663819e26b11ca98528573af08c123"
+    },
+    {
+      "ref": "refs/heads/engine/session-records-20260911",
+      "head": "b429e7b0eaab6f0c7085c294e2ef84cced0735b1"
+    },
+    {
+      "ref": "refs/heads/engine/shallow-water-navigation-20260910",
+      "head": "621de1297cf823913b07cdfb72805d67c6add2fe"
+    },
+    {
+      "ref": "refs/heads/engine/shared-world-controls-20260911",
+      "head": "2add12af7506d6fdd40f374614e6552caf2f2d41"
+    },
+    {
+      "ref": "refs/heads/engine/site-supplies-20260911",
+      "head": "bede6dfaf8374c876745ccfc54d0225b1c5b3351"
+    },
+    {
+      "ref": "refs/heads/engine/spatial-art-integration-20260920",
+      "head": "abb6328554ade0dd593012ebe410e4f0ae42494d"
+    },
+    {
+      "ref": "refs/heads/engine/spatial-consumers-20260920",
+      "head": "13a328029a1d1df901833efcc81489539c48d9dc"
+    },
+    {
+      "ref": "refs/heads/engine/spatial-designation-v2",
+      "head": "583c5de630bf21c9f06ea6cb58aaa198e0299b96"
+    },
+    {
+      "ref": "refs/heads/engine/spatial-owner-integration-20260920",
+      "head": "5ea78f671fd043bb1ab834c4c065b11c6ec7e15f"
+    },
+    {
+      "ref": "refs/heads/engine/stable-record-owner-20260923",
+      "head": "dda9ad208c4828423b33887dd69d3f5312c820b8"
+    },
+    {
+      "ref": "refs/heads/engine/staged-brewing-process-20260913",
+      "head": "8983594f0d7fff693984846d1e4af8ea938097e8"
+    },
+    {
+      "ref": "refs/heads/engine/staged-process-request-20260913",
+      "head": "7e670294072bb0d215d85ce69320434a771d881a"
+    },
+    {
+      "ref": "refs/heads/engine/state-accounting-owner-20260923",
+      "head": "b1b6180b6fdd78d71ee8cc8363cf8ec7eb9c6011"
+    },
+    {
+      "ref": "refs/heads/engine/static-art-authoring-v2-20260910",
+      "head": "0501ce473a346c8f2036b13281f8331ee2a3b294"
+    },
+    {
+      "ref": "refs/heads/engine/static-art-load-20260909",
+      "head": "b4aea2da2187d6c0e247c80aa138d4453837ccb8"
+    },
+    {
+      "ref": "refs/heads/engine/static-geometry-20260911",
+      "head": "7851d82c2fdad86f3ca0f6f3bc2b17956754b66f"
+    },
+    {
+      "ref": "refs/heads/engine/stockpile-planner-refactor-20260914",
+      "head": "d3115f83ff985c49aaf6e973bbef958d9c17f918"
+    },
+    {
+      "ref": "refs/heads/engine/structural-order-core-20260922",
+      "head": "612537c90ce94bca383ba334c4c95d0ddf941191"
+    },
+    {
+      "ref": "refs/heads/engine/structure-apertures-20260911",
+      "head": "513155948c6813f70b630f6c69254971cdbad8a4"
+    },
+    {
+      "ref": "refs/heads/engine/structure-geometry-20260909",
+      "head": "99f41fd19b22405a70904d2f37430b7adeb5370a"
+    },
+    {
+      "ref": "refs/heads/engine/structure-observation-sdk-20260911",
+      "head": "33344327ec1be94d57f7810d80faf04a99e870a0"
+    },
+    {
+      "ref": "refs/heads/engine/structure-presentation-20260911",
+      "head": "89b8ad2692c7b86ff4b76fd9552b9b39407a2b6c"
+    },
+    {
+      "ref": "refs/heads/engine/structure-records-20260911",
+      "head": "a33017fe8f4f10a4bba93c10e1085084a5628294"
+    },
+    {
+      "ref": "refs/heads/engine/structure-surfaces-20260911",
+      "head": "4e7cf4c62badcd0a13feb93633d132e49bd870c6"
+    },
+    {
+      "ref": "refs/heads/engine/study-bake-imports-20260911",
+      "head": "f0a0c026ae4c12bd317b59484ed200f34b8ed5d8"
+    },
+    {
+      "ref": "refs/heads/engine/surface-law-20260909",
+      "head": "1526e0a5ca4324bc2283d4f966e7af538839d5e7"
+    },
+    {
+      "ref": "refs/heads/engine/survival-direct-20260911",
+      "head": "9dca51421c7c07fd95bd02003210b45c5a415aa1"
+    },
+    {
+      "ref": "refs/heads/engine/survival-input-client-20260911",
+      "head": "7686d43dba74880bea918689fac25859c1af5065"
+    },
+    {
+      "ref": "refs/heads/engine/sustained-input-transport-20260911",
+      "head": "d84e15355be20124056e78988f401b7cec48b224"
+    },
+    {
+      "ref": "refs/heads/engine/sustained-productivity-20260923",
+      "head": "730a1e8f9872b753c8f76161c8fa729d8bb41ad9"
+    },
+    {
+      "ref": "refs/heads/engine/tended-resources-20260913",
+      "head": "40e5adba007ed6ee615161ad41d594dc13dbc792"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-alpha-trim-20260921",
+      "head": "4a9e2f1d3be39f2e6efd37b9d41cb3e003fbd1ca"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-camera-20260911",
+      "head": "f0b76c6320b42b8439e0d10785be2c2ad1d7dc27"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-chunk-streaming-20260913",
+      "head": "53ec32df44dfbe8f9669c48835721ad7b1187df4"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-initial-placement-20260911",
+      "head": "5302180c7ff5090c1f68a5a2e7651be774eac17a"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-loading-proof-20260920",
+      "head": "c829f3fa22a5041d504ef2bcfb7d0de373169032"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-marks-20260911",
+      "head": "c9fdcaf4b783d1451ac8b7fc930e67af84a25d9e"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-material-batch768-20260921",
+      "head": "bf8de50f87fafeb636d5f748ad2606dde0ae1dd4"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-material-residency-20260922",
+      "head": "e8bd1c3d22a9b9482afa9de1ab989e710f2660ce"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-mesh-pool-20260921",
+      "head": "5a4f1e0630a71f11226ad4801c6d2ea6fed89741"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-mesh-staging-20260922",
+      "head": "7df34fd17f2e1f07747f34225eea2f775f983b56"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-movement-20260911",
+      "head": "4ffa607a1c338e010d7b5a392bb958ceb5922797"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-owner-20260910",
+      "head": "af92196b3938e992e6aab7779e184e08f975b165"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-picking-cache-20260911",
+      "head": "126cf1bbaaf8bde046f76ed6c1aee25f41ed2478"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-picture-retention-20260922",
+      "head": "906d3cee105e52ac87585bbc5de39722b2a2e559"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-presentation-20260911",
+      "head": "25b1b5b269eff417f07d649ed2b75cd77a31368a"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-query-20260911",
+      "head": "0d89589f4493439cf13e5d904f398f1214cd7846"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-records-20260911",
+      "head": "11de2d300436a5c0452489f5bc2456b13b6fd835"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-region-flow-20260921",
+      "head": "38b2811ac07aaa7760ac75a2a993153a6a57abda"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-region-runtime-20260921",
+      "head": "94c9ca7a3c033215e1ba676fb7fb4b3c700f5d2f"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-region-wire-tests-20260921",
+      "head": "11534762bbacc66685b2113b4987c46effb63294"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-render-repair-20260911",
+      "head": "d108decd11d43551d68688e47e185ab8cd576a61"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-retention-20260919",
+      "head": "09d5ed631ee8b79e97575897e0c2d6b4f82787d6"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-route-owner-20260911",
+      "head": "642ec43cef3d05dd2ce9f70fd692477a48bdc902"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-route-recovery-20260913",
+      "head": "f646b846884224d9552b3c0814f801a40ff65694"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-runtime-integration-20260914",
+      "head": "904d52a512d747d2abb0c257bcb0651b034474a5"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-stop-resume-20260911",
+      "head": "9c1e3b3e19cdd5ec1ba7dd73bf3fb652b5f5b55a"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-stream-20260911",
+      "head": "a20a41fb3be560de854bc115da6315fa87b13896"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-target-controls-20260911",
+      "head": "a1070b0a1819d4da85b1ba93d893a094f09447d0"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-tool-escape-20260911",
+      "head": "e3b3c4ac45cabec2f1cac71dabd3ef3237cc88d4"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-transport-20260911",
+      "head": "fe557bf41b37ffbef1169e7ffbe5a8009b994298"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-traversal-20260911",
+      "head": "7c66ab97d76f03687ce223da3858b542a17f1c66"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-yields-20260909",
+      "head": "7a7b4258a440bd044025d0950e729d8ad574b7b4"
+    },
+    {
+      "ref": "refs/heads/engine/three-depth-study-20260920",
+      "head": "9c24f0b5fb18875817dcac766e909ae436c534c9"
+    },
+    {
+      "ref": "refs/heads/engine/three-level-route-20260913",
+      "head": "a53bab8209dff32e6de76c002c872585e28d9a0a"
+    },
+    {
+      "ref": "refs/heads/engine/transparent-world-pass-20260914",
+      "head": "8e9b3d8517fb6d17331544a76410c54db6b85431"
+    },
+    {
+      "ref": "refs/heads/engine/typed-command-boundary-20260913",
+      "head": "a85f8484bec2f9616f75966848e48fbd20594e87"
+    },
+    {
+      "ref": "refs/heads/engine/underground-controls-20260910",
+      "head": "815ede76faa6efbc65cc65463cd5ff056f8c2e39"
+    },
+    {
+      "ref": "refs/heads/engine/upper-placement-20260911",
+      "head": "68ccbd9d03e3062c01be3ad41425337c2245bb01"
+    },
+    {
+      "ref": "refs/heads/engine/upright-study-fixtures-20260921",
+      "head": "7702f52b1ca964d7b9b6716a84949c9290f8e9d5"
+    },
+    {
+      "ref": "refs/heads/engine/v5-floor-allocation-20260914",
+      "head": "b6b2bc4cf1774b86c741bfdd136152f55b37a738"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-play-20260910",
+      "head": "9759238a684b1b90ffbbdcfbcc5c05c6ff288f5b"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-study-20260910",
+      "head": "517c62e871c7b33ebd2e33b0efaa9b3af717d8bf"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-support-anchor-20260913",
+      "head": "337bc7ae0cf7c0290a320be1c7100b366e10a6d8"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-work-regressions-20260913",
+      "head": "8481255b0e57bd1957ffd64fbb3cdc0712d1bdc8"
+    },
+    {
+      "ref": "refs/heads/engine/vessel-boundary-20260909",
+      "head": "5c35791cd9326440a7cfbaa50c0945e52e934c42"
+    },
+    {
+      "ref": "refs/heads/engine/vessel-portions-20260909",
+      "head": "a0c32f4fc7e011b08712a9a90c83785ffe9697b5"
+    },
+    {
+      "ref": "refs/heads/engine/visual-order-picking-20260915",
+      "head": "7e5e9bca6b11b44b2d23fc82ec0cbea409199b54"
+    },
+    {
+      "ref": "refs/heads/engine/volume-clock-20260909",
+      "head": "d0ab7519fd05313c88ccc4dc79efecd0143db1ca"
+    },
+    {
+      "ref": "refs/heads/engine/voxel-draw-compiler-20260917",
+      "head": "73a7ea4ebb3ee10b4d24dacbfaaff2fddcbf2420"
+    },
+    {
+      "ref": "refs/heads/engine/voxel-stream-visual-proof-20260917",
+      "head": "8cb5de89f08d79e32139a912044829732a16e8e2"
+    },
+    {
+      "ref": "refs/heads/engine/voxel-water-view-20260910",
+      "head": "3e3f97c04378c92336b55a964cc0e4c98d236f64"
+    },
+    {
+      "ref": "refs/heads/engine/water-gameplay-20260910",
+      "head": "985849f9113fa77994deaabdd18f34c1d4102c6a"
+    },
+    {
+      "ref": "refs/heads/engine/water-inspection-proof-20260909",
+      "head": "5bb8b7c0800b4cb620ccd4b82b754d5fbae6ac1a"
+    },
+    {
+      "ref": "refs/heads/engine/wet-region-host-20260909",
+      "head": "754b65a5559bd280d9053fd4358bec06f98b5582"
+    },
+    {
+      "ref": "refs/heads/engine/whistle-client-cleanup-20260913",
+      "head": "4adebaeae68fd490b2cf10472c486196e9fa4cf7"
+    },
+    {
+      "ref": "refs/heads/engine/whistle-game-consumer-20260913",
+      "head": "4713a7de5b2e91bd39d8d734152d3101b4d7d263"
+    },
+    {
+      "ref": "refs/heads/engine/work-20260909",
+      "head": "7a428b23541600bde54e2d85e16f77349f969497"
+    },
+    {
+      "ref": "refs/heads/engine/work-attempt-20260914",
+      "head": "bf9bad505c88f47e7faae436e582549071ab5b98"
+    },
+    {
+      "ref": "refs/heads/engine/work-eligibility-20260911",
+      "head": "3c01a8308c4f58fcf12e0db71952839f42aec88b"
+    },
+    {
+      "ref": "refs/heads/engine/work-inspection-20260913",
+      "head": "f910fafa628b8dbe94109299d1cedcafb489901c"
+    },
+    {
+      "ref": "refs/heads/engine/work-provider-migration-20260914",
+      "head": "ff780123b126c68292680bdb80c8023b187cb9a4"
+    },
+    {
+      "ref": "refs/heads/engine/workattempt-atomicity-20260914",
+      "head": "4dc3418d5454992d71f18ac0a5785cbc82936c96"
+    },
+    {
+      "ref": "refs/heads/engine/workattempt-consolidation-20260914",
+      "head": "c85f47826132285e43ddebefa3dd97be16740a4f"
+    },
+    {
+      "ref": "refs/heads/engine/worker-failure-20260911",
+      "head": "1342d39419acb2c5386463438d5d510c041fd4fb"
+    },
+    {
+      "ref": "refs/heads/engine/workload-gate-owner-20260923",
+      "head": "b10e197fc9bd857b2e6ff8c52f2c23abd3b6f6e6"
+    },
+    {
+      "ref": "refs/heads/engine/world-controls-20260911",
+      "head": "9ed9496aed53494286ceb86a4b44b90130dfd763"
+    },
+    {
+      "ref": "refs/heads/engine/world-depth-layer-20260914",
+      "head": "91472c07df6b11d264a07544015eeff05c7bcb4a"
+    },
+    {
+      "ref": "refs/heads/engine/world-depth-lifecycle-20260914",
+      "head": "c52b442467fae65c9f494088c7b0beaaec7396d5"
+    },
+    {
+      "ref": "refs/heads/engine/world-view-browser-proof-20260922",
+      "head": "8f89bd3b5502403422540d2f3c24a8a141e27dbd"
+    },
+    {
+      "ref": "refs/heads/engine/world-view-geometry-20260922",
+      "head": "171a346caf3806fd5b7bf858edcd9a8eff2959e0"
+    },
+    {
+      "ref": "refs/heads/engine/world-view-repair-20260922",
+      "head": "0499db85e806774a7ca109999e315b96b58b60a5"
+    },
+    {
+      "ref": "refs/heads/engine/zzfx-audio-20260911",
+      "head": "1dad209d0b554fce9caf3b28888964ebd93cfda1"
+    },
+    {
+      "ref": "refs/heads/feat/behavior-authoring",
+      "head": "e4338f7698c92c2bfdd21eff6a709afbffcdc0cf"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-context-ui-20260912",
+      "head": "94dced5c1348a18b0c160608254861ffc45e5f23"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-friend-link-20260912",
+      "head": "f4086f1ab6c650d367378f312519397e7734b63e"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-ground-cover-20260912",
+      "head": "cf5cd43a29d2d9dc630b1bcfa61f19c34ee799fb"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-station-work-20260912",
+      "head": "248b0e8fd8d6428d70caa68fe3fc58b56e03ae0d"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-work-animation-20260912",
+      "head": "4b2f900c3aff440bc4f2b85f8ad437ece418b56a"
+    },
+    {
+      "ref": "refs/heads/feat/game-material-catalog",
+      "head": "e35d8f67a3745d65ce5c089f4c228f480226f94d"
+    },
+    {
+      "ref": "refs/heads/feat/goblin-bed-and-breakfast-mvp",
+      "head": "58a2ab25477743b88702a778e3fd9b9d6b96b8f9"
+    },
+    {
+      "ref": "refs/heads/feat/water-vessel-capability",
+      "head": "01d0fd619a33c8e0b099995e05e0ba82d787342a"
+    },
+    {
+      "ref": "refs/heads/fix/action-dock-startup-20260913",
+      "head": "88cce85ae52272fcda7d7c2be0ea1d24a80459ad"
+    },
+    {
+      "ref": "refs/heads/fix/air-records-20260923",
+      "head": "c3eb94984b260a4306452a6f8eb96097a59fe8e5"
+    },
+    {
+      "ref": "refs/heads/fix/blocked-work-outcomes-20260915",
+      "head": "1b884c598d7c967f034afb7bc2c916bcbcaba279"
+    },
+    {
+      "ref": "refs/heads/fix/cat-rejected-move-20260913",
+      "head": "7f99b0f05c4bb81ebf5c60b4b13465bf3d4d1819"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-client-recovery-20260912",
+      "head": "6d30029b386266a1c8b42078c32ac336ba4df002"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-manual-work-20260912",
+      "head": "e79dab2a55f0aae5d9db9fa46d86d8bad3641e0f"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-smoke-coverage-20260912",
+      "head": "d90ebfb562be86b599d2278a33120fc78094d188"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-water-view-20260912",
+      "head": "559cee0acd6437458dca171f222fbe8eac6862a9"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-work-recovery-20260912",
+      "head": "fb81a95a9ec2859f9e02bbd9dc6530502c2c0676"
+    },
+    {
+      "ref": "refs/heads/fix/delivery-rejected-move-20260913",
+      "head": "d7267f918c1214e4e9e2646f1e894f87d05ee31b"
+    },
+    {
+      "ref": "refs/heads/fix/dig-affordance-20260910",
+      "head": "d5eac8f4b3a869866904d88b2f5531b92cf93f24"
+    },
+    {
+      "ref": "refs/heads/fix/dig-route-recovery-20260912",
+      "head": "333b1e06e60000f705368aeb155ba7e6793db228"
+    },
+    {
+      "ref": "refs/heads/fix/ground-stock-cleanup-20260912",
+      "head": "ea378a85b367be0db0794163e53c4c66b5fdfeed"
+    },
+    {
+      "ref": "refs/heads/fix/loose-spoil-game-20260912",
+      "head": "937471782f38ac87b4d87e86c82e49a47fea819c"
+    },
+    {
+      "ref": "refs/heads/fix/performance-page-startup-20260914",
+      "head": "08953af8b8083837dda40b292b7acdc781548ebe"
+    },
+    {
+      "ref": "refs/heads/fix/playable-app-types-20260910",
+      "head": "a0cc974859d4066f41418eb1ac9ec58a5bc9867b"
+    },
+    {
+      "ref": "refs/heads/fix/presentation-current-20260910",
+      "head": "007525fee19f1b88bc88a2b4c2016b4745d7e99a"
+    },
+    {
+      "ref": "refs/heads/fix/room-current-environment-20260910",
+      "head": "e8f1bdb1ac2ad4e3f893de1bf1a2999a901c2c38"
+    },
+    {
+      "ref": "refs/heads/fix/station-emission-20260913",
+      "head": "c006db21623f4eba4f91786da4e7b43901a2bec5"
+    },
+    {
+      "ref": "refs/heads/fix/water-delivery-recovery-20260923",
+      "head": "d0bd7526eb2adc567baae0630375730ddac27e2a"
+    },
+    {
+      "ref": "refs/heads/fix/water-recovery-20260923",
+      "head": "7174030f81ba77d37c2c63ec0a88b76d52c5e345"
+    },
+    {
+      "ref": "refs/heads/fix/work-contact-repair-20260914",
+      "head": "7e74e0ccfe0f532b8aff7f080eeacdcc5b4e2047"
+    },
+    {
+      "ref": "refs/heads/fix/world-surface-pick-policy-20260914",
+      "head": "10acbc1257f2a415fc234d118970b7f91cedfa1c"
+    },
+    {
+      "ref": "refs/heads/framework-workload-v2-20260923",
+      "head": "28cd75e3d2b4fee64d5288c93513052f6f884e91"
+    },
+    {
+      "ref": "refs/heads/fungi/brew-station-buildable",
+      "head": "b1724fe50191e357632e1ad4a82c0213a04f6baa"
+    },
+    {
+      "ref": "refs/heads/game/clearing-placement-parity-20260913",
+      "head": "c2ec3d919fd4ea36ffb53c22f2385f436c8ff18f"
+    },
+    {
+      "ref": "refs/heads/game/clearing-presentation-20260912",
+      "head": "ebba03731b334ec26faa88c752c2b857fbed7d21"
+    },
+    {
+      "ref": "refs/heads/game/clearing-retained-interactions-20260913",
+      "head": "5bb39c0ece8c09f55a0897e68032cb8925df499b"
+    },
+    {
+      "ref": "refs/heads/game/clearing-trees-20260912",
+      "head": "06832210663f1e408095f2a26283f13ee7834b6b"
+    },
+    {
+      "ref": "refs/heads/game/deconstruction-control-20260913",
+      "head": "b6f9135055a817cd42a9b686cc7957751e3dd18e"
+    },
+    {
+      "ref": "refs/heads/game/delivery-activity-presentation-20260913",
+      "head": "ba9c5cf82a4c1323343974caf2f7c0a9433302ce"
+    },
+    {
+      "ref": "refs/heads/game/retained-brew-station-20260912",
+      "head": "c417172c28e3f2ae5aeff5a8a134329de5cb8457"
+    },
+    {
+      "ref": "refs/heads/game/stockpile-playable-20260913",
+      "head": "7c7c3dbc7998717c361ac2eda799e65f92650fd7"
+    },
+    {
+      "ref": "refs/heads/game/stockpile-zone",
+      "head": "b890e261b9f201b5be91a46ed12f805e56014a17"
+    },
+    {
+      "ref": "refs/heads/game/tree-animation-v2",
+      "head": "ad19687097b58a8bb927323fd0dd54dbe936b8e0"
+    },
+    {
+      "ref": "refs/heads/game/tree-poses-v3",
+      "head": "3477ca9e6cc3b09d93c3b57053a8bc4296343781"
+    },
+    {
+      "ref": "refs/heads/lane/receipt-retention",
+      "head": "f7e2b94b69b9e09738cd429e761cadcb555e0b98"
+    },
+    {
+      "ref": "refs/heads/main",
+      "head": "8caba6cf0303437e7b6a2678d120f6587d812ec7"
+    },
+    {
+      "ref": "refs/heads/native-construction-supply",
+      "head": "22d26a0dfb4890c7d88503699b4e0f25a60c8d01"
+    },
+    {
+      "ref": "refs/heads/native-material-index",
+      "head": "1667058de78dd3213e76fb680d89a4006427edd5"
+    },
+    {
+      "ref": "refs/heads/parallel-haul-legs",
+      "head": "08fa1a84a1cc56d04b8854f6d041bb704dadae83"
+    },
+    {
+      "ref": "refs/heads/pending-support-order",
+      "head": "48f3986bb845e577185a1dc4fa815806b08fa208"
+    },
+    {
+      "ref": "refs/heads/perf/atmosphere-metrics-20260910",
+      "head": "2964832e58abd593c26254445031d6336bb3f67a"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-air-20260910",
+      "head": "58ae6a68bb8b07929b42e9ed7cd621aa3359509e"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-browser-measure-20260910",
+      "head": "7e4a274daf305352ef63c67c04ed940028fa90e7"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-candidate-measure-20260910",
+      "head": "04781704318e7f9c15f078bc1416ac72db795263"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-measure-20260910",
+      "head": "9321d4d85e09c87cacd06ccf259f5cef571b7ac4"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-queries-20260910",
+      "head": "6ae0bac80e6e14da29e204926bdd4e1f097ef343"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-responsibilities-20260910",
+      "head": "9fa260158de9f58d0922ecef5366cad700103f6d"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-water-20260910",
+      "head": "7086da7ff99c487dcb04ce21160e0cc4a0555769"
+    },
+    {
+      "ref": "refs/heads/perf/colony-hot-loop-20260913",
+      "head": "0d785d34ef8a7beb751296b084a7bea36b1361ec"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-page-current-20260915",
+      "head": "2d83196cfb3ed4441ef6dba35c1d7fd4678b076a"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-page-recut-20260915",
+      "head": "879ff217323fa07bb8cf5debad3dba58e7ef93d9"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-page-recut-v2-20260915",
+      "head": "bb54d4b87a8cce2659607d21c1f9fe17eed051f1"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-playground-20260913",
+      "head": "eb3b1a3977587d59cec5e5037b93a8095bd92fea"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-shared-runtime-20260915",
+      "head": "c81c827f4c1d34810c69325dd25efba044c82d81"
+    },
+    {
+      "ref": "refs/heads/perf/colony-sustained-proof-20260914",
+      "head": "3ce007e491b2327a412074dad77074bfe7473395"
+    },
+    {
+      "ref": "refs/heads/perf/event-driven-assignment",
+      "head": "77393e97a9c56bf70369b02b22024a8370293947"
+    },
+    {
+      "ref": "refs/heads/perf/multi-destination-routes-20260913",
+      "head": "3d95a8cec7dc32857b77a19294ca4dd02712c176"
+    },
+    {
+      "ref": "refs/heads/perf/performance-browser-proof-20260914",
+      "head": "0ecb36acf0c3a9ba8bee31c8b9b42b80b8aeee01"
+    },
+    {
+      "ref": "refs/heads/perf/shared-route-frontier-20260913",
+      "head": "ca18c66d7f359a8a5e9df84cb7469e94ca82a7fa"
+    },
+    {
+      "ref": "refs/heads/perf/staggered-retry-20260914",
+      "head": "15aaa0f337c7067da264d2b3dd9cd3729877a3c8"
+    },
+    {
+      "ref": "refs/heads/process-transition-laws",
+      "head": "95dd84e774b90748b2c6999b610f7b451e279cad"
+    },
+    {
+      "ref": "refs/heads/process-transitions",
+      "head": "b49936478fc51f5ab090d37ea6a7e188cd73382b"
+    },
+    {
+      "ref": "refs/heads/proof/game-startup-20260909",
+      "head": "b5e130355dfdf123e55e732df6f01ce041c91c10"
+    },
+    {
+      "ref": "refs/heads/proof/hosted-edge-contract",
+      "head": "77cb0a98b43e5eed3e2471e6cbb74a2f9393c704"
+    },
+    {
+      "ref": "refs/heads/proof/playable-joined-20260910",
+      "head": "efd5ca9ea94e0c30232297d5886ea64a06796a67"
+    },
+    {
+      "ref": "refs/heads/proof/playable-release-ready-20260910",
+      "head": "3fa9947a312345a178c23c0317dc7289edb04f11"
+    },
+    {
+      "ref": "refs/heads/proof/underground-play-20260910",
+      "head": "102840647d9e905757d7814b14aef46330b8d554"
+    },
+    {
+      "ref": "refs/heads/recovery/air-qualification-20260909",
+      "head": "ec839c518a54e63cf53be0ea52121e0b729fcef3"
+    },
+    {
+      "ref": "refs/heads/recovery/hive-gameplay-water-release-20260909",
+      "head": "8481cf2933c90a8046cd7dc48448ed20f4ca787b"
+    },
+    {
+      "ref": "refs/heads/recovery/physical-qualification-20260909",
+      "head": "efde0fb8186972989393f8f37b80798d076f5126"
+    },
+    {
+      "ref": "refs/heads/recovery/room-source-join-20260909",
+      "head": "47d0d648ab54d1b379fe811ed456ec48b5a3caf8"
+    },
+    {
+      "ref": "refs/heads/recovery/water-inspection-20260909",
+      "head": "c4958dedcf4c3fcc56b5a9f1bb5af8d17cdd2170"
+    },
+    {
+      "ref": "refs/heads/release/gameplay-water-20260909",
+      "head": "f4a2b657b74eb3a5794c755df06ea400fcb74bf1"
+    },
+    {
+      "ref": "refs/heads/release/wet-clearing-20260909",
+      "head": "4a6931c4c6c4454431651c330ff8ec15dd980b1a"
+    },
+    {
+      "ref": "refs/heads/resident-failure-repair",
+      "head": "6e4fb867d390b78b1baa315e1f46f5dd9943e268"
+    },
+    {
+      "ref": "refs/heads/review/clearing-stockpile-20260912",
+      "head": "e86cce88711e84ddde9ae525392bef42aae4db6f"
+    },
+    {
+      "ref": "refs/heads/review/retained-brewing-ux-20260913",
+      "head": "95c88aeb8ef0ebce97795b81bdee180f3ab8e721"
+    },
+    {
+      "ref": "refs/heads/review/whistle-colony-consumer-20260913",
+      "head": "95c88aeb8ef0ebce97795b81bdee180f3ab8e721"
+    },
+    {
+      "ref": "refs/heads/review/whistle-game-consumer-root-20260913",
+      "head": "91da3470bd5f1399979d9b026536d7b45b37db1f"
+    },
+    {
+      "ref": "refs/heads/staged-process-runtime",
+      "head": "b15bfc97b27d1655994c133674d7bccb903a8a06"
+    },
+    {
+      "ref": "refs/heads/study/goblin-den-20260907",
+      "head": "008793c8e44eb2aa017e75c7a0ea8e2548c16a77"
+    },
+    {
+      "ref": "refs/heads/support-fixpoint-laws",
+      "head": "30fdfa1e732e4f17629b9f28c9aa9f70e3e54fc2"
+    },
+    {
+      "ref": "refs/heads/support-law-20260913",
+      "head": "c7a86ee2a7293cc20c95dd0015f3e6b6d5234457"
+    },
+    {
+      "ref": "refs/heads/tended-resources-tests",
+      "head": "bfc063608a95b8dfbb3d798cab088ab681bcbdac"
+    },
+    {
+      "ref": "refs/heads/terrain-projection-delta",
+      "head": "4ee33624c047334cafb3e4d726876ff6dbc2e510"
+    },
+    {
+      "ref": "refs/heads/test/attempt-fixture-methods-20260914",
+      "head": "8746eccf7a88946b77df62dcecddd322596ccac9"
+    },
+    {
+      "ref": "refs/heads/test/clearing-edge-qualification-20260914",
+      "head": "6720e0c5016cd2192db7ace15b3928a12eab9df8"
+    },
+    {
+      "ref": "refs/heads/test/colony-party-fixtures-20260914",
+      "head": "4167ee5e6bfedf94801407a89cda79e5d7cfa902"
+    },
+    {
+      "ref": "refs/heads/test/delivery-fixture-cleanup-20260914",
+      "head": "c8beb7e768b98a6b7fb0d0acf844a071790d54c1"
+    },
+    {
+      "ref": "refs/heads/test/process-party-fixtures-20260914",
+      "head": "b7dc0d7b023ce1f0acec668136f6ba567ee0a1ce"
+    },
+    {
+      "ref": "refs/heads/ui/brewhouse-air-20260909",
+      "head": "bfa76bff47ddebc7503d7a957fa3f7df391de499"
+    },
+    {
+      "ref": "refs/heads/ui/designation-layer-toggle-20260915",
+      "head": "6b42414fde486927283def0caac91229d5e12e85"
+    },
+    {
+      "ref": "refs/heads/ui/game-startup-20260909",
+      "head": "a24ade6311f9d9bafb81e09160a1a8eb41f94853"
+    },
+    {
+      "ref": "refs/heads/ui/stockpile-policy-ui-20260913",
+      "head": "e03eca4f4ce1fc11214aad9a7cb7d71c29c6ecfc"
+    },
+    {
+      "ref": "refs/heads/ui/wet-clearing-20260909",
+      "head": "4a36d8efb95790604e6512d2f2c08fa34be974fb"
+    },
+    {
+      "ref": "refs/heads/water-contact-eligibility",
+      "head": "df453a74dea7b6e70e871f05ca5e5d2de94d49f3"
+    },
+    {
+      "ref": "refs/heads/whistle-gamepack-cutover",
+      "head": "8775c966c6772567e83ddf26e791981bcfb7f472"
+    },
+    {
+      "ref": "refs/heads/workattempt-delivery-draft-20260914",
+      "head": "ebeb7fb856ff318250f2256b74e607ecb35d16d1"
+    }
+  ],
+  "headsNotPreviouslyReachableFromArchive": [
+    {
+      "ref": "refs/heads/archive/hive-study-release-20260908",
+      "head": "e1c9c6b3aad77585606426d5349973b8f514f7bf"
+    },
+    {
+      "ref": "refs/heads/archive/legacy-root-working-20260923",
+      "head": "2cd5c5fd8acb9a3c05a0d15a8740e8cf7a1870a6"
+    },
+    {
+      "ref": "refs/heads/art/cannon-juice-20260911",
+      "head": "c1b8eda313ffdb475ebc3b63460326e498d73e7d"
+    },
+    {
+      "ref": "refs/heads/art/clearing-tree-art-20260912",
+      "head": "3234f313d2905fe9176d970d62a3af1d0a4c988f"
+    },
+    {
+      "ref": "refs/heads/art/excavation-materials-20260910",
+      "head": "d0186c69bd13d06245b861716b29904c9767ff0c"
+    },
+    {
+      "ref": "refs/heads/art/terrain-dual-grid-20260914",
+      "head": "8155866a65a226cc9973f4b189bdabf524bced2c"
+    },
+    {
+      "ref": "refs/heads/asset/editor-20260909",
+      "head": "2a7618b9a8ad20c1f3f30e9d381834fb544be251"
+    },
+    {
+      "ref": "refs/heads/asset/editor-shell-20260909",
+      "head": "8518cc5da7c00dfef565df1586cb0d782a3610f7"
+    },
+    {
+      "ref": "refs/heads/brewing-material-binding",
+      "head": "ffbae85515bbf39a34791c3b6c71d9d8894ff3ac"
+    },
+    {
+      "ref": "refs/heads/brewing-process-supply",
+      "head": "d791a868dc0503439c2d6b3c13d35ae17b407e49"
+    },
+    {
+      "ref": "refs/heads/clearing-party-host-preserved",
+      "head": "bf973d2084a2d529aceecb1f486396deb61c67a3"
+    },
+    {
+      "ref": "refs/heads/client/game-cost-20260910",
+      "head": "f47b8d84c34638c58027fd0f108ffb3a8d796856"
+    },
+    {
+      "ref": "refs/heads/client/performance-page-repair-v2-20260915",
+      "head": "80f74b0b1d8b48667211662eff62902e05171648"
+    },
+    {
+      "ref": "refs/heads/colony-pail-work",
+      "head": "1cc15fa71a77600006e72fbcf1164ea6422d353b"
+    },
+    {
+      "ref": "refs/heads/construction-failure-recut",
+      "head": "b9d5f783d0552a27d6ee5dc239351ab28d04e62a"
+    },
+    {
+      "ref": "refs/heads/docs/clearing-performance-audit-20260913",
+      "head": "fef3d1cf62d967754da7bd402ac6eba84796cf67"
+    },
+    {
+      "ref": "refs/heads/docs/colyseus-sleeping-world-20260910",
+      "head": "20ef4d7b19756666e9327dec67443396b2e085ce"
+    },
+    {
+      "ref": "refs/heads/docs/cross-game-engine-contract-20260910",
+      "head": "815eb9dcc392ac4279eee7e36caa32e48dc8938d"
+    },
+    {
+      "ref": "refs/heads/docs/ecs-runtime-research-20260910",
+      "head": "73db054f05d007005d5ebd26a4ff0e40a17a186e"
+    },
+    {
+      "ref": "refs/heads/docs/engine-implementation-guide-20260910",
+      "head": "c0a4143eac2f12820dd1dd12da6277549a38e4bd"
+    },
+    {
+      "ref": "refs/heads/docs/network-play-study-20260910",
+      "head": "a6bba8c2b8d53b8f46f70508decfb615d35b4fdf"
+    },
+    {
+      "ref": "refs/heads/docs/playable-environment-recut-20260910",
+      "head": "4ad22b08d6407410203a2b4af141b2568624fe68"
+    },
+    {
+      "ref": "refs/heads/docs/screeps-programmed-world-20260910",
+      "head": "bb6b58ff2fef7d72e937c4e4ae36c88f0b8ab4bb"
+    },
+    {
+      "ref": "refs/heads/engine/air-20260909",
+      "head": "e43630795578eb17a394b50d72520193cbb29f33"
+    },
+    {
+      "ref": "refs/heads/engine/air-boundary-stencils-20260909",
+      "head": "1cea60bec9a6b49822ab98d53eb8b8f44358def8"
+    },
+    {
+      "ref": "refs/heads/engine/air-candidate-20260911",
+      "head": "f5b7dae0478c43c5281801b9c5f338e3d045550d"
+    },
+    {
+      "ref": "refs/heads/engine/air-events-20260909",
+      "head": "eddff44a6af8d6a06fdc86b48984f2dba1c5ebff"
+    },
+    {
+      "ref": "refs/heads/engine/air-exterior-20260911",
+      "head": "fcc435f4bdfc253332bb63282a3ce115a9c0645f"
+    },
+    {
+      "ref": "refs/heads/engine/air-geometry-20260911",
+      "head": "21c4eefc7892f746b4ea74e9f184440d61b8cf8e"
+    },
+    {
+      "ref": "refs/heads/engine/air-observation-sdk-20260911",
+      "head": "f44ee4501581fe5261f96f8d9c230ced778b6cd2"
+    },
+    {
+      "ref": "refs/heads/engine/air-partition-20260911",
+      "head": "59b3e43347605b695571031934900342c3e31297"
+    },
+    {
+      "ref": "refs/heads/engine/air-rebind-20260911",
+      "head": "08d7292486df7d8013a5dcca7cd22e39fb174e10"
+    },
+    {
+      "ref": "refs/heads/engine/air-records-20260911",
+      "head": "a70cfd06ffa7fa806f8eda8a6879ea4cfc8224f4"
+    },
+    {
+      "ref": "refs/heads/engine/air-runtime-20260911",
+      "head": "69c66f251c3f310bc7b105a2f179cf9a8ad86a29"
+    },
+    {
+      "ref": "refs/heads/engine/area-dig-client-20260911",
+      "head": "b5b983f6c1aee1925a7f7299aadd7704369aa061"
+    },
+    {
+      "ref": "refs/heads/engine/atmosphere-admission-20260910",
+      "head": "f98f7a3c9ac45ac6c094bfb82966105e51de8948"
+    },
+    {
+      "ref": "refs/heads/engine/atmosphere-state-20260910",
+      "head": "16e265eb11e292dc478732a1a9fb3b6f6fa09d49"
+    },
+    {
+      "ref": "refs/heads/engine/atmosphere-world-20260910",
+      "head": "dc8a8ac84dda833ed2422f7e278bc83318bdf2a0"
+    },
+    {
+      "ref": "refs/heads/engine/authored-orders-20260911",
+      "head": "e3a3545a8bb17caf0059a00f5ca509b78bae8a8f"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-attendance-20260913",
+      "head": "68642bfaf06e4855f4c67b6a4ab2da5a04a8e2d3"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-compiler-repair-20260913",
+      "head": "b24a233d456d3d0df389f8cbee89515b9cb4d2d5"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-input-join-20260913",
+      "head": "a3e60f4e8a08da147ab1c6f981b9be4f63132b14"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-input-join-clean-20260913",
+      "head": "816a1d2d930c7b3079b2048bd46aad08ef0a1ffc"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-native-core-20260913",
+      "head": "0ce7176afbfcbbb17b742cb1f601d50179562fd9"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-presentation-v2-20260913",
+      "head": "8f811d699ecd8146c55fccfa7764edc229b53ecc"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-vessel-presentation-20260913",
+      "head": "96a75d6fbef6cf5fdb7ef67dd55aaf62509d6a0f"
+    },
+    {
+      "ref": "refs/heads/engine/brewing-water-join-20260913",
+      "head": "f4b77efd1e176e818b863c0df9332dad7c9a59d7"
+    },
+    {
+      "ref": "refs/heads/engine/browser-record-save-20260911",
+      "head": "e80cbcc54a8b37c92580bd47de747a51bcb1814b"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-art-20260910",
+      "head": "a5fd669f9cf9651b93f20a2948be20f92ac1e4fb"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-client-20260911",
+      "head": "4ff41e83f73bb452e9c14aa52f0a8937fbab0dd5"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-kernel-20260910",
+      "head": "1fdc055410df8bd28da5d752e64e72c1350ff286"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-physics-20260911",
+      "head": "9e65a0aa8b17b8edd2ec6019a57f89eced675dc0"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-recovery-20260910",
+      "head": "3219ed7cadc2d5b55e74c8a6ba9cc37b779a5a54"
+    },
+    {
+      "ref": "refs/heads/engine/cannon-session-20260910",
+      "head": "562b09b93e388ce2a86ee3e6805fce141c2044d8"
+    },
+    {
+      "ref": "refs/heads/engine/carry-animation-20260913",
+      "head": "7a7d1f7b59520849deba49796c45dcdd4828f862"
+    },
+    {
+      "ref": "refs/heads/engine/carry-transients-20260913",
+      "head": "e34111d7ea756df98f0e129814b4e31591a61e41"
+    },
+    {
+      "ref": "refs/heads/engine/cave-observation-20260910",
+      "head": "4e6ea4746db41b04763b29f260e19ec246f6005c"
+    },
+    {
+      "ref": "refs/heads/engine/clear-depth-packet-cleanbreak-20260914",
+      "head": "0f409d2b4a6b8945d0fcb273360d02413ef01b3c"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-air-view-20260910",
+      "head": "73cbed68de28ba0e9c45728fd37a6831ec2ee177"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-art-parts-20260914",
+      "head": "bf38d2bfa833eed24a70d2b25e8b114118888747"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-construction-20260914",
+      "head": "865bbd88cad9c69741c91432cabed44c09a9376b"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-controls-20260914",
+      "head": "93118138196309e9426af506765512bfef71d610"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-depth-feasibility-20260914",
+      "head": "661b60bb633c081324ae7250af29a9d38900d639"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-depth-runtime-20260914",
+      "head": "193ab6e96689d8ac7ccfa1bd84302295fc6db363"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-consumer-finish-20260914",
+      "head": "792369278cc9238e382686d271d04e273110c746"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-gesture-20260914",
+      "head": "8f8abb2c42ed1b74d364c5d214b366ba094d8ab9"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-gesture-owner-20260914",
+      "head": "3cc09d44659c9e4dd521f2197c2f3c0c9eae7340"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-kernel-20260914",
+      "head": "1410a1c9288d4b90a6303e861983c1a4ae3122b6"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-edge-wasm-pair-20260914",
+      "head": "e815338cfd9a25f69073c5c352d49fdc5fca8930"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-groundwater-20260912",
+      "head": "8f8ed72715b5d7144a298a6edc48afb38769ad67"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-parties-20260914",
+      "head": "c3250e90c39388d91ad297bc80aa67d0ce5d8b72"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-party-join-20260914",
+      "head": "7126cfeeab699a88ab1717b82ae1136e4d862153"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-party-proof-20260914",
+      "head": "aba0cf539431b61b10030c6111fe78303fbe7324"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-placement-preview-20260913",
+      "head": "f62854382f58315ec1724da07a8e6cebe48fcb62"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-placement-ui-20260913",
+      "head": "a760eb500ac1ac408b394d8c7edeac36948c7c31"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-playable-prep-20260914",
+      "head": "2ec70cd67926d84547aadd5347e978787e2dbcc6"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-repair-qualification-20260914",
+      "head": "174c9a0edf4e2749158c2a5b329981d719d8da3d"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-work-attempt-20260914",
+      "head": "f09c2bc897d025008a757b1ed0665116422854a8"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-work-attempts-20260914",
+      "head": "fd22b517430aa0ae8050139ea280f22a728c2935"
+    },
+    {
+      "ref": "refs/heads/engine/clearing-world-depth-20260914",
+      "head": "d52a65fd25193aebdde0ceaf92f95825080f6e97"
+    },
+    {
+      "ref": "refs/heads/engine/colony-area-work-20260911",
+      "head": "a9c1c055c1155f75c4997c5f04fdcac6f5f1ad0b"
+    },
+    {
+      "ref": "refs/heads/engine/colony-cargo-deposit-20260911",
+      "head": "84bdc3c2e5fdfc217c6435b67da9dc53629e191f"
+    },
+    {
+      "ref": "refs/heads/engine/colony-delivery-owner-20260913",
+      "head": "e79eb166ca4bdc9f9c0d00eee7300ba2c5190b1f"
+    },
+    {
+      "ref": "refs/heads/engine/colony-dig-command-20260911",
+      "head": "71b1d87d2abe8657ecdd99b5ab4521bac68f27f2"
+    },
+    {
+      "ref": "refs/heads/engine/colony-excavation-consumer-20260911",
+      "head": "b32f6c24e7d8e6a954ad79328368451ff7136e96"
+    },
+    {
+      "ref": "refs/heads/engine/colony-groundwater-consumer-20260911",
+      "head": "366a97f62859a01d354934003b4e2cd425d1d087"
+    },
+    {
+      "ref": "refs/heads/engine/colony-hearth-proof-20260911",
+      "head": "23e5dfcfb29861d8ccb3edffeccabd1b843a3087"
+    },
+    {
+      "ref": "refs/heads/engine/colony-needs-20260913",
+      "head": "05c74d7a13741471437209fb16479b12e9e5ad0c"
+    },
+    {
+      "ref": "refs/heads/engine/colony-party-host-20260914",
+      "head": "c613743af95b8302f3ab401a9df0d5b6c1b11c2a"
+    },
+    {
+      "ref": "refs/heads/engine/colony-party-protocol-20260914",
+      "head": "a795d0a1cef75ecc16df7c2963041318920b5333"
+    },
+    {
+      "ref": "refs/heads/engine/colony-presentation-20260911",
+      "head": "4667fb22876e16da6aed6cb2b43d00aa56db6d36"
+    },
+    {
+      "ref": "refs/heads/engine/colony-proof-area-20260911",
+      "head": "b0094a652bafab190c7166afd8380f8493910c5b"
+    },
+    {
+      "ref": "refs/heads/engine/colony-supply-batches-20260911",
+      "head": "cda4b6799097670143c0608369440f7d7bd9c129"
+    },
+    {
+      "ref": "refs/heads/engine/colony-terrain-consumer-20260911",
+      "head": "15495262076fec0a961afa7b75ffb2baaa2beea7"
+    },
+    {
+      "ref": "refs/heads/engine/colony-wet-host-proof-20260911",
+      "head": "2fa0669a567081c3f386e95cf47c1aac5628ff1c"
+    },
+    {
+      "ref": "refs/heads/engine/consolidated-gameplay-law-20260915",
+      "head": "ce63070adccbac125c0676d6f48969d39004cd9d"
+    },
+    {
+      "ref": "refs/heads/engine/construction-cascade-repair-20260915",
+      "head": "f086f508dc3d2b650f0c22b04c674b6c35419771"
+    },
+    {
+      "ref": "refs/heads/engine/construction-geometry-laws-20260915",
+      "head": "13da30b6cdd6b8e808c961e130456770c4f1f062"
+    },
+    {
+      "ref": "refs/heads/engine/construction-law-repair-20260915",
+      "head": "d0f5ec69d74c36a4b9305b48886a8dac1f4ae5df"
+    },
+    {
+      "ref": "refs/heads/engine/construction-readiness-20260913",
+      "head": "60a8a85e2a4942fa26108679ec81fd0b7789a29b"
+    },
+    {
+      "ref": "refs/heads/engine/construction-sites-20260911",
+      "head": "812ff914ab671416a192f67ba52127806cfa84b9"
+    },
+    {
+      "ref": "refs/heads/engine/construction-supply-recovery-20260915",
+      "head": "31905a671872e2832d33dc5a236118e513b05405"
+    },
+    {
+      "ref": "refs/heads/engine/contained-consumption-20260913",
+      "head": "6366a4e34a96e01b81106d095da8a197997c2e39"
+    },
+    {
+      "ref": "refs/heads/engine/controllers-20260909",
+      "head": "70cc373f58038dba158a3210b18ee67ee8047743"
+    },
+    {
+      "ref": "refs/heads/engine/declarative-policy-controls-20260912",
+      "head": "39cd9756bb82be400c953853ab54a94a21b0fbd8"
+    },
+    {
+      "ref": "refs/heads/engine/deconstruction-workattempt-recut-20260914",
+      "head": "10a463a7226b02792af2aa2f1d2d5f73656696b5"
+    },
+    {
+      "ref": "refs/heads/engine/deep-water-20260909",
+      "head": "cfd8456dca645a5162d4569288755e8a1ff78f6e"
+    },
+    {
+      "ref": "refs/heads/engine/demo-motion-20260911",
+      "head": "1ba538417453cfa3bedd397ac768418eb9f10a43"
+    },
+    {
+      "ref": "refs/heads/engine/depth-acceptance-prep-20260914",
+      "head": "7519e3205ebb37e685141e72124ebf698ee58a9d"
+    },
+    {
+      "ref": "refs/heads/engine/dig-cancellation-boundary-20260914",
+      "head": "594f155c2e6471600e6567b9f083010e4758e8ef"
+    },
+    {
+      "ref": "refs/heads/engine/dig-delivery-claims-20260911",
+      "head": "b1d636043e952889050f2cde00cda9125237a9d8"
+    },
+    {
+      "ref": "refs/heads/engine/dig-playability-20260911",
+      "head": "39b65eb210dcd37837d57e3033d7f1af1ce98480"
+    },
+    {
+      "ref": "refs/heads/engine/discrete-water-20260912",
+      "head": "c4df9f3cc744ef6f0b6252619a3b1e463cdbccc4"
+    },
+    {
+      "ref": "refs/heads/engine/discrete-water-exchange-20260913",
+      "head": "6d0f1f852886a8ced276a505d2f44bada7a1dde8"
+    },
+    {
+      "ref": "refs/heads/engine/draft-provider-reconciliation-20260914",
+      "head": "23ce3694269355bc4b0171398ac72a6ad5fc2200"
+    },
+    {
+      "ref": "refs/heads/engine/ecs-work-phase-20260913",
+      "head": "1cc26df5844e2af1da4eabb49f2eb4940e0f5408"
+    },
+    {
+      "ref": "refs/heads/engine/emission-definition-20260911",
+      "head": "46d2efaa5bce0b8fc5b4488f82a0ccace46570b5"
+    },
+    {
+      "ref": "refs/heads/engine/emitter-capability-20260911",
+      "head": "ca7def82ad60e8139dc6aedd17bf3fbe6e794c71"
+    },
+    {
+      "ref": "refs/heads/engine/entity-membership-20260911",
+      "head": "9d916c1ee003e89c6e1e6de99eaf1cc96f6996c1"
+    },
+    {
+      "ref": "refs/heads/engine/environment-20260909",
+      "head": "f4a2b657b74eb3a5794c755df06ea400fcb74bf1"
+    },
+    {
+      "ref": "refs/heads/engine/environment-definition-20260911",
+      "head": "ad08c426f0a9f7388c3adf1b43490eecd4ebcf7d"
+    },
+    {
+      "ref": "refs/heads/engine/environment-policy-20260911",
+      "head": "db6ec491d8be71844d688d4133e382e842c2b481"
+    },
+    {
+      "ref": "refs/heads/engine/environment-visuals-20260911",
+      "head": "65d0c85d6358c81fa5666cf302cc4d9d28709166"
+    },
+    {
+      "ref": "refs/heads/engine/event-driven-scheduler-audit-20260923",
+      "head": "d18855cf21084b19de52e5567291e48c0bc69c7e"
+    },
+    {
+      "ref": "refs/heads/engine/exterior-cutaway-20260911",
+      "head": "0c0e771949898e986cd5076b58e255e53cf8c6d0"
+    },
+    {
+      "ref": "refs/heads/engine/field-inspection-20260909",
+      "head": "0ad8400c01107f4b60c0796c8a141fb0dba1cf89"
+    },
+    {
+      "ref": "refs/heads/engine/field-region-host-20260909",
+      "head": "6bfa2dd8c045d8f34eeeb6118cec37292c2f44c5"
+    },
+    {
+      "ref": "refs/heads/engine/field-supply-20260909",
+      "head": "b40213cc37caf8215fe871616022f92147fe7712"
+    },
+    {
+      "ref": "refs/heads/engine/field-voxel-consumer-20260910",
+      "head": "58e31f88556354b07b4f8d7b6087a83a091c1183"
+    },
+    {
+      "ref": "refs/heads/engine/finite-emissions-20260909",
+      "head": "a8d8335a0a47db3ab3cc54ad65957533e86be809"
+    },
+    {
+      "ref": "refs/heads/engine/finite-release-20260911",
+      "head": "d321f2759db713aeec29dcd709bae86cec361488"
+    },
+    {
+      "ref": "refs/heads/engine/finite-resource-output-20260912",
+      "head": "46d4ec8894e22662ab3d0f85c478aff94a664fd3"
+    },
+    {
+      "ref": "refs/heads/engine/floor-colony-consumer-20260914",
+      "head": "c656c891ee1d75bb272db766f31a8aa222a1cfba"
+    },
+    {
+      "ref": "refs/heads/engine/floor-replacement-20260914",
+      "head": "a15577a9533f3829489246c8580fd1c7a1eb34f3"
+    },
+    {
+      "ref": "refs/heads/engine/floor-replacement-acceptance-20260914",
+      "head": "a8c9080ea5cb527cee6774ba63b1cd2d96f09e0c"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-animation-20260910",
+      "head": "fe23aab9350a19c2ea721867acdbff4602195061"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-assignment-door-20260910",
+      "head": "722532c89d0fe6138b59614c782efdbf811cf1aa"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-author-exercise-20260910",
+      "head": "cd5ad33e2c9e00a737b5b92d24c45c0533ad619b"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-authored-intents-20260910",
+      "head": "a56740781580df26622981fe057bd0174a8ac2ed"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-client-20260910",
+      "head": "ea5b9431dfd9e1c5ae075ffc33a672e3f603c1e1"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-clock-frontier-20260910",
+      "head": "1268930f4e05c4f754b9a55bb1d381d047562830"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-colony-orders-20260910",
+      "head": "c8d07662f23b6586ab5235087d4d74b9ab14a6dd"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-core-20260910",
+      "head": "fd6d78e46510d0ce86eb220841d27017e1681c64"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-do-host-20260910",
+      "head": "929d2782197e841f57108268a981fc2f46af4b13"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-float-roundtrip-20260910",
+      "head": "0acc88ef56ebb8e219891678559def4d5566ec19"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-game-presentation-20260910",
+      "head": "45ff619ff0e9f84a49d1a6506227770edcfd5eba"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-game-rules-20260910",
+      "head": "baa3484c5d7f4a460882b4835380088d2079b3d5"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-interpolation-20260910",
+      "head": "da4a30de835eb9f1d1afdd617e21798d2c0b141a"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-kernel-20260910",
+      "head": "8610520adf1253c1eaef3edc92cdaf50f6d49c1d"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-moving-supports-20260910",
+      "head": "140e12cbb51c4971d2b5fd8bff91bf78cffb3db8"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-network-proof-20260910",
+      "head": "0a4ceefc28fbba88c8c179743a6452f3dc57b8d7"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-observation-20260910",
+      "head": "04e968104852ee5d07f7b48bcb328802a43a62e3"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-online-pages-20260910",
+      "head": "1ff29bec3875cf64423cb0aea4fc01b881ce89aa"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-pack-recovery-20260910",
+      "head": "2371a8579422a711d03b4af88e3f2c5b1fbde889"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-pirate-client-20260910",
+      "head": "5a089aa63c8f0132465e10b2f4706aa57e8e690f"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-pirate-recovery-20260910",
+      "head": "e668f9f7ab53e69a7a6e4a08ed777c3c9957bc54"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-playable-polish-20260910",
+      "head": "a7fcc435add8e7b386b67f89f57a9d94de735ec6"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-public-host-20260910",
+      "head": "938fcdf4791c459290b5cec528af9f287bca0bf9"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-public-proof-20260910",
+      "head": "fa3865874a5205fd80a0e808ea867817a9d574d8"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-remote-client-20260910",
+      "head": "f77d344cf9be5ee96f70094b9e3eace42cc05ed7"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-sdk-20260910",
+      "head": "8a749683a508e29dbc95c18c26e44a5a346044f0"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-session-laws-20260910",
+      "head": "49812833079c6f40b2518dfb15ff871aa37c8194"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-ship-art-20260910",
+      "head": "30b1479669dbf252fe149af3ad2bd01be5c05c9e"
+    },
+    {
+      "ref": "refs/heads/engine/fresh-support-callers-20260910",
+      "head": "bf2ca1eb3322b207a2bc66e16b1ffd39271f2bec"
+    },
+    {
+      "ref": "refs/heads/engine/generated-room-20260909",
+      "head": "fad06572a0f40eec60d718fc0c67d3abc66d975d"
+    },
+    {
+      "ref": "refs/heads/engine/goblin-environment-20260910",
+      "head": "77c367f77ea96052ec9c743cb534bf04346cdd46"
+    },
+    {
+      "ref": "refs/heads/engine/goblin-wet-20260909",
+      "head": "696bd2a7d7f3db1967f0cce155bcf83e712259a5"
+    },
+    {
+      "ref": "refs/heads/engine/host-command-recovery-20260911",
+      "head": "69a3fb16c33653456b4c65d04f200c9d3cbb86b3"
+    },
+    {
+      "ref": "refs/heads/engine/host-contract-repair-20260915",
+      "head": "98352a154b60c2aae42fbab015509b0b8ae1a88c"
+    },
+    {
+      "ref": "refs/heads/engine/hosted-reload-second-party-proof-20260914",
+      "head": "b4330e5e124c7df0245a9bdd66299ef521028ca7"
+    },
+    {
+      "ref": "refs/heads/engine/iso-sorter-buckets-20260914",
+      "head": "468622ef270d3556966273bb36c8c5cc42fbd73f"
+    },
+    {
+      "ref": "refs/heads/engine/iso-sprite-sorter-20260914",
+      "head": "4a8c1aee0bc8edc8146c11b70cace4f9322fe972"
+    },
+    {
+      "ref": "refs/heads/engine/kernel-record-bundle-20260911",
+      "head": "98d9d1cf2a38cd55ac0031624ba83259a633cd2a"
+    },
+    {
+      "ref": "refs/heads/engine/local-terrain-wire-20260911",
+      "head": "b3c1cdca1124f538d274fed9badcffc39d96ed51"
+    },
+    {
+      "ref": "refs/heads/engine/lot-contents-20260911",
+      "head": "d098c70d5bfa7efae5a093eb35a39c914b4b22a8"
+    },
+    {
+      "ref": "refs/heads/engine/manual-hearth-cleanup-20260913",
+      "head": "b6faf3fd3fdb04a379ec2a16e1e519593e971021"
+    },
+    {
+      "ref": "refs/heads/engine/material-consumption-20260911",
+      "head": "ad4e5baee8bd28d373685adff6c862af146f42ce"
+    },
+    {
+      "ref": "refs/heads/engine/material-law-repair-20260915",
+      "head": "1534939c68548f6290cec7b9212be399ac56608c"
+    },
+    {
+      "ref": "refs/heads/engine/material-output-20260911",
+      "head": "7f6635c1a8ed42244393df3993f78480b52815e8"
+    },
+    {
+      "ref": "refs/heads/engine/mugwort-admission-20260913",
+      "head": "cc7d9aa54a140df6db168923817163077a54dd25"
+    },
+    {
+      "ref": "refs/heads/engine/native-atmosphere-20260911",
+      "head": "a3cbb5630cd63c0078b8e72601911051ab94d324"
+    },
+    {
+      "ref": "refs/heads/engine/native-delivery-consumer-cutover-20260915",
+      "head": "80f47db1e6ad4e899b03d4a9512c2d1567ace06b"
+    },
+    {
+      "ref": "refs/heads/engine/native-field-work-requirements-20260915",
+      "head": "ca025c01e579458a3f6ee0b4149e194378a2e355"
+    },
+    {
+      "ref": "refs/heads/engine/native-job-foundation-20260915",
+      "head": "986d4b06d62fc26e5b4d161850ddae13e1117afc"
+    },
+    {
+      "ref": "refs/heads/engine/native-job-task-core-20260915",
+      "head": "0e00fa20b5cf106e94133f4736a6b2bd855bbf30"
+    },
+    {
+      "ref": "refs/heads/engine/native-labor-requirements-20260915",
+      "head": "6958f09e4c2f1ba42651515ac32ad8901b6a17f8"
+    },
+    {
+      "ref": "refs/heads/engine/native-party-spawn-20260914",
+      "head": "45e9575bd4ff343c6aae1d9e42e176fa6a466832"
+    },
+    {
+      "ref": "refs/heads/engine/native-placement-admission-20260914",
+      "head": "70c2ef12010fe4bd7d35eebabacb8fc42869c9a4"
+    },
+    {
+      "ref": "refs/heads/engine/native-planner-index-owner-20260915",
+      "head": "1e29ee33008fda6c4f87770705e8ad9925366f6d"
+    },
+    {
+      "ref": "refs/heads/engine/native-planner-tick-20260915",
+      "head": "a837dc0127289fbe37328a189a5de8b1bdefc5f4"
+    },
+    {
+      "ref": "refs/heads/engine/native-process-supply-20260915",
+      "head": "19966b73c68c69900985fbefbe572ddaeb2bc059"
+    },
+    {
+      "ref": "refs/heads/engine/native-process-water-20260915",
+      "head": "04141bd119cddcbca899b9388c51f5037a7c16a2"
+    },
+    {
+      "ref": "refs/heads/engine/native-production-construction-cutover-20260915",
+      "head": "5cc1b3e339f54c425db9e370d59379ca0324e118"
+    },
+    {
+      "ref": "refs/heads/engine/native-resource-cutover-20260915",
+      "head": "16a1757c00439a2418c826cae472313ea4f4c690"
+    },
+    {
+      "ref": "refs/heads/engine/native-resource-job-20260915",
+      "head": "5f8dd3ce479522a10596391aa4de6b304447f927"
+    },
+    {
+      "ref": "refs/heads/engine/native-route-results-20260915",
+      "head": "1ae5728eb333fe0345b7011f7afc110e22890a4f"
+    },
+    {
+      "ref": "refs/heads/engine/native-sight-20260911",
+      "head": "c9dba38d455ae0aaa023082a69416517a24dac29"
+    },
+    {
+      "ref": "refs/heads/engine/native-stockpile-20260912",
+      "head": "f56b390c93999c44c1801aaecda5c666c5b0b2e8"
+    },
+    {
+      "ref": "refs/heads/engine/native-stockpile-consumer-20260915",
+      "head": "5d40909aa204332a65afbe7facc44e8968d4131c"
+    },
+    {
+      "ref": "refs/heads/engine/native-stockpile-v2",
+      "head": "7fc9ecb2226eb1c3448830a3716bcfc2ff6921a0"
+    },
+    {
+      "ref": "refs/heads/engine/native-supply-allocation-20260915",
+      "head": "cd963d45b418f95fcc8cde907aa4a8fc3dadac1e"
+    },
+    {
+      "ref": "refs/heads/engine/native-tree-consumer-20260915",
+      "head": "6d36319c82494fb21359cbb810a739b7fc8e5327"
+    },
+    {
+      "ref": "refs/heads/engine/native-water-20260911",
+      "head": "847ff3cae4a6ce224d8c66e549e6bd7eedf2b975"
+    },
+    {
+      "ref": "refs/heads/engine/native-water-consumer-20260915",
+      "head": "ba1988e5cf845b555b1c356b55967c71222ca382"
+    },
+    {
+      "ref": "refs/heads/engine/native-work-planner-foundation-20260915",
+      "head": "bea8b3f1a7263a40bb764c5eef50c35d3484c6dd"
+    },
+    {
+      "ref": "refs/heads/engine/native-worldgen-20260911",
+      "head": "9ca76575c013106a2641421e57ecb369e733cde4"
+    },
+    {
+      "ref": "refs/heads/engine/network-library-qualification-20260911",
+      "head": "80cf92fc2c90508b16684e84c15029065ee820ec"
+    },
+    {
+      "ref": "refs/heads/engine/online-motion-20260911",
+      "head": "baed6a8578770c131a4eccf35e44b89d2c392f23"
+    },
+    {
+      "ref": "refs/heads/engine/online-transport-20260911",
+      "head": "75066c9cd50924fad08579762cacf0cf8f48c528"
+    },
+    {
+      "ref": "refs/heads/engine/paid-atmosphere-20260910",
+      "head": "b83ae937a83807440b78bc6f521f2d1b9bbdf15b"
+    },
+    {
+      "ref": "refs/heads/engine/paid-fire-laws-20260911",
+      "head": "d367445f54bb3e0d76f5623097a2fc383aeb10a3"
+    },
+    {
+      "ref": "refs/heads/engine/paired-depth-repair-20260914",
+      "head": "cae1aaa2db6db67e0bc901c33b9bff33db36cd53"
+    },
+    {
+      "ref": "refs/heads/engine/paired-water-vessel-20260913",
+      "head": "8908a19482a8f32549cdff33b0293dfb4f9a1d30"
+    },
+    {
+      "ref": "refs/heads/engine/parallel-site-supplies",
+      "head": "f0d50e30c817e6b913d4ec2c7681e739416f9f01"
+    },
+    {
+      "ref": "refs/heads/engine/party-offline-proof-recut-20260914",
+      "head": "739b76186c8f8cfdab0e623d73085afb352f833a"
+    },
+    {
+      "ref": "refs/heads/engine/party-release-prep-20260914",
+      "head": "0bf6e354b1f3c3af71859c83e53d6cd0b8d9af91"
+    },
+    {
+      "ref": "refs/heads/engine/path-edge-metric-20260913",
+      "head": "71a95b2efd3bcf024a0b5e52593c68fe19e87357"
+    },
+    {
+      "ref": "refs/heads/engine/path-hungarian-20260913",
+      "head": "aba8a7c62c4c13e974a294b96cbc6c96063475a6"
+    },
+    {
+      "ref": "refs/heads/engine/performance-page-repair-20260915",
+      "head": "1255ad5a734a3a1415b99d6f9cb128076db0a83c"
+    },
+    {
+      "ref": "refs/heads/engine/physical-completion-20260909",
+      "head": "d6982ac30b9334718c4b922237d8b8d12202862e"
+    },
+    {
+      "ref": "refs/heads/engine/placement-preview-admission-20260915",
+      "head": "6ba929922748a04a16acf11bd050856ce559f3ba"
+    },
+    {
+      "ref": "refs/heads/engine/playable-art-20260910",
+      "head": "b3ae668a057e4a60dd77fa47d47758852e473f93"
+    },
+    {
+      "ref": "refs/heads/engine/process-attempt-owner-20260914",
+      "head": "fbeaf1d5807c16ae0b6c82382637286cfd1616c5"
+    },
+    {
+      "ref": "refs/heads/engine/qualify-clearing-repair-groups-20260914",
+      "head": "ed08abe7fa34348d02efb5065cee57959e5dc715"
+    },
+    {
+      "ref": "refs/heads/engine/region-records-20260911",
+      "head": "1178037b54c8f4dbc9138812606a0cc1024c1d59"
+    },
+    {
+      "ref": "refs/heads/engine/remote-stale-intent-20260910",
+      "head": "762902eec1627137d2bdf7b918e7cea0dd21c3f6"
+    },
+    {
+      "ref": "refs/heads/engine/render-pickability-20260914",
+      "head": "9b7d659fd2a04922b4d188133e63e46936c46fe5"
+    },
+    {
+      "ref": "refs/heads/engine/render-placement-wire-20260914",
+      "head": "444431973c3bd6e4a2752c1a7104839fb25abb44"
+    },
+    {
+      "ref": "refs/heads/engine/resident-region-20260911",
+      "head": "685ec5c0816f4fe44bd8bed4b7d769eaedf5a5bb"
+    },
+    {
+      "ref": "refs/heads/engine/retained-stair-restore",
+      "head": "13613fdcd424ed50947fd557e89f58dd413513da"
+    },
+    {
+      "ref": "refs/heads/engine/room-gas-20260910",
+      "head": "1a871423563bdf3a630dd9f5c1bff8c96349dc3c"
+    },
+    {
+      "ref": "refs/heads/engine/route-cost-query-20260911",
+      "head": "e54cb8a3f0d94943f8c472540a465247796dced2"
+    },
+    {
+      "ref": "refs/heads/engine/route-crash-repair-20260911",
+      "head": "08662d400ccb973b9d02b19aba2b084e5a1b3e15"
+    },
+    {
+      "ref": "refs/heads/engine/route-recovery-20260910",
+      "head": "bf7a1a414796fb3d97150827c48c97727aef7d3e"
+    },
+    {
+      "ref": "refs/heads/engine/route-save-consumer-20260911",
+      "head": "1fe2563f7771ad40c266f3b22adca9aed8c6efe7"
+    },
+    {
+      "ref": "refs/heads/engine/scoped-authored-removal-20260914",
+      "head": "b3f1a3bcee7771886d27bf3bbf032de4c193e885"
+    },
+    {
+      "ref": "refs/heads/engine/scoped-sort-invalidation-20260915",
+      "head": "eda3561df7378f75afe28dd132e2d139be764dbb"
+    },
+    {
+      "ref": "refs/heads/engine/sdk-records-20260911",
+      "head": "538380068847e9c6de3074af43778d1d7e6ab9e8"
+    },
+    {
+      "ref": "refs/heads/engine/sealed-container-20260911",
+      "head": "308f500fd53ac7848978cdf75920a4c425e6a665"
+    },
+    {
+      "ref": "refs/heads/engine/sealed-floor-20260909",
+      "head": "e6646d61d73865fa393376f6223f1e07951419a0"
+    },
+    {
+      "ref": "refs/heads/engine/session-attempts-20260911",
+      "head": "2ebae0a098663819e26b11ca98528573af08c123"
+    },
+    {
+      "ref": "refs/heads/engine/session-records-20260911",
+      "head": "b429e7b0eaab6f0c7085c294e2ef84cced0735b1"
+    },
+    {
+      "ref": "refs/heads/engine/shallow-water-navigation-20260910",
+      "head": "621de1297cf823913b07cdfb72805d67c6add2fe"
+    },
+    {
+      "ref": "refs/heads/engine/shared-world-controls-20260911",
+      "head": "2add12af7506d6fdd40f374614e6552caf2f2d41"
+    },
+    {
+      "ref": "refs/heads/engine/site-supplies-20260911",
+      "head": "bede6dfaf8374c876745ccfc54d0225b1c5b3351"
+    },
+    {
+      "ref": "refs/heads/engine/spatial-designation-v2",
+      "head": "583c5de630bf21c9f06ea6cb58aaa198e0299b96"
+    },
+    {
+      "ref": "refs/heads/engine/staged-brewing-process-20260913",
+      "head": "8983594f0d7fff693984846d1e4af8ea938097e8"
+    },
+    {
+      "ref": "refs/heads/engine/staged-process-request-20260913",
+      "head": "7e670294072bb0d215d85ce69320434a771d881a"
+    },
+    {
+      "ref": "refs/heads/engine/static-art-load-20260909",
+      "head": "b4aea2da2187d6c0e247c80aa138d4453837ccb8"
+    },
+    {
+      "ref": "refs/heads/engine/static-geometry-20260911",
+      "head": "7851d82c2fdad86f3ca0f6f3bc2b17956754b66f"
+    },
+    {
+      "ref": "refs/heads/engine/stockpile-planner-refactor-20260914",
+      "head": "d3115f83ff985c49aaf6e973bbef958d9c17f918"
+    },
+    {
+      "ref": "refs/heads/engine/structure-apertures-20260911",
+      "head": "513155948c6813f70b630f6c69254971cdbad8a4"
+    },
+    {
+      "ref": "refs/heads/engine/structure-geometry-20260909",
+      "head": "99f41fd19b22405a70904d2f37430b7adeb5370a"
+    },
+    {
+      "ref": "refs/heads/engine/structure-observation-sdk-20260911",
+      "head": "33344327ec1be94d57f7810d80faf04a99e870a0"
+    },
+    {
+      "ref": "refs/heads/engine/structure-presentation-20260911",
+      "head": "89b8ad2692c7b86ff4b76fd9552b9b39407a2b6c"
+    },
+    {
+      "ref": "refs/heads/engine/structure-records-20260911",
+      "head": "a33017fe8f4f10a4bba93c10e1085084a5628294"
+    },
+    {
+      "ref": "refs/heads/engine/structure-surfaces-20260911",
+      "head": "4e7cf4c62badcd0a13feb93633d132e49bd870c6"
+    },
+    {
+      "ref": "refs/heads/engine/study-bake-imports-20260911",
+      "head": "f0a0c026ae4c12bd317b59484ed200f34b8ed5d8"
+    },
+    {
+      "ref": "refs/heads/engine/surface-law-20260909",
+      "head": "1526e0a5ca4324bc2283d4f966e7af538839d5e7"
+    },
+    {
+      "ref": "refs/heads/engine/survival-direct-20260911",
+      "head": "9dca51421c7c07fd95bd02003210b45c5a415aa1"
+    },
+    {
+      "ref": "refs/heads/engine/survival-input-client-20260911",
+      "head": "7686d43dba74880bea918689fac25859c1af5065"
+    },
+    {
+      "ref": "refs/heads/engine/sustained-input-transport-20260911",
+      "head": "d84e15355be20124056e78988f401b7cec48b224"
+    },
+    {
+      "ref": "refs/heads/engine/tended-resources-20260913",
+      "head": "40e5adba007ed6ee615161ad41d594dc13dbc792"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-camera-20260911",
+      "head": "f0b76c6320b42b8439e0d10785be2c2ad1d7dc27"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-chunk-streaming-20260913",
+      "head": "53ec32df44dfbe8f9669c48835721ad7b1187df4"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-initial-placement-20260911",
+      "head": "5302180c7ff5090c1f68a5a2e7651be774eac17a"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-marks-20260911",
+      "head": "c9fdcaf4b783d1451ac8b7fc930e67af84a25d9e"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-owner-20260910",
+      "head": "af92196b3938e992e6aab7779e184e08f975b165"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-picking-cache-20260911",
+      "head": "126cf1bbaaf8bde046f76ed6c1aee25f41ed2478"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-presentation-20260911",
+      "head": "25b1b5b269eff417f07d649ed2b75cd77a31368a"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-query-20260911",
+      "head": "0d89589f4493439cf13e5d904f398f1214cd7846"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-records-20260911",
+      "head": "11de2d300436a5c0452489f5bc2456b13b6fd835"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-render-repair-20260911",
+      "head": "d108decd11d43551d68688e47e185ab8cd576a61"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-route-recovery-20260913",
+      "head": "f646b846884224d9552b3c0814f801a40ff65694"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-runtime-integration-20260914",
+      "head": "904d52a512d747d2abb0c257bcb0651b034474a5"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-stop-resume-20260911",
+      "head": "9c1e3b3e19cdd5ec1ba7dd73bf3fb652b5f5b55a"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-stream-20260911",
+      "head": "a20a41fb3be560de854bc115da6315fa87b13896"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-target-controls-20260911",
+      "head": "a1070b0a1819d4da85b1ba93d893a094f09447d0"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-tool-escape-20260911",
+      "head": "e3b3c4ac45cabec2f1cac71dabd3ef3237cc88d4"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-transport-20260911",
+      "head": "fe557bf41b37ffbef1169e7ffbe5a8009b994298"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-traversal-20260911",
+      "head": "7c66ab97d76f03687ce223da3858b542a17f1c66"
+    },
+    {
+      "ref": "refs/heads/engine/terrain-yields-20260909",
+      "head": "7a7b4258a440bd044025d0950e729d8ad574b7b4"
+    },
+    {
+      "ref": "refs/heads/engine/three-level-route-20260913",
+      "head": "a53bab8209dff32e6de76c002c872585e28d9a0a"
+    },
+    {
+      "ref": "refs/heads/engine/transparent-world-pass-20260914",
+      "head": "8e9b3d8517fb6d17331544a76410c54db6b85431"
+    },
+    {
+      "ref": "refs/heads/engine/typed-command-boundary-20260913",
+      "head": "a85f8484bec2f9616f75966848e48fbd20594e87"
+    },
+    {
+      "ref": "refs/heads/engine/underground-controls-20260910",
+      "head": "815ede76faa6efbc65cc65463cd5ff056f8c2e39"
+    },
+    {
+      "ref": "refs/heads/engine/upper-placement-20260911",
+      "head": "68ccbd9d03e3062c01be3ad41425337c2245bb01"
+    },
+    {
+      "ref": "refs/heads/engine/v5-floor-allocation-20260914",
+      "head": "b6b2bc4cf1774b86c741bfdd136152f55b37a738"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-study-20260910",
+      "head": "517c62e871c7b33ebd2e33b0efaa9b3af717d8bf"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-support-anchor-20260913",
+      "head": "337bc7ae0cf7c0290a320be1c7100b366e10a6d8"
+    },
+    {
+      "ref": "refs/heads/engine/vertical-work-regressions-20260913",
+      "head": "8481255b0e57bd1957ffd64fbb3cdc0712d1bdc8"
+    },
+    {
+      "ref": "refs/heads/engine/vessel-boundary-20260909",
+      "head": "5c35791cd9326440a7cfbaa50c0945e52e934c42"
+    },
+    {
+      "ref": "refs/heads/engine/vessel-portions-20260909",
+      "head": "a0c32f4fc7e011b08712a9a90c83785ffe9697b5"
+    },
+    {
+      "ref": "refs/heads/engine/visual-order-picking-20260915",
+      "head": "7e5e9bca6b11b44b2d23fc82ec0cbea409199b54"
+    },
+    {
+      "ref": "refs/heads/engine/volume-clock-20260909",
+      "head": "d0ab7519fd05313c88ccc4dc79efecd0143db1ca"
+    },
+    {
+      "ref": "refs/heads/engine/voxel-water-view-20260910",
+      "head": "3e3f97c04378c92336b55a964cc0e4c98d236f64"
+    },
+    {
+      "ref": "refs/heads/engine/wet-region-host-20260909",
+      "head": "754b65a5559bd280d9053fd4358bec06f98b5582"
+    },
+    {
+      "ref": "refs/heads/engine/whistle-client-cleanup-20260913",
+      "head": "4adebaeae68fd490b2cf10472c486196e9fa4cf7"
+    },
+    {
+      "ref": "refs/heads/engine/whistle-game-consumer-20260913",
+      "head": "4713a7de5b2e91bd39d8d734152d3101b4d7d263"
+    },
+    {
+      "ref": "refs/heads/engine/work-attempt-20260914",
+      "head": "bf9bad505c88f47e7faae436e582549071ab5b98"
+    },
+    {
+      "ref": "refs/heads/engine/work-eligibility-20260911",
+      "head": "3c01a8308c4f58fcf12e0db71952839f42aec88b"
+    },
+    {
+      "ref": "refs/heads/engine/work-inspection-20260913",
+      "head": "f910fafa628b8dbe94109299d1cedcafb489901c"
+    },
+    {
+      "ref": "refs/heads/engine/work-provider-migration-20260914",
+      "head": "ff780123b126c68292680bdb80c8023b187cb9a4"
+    },
+    {
+      "ref": "refs/heads/engine/workattempt-atomicity-20260914",
+      "head": "4dc3418d5454992d71f18ac0a5785cbc82936c96"
+    },
+    {
+      "ref": "refs/heads/engine/worker-failure-20260911",
+      "head": "1342d39419acb2c5386463438d5d510c041fd4fb"
+    },
+    {
+      "ref": "refs/heads/engine/world-controls-20260911",
+      "head": "9ed9496aed53494286ceb86a4b44b90130dfd763"
+    },
+    {
+      "ref": "refs/heads/engine/world-depth-layer-20260914",
+      "head": "91472c07df6b11d264a07544015eeff05c7bcb4a"
+    },
+    {
+      "ref": "refs/heads/engine/world-depth-lifecycle-20260914",
+      "head": "c52b442467fae65c9f494088c7b0beaaec7396d5"
+    },
+    {
+      "ref": "refs/heads/engine/zzfx-audio-20260911",
+      "head": "1dad209d0b554fce9caf3b28888964ebd93cfda1"
+    },
+    {
+      "ref": "refs/heads/feat/behavior-authoring",
+      "head": "e4338f7698c92c2bfdd21eff6a709afbffcdc0cf"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-context-ui-20260912",
+      "head": "94dced5c1348a18b0c160608254861ffc45e5f23"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-friend-link-20260912",
+      "head": "f4086f1ab6c650d367378f312519397e7734b63e"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-ground-cover-20260912",
+      "head": "cf5cd43a29d2d9dc630b1bcfa61f19c34ee799fb"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-station-work-20260912",
+      "head": "248b0e8fd8d6428d70caa68fe3fc58b56e03ae0d"
+    },
+    {
+      "ref": "refs/heads/feat/clearing-work-animation-20260912",
+      "head": "4b2f900c3aff440bc4f2b85f8ad437ece418b56a"
+    },
+    {
+      "ref": "refs/heads/feat/game-material-catalog",
+      "head": "e35d8f67a3745d65ce5c089f4c228f480226f94d"
+    },
+    {
+      "ref": "refs/heads/feat/water-vessel-capability",
+      "head": "01d0fd619a33c8e0b099995e05e0ba82d787342a"
+    },
+    {
+      "ref": "refs/heads/fix/action-dock-startup-20260913",
+      "head": "88cce85ae52272fcda7d7c2be0ea1d24a80459ad"
+    },
+    {
+      "ref": "refs/heads/fix/blocked-work-outcomes-20260915",
+      "head": "1b884c598d7c967f034afb7bc2c916bcbcaba279"
+    },
+    {
+      "ref": "refs/heads/fix/cat-rejected-move-20260913",
+      "head": "7f99b0f05c4bb81ebf5c60b4b13465bf3d4d1819"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-client-recovery-20260912",
+      "head": "6d30029b386266a1c8b42078c32ac336ba4df002"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-manual-work-20260912",
+      "head": "e79dab2a55f0aae5d9db9fa46d86d8bad3641e0f"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-smoke-coverage-20260912",
+      "head": "d90ebfb562be86b599d2278a33120fc78094d188"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-water-view-20260912",
+      "head": "559cee0acd6437458dca171f222fbe8eac6862a9"
+    },
+    {
+      "ref": "refs/heads/fix/clearing-work-recovery-20260912",
+      "head": "fb81a95a9ec2859f9e02bbd9dc6530502c2c0676"
+    },
+    {
+      "ref": "refs/heads/fix/delivery-rejected-move-20260913",
+      "head": "d7267f918c1214e4e9e2646f1e894f87d05ee31b"
+    },
+    {
+      "ref": "refs/heads/fix/dig-affordance-20260910",
+      "head": "d5eac8f4b3a869866904d88b2f5531b92cf93f24"
+    },
+    {
+      "ref": "refs/heads/fix/dig-route-recovery-20260912",
+      "head": "333b1e06e60000f705368aeb155ba7e6793db228"
+    },
+    {
+      "ref": "refs/heads/fix/ground-stock-cleanup-20260912",
+      "head": "ea378a85b367be0db0794163e53c4c66b5fdfeed"
+    },
+    {
+      "ref": "refs/heads/fix/loose-spoil-game-20260912",
+      "head": "937471782f38ac87b4d87e86c82e49a47fea819c"
+    },
+    {
+      "ref": "refs/heads/fix/performance-page-startup-20260914",
+      "head": "08953af8b8083837dda40b292b7acdc781548ebe"
+    },
+    {
+      "ref": "refs/heads/fix/playable-app-types-20260910",
+      "head": "a0cc974859d4066f41418eb1ac9ec58a5bc9867b"
+    },
+    {
+      "ref": "refs/heads/fix/presentation-current-20260910",
+      "head": "007525fee19f1b88bc88a2b4c2016b4745d7e99a"
+    },
+    {
+      "ref": "refs/heads/fix/room-current-environment-20260910",
+      "head": "e8f1bdb1ac2ad4e3f893de1bf1a2999a901c2c38"
+    },
+    {
+      "ref": "refs/heads/fix/station-emission-20260913",
+      "head": "c006db21623f4eba4f91786da4e7b43901a2bec5"
+    },
+    {
+      "ref": "refs/heads/fix/work-contact-repair-20260914",
+      "head": "7e74e0ccfe0f532b8aff7f080eeacdcc5b4e2047"
+    },
+    {
+      "ref": "refs/heads/fix/world-surface-pick-policy-20260914",
+      "head": "10acbc1257f2a415fc234d118970b7f91cedfa1c"
+    },
+    {
+      "ref": "refs/heads/game/clearing-presentation-20260912",
+      "head": "ebba03731b334ec26faa88c752c2b857fbed7d21"
+    },
+    {
+      "ref": "refs/heads/game/clearing-retained-interactions-20260913",
+      "head": "5bb39c0ece8c09f55a0897e68032cb8925df499b"
+    },
+    {
+      "ref": "refs/heads/game/clearing-trees-20260912",
+      "head": "06832210663f1e408095f2a26283f13ee7834b6b"
+    },
+    {
+      "ref": "refs/heads/game/delivery-activity-presentation-20260913",
+      "head": "ba9c5cf82a4c1323343974caf2f7c0a9433302ce"
+    },
+    {
+      "ref": "refs/heads/game/retained-brew-station-20260912",
+      "head": "c417172c28e3f2ae5aeff5a8a134329de5cb8457"
+    },
+    {
+      "ref": "refs/heads/game/stockpile-playable-20260913",
+      "head": "7c7c3dbc7998717c361ac2eda799e65f92650fd7"
+    },
+    {
+      "ref": "refs/heads/game/stockpile-zone",
+      "head": "b890e261b9f201b5be91a46ed12f805e56014a17"
+    },
+    {
+      "ref": "refs/heads/game/tree-animation-v2",
+      "head": "ad19687097b58a8bb927323fd0dd54dbe936b8e0"
+    },
+    {
+      "ref": "refs/heads/game/tree-poses-v3",
+      "head": "3477ca9e6cc3b09d93c3b57053a8bc4296343781"
+    },
+    {
+      "ref": "refs/heads/native-construction-supply",
+      "head": "22d26a0dfb4890c7d88503699b4e0f25a60c8d01"
+    },
+    {
+      "ref": "refs/heads/native-material-index",
+      "head": "1667058de78dd3213e76fb680d89a4006427edd5"
+    },
+    {
+      "ref": "refs/heads/parallel-haul-legs",
+      "head": "08fa1a84a1cc56d04b8854f6d041bb704dadae83"
+    },
+    {
+      "ref": "refs/heads/pending-support-order",
+      "head": "48f3986bb845e577185a1dc4fa815806b08fa208"
+    },
+    {
+      "ref": "refs/heads/perf/atmosphere-metrics-20260910",
+      "head": "2964832e58abd593c26254445031d6336bb3f67a"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-air-20260910",
+      "head": "58ae6a68bb8b07929b42e9ed7cd621aa3359509e"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-browser-measure-20260910",
+      "head": "7e4a274daf305352ef63c67c04ed940028fa90e7"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-measure-20260910",
+      "head": "9321d4d85e09c87cacd06ccf259f5cef571b7ac4"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-queries-20260910",
+      "head": "6ae0bac80e6e14da29e204926bdd4e1f097ef343"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-responsibilities-20260910",
+      "head": "9fa260158de9f58d0922ecef5366cad700103f6d"
+    },
+    {
+      "ref": "refs/heads/perf/clearing-water-20260910",
+      "head": "7086da7ff99c487dcb04ce21160e0cc4a0555769"
+    },
+    {
+      "ref": "refs/heads/perf/colony-hot-loop-20260913",
+      "head": "0d785d34ef8a7beb751296b084a7bea36b1361ec"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-page-current-20260915",
+      "head": "2d83196cfb3ed4441ef6dba35c1d7fd4678b076a"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-page-recut-20260915",
+      "head": "879ff217323fa07bb8cf5debad3dba58e7ef93d9"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-page-recut-v2-20260915",
+      "head": "bb54d4b87a8cce2659607d21c1f9fe17eed051f1"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-playground-20260913",
+      "head": "eb3b1a3977587d59cec5e5037b93a8095bd92fea"
+    },
+    {
+      "ref": "refs/heads/perf/colony-performance-shared-runtime-20260915",
+      "head": "c81c827f4c1d34810c69325dd25efba044c82d81"
+    },
+    {
+      "ref": "refs/heads/perf/colony-sustained-proof-20260914",
+      "head": "3ce007e491b2327a412074dad77074bfe7473395"
+    },
+    {
+      "ref": "refs/heads/perf/event-driven-assignment",
+      "head": "77393e97a9c56bf70369b02b22024a8370293947"
+    },
+    {
+      "ref": "refs/heads/perf/multi-destination-routes-20260913",
+      "head": "3d95a8cec7dc32857b77a19294ca4dd02712c176"
+    },
+    {
+      "ref": "refs/heads/perf/performance-browser-proof-20260914",
+      "head": "0ecb36acf0c3a9ba8bee31c8b9b42b80b8aeee01"
+    },
+    {
+      "ref": "refs/heads/perf/staggered-retry-20260914",
+      "head": "15aaa0f337c7067da264d2b3dd9cd3729877a3c8"
+    },
+    {
+      "ref": "refs/heads/process-transition-laws",
+      "head": "95dd84e774b90748b2c6999b610f7b451e279cad"
+    },
+    {
+      "ref": "refs/heads/process-transitions",
+      "head": "b49936478fc51f5ab090d37ea6a7e188cd73382b"
+    },
+    {
+      "ref": "refs/heads/proof/hosted-edge-contract",
+      "head": "77cb0a98b43e5eed3e2471e6cbb74a2f9393c704"
+    },
+    {
+      "ref": "refs/heads/proof/underground-play-20260910",
+      "head": "102840647d9e905757d7814b14aef46330b8d554"
+    },
+    {
+      "ref": "refs/heads/recovery/air-qualification-20260909",
+      "head": "ec839c518a54e63cf53be0ea52121e0b729fcef3"
+    },
+    {
+      "ref": "refs/heads/recovery/hive-gameplay-water-release-20260909",
+      "head": "8481cf2933c90a8046cd7dc48448ed20f4ca787b"
+    },
+    {
+      "ref": "refs/heads/recovery/physical-qualification-20260909",
+      "head": "efde0fb8186972989393f8f37b80798d076f5126"
+    },
+    {
+      "ref": "refs/heads/recovery/room-source-join-20260909",
+      "head": "47d0d648ab54d1b379fe811ed456ec48b5a3caf8"
+    },
+    {
+      "ref": "refs/heads/recovery/water-inspection-20260909",
+      "head": "c4958dedcf4c3fcc56b5a9f1bb5af8d17cdd2170"
+    },
+    {
+      "ref": "refs/heads/release/gameplay-water-20260909",
+      "head": "f4a2b657b74eb3a5794c755df06ea400fcb74bf1"
+    },
+    {
+      "ref": "refs/heads/release/wet-clearing-20260909",
+      "head": "4a6931c4c6c4454431651c330ff8ec15dd980b1a"
+    },
+    {
+      "ref": "refs/heads/resident-failure-repair",
+      "head": "6e4fb867d390b78b1baa315e1f46f5dd9943e268"
+    },
+    {
+      "ref": "refs/heads/review/clearing-stockpile-20260912",
+      "head": "e86cce88711e84ddde9ae525392bef42aae4db6f"
+    },
+    {
+      "ref": "refs/heads/review/whistle-game-consumer-root-20260913",
+      "head": "91da3470bd5f1399979d9b026536d7b45b37db1f"
+    },
+    {
+      "ref": "refs/heads/staged-process-runtime",
+      "head": "b15bfc97b27d1655994c133674d7bccb903a8a06"
+    },
+    {
+      "ref": "refs/heads/support-fixpoint-laws",
+      "head": "30fdfa1e732e4f17629b9f28c9aa9f70e3e54fc2"
+    },
+    {
+      "ref": "refs/heads/support-law-20260913",
+      "head": "c7a86ee2a7293cc20c95dd0015f3e6b6d5234457"
+    },
+    {
+      "ref": "refs/heads/tended-resources-tests",
+      "head": "bfc063608a95b8dfbb3d798cab088ab681bcbdac"
+    },
+    {
+      "ref": "refs/heads/terrain-projection-delta",
+      "head": "4ee33624c047334cafb3e4d726876ff6dbc2e510"
+    },
+    {
+      "ref": "refs/heads/test/attempt-fixture-methods-20260914",
+      "head": "8746eccf7a88946b77df62dcecddd322596ccac9"
+    },
+    {
+      "ref": "refs/heads/test/colony-party-fixtures-20260914",
+      "head": "4167ee5e6bfedf94801407a89cda79e5d7cfa902"
+    },
+    {
+      "ref": "refs/heads/test/delivery-fixture-cleanup-20260914",
+      "head": "c8beb7e768b98a6b7fb0d0acf844a071790d54c1"
+    },
+    {
+      "ref": "refs/heads/test/process-party-fixtures-20260914",
+      "head": "b7dc0d7b023ce1f0acec668136f6ba567ee0a1ce"
+    },
+    {
+      "ref": "refs/heads/ui/brewhouse-air-20260909",
+      "head": "bfa76bff47ddebc7503d7a957fa3f7df391de499"
+    },
+    {
+      "ref": "refs/heads/ui/designation-layer-toggle-20260915",
+      "head": "6b42414fde486927283def0caac91229d5e12e85"
+    },
+    {
+      "ref": "refs/heads/ui/game-startup-20260909",
+      "head": "a24ade6311f9d9bafb81e09160a1a8eb41f94853"
+    },
+    {
+      "ref": "refs/heads/ui/stockpile-policy-ui-20260913",
+      "head": "e03eca4f4ce1fc11214aad9a7cb7d71c29c6ecfc"
+    },
+    {
+      "ref": "refs/heads/ui/wet-clearing-20260909",
+      "head": "4a36d8efb95790604e6512d2f2c08fa34be974fb"
+    },
+    {
+      "ref": "refs/heads/water-contact-eligibility",
+      "head": "df453a74dea7b6e70e871f05ca5e5d2de94d49f3"
+    },
+    {
+      "ref": "refs/heads/whistle-gamepack-cutover",
+      "head": "8775c966c6772567e83ddf26e791981bcfb7f472"
+    },
+    {
+      "ref": "refs/heads/workattempt-delivery-draft-20260914",
+      "head": "ebeb7fb856ff318250f2256b74e607ecb35d16d1"
+    }
+  ]
+}
