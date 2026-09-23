@@ -25,7 +25,7 @@ struct Header {
     version: u16,
     entity_counts: [u32; 11],
     environment: bool,
-    atmosphere_bytes: Option<u64>,
+    atmosphere: bool,
 }
 
 pub struct RecordBundle {
@@ -77,7 +77,6 @@ impl RecordCapture {
             let prefix = format!("{}{id}/", crate::route_records::PREFIX);
             removes.extend(baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned());
         }
-        removes.extend(baseline.records.keys().filter(|key| key.starts_with(ATMOSPHERE_PREFIX) && !delta.records.contains_key(*key)).cloned());
         for id in searches {
             let prefix = format!("{}{id}.", crate::search_records::PREFIX);
             let absent: Vec<_> = baseline.records.keys().filter(|key| key.starts_with(&prefix) && !delta.records.contains_key(*key)).cloned().collect();
@@ -87,7 +86,10 @@ impl RecordCapture {
         for key in removes { baseline.remove(&key); }
         for (key, bytes) in delta.records {
             if key == HEADER_KEY {
-                baseline.replace(&key, bytes)?;
+                // Capability presence is stable for a resident capture cursor.
+                // Keep its current binding; only entity counts are recomputed
+                // below. Delta headers intentionally contain no full air bytes.
+                continue;
             } else if baseline.records.get(&key) != Some(&bytes) {
                 changed.insert(&key, &bytes)?;
                 baseline.replace(&key, bytes)?;
@@ -253,10 +255,10 @@ impl RecordBundle {
         for (key, bytes) in entity { bundle.insert(&key, &bytes)?; }
         let environment_present = records.environment.is_some();
         let header = postcard::to_allocvec(&Header {
-            version: 6,
+            version: 7,
             entity_counts,
             environment: environment_present,
-            atmosphere_bytes: atmosphere.as_ref().map(|bytes| bytes.len() as u64),
+            atmosphere: atmosphere.is_some(),
         })
         .map_err(|_| "record header encoding failed")?;
         if header.len() > 65_568 {
@@ -287,7 +289,7 @@ impl RecordBundle {
         }
         let (header, remainder): (Header, &[u8]) =
             take_from_bytes(header_bytes).map_err(|_| "invalid record header")?;
-        if !remainder.is_empty() || header.version != 6
+        if !remainder.is_empty() || header.version != 7
         {
             return Err("invalid record header binding".into());
         }
@@ -310,8 +312,8 @@ impl RecordBundle {
             }
         }
         let atmosphere_chunks = crate::air_records::decode(&self.records)?;
-        if atmosphere_chunks.as_ref().map(|bytes| bytes.len() as u64) != header.atmosphere_bytes { return Err("atmosphere length does not match header".into()); }
-        if header.atmosphere_bytes.is_some() && !header.environment {
+        if atmosphere_chunks.is_some() != header.atmosphere { return Err("atmosphere presence does not match header".into()); }
+        if header.atmosphere && !header.environment {
             return Err("atmosphere record requires environment".into());
         }
         if header.environment {
@@ -507,7 +509,7 @@ mod tests {
             atmosphere: None,
         };
         let mut bundle = RecordBundle::from_records(records).unwrap();
-        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 4;
+        bundle.records.get_mut(HEADER_KEY).unwrap()[0] = 6;
         assert!(bundle.decode().is_err());
     }
 

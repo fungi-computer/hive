@@ -97,6 +97,54 @@ fn lot_quantity(kernel: &mut Kernel) -> u64 {
         .unwrap_or(0)
 }
 
+fn capture_matches_checkpoint(kernel: &mut Kernel, cursor: &mut crate::record_bundle::RecordCapture, since: u32) -> u32 {
+    let (revision, time) = kernel.record_frontier();
+    let token = kernel.record_journal_token();
+    let (_changed, manifest) = cursor.capture_changed(kernel.changed_records().unwrap(), since,
+        revision, time, kernel.record_state_weight()).unwrap();
+    kernel.accept_record_journal(token);
+    let checkpoint = crate::record_bundle::RecordBundle::from_records(kernel.save_records().unwrap()).unwrap();
+    let (difference, oracle) = cursor.capture(checkpoint, Some(manifest.sequence), revision, time).unwrap();
+    assert!(difference.keys().is_empty(), "incremental records differ from full checkpoint: {:?}", difference.keys());
+    oracle.sequence
+}
+
+#[test]
+fn changed_air_capture_tracks_emission_decay_reload_and_entity_mutation() {
+    use crate::record_bundle::{RecordBundle, RecordCapture};
+    let mut kernel = make_kernel(Some(2), false);
+    let mut cursor = RecordCapture::default();
+    let (revision, time) = kernel.record_frontier();
+    let baseline = RecordBundle::from_records(kernel.save_records().unwrap()).unwrap();
+    let (_, manifest) = cursor.capture(baseline, Some(0), revision, time).unwrap();
+    kernel.accept_record_journal(kernel.record_journal_token());
+
+    action(&mut kernel, 0.0); // Material debit and paid emission admission.
+    let sequence = capture_matches_checkpoint(&mut kernel, &mut cursor, manifest.sequence);
+    kernel.advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#).unwrap();
+    let sequence = capture_matches_checkpoint(&mut kernel, &mut cursor, sequence);
+    kernel.advance_json(r#"{"delta":0.2,"writes":[],"actions":[]}"#).unwrap();
+    capture_matches_checkpoint(&mut kernel, &mut cursor, sequence);
+
+    let saved = RecordBundle::from_records(kernel.save_records().unwrap()).unwrap();
+    let mut restored = Kernel::new();
+    restored.restore_records(&saved.decode().unwrap()).unwrap();
+    let (revision, time) = restored.record_frontier();
+    let mut restored_cursor = RecordCapture::default();
+    let (_, baseline) = restored_cursor.capture(saved, Some(0), revision, time).unwrap();
+    restored.accept_record_journal(restored.record_journal_token());
+    let sequence = capture_matches_checkpoint(&mut restored, &mut restored_cursor, baseline.sequence);
+    restored.advance_json(r#"{"delta":0.1,"writes":[],"actions":[]}"#).unwrap();
+    let sequence = capture_matches_checkpoint(&mut restored, &mut restored_cursor, sequence);
+    let worker = restored.entity("worker").unwrap();
+    let position = *restored.ecs.get::<Position>(worker).unwrap();
+    let move_same_cell = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{
+        "kind":"move","entity":"worker","destination":{"x":position.x,"y":position.y,"z":position.z,"frame":null},"facing":0.5
+    }}]});
+    restored.advance_json(&move_same_cell.to_string()).unwrap();
+    capture_matches_checkpoint(&mut restored, &mut restored_cursor, sequence);
+}
+
 #[test]
 fn dry_admission_debits_once_and_duplicate_is_rejected() {
     let mut kernel = make_kernel(Some(2), false);

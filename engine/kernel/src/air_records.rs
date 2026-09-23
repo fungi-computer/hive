@@ -10,12 +10,23 @@ use std::collections::{BTreeMap, VecDeque};
 pub(crate) const PREFIX: &str = "kernel/atmosphere/";
 pub(crate) const SAVED_AIR_VERSION: u16 = 2;
 const HEADER: &str = "kernel/atmosphere/header";
-const EMISSIONS: &str = "kernel/atmosphere/emissions";
+pub(crate) const EMISSIONS: &str = "kernel/atmosphere/emissions";
 const TILE_PREFIX: &str = "kernel/atmosphere/tiles/";
 const TILE_SIDE: i64 = 4;
 const TILE_CELLS: usize = 64;
 const MAX_BYTES: usize = 2 * 1024 * 1024 + 64 * 1024;
-type Records = BTreeMap<String, Vec<u8>>;
+pub(crate) type Records = BTreeMap<String, Vec<u8>>;
+
+/// Rebuildable encoding cache owned beside the canonical smoke mutation. The
+/// persisted stock map and queue remain the only authority; this cache keeps
+/// page bytes and an acknowledgement journal so changed capture never walks
+/// the whole atmosphere.
+#[derive(Default)]
+pub(crate) struct AirRecordCache {
+    records: Records,
+    generation: u64,
+    changed: BTreeMap<String, (u64, Option<Vec<u8>>)>,
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -32,6 +43,105 @@ pub(crate) struct SavedAir {
     pub version: u16,
     pub atmosphere: TerrainAtmosphereRecords,
     pub emissions: BTreeMap<String, PaidEmission>,
+}
+
+impl AirRecordCache {
+    pub(crate) fn from_state(config: &TerrainAtmosphereConfig, state: &SmokeState) -> Result<Self, String> {
+        let records = encode_pages(config, state)?;
+        Ok(Self { records, generation: 0, changed: BTreeMap::new() })
+    }
+
+    pub(crate) fn token(&self) -> u64 { self.generation }
+
+    pub(crate) fn acknowledge(&mut self, token: u64) {
+        self.changed.retain(|_, (generation, _)| *generation > token);
+    }
+
+    pub(crate) fn delta(&self) -> (Records, Vec<String>) {
+        let mut puts = Records::new();
+        let mut removes = Vec::new();
+        for (key, (_, value)) in &self.changed {
+            if let Some(value) = value { puts.insert(key.clone(), value.clone()); }
+            else { removes.push(key.clone()); }
+        }
+        (puts, removes)
+    }
+
+    pub(crate) fn publish(&mut self, config: &TerrainAtmosphereConfig, state: &SmokeState,
+        changed_cells: &[Cell], appended: &[Cell], old_tail: Option<Cell>) -> Result<(), String> {
+        let mut changes_by_tile: BTreeMap<Cell, Vec<Cell>> = BTreeMap::new();
+        for cell in changed_cells { changes_by_tile.entry(tile(*cell)).or_default().push(*cell); }
+        let mut appended_by_tile: BTreeMap<Cell, Vec<Cell>> = BTreeMap::new();
+        for cell in appended { appended_by_tile.entry(tile(*cell)).or_default().push(*cell); }
+        let appended_next: BTreeMap<Cell, Option<Cell>> = appended.iter().enumerate()
+            .map(|(index, cell)| (*cell, appended.get(index + 1).copied())).collect();
+        let mut dirty_tiles: std::collections::BTreeSet<Cell> = changes_by_tile.keys().copied().collect();
+        dirty_tiles.extend(appended_by_tile.keys().copied());
+        if !appended.is_empty() {
+            if let Some(tail) = old_tail.filter(|cell| state.stocks.contains_key(cell) && !appended.contains(cell)) {
+                dirty_tiles.insert(tile(tail));
+            }
+        }
+
+        for identity in dirty_tiles {
+            let key = tile_key(identity);
+            let mut page: BTreeMap<Cell, Stock> = self.records.get(&key)
+                .map(|bytes| read::<Vec<(Cell, Stock)>>(bytes).map(|rows| rows.into_iter().collect()))
+                .transpose()?.unwrap_or_default();
+            if let Some(cells) = changes_by_tile.get(&identity) {
+                for cell in cells {
+                    if let Some(amount) = state.stocks.get(cell).copied() {
+                        page.entry(*cell).and_modify(|stock| stock.amount = amount)
+                            .or_insert(Stock { amount, next: None });
+                    } else { page.remove(cell); }
+                }
+            }
+            if let Some(cells) = appended_by_tile.get(&identity) {
+                for cell in cells {
+                    if let Some(stock) = page.get_mut(cell) {
+                        stock.next = appended_next.get(cell).copied().flatten();
+                    }
+                }
+            }
+            if !appended.is_empty() {
+                if let Some(tail) = old_tail.filter(|cell| state.stocks.contains_key(cell) && !appended_next.contains_key(cell)) {
+                    if tile(tail) == identity {
+                        page.get_mut(&tail).ok_or("air queue tail record missing")?.next = appended.first().copied();
+                    }
+                }
+            }
+            let value = if page.is_empty() { None } else { Some(write(&page.into_iter().collect::<Vec<_>>())?) };
+            self.replace(key, value)?;
+        }
+
+        let ledger = SmokeState {
+            clock: state.clock,
+            stocks: BTreeMap::new(),
+            queue: VecDeque::new(),
+            smoke_emitted: state.smoke_emitted,
+            heat_emitted: state.heat_emitted,
+            smoke_out: state.smoke_out,
+            heat_out: state.heat_out,
+            smoke_deposited: state.smoke_deposited,
+            heat_deposited: state.heat_deposited,
+        };
+        let header = write(&Header { version: VERSION, config: config.clone(), ledger,
+            count: state.stocks.len(), first: state.queue.front().copied() })?;
+        self.replace(HEADER.into(), Some(header))?;
+        Ok(())
+    }
+
+    fn replace(&mut self, key: String, value: Option<Vec<u8>>) -> Result<(), String> {
+        if matches!((self.records.get(&key), value.as_ref()), (None, None))
+            || matches!((self.records.get(&key), value.as_ref()), (Some(current), Some(next)) if current == next) {
+            return Ok(());
+        }
+        self.generation = self.generation.checked_add(1).ok_or("air record generation exhausted")?;
+        if let Some(value) = &value { self.records.insert(key.clone(), value.clone()); }
+        else { self.records.remove(&key); }
+        self.changed.insert(key, (self.generation, value));
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -88,22 +198,14 @@ fn write<T: Serialize>(value: &T) -> Result<Vec<u8>, String> {
     postcard::to_allocvec(value).map_err(|_| "air record encoding failed".into())
 }
 
-pub(crate) fn encode(bytes: &[u8]) -> Result<Records, String> {
-    let saved: SavedAir = read(bytes)?;
-    if saved.version != SAVED_AIR_VERSION || saved.atmosphere.version != VERSION
-        || saved.emissions.len() > 64 {
-        return Err("invalid air record binding".into());
-    }
-    let TerrainAtmosphereRecords { config, mut state, .. } = saved.atmosphere;
-    validate_state(&state, &config)?;
-    let stocks = std::mem::take(&mut state.stocks);
-    let queue = std::mem::take(&mut state.queue);
+fn encode_pages(config: &TerrainAtmosphereConfig, state: &SmokeState) -> Result<Records, String> {
+    validate_state(state, config)?;
+    let mut ledger = state.clone();
+    let stocks = std::mem::take(&mut ledger.stocks);
+    let queue = std::mem::take(&mut ledger.queue);
     let mut records = Records::new();
-    records.insert(HEADER.into(), write(&Header {
-        version: VERSION, config, ledger: state,
-        count: stocks.len(), first: queue.front().copied(),
-    })?);
-    records.insert(EMISSIONS.into(), write(&saved.emissions)?);
+    records.insert(HEADER.into(), write(&Header { version: VERSION, config: config.clone(), ledger,
+        count: stocks.len(), first: queue.front().copied() })?);
     let mut pages: BTreeMap<Cell, BTreeMap<Cell, Stock>> = BTreeMap::new();
     for (index, cell) in queue.iter().copied().enumerate() {
         pages.entry(tile(cell)).or_default().insert(cell, Stock {
@@ -113,6 +215,18 @@ pub(crate) fn encode(bytes: &[u8]) -> Result<Records, String> {
     for (tile, page) in pages {
         records.insert(tile_key(tile), write(&page.into_iter().collect::<Vec<_>>())?);
     }
+    Ok(records)
+}
+
+pub(crate) fn encode(bytes: &[u8]) -> Result<Records, String> {
+    let saved: SavedAir = read(bytes)?;
+    if saved.version != SAVED_AIR_VERSION || saved.atmosphere.version != VERSION
+        || saved.emissions.len() > 64 {
+        return Err("invalid air record binding".into());
+    }
+    let TerrainAtmosphereRecords { config, state, .. } = saved.atmosphere;
+    let mut records = encode_pages(&config, &state)?;
+    records.insert(EMISSIONS.into(), write(&saved.emissions)?);
     Ok(records)
 }
 
@@ -212,15 +326,70 @@ mod tests {
         let mut saved = fixture();
         let before_bytes = write(&saved).unwrap();
         let before = encode(&before_bytes).unwrap();
+        let mut cache = AirRecordCache::from_state(&saved.atmosphere.config, &saved.atmosphere.state).unwrap();
         assert_eq!(before.len(), 66); // 1,024 stocks, 64 spatial pages + ledger/emissions.
         assert_eq!(decode(&before).unwrap().unwrap(), before_bytes);
+        let old_tail = saved.atmosphere.state.queue.back().copied();
+        let appended: Vec<_> = saved.atmosphere.state.queue.iter().take(256).copied().collect();
         saved.atmosphere.state.queue.rotate_left(256);
+        cache.publish(&saved.atmosphere.config, &saved.atmosphere.state, &[], &appended, old_tail).unwrap();
         let bytes = write(&saved).unwrap();
         let after = encode(&bytes).unwrap();
-        let changed: Vec<_> = after.iter().filter(|(key, value)| before.get(*key) != Some(*value)).collect();
+        let (puts, removes) = cache.delta();
+        let mut patched = before.clone();
+        for key in removes { patched.remove(&key); }
+        patched.extend(puts);
+        assert_eq!(patched, after, "dirty air page delta exactly matches full checkpoint encoding");
+        let token = cache.token();
+        let next_tail = saved.atmosphere.state.queue.back().copied();
+        let next_appended = vec![saved.atmosphere.state.queue.front().copied().unwrap()];
+        saved.atmosphere.state.queue.rotate_left(1);
+        cache.publish(&saved.atmosphere.config, &saved.atmosphere.state, &[], &next_appended, next_tail).unwrap();
+        cache.acknowledge(token);
+        let bytes = write(&saved).unwrap();
+        let expected = encode(&bytes).unwrap();
+        let (puts, removes) = cache.delta();
+        let mut patched = after;
+        for key in removes { patched.remove(&key); }
+        patched.extend(puts);
+        assert_eq!(patched, expected, "acknowledging an earlier capture retains later page progress");
+        let token = cache.token();
+        cache.acknowledge(token);
+        assert!(cache.delta().0.is_empty() && cache.delta().1.is_empty(), "ack clears only captured cache changes");
+        let changed: Vec<_> = expected.iter().filter(|(key, value)| before.get(*key) != Some(*value)).collect();
         assert_eq!(changed.len(), 3); // Head + old/new tail; no shifted page identities.
         assert!(changed.iter().map(|(_, value)| value.len()).sum::<usize>() < before_bytes.len() / 8);
-        assert_eq!(decode(&after).unwrap().unwrap(), bytes);
+        assert_eq!(decode(&expected).unwrap().unwrap(), bytes);
+    }
+
+    #[test]
+    fn dirty_page_retirement_matches_full_air_checkpoint() {
+        let mut saved = fixture();
+        let retired = tile(saved.atmosphere.state.queue[0]);
+        let removed: Vec<_> = saved.atmosphere.state.stocks.keys().copied()
+            .filter(|cell| tile(*cell) == retired).collect();
+        let mut ordered = removed.clone();
+        ordered.extend(saved.atmosphere.state.queue.iter().copied().filter(|cell| tile(*cell) != retired));
+        saved.atmosphere.state.queue = ordered.into();
+        let mut cache = AirRecordCache::from_state(&saved.atmosphere.config, &saved.atmosphere.state).unwrap();
+        let before = encode(&write(&saved).unwrap()).unwrap();
+        saved.atmosphere.state.queue.drain(..removed.len());
+        for cell in &removed {
+            let amount = saved.atmosphere.state.stocks.remove(cell).unwrap();
+            saved.atmosphere.state.smoke_out += amount.smoke;
+            saved.atmosphere.state.heat_out += amount.heat;
+        }
+        saved.atmosphere.state.queue.retain(|cell| tile(*cell) != retired);
+        let old_tail = saved.atmosphere.state.queue.back().copied();
+        cache.publish(&saved.atmosphere.config, &saved.atmosphere.state, &removed, &[], old_tail).unwrap();
+        let after = encode(&write(&saved).unwrap()).unwrap();
+        let (puts, removes) = cache.delta();
+        assert!(removes.contains(&tile_key(retired)), "empty page retirement is explicit");
+        let mut patched = before;
+        for key in removes { patched.remove(&key); }
+        patched.extend(puts);
+        assert_eq!(patched, after);
+        assert_eq!(decode(&patched).unwrap().unwrap(), write(&saved).unwrap());
     }
 
     #[test]
