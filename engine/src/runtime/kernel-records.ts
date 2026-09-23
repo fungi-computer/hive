@@ -3,14 +3,15 @@
 export interface NativeRecordHandle {
   free(): void;
   keys(): string;
+  manifest(): string;
   /** Returns an owned copy detached from WASM memory. */
   read(key: string): Uint8Array;
   insert(key: string, bytes: Uint8Array): void;
 }
 
 export interface NativeRecordBinding {
-  capture_records(): NativeRecordHandle;
-  restore_records(handle: NativeRecordHandle): void;
+  capture_records(since?: number): NativeRecordHandle;
+  restore_records(handle: NativeRecordHandle): number;
 }
 
 export interface KernelEntitySnapshot {
@@ -35,6 +36,15 @@ export interface KernelRecordSnapshot {
   readonly revision: number;
   readonly time: number;
   readonly records: readonly { readonly key: string; readonly bytes: Uint8Array }[];
+}
+
+export interface KernelRecordCaptureResult {
+  /** Borrowed immutable bytes, owned by the resident until its next capture. */
+  readonly snapshot: KernelRecordSnapshot;
+  readonly changes: {
+    readonly puts: KernelRecordSnapshot["records"];
+    readonly removes: readonly string[];
+  };
 }
 
 const RECORD_BYTES = 256 * 1024;
@@ -114,7 +124,7 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
   return { text, parsed: value as KernelEntitySnapshot };
 }
 
-function preflightRecords(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
+function validateRecordEnvelope(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): void {
   if (!Array.isArray(records) || records.length > MAX_KERNEL_RECORDS) throw new Error("record count exceeds bound");
   const seen = new Set<string>();
   let total = 0;
@@ -129,10 +139,70 @@ function preflightRecords(records: readonly { readonly key: string; readonly byt
   const airKeys = [...seen].filter(key => key.startsWith(ATMOSPHERE_PREFIX)).sort();
   if (airKeys.length && (!environment || airKeys.some((key, index) => key !== `${ATMOSPHERE_PREFIX}${String(index).padStart(4, "0")}`)))
     throw new Error("atmosphere record set is incomplete");
+}
+function preflightRecords(records: readonly { readonly key: string; readonly bytes: Uint8Array }[]): KernelEntitySnapshot {
+  validateRecordEnvelope(records);
   const definition = records.find(record => record.key === ENVIRONMENT_KEYS[0]);
   if (definition) new TextDecoder("utf-8", { fatal: true }).decode(definition.bytes);
   const entities = decodeEntities(records);
   return entities.parsed;
+}
+
+/** One resident's disposable capture cursor. Only native-produced records use
+ * this path. External exports/restores still undergo complete preflight and
+ * native relational validation. The Region transaction commits these changes
+ * with its receipt; capture never acknowledges or commits simulation effects. */
+export class KernelRecordCapture {
+  private sequence = 0;
+  private records = new Map<string, { readonly key: string; readonly bytes: Uint8Array }>();
+  private priorKeys: readonly string[] = [];
+
+  constructor(private readonly binding: NativeRecordBinding) {}
+
+  restored(snapshot: KernelRecordSnapshot, sequence: number): void {
+    if (!Number.isInteger(sequence) || sequence <= 0 || sequence > 0xffffffff) throw new Error("invalid restored capture sequence");
+    this.sequence = sequence;
+    // External restore inputs remain owned by their caller. A later mutation
+    // of those input bytes must not corrupt this resident's unchanged records.
+    this.records = new Map(snapshot.records.map(record => [record.key, { key: record.key, bytes: record.bytes.slice() }]));
+    this.priorKeys = snapshot.records.map(record => record.key);
+  }
+
+  capture(): KernelRecordCaptureResult {
+    const handle = this.binding.capture_records(this.sequence);
+    try {
+      const manifest = JSON.parse(handle.manifest()) as {
+        sequence: number; base: number | null; revision: number; time: number; keys: string[];
+      };
+      if (!manifest || !Number.isInteger(manifest.sequence) || manifest.sequence <= 0 || manifest.sequence > 0xffffffff ||
+          (manifest.base !== null && manifest.base !== this.sequence) ||
+          !isSafeRevision(manifest.revision) || !isFiniteTime(manifest.time) || !Array.isArray(manifest.keys))
+        throw new Error("invalid native capture manifest");
+      validateKeyList(manifest.keys);
+      const changedKeys: unknown = JSON.parse(handle.keys());
+      if (!Array.isArray(changedKeys) || changedKeys.length > MAX_KERNEL_RECORDS || new Set(changedKeys).size !== changedKeys.length ||
+          changedKeys.some(key => typeof key !== "string" || !manifest.keys.includes(key)))
+        throw new Error("invalid native changed records");
+      const puts = changedKeys.map(key => ({ key: key as string, bytes: handle.read(key) }));
+      const changed = new Map(puts.map(record => [record.key, record]));
+      const records = manifest.keys.map(key => {
+        const record = changed.get(key) ?? (manifest.base !== null ? this.records.get(key) : undefined);
+        if (!record) throw new Error("native capture omitted a required record");
+        return record;
+      });
+      // O(record count), no entity JSON decode and no unchanged bytes crossing WASM.
+      validateRecordEnvelope(records);
+      const nextKeys = new Set(manifest.keys);
+      const removes = this.priorKeys.filter(key => !nextKeys.has(key));
+      const snapshot: KernelRecordSnapshot = {
+        format: "hive-kernel-records", version: 1, revision: manifest.revision, time: manifest.time, records,
+      };
+      this.records = new Map(records.map(record => [record.key, record]));
+      this.priorKeys = manifest.keys;
+      this.sequence = manifest.sequence;
+      return { snapshot, changes: { puts, removes } };
+    } finally { handle.free(); }
+  }
 }
 function validateSnapshot(snapshot: KernelRecordSnapshot): { entities: KernelEntitySnapshot } {
   if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 1 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
@@ -160,11 +230,11 @@ export function readKernelEntities(snapshot: KernelRecordSnapshot): KernelEntity
   return validateSnapshot(snapshot).entities;
 }
 
-export function restoreKernelRecords(binding: NativeRecordBinding, makeHandle: () => NativeRecordHandle, snapshot: KernelRecordSnapshot): void {
+export function restoreKernelRecords(binding: NativeRecordBinding, makeHandle: () => NativeRecordHandle, snapshot: KernelRecordSnapshot): number {
   validateSnapshot(snapshot);
   const handle = makeHandle();
   try {
     for (const record of snapshot.records) handle.insert(record.key, record.bytes);
   } catch (error) { handle.free(); throw error; }
-  binding.restore_records(handle);
+  return binding.restore_records(handle);
 }

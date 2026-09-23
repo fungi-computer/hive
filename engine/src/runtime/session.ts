@@ -9,7 +9,7 @@ import {
 } from "./presentation-cues";
 import { isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
-import { readKernelEntities } from "./kernel-records";
+import { readKernelEntities, type KernelRecordSnapshot, type KernelRecordCaptureResult } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
 import { query } from "../sdk/authoring";
 import { OwnedBy } from "../sdk/party";
@@ -1018,6 +1018,15 @@ export class GameSession {
   }
   save(): SessionSnapshot {
     this.ensureLive();
+    return this.sessionSnapshot(this.port.snapshot());
+  }
+  /** Borrowed resident state for one atomic Region attempt; use save for exports. */
+  captureForCommit(): { snapshot: SessionSnapshot; changes: KernelRecordCaptureResult["changes"] } {
+    this.ensureLive();
+    const captured = this.port.capture();
+    return { snapshot: this.sessionSnapshot(captured.snapshot), changes: captured.changes };
+  }
+  private sessionSnapshot(kernel: KernelRecordSnapshot): SessionSnapshot {
     return {
       format: "hive-session",
       version: 11,
@@ -1026,7 +1035,7 @@ export class GameSession {
       game: this.pack.id,
       gameVersion: this.pack.version,
       paused: this.paused,
-      kernel: this.port.snapshot(),
+      kernel,
       now: this.now,
       tick: this.tick,
       random: this.random.state(),

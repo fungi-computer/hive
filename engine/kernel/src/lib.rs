@@ -48,17 +48,21 @@ struct DirectPredictionRequest {
 #[derive(Serialize)] struct DirectPredictionResponse { position: components::Position }
 
 #[wasm_bindgen]
-pub struct WasmKernel(Kernel);
+pub struct WasmKernel(Kernel, std::cell::RefCell<record_bundle::RecordCapture>);
 
 /// Detached, bounded save bytes. This handle never mutates a live world.
 /// The JS caller frees captures after copying; restore_records consumes its input.
 #[wasm_bindgen]
-pub struct WasmKernelRecords(record_bundle::RecordBundle);
+pub struct WasmKernelRecords(record_bundle::RecordBundle, Option<record_bundle::CaptureManifest>);
 
 #[wasm_bindgen]
 impl WasmKernelRecords {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self { Self(record_bundle::RecordBundle::new()) }
+    pub fn new() -> Self { Self(record_bundle::RecordBundle::new(), None) }
+    pub fn manifest(&self) -> Result<String, JsValue> {
+        let manifest = self.1.as_ref().ok_or_else(|| js_error("record handle is not a capture".into()))?;
+        serde_json::to_string(manifest).map_err(|error| js_error(error.to_string()))
+    }
     pub fn insert(&mut self, key: &str, bytes: &[u8]) -> Result<(), JsValue> {
         self.0.insert(key, bytes).map_err(js_error)
     }
@@ -152,9 +156,11 @@ fn valid_assignment_id(id: &str) -> bool {
 impl WasmKernel {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
-        Self(Kernel::new())
+        Self(Kernel::new(), Default::default())
     }
     pub fn load(&mut self, json: &str) -> Result<(), JsValue> {
+        // Capture is a last-published byte baseline, not a live-world cache.
+        // Retain it across reset so the next delta removes old-world records.
         self.0.load(json).map_err(js_error)
     }
     pub fn query(&mut self, json: &str) -> Result<String, JsValue> {
@@ -238,13 +244,17 @@ impl WasmKernel {
     pub fn process_requirements(&self, input: &str) -> Result<String, JsValue> {
         self.0.process_requirements_json(input).map_err(js_error)
     }
-    pub fn capture_records(&self) -> Result<WasmKernelRecords, JsValue> {
+    pub fn capture_records(&self, since: Option<u32>) -> Result<WasmKernelRecords, JsValue> {
         let records = self.0.save_records().map_err(js_error)?;
-        record_bundle::RecordBundle::from_records(records).map(WasmKernelRecords).map_err(js_error)
+        let bundle = record_bundle::RecordBundle::from_records(records).map_err(js_error)?;
+        let (revision, time) = self.0.record_frontier();
+        let (changed, manifest) = self.1.borrow_mut().capture(bundle, since, revision, time).map_err(js_error)?;
+        Ok(WasmKernelRecords(changed, Some(manifest)))
     }
-    pub fn restore_records(&mut self, records: WasmKernelRecords) -> Result<(), JsValue> {
-        let records = records.0.into_records().map_err(js_error)?;
-        self.0.restore_records(&records).map_err(js_error)
+    pub fn restore_records(&mut self, records: WasmKernelRecords) -> Result<u32, JsValue> {
+        self.1.borrow_mut().restore(records.0, |bundle| {
+            self.0.restore_records(&bundle.decode()?)
+        }).map_err(js_error)
     }
     pub fn render_facts(&self) -> Result<String, JsValue> {
         self.0.render_json().map_err(js_error)

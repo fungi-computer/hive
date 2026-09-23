@@ -3,7 +3,7 @@ import type { RegionProgram, Json, RegionRecordReader, RegionTransition, RegionE
 import type { GamePack, KernelPort, ActionRequest, CommandScope } from "../contracts";
 import { GameSession, type SessionSnapshot } from "./session";
 import { checkedAction } from "./actions";
-import { checkedStoredSession, storeSession, hydrateSession, changedSessionRecords, type StoredSession } from "./session-record-store";
+import { checkedStoredSession, storeSession, hydrateSession, type StoredSession } from "./session-record-store";
 
 const commandSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("join-party"), credentialBindingId: z.string().min(1).max(160) }).strict(),
@@ -92,8 +92,8 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
 
 /** Exclusive native/session lifetime for one host's serialized Region owner. */
 function createSessionResident(options: SessionResidentOptions): SessionResident {
-  let accepted: { revision: number; session: GameSession; port: KernelPort; capture: SessionSnapshot } | undefined;
-  let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort; capture: SessionSnapshot } | undefined;
+  let accepted: { revision: number; session: GameSession; port: KernelPort } | undefined;
+  let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort } | undefined;
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
@@ -168,24 +168,22 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       disposeEntry(prior);
       const hydrated = hydrateSession(state.session, records);
       const made = make(hydrated);
-      attempt = { provisionalRevision: revision, ...made, capture: hydrated };
+      attempt = { provisionalRevision: revision, ...made };
     },
     execute(candidate, command, records, baseRevision, context) {
       if (!attempt || attempt.provisionalRevision !== baseRevision) throw new Error("resident-attempt-missing");
       try {
-        const before = attempt.capture;
         const scope = options.scopeForPrincipal(context.principal);
         if (!scope) throw new Error("region-principal-unbound");
         const results = applyCommand(attempt.session, command, context, scope);
-        const after = attempt.session.save();
-        candidate.session = storeSession(after).session;
-        attempt.capture = after;
+        const after = attempt.session.captureForCommit();
+        candidate.session = storeSession(after.snapshot).session;
         attempt.provisionalRevision++;
         return {
           status: "applied",
           result: JSON.parse(JSON.stringify({ tick: candidate.session.tick, paused: attempt.session.isPaused, results })) as Json,
           events: [],
-          records: changedSessionRecords(before.kernel, after.kernel),
+          records: after.changes,
         };
       } catch (error) {
         invalidateAfterFailure();
@@ -198,7 +196,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         invalidateAfterFailure();
         throw error;
       }
-      accepted = { revision, session: attempt.session, port: attempt.port, capture: attempt.capture };
+      accepted = { revision, session: attempt.session, port: attempt.port };
       attempt = undefined;
     },
     discard() {
@@ -215,7 +213,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         disposeEntry(prior);
         const hydrated = hydrateSession(state.session, records);
         const made = make(hydrated);
-        accepted = { revision, ...made, capture: hydrated };
+        accepted = { revision, ...made };
       }
       try {
         return use(accepted.session);

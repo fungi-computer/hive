@@ -284,6 +284,7 @@ function fakePort(
     processRequirements: () => { throw new Error("unexpected process requirements query"); },
     entityMembership: () => [],
     advance: () => ({ revision: 0, results: [], impacts: [] }),
+    capture: () => { throw new Error("unexpected resident capture in terrain fixture"); },
     snapshot: () => ({
       format: "hive-kernel-records",
       version: 1,
