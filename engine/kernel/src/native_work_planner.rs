@@ -228,6 +228,7 @@ impl Kernel {
 
         let mut supply_requirements = Vec::new();
         let mut requirements = Vec::new();
+        let scan_started = crate::capture_diagnostics::now_ms();
         let indexed_task_ids = self.planner_indexes.task_ids().map(str::to_owned).collect::<Vec<_>>();
         let designated_excavation_cells = indexed_task_ids.iter().filter_map(|task| {
             let entity = self.entity(task).ok()?;
@@ -283,7 +284,10 @@ impl Kernel {
                 requirements.push(requirement);
             }
             if self.ecs.get::<StockpileCell>(entity).is_some() {
-                for demand in super::stockpile_work::collect(self, &task.id, &party)? {
+                let stockpile_started = crate::capture_diagnostics::now_ms();
+                let demands = super::stockpile_work::collect(self, &task.id, &party)?;
+                crate::capture_diagnostics::record("planner_stockpile_collect", stockpile_started);
+                for demand in demands {
                     let generation = super::stockpile_work::policy_generation(self.ecs.get::<StockpileCell>(entity).ok_or("stockpile policy disappeared")?);
                     let destination = if demand.destination == task.id {
                         self.ensure_stockpile_destination(&task.id, demand.quantity)?
@@ -299,10 +303,13 @@ impl Kernel {
                 }
             }
         }
+        crate::capture_diagnostics::record("planner_requirement_scan", scan_started);
+        let field_started = crate::capture_diagnostics::now_ms();
         if let Err(error) = self.ensure_field_water_tasks(&supply_requirements) {
             self.cleanup_empty_ground_stock();
             return Err(error);
         }
+        crate::capture_diagnostics::record("planner_ensure_field_water_tasks", field_started);
         crate::capture_diagnostics::record("planner_collect_requirements", requirements_started);
         let assign_started = crate::capture_diagnostics::now_ms();
         let assigned = self.assign_native_obligations(&window, &supply_requirements, requirements);
