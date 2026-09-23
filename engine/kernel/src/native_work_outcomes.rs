@@ -129,8 +129,8 @@ impl Kernel {
                             let lot = work.lot.clone().ok_or("field water withdrawal produced no lot")?;
                             if work.retain_in_vessel {
                                 let entity = *self.ids.get(&task.id).ok_or("completed field water task disappeared")?;
-                                let accounting = self.prepare_entity_removal(&task.id, entity)?;
                                 self.acknowledge_work_attempt(task.id.clone(), operation.attempt.generation, operation.sequence)?;
+                                let accounting = self.prepare_entity_removal(&task.id, entity)?;
                                 self.ids.remove(&task.id).ok_or("completed field water task disappeared")?;
                                 self.known.remove(&task.id);
                                 self.contents.remove(&task.id);
@@ -233,5 +233,94 @@ impl Kernel {
         }
 
         Ok(progressed)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::work_attempt::{AttemptKey, AttemptPhase, ContinuationOwner, OperationKey, WaterDirection, WorkOutcome};
+
+    #[test]
+    fn retained_field_water_completion_accounts_retirement_and_restores() {
+        let mut kernel = Kernel::new();
+        let party = kernel.ecs.spawn((
+            ExternalId("party".into()), crate::components::Party {},
+            crate::components::OwnedBy { player: "player".into() },
+        )).id();
+        let worker = kernel.ecs.spawn((
+            ExternalId("worker".into()), crate::components::PartyMember { party: "party".into() },
+            crate::components::Container { capacity: 4 },
+        )).id();
+        let pail = kernel.ecs.spawn((
+            ExternalId("pail".into()), OwnedByParty { party: "party".into() },
+            Lot { kind: "pail".into(), quantity: 1, container: "worker".into() },
+            crate::components::VesselCapability { accepts_water: true },
+            crate::components::Container { capacity: 4 },
+        )).id();
+        let output = kernel.ecs.spawn((
+            ExternalId("water-lot".into()), OwnedByParty { party: "party".into() },
+            Lot { kind: "water".into(), quantity: 1, container: "pail".into() },
+            crate::components::LotWater { water_kg: 1.0 },
+        )).id();
+        let task_id = "field-water:manual:0".to_owned();
+        let execution = WorkExecution { pool: "party".into(), initiating_player: None, policy_id: "test-water".into() };
+        let task = kernel.ecs.spawn((
+            ExternalId(task_id.clone()),
+            OwnedByParty { party: "party".into() },
+            FieldWaterWork {
+                process: task_id.clone(), role: "manual".into(), generation: 1,
+                party: "party".into(), destination: task_id.clone(), material: "water".into(),
+                retain_in_vessel: true, portions: 1, vessel: Some("pail".into()),
+                cell_x: 0, cell_y: 0, cell_z: 0, lot: Some("water-lot".into()),
+            },
+            WorkPolicy { pool: "party".into(), priority: 0, enabled: true },
+            execution.clone(),
+            crate::work_planner::WorkSchedule { next_review_tick: 0, last_considered: 0 },
+        )).id();
+        let attempt_key = AttemptKey { task: task_id.clone(), generation: 9 };
+        let operation = OperationKey { attempt: attempt_key.clone(), sequence: 2 };
+        kernel.ecs.entity_mut(task).insert(WorkAttempt {
+            version: crate::work_attempt::CURRENT_VERSION,
+            key: attempt_key.clone(), worker: "worker".into(), execution,
+            continuation_owner: ContinuationOwner::Native,
+            phase: AttemptPhase::Outcome {
+                operation: operation.clone(),
+                activity: crate::work_attempt::ActivityRef::FieldWater {
+                    vessel: "pail".into(), cell: [0, 0, 0], direction: WaterDirection::Withdraw, portions: 1,
+                },
+                result: WorkOutcome::Completed,
+            },
+        });
+        kernel.ids.extend([
+            ("party".into(), party), ("worker".into(), worker), ("pail".into(), pail),
+            ("water-lot".into(), output), (task_id.clone(), task),
+        ]);
+        kernel.known.extend(["party".into(), "worker".into(), "pail".into(), "water-lot".into(), task_id.clone()]);
+        kernel.contents.insert(task_id.clone(), Default::default());
+        kernel.contents.insert("worker".into(), [pail].into_iter().collect());
+        kernel.contents.insert("pail".into(), [output].into_iter().collect());
+        kernel.work_attempts.insert(task_id.clone(), task);
+        kernel.attempts_by_worker.insert("worker".into(), attempt_key);
+        kernel.next_work_generation = 10;
+        kernel.refresh_planner_index(&task_id);
+        kernel.refresh_state_weight();
+
+        let pending_outcome = kernel.save_records().unwrap();
+        kernel.restore_records(&pending_outcome).unwrap();
+
+        assert_eq!(kernel.reconcile_native_work_outcomes().unwrap(), 1);
+        assert!(!kernel.ids.contains_key(&task_id));
+        let accounted = kernel.state_weight;
+        kernel.refresh_state_weight();
+        assert_eq!(accounted, kernel.state_weight, "retirement equals the full recount after acknowledgement");
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert!(!restored.ids.contains_key(&task_id));
+        let restored_weight = restored.state_weight;
+        restored.refresh_state_weight();
+        assert_eq!(restored_weight, restored.state_weight, "recovered retirement keeps canonical weight");
     }
 }
