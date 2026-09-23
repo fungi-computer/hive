@@ -35,6 +35,7 @@ mod stable_entity_records;
 mod search_records;
 mod route_records;
 mod motion_records;
+mod capture_diagnostics;
 mod record_changes;
 mod party_binding;
 mod relations;
@@ -164,6 +165,8 @@ impl WasmKernel {
     pub fn new() -> Self {
         Self(Kernel::new(), Default::default())
     }
+    /// Temporary aggregate diagnostics consumed by the pinned v3 profile.
+    pub fn take_capture_diagnostics(&self) -> String { capture_diagnostics::take_json() }
     pub fn load(&mut self, json: &str) -> Result<(), JsValue> {
         self.0.load(json).map_err(js_error)?;
         self.1.borrow_mut().invalidate();
@@ -261,12 +264,24 @@ impl WasmKernel {
         let (revision, time) = self.0.record_frontier();
         let mut cursor = self.1.borrow_mut();
         let (changed, manifest) = if cursor.current(since) {
+            let changed_started = capture_diagnostics::now_ms();
             let delta = self.0.changed_records().map_err(js_error)?;
-            cursor.capture_changed(delta, since.unwrap(), revision, time, self.0.record_state_weight()).map_err(js_error)?
+            capture_diagnostics::record("changed_records_total", changed_started);
+            let cursor_started = capture_diagnostics::now_ms();
+            let captured = cursor.capture_changed(delta, since.unwrap(), revision, time, self.0.record_state_weight()).map_err(js_error)?;
+            capture_diagnostics::record("incremental_record_cursor", cursor_started);
+            captured
         } else {
+            let checkpoint_started = capture_diagnostics::now_ms();
             let records = self.0.save_records().map_err(js_error)?;
+            capture_diagnostics::record("full_checkpoint_projection", checkpoint_started);
+            let bundle_started = capture_diagnostics::now_ms();
             let bundle = record_bundle::RecordBundle::from_records(records).map_err(js_error)?;
-            cursor.capture(bundle, since, revision, time).map_err(js_error)?
+            capture_diagnostics::record("full_checkpoint_bundle", bundle_started);
+            let cursor_started = capture_diagnostics::now_ms();
+            let captured = cursor.capture(bundle, since, revision, time).map_err(js_error)?;
+            capture_diagnostics::record("full_record_cursor", cursor_started);
+            captured
         };
         if since.is_some() { cursor.remember(self.0.record_journal_token()); }
         Ok(WasmKernelRecords(changed, Some(manifest)))
