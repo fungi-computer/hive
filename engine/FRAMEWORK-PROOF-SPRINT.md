@@ -284,8 +284,51 @@ silently dropping the tail. Pirates uses the maintained Botanical Code Mode
 connector in the local scoped-controller witness; this is not a full Shiitake
 model/session or hosted run. The separate hosted preview and both Cloudflare
 backends were parked at Levi's request; the historical URL above is not a live
-preview. SQL, recipient publication, alarm latency and ten-minute hosted
-capacity remain unmeasured on this integrated source.
+preview. This checkpoint did not measure SQL, recipient publication, alarm
+latency or ten-minute hosted capacity.
+
+### September 23 mutation-local air capture comparison
+
+At source `4b7ffac06516c8c3d1302c102ac801ef4c814392`, release WASM SHA-256
+`581be7725a821f68f5322bc8565f952c99275c791e8204df1da8cfabb81fa56c`,
+the identical v3 1,800-step fixture finished in **58.7 seconds**, versus
+**79.2 seconds** above. `captureForCommit` fell from 36.2 to 23.2 seconds total,
+with p50/p95/p99 12.7/16.9/20.5 ms versus 19.5/25.4/32.6 ms. Local
+`GameSession.step` p95 fell from 70.0 to 52.1 ms. The commands and every
+ten-step sample were identical: 178 completed tree chains, 1,068 produced
+wood, one finite-water portion, and 179/180 samples with at least 90 moving
+or working actors. Both current-format restore and ten-step continuation
+comparisons passed. The new run's ledger is
+`.botanical/framework-v3-ledger-air-4b7ffac0.json` (SHA-256
+`089d1d7fc7b1bd1769557ceb6c55fc3bc58e02953627c7dd26467e184dd9b193`).
+This paired local result includes the destination state-weight correction and
+normal shared-host variance; it is evidence of a substantial improvement,
+not isolated native-air CPU attribution or a hosted capacity claim.
+
+The atmosphere mutation owner now emits changed encoded pages and explicit
+removals; it no longer serializes all smoke state and pages during each delta
+capture. The record header is current version 7 and rejects prior versions;
+full save/decode remains the independent relational recovery oracle. Changed
+transport stayed about 152.4 MB across the run because the optimization saves
+capture work rather than suppressing real changes. Terrain/water/structure
+export and root metadata still run on each capture. Native library laws passed
+461/461 with one ignored; focused Pirates/Survival laws passed 3/3 against the
+new WASM. The actual local workerd v3 restart/replay/autonomous-alarm proof
+passed with two connected clients; its result is
+`.botanical/framework-driver-proof-air-4b7ffac0/RESULT.json` (SHA-256
+`3601323bca19f1184381f673d1ecb19cb20482b12eada3396ce47753408a226c`).
+
+The two-client local workerd host audit is
+`tools/public-engine-host/PUBLICATION-COST-AUDIT-20260923.md`. At the earlier
+matching WASM, warm SQL p50/p95 was 2/3 ms while delivered observation build
+was 20/37 ms and socket encode/send 2/3 ms. This is a 40-publication local
+host sample, not a ten-minute run or a post-air hosted performance measurement.
+No speculative decoration cache was added: its measured substage was too small
+to justify another retained state owner. Full `cargo test` still runs 14 stale
+`engine/kernel/tests/kernel.rs` fixtures that omit the now-required
+`materialCatalog`; the current-format native library suite above is green.
+Fallow was unavailable in the touched lanes. Both Cloudflare backends remain
+parked; hosted capacity and a same-build playable preview remain unproved.
 
 ## Exit and explicit nonclaims
 
