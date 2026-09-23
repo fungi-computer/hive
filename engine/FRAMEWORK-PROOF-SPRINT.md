@@ -246,6 +246,47 @@ record-growth owner and a durable nonretryable-fault/wake owner must resolve
 that failure before claiming hosted stability. The paired browser and tail
 evidence is under `.botanical/framework-preview-0c4ba551/`.
 
+### September 23 local integration after the six Luna lanes
+
+Source `3dee1bdb96cfad213551ebac76164ad93db77f7e`, release WASM SHA-256
+`9257977087a42e779722a94c7d8c44462897ecc994632f224185520d08ee3d5e`.
+The v3 256×256/100-worker fixture completed all 1,800 local occurrences in
+79.2 seconds with no error, 178 finite tree chains, 1,068 produced wood,
+258 stored wood, one automatic finite-water portion and conserved material.
+At least 90 actors were moving or working in 179/180 one-second samples. The
+local ledger is `.botanical/framework-v3-ledger-3dee1bdb.json` (SHA-256
+`d1d0dee8190a1dc190a14d0cd559a10210b7c1521108a1690baeec433eb8da60`);
+it wraps the same pinned fixture and includes a ten-step save/restore
+continuation check.
+
+Measured local `GameSession.step` p50/p95/p99 was 12.0/70.0/103.2 ms;
+`captureForCommit` was 19.5/25.4/32.6 ms. Capture emitted 222,742 changed
+put/remove rows and 152.4 MB including keys and a 16-byte per-row allowance
+across the run and initial capture; maximum fixture changed payload was 390,566
+bytes. One full save took 124 ms and restore 249 ms. Maximum observed Node
+process RSS was 323 MB. These are local wrapper/elapsed measurements, not
+native-only CPU, SQL time, DO memory or hosted capacity. The record owner now
+uses stable entity, route, motion and air-page keys; air capture still calls
+full `save_air()` before selecting changed pages, so capture CPU is not yet
+mutation-proportional. The 1,800-step fixture is three simulated minutes; the
+ten-minute hosted active gate remains open.
+
+The final WASM passed the focused Pirates cargo and Survival partial-lot laws
+(3/3); the latter verifies that both halves retain player ownership. The
+actual local workerd v3 driver passed pause, exact receipt replay, process
+restart and a further autonomous alarm without a request; evidence is
+`.botanical/framework-driver-proof-3dee1bdb/RESULT.json` (SHA-256
+`3a50e0db07f26eb30b95792455744e3442a875c2fe08a240ad14ab21a8341a1a`).
+The public host's
+lease/clock laws passed 16/16 in the owner lane. The visual fact boundary now
+admits the measured 899-fact scene up to an explicit 1,024-fact cap rather than
+silently dropping the tail. Pirates uses the maintained Botanical Code Mode
+connector in the local scoped-controller witness; this is not a full Shiitake
+model/session or hosted run. The separate hosted preview and both Cloudflare
+backends were parked at Levi's request; the historical URL above is not a live
+preview. SQL, recipient publication, alarm latency and ten-minute hosted
+capacity remain unmeasured on this integrated source.
+
 ## Exit and explicit nonclaims
 
 The sprint closes only with pinned source, reproducible fixture, local + workerd
