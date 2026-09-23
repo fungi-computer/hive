@@ -1,5 +1,6 @@
 import { command, component, entity, query } from "../sdk/authoring";
 import { action, actor, behavior } from "../sdk/behavior";
+import { OwnedBy } from "../sdk/party";
 import {
   Body,
   Container,
@@ -93,12 +94,13 @@ export const survivorActor = actor("survival.survivor")
   .with(Fatigue, { value: 0, lastX: 0, lastY: 0, lastZ: 0 })
   .behaves(survival, fatigue);
 const survivorId = entity("survival.survivor.1"),
-  lockerId = entity("survival.locker"),
-  foodId = entity("survival.food.1");
+  lockerId = entity("survival.locker");
+const foodIds = Array.from({ length: 8 }, (_, index) => entity(`survival.food.${index + 1}`));
 const survivalInitial = [
   {
     id: survivorId,
     components: {
+      "hive.owned-by": { player: "local" },
       "hive.position": { x: 0, y: 0, z: 0, facing: 0 },
       "hive.body": { speed: 2 },
       "hive.container": { capacity: 2 },
@@ -112,24 +114,27 @@ const survivalInitial = [
   {
     id: lockerId,
     components: {
+      "hive.owned-by": { player: "local" },
       "hive.position": { x: 2, y: 0, z: 0, facing: 0 },
       "hive.container": { capacity: 12 },
       "hive.obstacle": { occupied: true },
       "hive.visual": { sprite: "crate", label: "Locker" },
     },
   },
-  {
-    id: foodId,
+  ...foodIds.map((id) => ({
+    id,
     components: {
-      "hive.lot": { quantity: 8, kind: "bread", container: lockerId },
+      "hive.owned-by": { player: "local" },
+      "hive.lot": { quantity: 1, kind: "bread", container: lockerId },
     },
-  },
+  })),
 ];
 const survivalComponents = [
   Position,
   Body,
   Container,
   MaterialLot,
+  OwnedBy,
   Survivor,
   Condition,
   MealRule,
@@ -137,7 +142,7 @@ const survivalComponents = [
 ] as const;
 export const survivalPack: GamePack = {
   id: "survival",
-  version: 1,
+  version: 2,
   localScope: { kind: "player", player: "local" },
   components: survivalComponents,
   systems: [survival, fatigue],
