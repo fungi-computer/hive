@@ -30,6 +30,7 @@ mod registry;
 mod world;
 mod supply_allocation;
 mod record_bundle;
+mod air_records;
 mod stable_entity_records;
 mod search_records;
 mod record_changes;

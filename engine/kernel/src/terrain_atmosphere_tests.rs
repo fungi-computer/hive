@@ -162,6 +162,30 @@ fn finite_smoke_spreads_and_recovers_without_pressure_state() {
         postcard::to_allocvec(&restored.save().unwrap()).unwrap()
     );
 }
+
+#[test]
+fn smoke_record_pages_recover_physical_spread_and_removals_exactly() {
+    use crate::air_records::{SavedAir, SAVED_AIR_VERSION, encode, decode};
+    let mut world = world();
+    let mut air = TerrainAtmosphere::fresh(&mut world, config(ExteriorPolicy::WorldTop)).unwrap();
+    air.advance(&mut world, 0.25, &[source()]).unwrap();
+    for _ in 0..20 { air.advance(&mut world, 0.25, &[]).unwrap(); }
+    let saved = SavedAir { version: SAVED_AIR_VERSION, atmosphere: air.save().unwrap(), emissions: BTreeMap::new() };
+    let bytes = postcard::to_allocvec(&saved).unwrap();
+    let pages = encode(&bytes).unwrap();
+    let recovered = decode(&pages).unwrap().unwrap();
+    assert_eq!(bytes, recovered);
+    let saved: SavedAir = postcard::from_bytes(&recovered).unwrap();
+    let mut restored = TerrainAtmosphere::restore(&mut world, &saved.atmosphere).unwrap();
+    for _ in 0..160 {
+        let original = air.advance(&mut world, 0.25, &[]).unwrap();
+        let recovery = restored.advance(&mut world, 0.25, &[]).unwrap();
+        assert_eq!(serde_json::to_value(original).unwrap(), serde_json::to_value(recovery).unwrap());
+        // save validates smoke/heat emission = stock + escaped + deposited.
+        assert_eq!(postcard::to_allocvec(&air.save().unwrap()).unwrap(),
+            postcard::to_allocvec(&restored.save().unwrap()).unwrap());
+    }
+}
 #[test]
 fn outdoors_accounts_for_dispersal_and_invalid_sources_publish_nothing() {
     let mut world = world();

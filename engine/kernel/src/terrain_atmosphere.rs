@@ -4,8 +4,8 @@ use crate::terrain_water::{LocalAir, TerrainWater};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-const VERSION: u16 = 5;
-const MAX_ACTIVE: usize = 4096;
+pub(crate) const VERSION: u16 = 6;
+pub(crate) const MAX_ACTIVE: usize = 4096;
 const WORK_PER_UPDATE: usize = 256;
 const INTERVAL: f64 = 0.25;
 const TRACE_SMOKE: f64 = 1e-9;
@@ -40,22 +40,22 @@ impl TerrainAtmosphereConfig {
     }
 }
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
-struct Amount {
-    smoke: f64,
-    heat: f64,
-    updated: f64,
+pub(crate) struct Amount {
+    pub(crate) smoke: f64,
+    pub(crate) heat: f64,
+    pub(crate) updated: f64,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
-struct SmokeState {
-    clock: f64,
-    stocks: BTreeMap<Cell, Amount>,
-    queue: VecDeque<Cell>,
-    smoke_emitted: f64,
-    heat_emitted: f64,
-    smoke_out: f64,
-    heat_out: f64,
-    smoke_deposited: f64,
-    heat_deposited: f64,
+pub(crate) struct SmokeState {
+    pub(crate) clock: f64,
+    pub(crate) stocks: BTreeMap<Cell, Amount>,
+    pub(crate) queue: VecDeque<Cell>,
+    pub(crate) smoke_emitted: f64,
+    pub(crate) heat_emitted: f64,
+    pub(crate) smoke_out: f64,
+    pub(crate) heat_out: f64,
+    pub(crate) smoke_deposited: f64,
+    pub(crate) heat_deposited: f64,
 }
 #[derive(Default)]
 struct SmokeLedgerDelta {
@@ -197,9 +197,9 @@ impl PreparedSmokeAdvance {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TerrainAtmosphereRecords {
-    version: u16,
-    config: TerrainAtmosphereConfig,
-    state: SmokeState,
+    pub(crate) version: u16,
+    pub(crate) config: TerrainAtmosphereConfig,
+    pub(crate) state: SmokeState,
 }
 #[derive(Clone, Debug)]
 struct Contact {
@@ -550,7 +550,7 @@ fn validate_config(world: &TerrainWater, c: &TerrainAtmosphereConfig) -> Result<
     }
     Ok(())
 }
-fn validate_state(s: &SmokeState, c: &TerrainAtmosphereConfig) -> Result<(), String> {
+pub(crate) fn validate_state(s: &SmokeState, c: &TerrainAtmosphereConfig) -> Result<(), String> {
     if !s.clock.is_finite()
         || s.clock < 0.0
         || s.stocks.len() > MAX_ACTIVE
