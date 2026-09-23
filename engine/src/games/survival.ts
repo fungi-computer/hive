@@ -94,8 +94,8 @@ export const survivorActor = actor("survival.survivor")
   .with(Fatigue, { value: 0, lastX: 0, lastY: 0, lastZ: 0 })
   .behaves(survival, fatigue);
 const survivorId = entity("survival.survivor.1"),
-  lockerId = entity("survival.locker");
-const foodIds = Array.from({ length: 8 }, (_, index) => entity(`survival.food.${index + 1}`));
+  lockerId = entity("survival.locker"),
+  foodId = entity("survival.food.1");
 const survivalInitial = [
   {
     id: survivorId,
@@ -121,13 +121,13 @@ const survivalInitial = [
       "hive.visual": { sprite: "crate", label: "Locker" },
     },
   },
-  ...foodIds.map((id) => ({
-    id,
+  {
+    id: foodId,
     components: {
       "hive.owned-by": { player: "local" },
-      "hive.lot": { quantity: 1, kind: "bread", container: lockerId },
+      "hive.lot": { quantity: 8, kind: "bread", container: lockerId },
     },
-  })),
+  },
 ];
 const survivalComponents = [
   Position,
