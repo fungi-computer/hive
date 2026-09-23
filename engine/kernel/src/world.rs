@@ -423,8 +423,9 @@ mod work_attempt_laws {
 
         let transfer = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"other-player"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]});
         let before_attempts = kernel.work_attempts_json("[\"task\"]").unwrap();
-        let rejected: Value = serde_json::from_str(&kernel.advance_json(&transfer.to_string()).unwrap()).unwrap();
-        assert_eq!(rejected["results"][0]["accepted"], false);
+        let before_weight = kernel.state_weight;
+        assert_eq!(kernel.advance_json(&transfer.to_string()).unwrap_err(), "player lacks WorkTask access to task");
+        assert_eq!(kernel.state_weight, before_weight);
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().quantity, 8);
         assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "worker");
         assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), before_attempts);
