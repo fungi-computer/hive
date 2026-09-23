@@ -870,6 +870,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           alarmLatenessMs, dispatchWallMs, transactionWallMs: performance.now() - transactionStarted,
           ...candidateCost, ...sqlCost });
       }
+      if (dueSequence === null) this.proofLedger?.flush();
     } catch (error) {
       try { this.resident.discard(); } catch {}
       if (this.proofLedger) this.proofLedger.failure(dueSequence, error);

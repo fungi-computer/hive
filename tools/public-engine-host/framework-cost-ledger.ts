@@ -30,7 +30,7 @@ export type PublicationCost = {
   readonly encodedBytes: number;
 };
 
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 20;
 
 function distribution(values: readonly number[]) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -53,7 +53,8 @@ export function createFrameworkCostLedger(implementationHash: string, emit: (lin
     const fields = ["advanceWallMs", "captureWallMs", "changedRecordBytes", "recordPuts", "recordRemoves", "sqlWallMs", "rowsRead", "rowsWritten", "statements", "alarmLatenessMs", "dispatchWallMs", "transactionWallMs"] as const;
     const costs = Object.fromEntries(fields.map(field => [field, distribution(steps.map(step => step[field]))]));
     emit(JSON.stringify({ ...header, kind: "committed-steps", count: steps.length, firstSequence: steps[0].sequence,
-      lastSequence: steps.at(-1)!.sequence, firstRevision: steps[0].revision, lastRevision: steps.at(-1)!.revision, costs }));
+      lastSequence: steps.at(-1)!.sequence, firstRevision: steps[0].revision, lastRevision: steps.at(-1)!.revision,
+      costs, samples: steps }));
     steps = [];
   };
   const flushPublications = () => {
@@ -61,7 +62,8 @@ export function createFrameworkCostLedger(implementationHash: string, emit: (lin
     const fields = ["recipients", "buildWallMs", "sendWallMs", "encodedBytes"] as const;
     const costs = Object.fromEntries(fields.map(field => [field, distribution(publications.map(publication => publication[field]))]));
     emit(JSON.stringify({ ...header, kind: "publications", count: publications.length,
-      firstRevision: publications[0].revision, lastRevision: publications.at(-1)!.revision, costs }));
+      firstRevision: publications[0].revision, lastRevision: publications.at(-1)!.revision,
+      costs, samples: publications }));
     publications = [];
   };
   return {
