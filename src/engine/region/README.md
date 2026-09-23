@@ -17,6 +17,7 @@ const region = openRegion({
 });
 const receipt = region.dispatch(authenticatedPrincipal, {
   id: stableCommandId,
+  replayEpoch: region.readReplayWindow().epoch,
   expectedRevision,
   command: checkedContentCommand,
 });
@@ -38,8 +39,9 @@ determine whether tungsten can be dug and what a removed cell produces.
   disposable values; execution receives a separately reconstructed candidate.
   Rejection or SQL failure discards it. SQLite rollback never pretends to undo
   an already published JavaScript mutation.
-- The stable replay identity is region + authenticated principal + command ID.
-  The complete parsed command and expected revision define its checked input.
+- The stable replay identity is region + authenticated principal + replay epoch + command ID.
+  Capture the observed replay epoch when creating a command and retain the entire
+  envelope across retries. The complete parsed command and expected revision define its checked input.
   Retrying identical input returns its stored result; reusing the ID with different
   checked input conflicts. Replay precedes current action eligibility, since
   successful work can make its original action ineligible. Host authentication
@@ -76,9 +78,19 @@ excess depth and excess node count. Canonical keys use stable lexical ordering.
 Accounted payload includes encoded state, receipt inputs/results/identities and
 event envelopes. SQLite pages, indexes and fixed metadata have overhead beyond
 that budget. These are admission limits, not measured performance claims.
-There is currently no pruning or receipt expiry: new work fails when retention
-fills, while existing retries remain recoverable. Production retention requires
-an explicit delivery/replay policy before raising this consumer's capacity.
+Ordinary receipts retain the most recent configured number of results across all
+principals. Every full window advances the durable replay epoch. New intake must
+use the currently observed epoch; an exact retained retry can use an older epoch.
+A missing result with an older epoch fails with `region-command-retired`, never
+executes again, and does not imply that its original command failed. Unknown
+future epochs fail with `region-command-epoch-gap`. A new epoch deliberately
+creates a new identity; clients must never restamp an uncertain retry.
+
+Receipt eviction, byte accounting, epoch advancement, world records and events
+share one transaction. Failed SQL restores the entire prior window. The fixed
+frontier has no per-principal tombstone growth. The versioned replay table rejects
+old or unsupported storage; there is no old-format migration. Events remain
+separately bounded delivery obligations and are not silently pruned.
 
 ## Current proof and remaining join
 
