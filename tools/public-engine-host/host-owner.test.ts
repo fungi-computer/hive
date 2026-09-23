@@ -13,6 +13,7 @@ import { acknowledgeObservation, canSendObservation } from "./observation-delive
 function fixture(receipts = 4096) {
   const db = new DatabaseSync(":memory:");
   let alarm: number | null = null, depth = 0, failRearm = false;
+  let wallNow = 0, completionOffset = 0;
   const sockets: any[] = [];
   const owner = {
     sql: { exec(statement: string, ...bindings: any[]) {
@@ -73,11 +74,14 @@ function fixture(receipts = 4096) {
       hostEnv: { PUBLIC_ORIGIN: "https://example.test" },
       state: { storage, getWebSockets: () => sockets, waitUntil: (p: Promise<unknown>) => waits.push(p), acceptWebSocket: (s: any) => sockets.push(s) },
       projectObservation: createObservationProjector(),
+      wallNow: () => wallNow + completionOffset,
     });
+    const runDue = host.runDue.bind(host);
+    host.runDue = (now: number) => { wallNow = now; return runDue(now); };
     host.publicationQueue = createPublicationQueue(() => host.publishObservation(), (e) => { throw e; });
     return host;
   };
-  return { make, db, sockets, waits, get alarm() { return alarm; }, fire() { alarm = null; }, fail(value: boolean) { failRearm = value; }, close: () => db.close() };
+  return { make, db, sockets, waits, get alarm() { return alarm; }, fire() { alarm = null; }, fail(value: boolean) { failRearm = value; }, completeAfter(ms: number) { completionOffset = ms; }, close: () => db.close() };
 }
 
 test("lease expiry settles one admitted occurrence, then sleeps until a later request", async () => {
@@ -103,6 +107,19 @@ test("lease expiry settles one admitted occurrence, then sleeps until a later re
     await host.runDue(f.alarm!);
     assert.ok(Math.abs(host.region.readCommitted().state.time - 0.3) < 1e-9);
     assert.ok(f.alarm! >= 100_200);
+  } finally { f.close(); }
+});
+
+test("slow clock occurrence schedules from wall completion, not dispatch duration", async () => {
+  const f = fixture();
+  try {
+    const host = f.make();
+    await host.renewLease(0);
+    f.completeAfter(350);
+    await host.runDue(100);
+    assert.equal(host.region.readCommitted().state.time, 0.1);
+    assert.ok(f.alarm! >= 550, "the next alarm must follow the injected wall-clock completion");
+    assert.ok(f.alarm! > 450, "the next alarm cannot already be overdue when this step commits");
   } finally { f.close(); }
 });
 
