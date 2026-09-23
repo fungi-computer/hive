@@ -1465,16 +1465,20 @@ mod tests {
                 {"id":"process","components":{
                     "hive.owned-by-party":{"party":"party"},
                     "hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},
-                    "hive.container":{"capacity":8},
                     "hive.stockpile-cell":{"zone":"water-zone","priority":1,"filterProfile":"water-stock"},
                     "hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test-water"}
+                }},
+                {"id":"destination","components":{
+                    "hive.owned-by-party":{"party":"party"},
+                    "hive.position":{"x":1.0,"y":0.0,"z":0.0,"facing":0.0},
+                    "hive.container":{"capacity":8}
                 }}
             ]
         }).to_string()).unwrap();
         (kernel, SupplyRequirement {
             owner: "process".into(), role: "water".into(), generation: 3,
             party: "party".into(), material: "water".into(), policy: InputPolicy::Portion,
-            destination: "process".into(), missing: 2, source_lots: None,
+            destination: "destination".into(), missing: 2, source_lots: None,
         })
     }
 
@@ -1560,7 +1564,7 @@ mod tests {
         let owner = OwnedByParty { party: "party".into() };
         let field_water = FieldWaterWork {
             process: "process".into(), role: "water".into(), generation: 3,
-            party: "party".into(), destination: "process".into(), material: "water".into(),
+            party: "party".into(), destination: "destination".into(), material: "water".into(),
             retain_in_vessel: false, portions: 1, vessel: None, cell_x: 0, cell_y: 0, cell_z: 0, lot: None,
         };
         let policy = WorkPolicy { pool: "party".into(), priority: 0, enabled: true };

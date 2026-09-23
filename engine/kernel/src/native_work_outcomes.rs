@@ -251,7 +251,7 @@ mod tests {
             "components":[], "materialCatalog":[{"kind":"water","unitVolume":1}],
             "initial":[
                 {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
-                {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.container":{"capacity":4}}},
+                {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":4}}},
                 {"id":"pail","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":4},"hive.vessel-capability":{"acceptsWater":true},"hive.lot":{"kind":"pail","quantity":1,"container":"worker"}}},
                 {"id":"water-lot","components":{"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"water","quantity":1,"container":"pail"},"hive.lot-water":{"waterKg":1.0}}},
                 {"id":task_id,"components":{
