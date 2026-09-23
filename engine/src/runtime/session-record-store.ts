@@ -1,4 +1,4 @@
-import type { SessionSnapshot } from "./session";
+import type { SessionCommitSnapshot, SessionSnapshot } from "./session";
 import { validateKernelRecordInventory, type KernelRecordSnapshot } from "./kernel-records";
 import type { RegionRecordReader, RegionStateRecord } from "../../../src/engine/region/index.ts";
 
@@ -18,8 +18,9 @@ export function checkedStoredSession(value: unknown): StoredSession {
   return state;
 }
 
-export function storeSession(snapshot: SessionSnapshot): { session: StoredSession; records: readonly RegionStateRecord[] } {
-  const { records, ...kernel } = snapshot.kernel;
+export function storeSession(snapshot: SessionSnapshot | SessionCommitSnapshot): { session: StoredSession; records: readonly RegionStateRecord[] } {
+  const records = "records" in snapshot.kernel ? snapshot.kernel.records : [];
+  const { records: _rows, ...kernel } = snapshot.kernel as KernelRecordSnapshot;
   const session = checkedStoredSession({ ...snapshot, kernel });
   return { session, records };
 }

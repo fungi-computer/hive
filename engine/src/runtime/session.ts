@@ -9,7 +9,7 @@ import {
 } from "./presentation-cues";
 import { isNativeComponentSchema, isReservedComponent } from "../contracts";
 import { checkedAction } from "./actions";
-import { readKernelEntities, type KernelRecordSnapshot, type KernelRecordCaptureResult } from "./kernel-records";
+import { readKernelEntities, type KernelRecordFrontier, type KernelRecordSnapshot, type KernelRecordCaptureResult } from "./kernel-records";
 import { Body, Position, Support, Surface } from "../sdk/common";
 import { query } from "../sdk/authoring";
 import { OwnedBy } from "../sdk/party";
@@ -97,6 +97,7 @@ export interface SessionSnapshot {
     consumesImpacts: boolean;
   }[];
 }
+export type SessionCommitSnapshot = Omit<SessionSnapshot, "kernel"> & { readonly kernel: KernelRecordFrontier };
 const MAX_PENDING_IMPACTS = 1024;
 const MAX_AUTHORED_RECORDS = 256;
 const MAX_AUTHORED_REMOVES = 256;
@@ -1049,13 +1050,13 @@ export class GameSession {
     return this.sessionSnapshot(this.port.snapshot());
   }
   /** Borrowed resident state for one atomic Region attempt; use save for exports. */
-  captureForCommit(): { snapshot: SessionSnapshot; changes: KernelRecordCaptureResult["changes"] } {
+  captureForCommit(): { snapshot: SessionCommitSnapshot; changes: KernelRecordCaptureResult["changes"] } {
     this.ensureLive();
     const captured = this.port.capture();
-    return { snapshot: this.sessionSnapshot(captured.snapshot), changes: captured.changes };
+    return { snapshot: this.sessionHeader(captured.snapshot), changes: captured.changes };
   }
   acceptCapture(): void { this.ensureLive(); this.port.acceptCapture(); }
-  private sessionSnapshot(kernel: KernelRecordSnapshot): SessionSnapshot {
+  private sessionHeader(kernel: KernelRecordFrontier): SessionCommitSnapshot {
     return {
       format: "hive-session",
       version: 12,
@@ -1083,6 +1084,9 @@ export class GameSession {
         consumesImpacts: system.consumesImpacts === true,
       })),
     };
+  }
+  private sessionSnapshot(kernel: KernelRecordSnapshot): SessionSnapshot {
+    return { ...this.sessionHeader(kernel), kernel };
   }
   restore(snapshot: SessionSnapshot): void {
     if (
