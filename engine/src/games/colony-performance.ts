@@ -1,6 +1,6 @@
 import { colonyEnvironmentDefinition } from "./colony-environment";
 import { colonyPack, treeJob, treePlan } from "./colony";
-import { colonyFrameworkProofGameId, colonyPerformanceGameId } from "./colony-performance-config";
+import { colonyFrameworkProofGameId, colonyFrameworkProofV2GameId, colonyFrameworkProofV2Schedule, colonyPerformanceGameId } from "./colony-performance-config";
 import type { ColonyPerformanceSize, ColonyPerformanceWorkerCount } from "./colony-performance-config";
 import type { GamePack } from "../contracts";
 
@@ -167,5 +167,91 @@ export function createColonyFrameworkProofPack(): GamePack {
     definition: new TextEncoder().encode(JSON.stringify(definition)),
     environmentDefinition: new TextEncoder().encode(JSON.stringify(environment)),
     initialActions: jobActions,
+  };
+}
+
+/**
+ * Bounded gate-0 diagnostic, not a capacity qualification. Three finite cohorts
+ * are authored up front; the driver designates the later trees through Colony's
+ * ordinary command. Nothing regrows or receives free replacement material.
+ * Generated terrain supplies the obstacles. Four material-paid hearths exercise
+ * smoke/heat, not ordinary-air pressure (which the engine does not simulate).
+ */
+export function createColonyFrameworkProofV2Pack(): GamePack {
+  const base = createColonyPerformancePack(256, 100);
+  const definition = JSON.parse(new TextDecoder().decode(base.definition)) as {
+    game: string; initial: Array<{ id: string; components: Record<string, unknown> }>;
+  };
+  const environment = JSON.parse(new TextDecoder().decode(base.environmentDefinition)) as {
+    world: { identity: string; seed: string };
+    atmosphere: { min: { x: number; y: number; z: number }; max: { x: number; y: number; z: number } };
+    initialPlacements: Array<{ entity: string; column: [number, number] }>;
+  };
+  const removed = new Set(definition.initial.filter(row => row.components["colony.tree"]).map(row => row.id));
+  definition.initial = definition.initial.filter(row => !removed.has(row.id));
+  environment.initialPlacements = environment.initialPlacements.filter(row => !removed.has(row.entity));
+  const workers = definition.initial.filter(row => row.components["colony.worker"]);
+  if (workers.length !== 100) throw new Error("framework v2 base population changed");
+  const centers = [[-88, -88], [-88, 88], [88, -88], [88, 88]] as const;
+  const place = (record: { id: string; components: Record<string, unknown> }, column: [number, number]) => {
+    record.components["hive.position"] = { x: column[0], y: 0, z: column[1], facing: 0 };
+    const placement = environment.initialPlacements.find(row => row.entity === record.id);
+    if (placement) placement.column = column;
+    else environment.initialPlacements.push({ entity: record.id, column });
+  };
+  const add = (id: string, components: Record<string, unknown>, column?: [number, number]) => {
+    const record = { id, components };
+    definition.initial.push(record);
+    if (column) place(record, column);
+    return record;
+  };
+  const owned = { "hive.owned-by-party": { party: "party:1" } };
+  for (const [index, worker] of workers.entries()) {
+    const [x, z] = centers[Math.floor(index / 25)];
+    const local = index % 25;
+    place(worker, [x + (local % 5 - 2) * 3, z + (Math.floor(local / 5) - 2) * 3]);
+  }
+  const initialActions: import("../contracts").ActionRequest[] = [];
+  for (let cohort = 0; cohort < colonyFrameworkProofV2Schedule.cohortReleaseSteps.length; cohort++) {
+    for (let index = 0; index < colonyFrameworkProofV2Schedule.treesPerCohort; index++) {
+      const [x, z] = centers[Math.floor(index / 32)];
+      const local = index % 32;
+      const id = `colony.tree.framework-v2.${cohort}.${index}` as import("../contracts").EntityId;
+      add(id, {
+        ...owned, "hive.container": { capacity: 6 }, "colony.tree": { kind: "wood" },
+        "hive.finite-resource": { kind: "wood", quantity: 6 },
+        "colony.tree-policy": { designated: cohort === 0, party: "party:1", job: null },
+      }, [x + (local % 8 - 4) * 3, z + 12 + Math.floor(local / 8) * 3 + cohort * 8]);
+      if (cohort === 0) initialActions.push({ kind: "create-job", id: treeJob(id), pool: "party:1" as import("../contracts").EntityId, plan: treePlan(id) });
+    }
+  }
+  const bootstrapActions: import("../contracts").ActionRequest[] = [];
+  for (const [quadrant, [x, z]] of centers.entries()) {
+    // One finite 768-unit destination per quadrant, using native stockpile and
+    // provider capabilities. Longer cross-quadrant deliveries remain possible.
+    add(`framework-v2.store.${quadrant}`, {
+      ...owned, "hive.container": { capacity: 768 }, "hive.storage-provider": {},
+    }, [x + 18, z]);
+    const worker = workers[quadrant * 25];
+    const column = environment.initialPlacements.find(row => row.entity === worker.id)!.column;
+    const station = `framework-v2.hearth.${quadrant}`;
+    add(station, { ...owned, "hive.container": { capacity: 1 }, "hive.emitter": { catalog: "wood-hearth" } }, [column[0] - 1, column[1]]);
+    add(`${station}.fuel`, { ...owned, "hive.lot": { kind: "wood", quantity: 1, container: station } });
+    add(`${worker.id}.framework-pail`, {
+      ...owned, "hive.lot": { kind: "pail", quantity: 1, container: worker.id },
+      "hive.container": { capacity: 7 }, "hive.vessel-capability": { acceptsWater: true },
+    });
+    bootstrapActions.push({ kind: "begin-emission", worker: worker.id as import("../contracts").EntityId, station: station as import("../contracts").EntityId });
+  }
+  definition.game = colonyFrameworkProofV2GameId;
+  environment.world.identity = colonyFrameworkProofV2GameId;
+  environment.world.seed = colonyFrameworkProofV2GameId;
+  environment.atmosphere.min = { x: -128, y: -32, z: -128 };
+  environment.atmosphere.max = { x: 128, y: 40, z: 128 };
+  return {
+    ...base, id: colonyFrameworkProofV2GameId,
+    definition: new TextEncoder().encode(JSON.stringify(definition)),
+    environmentDefinition: new TextEncoder().encode(JSON.stringify(environment)),
+    bootstrapActions, initialActions,
   };
 }
