@@ -34,7 +34,11 @@ export type RegionSqliteOwner = {
 export type RegionTransition =
   | { status: "applied"; result: Json; events: readonly Json[]; records?: RegionRecordChange }
   | { status: "rejected"; result: Json };
-export type RegionExecutionContext = Readonly<{ principal: string }>;
+export type RegionExecutionContext = Readonly<{
+  principal: string;
+  /** Verified ordered frontier; ordinary requests cannot supply this identity. */
+  occurrence?: Readonly<{ sequence: number }>;
+}>;
 export type RegionRecordChange = {
   readonly puts: readonly RegionStateRecord[];
   readonly removes: readonly string[];
@@ -453,7 +457,9 @@ export function openRegion<State, Command>(options: {
       const reader = createRecordReader(owner, limits.recordBytes);
       let transition: RegionTransition;
       try {
-        transition = program.execute(candidate, checkedCommand(), reader, current.revision, { principal });
+        transition = program.execute(candidate, checkedCommand(), reader, current.revision, { principal,
+          ...(mode.kind === "clock" ? { occurrence: Object.freeze({ sequence: mode.sequence }) } : {}),
+        });
       } finally {
         reader.close();
       }
