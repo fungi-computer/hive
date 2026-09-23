@@ -413,9 +413,18 @@ Source inspection shows `ensure_field_water_tasks` unconditionally calls
 components, even when no field-water task is created. The timing proves the
 field-water method dominates that bucket; attributing its cost specifically
 to the recount is a source-based inference pending a direct subphase probe.
-The next owner cut should make state-weight accounting mutation-local at this
-path, preserving the canonical capacity law. Matching/routes and native
-route/entity record encoding are the next measured costs after that.
+**Next owner cut:** finish the existing `state_accounting.rs` owner for the
+field-water creation path. A no-op `ensure_field_water_tasks` must do no global
+recount. Each actual task creation must charge its stable identity and
+components through the same canonical state-weight authority, rejecting an
+over-capacity candidate before it can commit. Do not add a water-only weight
+counter or leave a second capacity rule in the planner. Retain the slow
+`refresh_state_weight` calculation as the independent load/test oracle. Prove
+no-water, pending-water, task-creation, capacity rejection, candidate discard
+and restore against that oracle, then rerun the same 1,800-step fixture and
+local workerd restart proof. Re-profile before extending the cut to other
+full-recount callers; matching/routes and native route/entity record encoding
+are the next measured costs after this owner.
 
 ## Exit and explicit nonclaims
 
