@@ -378,3 +378,41 @@ fn topology_revalidation_checks_only_the_admitted_number_of_routes() {
         assert!(kernel.terrain_routes[&entity].revision.is_some(), "stable external IDs own validation order");
     }
 }
+
+#[test]
+fn retained_search_restore_rejects_noncanonical_record_identity() {
+    let (mut kernel, target) = climbing_world();
+    let actor = kernel.entity("walker").unwrap();
+    let pose = *kernel.ecs.get::<Position>(actor).unwrap();
+    let world = &mut kernel.environment.as_mut().unwrap().world;
+    let spacing = world.cell_spacing_m();
+    let to_cell = |x: f64, y: f64, z: f64| crate::generation::Cell {
+        x: (x / spacing[0]).round() as i64,
+        y: (y / spacing[1] - 0.5).round() as i32,
+        z: (z / spacing[2]).round() as i64,
+    };
+    let revision = world.terrain_revision();
+    let search = crate::terrain_route::RouteSearch::new(
+        to_cell(pose.x, pose.y, pose.z), &[to_cell(target.x, target.y, target.z)],
+        crate::terrain_traversal::TraversalConfig { spacing, clearance_cells: 1, max_step_cells: 1 },
+        &mut |cell| world.traversal_material(cell), &|_| false,
+    ).unwrap();
+    let canonical = "a".repeat(64);
+    kernel.planner.route_searches.entries.insert(canonical.clone(), crate::terrain_route::SearchRequest {
+        actor: "walker".into(), revision, last_used: kernel.revision, spacing, search,
+    });
+    kernel.planner.route_searches.occurrence = Some(kernel.revision);
+    let mut saved = kernel.save_records().unwrap();
+    let mut restored = Kernel::new();
+    restored.restore_records(&saved).unwrap();
+    assert_eq!(restored.save_records().unwrap().entities, saved.entities,
+        "canonical search identity must survive capture and restore");
+
+    let mut data: serde_json::Value = serde_json::from_str(&saved.entities).unwrap();
+    let entries = data["planner"]["routeSearches"]["entries"].as_object_mut().unwrap();
+    let search = entries.remove(&canonical).unwrap();
+    entries.insert(canonical.to_ascii_uppercase(), search);
+    saved.entities = data.to_string();
+    assert_eq!(Kernel::new().restore_records(&saved).unwrap_err(), "invalid retained route search request",
+        "restore must reject identities the next durable capture cannot encode");
+}
