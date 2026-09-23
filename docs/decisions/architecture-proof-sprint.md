@@ -1,11 +1,13 @@
-# Current plan: extract Hive and prove it in the tiny clearing
+# Architecture proof: current priority and preserved decisions
 
-**September 12 active sprint:** [Bring the Clearing back to life](../../engine/CLEARING-CONSOLIDATION-PLAN.md)
-is the single current delivery sequence: human controls and dependable work,
-retained Clearing art/animations, genuine water/building and two-person co-op.
+**September 23 active framework-proof sprint:**
+[One productive, durable Region](../../engine/FRAMEWORK-PROOF-SPRINT.md) is the
+single ordered native/DO performance and reuse qualification. The September 12
+[playable Clearing plan](../../engine/CLEARING-CONSOLIDATION-PLAN.md) remains
+product acceptance, but its renderer-first order does not govern this pass.
 Historical extraction/connected-world queues below are not active assignments.
-Keep the existing Rust/DO transaction owner; no further rewrite or whole-world
-event-sourcing project precedes the playable repair.
+Keep the existing Rust/DO transaction owner; this sprint is not a whole-world
+event-sourcing rewrite.
 
 Game CTO decision, 2026-09-09. Personally authored after reading production at
 `bf12e99362845c16cd055f5bf877085f2425c460`, the current sprint and retained

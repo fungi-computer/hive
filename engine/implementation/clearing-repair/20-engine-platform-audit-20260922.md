@@ -321,6 +321,14 @@ sandbox); its compaction/maintenance extensions are not a game plugin runtime.
 
 ## Ordered qualification
 
+**September 23 priority supersession:** The
+[single framework-proof sprint](../../FRAMEWORK-PROOF-SPRINT.md) owns the
+current native/DO performance and reuse pass. The order below is the September
+22 whole-platform audit proposal, not a parallel active queue. Its renderer
+acceptance remains open product work; its cross-Region handoff is a later
+qualification. The September 23 retained assignment and disposable-candidate
+cuts have landed and should not be reimplemented.
+
 1. **Make the existing game pleasant to inspect and play.** Execute report 19's
    bounded camera/cut/scene repair with original art. Preserve its 1 s/3 s loading
    gates and same-viewport 64/256 comparison; exercise moving actors, edits, cuts,

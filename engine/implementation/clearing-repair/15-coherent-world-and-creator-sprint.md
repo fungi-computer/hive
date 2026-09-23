@@ -6,6 +6,11 @@ rechecked in `engine/living-terrain-integration-20260917` through `4da4587e`.
 
 ## September 23 native/DO loop priority — current performance pass
 
+The [single framework-proof sprint](../../FRAMEWORK-PROOF-SPRINT.md) now owns
+the ordered work, measurable gates and exit criteria for this pass. This section
+records the decision and source rationale; the renderer-first sequence below
+remains playable-Clearing work, not a competing framework-proof queue.
+
 Levi clarified that rendering is **not** the concern for this pass. The target is
 100 workers doing sustained useful work across a meaningfully occupied 256×256
 Region. The existing 256/100 performance preset does not test that target: it

@@ -1,10 +1,18 @@
 # Sprint: bring the Clearing back to life
 
-**September 17 current implementation sequence:**
+**September 23 current framework-proof priority:**
+[One productive, durable Region](FRAMEWORK-PROOF-SPRINT.md) owns the single
+ordered native/DO loop and reuse qualification. It supersedes the renderer-first
+order below for this performance pass. The Clearing's playable-art, controls
+and construction acceptance remains open product work, not proof of 100-worker
+hosted capacity.
+
+**September 17 playable-Clearing implementation sequence (outside this pass):**
 [One world, ordinary actors, dependable drawing](implementation/clearing-repair/15-coherent-world-and-creator-sprint.md)
-owns the ordered renderer, building/surface, everyday work/performance, durable
-continuity/region and existing creator-tool stages. It preserves completed native
-work and supersedes conflicting older sequencing.
+records renderer, building/surface and creator-tool acceptance for the playable
+Clearing. Its older everyday-work/performance and durable-continuity ordering is
+superseded for the current framework-proof pass. It preserves completed native
+work and older product evidence.
 
 King Bolete · September 12, 2026 · **active Colony delivery plan**
 
