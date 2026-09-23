@@ -37,6 +37,18 @@ pub(super) use crate::air_records::PaidEmission;
 use crate::air_records::{SavedAir, SAVED_AIR_VERSION};
 
 impl KernelEnvironment {
+    pub(super) fn changed_air_records(&self) -> Result<(std::collections::BTreeMap<String, Vec<u8>>, Vec<String>), String> {
+        let Some(air) = &self.atmosphere else {
+            if !self.paid_emissions.is_empty() { return Err("paid emissions require atmosphere".into()); }
+            return Ok((std::collections::BTreeMap::new(), Vec::new()));
+        };
+        if self.paid_emissions.len() > 64 { return Err("air emission count exceeds bound".into()); }
+        let (mut puts, removes) = air.record_delta();
+        puts.insert(crate::air_records::EMISSIONS.into(),
+            postcard::to_allocvec(&self.paid_emissions).map_err(|_| "air record encoding failed")?);
+        Ok((puts, removes))
+    }
+
     pub(super) fn save_air(&self) -> Result<Option<Vec<u8>>, String> {
         let Some(air) = &self.atmosphere else {
             if !self.paid_emissions.is_empty() { return Err("paid emissions require atmosphere".into()); }

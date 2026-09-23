@@ -5,12 +5,12 @@ use crate::record_bundle::{RecordBundle, RecordDelta};
 use crate::record_changes::EntityChanges;
 
 #[derive(Clone, Default)]
-pub(crate) struct JournalToken { entities: u64, routes: u64, terrain_routes: u64, direct: u64, contacts: u64, parties: u64, searches: BTreeMap<String, u64> }
+pub(crate) struct JournalToken { entities: u64, routes: u64, terrain_routes: u64, direct: u64, contacts: u64, parties: u64, air: u64, searches: BTreeMap<String, u64> }
 
 impl Kernel {
     pub(crate) fn record_state_weight(&self) -> usize { self.state_weight }
     pub(crate) fn record_journal_token(&self) -> JournalToken {
-        JournalToken { entities: self.ecs.resource::<EntityChanges>().token(), routes: self.routes.token(), terrain_routes: self.terrain_routes.token(), direct: self.direct.token(), contacts: self.projectile_contacts.token(), parties: self.party_bindings.token(), searches: self.planner.route_searches.changed.clone() }
+        JournalToken { entities: self.ecs.resource::<EntityChanges>().token(), routes: self.routes.token(), terrain_routes: self.terrain_routes.token(), direct: self.direct.token(), contacts: self.projectile_contacts.token(), parties: self.party_bindings.token(), air: self.environment.as_ref().and_then(|environment| environment.atmosphere.as_ref()).map_or(0, |air| air.record_token()), searches: self.planner.route_searches.changed.clone() }
     }
     pub(crate) fn accept_record_journal(&mut self, token: JournalToken) {
         self.ecs.resource_mut::<EntityChanges>().accept(token.entities);
@@ -19,6 +19,7 @@ impl Kernel {
         self.direct.accept(token.direct);
         self.projectile_contacts.accept(token.contacts);
         self.party_bindings.accept(token.parties);
+        if let Some(air) = self.environment.as_mut().and_then(|environment| environment.atmosphere.as_mut()) { air.acknowledge_records(token.air); }
         self.planner.route_searches.acknowledge(&token.searches);
     }
     pub(crate) fn changed_records(&self) -> Result<RecordDelta> {
@@ -26,7 +27,6 @@ impl Kernel {
         let environment = self.environment.as_ref().map(|environment| {
             Ok::<_, String>((environment.definition.clone(), environment.world.save_records()?))
         }).transpose()?;
-        let atmosphere = self.environment.as_ref().map(|environment| environment.save_air()).transpose()?.flatten();
         let mut bank = crate::terrain_route::SearchBank::default();
         bank.occurrence = self.planner.route_searches.occurrence;
         bank.spent = self.planner.route_searches.spent;
@@ -34,8 +34,13 @@ impl Kernel {
             review_tick: self.planner.review_tick, assignment_generation: self.planner.assignment_generation,
             continuation: self.planner.continuation.clone(), route_searches: bank };
         let metadata = serde_json::to_string(&self.snapshot_metadata_with_planner(planner)).map_err(|error| error.to_string())?;
-        let mut puts = RecordBundle::from_records(KernelRecords { entities: metadata, environment, atmosphere })?;
+        let mut puts = RecordBundle::from_records(KernelRecords { entities: metadata, environment, atmosphere: None })?;
         let mut removes = Vec::new();
+        if let Some(environment) = &self.environment {
+            let (air_puts, air_removes) = environment.changed_air_records()?;
+            for (key, bytes) in air_puts { puts.insert(&key, &bytes)?; }
+            removes.extend(air_removes);
+        }
         let mut changed: BTreeSet<_> = self.ecs.resource::<EntityChanges>().ids().cloned().collect();
         let mut route_ids = BTreeSet::new();
         for entity in self.routes.changed().chain(self.terrain_routes.changed()) {

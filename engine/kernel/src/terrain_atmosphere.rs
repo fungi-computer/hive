@@ -209,6 +209,7 @@ struct Contact {
 pub struct TerrainAtmosphere {
     config: TerrainAtmosphereConfig,
     state: SmokeState,
+    records: crate::air_records::AirRecordCache,
     contacts: BTreeMap<Cell, Contact>,
     geometry_revision: u64,
 }
@@ -254,6 +255,7 @@ impl TerrainAtmosphere {
             assert_eq!(self.state.stocks.len(), index + 1);
         }
         validate_state(&self.state, &self.config).unwrap();
+        self.records = crate::air_records::AirRecordCache::from_state(&self.config, &self.state).unwrap();
     }
     #[cfg(test)]
     pub(crate) fn benchmark_copy_validate(&self, repetitions: usize) -> std::time::Duration {
@@ -270,9 +272,12 @@ impl TerrainAtmosphere {
         config: TerrainAtmosphereConfig,
     ) -> Result<Self, String> {
         validate_config(world, &config)?;
+        let state = SmokeState::default();
+        let records = crate::air_records::AirRecordCache::from_state(&config, &state)?;
         Ok(Self {
             config,
-            state: SmokeState::default(),
+            state,
+            records,
             contacts: BTreeMap::new(),
             geometry_revision: world.terrain_revision(),
         })
@@ -381,6 +386,7 @@ impl TerrainAtmosphere {
         let mut air = Self::fresh(world, records.config.clone())?;
         validate_state(&records.state, &air.config)?;
         air.state = records.state.clone();
+        air.records = crate::air_records::AirRecordCache::from_state(&air.config, &air.state)?;
         Ok(air)
     }
     /// Sources and bounded spreading publish together; rejected admission leaves
@@ -517,9 +523,17 @@ impl TerrainAtmosphere {
             deposited_smoke_kg: prepared.ledger.deposited_smoke,
             deposited_heat_j: prepared.ledger.deposited_heat,
         };
+        let changed_cells: Vec<_> = prepared.changes.keys().copied().collect();
+        let appended: Vec<_> = prepared.appended.iter().copied().collect();
+        let old_tail = self.state.queue.back().copied();
         prepared.publish(&mut self.state);
+        self.records.publish(&self.config, &self.state, &changed_cells, &appended, old_tail)?;
         Ok(receipt)
     }
+
+    pub(crate) fn record_delta(&self) -> (BTreeMap<String, Vec<u8>>, Vec<String>) { self.records.delta() }
+    pub(crate) fn record_token(&self) -> u64 { self.records.token() }
+    pub(crate) fn acknowledge_records(&mut self, token: u64) { self.records.acknowledge(token); }
 }
 fn validate_config(world: &TerrainWater, c: &TerrainAtmosphereConfig) -> Result<(), String> {
     let b = world.bounds();
