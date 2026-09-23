@@ -109,7 +109,7 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
 /** Exclusive native/session lifetime for one host's serialized Region owner. */
 function createSessionResident(options: SessionResidentOptions): SessionResident {
   let accepted: { revision: number; session: GameSession; port: KernelPort } | undefined;
-  let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort } | undefined;
+  let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort; captured: boolean } | undefined;
   let candidateCost: SessionCandidateCost | undefined;
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
@@ -178,7 +178,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("invalid resident revision");
       discardAttempt();
       if (accepted?.revision === revision) {
-        attempt = { provisionalRevision: revision, ...accepted };
+        attempt = { provisionalRevision: revision, ...accepted, captured: false };
         accepted = undefined;
         return;
       }
@@ -187,7 +187,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       disposeEntry(prior);
       const hydrated = hydrateSession(state.session, records);
       const made = make(hydrated);
-      attempt = { provisionalRevision: revision, ...made };
+      attempt = { provisionalRevision: revision, ...made, captured: false };
     },
     execute(candidate, command, records, baseRevision, context) {
       if (!attempt || attempt.provisionalRevision !== baseRevision) throw new Error("resident-attempt-missing");
@@ -213,6 +213,7 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         };
         candidate.session = storeSession(after.snapshot).session;
         attempt.provisionalRevision++;
+        attempt.captured = true;
         return {
           status: "applied",
           result: JSON.parse(JSON.stringify({ tick: candidate.session.tick, paused: attempt.session.isPaused, results })) as Json,
@@ -230,7 +231,10 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         invalidateAfterFailure();
         throw error;
       }
-      attempt.session.acceptCapture();
+      // A replay, rejected precondition, or clock wake can leave the Region
+      // unchanged without executing a native candidate. Only a captured
+      // candidate has a journal frontier to acknowledge.
+      if (attempt.captured) attempt.session.acceptCapture();
       accepted = { revision, session: attempt.session, port: attempt.port };
       attempt = undefined;
     },
