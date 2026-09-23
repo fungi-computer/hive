@@ -147,6 +147,15 @@ fn route_cost(start: Position, points: impl IntoIterator<Item = Point>) -> crate
 }
 
 pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
+    // Cost queries are observations, so their scratch frontier never enters the
+    // durable planning budget or changes an in-progress physical search.
+    let retained = std::mem::take(&mut kernel.planner.route_searches);
+    let result = execute_query(kernel, input);
+    kernel.planner.route_searches = retained;
+    result
+}
+
+fn execute_query(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
     if input.len() > MAX_BYTES {
         return Err("route-cost request exceeds input budget".into());
     }
@@ -268,6 +277,15 @@ pub(super) fn execute(kernel: &mut super::Kernel, input: &str) -> crate::compone
 }
 
 pub(super) fn execute_any(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
+    // Cost queries are observations, so their scratch frontier never enters the
+    // durable planning budget or changes an in-progress physical search.
+    let retained = std::mem::take(&mut kernel.planner.route_searches);
+    let result = execute_any_query(kernel, input);
+    kernel.planner.route_searches = retained;
+    result
+}
+
+fn execute_any_query(kernel: &mut super::Kernel, input: &str) -> crate::components::Result<String> {
     if input.len() > MAX_BYTES { return Err("route-to-any request exceeds input budget".into()); }
     let request: AnyRequest = serde_json::from_str(input).map_err(|error| error.to_string())?;
     if !valid_id(&request.actor) { return Err("route-to-any actor ID is invalid".into()); }

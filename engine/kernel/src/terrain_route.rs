@@ -3,7 +3,7 @@
 use crate::generation::Cell;
 use crate::terrain_traversal::{self, MaterialQuery, TraversalConfig};
 use crate::structure_geometry::StairEdge;
-use pathfinding::prelude::astar;
+use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, BinaryHeap};
 
@@ -154,80 +154,260 @@ pub fn search_any_with_blocked_and_stairs_and_crossings(
     stairs: &[StairEdge],
     crossing_blocked: &dyn Fn(Cell, Cell) -> bool,
 ) -> Result<(usize, Vec<Cell>), String> {
-    if destinations.is_empty() || terrain_traversal::node(start, config, query)?.is_none() {
-        return Err("route endpoint lacks support or clearance".into());
+    let mut search = RouteSearch::new(start, destinations, config, query, blocked)?;
+    let mut budget = SEARCH_EXPANSIONS;
+    search.advance(config, query, blocked, stairs, crossing_blocked, &mut budget)?
+        .ok_or_else(|| SEARCH_PENDING.into())
+}
+
+pub(crate) const SEARCH_EXPANSIONS: usize = 4096;
+pub(crate) const SEARCH_PENDING: &str = "terrain route exceeds local search budget";
+const MAX_SEARCH_NODES: usize = 32_768;
+type CellKey = (i64, i32, i64);
+fn cell_key(cell: Cell) -> CellKey { (cell.x, cell.y, cell.z) }
+fn key_cell((x, y, z): CellKey) -> Cell { Cell { x, y, z } }
+
+/// Persistent A* working state, never a physical route or a permission grant.
+/// Ordered frontier ties and predecessor updates are identical across yields
+/// and serialization. Only the caller's explicit expansion allowance advances it.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct RouteSearch {
+    start: CellKey,
+    goals: Vec<(CellKey, usize)>,
+    // Tuple records keep durable state compact. The lookup is rebuilt only on
+    // restore, and frontier positions use stable cell keys rather than pointers.
+    pub(crate) nodes: Vec<(CellKey, u64, Option<usize>)>,
+    frontier: BTreeSet<(u64, u64, usize)>,
+    #[serde(skip)]
+    lookup: BTreeMap<CellKey, usize>,
+    expanded: u64,
+}
+
+impl PartialEq for RouteSearch {
+    fn eq(&self, other: &Self) -> bool {
+        self.start == other.start && self.goals == other.goals && self.nodes == other.nodes
+            && self.frontier == other.frontier && self.expanded == other.expanded
     }
-    let key = |cell: Cell| (cell.x, cell.y, cell.z);
-    let cell = |(x, y, z)| Cell { x, y, z };
-    let mut goals = BTreeMap::new();
-    for (index, destination) in destinations.iter().copied().enumerate() {
-        if !blocked(destination) && terrain_traversal::node(destination, config, query)?.is_some() {
-            goals.entry(key(destination)).or_insert(index);
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SearchRequest {
+    pub(crate) actor: String,
+    pub(crate) revision: u64,
+    pub(crate) last_used: u64,
+    pub(crate) spacing: [f64; 3],
+    pub(crate) search: RouteSearch,
+}
+
+/// Bounded, durable computation shared by work admission and movement recovery.
+/// The occurrence counter is saved: reload cannot replenish an exhausted slice.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SearchBank {
+    pub(crate) entries: BTreeMap<String, SearchRequest>,
+    pub(crate) occurrence: Option<u64>,
+    pub(crate) spent: usize,
+    #[serde(skip)]
+    pub(crate) changed: BTreeMap<String, u64>,
+    #[serde(skip)]
+    change_clock: u64,
+}
+
+impl PartialEq for SearchBank {
+    fn eq(&self, other: &Self) -> bool {
+        self.entries == other.entries && self.occurrence == other.occurrence && self.spent == other.spent
+    }
+}
+
+impl SearchBank {
+    fn mark_changed(&mut self, id: String) {
+        self.change_clock = self.change_clock.checked_add(1).expect("route search journal exhausted");
+        self.changed.insert(id, self.change_clock);
+    }
+    pub(crate) fn acknowledge(&mut self, captured: &BTreeMap<String, u64>) {
+        self.changed.retain(|id, generation| captured.get(id) != Some(generation));
+    }
+    pub(crate) fn validate(&self) -> Result<(), &'static str> {
+        if self.entries.len() > 32 || self.spent > SEARCH_EXPANSIONS
+            || self.entries.values().map(|request| request.search.nodes.len()).sum::<usize>() > MAX_SEARCH_NODES {
+            return Err("retained route search bank exceeds bounds");
+        }
+        for (id, request) in &self.entries {
+            if id.len() != 64 || !id.bytes().all(|byte| byte.is_ascii_hexdigit())
+                || !crate::components::valid_id(&request.actor)
+                || request.spacing.iter().any(|value| !value.is_finite() || *value <= 0.0)
+                || self.occurrence.is_none_or(|occurrence| request.last_used > occurrence) {
+                return Err("invalid retained route search request");
+            }
+            request.search.validate(request.spacing)?;
+        }
+        Ok(())
+    }
+    pub(crate) fn search(&mut self, actor: &str, occurrence: u64, revision: u64,
+        start: Cell, targets: &[Cell], config: TraversalConfig, blockers: &BTreeSet<crate::navigation::Cell>,
+        query: &mut MaterialQuery<'_>, blocked: &dyn Fn(Cell) -> bool, stairs: &[StairEdge],
+        crossing: &dyn Fn(Cell, Cell) -> bool) -> Result<(usize, Vec<Cell>), String> {
+        use sha2::{Digest, Sha256};
+        if self.occurrence != Some(occurrence) {
+            self.occurrence = Some(occurrence);
+            self.spent = 0;
+            let stale = self.entries.iter().filter(|(_, request)| request.revision != revision || occurrence.saturating_sub(request.last_used) > 64)
+                .map(|(id, _)| id.clone()).collect::<Vec<_>>();
+            for id in stale { self.entries.remove(&id); self.mark_changed(id); }
+        }
+        if self.spent >= SEARCH_EXPANSIONS { return Err(SEARCH_PENDING.into()); }
+        let input = serde_json::to_vec(&(actor, revision, start, targets, config.spacing, config.clearance_cells, config.max_step_cells, blockers))
+            .map_err(|error| error.to_string())?;
+        let id = format!("{:x}", Sha256::digest(input));
+        if !self.entries.contains_key(&id) {
+            if self.entries.len() >= 32 { return Err(SEARCH_PENDING.into()); }
+            let search = RouteSearch::new(start, targets, config, query, blocked)?;
+            self.entries.insert(id.clone(), SearchRequest { actor: actor.into(), revision, last_used: occurrence, spacing: config.spacing, search });
+        }
+        self.mark_changed(id.clone());
+        let retained_nodes: usize = self.entries.iter().filter(|(key, _)| **key != id).map(|(_, request)| request.search.nodes.len()).sum();
+        let request = self.entries.get_mut(&id).expect("search admitted above");
+        if request.search.start != cell_key(start) || request.spacing != config.spacing
+            || request.search.goals.iter().any(|(goal, index)| targets.get(*index).copied().map(cell_key) != Some(*goal)) {
+            return Err("retained route search request mismatch".into());
+        }
+        request.last_used = occurrence;
+        let mut budget = SEARCH_EXPANSIONS - self.spent;
+        let before = budget;
+        let result = request.search.advance(config, query, blocked, stairs, crossing, &mut budget);
+        self.spent += before - budget;
+        if retained_nodes + request.search.nodes.len() > MAX_SEARCH_NODES {
+            self.entries.remove(&id);
+            return Err("terrain route retained state limit exceeded".into());
+        }
+        match result {
+            Ok(None) => Err(SEARCH_PENDING.into()),
+            Ok(Some(route)) => {
+                self.entries.remove(&id);
+                // Restored computation is untrusted input until its complete
+                // physical witness is checked by the same traversal owner.
+                if route.1.len() > 4096 { return Err("terrain route waypoint budget exceeded".into()); }
+                if !terrain_traversal::path_supported_with_stairs(&route.1, config, query, stairs)?
+                    || route.1.iter().skip(1).copied().any(blocked)
+                    || route.1.windows(2).any(|pair| crossing(pair[0], pair[1])) {
+                    return Err("invalid retained route search result".into());
+                }
+                Ok(route)
+            },
+            Err(error) => { self.entries.remove(&id); Err(error) },
         }
     }
-    if goals.is_empty() { return Err("route endpoint lacks support or clearance".into()); }
-    let mut expanded = 0usize;
-    let mut failure = None;
-    let path = astar(
-        &key(start),
-        |current| {
-            if failure.is_some() { return Vec::new(); }
-            expanded += 1;
-            if expanded > 4096 {
-                failure = Some("terrain route exceeds local search budget".to_string());
-                return Vec::new();
+}
+
+impl RouteSearch {
+    fn heuristic(&self, current: CellKey, spacing: [f64; 3]) -> u64 {
+        self.goals.iter().map(|(goal, _)| {
+            let dx = (goal.0 as f64 - current.0 as f64) * spacing[0];
+            let dy = (f64::from(goal.1) - f64::from(current.1)) * spacing[1];
+            let dz = (goal.2 as f64 - current.2 as f64) * spacing[2];
+            (dx.hypot(dy).hypot(dz) * 1_000_000.0).floor() as u64
+        }).min().unwrap_or(0)
+    }
+    pub(crate) fn new(start: Cell, destinations: &[Cell], config: TraversalConfig,
+        query: &mut MaterialQuery<'_>, blocked: &dyn Fn(Cell) -> bool) -> Result<Self, String> {
+        if destinations.is_empty() || destinations.len() > 32 || terrain_traversal::node(start, config, query)?.is_none() {
+            return Err("route endpoint lacks support or clearance".into());
+        }
+        let mut goals = BTreeMap::new();
+        for (index, destination) in destinations.iter().copied().enumerate() {
+            if !blocked(destination) && terrain_traversal::node(destination, config, query)?.is_some() {
+                goals.entry(cell_key(destination)).or_insert(index);
             }
-            let from = match terrain_traversal::node(cell(*current), config, query) {
-                Ok(Some(node)) => node,
-                Ok(None) => return Vec::new(),
-                Err(error) => { failure = Some(error); return Vec::new(); }
-            };
-            let mut neighbors = Vec::with_capacity(12);
+        }
+        if goals.is_empty() { return Err("route endpoint lacks support or clearance".into()); }
+        let start = cell_key(start);
+        let mut search = Self { start, goals: goals.into_iter().collect(),
+            nodes: vec![(start, 0, None)], lookup: BTreeMap::from([(start, 0)]), frontier: BTreeSet::new(), expanded: 0 };
+        search.frontier.insert((search.heuristic(start, config.spacing), 0, 0));
+        Ok(search)
+    }
+    pub(crate) fn validate(&self, spacing: [f64; 3]) -> Result<(), &'static str> {
+        if self.nodes.is_empty() || self.nodes.len() > MAX_SEARCH_NODES || self.goals.is_empty() || self.goals.len() > 32
+            || self.nodes.first() != Some(&(self.start, 0, None)) || self.frontier.len() > self.nodes.len() {
+            return Err("invalid retained route search bounds");
+        }
+        let mut seen = BTreeSet::new();
+        for (index, (key, cost, parent)) in self.nodes.iter().enumerate() {
+            if !seen.insert(*key) || (index != 0 && parent.is_none()) { return Err("retained route search has duplicate or disconnected node"); }
+            if let Some(parent) = parent {
+                if self.nodes.get(*parent).is_none_or(|(_, previous, _)| previous >= cost) {
+                    return Err("invalid retained route search predecessor");
+                }
+            }
+        }
+        for (estimate, cost, index) in &self.frontier {
+            let Some((key, known, _)) = self.nodes.get(*index) else { return Err("invalid retained route search frontier"); };
+            if known != cost || cost.checked_add(self.heuristic(*key, spacing)) != Some(*estimate) {
+                return Err("invalid retained route search frontier");
+            }
+        }
+        Ok(())
+    }
+    pub(crate) fn advance(&mut self, config: TraversalConfig, query: &mut MaterialQuery<'_>,
+        blocked: &dyn Fn(Cell) -> bool, stairs: &[StairEdge], crossing_blocked: &dyn Fn(Cell, Cell) -> bool,
+        budget: &mut usize) -> Result<Option<(usize, Vec<Cell>)>, String> {
+        if self.lookup.len() != self.nodes.len() {
+            self.lookup = self.nodes.iter().enumerate().map(|(index, (key, _, _))| (*key, index)).collect();
+        }
+        while *budget > 0 {
+            let Some((_, cost, current_index)) = self.frontier.pop_first() else { return Err("no supported terrain route".into()); };
+            let current = self.nodes[current_index].0;
+            *budget -= 1;
+            self.expanded = self.expanded.checked_add(1).ok_or("retained route expansion counter overflow")?;
+            if let Some((_, index)) = self.goals.iter().find(|(goal, _)| *goal == current) {
+                let mut path = vec![key_cell(current)];
+                let mut cursor = current_index;
+                while let Some(parent) = self.nodes[cursor].2 {
+                    path.push(key_cell(self.nodes[parent].0));
+                    cursor = parent;
+                }
+                path.reverse();
+                return Ok(Some((*index, path)));
+            }
+            let Some(from) = terrain_traversal::node(key_cell(current), config, query)? else { continue };
+            let mut neighbors = Vec::with_capacity(14);
             for (dx, dz) in [(1, 0), (0, 1), (-1, 0), (0, -1)] {
                 for dy in [0, 1, -1] {
-                    match terrain_traversal::step(from, dx, dy, dz, config, query) {
-                        Ok(Some(next)) if !blocked(next.support) && !crossing_blocked(cell(*current), next.support) => match edge_cost(cell(*current), next.support, config.spacing, stairs) {
-                            Ok(cost) => neighbors.push((key(next.support), cost)),
-                            Err(error) => { failure = Some(error); return Vec::new(); }
-                        },
-                        Ok(Some(_)) => {},
-                        Ok(None) => {},
-                        Err(error) => { failure = Some(error); return Vec::new(); }
+                    if let Some(next) = terrain_traversal::step(from, dx, dy, dz, config, query)? {
+                        if !blocked(next.support) && !crossing_blocked(key_cell(current), next.support) { neighbors.push(next.support); }
                     }
                 }
             }
             for stair in stairs {
-                let target = if stair.entrance == cell(*current) { stair.landing }
-                    else if stair.landing == cell(*current) { stair.entrance }
-                    else { continue };
-                // Stair endpoints are represented as solid derived geometry;
-                // the stair transition itself owns that occupied landing.
-                // Ordinary blocked cells remain filtered by the traversal
-                // query and crossing law.
-                if blocked(target) || crossing_blocked(cell(*current), target) { continue; }
-                if let Ok(Some(next)) = terrain_traversal::stair_step(from, target, stair, config, query) {
-                    match edge_cost(cell(*current), next.support, config.spacing, stairs) {
-                        Ok(cost) => neighbors.push((key(next.support), cost)),
-                        Err(error) => { failure = Some(error); return Vec::new(); }
-                    }
-                }
+                let target = if stair.entrance == key_cell(current) { stair.landing }
+                    else if stair.landing == key_cell(current) { stair.entrance } else { continue };
+                if !blocked(target) && !crossing_blocked(key_cell(current), target)
+                    && terrain_traversal::stair_step(from, target, stair, config, query)?.is_some() { neighbors.push(target); }
             }
-            neighbors
-        },
-        |current| goals.keys().map(|goal| {
-            let dx = (goal.0 as f64 - current.0 as f64) * config.spacing[0];
-            let dy = (f64::from(goal.1) - f64::from(current.1)) * config.spacing[1];
-            let dz = (goal.2 as f64 - current.2 as f64) * config.spacing[2];
-            (dx.hypot(dy).hypot(dz) * 1_000_000.0).floor() as u64
-        }).min().unwrap_or(0),
-        |current| goals.contains_key(current),
-    );
-    if let Some(error) = failure { return Err(error); }
-    path.map(|(path, _cost)| {
-        let index = *goals.get(path.last().expect("A* route contains its goal")).expect("A* stopped at a known goal");
-        (index, path.into_iter().map(cell).collect())
-    })
-        .ok_or_else(|| "no supported terrain route".into())
+            for next in neighbors {
+                let key = cell_key(next);
+                let next_cost = cost.checked_add(edge_cost(key_cell(current), next, config.spacing, stairs)?).ok_or("route metric cost exceeds bound")?;
+                let prior = self.lookup.get(&key).copied();
+                if prior.is_some_and(|index| self.nodes[index].1 <= next_cost) { continue; }
+                let heuristic = self.heuristic(key, config.spacing);
+                let index = if let Some(index) = prior {
+                    self.frontier.remove(&(self.nodes[index].1.saturating_add(heuristic), self.nodes[index].1, index));
+                    self.nodes[index] = (key, next_cost, Some(current_index));
+                    index
+                } else {
+                    if self.nodes.len() >= MAX_SEARCH_NODES { return Err("terrain route retained state limit exceeded".into()); }
+                    let index = self.nodes.len();
+                    self.nodes.push((key, next_cost, Some(current_index)));
+                    self.lookup.insert(key, index);
+                    index
+                };
+                self.frontier.insert((next_cost.checked_add(heuristic).ok_or("route metric cost exceeds bound")?, next_cost, index));
+            }
+        }
+        if self.frontier.is_empty() { Err("no supported terrain route".into()) } else { Ok(None) }
+    }
 }
 
 /// Search one terrain frontier until every requested destination is reached.
@@ -553,4 +733,54 @@ mod tests {
         let wall = |from: Cell, to: Cell| from.y == 0 && to.y == 0 && ((from.x == 0 && to.x == 1) || (from.x == 1 && to.x == 0));
         assert!(search_any_with_blocked_and_stairs_and_crossings(start, &[destination], config, &mut query, &|_| false, &[], &wall).is_err());
     }
+    #[test]
+    fn yielded_frontier_resumes_across_reload_with_one_aggregate_occurrence_budget() {
+        let config = TraversalConfig { spacing: [1.0; 3], clearance_cells: 1, max_step_cells: 1 };
+        let start = Cell { x: 0, y: 0, z: 0 };
+        let goal = Cell { x: 80, y: 0, z: 80 };
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: at.y == 0, outside: false, sealed_top: false });
+        let mut uninterrupted = RouteSearch::new(start, &[goal], config, &mut query, &|_| false).unwrap();
+        let expected = uninterrupted.advance(config, &mut query, &|_| false, &[], &|_, _| false, &mut 32768).unwrap().unwrap();
+        assert!(uninterrupted.expanded > SEARCH_EXPANSIONS as u64);
+        let mut bank = SearchBank::default();
+        let blockers = BTreeSet::new();
+        assert_eq!(bank.search("worker", 7, 0, start, &[goal], config, &blockers, &mut query, &|_| false, &[], &|_, _| false).unwrap_err(), SEARCH_PENDING);
+        assert_eq!(bank.spent, SEARCH_EXPANSIONS);
+        let expanded = bank.entries.values().next().unwrap().search.expanded;
+        assert_eq!(expanded, SEARCH_EXPANSIONS as u64);
+        let saved = serde_json::to_string(&bank).unwrap();
+        let mut bank: SearchBank = serde_json::from_str(&saved).unwrap();
+        bank.validate().unwrap();
+        // Even another actor and a reload do not replenish the same occurrence.
+        assert_eq!(bank.search("other", 7, 0, start, &[goal], config, &blockers, &mut query, &|_| false, &[], &|_, _| false).unwrap_err(), SEARCH_PENDING);
+        assert_eq!(bank.entries.len(), 1);
+        let mut result = None;
+        let mut spent = SEARCH_EXPANSIONS;
+        for occurrence in 8..16 {
+            match bank.search("worker", occurrence, 0, start, &[goal], config, &blockers, &mut query, &|_| false, &[], &|_, _| false) {
+                Ok(route) => { spent += bank.spent; result = Some(route); break; },
+                Err(error) => { assert_eq!(error, SEARCH_PENDING); spent += bank.spent; }
+            }
+            bank = serde_json::from_str(&serde_json::to_string(&bank).unwrap()).unwrap();
+            bank.validate().unwrap();
+        }
+        assert_eq!(result.unwrap(), expected);
+        assert_eq!(spent as u64, uninterrupted.expanded, "a yielded prefix is never expanded twice");
+        assert!(bank.entries.is_empty());
+    }
+
+    #[test]
+    fn search_recovery_rejects_invalid_predecessor_and_frontier() {
+        let config = TraversalConfig { spacing: [1.0; 3], clearance_cells: 1, max_step_cells: 1 };
+        let mut query = |at: Cell| Ok(TraversalMaterial { solid: at.y == 0, outside: false, sealed_top: false });
+        let mut search = RouteSearch::new(Cell { x: 0, y: 0, z: 0 }, &[Cell { x: 10, y: 0, z: 0 }], config, &mut query, &|_| false).unwrap();
+        search.advance(config, &mut query, &|_| false, &[], &|_, _| false, &mut 1).unwrap();
+        search.validate(config.spacing).unwrap();
+        let mut corrupt = search.clone();
+        corrupt.nodes[1].2 = Some(1);
+        assert!(corrupt.validate(config.spacing).is_err());
+        search.frontier.insert((0, 0, 999));
+        assert!(search.validate(config.spacing).is_err());
+    }
+
 }
