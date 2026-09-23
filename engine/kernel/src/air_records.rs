@@ -470,7 +470,7 @@ mod tests {
         state.clock = 0.25;
         let current = write(&saved).unwrap();
         let (changed, second) = cursor.capture_changed(RecordDelta {
-            puts: bundle(&current), removes: Vec::new(), searches: Vec::new(),
+            puts: bundle(&current), removes: vec![tile_key(retired)], searches: Vec::new(),
             routes: Vec::new(), motion: BTreeMap::new(),
         }, first.sequence, 1, 0.25, 0).unwrap();
         assert!(!second.keys.contains(&tile_key(retired)));
