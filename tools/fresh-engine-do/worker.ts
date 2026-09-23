@@ -199,21 +199,27 @@ export class FreshRegion extends DurableObject<Environment> {
 
   private residentRecords(revision: number) {
     let records: Map<string, Uint8Array> | undefined;
-    return { read: (key: string) => {
+    const loadRecords = () => {
       if (!records) {
         records = new Map();
         let cursor = "";
         for (;;) {
           const page = this.region.readRecords(revision, cursor, 40);
-          for (const record of page.records) records.set(record.key, record.bytes);
-          if (records.size > 40) throw new Error("proof-kernel-record-limit");
+          for (const record of page.records) {
+            if (records.size >= 40) throw new Error("proof-kernel-record-limit");
+            records.set(record.key, record.bytes);
+          }
           if (page.nextKey === undefined) break;
           if (page.nextKey <= cursor) throw new Error("proof-kernel-record-cursor");
           cursor = page.nextKey;
         }
       }
-      return records.get(key);
-    } };
+      return records;
+    };
+    return {
+      read: (key: string) => loadRecords().get(key),
+      records: () => [...loadRecords()].map(([key, bytes]) => ({ key, bytes })),
+    };
   }
 }
 export default {
