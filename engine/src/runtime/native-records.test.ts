@@ -181,13 +181,13 @@ test("a short/long change to the first entity leaves every other persistence ide
       owner.acceptCapture();
     }
     const saved = captureKernelRecords(kernel);
-    assert.throws(() => restoreKernelRecords(recovered, () => new WasmKernelRecords(), { ...saved, version: 1 as never }), /unsupported kernel record snapshot/);
+    assert.throws(() => restoreKernelRecords(recovered, () => new WasmKernelRecords(), { ...saved, version: 2 as never }), /unsupported kernel record snapshot/);
     assert.throws(() => restoreKernelRecords(recovered, () => new WasmKernelRecords(), {
       ...saved, records: saved.records.filter(row => row.key !== "kernel/state/entities/entity-0000"),
     }));
     assert.deepEqual(capture(recovered), capture(kernel), "missing identity cannot partially replace the recovered world");
     const oldHeader = saved.records.map(row => row.key === "kernel/header"
-      ? { ...row, bytes: Uint8Array.from([3, ...row.bytes.slice(1)]) } : row);
+      ? { ...row, bytes: Uint8Array.from([4, ...row.bytes.slice(1)]) } : row);
     assert.throws(() => restore(recovered, oldHeader));
     assert.deepEqual(capture(recovered), capture(kernel));
   } finally { kernel.free(); recovered.free(); }

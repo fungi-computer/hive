@@ -1,3 +1,4 @@
+import { SEARCH_RECORD_PREFIX, isSearchRecordKey, restoreSearchRecords } from "./search-records";
 /** Opaque bounded capture/restore transport for the native record bundle. */
 
 export interface NativeRecordHandle {
@@ -17,7 +18,7 @@ export interface NativeRecordBinding {
 
 export interface KernelEntitySnapshot {
   readonly format: "hive-kernel";
-  readonly version: 19;
+  readonly version: 20;
   readonly revision: number;
   readonly time: number;
   readonly scene: {
@@ -33,7 +34,7 @@ export interface KernelEntitySnapshot {
 
 export interface KernelRecordSnapshot {
   readonly format: "hive-kernel-records";
-  readonly version: 2;
+  readonly version: 3;
   readonly revision: number;
   readonly time: number;
   readonly records: readonly { readonly key: string; readonly bytes: Uint8Array }[];
@@ -73,6 +74,7 @@ function isFiniteTime(value: unknown): value is number {
 }
 function keyAllowed(key: string): boolean {
   if (key.length === 0 || key.length > MAX_KEY_BYTES || !/^[\x20-\x7e]+$/.test(key)) return false;
+  if (key.startsWith(SEARCH_RECORD_PREFIX)) return isSearchRecordKey(key);
   if (key.startsWith(ENTITY_PREFIX)) {
     const suffix = key.slice(ENTITY_PREFIX.length);
     if (suffix === "root") return true;
@@ -108,6 +110,7 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
   const decoder = new TextDecoder("utf-8", { fatal: true });
   const parsed = JSON.parse(decoder.decode(root.bytes));
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid state root");
+  if (parsed.format !== "hive-kernel" || parsed.version !== 20) throw new Error("unsupported kernel entity snapshot");
   for (const [family, path] of Object.entries(STATE_FAMILIES)) {
     const rows = family === "entities" ? parsed.scene?.initial : parsed[path[0]];
     if (!Array.isArray(rows) || rows.length) throw new Error("state root contains inline rows");
@@ -120,10 +123,11 @@ function decodeEntities(records: readonly { readonly key: string; readonly bytes
       rows.push(row);
     }
   }
+  restoreSearchRecords(parsed, stateRecords);
   const value = parsed as Partial<KernelEntitySnapshot>;
   if (
     value.format !== "hive-kernel" ||
-    value.version !== 19 ||
+    value.version !== 20 ||
     !isSafeRevision(value.revision) ||
     !isFiniteTime(value.time) ||
     !value.scene ||
@@ -210,7 +214,7 @@ export class KernelRecordCapture {
       validateRecordEnvelope(records);
       const removes = this.priorKeys.filter(key => !nextKeys.has(key));
       const snapshot: KernelRecordSnapshot = {
-        format: "hive-kernel-records", version: 2, revision: manifest.revision, time: manifest.time, records,
+        format: "hive-kernel-records", version: 3, revision: manifest.revision, time: manifest.time, records,
       };
       this.records = new Map(records.map(record => [record.key, record]));
       this.priorKeys = manifest.keys;
@@ -220,7 +224,7 @@ export class KernelRecordCapture {
   }
 }
 function validateSnapshot(snapshot: KernelRecordSnapshot): { entities: KernelEntitySnapshot } {
-  if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 2 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
+  if (snapshot.format !== "hive-kernel-records" || snapshot.version !== 3 || !isSafeRevision(snapshot.revision) || !isFiniteTime(snapshot.time) || !Array.isArray(snapshot.records)) throw new Error("unsupported kernel record snapshot");
   const entities = preflightRecords(snapshot.records);
   if (entities.revision !== snapshot.revision || entities.time !== snapshot.time) throw new Error("record metadata does not match entity snapshot");
   return { entities };
@@ -234,7 +238,7 @@ export function captureKernelRecords(binding: NativeRecordBinding): KernelRecord
     if (!Array.isArray(keys)) throw new Error("native record keys are not an array");
     validateKeyList(keys);
     const records = keys.map(key => ({ key, bytes: handle.read(key) }));
-    const provisional = { format: "hive-kernel-records" as const, version: 2 as const, revision: 0, time: 0, records };
+    const provisional = { format: "hive-kernel-records" as const, version: 3 as const, revision: 0, time: 0, records };
     const entities = preflightRecords(records);
     const snapshot = { ...provisional, revision: entities.revision, time: entities.time };
     return snapshot;

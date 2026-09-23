@@ -4107,10 +4107,11 @@ impl Kernel {
         state.work_attempts = self.work_attempts.values().filter_map(|entity| self.ecs.get::<WorkAttempt>(*entity).cloned()).collect();
         serde_json::to_string(&state).map_err(|e| e.to_string())
     }
-    fn snapshot_metadata(&self) -> Snapshot {
+    fn snapshot_metadata(&self) -> Snapshot { self.snapshot_metadata_with_planner(self.planner.clone()) }
+    fn snapshot_metadata_with_planner(&self, planner: PlannerState) -> Snapshot {
         Snapshot {
             format: "hive-kernel".into(),
-            version: 19,
+            version: 20,
             revision: self.revision,
             time: self.time,
             next_lot: self.next_lot,
@@ -4133,7 +4134,7 @@ impl Kernel {
             next_party_sequence: self.next_party_sequence,
             party_bindings: Vec::new(),
             work_attempts: Vec::new(),
-            planner: self.planner.clone(),
+            planner,
             jobs: Vec::new(),
             tasks: Vec::new(),
         }
@@ -4148,7 +4149,7 @@ impl Kernel {
         }
         let state: Snapshot = serde_json::from_str(input).map_err(|e| e.to_string())?;
         if state.format != "hive-kernel"
-            || state.version != 19
+            || state.version != 20
             || !state.time.is_finite()
             || state.time < 0.0
             || state.next_lot == 0

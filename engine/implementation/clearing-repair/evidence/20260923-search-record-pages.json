@@ -1,0 +1,50 @@
+{
+  "date": "2026-09-23",
+  "sourceDependencies": [
+    "805b84d1",
+    "0a18c668",
+    "c2874ff9"
+  ],
+  "formats": {
+    "nativeSnapshot": 20,
+    "nativeRecordHeader": 5,
+    "jsRecordEnvelope": 3
+  },
+  "owner": "Stable search-record heads, 256-node index pages, frontier pages grouped by node index, mutation generation acknowledgement and detached full checkpoint oracle.",
+  "proof": {
+    "rustLibrary": {
+      "passed": 441,
+      "failed": 0,
+      "ignored": 1
+    },
+    "jsRecordAndSession": {
+      "passed": 42,
+      "failed": 0
+    },
+    "wasmRecordsAndTerrain": {
+      "passed": 20,
+      "failed": 0
+    },
+    "unitAdmissionFixture": {
+      "name": "colony-framework-proof-256-100-v1",
+      "steps": 40,
+      "maxChangedBytes": 480295,
+      "maxChangedRecords": 796
+    },
+    "wasmSha256": "74f636752e451605d162107cdbf0ebe53ea46262ae9acfdcae4ca911d1929fa2"
+  },
+  "laws": [
+    "Pending searches recover with unchanged search progress and native snapshot identity.",
+    "Incremental pending-search capture and later page removal equal detached checkpoint bytes.",
+    "Acknowledgement of a prior generation retains subsequent search mutations.",
+    "Local node/frontier edits do not change unrelated page bytes.",
+    "Missing pages, misbound frontier indices and oversized counts are rejected.",
+    "Current callers use current versions; prior envelope/header/entity versions are rejected."
+  ],
+  "limitations": [
+    "Changed-search serialization is bounded by the navigation bank limit; this is not touched-node-only encoding.",
+    "Capacity admission conservatively includes page wrappers and identity allowance; full recovery remains the relational oracle.",
+    "No hosted throughput or worker-capacity claim; the existing 40-step admission unit ran within the WASM suite.",
+    "Pre-existing Rust warnings remain."
+  ]
+}
