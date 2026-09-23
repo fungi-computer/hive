@@ -48,6 +48,14 @@ export type SessionResidentOptions = {
   readonly clockControllerPrincipals?: readonly string[];
   /** Authenticated host resolver; returning null rejects an unbound principal. */
   readonly scopeForPrincipal: (principal: string) => CommandScope | null;
+  /** Read-only, provisional timing for a host proof. The transaction owner decides whether it committed. */
+  readonly onCandidateCost?: (cost: {
+    readonly advanceWallMs: number;
+    readonly captureWallMs: number;
+    readonly recordPuts: number;
+    readonly recordRemoves: number;
+    readonly changedRecordBytes: number;
+  }) => void;
 };
 
 export interface SessionResident {
@@ -182,10 +190,24 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
         const scope = options.scopeForPrincipal(context.principal);
         if (!scope) throw new Error("region-principal-unbound");
         const session = attempt.session;
-        const { results, after } = session.runDisposableCandidate(() => ({
-          results: applyCommand(session, command, context, scope),
-          after: session.captureForCommit(),
-        }));
+        const { results, after, advanceWallMs, captureWallMs } = session.runDisposableCandidate(() => {
+          const advanceStarted = performance.now();
+          const results = applyCommand(session, command, context, scope);
+          const advanceWallMs = performance.now() - advanceStarted;
+          const captureStarted = performance.now();
+          const after = session.captureForCommit();
+          return { results, after, advanceWallMs, captureWallMs: performance.now() - captureStarted };
+        });
+        if (options.onCandidateCost) {
+          options.onCandidateCost({
+            advanceWallMs,
+            captureWallMs,
+            recordPuts: after.changes.puts.length,
+            recordRemoves: after.changes.removes.length,
+            changedRecordBytes: after.changes.puts.reduce((sum, record) =>
+              sum + new TextEncoder().encode(record.key).byteLength + record.bytes.byteLength + 16, 0),
+          });
+        }
         candidate.session = storeSession(after.snapshot).session;
         attempt.provisionalRevision++;
         return {

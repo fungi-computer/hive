@@ -38,6 +38,7 @@ import {
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
+import { createFrameworkCostLedger, type CandidateCost, type SqlCost } from "./framework-cost-ledger";
 import { MAX_KERNEL_RECORDS } from "../../engine/src/runtime/kernel-records";
 
 type Environment = {
@@ -224,6 +225,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     readonly revision: number;
     readonly payload: PublicObservationPayload;
   } | undefined;
+  private proofLedger: ReturnType<typeof createFrameworkCostLedger> | undefined;
+  private activeSqlCost: SqlCost | undefined;
+  private activeCandidateCost: CandidateCost | undefined;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -236,8 +240,31 @@ export class PublicEngineRegion extends DurableObject<Environment> {
           statement: string,
           ...bindings: (SqlStorageValue | Uint8Array)[]
         ) => {
+          const sample = this.activeSqlCost;
+          const started = sample ? performance.now() : 0;
           const cursor = state.storage.sql.exec(statement, ...bindings);
-          return { toArray: () => cursor.toArray() as Row[] };
+          let read = 0, written = 0;
+          const account = () => {
+            if (!sample) return;
+            sample.rowsRead += cursor.rowsRead - read;
+            sample.rowsWritten += cursor.rowsWritten - written;
+            read = cursor.rowsRead;
+            written = cursor.rowsWritten;
+          };
+          if (sample) {
+            sample.statements++;
+            sample.sqlWallMs += performance.now() - started;
+            account();
+          }
+          return { toArray: () => {
+            const readStarted = performance.now();
+            const rows = cursor.toArray() as Row[];
+            if (sample) {
+              sample.sqlWallMs += performance.now() - readStarted;
+              account();
+            }
+            return rows;
+          } };
         },
       },
       transactionSync: (operation) => state.storage.transactionSync(operation),
@@ -282,6 +309,8 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     tokenHash: string,
   ): Promise<void> {
     const game = packFor(pack);
+    this.proofLedger = pack === colonyFrameworkProofGameId
+      ? createFrameworkCostLedger(this.hostEnv.IMPLEMENTATION_HASH) : undefined;
     if (pack === "colony") this.owner.transactionSync(() => {
       this.owner.sql.exec(`CREATE TABLE IF NOT EXISTS hive_public_participants (
         credential_hash TEXT PRIMARY KEY, principal TEXT NOT NULL UNIQUE,
@@ -308,6 +337,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const participant = participantRow(raw);
         return { kind: "player", player: participant.player_id };
       },
+      onCandidateCost: this.proofLedger ? cost => { this.activeCandidateCost = cost; } : undefined,
     });
     this.resident = runtime.resident;
     const program = runtime.program;
@@ -535,6 +565,7 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     payload: PublicObservationPayload,
     attachment: SocketAttachment,
     forceComplete = false,
+    onEncoded?: (bytes: number) => void,
   ): boolean {
     const terrain = payload.observation.terrain;
     const changes = terrain && attachment.terrainRevision !== undefined && attachment.terrainRevision !== terrain.revision
@@ -552,7 +583,9 @@ export class PublicEngineRegion extends DurableObject<Environment> {
     };
     const wirePayload = { ...payload, observation };
     const encoded = JSON.stringify({ type: "observation", ...wirePayload });
-    if (new TextEncoder().encode(encoded).byteLength > MAX_OBSERVATION_BYTES) {
+    const encodedBytes = new TextEncoder().encode(encoded).byteLength;
+    onEncoded?.(encodedBytes);
+    if (encodedBytes > MAX_OBSERVATION_BYTES) {
       try { socket.close(1009, "observation too large"); } catch {}
       return false;
     }
@@ -574,13 +607,28 @@ export class PublicEngineRegion extends DurableObject<Environment> {
 
   private publishObservation(): Promise<void> {
     return this.serial(() => {
-      const payload = this.observationPayload();
-      let failed = false;
-      for (const socket of this.state.getWebSockets()) {
+      const recipients = this.state.getWebSockets().flatMap(socket => {
         const attachment = socket.deserializeAttachment() as SocketAttachment | null;
-        if (!attachment?.authenticated || attachment.pack !== this.pack || attachment.worldHandle !== (this.worldHandle ?? this.tokenHash)) continue;
-        if (!this.sendObservation(socket, payload, attachment)) failed = true;
+        return attachment?.authenticated && attachment.pack === this.pack &&
+          attachment.worldHandle === (this.worldHandle ?? this.tokenHash)
+          ? [{ socket, attachment }] : [];
+      });
+      if (recipients.length === 0) {
+        this.proofLedger?.publication({ revision: this.region.readCommitted().revision,
+          recipients: 0, buildWallMs: 0, sendWallMs: 0, encodedBytes: 0 });
+        return;
       }
+      const buildStarted = performance.now();
+      const payload = this.observationPayload();
+      const buildWallMs = performance.now() - buildStarted;
+      const sendStarted = performance.now();
+      let failed = false;
+      let encodedBytes = 0;
+      for (const { socket, attachment } of recipients) {
+        if (!this.sendObservation(socket, payload, attachment, false, bytes => { encodedBytes += bytes; })) failed = true;
+      }
+      this.proofLedger?.publication({ revision: payload.revision, recipients: recipients.length,
+        buildWallMs, sendWallMs: performance.now() - sendStarted, encodedBytes });
       if (failed) throw new Error("observation publication failed");
     });
   }
@@ -742,6 +790,13 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   }
 
   private async runDueExclusive(now: number): Promise<void> {
+    const sqlCost: SqlCost = { sqlWallMs: 0, rowsRead: 0, rowsWritten: 0, statements: 0 };
+    this.activeSqlCost = this.proofLedger ? sqlCost : undefined;
+    this.activeCandidateCost = undefined;
+    let dueSequence: number | null = null;
+    let alarmLatenessMs = 0;
+    let dispatchWallMs = 0;
+    const transactionStarted = performance.now();
     try {
       let acceptedRevision: number | undefined;
       await this.inTransaction(async () => {
@@ -783,10 +838,14 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         return row;
       }
       const request = JSON.parse(row.due_request_json);
+      dueSequence = row.due_sequence;
+      alarmLatenessMs = Math.max(0, now - dueDeadline);
+      const dispatchStarted = performance.now();
       this.region.dispatchOccurrence(`${this.pack}-host`, {
         sequence: row.due_sequence,
         request,
       });
+      dispatchWallMs = performance.now() - dispatchStarted;
       const next = advanceClockOccurrence(row.due_sequence, dueDeadline, Date.now());
       this.owner.sql.exec(
         "UPDATE hive_public_host SET next_sequence=?,due_sequence=?,due_request_json=?,due_deadline_ms=? WHERE singleton=1",
@@ -808,9 +867,18 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       return row;
       });
       if (acceptedRevision !== undefined) this.resident.accept(acceptedRevision);
+      if (this.proofLedger && dueSequence !== null && acceptedRevision !== undefined && this.activeCandidateCost) {
+        this.proofLedger.step({ sequence: dueSequence, revision: acceptedRevision,
+          alarmLatenessMs, dispatchWallMs, transactionWallMs: performance.now() - transactionStarted,
+          ...this.activeCandidateCost, ...sqlCost });
+      }
     } catch (error) {
       try { this.resident.discard(); } catch {}
+      if (this.proofLedger) this.proofLedger.failure(dueSequence, error);
       throw error;
+    } finally {
+      this.activeSqlCost = undefined;
+      this.activeCandidateCost = undefined;
     }
   }
 
