@@ -407,6 +407,51 @@ mod work_attempt_laws {
     }
 
     #[test]
+    fn player_owned_lot_split_preserves_both_owners_through_restore_and_rejects_foreign_player() {
+        let mut kernel = Kernel::new();
+        kernel.load(&json!({"format":"hive-game","version":3,"game":"attempts","components":[],"materialCatalog":[],"initial":[
+            {"id":"task","components":{"hive.owned-by-party":{"party":"party"},"hive.work-execution":{"pool":"party","initiatingPlayer":null,"policyId":"test"}}},
+            {"id":"worker","components":{"hive.party-member":{"party":"party"},"hive.body":{"speed":1.0},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0},"hive.container":{"capacity":8}}},
+            {"id":"party","components":{"hive.party":{},"hive.owned-by":{"player":"player"}}},
+            {"id":"other-party","components":{"hive.party":{},"hive.owned-by":{"player":"other-player"}}},
+            {"id":"destination","components":{"hive.owned-by-party":{"party":"party"},"hive.container":{"capacity":8},"hive.position":{"x":0.0,"y":0.0,"z":0.0,"facing":0.0}}},
+            {"id":"lot","components":{"hive.owned-by":{"player":"player"},"hive.owned-by-party":{"party":"party"},"hive.lot":{"kind":"wood","quantity":8,"container":"worker"}}}
+        ]}).to_string()).unwrap();
+        let begin: Value = serde_json::from_str(&kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"begin-work-attempt","task":"task","worker":"worker","operation":{"kind":"route","destination":{"x":0.0,"y":0.0,"z":0.0,"frame":null}}}}]}).to_string()).unwrap()).unwrap();
+        let generation = begin["results"][0]["attempt"]["generation"].as_u64().unwrap();
+        kernel.advance_json(&json!({"delta":1,"writes":[],"actions":[]}).to_string()).unwrap();
+
+        let transfer = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"other-player"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]});
+        let before_attempts = kernel.work_attempts_json("[\"task\"]").unwrap();
+        let rejected: Value = serde_json::from_str(&kernel.advance_json(&transfer.to_string()).unwrap()).unwrap();
+        assert_eq!(rejected["results"][0]["accepted"], false);
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().quantity, 8);
+        assert_eq!(kernel.ecs.get::<Lot>(kernel.entity("lot").unwrap()).unwrap().container, "worker");
+        assert_eq!(kernel.work_attempts_json("[\"task\"]").unwrap(), before_attempts);
+
+        let transfer = json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"player","player":"player"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-transfer","lot":"lot","from":"worker","to":"destination","quantity":1}}}]});
+        let accepted: Value = serde_json::from_str(&kernel.advance_json(&transfer.to_string()).unwrap()).unwrap();
+        assert_eq!(accepted["results"][0]["accepted"], true, "{accepted}");
+        let lots: Vec<_> = kernel.ecs.query::<(&ExternalId, &Lot, &OwnedBy, &OwnedByParty)>().iter(&kernel.ecs)
+            .map(|(id, lot, player, party)| (id.0.clone(), lot.clone(), player.clone(), party.clone())).collect();
+        assert_eq!(lots.iter().map(|(_, lot, _, _)| u64::from(lot.quantity)).sum::<u64>(), 8);
+        assert_eq!(lots.len(), 2);
+        assert!(lots.iter().all(|(_, _, owner, party)| owner.player == "player" && party.party == "party"));
+        assert_eq!(lots.iter().find(|(_, lot, _, _)| lot.container == "destination").unwrap().1.quantity, 1);
+        assert_eq!(lots.iter().find(|(_, lot, _, _)| lot.container == "worker").unwrap().1.quantity, 7);
+
+        let saved = kernel.save_records().unwrap();
+        let mut restored = Kernel::new();
+        restored.restore_records(&saved).unwrap();
+        assert_eq!(restored.state_weight, kernel.state_weight);
+        let restored_lots: Vec<_> = restored.ecs.query::<(&Lot, &OwnedBy, &OwnedByParty)>().iter(&restored.ecs).collect();
+        assert_eq!(restored_lots.iter().map(|(lot, _, _)| u64::from(lot.quantity)).sum::<u64>(), 8);
+        assert_eq!(restored_lots.len(), 2);
+        assert!(restored_lots.iter().all(|(_, owner, party)| owner.player == "player" && party.party == "party"));
+        assert_eq!(restored.work_attempts_json("[\"task\"]").unwrap(), kernel.work_attempts_json("[\"task\"]").unwrap());
+    }
+
+    #[test]
     fn material_drop_is_exactly_once_and_stale_replay_cannot_duplicate_ground_custody() {
         let (mut kernel, generation) = material_kernel(8, 0.0, 1);
         let result = kernel.advance_json(&json!({"delta":0,"writes":[],"actions":[{"scope":{"kind":"host"},"request":{"kind":"continue-work-attempt","task":"task","generation":generation,"sequence":1,"nextActivity":{"kind":"material-drop","lot":"lot"}}}]}).to_string()).unwrap();
@@ -6921,6 +6966,7 @@ impl Kernel {
         }
         self.contact(source, dest)?;
         let current_water = self.ecs.get::<LotWater>(e).map(|water| water.water_kg);
+        let player_owner = self.ecs.get::<OwnedBy>(e).cloned();
         let owner = self.ecs.get::<OwnedByParty>(e).cloned();
         let moved_water = current_water.map(|water| {
             if quantity == stock.quantity { water } else { water * f64::from(quantity) / f64::from(stock.quantity) }
@@ -6957,6 +7003,7 @@ impl Kernel {
             let extra_water = if moved_retains_identity { remainder_water } else { moved_water }
                 .map(|water| LotWater { water_kg: water });
             let extra = id.len() + 128 + self.registry.weight("hive.lot", &record(&extra_lot))
+                + player_owner.as_ref().map(|value| self.registry.weight("hive.owned-by", &record(value))).unwrap_or(0)
                 + owner.as_ref().map(|value| self.registry.weight("hive.owned-by-party", &record(value))).unwrap_or(0)
                 + extra_water.as_ref().map(|water| self.registry.weight("hive.lot-water", &record(water))).unwrap_or(0);
             if self.state_weight + extra > STATE_BYTES {
@@ -6967,6 +7014,9 @@ impl Kernel {
             } else {
                 self.ecs.spawn((ExternalId(id.clone()), extra_lot)).id()
             };
+            if let Some(owner) = player_owner.clone() {
+                self.ecs.entity_mut(remainder).insert(owner);
+            }
             if let Some(owner) = owner.clone() {
                 self.ecs.entity_mut(remainder).insert(owner);
             } else if !moved_retains_identity
