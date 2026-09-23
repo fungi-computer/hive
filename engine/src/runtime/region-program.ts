@@ -48,14 +48,14 @@ export type SessionResidentOptions = {
   readonly clockControllerPrincipals?: readonly string[];
   /** Authenticated host resolver; returning null rejects an unbound principal. */
   readonly scopeForPrincipal: (principal: string) => CommandScope | null;
-  /** Read-only, provisional timing for a host proof. The transaction owner decides whether it committed. */
-  readonly onCandidateCost?: (cost: {
-    readonly advanceWallMs: number;
-    readonly captureWallMs: number;
-    readonly recordPuts: number;
-    readonly recordRemoves: number;
-    readonly changedRecordBytes: number;
-  }) => void;
+};
+
+export type SessionCandidateCost = {
+  readonly advanceWallMs: number;
+  readonly captureWallMs: number;
+  readonly recordPuts: number;
+  readonly recordRemoves: number;
+  readonly changedRecordBytes: number;
 };
 
 export interface SessionResident {
@@ -63,6 +63,8 @@ export interface SessionResident {
   readonly begin: (revision: number, state: SessionRegionState, records: RegionRecordReader) => void;
   readonly execute: (candidate: SessionRegionState, command: RegionCommand, records: RegionRecordReader, baseRevision: number, context: RegionExecutionContext) => RegionTransition;
   readonly accept: (revision: number) => void;
+  /** Diagnostics leave the owner only after a committed candidate is accepted. */
+  readonly takeCandidateCost: () => SessionCandidateCost | undefined;
   readonly discard: () => void;
   readonly dispose: () => void;
   readonly observe: <T>(revision: number, state: SessionRegionState, records: RegionRecordReader, use: (session: GameSession) => T) => T;
@@ -108,6 +110,7 @@ function applyCommand(session: GameSession, command: RegionCommand, context: Reg
 function createSessionResident(options: SessionResidentOptions): SessionResident {
   let accepted: { revision: number; session: GameSession; port: KernelPort } | undefined;
   let attempt: { provisionalRevision: number; session: GameSession; port: KernelPort } | undefined;
+  let candidateCost: SessionCandidateCost | undefined;
   const make = (snapshot: SessionSnapshot) => {
     const port = options.createKernel();
     try {
@@ -131,11 +134,13 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
     entry.port.dispose();
   };
   const discardAttempt = () => {
+    candidateCost = undefined;
     const doomed = attempt;
     attempt = undefined;
     disposeEntry(doomed);
   };
   const detachEntries = () => {
+    candidateCost = undefined;
     // Detach every entry before calling user/native cleanup. A trapped native
     // destructor must not leave a poisoned resident available for reuse.
     const doomed = [attempt, accepted];
@@ -198,16 +203,14 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
           const after = session.captureForCommit();
           return { results, after, advanceWallMs, captureWallMs: performance.now() - captureStarted };
         });
-        if (options.onCandidateCost) {
-          options.onCandidateCost({
-            advanceWallMs,
-            captureWallMs,
-            recordPuts: after.changes.puts.length,
-            recordRemoves: after.changes.removes.length,
-            changedRecordBytes: after.changes.puts.reduce((sum, record) =>
-              sum + new TextEncoder().encode(record.key).byteLength + record.bytes.byteLength + 16, 0),
-          });
-        }
+        candidateCost = {
+          advanceWallMs,
+          captureWallMs,
+          recordPuts: after.changes.puts.length,
+          recordRemoves: after.changes.removes.length,
+          changedRecordBytes: after.changes.puts.reduce((sum, record) =>
+            sum + new TextEncoder().encode(record.key).byteLength + record.bytes.byteLength + 16, 0),
+        };
         candidate.session = storeSession(after.snapshot).session;
         attempt.provisionalRevision++;
         return {
@@ -229,6 +232,12 @@ function createSessionResident(options: SessionResidentOptions): SessionResident
       }
       accepted = { revision, session: attempt.session, port: attempt.port };
       attempt = undefined;
+    },
+    takeCandidateCost() {
+      if (attempt) throw new Error("resident-attempt-active");
+      const cost = candidateCost;
+      candidateCost = undefined;
+      return cost;
     },
     discard() {
       invalidate();

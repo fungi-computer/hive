@@ -38,7 +38,7 @@ import {
 import wasmBytes from "../../engine/generated/hive_kernel_bg.wasm";
 import { createPublicationQueue } from "./publication-queue";
 import { advanceClockOccurrence } from "./clock-schedule";
-import { createFrameworkCostLedger, type CandidateCost, type SqlCost } from "./framework-cost-ledger";
+import { createFrameworkCostLedger, type SqlCost } from "./framework-cost-ledger";
 import { MAX_KERNEL_RECORDS } from "../../engine/src/runtime/kernel-records";
 
 type Environment = {
@@ -227,7 +227,6 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   } | undefined;
   private proofLedger: ReturnType<typeof createFrameworkCostLedger> | undefined;
   private activeSqlCost: SqlCost | undefined;
-  private activeCandidateCost: CandidateCost | undefined;
 
   constructor(
     private readonly state: DurableObjectState,
@@ -337,7 +336,6 @@ export class PublicEngineRegion extends DurableObject<Environment> {
         const participant = participantRow(raw);
         return { kind: "player", player: participant.player_id };
       },
-      onCandidateCost: this.proofLedger ? cost => { this.activeCandidateCost = cost; } : undefined,
     });
     this.resident = runtime.resident;
     const program = runtime.program;
@@ -792,7 +790,6 @@ export class PublicEngineRegion extends DurableObject<Environment> {
   private async runDueExclusive(now: number): Promise<void> {
     const sqlCost: SqlCost = { sqlWallMs: 0, rowsRead: 0, rowsWritten: 0, statements: 0 };
     this.activeSqlCost = this.proofLedger ? sqlCost : undefined;
-    this.activeCandidateCost = undefined;
     let dueSequence: number | null = null;
     let alarmLatenessMs = 0;
     let dispatchWallMs = 0;
@@ -867,10 +864,11 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       return row;
       });
       if (acceptedRevision !== undefined) this.resident.accept(acceptedRevision);
-      if (this.proofLedger && dueSequence !== null && acceptedRevision !== undefined && this.activeCandidateCost) {
+      const candidateCost = this.resident.takeCandidateCost();
+      if (this.proofLedger && dueSequence !== null && acceptedRevision !== undefined && candidateCost) {
         this.proofLedger.step({ sequence: dueSequence, revision: acceptedRevision,
           alarmLatenessMs, dispatchWallMs, transactionWallMs: performance.now() - transactionStarted,
-          ...this.activeCandidateCost, ...sqlCost });
+          ...candidateCost, ...sqlCost });
       }
     } catch (error) {
       try { this.resident.discard(); } catch {}
@@ -878,7 +876,6 @@ export class PublicEngineRegion extends DurableObject<Environment> {
       throw error;
     } finally {
       this.activeSqlCost = undefined;
-      this.activeCandidateCost = undefined;
     }
   }
 
