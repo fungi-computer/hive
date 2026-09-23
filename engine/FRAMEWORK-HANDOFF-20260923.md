@@ -112,11 +112,19 @@ newer branch exists. A Git preservation anchor can retain all committed branch
 tips without promoting them into the active integration history; dirty bytes
 require a separate exact snapshot.
 
-The disk audit found only about 3.4 GB free on a 75 GB filesystem. The most
-obvious rebuildable Hive outputs are the active integration Cargo `target`
-(~3.2 GB) and a temporary state-accounting test target (~1.3 GB). Recheck
-process ownership before removing either. Keep `.botanical` proof archives,
-the original art and all source worktrees; those are evidence, not generic
-cache. The two long-lived Cloudflare tunnels observed on this host belong to
-Botanical, not Hive. No Hive tunnel or Hive dev server was found at the audit
-time.
+The active integration branch is pushed to `origin`. The preservation branch
+`archive/hive-preservation-20260923` is also pushed: its Git ancestry retains
+all 87 worktree commit tips, and its tree contains exact snapshots of 154
+non-ignored dirty source files, the two stages of the old unresolved index
+entry, and 16 raw framework proof ledgers. The manifest records original paths
+and SHA-256 hashes. This is a recovery anchor, not an accepted merge of those
+lanes. The old dirty worktrees remain in place. Other ignored `.botanical`
+proof archives remain local and should not be swept without separate custody.
+
+The disk audit initially found about 3.4 GB free on a 75 GB filesystem. After
+confirming no Rust build or proof process was active, the integration worktree's
+rebuildable Cargo `target` was removed; the temporary state-accounting target
+had already disappeared. Free space was 7.5 GB afterward. The original art,
+source worktrees and `.botanical` proof archives were preserved. The two
+long-lived Cloudflare tunnels observed on this host belong to Botanical, not
+Hive. No Hive tunnel or Hive dev server was found at the audit time.
